@@ -2100,6 +2100,81 @@ def _cmd_council(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cmd_schedule(args: argparse.Namespace) -> int:
+    """Recurring autonomy tasks: add / list / remove / due / run.
+
+    The due computation is deterministic; running owner-gated kinds
+    (autoresearch / sia) requires the owner authorization phrase via ``--phrase``.
+    """
+    from hermes_cli.jarvis_prime.scheduler import Scheduler, default_runner
+
+    sched = Scheduler()
+    op = args.schedule_command
+
+    if op == "add":
+        kwargs: dict = {}
+        if getattr(args, "rounds", None) is not None:
+            kwargs["rounds"] = args.rounds
+        try:
+            task = sched.add(args.kind, args.every, **kwargs)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if getattr(args, "json", False):
+            _print_json(task.to_dict())
+        else:
+            print(f"added {task.id} ({task.kind}, every {task.interval_seconds}s)")
+        return 0
+
+    if op == "list":
+        tasks = sched.tasks()
+        if getattr(args, "json", False):
+            _print_json([t.to_dict() for t in tasks])
+            return 0
+        for t in tasks:
+            flag = "on " if t.enabled else "off"
+            gate = " owner-gated" if t.owner_gated else ""
+            print(f"  [{flag}] {t.id}  {t.kind}  every {t.interval_seconds}s  last={t.last_run or '—'}{gate}")
+        if not tasks:
+            print("  (no scheduled tasks)")
+        return 0
+
+    if op == "remove":
+        ok = sched.remove(args.id)
+        print("removed" if ok else "not found")
+        return 0 if ok else 1
+
+    if op == "due":
+        due = sched.due()
+        if getattr(args, "json", False):
+            _print_json([t.to_dict() for t in due])
+            return 0
+        for t in due:
+            print(f"  {t.id}  {t.kind}")
+        if not due:
+            print("  (nothing due)")
+        return 0
+
+    if op == "run":
+        allow = False
+        if getattr(args, "phrase", None):
+            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+            allow = args.phrase.strip() == AUTHORIZATION_PHRASE
+        results = sched.run_due(runner=default_runner(allow_owner_gated=allow))
+        if getattr(args, "json", False):
+            _print_json(results)
+            return 0
+        for r in results:
+            print(f"  {r['id']} {r['kind']}: {r['output']}")
+        if not results:
+            print("  (nothing due)")
+        return 0
+
+    print(f"error: unknown schedule op {op!r}", file=sys.stderr)
+    return 2
+
+
 def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.model_scorecard import (
         ModelScorecard,
@@ -3640,6 +3715,41 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_council_dispatch.add_argument("--json", action="store_true")
     p_council_dispatch.set_defaults(func=_cmd_council)
+
+    # schedule — recurring autonomy tasks (forge / autoresearch / sia).
+    p_sched = sub.add_parser(
+        "schedule",
+        help="Recurring autonomy tasks: add / list / remove / due / run",
+        description=(
+            "Register recurring tasks (forge tournaments, autoresearch, SIA) and "
+            "compute which are due. 'run' executes due tasks; owner-gated kinds "
+            "(autoresearch / sia) require the owner phrase via --phrase."
+        ),
+    )
+    p_sched_sub = p_sched.add_subparsers(dest="schedule_command", required=True)
+    p_sched_add = p_sched_sub.add_parser("add", help="Register a recurring task")
+    p_sched_add.add_argument(
+        "--kind", required=True, choices=["forge-tournament", "autoresearch", "sia"]
+    )
+    p_sched_add.add_argument("--every", type=int, required=True, help="Interval in seconds")
+    p_sched_add.add_argument("--rounds", type=int, default=None, help="forge-tournament rounds")
+    p_sched_add.add_argument("--json", action="store_true")
+    p_sched_add.set_defaults(func=_cmd_schedule)
+    p_sched_list = p_sched_sub.add_parser("list", help="List scheduled tasks")
+    p_sched_list.add_argument("--json", action="store_true")
+    p_sched_list.set_defaults(func=_cmd_schedule)
+    p_sched_remove = p_sched_sub.add_parser("remove", help="Remove a task by id")
+    p_sched_remove.add_argument("id")
+    p_sched_remove.set_defaults(func=_cmd_schedule)
+    p_sched_due = p_sched_sub.add_parser("due", help="List tasks due now")
+    p_sched_due.add_argument("--json", action="store_true")
+    p_sched_due.set_defaults(func=_cmd_schedule)
+    p_sched_run = p_sched_sub.add_parser(
+        "run", help="Run all due tasks (owner-gated kinds need --phrase)"
+    )
+    p_sched_run.add_argument("--phrase", help="Owner authorization phrase for owner-gated kinds")
+    p_sched_run.add_argument("--json", action="store_true")
+    p_sched_run.set_defaults(func=_cmd_schedule)
 
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(
