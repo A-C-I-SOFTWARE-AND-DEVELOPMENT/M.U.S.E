@@ -8,6 +8,24 @@ import type {
 import { DEFAULT_PRESET, VERTEX_PRESETS } from '@/lib/vertices';
 import { balancedWeights } from '@/lib/steering';
 import { defaultGateConfig } from '@/lib/fusion';
+import type { FusionDef, FusionRun } from '@/lib/fusionTypes';
+
+const FUSION_LS = 'nexus.fusion.v1';
+function loadFusion(): { saved: FusionDef[]; history: FusionRun[]; favorites: string[] } {
+  try {
+    const s = JSON.parse(localStorage.getItem(FUSION_LS) ?? '{}');
+    return { saved: s.saved ?? [], history: s.history ?? [], favorites: s.favorites ?? [] };
+  } catch {
+    return { saved: [], history: [], favorites: [] };
+  }
+}
+function persistFusion(s: { saved: FusionDef[]; history: FusionRun[]; favorites: string[] }) {
+  try {
+    localStorage.setItem(FUSION_LS, JSON.stringify({ saved: s.saved, history: s.history.slice(0, 100), favorites: s.favorites }));
+  } catch {
+    /* ignore */
+  }
+}
 
 export interface SteeringProfile {
   id: string;
@@ -34,6 +52,11 @@ interface NexusState {
   wallpaper: boolean;
   observatoryDemo: boolean;
 
+  // Fusion Gate: saved fusions, run history, favorites.
+  savedFusions: FusionDef[];
+  fusionHistory: FusionRun[];
+  fusionFavorites: string[];
+
   setPreset: (key: string) => void;
   setActiveProfile: (id: string) => void;
   addProfile: (name: string) => void;
@@ -47,6 +70,11 @@ interface NexusState {
 
   setWallpaper: (v: boolean) => void;
   setObservatoryDemo: (v: boolean) => void;
+
+  saveFusion: (f: FusionDef) => void;
+  deleteFusion: (id: string) => void;
+  toggleFusionFavorite: (id: string) => void;
+  addFusionRun: (r: FusionRun) => void;
 }
 
 const initialProfile: SteeringProfile = {
@@ -71,6 +99,11 @@ export const useNexusStore = create<NexusState>((set) => ({
   wallpaper:
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('wallpaper') === '1',
   observatoryDemo: false,
+
+  ...(() => {
+    const f = typeof localStorage !== 'undefined' ? loadFusion() : { saved: [], history: [], favorites: [] };
+    return { savedFusions: f.saved, fusionHistory: f.history, fusionFavorites: f.favorites };
+  })(),
 
   setPreset: (key) =>
     set(() => ({
@@ -125,6 +158,38 @@ export const useNexusStore = create<NexusState>((set) => ({
 
   setWallpaper: (wallpaper) => set({ wallpaper }),
   setObservatoryDemo: (observatoryDemo) => set({ observatoryDemo }),
+
+  saveFusion: (f) =>
+    set((s) => {
+      const saved = [f, ...s.savedFusions.filter((x) => x.id !== f.id)];
+      const next = { saved, history: s.fusionHistory, favorites: s.fusionFavorites };
+      persistFusion(next);
+      return { savedFusions: saved };
+    }),
+
+  deleteFusion: (id) =>
+    set((s) => {
+      const saved = s.savedFusions.filter((x) => x.id !== id);
+      const favorites = s.fusionFavorites.filter((x) => x !== id);
+      persistFusion({ saved, history: s.fusionHistory, favorites });
+      return { savedFusions: saved, fusionFavorites: favorites };
+    }),
+
+  toggleFusionFavorite: (id) =>
+    set((s) => {
+      const favorites = s.fusionFavorites.includes(id)
+        ? s.fusionFavorites.filter((x) => x !== id)
+        : [...s.fusionFavorites, id];
+      persistFusion({ saved: s.savedFusions, history: s.fusionHistory, favorites });
+      return { fusionFavorites: favorites };
+    }),
+
+  addFusionRun: (r) =>
+    set((s) => {
+      const history = [r, ...s.fusionHistory].slice(0, 100);
+      persistFusion({ saved: s.savedFusions, history, favorites: s.fusionFavorites });
+      return { fusionHistory: history };
+    }),
 }));
 
 // Helper for default neutral display.

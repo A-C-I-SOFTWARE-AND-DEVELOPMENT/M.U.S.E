@@ -7,7 +7,13 @@ import { fileURLToPath, URL } from 'node:url';
 // NEXUS PWA build config.
 // vite-plugin-pwa wires Workbox: offline app shell + runtime caching for the
 // M.U.S.E. API (network-first so live data wins, cached shell as fallback).
+// NEXUS_BASE lets a subpath deploy (GitHub Pages at /M.U.S.E/) build correctly;
+// root deploys (Vercel) leave it at '/'.
+const base = process.env.NEXUS_BASE || '/';
+const hash = base !== '/' ? '#' : ''; // HashRouter URLs under a subpath
+
 export default defineConfig({
+  base,
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -20,13 +26,15 @@ export default defineConfig({
         name: 'NEXUS — Agent Command Console',
         short_name: 'NEXUS',
         description:
-          'Unified command center for Antigravity, Google AI Studio, and M.U.S.E. agents.',
+          'Unified, live command center for M.U.S.E. — orchestration, the steering octagon, the Axiom Gate, and the Neural Observatory.',
         theme_color: '#0A0E14',
         background_color: '#0A0E14',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
+        id: base,
+        categories: ['productivity', 'developer', 'utilities'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -37,6 +45,19 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // App shortcuts (long-press the home-screen icon).
+        shortcuts: [
+          { name: 'Steer', short_name: 'Steer', url: `${base}${hash}/steer`, icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Axiom Gate', short_name: 'Axiom', url: `${base}${hash}/axiom`, icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Observatory', short_name: 'Observatory', url: `${base}${hash}/observatory`, icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Wallpaper', short_name: 'Wallpaper', url: `${base}${hash}/observatory?wallpaper=1`, icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+        ],
+        // Share-sheet target: "Send to M.U.S.E." → opens a goal composer.
+        share_target: {
+          action: `${base}${hash}/share`,
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
       },
       workbox: {
         navigateFallback: '/index.html',

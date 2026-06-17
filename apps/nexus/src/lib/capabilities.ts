@@ -82,6 +82,8 @@ export const CAPABILITIES: Capability[] = [
   { id: 'orchestrate', title: 'Goal → PR Orchestration', blurb: 'Decompose a goal into a validated task graph run by specialist workers; publish the result.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'panel', panel: 'orchestrate' }, endpoint: '/v1/cockpit/orchestrate', doc: 'docs/orchestration/README.md' },
   { id: 'jobs', title: 'Jobs & Task Graph', blurb: 'Live jobs, lanes, task trees, diffs, approve / pause / resume / cancel / publish.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'panel', panel: 'orchestrate' }, endpoint: '/v1/cockpit/jobs' },
   { id: 'council', title: 'AOS Enterprise Council', blurb: '233 routed agent roles for audits, hardening, launch readiness, multi-perspective review.', plane: 'orchestration', accent: '#3DD68C', surface: { kind: 'tab', to: '/agents' }, doc: 'skills/aos-enterprise-council/' },
+  { id: 'fleet', title: 'The Fleet', blurb: 'Massive 1-minute siloed fan-out: decompose a goal into N verifiable tasks, budget-capped, kill-switch, live galaxy mirror.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'tab', to: '/fleet' } },
+  { id: 'forge', title: 'The Forge', blurb: 'Per-agent knowledge + specialization: knowledge packs (RAG), QLoRA adapters, persona/steering. Scope what an agent knows.', plane: 'intelligence', accent: '#C264FE', surface: { kind: 'tab', to: '/forge' }, endpoint: '/v1/cockpit/learning' },
 
   // ---- Governance & Gates ----
   { id: 'gates', title: 'Eight Verification Gates', blurb: 'Planning · Build · Review · Test · Security · Release · Owner · Rollback — fused & attested in the Axiom Gate.', plane: 'governance', accent: '#FF6B8A', surface: { kind: 'tab', to: '/axiom' }, doc: 'docs/jarvis-verification-gates.md' },
@@ -100,6 +102,8 @@ export const CAPABILITIES: Capability[] = [
   { id: 'architecture', title: 'Architecture Map', blurb: 'Machine-readable component registry (with drift test), dataflow diagrams, work-packet/remote-worker schemas, tech-disposition matrix.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'panel', panel: 'info' }, doc: 'docs/architecture/README.md' },
 
   // ---- Surfaces & Tooling ----
+  { id: 'chat', title: 'Unified Provider Chat', blurb: 'Chat with Claude / GPT / Gemini / OpenRouter / local through one local OpenAI-compatible gateway (official APIs, your keys).', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/chat' }, doc: 'apps/nexus/server/README.md' },
+  { id: 'fusion', title: 'Fusion Gate', blurb: 'Mixture-of-Agents: route / ensemble / pipeline / graph across providers, synthesized + AXIOM-attested. Presets, describe→recommend, favorites, history.', plane: 'intelligence', accent: '#C264FE', surface: { kind: 'tab', to: '/fusion' } },
   { id: 'steer', title: 'Agent Optimization Control', blurb: 'The octagon — real-time inference steering, mapped to the model-routing layer.', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/steer' } },
   { id: 'skills', title: 'Skills System', blurb: 'Procedural memory: Markdown playbooks, the Skills Hub, the /<skill-name> slash invocation.', plane: 'surfaces', accent: '#3DD68C', surface: { kind: 'panel', panel: 'skills' }, endpoint: '/v1/cockpit/skills' },
   { id: 'commands', title: 'Command Palette', blurb: 'Run MUSE slash commands — /orchestrate, /swarm, /model, /jarvis, /personality, and more.', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'panel', panel: 'commands' } },
