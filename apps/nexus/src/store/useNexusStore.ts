@@ -1,7 +1,13 @@
 import { create } from 'zustand';
-import type { SteeringVector, VertexDef } from '@/lib/types';
+import type {
+  FusionStrategy,
+  GateConfig,
+  SteeringVector,
+  VertexDef,
+} from '@/lib/types';
 import { DEFAULT_PRESET, VERTEX_PRESETS } from '@/lib/vertices';
 import { balancedWeights } from '@/lib/steering';
+import { defaultGateConfig } from '@/lib/fusion';
 
 export interface SteeringProfile {
   id: string;
@@ -19,11 +25,21 @@ interface NexusState {
   activeProfileId: string;
   lastVector: SteeringVector | null;
 
+  // Axiom Gate / fusion state (persists across tab switches).
+  fusionStrategy: FusionStrategy;
+  gateConfig: GateConfig;
+  sourceContrib: Record<string, number>;
+
   setPreset: (key: string) => void;
   setActiveProfile: (id: string) => void;
   addProfile: (name: string) => void;
   toggleLock: (id: string) => void;
   emitVector: (v: SteeringVector) => void;
+
+  setFusionStrategy: (s: FusionStrategy) => void;
+  toggleGate: (key: keyof GateConfig['enforced']) => void;
+  setOwnerApproved: (v: boolean) => void;
+  setSourceContrib: (id: string, value: number) => void;
 }
 
 const initialProfile: SteeringProfile = {
@@ -40,6 +56,10 @@ export const useNexusStore = create<NexusState>((set) => ({
   profiles: [initialProfile],
   activeProfileId: 'default',
   lastVector: null,
+
+  fusionStrategy: 'weighted-mean',
+  gateConfig: defaultGateConfig(),
+  sourceContrib: {},
 
   setPreset: (key) =>
     set(() => ({
@@ -75,6 +95,22 @@ export const useNexusStore = create<NexusState>((set) => ({
         p.id === v.profileId ? { ...p, vector: v } : p,
       ),
     })),
+
+  setFusionStrategy: (fusionStrategy) => set({ fusionStrategy }),
+
+  toggleGate: (key) =>
+    set((s) => ({
+      gateConfig: {
+        ...s.gateConfig,
+        enforced: { ...s.gateConfig.enforced, [key]: !s.gateConfig.enforced[key] },
+      },
+    })),
+
+  setOwnerApproved: (v) =>
+    set((s) => ({ gateConfig: { ...s.gateConfig, ownerApproved: v } })),
+
+  setSourceContrib: (id, value) =>
+    set((s) => ({ sourceContrib: { ...s.sourceContrib, [id]: value } })),
 }));
 
 // Helper for default neutral display.

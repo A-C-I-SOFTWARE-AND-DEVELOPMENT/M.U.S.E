@@ -40,6 +40,13 @@
   --radius: 16px;
   --radius-sm: 10px;
   --tab-h: 64px;
+
+  /* Apple/Google-grade motion + elevation tokens */
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -70,13 +77,35 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Glass panel primitive */
+/* Glass panel primitive — layered hairline + soft elevation for depth. */
 .glass {
-  background: var(--panel);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)) ,
+    var(--panel);
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+/* Tactile press feedback for any interactive surface. */
+button,
+[role='button'],
+a {
+  transition: transform 120ms var(--ease-standard), opacity 120ms var(--ease-standard);
+}
+button:active,
+[role='button']:active {
+  transform: scale(0.97);
+}
+
+/* Visible, on-brand focus ring for keyboard users (accessibility). */
+:focus-visible {
+  outline: 2px solid var(--octa-glow);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .hud-label {
@@ -144,4 +173,16 @@ button {
 }
 .nexus-range:disabled {
   opacity: 0.4;
+}
+
+/* Honor reduced-motion: kill transforms/animation distance, keep opacity. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

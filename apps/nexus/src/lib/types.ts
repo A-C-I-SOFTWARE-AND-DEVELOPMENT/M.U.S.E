@@ -76,6 +76,65 @@ export interface AgentSurface {
   applySteering?(agentId: string, v: SteeringVector): Promise<void>; // muse only for now
 }
 
+// ---- Axiom Gate (fusion + verification) -----------------------------------
+// "Intelligence proposes; the verifier disposes." Multiple steering sources are
+// FUSED into one vector, then run through MUSE's verification gates. Only an
+// attested (all-enforced-gates-pass) vector reaches the model router.
+
+export type FusionStrategy =
+  | 'weighted-mean'
+  | 'max-axis'
+  | 'owner-priority'
+  | 'geometric';
+
+export type FusionSourceKind = 'profile' | 'agent' | 'baseline' | 'manual';
+
+export interface FusionSource {
+  id: string;
+  label: string;
+  kind: FusionSourceKind;
+  weights: WeightVector;
+  /** Relative contribution to the fusion, 0..1 (normalized across sources). */
+  contribution: number;
+}
+
+export type AxiomGateKey =
+  | 'planning'
+  | 'build'
+  | 'review'
+  | 'test'
+  | 'security'
+  | 'release'
+  | 'owner'
+  | 'rollback';
+
+export type GateStatus = 'pass' | 'fail' | 'warn' | 'skipped';
+
+export interface GateVerdict {
+  key: AxiomGateKey;
+  label: string;
+  status: GateStatus;
+  detail: string;
+  enforced: boolean;
+}
+
+export interface FusionResult {
+  fused: WeightVector;
+  dominant: VertexKey | null;
+  glowState: GlowState;
+  inference: InferenceParams;
+  gates: GateVerdict[];
+  verdict: 'attested' | 'blocked' | 'pending-owner';
+  /** Content-address of the canonical fused form (null until attested). */
+  attestation: string | null;
+  timestamp: number;
+}
+
+export interface GateConfig {
+  enforced: Record<AxiomGateKey, boolean>;
+  ownerApproved: boolean;
+}
+
 export interface ActivityEvent {
   id: string;
   surface: SurfaceKind;

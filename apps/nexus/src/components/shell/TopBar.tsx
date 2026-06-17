@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 const TITLES: Record<string, string> = {
   '/': 'CONSOLE',
   '/steer': 'AGENT OPTIMIZATION CONTROL',
+  '/axiom': 'AXIOM GATE · FUSION',
   '/agents': 'AGENTS',
   '/activity': 'ACTIVITY',
   '/settings': 'SETTINGS',

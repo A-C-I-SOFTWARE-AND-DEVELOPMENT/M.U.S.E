@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
 interface Tab {
@@ -16,6 +17,7 @@ const I = (path: ReactNode) => (
 const TABS: Tab[] = [
   { to: '/', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
   { to: '/steer', label: 'Steer', icon: I(<><polygon points="12,2 19,6 19,14 12,18 5,14 5,6" /><circle cx="12" cy="10" r="2.4" /></>) },
+  { to: '/axiom', label: 'Axiom', icon: I(<><path d="M12 3l8 5v8l-8 5-8-5V8z" /><path d="M12 8l4 2.5v0L12 13l-4-2.5z" /></>) },
   { to: '/agents', label: 'Agents', icon: I(<><circle cx="12" cy="8" r="3.2" /><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" /></>) },
   { to: '/activity', label: 'Activity', icon: I(<polyline points="2,13 7,13 10,4 14,20 17,13 22,13" />) },
   { to: '/settings', label: 'Settings', icon: I(<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></>) },
@@ -35,18 +37,31 @@ export function TabBar() {
           key={t.to}
           to={t.to}
           end={t.to === '/'}
-          className="group flex flex-1 flex-col items-center justify-center gap-1"
+          className="group relative flex flex-1 flex-col items-center justify-center gap-1"
         >
           {({ isActive }) => (
             <>
-              <span
-                className="transition-colors"
+              {isActive && (
+                <motion.span
+                  layoutId="tab-active"
+                  className="absolute inset-x-2 top-1.5 -z-0 rounded-full"
+                  style={{
+                    height: 'calc(100% - 12px)',
+                    background: 'color-mix(in oklab, var(--octa-glow) 14%, transparent)',
+                  }}
+                  transition={{ type: 'spring', stiffness: 480, damping: 36 }}
+                />
+              )}
+              <motion.span
+                className="z-10 transition-colors"
+                animate={{ scale: isActive ? 1.08 : 1, y: isActive ? -1 : 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 style={{ color: isActive ? 'var(--octa-glow)' : 'var(--ink-faint)' }}
               >
                 {t.icon}
-              </span>
+              </motion.span>
               <span
-                className="text-[10px] font-medium transition-colors"
+                className="z-10 text-[9.5px] font-medium transition-colors"
                 style={{ color: isActive ? 'var(--ink)' : 'var(--ink-faint)' }}
               >
                 {t.label}

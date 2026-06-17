@@ -60,15 +60,36 @@ tone, contemplation, creativity).
 The emitted `SteeringVector` POSTs to M.U.S.E.'s `/api/agents/:id/steer`
 (see [`ADAPTERS.md`](./ADAPTERS.md)).
 
-## App shell — 5 tabs
+## The Axiom Gate (fusion + verification)
+
+AXIOM is MUSE's verified-intelligence kernel — *"Intelligence proposes; the
+verifier disposes."* The **Axiom Gate** tab is where **fusion** happens: multiple
+steering sources (the live octagon vector, saved profiles, a grounding baseline)
+are fused into one vector, then run through MUSE's **8 verification gates**
+(Planning · Build · Review · Test · Security · Release · Owner Approval ·
+Rollback). Only an **attested** vector (all enforced gates green) gets a
+content-address and can be applied to the router.
+
+Customizable: four fusion strategies (`Blend` / `Union` / `Priority` /
+`Consensus`), per-source contribution sliders, per-gate enforce toggles, and the
+challenge-bound **"Yes, with authorization"** owner gate for high-risk vectors.
+The fusion engine (`fuseVectors` / `runAxiomGates` / `runFusion` /
+`attestationHash`) is pure and unit-tested (13 of the 30 tests).
+
+## App shell — 6 tabs
 
 | Tab | What |
 |---|---|
 | **Console** | Launcher tiles (M.U.S.E. embedded, Antigravity/AI Studio link-out) + AOS roster with live status dots |
 | **Steer** | The Agent Optimization Control octagon + profiles + fine sliders + mapped inference readout |
+| **Axiom** | The Axiom Gate — fuse steering sources, verify through 8 gates, attest, apply |
 | **Agents** | All agents across surfaces; full control for M.U.S.E., open-out for the rest; embedded M.U.S.E. panel |
 | **Activity** | Unified event feed (SSE from M.U.S.E.) |
 | **Settings** | Connections, install prompt, push notifications, daemon pairing, voice bridge |
+
+The shell is tuned to Apple/Google-grade feel: springy sliding tab indicator,
+emphasized-easing page transitions, tactile press feedback, on-brand focus rings,
+and full `prefers-reduced-motion` support.
 
 ## PWA
 
