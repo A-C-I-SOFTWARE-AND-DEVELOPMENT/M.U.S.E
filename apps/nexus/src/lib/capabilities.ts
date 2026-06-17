@@ -100,7 +100,7 @@ export const CAPABILITIES: Capability[] = [
   // ---- Federation ----
   { id: 'federation', title: 'Federation & Sovereign Nodes', blurb: 'TOFU peer-identity pinning, M-of-N quorum authorization, cross-attestation, content-addressed Forge, contributor trust ladder.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'panel', panel: 'info' }, doc: 'docs/federation/' },
   { id: 'architecture', title: 'Architecture Map', blurb: 'Machine-readable component registry (with drift test), dataflow diagrams, work-packet/remote-worker schemas, tech-disposition matrix.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'panel', panel: 'info' }, doc: 'docs/architecture/README.md' },
-  { id: 'repo', title: 'Repo Mirror · Sync to main', blurb: 'A live mirror of the MUSE GitHub repo — every plugin, model provider, skill, MCP server, and doc on `main` — with one-click install/update that pulls the newest build from git.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'tab', to: '/repo' } },
+  { id: 'repo', title: 'Repo Mirror · Sync to main', blurb: 'The entire MUSE repo built in, end-to-end: browse every file, the full PR history (#1 → latest), and the parsed inventory (plugins/providers/skills/MCPs/docs) live from `main`, with one-click install/update that pulls the newest build from git.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'tab', to: '/repo' } },
 
   // ---- Surfaces & Tooling ----
   { id: 'chat', title: 'Unified Provider Chat', blurb: 'Chat with Claude / GPT / Gemini / OpenRouter / local through one local OpenAI-compatible gateway (official APIs, your keys).', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/chat' }, doc: 'apps/nexus/server/README.md' },

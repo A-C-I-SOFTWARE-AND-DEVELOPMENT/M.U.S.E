@@ -310,6 +310,193 @@ export async function fetchMirror(force = false, signal?: AbortSignal): Promise<
   }
 }
 
+// ============================================================================
+// Full file tree — the entire repo, end-to-end, file to file. Lazy-loaded (only
+// when the Files browser opens) and cached under its own key keyed by HEAD sha.
+// ============================================================================
+
+export interface TreeEntry {
+  path: string;
+  type: 'blob' | 'tree';
+  size?: number;
+}
+export interface RepoTree {
+  sha: string;
+  entries: TreeEntry[];
+  truncated: boolean;
+  fetchedAt: number;
+}
+export interface DirChild {
+  name: string;
+  path: string;
+  type: 'blob' | 'tree';
+  size?: number;
+}
+
+const TREE_KEY = 'nexus.repo.tree.v1';
+
+/** Immediate children (folders first, then files) of a directory `prefix`. Pure. */
+export function dirIndex(entries: TreeEntry[], prefix: string): DirChild[] {
+  const base = prefix ? prefix.replace(/\/+$/, '') + '/' : '';
+  const seen = new Map<string, DirChild>();
+  for (const e of entries) {
+    if (base && !e.path.startsWith(base)) continue;
+    const rest = e.path.slice(base.length);
+    if (!rest) continue;
+    const slash = rest.indexOf('/');
+    if (slash === -1) {
+      if (e.type === 'blob') seen.set(rest, { name: rest, path: e.path, type: 'blob', size: e.size });
+      else if (!seen.has(rest)) seen.set(rest, { name: rest, path: e.path, type: 'tree' });
+    } else {
+      const dir = rest.slice(0, slash);
+      if (!seen.has(dir)) seen.set(dir, { name: dir, path: base + dir, type: 'tree' });
+    }
+  }
+  return [...seen.values()].sort((a, b) =>
+    a.type !== b.type ? (a.type === 'tree' ? -1 : 1) : a.name.localeCompare(b.name),
+  );
+}
+
+export function getCachedTree(): RepoTree | null {
+  try {
+    const raw = localStorage.getItem(TREE_KEY);
+    return raw ? (JSON.parse(raw) as RepoTree) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchFullTree(force = false, signal?: AbortSignal): Promise<RepoTree> {
+  const ref = repoRef();
+  const cached = getCachedTree();
+  // Reuse cache if it matches the current cached mirror HEAD (or within TTL).
+  const head = getCachedMirror()?.head?.sha;
+  if (!force && cached && (!head || cached.sha === head) && Date.now() - cached.fetchedAt < TTL_MS) return cached;
+
+  const treeish = head || ref.branch;
+  const res = await fetch(`https://api.github.com/repos/${ref.owner}/${ref.repo}/git/trees/${treeish}?recursive=1`, {
+    headers: ghHeaders(),
+    signal,
+  }).catch((e) => {
+    throw new RepoSyncError(`Network error: ${e?.message ?? e}`, 'network');
+  });
+  if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')
+    throw new RepoSyncError('GitHub API rate limit reached. Add a GITHUB_TOKEN in Settings to lift it.', 'rate-limit');
+  if (!res.ok) throw new RepoSyncError(`GitHub responded ${res.status}.`, 'http');
+  const j = (await res.json()) as { sha: string; tree: TreeEntry[]; truncated: boolean };
+  const tree: RepoTree = {
+    sha: j.sha,
+    entries: (j.tree ?? []).filter((t) => t.type === 'blob' || t.type === 'tree').map((t) => ({ path: t.path, type: t.type, size: t.size })),
+    truncated: !!j.truncated,
+    fetchedAt: Date.now(),
+  };
+  try {
+    localStorage.setItem(TREE_KEY, JSON.stringify(tree));
+  } catch {
+    /* tree too big for quota → still return in-memory */
+  }
+  return tree;
+}
+
+const TEXT_EXT = /\.(md|markdown|txt|py|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|toml|ini|cfg|conf|sh|bash|zsh|env|gitignore|dockerfile|rs|go|java|kt|kts|c|h|cpp|hpp|cs|rb|php|swift|sql|html|css|scss|xml|csv|tsv|gradle|properties|lock|mk|cmake|gql|graphql|proto|svg|R|jl|lua|pl|vue|astro|tf|hcl|bat|ps1|patch|diff|text|rst|adoc|org)$/i;
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|ico|avif)$/i;
+
+export function fileKind(path: string): 'text' | 'image' | 'binary' {
+  const name = path.split('/').pop() ?? path;
+  if (IMAGE_EXT.test(name)) return 'image';
+  if (TEXT_EXT.test(name) || !name.includes('.')) return 'text'; // extensionless (LICENSE, Makefile…) → text
+  return 'binary';
+}
+
+export interface FileContent {
+  path: string;
+  kind: 'text' | 'image' | 'binary';
+  text?: string;
+  rawUrl: string;
+  size: number;
+}
+
+const MAX_TEXT_BYTES = 400 * 1024;
+
+export async function fetchFileContent(path: string, signal?: AbortSignal): Promise<FileContent> {
+  const ref = repoRef();
+  const url = rawUrl(ref, path);
+  const kind = fileKind(path);
+  if (kind !== 'text') return { path, kind, rawUrl: url, size: 0 };
+  const res = await fetch(url, { signal, headers: getSecret('GITHUB_TOKEN') ? { Authorization: `Bearer ${getSecret('GITHUB_TOKEN')}` } : {} }).catch((e) => {
+    throw new RepoSyncError(`Network error: ${e?.message ?? e}`, 'network');
+  });
+  if (res.status === 404) throw new RepoSyncError('File not found.', 'not-found');
+  if (!res.ok) throw new RepoSyncError(`GitHub responded ${res.status}.`, 'http');
+  const text = await res.text();
+  const truncated = text.length > MAX_TEXT_BYTES;
+  return { path, kind: 'text', text: truncated ? text.slice(0, MAX_TEXT_BYTES) + '\n\n… (truncated — open on GitHub for the full file)' : text, rawUrl: url, size: text.length };
+}
+
+// ============================================================================
+// Pull request history — every PR from #1 to the latest. All merges to `main`
+// move HEAD, which the mirror reflects on the next sync.
+// ============================================================================
+
+export interface PullRequest {
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  merged: boolean;
+  mergedAt?: string;
+  createdAt: string;
+  user: string;
+  baseRef: string;
+  url: string;
+}
+
+interface RawPull {
+  number: number;
+  title: string;
+  state: string;
+  merged_at: string | null;
+  created_at: string;
+  user: { login: string } | null;
+  base: { ref: string };
+  html_url: string;
+}
+
+export function mapPull(j: RawPull): PullRequest {
+  return {
+    number: j.number,
+    title: j.title,
+    state: j.state === 'open' ? 'open' : 'closed',
+    merged: !!j.merged_at,
+    mergedAt: j.merged_at ?? undefined,
+    createdAt: j.created_at,
+    user: j.user?.login ?? '',
+    baseRef: j.base?.ref ?? '',
+    url: j.html_url,
+  };
+}
+
+export interface PullPage {
+  pulls: PullRequest[];
+  hasMore: boolean;
+  page: number;
+}
+
+/** Fetch one page of PRs, oldest-first (#1 → latest), state=all. */
+export async function fetchPulls(page = 1, perPage = 50, signal?: AbortSignal): Promise<PullPage> {
+  const ref = repoRef();
+  const res = await fetch(
+    `https://api.github.com/repos/${ref.owner}/${ref.repo}/pulls?state=all&sort=created&direction=asc&per_page=${perPage}&page=${page}`,
+    { headers: ghHeaders(), signal },
+  ).catch((e) => {
+    throw new RepoSyncError(`Network error: ${e?.message ?? e}`, 'network');
+  });
+  if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')
+    throw new RepoSyncError('GitHub API rate limit reached. Add a GITHUB_TOKEN in Settings to lift it.', 'rate-limit');
+  if (!res.ok) throw new RepoSyncError(`GitHub responded ${res.status}.`, 'http');
+  const arr = (await res.json()) as RawPull[];
+  return { pulls: arr.map(mapPull), hasMore: arr.length === perPage, page };
+}
+
 export function mirrorCounts(m: RepoMirror): { key: string; label: string; n: number }[] {
   return [
     { key: 'plugins', label: 'Plugins', n: m.plugins.length },

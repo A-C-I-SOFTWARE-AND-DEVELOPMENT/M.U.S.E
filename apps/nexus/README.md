@@ -68,12 +68,21 @@ at runtime — not just what was hand-coded. The **Repo** tab (`/repo`, also in
 Settings → "MUSE repo — synced to main") shows a live inventory pulled via the
 GitHub git-trees API + raw `.mcp.json`:
 
-- **Plugins** (`plugins/**/plugin.yaml`), **Model providers**
-  (`plugins/model-providers/**`), **Skills** (`skills/**` + `optional-skills/**`),
-  **MCP servers** (`.mcp.json`), **Optional MCPs** (`optional-mcps/`), and **Docs**
-  (`docs/**`). Each row links to its source on GitHub. As of this writing the repo
-  mirrors to **52 plugins · 29 providers · 222 skills · 28 optional MCPs · the
-  `.mcp.json` servers · 374 docs** — whatever is on `main` is what you see.
+The Repo tab has three modes:
+
+- **Inventory** — the parsed surface: **Plugins** (`plugins/**/plugin.yaml`),
+  **Model providers** (`plugins/model-providers/**`), **Skills** (`skills/**` +
+  `optional-skills/**`), **MCP servers** (`.mcp.json`), **Optional MCPs**
+  (`optional-mcps/`), and **Docs** (`docs/**`). As of this writing the repo mirrors
+  to **52 plugins · 29 providers · 222 skills · 28 optional MCPs · the `.mcp.json`
+  servers · 374 docs** — whatever is on `main` is what you see.
+- **Files** — the **entire repo, end-to-end, file to file** (all ~6,470 tracked
+  files): a directory browser with breadcrumbs, path search across the whole tree,
+  and an in-app viewer that renders text/code, images, and a GitHub fallback for
+  binaries. Each file links to its source.
+- **Pull requests** — the **full PR history, #1 → latest** (every merge to `main`
+  reflected), oldest-first with merged/open/closed badges, base ref, author, search
+  and filters, paginated "load older."
 - **`src/lib/repoSync.ts`** does the fetch + parse (dependency-free, JSON only —
   never an in-browser YAML parser); results are cached with a 30-min TTL and a
   manual **Sync now**. An optional `GITHUB_TOKEN` (Settings) lifts the anon rate

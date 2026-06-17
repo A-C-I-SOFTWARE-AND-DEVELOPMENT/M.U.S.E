@@ -10,8 +10,11 @@ import {
   type McpServer,
 } from '@/lib/repoSync';
 import { RepoSyncCard } from '@/components/repo/RepoSyncCard';
+import { FileBrowser } from '@/components/repo/FileBrowser';
+import { PullList } from '@/components/repo/PullList';
 
 type SectionKey = 'plugins' | 'providers' | 'skills' | 'mcpServers' | 'optionalMcps' | 'docs';
+type Mode = 'inventory' | 'files' | 'pulls';
 
 const TRANSPORT_COLOR: Record<string, string> = {
   http: 'var(--state-running)',
@@ -25,6 +28,7 @@ export default function RepoPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [section, setSection] = useState<SectionKey>('plugins');
+  const [mode, setMode] = useState<Mode>('inventory');
   const [q, setQ] = useState('');
 
   const load = async (force: boolean) => {
@@ -64,14 +68,39 @@ export default function RepoPage() {
     <div className="px-4 pb-6">
       <div className="hud-label mb-2 mt-1">Repo Mirror — synced to GitHub main</div>
       <p className="mb-3 text-[11px] leading-relaxed text-[var(--ink-dim)]">
-        A live mirror of everything in the MUSE repository — plugins, model providers, skills, MCP servers, and docs —
-        read straight from <b className="text-[var(--ink)]">main</b> on GitHub. One-click update pulls the newest build.
+        The entire MUSE repository, end-to-end — browse <b className="text-[var(--ink)]">every file</b>, the full
+        <b className="text-[var(--ink)]"> pull-request history</b> (#1 → latest, every merge to main), and the parsed
+        inventory (plugins · providers · skills · MCPs · docs) — read straight from <b className="text-[var(--ink)]">main</b> on
+        GitHub. One-click update pulls the newest build.
       </p>
 
       <div className="mb-3">
         <RepoSyncCard />
       </div>
 
+      {/* Mode: Inventory · Files · Pull requests */}
+      <div className="mb-3 grid grid-cols-3 gap-1 rounded-lg border border-[var(--hairline)] p-1">
+        {([
+          ['inventory', 'Inventory'],
+          ['files', 'Files'],
+          ['pulls', 'Pull requests'],
+        ] as [Mode, string][]).map(([m, label]) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className="rounded-md py-1.5 text-[11px] font-medium"
+            style={{ background: mode === m ? 'var(--octa-glow)' : 'transparent', color: mode === m ? '#000' : 'var(--ink-dim)' }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'files' && <FileBrowser />}
+      {mode === 'pulls' && <PullList />}
+
+      {mode === 'inventory' && (
+        <>
       {/* Count chips → section selector */}
       <div className="mb-2 grid grid-cols-3 gap-1.5">
         {counts.map((c) => (
@@ -142,6 +171,8 @@ export default function RepoPage() {
           ))}
           {filteredItems.length === 0 && <div className="py-6 text-center text-[11px] text-[var(--ink-dim)]">{mirror ? 'Nothing matches.' : 'Sync to mirror the repo.'}</div>}
         </div>
+      )}
+        </>
       )}
     </div>
   );
