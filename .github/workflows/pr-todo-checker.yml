@@ -38,6 +38,10 @@ jobs:
           enable_ignore_checkbox: true
           # Don't flag the checker's own config file: its documentation
           # comments necessarily contain the words TODO / FIXME, and the
-          # action name (pr-todo-checker) trips the matcher too.
+          # action name (pr-todo-checker) trips the matcher too. The
+          # muse-quality scanner scripts are the same case — they implement
+          # a TODO/FIXME inventory, so their grep pattern and comments
+          # necessarily contain those tokens.
           exclude: |
             .github/workflows/pr-todo-checker.yml
+            .claude/skills/muse-quality/scripts/**
