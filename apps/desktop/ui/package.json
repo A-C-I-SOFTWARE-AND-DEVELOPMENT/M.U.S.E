@@ -11,6 +11,7 @@
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
+    "@muse/design-system": "file:../../../design-system",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

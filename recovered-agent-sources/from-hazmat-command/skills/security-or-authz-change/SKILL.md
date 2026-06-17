@@ -55,6 +55,6 @@ maker-checker discipline.
 ## Anti-patterns
 
 - Loosening an existing control "for now".
-- Adding `// TODO: re-enable` next to an authz check.
+- Adding a "re-enable later" deferral comment next to an authz check.
 - A new SCIM / SSO path with no malformed-payload test.
 - A migration to an RC3 surface with no rollback plan.

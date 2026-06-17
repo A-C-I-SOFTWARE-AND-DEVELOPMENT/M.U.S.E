@@ -67,7 +67,7 @@ def _prompt_llm(prompt: str, max_tokens: int = 1024) -> str:
 # 1. ORGANISM — what you are evolving.
 # ---------------------------------------------------------------------------
 class MyOrganism(Organism):
-    # TODO: replace with your artifact field. Common shapes:
+    # Replace with your artifact field. Common shapes:
     #   prompt_template: str
     #   regex_pattern: str
     #   sql_query: str
@@ -77,7 +77,7 @@ class MyOrganism(Organism):
     def run(self, *inputs) -> str:
         """Exercise the organism on a test input. Return whatever your
         evaluator wants to score."""
-        # TODO: implement. For prompt evolution this typically calls _prompt_llm
+        # Implement this. For prompt evolution this typically calls _prompt_llm
         # with the artifact rendered against the input. For regex/SQL it would
         # call `re.findall(self.artifact, input)` / execute SQL / etc.
         raise NotImplementedError
@@ -87,7 +87,7 @@ class MyOrganism(Organism):
 # 2. EVALUATOR — score organisms and surface failures the mutator can learn from.
 # ---------------------------------------------------------------------------
 class MyFailureCase(EvaluationFailureCase):
-    # TODO: include enough context for the LLM to diagnose the failure.
+    # Include enough context for the LLM to diagnose the failure.
     input: str
     expected: str
     actual: str
@@ -96,11 +96,11 @@ class MyFailureCase(EvaluationFailureCase):
 class MyEvaluator(Evaluator[MyOrganism, EvaluationResult, MyFailureCase]):
     # Split your dataset. Mutator only sees trainable; holdout detects overfitting.
     TRAINABLE = [
-        # TODO: list of (input, expected) tuples
+        # List of (input, expected) tuples
         # ("input1", "expected1"),
     ]
     HOLDOUT = [
-        # TODO: separate set the mutator never sees
+        # Separate set the mutator never sees
     ]
 
     def evaluate(self, organism: MyOrganism) -> EvaluationResult:
@@ -190,7 +190,7 @@ Put the new version in the LAST triple-backtick block of your response.
 # touch anything below this line for a typical run.
 # ---------------------------------------------------------------------------
 def make_problem() -> Problem:
-    initial = MyOrganism(artifact="TODO: starting artifact here")  # TODO
+    initial = MyOrganism(artifact="<your starting artifact here>")
     return Problem[MyOrganism, EvaluationResult, MyFailureCase](
         evaluator=MyEvaluator(),
         mutators=[MyMutator()],

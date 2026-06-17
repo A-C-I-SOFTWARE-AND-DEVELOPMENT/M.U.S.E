@@ -1,35 +1,24 @@
-/* M.U.S.E. — "Singularity" design tokens (desktop scaffold copy).
+/* M.U.S.E. — "Singularity" design tokens (desktop).
  *
  * One white core in the void; a single thin spectral ring.
  *
- * TODO: consume @muse/design-system once merged. This is an INLINE copy of the
- * canonical values from gateway/cockpit/static/tokens.css so the desktop
- * scaffold builds standalone today; when the shared design-system package
- * (grain G0.1) lands, replace this file with an import of its token sheet so
- * there is one source of truth. Keep these values byte-identical to the
- * canonical source until then.
+ * The canonical tokens now come from the shared @muse/design-system package
+ * (grain G0.1) instead of an inline copy — its generated sheet is the single
+ * source of truth, so the web cockpit, this desktop client, and the Android
+ * app all render identical values. Don't hand-edit colors / radius / fonts
+ * here: change design-system/tokens.json and regenerate (`npm run build` in
+ * design-system/). The package keeps the --radius / --sans / --mono aliases,
+ * so it is a drop-in superset of the values this file used to inline.
  */
-:root {
-  --void: #050507; /* background — the dark */
-  --void-2: #0b0d12; /* raised surface */
-  --void-3: #12151d; /* cards */
-  --edge: #1c2030; /* hairline borders */
-  --core: #ffffff; /* the single point of light — primary accent */
-  --signal: #e8ecf4; /* primary text */
-  --signal-dim: #aab2c4; /* secondary text */
-  --signal-mute: #6b7388; /* tertiary / metadata */
-  --ring-1: #7ae0ff; /* spectral ring — cyan end */
-  --ring-2: #b388ff; /* spectral ring — violet end */
-  --ok: #5be3a0; /* success / online */
-  --warn: #f5c451; /* attention */
-  --danger: #ff5c63; /* destructive / emergency stop */
-  --radius: 12px;
-  --ring-grad: linear-gradient(90deg, var(--ring-1), var(--ring-2));
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@import "@muse/design-system/tokens.css";
 
-  /* Motion — emphasized easing, 250–350ms (per the design language). Value
-     and tonal elevation do the work; no drop-shadows, no ring-glow. */
+/* Desktop-local tokens not (yet) in the shared sheet. The shared package
+ * exposes Material-3 motion under different names and an emphasized curve with
+ * a different value, so these three aliases — the ones referenced by
+ * src/styles/app.css — are kept here byte-identical to avoid any change in the
+ * desktop's transitions/animations. Fold them into tokens.json once the motion
+ * scale is reconciled across surfaces. */
+:root {
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --dur-fast: 250ms;
   --dur-slow: 350ms;

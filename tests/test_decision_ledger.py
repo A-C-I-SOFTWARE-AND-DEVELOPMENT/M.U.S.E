@@ -237,7 +237,7 @@ class TestValidation:
     def test_html_comments_alone_count_as_empty(self) -> None:
         # The template placeholders are HTML comments — they must not
         # masquerade as filled content.
-        ledger = _filled_ledger(open_risks="<!-- TODO -->")
+        ledger = _filled_ledger(open_risks="<!-- placeholder -->")
         assert "Open Risks" in ledger.missing_sections()
 
     @pytest.mark.parametrize("confidence", ["high", "Medium", "low — only one repo tested"])

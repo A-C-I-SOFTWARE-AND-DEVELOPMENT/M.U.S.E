@@ -4081,8 +4081,8 @@ def neuter_async_httpx_del() -> None:
       on stale-loop detection and ``shutdown_cached_clients`` on exit.
     - Uncached clients' TCP connections are cleaned up by the OS when the
       process exits.
-    - The OpenAI SDK itself marks this as a TODO (``# TODO(someday):
-      support non asyncio runtimes here``).
+    - The OpenAI SDK itself documents this as unsupported — its own
+      "someday" note about supporting non-asyncio runtimes.
 
     Call this once at CLI startup, before any ``AsyncOpenAI`` clients are
     created.
