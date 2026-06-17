@@ -1196,6 +1196,34 @@ display:
 #     # - "echerd27-design/hermes-agent"
 
 # =============================================================================
+# Apify integration — native plugin gates
+# =============================================================================
+# The apify plugin ships in this repo at plugins/apify/ and exposes four
+# tools over the Apify REST API: list/search Actors, fetch dataset items,
+# check a run's status (all read), and run an Actor (apify_run_actor).
+#
+# Two-step opt-in for the read tools (same shape as github above):
+#   1. Set APIFY_TOKEN in ~/.hermes/.env
+#   2. Set apify.enabled: true here
+# Until both are true the plugin's tools are hidden from the model.
+#
+# allow_runs is a SEPARATE flag, defaulting false: apify_run_actor stays
+# hidden AND refuses to execute without it, because starting an Actor run
+# consumes paid Apify compute units. Flip it deliberately.
+#
+# allowed_actors switches runs into deny-by-default mode. Entries accept
+# either 'username/name' or 'username~name'. Leave empty to trust the
+# token's own scope; populate to harden which Actors may run.
+#
+# See docs/integrations/apify-plugin.md for the full guide.
+#
+# apify:
+#   enabled: false
+#   allow_runs: false
+#   allowed_actors: []
+#     # - "apify/website-content-crawler"
+
+# =============================================================================
 # GitHub MCP server — alternative path (independent of the native plugin)
 # =============================================================================
 # The official @modelcontextprotocol/server-github exposes ~30 GitHub actions
