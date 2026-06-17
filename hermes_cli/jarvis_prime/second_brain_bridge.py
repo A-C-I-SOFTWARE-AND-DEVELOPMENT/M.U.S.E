@@ -66,11 +66,24 @@ BrainFactory = Callable[..., Any]
 
 
 def _default_factory(*, enable_graph: bool = False) -> Any:
-    # Graph defaults off: the vector + document + retrieval layers (Postgres /
-    # pgvector) are the retrieval path; Neo4j is optional and heavier.
+    # Graph defaults off: the vector + document + retrieval layers are the
+    # retrieval path; Neo4j is optional and heavier.
+    from dataclasses import replace
+
     from second_brain.knowledge import SecondBrain, load_settings
 
-    return SecondBrain(load_settings(), enable_graph=enable_graph)
+    settings = load_settings()
+    # MUSE is local-first: when the owner enables the Second Brain but hasn't
+    # configured a backend (no SECOND_BRAIN_BACKEND, no SECOND_BRAIN_PG_HOST),
+    # use the zero-infrastructure in-memory store so it "just works" with no
+    # Postgres/Neo4j. An explicit backend or Postgres host always wins.
+    if (
+        settings.backend == "postgres"
+        and not os.getenv("SECOND_BRAIN_BACKEND")
+        and not os.getenv("SECOND_BRAIN_PG_HOST")
+    ):
+        settings = replace(settings, backend="memory")
+    return SecondBrain(settings, enable_graph=enable_graph)
 
 
 def is_available() -> bool:
@@ -114,8 +127,15 @@ def retrieve(
 
     try:
         payload = brain.retrieve(query, top_k=top_k)
-        text = payload.to_prompt() if hasattr(payload, "to_prompt") else str(payload)
         blocks = getattr(payload, "blocks", []) or []
+        # No hits ⇒ empty text, so callers (recollect / context handoff / CLI)
+        # cleanly skip rather than injecting an empty "## second brain" header.
+        if not blocks:
+            text = ""
+        elif hasattr(payload, "to_prompt"):
+            text = payload.to_prompt()
+        else:
+            text = str(payload)
         return RetrievedContext(text=text, block_count=len(blocks))
     except SecondBrainUnavailable:
         raise

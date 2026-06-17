@@ -79,6 +79,26 @@ for inf in result.inferences:
 print("grounded:", grounding_coverage("Ada worked with Babbage.", [text]).coverage)
 ```
 
+### Full retrieval with no infrastructure (`SECOND_BRAIN_BACKEND=memory`)
+
+The in-memory backend runs the **entire `ingest → retrieve` path** — vector
+similarity, BM25 keyword fallback, TTL/confidence governance — with no Postgres,
+Neo4j, or drivers. It is process-local (not durable); use Postgres for
+persistence across sessions/processes.
+
+```python
+from dataclasses import replace
+from knowledge import SecondBrain, load_settings
+
+brain = SecondBrain(replace(load_settings(), backend="memory"), enable_graph=False)
+brain.ingest_text("Ada Lovelace collaborated with Charles Babbage.", "bio/ada")
+print(brain.retrieve("Who worked with Babbage?").to_prompt())
+brain.close()
+```
+
+Set `SECOND_BRAIN_BACKEND=memory` in the environment to select it everywhere
+(including MUSE's bridge — see below). The default stays `postgres`.
+
 ---
 
 ## Quickstart (full stack)
@@ -137,9 +157,30 @@ retrieval path behind a single switch:
   importable / non-secret settings), `… second-brain retrieve "<query>"` (read-only),
   and `… second-brain ingest <path…> --apply --phrase '<owner phrase>'` (owner-gated
   write to the backend).
-- **Configure** the backend via the `SECOND_BRAIN_*` env vars below. Because
-  enabling the flag changes default retrieval behavior, *turning it on* is an owner
-  decision.
+- **Backend:** when the owner enables the flag without configuring a backend (no
+  `SECOND_BRAIN_BACKEND`, no `SECOND_BRAIN_PG_HOST`), the bridge uses the
+  **in-memory** store so it works with zero infrastructure. Set
+  `SECOND_BRAIN_BACKEND=postgres` (+ the `SECOND_BRAIN_PG_*` vars below) for a
+  durable, cross-session store. Because enabling the flag changes default
+  retrieval behavior, *turning it on* is an owner decision.
+
+### Postgres parity check (Docker)
+
+The in-memory and Postgres backends share one retrieval contract. To verify
+parity against a real database:
+
+```sh
+cd second_brain && docker compose up -d            # Postgres+pgvector on 127.0.0.1
+export SECOND_BRAIN_BACKEND=postgres SECOND_BRAIN_PG_HOST=localhost \
+       SECOND_BRAIN_EMBEDDING_PROVIDER=hashing
+uv run --with psycopg2-binary --with pgvector pytest -m integration \
+  tests/hermes_cli/test_second_brain_bridge_integration.py
+docker compose down
+```
+
+The integration test is marked and skipped by default (CI has no database); the
+always-on offline e2e (`tests/hermes_cli/test_second_brain_memory_backend.py`)
+covers the in-memory path.
 
 ---
 

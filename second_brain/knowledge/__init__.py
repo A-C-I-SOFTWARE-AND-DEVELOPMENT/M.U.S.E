@@ -33,6 +33,11 @@ from .ingestion import (
     build_embedding_provider,
 )
 from .memory_lifecycle import LifecycleReport, MemoryLifecycleManager
+from .memory_store import (
+    InMemoryDocumentStore,
+    InMemoryProvenanceTracker,
+    InMemoryVectorStore,
+)
 from .models import (
     Document,
     InjectionPayload,
@@ -92,11 +97,20 @@ class SecondBrain:
 
     def __init__(self, settings: Optional[Settings] = None, *, enable_graph: bool = True) -> None:
         self.settings = settings or load_settings()
-        self.postgres = PostgresClient(self.settings.postgres)
         self.embedding_provider = build_embedding_provider(self.settings.embedding)
-        self.vector_store = VectorStore(self.postgres, self.settings)
-        self.document_store = DocumentStore(self.postgres)
-        self.provenance = ProvenanceTracker(self.postgres)
+        # Backend selection. ``memory`` runs the full ingest→retrieve path with no
+        # external infrastructure (Postgres/Neo4j) — local-first default, tests,
+        # demos. ``postgres`` is the durable, production backend (unchanged).
+        self.postgres: Optional[PostgresClient] = None
+        if self.settings.backend == "memory":
+            self.vector_store: Any = InMemoryVectorStore(self.settings)
+            self.document_store: Any = InMemoryDocumentStore()
+            self.provenance: Any = InMemoryProvenanceTracker()
+        else:
+            self.postgres = PostgresClient(self.settings.postgres)
+            self.vector_store = VectorStore(self.postgres, self.settings)
+            self.document_store = DocumentStore(self.postgres)
+            self.provenance = ProvenanceTracker(self.postgres)
         self.graph_store: Optional[GraphStore] = (
             GraphStore(self.settings.neo4j) if enable_graph else None
         )
@@ -203,7 +217,8 @@ class SecondBrain:
             self.graph_store.ensure_constraints()
 
     def close(self) -> None:
-        """Release database resources."""
-        self.postgres.close()
+        """Release database resources (no-op for the in-memory backend)."""
+        if self.postgres is not None:
+            self.postgres.close()
         if self.graph_store is not None:
             self.graph_store.close()
