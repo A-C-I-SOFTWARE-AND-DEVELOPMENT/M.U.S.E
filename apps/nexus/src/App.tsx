@@ -18,6 +18,8 @@ import ForgePage from './pages/ForgePage';
 import FleetPage from './pages/FleetPage';
 import ModelsPage from './pages/ModelsPage';
 import SecondBrainPage from './pages/SecondBrainPage';
+import ChampionshipPage from './pages/ChampionshipPage';
+import FederationPage from './pages/FederationPage';
 import RepoPage from './pages/RepoPage';
 import SharePage from './pages/SharePage';
 import AgentsPage from './pages/AgentsPage';
@@ -97,6 +99,8 @@ export default function App() {
             <Route path="/fleet" element={<Page><FleetPage /></Page>} />
             <Route path="/models" element={<Page><ModelsPage /></Page>} />
             <Route path="/second-brain" element={<Page><SecondBrainPage /></Page>} />
+            <Route path="/championship" element={<Page><ChampionshipPage /></Page>} />
+            <Route path="/federation" element={<Page><FederationPage /></Page>} />
             <Route path="/repo" element={<Page><RepoPage /></Page>} />
             <Route path="/share" element={<Page><SharePage /></Page>} />
             <Route path="/agents" element={<Page><AgentsPage /></Page>} />

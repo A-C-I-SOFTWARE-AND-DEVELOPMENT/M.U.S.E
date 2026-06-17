@@ -48,7 +48,7 @@ export function CommandPalette() {
 
   const cmds = useMemo<Cmd[]>(() => {
     const nav: Cmd[] = [
-      ['Console', '/'], ['Chat', '/chat'], ['Models', '/models'], ['Second Brain', '/second-brain'], ['Repo Mirror', '/repo'], ['Fusion', '/fusion'], ['Forge', '/forge'], ['Fleet', '/fleet'],
+      ['Console', '/'], ['Chat', '/chat'], ['Models', '/models'], ['Second Brain', '/second-brain'], ['Repo Mirror', '/repo'], ['Fusion', '/fusion'], ['Forge', '/forge'], ['Championship', '/championship'], ['Federation', '/federation'], ['Fleet', '/fleet'],
       ['Steer', '/steer'], ['Axiom Gate', '/axiom'], ['Observatory', '/observatory'],
       ['Agents', '/agents'], ['Activity', '/activity'], ['Settings', '/settings'],
     ].map(([label, to]) => ({ id: `nav-${to}`, label: `Go to ${label}`, hint: 'page', run: () => navigate(to) }));
