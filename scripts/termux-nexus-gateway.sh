@@ -27,12 +27,21 @@ ok() { printf '\033[0;32m✓ %s\033[0m\n' "$*"; }
 
 is_termux() { [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]; }
 
-say "Installing prerequisites (git · python · nodejs)…"
+say "Installing prerequisites (git · python · nodejs · rust toolchain)…"
 if is_termux; then
   pkg update -y >/dev/null 2>&1 || true
   pkg install -y git python nodejs-lts >/dev/null 2>&1 || pkg install -y git python nodejs
+  # Termux uses bionic libc, so pip CANNOT use PyPI's prebuilt wheels and builds
+  # from source. Two core deps (pydantic-core, cryptography) are Rust — without
+  # the Rust toolchain + linker their build hangs/fails. clang builds the C deps
+  # (pyyaml, …). Installing these up front is what keeps the pip step from
+  # appearing frozen for 20+ minutes.
+  pkg install -y rust binutils clang || pkg install -y rustc binutils clang || true
   # termux-api gives wake lock + notifications (optional but recommended)
   pkg install -y termux-api >/dev/null 2>&1 || true
+  command -v rustc >/dev/null 2>&1 \
+    && ok "Rust $(rustc --version 2>/dev/null | awk '{print $2}') ready" \
+    || say "⚠ Rust not found — pydantic-core/cryptography may build slowly or fail. Try: pkg install rust"
 else
   say "Not running under Termux — continuing anyway (desktop/dev)."
 fi
@@ -45,11 +54,12 @@ else
 fi
 cd "$MUSE_DIR"
 
-say "Installing MUSE (Termux-aware)…"
+say "Installing MUSE (Termux-aware). First run compiles the Rust deps —"
+say "this can take 5–15 min on a phone and may show NO output mid-build. Not frozen."
 if [ -f setup-hermes.sh ]; then
-  bash setup-hermes.sh || pip install -e .
+  bash setup-hermes.sh || pip install -e ".[termux]" -c constraints-termux.txt || pip install -e .
 else
-  pip install -e .
+  pip install -e ".[termux]" -c constraints-termux.txt 2>/dev/null || pip install -e .
 fi
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then

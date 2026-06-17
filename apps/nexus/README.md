@@ -124,9 +124,18 @@ curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.
 Then open **`http://127.0.0.1:8765/nexus/`** on the phone (add it to the home
 screen). NEXUS **auto-detects the same-origin gateway and pairs itself** — you
 only enter the owner phrase `Yes, with authorization.` once. The script
-(`scripts/termux-nexus-gateway.sh`) installs git/python/nodejs, clones MUSE,
-installs it (Termux-aware via `setup-hermes.sh`), builds NEXUS with
-`NEXUS_BASE=/nexus/`, takes a wake-lock, and runs `muse cockpit serve`.
+(`scripts/termux-nexus-gateway.sh`) installs git/python/nodejs **plus the
+`rust`/`binutils`/`clang` build toolchain**, clones MUSE, installs it (Termux-aware
+via `setup-hermes.sh`), builds NEXUS with `NEXUS_BASE=/nexus/`, takes a wake-lock,
+and runs `muse cockpit serve`.
+
+> **First-run note — it's not frozen, it's compiling.** Termux uses bionic libc,
+> so pip can't use PyPI's prebuilt wheels and **builds core deps from source**.
+> `pydantic-core` and `cryptography` are Rust; without the toolchain the build
+> hangs or fails. The script installs `rust binutils clang` up front, but the
+> first compile still takes **~5–15 min and may show no output mid-build** — let
+> it finish. Doing it by hand? Run `pkg install rust binutils clang` before
+> `setup-hermes.sh`. To check it's alive, open a new Termux session and run `top`.
 
 Server side this is a small additive change: `gateway/cockpit/server.py` mounts
 `apps/nexus/dist` at `/nexus/` (path-traversal-safe, SPA fallback, loopback-only,
