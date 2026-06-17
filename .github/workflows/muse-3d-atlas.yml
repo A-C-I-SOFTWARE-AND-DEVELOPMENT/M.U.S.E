@@ -1,0 +1,66 @@
+# Keep the interactive 3D Systems Atlas in sync with the architecture model.
+#
+# The atlas (docs/3d-model/) and the architecture PDF are both generated from a
+# single source: scripts/diagrams/build_muse_flowchart.py. This check re-runs the
+# generator and fails if the committed atlas data has drifted, so the 3D model can
+# never silently fall out of sync with the documented architecture. It also does a
+# light structural validation of the generated data. No deploy, stdlib-only.
+name: MUSE 3D Atlas sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/diagrams/**'
+      - 'docs/3d-model/**'
+      - '.github/workflows/muse-3d-atlas.yml'
+  pull_request:
+    paths:
+      - 'scripts/diagrams/**'
+      - 'docs/3d-model/**'
+      - '.github/workflows/muse-3d-atlas.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muse-3d-atlas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Regenerate atlas data from the shared model
+        run: python3 scripts/diagrams/build_muse_flowchart.py
+
+      - name: Validate the generated data
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open("docs/3d-model/architecture_data.json"))
+          assert d.get("schema") == "muse.architecture_viz.v1", "bad schema header"
+          planes = d.get("planes", [])
+          pipeline = d.get("pipeline", [])
+          assert len(planes) >= 12, f"expected >= 12 planes, got {len(planes)}"
+          assert len(pipeline) >= 8, f"expected >= 8 pipeline stages, got {len(pipeline)}"
+          assert all(p.get("title") and p.get("cards") for p in planes), "a plane is missing title/cards"
+          assert all(0 <= s.get("plane", -1) < len(planes) for s in pipeline), "a pipeline stage points at an out-of-range plane"
+          print(f"OK — {len(planes)} planes, {sum(len(p['cards']) for p in planes)} nodes, {len(pipeline)} pipeline stages")
+          PY
+
+      - name: Fail if the committed atlas data is out of sync
+        run: |
+          if ! git diff --quiet -- docs/3d-model/architecture_data.js docs/3d-model/architecture_data.json; then
+            echo "::error::docs/3d-model architecture data is out of sync with scripts/diagrams/build_muse_flowchart.py."
+            echo "Run: python3 scripts/diagrams/build_muse_flowchart.py  and commit the result."
+            git --no-pager diff -- docs/3d-model/architecture_data.js docs/3d-model/architecture_data.json | head -80
+            exit 1
+          fi
+          echo "Atlas data is in sync with the generator."

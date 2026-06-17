@@ -52,3 +52,13 @@ Open `build_muse_flowchart.py`. The whole poster is a small data model:
 `PLANES` is a list of `Plane`s, each with an accent color and a list of `Card`s
 (title, description, optional tag chips, and an `owner-gated` badge). Add or edit
 a card, re-run the two commands above, and the layout reflows automatically.
+
+## Also drives the interactive 3D atlas
+
+The same generator emits `architecture_data.js` / `.json` into
+[`docs/3d-model/`](../../docs/3d-model/) — the data behind the **interactive 3D
+Systems Atlas** (an orbitable model of every system plus an animated
+"first prompt → fully built product" pipeline). One source of truth feeds both the
+PDF and the 3D model, and a CI check
+(`.github/workflows/muse-3d-atlas.yml`) fails if the committed atlas data drifts
+from the generator. See [`docs/3d-model/README.md`](../../docs/3d-model/README.md).
