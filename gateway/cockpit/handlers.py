@@ -2591,6 +2591,37 @@ def second_brain_retrieve(req: Request) -> JsonResponse:
     )
 
 
+def forge_leaderboard(_req: Request) -> JsonResponse:
+    """The Forge championship view (read-only): Glicko-2 standings, MAP-Elites
+    coverage/QD score, and the candidate count.
+
+    Surfaces the CLI-only ``jarvis_prime forge`` tournament system over the
+    gateway. Read-only over the local registry/ledger; honest-empty (not an
+    error) before anything has competed.
+    """
+    try:
+        from hermes_cli.jarvis_prime.forge.leaderboard import standings
+        from hermes_cli.jarvis_prime.forge.map_elites import ElitesGrid
+        from hermes_cli.jarvis_prime.forge.registry import CandidateRegistry
+        from hermes_cli.jarvis_prime.forge.tournament import RatingBook
+
+        registry = CandidateRegistry()
+        grid = ElitesGrid()
+        return JsonResponse(
+            200,
+            {
+                "standings": [s.to_dict() for s in standings(RatingBook(), registry)],
+                "candidates": len(list(registry.all())),
+                "coverage": round(grid.coverage(), 4),
+                "qd_score": round(grid.qd_score(), 4),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200, {"standings": [], "candidates": 0, "coverage": 0.0, "qd_score": 0.0, "error": str(exc)}
+        )
+
+
 # Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
 # ---------------------------------------------------------------------------
 

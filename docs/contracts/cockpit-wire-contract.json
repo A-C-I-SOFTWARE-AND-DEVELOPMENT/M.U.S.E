@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 115,
+  "handler_count": 116,
   "owner_gated_count": 10,
-  "route_count": 117,
+  "route_count": 118,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -282,6 +282,15 @@
       "path": "/v1/cockpit/evidence/{id}/promote",
       "requires_auth": true,
       "summary": "Promote an evidence artifact into durable Memory Tree."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.forge_leaderboard",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/forge/leaderboard",
+      "requires_auth": true,
+      "summary": "The Forge championship view (read-only): Glicko-2 standings, MAP-Elites"
     },
     {
       "handler": "gateway.cockpit.handlers.graph_build",
