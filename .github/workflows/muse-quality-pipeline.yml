@@ -18,6 +18,7 @@ on:
       - "docs/**"
       - ".claude/skills/muse-quality/**"
       - ".github/workflows/muse-quality-pipeline.yml"
+      - ".importlinter"
 
 permissions:
   contents: read
@@ -43,7 +44,11 @@ jobs:
           python-version: "3.13"
 
       - name: Install import-linter
-        run: pip install import-linter
+        # CI-only pip installs are pinned to exact versions per the repo's
+        # Dependency Pinning Policy (hermetic CI; churn is acceptable). grimp is
+        # import-linter's graph engine — pin it too so a transitive release
+        # can't change contract evaluation under us.
+        run: pip install import-linter==2.11 grimp==3.14
 
       - name: Lint import contracts
         run: lint-imports
