@@ -61,7 +61,13 @@ def is_available() -> bool:
     :class:`SecondBrainUnavailable` at :func:`retrieve` time, by design.
     """
 
-    return importlib.util.find_spec("second_brain.knowledge") is not None
+    try:
+        return importlib.util.find_spec("second_brain.knowledge") is not None
+    except (ImportError, ValueError):
+        # find_spec imports the *parent* package to locate the submodule; when
+        # second_brain isn't installed that raises ModuleNotFoundError (an
+        # ImportError) rather than returning None. The probe must never crash.
+        return False
 
 
 def retrieve(

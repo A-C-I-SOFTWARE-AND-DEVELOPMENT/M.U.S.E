@@ -71,6 +71,19 @@ def test_is_available_imports_without_drivers():
     assert is_available() is True
 
 
+def test_is_available_returns_false_when_parent_package_missing(monkeypatch):
+    # find_spec imports the parent package; if second_brain isn't installed it
+    # raises ModuleNotFoundError. The probe must swallow that and return False,
+    # not crash.
+    import importlib.util as iu
+
+    def boom(name):
+        raise ModuleNotFoundError("No module named 'second_brain'")
+
+    monkeypatch.setattr(iu, "find_spec", boom)
+    assert is_available() is False
+
+
 def test_real_backend_degrades_gracefully_without_drivers():
     # In an environment without the DB drivers/backend, the real factory must
     # surface SecondBrainUnavailable (catchable) — never a bare ImportError.
