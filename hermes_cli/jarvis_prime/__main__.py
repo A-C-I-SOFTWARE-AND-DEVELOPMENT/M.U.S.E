@@ -2047,8 +2047,11 @@ def _cmd_second_brain(args: argparse.Namespace) -> int:
             if callable(close):
                 try:
                     close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    # Releasing DB connections is best-effort: a close() failure
+                    # must not flip an otherwise-successful ingest to an error.
+                    # Surface it as a non-fatal warning rather than swallowing it.
+                    print(f"  warning: second brain close failed: {exc}", file=sys.stderr)
         print(f"ingested {written} file(s) into the Second Brain.")
         return 0
 
