@@ -241,16 +241,41 @@ class JarvisPrime:
 
         legacy = self.config.memory.summarize_for_prompt(query, limit=limit)
         tree = self.memory_tree()
-        if tree is None:
-            return legacy
+        base = legacy
+        if tree is not None:
+            try:
+                pack = tree.context_pack(query, self.config.memory_token_budget)
+            except Exception:  # pragma: no cover - defensive
+                pack = None
+            if pack is not None and pack.sections:
+                tree_block = pack.render()
+                base = f"{legacy}\n\n{tree_block}" if legacy else tree_block
+        return self._augment_with_second_brain(query, base, limit=limit)
+
+    def _augment_with_second_brain(
+        self, query: str, base: str, *, limit: int = 5
+    ) -> str:
+        """Optionally append a Second Brain retrieval block to ``base``.
+
+        Opt-in (``MUSE_SECOND_BRAIN``) and fail-safe: when the flag is unset, the
+        module/backend isn't available, or retrieval yields nothing, ``base`` is
+        returned **unchanged** — so the default path stays byte-identical. Like
+        the Memory Tree above, the Second Brain *augments*, never replaces, the
+        native recollection, and a failure can never break recall.
+        """
+
         try:
-            pack = tree.context_pack(query, self.config.memory_token_budget)
-        except Exception:  # pragma: no cover - defensive
-            return legacy
-        if not pack.sections:
-            return legacy
-        tree_block = pack.render()
-        return f"{legacy}\n\n{tree_block}" if legacy else tree_block
+            from hermes_cli.jarvis_prime import second_brain_bridge as sbb
+
+            if not (sbb.enabled() and sbb.is_available()):
+                return base
+            ctx = sbb.retrieve_optional(query, top_k=limit)
+        except Exception:  # pragma: no cover - defensive (never break recall)
+            return base
+        if ctx is None or not (ctx.text or "").strip():
+            return base
+        block = f"## second brain\n{ctx.text.strip()}"
+        return f"{base}\n\n{block}" if base else block
 
     def _resolve_gemma_runner(self):
         """The Gemma curator runner — explicit ``config.gemma_runner`` wins;

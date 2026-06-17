@@ -20,8 +20,28 @@ bridge unit-testable with a fake brain — no live database required.
 from __future__ import annotations
 
 import importlib.util
+import os
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
+
+#: Env flag that opts the live runtime into Second Brain retrieval. Mirrors the
+#: repo's other opt-in switches (``MUSE_SYSTEM_CONTRACT``,
+#: ``MUSE_AUTORESEARCH_ALLOW_SPAWN``). Default-off keeps retrieval byte-identical.
+_ENABLE_ENV = "MUSE_SECOND_BRAIN"
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+
+
+def enabled() -> bool:
+    """True when ``MUSE_SECOND_BRAIN`` opts retrieval into the Second Brain.
+
+    This is the *intent* switch only — it says nothing about whether the module
+    or its backend is importable/reachable. Callers still gate on
+    :func:`is_available` (cheap) and tolerate :class:`SecondBrainUnavailable`
+    (raised at :func:`retrieve` time) so a set flag with no backend degrades
+    silently to MUSE's native retrieval.
+    """
+
+    return os.getenv(_ENABLE_ENV, "").strip().lower() in _TRUTHY
 
 
 class SecondBrainUnavailable(RuntimeError):
@@ -112,9 +132,36 @@ def retrieve(
                 pass
 
 
+def retrieve_optional(
+    query: str,
+    *,
+    top_k: Optional[int] = None,
+    enable_graph: bool = False,
+    factory: Optional[BrainFactory] = None,
+) -> Optional[RetrievedContext]:
+    """Like :func:`retrieve`, but return ``None`` instead of raising when the
+    Second Brain is unavailable.
+
+    This is the ergonomic seam for runtime callers (the agent's ``recollect`` and
+    the CLI context handoff): they can fuse the result in when present and fall
+    through to native retrieval otherwise, without their own try/except. Only
+    :class:`SecondBrainUnavailable` is swallowed — never a programmer error in
+    the caller's own arguments.
+    """
+
+    try:
+        return retrieve(
+            query, top_k=top_k, enable_graph=enable_graph, factory=factory
+        )
+    except SecondBrainUnavailable:
+        return None
+
+
 __all__ = [
     "RetrievedContext",
     "SecondBrainUnavailable",
+    "enabled",
     "is_available",
     "retrieve",
+    "retrieve_optional",
 ]

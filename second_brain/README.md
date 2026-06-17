@@ -123,6 +123,24 @@ Because retrieval returns provenance-tagged, scored blocks, it *supplements*
 (never silently replaces) existing RAG/memory and keeps every answer
 source-backed.
 
+### Using it from MUSE (wired, opt-in)
+
+The bridge `hermes_cli/jarvis_prime/second_brain_bridge.py` is wired into MUSE's
+retrieval path behind a single switch:
+
+- **Enable:** set `MUSE_SECOND_BRAIN=1`. The Second Brain is then fused into the
+  agent's recollection (`JarvisPrime.recollect`) and the GraphRAG context handoff
+  (`build_context_handoff`), appending a `## second brain` section. It **augments,
+  never replaces** native retrieval; with the flag unset (default) both paths are
+  byte-identical and a missing/failed backend silently falls back.
+- **CLI:** `python -m hermes_cli.jarvis_prime second-brain status` (enabled /
+  importable / non-secret settings), `… second-brain retrieve "<query>"` (read-only),
+  and `… second-brain ingest <path…> --apply --phrase '<owner phrase>'` (owner-gated
+  write to the backend).
+- **Configure** the backend via the `SECOND_BRAIN_*` env vars below. Because
+  enabling the flag changes default retrieval behavior, *turning it on* is an owner
+  decision.
+
 ---
 
 ## Layout

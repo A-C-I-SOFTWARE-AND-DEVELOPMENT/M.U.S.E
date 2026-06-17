@@ -38,6 +38,17 @@ service. Retrieval is explainable
 (deterministic path-based CITES edges, no opaque embedding guesses) so every
 injected fact is attributable.
 
+**Activation (opt-in).** Set `MUSE_SECOND_BRAIN=1` to fuse the Second Brain into
+the live retrieval path: it then *augments* — never replaces — the agent's
+recollection (`JarvisPrime.recollect`) and the GraphRAG context handoff
+(`build_context_handoff`), appending a `## second brain` block when the backend
+returns context. With the flag unset (the default) both paths are **byte-identical**
+to native retrieval, and a missing/failed backend silently falls back. The same
+module is reachable from the CLI:
+`python -m hermes_cli.jarvis_prime second-brain {status|retrieve|ingest}` (`status`
+and `retrieve` are read-only; `ingest --apply` is owner-gated). Because turning the
+flag on changes default retrieval, *enabling* it is an owner decision.
+
 ## Static vs. dynamic context (and CAG)
 
 MUSE already separates the constant from the changing through **TokenJuice**, its
