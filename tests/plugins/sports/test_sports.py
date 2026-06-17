@@ -9,7 +9,7 @@ import pytest
 
 import plugins.sports as plugin_pkg
 import plugins.sports.tools as tools
-from plugins.sports import config as sports_config
+import plugins.sports.config as sports_config
 from tools.http_client import HttpClientError
 
 

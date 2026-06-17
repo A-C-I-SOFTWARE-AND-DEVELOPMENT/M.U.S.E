@@ -8,7 +8,7 @@ import pytest
 
 import plugins.recipe as plugin_pkg
 import plugins.recipe.tools as tools
-from plugins.recipe import config as recipe_config
+import plugins.recipe.config as recipe_config
 
 
 def _parse(result: str):

@@ -8,7 +8,7 @@ import pytest
 
 import plugins.recommend as plugin_pkg
 import plugins.recommend.tools as tools
-from plugins.recommend import config as recommend_config
+import plugins.recommend.config as recommend_config
 
 
 def _parse(result: str):

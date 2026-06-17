@@ -9,7 +9,7 @@ import pytest
 
 import plugins.places as plugin_pkg
 import plugins.places.tools as tools
-from plugins.places import config as places_config
+import plugins.places.config as places_config
 from tools.http_client import HttpClientError
 
 

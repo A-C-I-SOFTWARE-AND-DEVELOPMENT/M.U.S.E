@@ -9,7 +9,7 @@ import pytest
 
 import plugins.image_search as plugin_pkg
 import plugins.image_search.tools as tools
-from plugins.image_search import config as image_config
+import plugins.image_search.config as image_config
 from tools.http_client import HttpClientError
 
 
