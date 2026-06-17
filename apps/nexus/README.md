@@ -9,6 +9,30 @@ verification stage, and a live **Neural Observatory** "mirror" dashboard.
 > integration (embedded panel + live steering). Antigravity and AI Studio are
 > **link-out** surfaces — they refuse iframe embedding and expose no SDK.
 
+## The MUSE command center (everything, accessible)
+
+The **Console** tab is a full command center over the MUSE README/architecture:
+a **capability registry** (`src/lib/capabilities.ts`) of **32 capabilities**
+grouped by plane — Operating Layer · Cognition · Orchestration · Governance ·
+Intelligence · Federation · Surfaces — each wired to the real cockpit gateway
+surface (`src/adapters/cockpit.ts`, the full `/v1/cockpit/*` API). Tapping a
+capability either jumps to its tab, opens its **interactive drawer**, or links to
+its doc:
+
+| Plane | Reachable from the PWA |
+|---|---|
+| **Operating Layer** | Six Modes · **Emergency Stop** (`/emergency-stop`) · Autonomy bands (`/autonomy`) · Runtime & monitors (`/runtime/status`) |
+| **Cognition** | Memory Tree (`/memory/tree`) · Natural-language coder → packet (`/coding/plan`) · Evidence engine (`/evidence/search`) · Research Vault (`/research`) · GraphRAG query (`/graph/query`) · Neural Observatory · TokenJuice |
+| **Orchestration** | Goal→PR orchestration (`/orchestrate`) · Jobs & task graph (`/jobs`) · AOS Council |
+| **Governance** | Eight verification gates (Axiom tab) · **Owner Approvals** with the exact "Yes, with authorization." phrase (`/approvals`) · Evidence ledger `verify_chain` (`/audit`) · Constitution |
+| **Intelligence** | Free-first model routing (`/model-routes`) · Learning loop (`/learning`) · SIA + autoresearch proposals (`/proposals`) · Open data sources |
+| **Federation** | Sovereign nodes / quorum / Forge · Architecture map |
+| **Surfaces** | Octagon · Skills (`/skills`) · Command palette · Voice · Activity · Android companion · MCP · Cron |
+
+A top banner shows live **runtime status** and a one-tap **Emergency Stop**.
+Every gateway-backed panel degrades to an honest "requires gateway" state when
+`VITE_MUSE_BASE_URL` is unset — never fabricated data.
+
 ---
 
 ## Stack

@@ -99,6 +99,32 @@ the `{"status":"unavailable"}` graph shape → `bGraphAvailable=false` → dorma
 dressing (zero planets), and `heat: null` → neutral grey, never a guessed glow.
 See `src/adapters/observatory.ts`.
 
+### MUSE cockpit surface (`/v1/cockpit/*`) — the command center
+
+The Console surfaces the **entire** MUSE README via the cockpit gateway
+(`src/adapters/cockpit.ts`, mirroring `gateway/cockpit/`). Key bindings:
+
+| Capability | Endpoint |
+|---|---|
+| Capability discovery | `GET /v1/cockpit/capabilities` |
+| Runtime status / workers | `GET /v1/cockpit/runtime/status` |
+| Emergency stop | `POST /v1/cockpit/emergency-stop` |
+| Autonomy bands | `GET/POST /v1/cockpit/autonomy` |
+| Orchestrate (goal→PR) | `POST /v1/cockpit/orchestrate` |
+| Jobs + control | `GET /v1/cockpit/jobs`, `…/{id}/{approve,cancel,pause,resume,publish}` |
+| Owner approvals | `GET /v1/cockpit/approvals`, `POST /v1/cockpit/approvals/{id}` (`authorization` = exact phrase) |
+| Memory Tree | `GET /v1/cockpit/memory/tree`, `/memory?q=` |
+| Evidence / research | `GET /v1/cockpit/evidence/search?q=`, `/research` |
+| GraphRAG query | `POST /v1/cockpit/graph/query` (`scope` local/global/coding) |
+| Model routing / scorecards | `GET /v1/cockpit/model-routes`, `/models`, `/models/local` |
+| Learning dataset | `GET /v1/cockpit/learning` |
+| Self-improvement proposals | `GET /v1/cockpit/proposals` |
+| Evidence ledger (`verify_chain`) | `GET /v1/cockpit/audit` |
+| Skills | `GET /v1/cockpit/skills` |
+
+Every call no-ops to a null/empty (honest "requires gateway") result when the
+base URL is unset.
+
 ---
 
 ## 2. Antigravity & AI Studio (LINK-OUT ONLY)
