@@ -85,5 +85,11 @@ ok "Gateway starting. Open this on the phone (add to home screen):"
 printf '\n    \033[1;32mhttp://127.0.0.1:%s/nexus/\033[0m\n\n' "$MUSE_PORT"
 echo "   First launch: NEXUS auto-detects this gateway (same origin) and pairs"
 echo "   once you enter the owner phrase: Yes, with authorization."
+echo "   Tip: in NEXUS → Settings → AI Providers, tap \"Import my keys\" to pull"
+echo "   every key you already have in ~/.hermes/.env (no re-typing)."
 echo
+# Allow NEXUS's "Import my keys" to read the existing ~/.hermes/.env credentials.
+# Owner-gated + loopback-only on the gateway side; opt out with
+# MUSE_NO_SECRET_IMPORT=1. This is your own device, so it's enabled by default.
+if [ "${MUSE_NO_SECRET_IMPORT:-0}" != "1" ]; then export HERMES_COCKPIT_SECRET_IMPORT=1; fi
 exec $MUSE_BIN cockpit serve --port "$MUSE_PORT"
