@@ -11,6 +11,7 @@ import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,6 +24,7 @@ data class SettingsUiState(
     val allowExternalAppOpening: Boolean = false,
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
+    val unifiedPwaShellEnabled: Boolean = false,
 )
 
 class SettingsViewModel(
@@ -50,6 +52,7 @@ class SettingsViewModel(
                 allowExternalAppOpening = snap.allowExternalAppOpening,
                 clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
                 showSafetyWarnings = snap.showSafetyWarnings,
+                unifiedPwaShellEnabled = settings.unifiedPwaShellEnabled.first(),
             )
         }
     }
@@ -94,6 +97,11 @@ class SettingsViewModel(
         viewModelScope.launch { settings.setShowSafetyWarnings(value) }
     }
 
+    fun setUnifiedPwaShellEnabled(value: Boolean) {
+        _state.update { it.copy(unifiedPwaShellEnabled = value) }
+        viewModelScope.launch { settings.setUnifiedPwaShellEnabled(value) }
+    }
+
     fun resetAll() {
         viewModelScope.launch {
             settings.resetAll()
@@ -110,6 +118,7 @@ class SettingsViewModel(
                 allowExternalAppOpening = snap.allowExternalAppOpening,
                 clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
                 showSafetyWarnings = snap.showSafetyWarnings,
+                unifiedPwaShellEnabled = settings.unifiedPwaShellEnabled.first(),
             )
         }
     }

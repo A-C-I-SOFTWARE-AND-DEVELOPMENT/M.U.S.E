@@ -429,6 +429,9 @@
     <string name="settings_safety_warnings_label">Show safety warnings</string>
     <string name="settings_safety_warnings_subtitle">Show the reminder that MUSE does not bypass provider authentication.</string>
 
+    <string name="settings_unified_shell_label">Unified NEXUS shell (experimental)</string>
+    <string name="settings_unified_shell_subtitle">Render the NEXUS web command center instead of the native screens. Restart the app after changing. Native services (voice, overlay, approvals) stay available through the bridge.</string>
+
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
     <string name="diagnostics_app_version">App version</string>
