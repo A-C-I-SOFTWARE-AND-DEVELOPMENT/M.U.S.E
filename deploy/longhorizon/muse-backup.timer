@@ -1,0 +1,13 @@
+# Runs the M.U.S.E. backup once a day. Persistent=true catches up after the box
+# was off at the scheduled time; the random delay avoids a thundering herd.
+
+[Unit]
+Description=Run the M.U.S.E. backup daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+# Fires the M.U.S.E. gateway watchdog every 5 minutes (and shortly after boot).
+
+[Unit]
+Description=Run the M.U.S.E. gateway watchdog every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

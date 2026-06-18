@@ -375,8 +375,26 @@ If you found a deployment walkthrough elsewhere, check it against reality:
 
 ---
 
+## Keep it alive for the long horizon
+
+Once it's running, harden it for **unattended 24/7 operation** — self-healing
+autostart, crash recovery that never gives up, a liveness watchdog, log
+rotation, and daily backups — with one opt-in, idempotent script:
+
+```bash
+bash scripts/vps-harden-longhorizon.sh            # apply everything
+bash scripts/vps-harden-longhorizon.sh --dry-run  # preview the changes first
+```
+
+It's additive (it changes how the *host* keeps the agent alive, not how the
+agent behaves) and reversible (`--uninstall`). Full details, what each piece
+does, and how to verify: [`long-horizon-vps-runbook.md`](long-horizon-vps-runbook.md).
+
+---
+
 ## See also
 
+- [`long-horizon-vps-runbook.md`](long-horizon-vps-runbook.md) — keep it running unattended for weeks/months.
 - [`../remote/secure-tunnel-options.md`](../remote/secure-tunnel-options.md) — secure remote-access transports.
 - [`api-server.md`](../../website/docs/user-guide/features/api-server.md) — before exposing the OpenAI-compatible API server.
 - [`../../docker-compose.yml`](../../docker-compose.yml) — the two-service compose this guide drives.
