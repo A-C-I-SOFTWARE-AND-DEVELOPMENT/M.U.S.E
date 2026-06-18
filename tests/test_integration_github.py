@@ -209,8 +209,11 @@ class TestExecute:
         assert result.artifact_dir is None
 
     def test_execute_with_approval_runs_but_push_fails_without_remote(
-        self, repo: Path
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # HERMES_PUBLISH_LIVE is the network gate; set it so the push is actually
+        # attempted (and then fails because there's no origin).
+        monkeypatch.setenv("HERMES_PUBLISH_LIVE", "1")
         # Add a new file to commit
         (repo / "new.txt").write_text("hi\n", encoding="utf-8")
         plan = gh_int.plan(

@@ -52,7 +52,7 @@ loaded and resolved by
 | `MUSE_SYSTEM_CONTRACT` | off | Live-inject the pre-prompt System Contract (SC1..SC12) | `agent/system_prompt.py` |
 | `HERMES_COCKPIT_SECRET_IMPORT` | off | Cockpit import of `~/.hermes/.env` keys (loopback-only) | `gateway/cockpit/server.py` |
 | `HERMES_JARVIS_ENABLE_PAID` | off | Paid-API model routing (`paid_api_explicit_only`) | `hermes_cli/jarvis_prime/task_router.py` |
-| `HERMES_PUBLISH_LIVE` | off | The live-publish gate — no push to a remote without it | `hermes_cli/github_publisher.py` |
+| `HERMES_PUBLISH_LIVE` | off | The live-publish gate — `approve=True` commits locally, but no push to a remote without it | `hermes_cli/github_publisher.py` |
 | `HERMES_RELEASE_GATE_STRICT` | off | Release gate hard-fails on absent tooling | `hermes_cli/release_gate.py` |
 | `HERMES_CAPABILITY_GATE` | off | Capability-band wall on top of the 8 gates | `hermes_cli/jarvis_prime/capability_wall.py` |
 | `HERMES_ORCHESTRATOR_DISPATCH` | off | Un-403 the orchestrator dispatch route | `hermes_cli/orchestrator_api.py` |

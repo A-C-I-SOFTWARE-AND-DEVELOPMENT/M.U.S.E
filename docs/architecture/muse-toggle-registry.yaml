@@ -75,8 +75,9 @@ toggles:
     owner_gated: true
     default: false
     summary: >-
-      The live-publish gate. No code path pushes to a remote unless this is set
-      (in addition to approve=True and a token). Default is dry-run artifacts.
+      The live-publish gate. approve=True makes the local commit, but no code
+      path pushes to a remote unless this is set (plus a token). Default is
+      local-only / dry-run artifacts.
     read_sites:
       - hermes_cli/github_publisher.py
     docs:
