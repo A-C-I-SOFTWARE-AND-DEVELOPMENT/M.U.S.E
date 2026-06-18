@@ -38,7 +38,7 @@ export function TopBar() {
           <span className="text-[13px] font-bold text-black">N</span>
         </div>
         <div className="leading-none">
-          <div className="text-[15px] font-bold tracking-wide">NEXUS</div>
+          <div className="cinematic-title text-[15px] font-bold tracking-wide">NEXUS</div>
           <div className="hud-label mt-0.5">{TITLES[pathname] ?? ''}</div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
 import { TopBar } from './components/shell/TopBar';
+import { CinematicBackdrop } from './components/shell/CinematicBackdrop';
 import { CommandPalette } from './components/shell/CommandPalette';
 import { ConnectWizard } from './components/setup/ConnectWizard';
 import { isConfigured } from './lib/config';
@@ -81,6 +82,7 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
+      <CinematicBackdrop />
       <ConnectWizard open={wizard} onClose={closeWizard} />
       <CommandPalette />
       <TopBar />
