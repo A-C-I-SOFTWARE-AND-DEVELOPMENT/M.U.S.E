@@ -69,6 +69,10 @@ only verifier-passed trajectories are exported for distillation).
   `Yes, with authorization.` is provably never executed.
 - A calibration regression (confident and wrong) auto-demotes the
   autonomy band, and the demotion is in the ledger.
+- When the prover is unavailable, the kernel **fails closed**: a unit
+  that declares contracts is rejected (`contracts:unverified`) rather
+  than attested unproven — re-opening that path is an explicit,
+  owner-gated opt-in (`AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1`).
 
 ## Layout
 

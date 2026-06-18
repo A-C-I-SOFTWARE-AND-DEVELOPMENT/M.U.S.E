@@ -7,16 +7,24 @@ expressions compiled to Z3; the conjunction must be satisfiable
 At runtime the same clauses are evaluated again on concrete values —
 a statically-clean unit that lies at runtime yields no result.
 
-Degraded mode: on platforms without z3 wheels (e.g. Termux/aarch64),
-clauses are still validated against the restricted grammar and still
-enforced concretely at runtime, but no SAT/consistency/vacuity claims
-are made — reports carry ``degraded=True`` and the verifier labels the
-check ``contracts:degraded`` instead of ``contracts:z3``.
+Degraded mode (fail-closed): on platforms without z3 wheels (e.g.
+Termux/aarch64), clauses are still validated against the restricted
+grammar and still enforced concretely at runtime, but no
+SAT/consistency/vacuity claims can be made — reports carry
+``degraded=True``. Because AXIOM never trusts what it cannot verify
+(invariant I2, "verify before attest"), the verifier **fails closed**:
+a unit that declares contracts is *rejected* when z3 is unavailable,
+not attested-with-a-warning. The previous unsafe path (attest unproven
+contracts) is preserved only as an explicit, owner-gated opt-in via
+``AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1`` — see
+:func:`degraded_contracts_allowed`. A unit with no contracts has
+nothing to prove and attests either way.
 """
 
 from __future__ import annotations
 
 import ast
+import os
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -28,6 +36,27 @@ except ImportError:  # no z3 wheels on this platform (e.g. aarch64)
     z3 = cast("Any", None)  # typed Any so Z3_AVAILABLE-guarded uses don't flag; still None at runtime
 
 Z3_AVAILABLE = z3 is not None
+
+# Owner-gated escape hatch for the fail-closed contract policy.
+_DEGRADED_OPT_IN = frozenset({"1", "true", "yes", "on"})
+
+
+def degraded_contracts_allowed() -> bool:
+    """True iff the owner has explicitly opted into unverified contracts.
+
+    AXIOM fails closed by default: without z3 it cannot prove a contract
+    satisfiable/consistent/non-vacuous, so a unit that declares contracts
+    is rejected rather than attested on faith. Setting
+    ``AXIOM_ALLOW_UNVERIFIED_CONTRACTS`` to a truthy value re-opens the
+    legacy degraded path for platforms that genuinely cannot run z3
+    (e.g. Termux/aarch64) — a deliberate, auditable choice, never a
+    silent default.
+    """
+    return (
+        os.environ.get("AXIOM_ALLOW_UNVERIFIED_CONTRACTS", "").strip().lower()
+        in _DEGRADED_OPT_IN
+    )
+
 
 # ---------------------------------------------------------------------------
 # EARS — Easy Approach to Requirements Syntax (4 patterns)

@@ -15,11 +15,11 @@ from typing import Any
 
 from .canonical import Unit
 from .contracts import (
-    Z3_AVAILABLE,
     ContractError,
     PostconditionViolation,
     SpecError,
     check_contracts,
+    degraded_contracts_allowed,
     enforce_postconditions,
     parse_ears,
 )
@@ -112,14 +112,30 @@ class Verifier:
                     errors.append({"check": "refs:resolve-or-fail", "unresolved": ref})
 
         # 4. contracts:z3 — satisfiable + consistent + non-vacuous.
-        # Without z3 the check degrades to grammar validation and says so.
-        contracts_check = "contracts:z3" if Z3_AVAILABLE else "contracts:degraded"
+        # Fail-closed: without z3 the conjunction cannot be proven, so a unit
+        # that DECLARES contracts is rejected (I2: verify before attest) unless
+        # the owner has explicitly opted into the degraded path. A unit with no
+        # contracts has nothing to prove and passes either way.
+        contracts_check = "contracts:z3"
         try:
             report = check_contracts(unit.contracts, unit.params)
             if report.degraded:
-                warnings.append(
-                    "z3 unavailable — contracts checked syntactically, not proven"
-                )
+                contracts_check = "contracts:degraded"
+                if unit.contracts and not degraded_contracts_allowed():
+                    errors.append(
+                        {"check": "contracts:unverified",
+                         "error": "z3 unavailable: contracts cannot be proven "
+                                  "satisfiable/consistent/non-vacuous; "
+                                  "fail-closed policy refuses to attest them",
+                         "remedy": "install z3-solver (the 'axiom' extra), or "
+                                   "set AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1 to "
+                                   "accept grammar-checked-only contracts"}
+                    )
+                elif unit.contracts:
+                    warnings.append(
+                        "z3 unavailable — contracts checked syntactically, not "
+                        "proven (AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1)"
+                    )
             if not report.satisfiable:
                 errors.append(
                     {"check": contracts_check, "error": "contracts unsatisfiable"}
