@@ -1188,9 +1188,16 @@ class TestAgentCacheIdleResume:
         runner._sweep_idle_cached_agents()
         assert "sKey" not in runner._agent_cache
 
-        # Wait for the daemon thread doing release_clients() to finish.
+        # Wait for the daemon thread doing release_clients() to finish. Poll
+        # rather than a fixed sleep so the assertion is robust under CI load: a
+        # flat 0.3s flaked when the background release thread was starved (the
+        # full suite runs heavily parallel). The thread always nulls the client
+        # eventually, so this resolves quickly when unloaded.
         import time as _t
-        _t.sleep(0.3)
+        for _ in range(100):  # up to ~5s
+            if old.client is None:
+                break
+            _t.sleep(0.05)
 
         # Old agent's client is gone (soft cleanup fired).
         assert old.client is None
