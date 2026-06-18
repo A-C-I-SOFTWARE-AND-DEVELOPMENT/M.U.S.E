@@ -66,6 +66,16 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <!-- Unified PWA-first shell host (docs/mobile/NEXUS_UNIFIED_APP_PLAN.md).
+             Phase-1 opt-in: not a launcher entry and exported=false, so nothing
+             reaches it until the owner enables the unified shell. Renders the
+             NEXUS PWA and wires the NexusBridge to the native services. -->
+        <activity
+            android:name=".ui.web.WebViewHostActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
+
         <service
             android:name=".service.HermesService"
             android:exported="false"

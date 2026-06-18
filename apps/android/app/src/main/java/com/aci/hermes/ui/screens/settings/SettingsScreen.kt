@@ -156,6 +156,12 @@ fun SettingsScreen(
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
                 )
+                SwitchRow(
+                    title = stringResource(R.string.settings_unified_shell_label),
+                    subtitle = stringResource(R.string.settings_unified_shell_subtitle),
+                    checked = state.unifiedPwaShellEnabled,
+                    onChange = viewModel::setUnifiedPwaShellEnabled,
+                )
             }
 
             SettingsSection("Connection") {

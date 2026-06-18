@@ -14,6 +14,7 @@ import com.aci.hermes.testutil.isolatedTaskRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -85,6 +86,15 @@ class SettingsViewModelTest {
         vm.setLocalOnlyMode(false)
         awaitUntil(message = "local-only persisted false") {
             awaitValue { !settings.snapshot().localOnlyMode }
+        }
+    }
+
+    @Test
+    fun `unified PWA shell toggle persists through to the repository`() {
+        val vm = newVm()
+        vm.setUnifiedPwaShellEnabled(true)
+        awaitUntil(message = "unified shell flag persisted true") {
+            awaitValue { settings.unifiedPwaShellEnabled.first() }
         }
     }
 

@@ -13,12 +13,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.aci.hermes.data.preferences.ThemeMode
 import com.aci.hermes.notify.DeepLink
 import com.aci.hermes.service.HermesService
 import com.aci.hermes.service.JobNotifier
 import com.aci.hermes.ui.navigation.HermesNavHost
 import com.aci.hermes.ui.theme.HermesTheme
+import com.aci.hermes.ui.web.WebViewHostActivity
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -41,6 +45,18 @@ class MainActivity : ComponentActivity() {
         pendingDeepLink.value = JobNotifier.parseDeepLink(intent)
 
         val container = (application as HermesApplication).container
+
+        // Unified PWA-first shell (docs/mobile/NEXUS_UNIFIED_APP_PLAN.md). When
+        // the owner has opted in, hand off to the WebView host that renders the
+        // NEXUS PWA and finish this Activity. The flag defaults OFF, so a fresh
+        // install is unaffected and the native Compose UI below renders exactly
+        // as before — this is the Phase-1 seam, not the (owner-gated) cutover.
+        lifecycleScope.launch {
+            if (container.settingsRepository.unifiedPwaShellEnabled.first()) {
+                startActivity(Intent(this@MainActivity, WebViewHostActivity::class.java))
+                finish()
+            }
+        }
 
         // A notification tap launches us with a route extra — publish it so
         // HermesNavHost can open the right screen.
