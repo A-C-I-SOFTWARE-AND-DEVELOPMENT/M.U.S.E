@@ -58,6 +58,19 @@ A CI check (`.github/workflows/muse-3d-atlas.yml`) regenerates the data and fail
 if the committed files have drifted, so the model can never silently fall out of
 sync with the documented architecture.
 
+## One portable file (open by double-click)
+
+To get the whole atlas as a single self-contained `.html` (three.js, app, styles
+and data all inlined — no server, no network):
+
+```bash
+python3 scripts/diagrams/build_muse_flowchart.py        # refresh the data
+node   scripts/diagrams/bundle_atlas_singlefile.mjs      # -> docs/_generated/flowchart/MUSE_3D_Systems_Atlas.html
+```
+
+The output opens in any browser by double-clicking. (Uses the esbuild already
+vendored under `apps/nexus/node_modules`.)
+
 ## Files
 
 - `index.html` — page shell + cockpit HUD
