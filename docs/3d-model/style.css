@@ -148,8 +148,44 @@ button.ctl.on { background: rgba(54, 230, 240, 0.22); border-color: rgba(54, 230
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 8px; }
 
+/* default: the masthead shows its full title; the short form is mobile-only */
+.mast-short { display: none; }
+
 @media (max-width: 820px) {
+  /* The legend is collapsed on phones (focus planes by tapping nodes). */
   #legend { display: none; }
-  #detail { width: calc(100vw - 44px); right: 22px; bottom: 200px; }
-  #masthead { max-width: calc(100vw - 44px); }
+  #hint { display: none; } /* redundant with the masthead subtitle; frees the corner */
+
+  /* Stack the HUD vertically so the title and the controls never overlap:
+     a slim masthead pinned to the top, the controls as a wrapping row beneath. */
+  #masthead {
+    top: 8px; left: 8px; right: 8px; max-width: none;
+    padding: 9px 12px; gap: 11px;
+  }
+  #masthead .glyph { width: 36px; height: 36px; }
+  #masthead h1 { font-size: 18px; white-space: nowrap; }
+  #masthead .sub { display: none; }
+  .mast-rest { display: none; } /* "— 3D Systems Atlas" → just "M.U.S.E Atlas" */
+  .mast-short { display: inline; }
+
+  #controls {
+    top: 72px; left: 8px; right: 8px; /* directly below the slim masthead */
+    flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: 8px;
+  }
+  #controls .btnrow { display: contents; } /* flatten both rows into one wrapping row */
+  button.ctl { font-size: 12px; padding: 7px 11px; border-radius: 10px; }
+
+  /* Full-bleed panels with even side margins; keep them clear of each other. */
+  #detail { left: 8px; right: 8px; width: auto; bottom: 168px; }
+  #pipeline { left: 8px; right: 8px; width: auto; bottom: 8px; padding: 13px 15px; }
+  #pipeline .ptitle { font-size: 15px; }
+  #pipeline .pdesc { font-size: 12.5px; }
+  #tip { font-size: 12px; }
+}
+
+/* Very narrow phones: shrink the control buttons a touch so 5 fit cleanly. */
+@media (max-width: 380px) {
+  button.ctl { font-size: 11px; padding: 6px 9px; }
+  #masthead h1 { font-size: 16px; }
 }
