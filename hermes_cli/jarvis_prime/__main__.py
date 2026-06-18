@@ -59,6 +59,12 @@ Subcommands:
   component registry (``docs/architecture/muse-component-registry.yaml``):
   list components by ``--kind``/``--risk``/``--owner-gated`` or show one by id,
   with ``--json``. Read-only.
+- ``toggles {list|show|status|doctor}`` — the opt-in / owner-gated
+  environment-toggle registry (``docs/architecture/muse-toggle-registry.yaml``).
+  ``list`` the catalog (``--group``/``--owner-gated``), ``show`` one by env
+  name, ``status`` resolves each against the live environment, and ``doctor``
+  verifies every toggle is actually wired (read_sites exist and mention the env
+  var). Read-only.
 """
 
 from __future__ import annotations
@@ -1212,6 +1218,114 @@ def _cmd_architecture_show(args: argparse.Namespace) -> int:
     ):
         print(f"{label:>20}: {d[label]}")
     return 0
+
+
+def _toggle_pool(args: argparse.Namespace):
+    from hermes_cli.jarvis_prime.toggles import load_toggles
+
+    path = getattr(args, "registry", None)
+    return load_toggles(Path(path) if path else None)
+
+
+def _cmd_toggles_list(args: argparse.Namespace) -> int:
+    toggles = _toggle_pool(args)
+    if getattr(args, "group", None):
+        toggles = [t for t in toggles if t.group == args.group]
+    if getattr(args, "owner_gated", False):
+        toggles = [t for t in toggles if t.owner_gated]
+
+    if getattr(args, "json", False):
+        _print_json([t.to_dict() for t in toggles])
+        return 0
+    if not toggles:
+        print("no matching toggles")
+        return 0
+    for t in toggles:
+        gate = "GATED" if t.owner_gated else ""
+        dflt = "on" if t.default else "off"
+        print(
+            f"{t.env:<34}  {t.group:<3}  {gate:<5}  default={dflt:<3}  "
+            f"{t.summary}".rstrip()
+        )
+    return 0
+
+
+def _cmd_toggles_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.toggles import get
+
+    t = get(args.env, toggles=_toggle_pool(args))
+    if t is None:
+        print(f"unknown toggle: {args.env!r}", file=sys.stderr)
+        return 1
+    if getattr(args, "json", False):
+        _print_json(t.to_dict())
+        return 0
+    d = t.to_dict()
+    for label in (
+        "env",
+        "group",
+        "owner_gated",
+        "default",
+        "summary",
+        "read_sites",
+        "docs",
+    ):
+        print(f"{label:>12}: {d[label]}")
+    return 0
+
+
+def _cmd_toggles_status(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.toggles import evaluate_all
+
+    results = evaluate_all()
+    if getattr(args, "group", None):
+        results = [(t, on) for t, on in results if t.group == args.group]
+    if getattr(args, "enabled_only", False):
+        results = [(t, on) for t, on in results if on]
+
+    if getattr(args, "json", False):
+        _print_json([{**t.to_dict(), "enabled": on} for t, on in results])
+        return 0
+    for t, on in results:
+        state = "ON " if on else "off"
+        gate = "GATED" if t.owner_gated else ""
+        print(f"[{state}] {t.env:<34}  {t.group:<3}  {gate}".rstrip())
+    return 0
+
+
+def _cmd_toggles_doctor(args: argparse.Namespace) -> int:
+    """Verify every declared read_site exists and actually mentions the env."""
+    toggles = _toggle_pool(args)
+    problems: list[tuple[str, str]] = []
+    for t in toggles:
+        if not t.read_sites:
+            problems.append((t.env, "no read_sites declared"))
+            continue
+        for rel, path in zip(t.read_sites, t.read_site_paths()):
+            if not path.exists():
+                problems.append((t.env, f"missing read_site: {rel}"))
+            elif t.env not in path.read_text(encoding="utf-8", errors="ignore"):
+                problems.append(
+                    (t.env, f"read_site does not mention {t.env}: {rel}")
+                )
+
+    if getattr(args, "json", False):
+        _print_json(
+            {
+                "ok": not problems,
+                "problems": [{"env": e, "detail": d} for e, d in problems],
+            }
+        )
+        return 0 if not problems else 1
+    if not problems:
+        print(
+            f"✓ all {len(toggles)} toggles are wired "
+            "(every read_site exists and mentions its env)"
+        )
+        return 0
+    for env_name, detail in problems:
+        print(f"✗ {env_name}: {detail}")
+    return 1
 
 
 def _cmd_handoff(args: argparse.Namespace) -> int:
@@ -3174,6 +3288,66 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_arch_show.add_argument("--registry", help="Override registry YAML path")
     p_arch_show.add_argument("--json", action="store_true")
     p_arch_show.set_defaults(func=_cmd_architecture_show)
+
+    # toggles — the opt-in / owner-gated environment-toggle registry.
+    p_toggles = sub.add_parser(
+        "toggles",
+        help="MUSE feature-toggle registry: list/show/status/doctor",
+        description=(
+            "Browse the single, machine-readable inventory of every opt-in / "
+            "owner-gated environment toggle MUSE honours "
+            "(docs/architecture/muse-toggle-registry.yaml, the source of truth "
+            "behind docs/security/opt-in-owner-gated-inventory.md). 'list' shows "
+            "the catalog, 'show' one toggle, 'status' resolves each against the "
+            "live environment, and 'doctor' verifies every toggle is actually "
+            "wired (its read_sites exist and mention the env var). Read-only."
+        ),
+    )
+    p_toggles_sub = p_toggles.add_subparsers(dest="toggles_command", required=True)
+
+    p_tog_list = p_toggles_sub.add_parser("list", help="List registry toggles")
+    p_tog_list.add_argument(
+        "--group",
+        choices=("B1", "B2", "B3", "B4", "B5"),
+        help="Filter by group (B1 opt-in+owner-gated … B5 runtime)",
+    )
+    p_tog_list.add_argument(
+        "--owner-gated",
+        dest="owner_gated",
+        action="store_true",
+        help="Only owner-gated toggles",
+    )
+    p_tog_list.add_argument("--registry", help="Override registry YAML path")
+    p_tog_list.add_argument("--json", action="store_true")
+    p_tog_list.set_defaults(func=_cmd_toggles_list)
+
+    p_tog_show = p_toggles_sub.add_parser("show", help="Show one toggle by env name")
+    p_tog_show.add_argument("env", help="Env var name (e.g. HERMES_OFFLINE)")
+    p_tog_show.add_argument("--registry", help="Override registry YAML path")
+    p_tog_show.add_argument("--json", action="store_true")
+    p_tog_show.set_defaults(func=_cmd_toggles_show)
+
+    p_tog_status = p_toggles_sub.add_parser(
+        "status", help="Resolve each toggle against the live environment"
+    )
+    p_tog_status.add_argument(
+        "--group", choices=("B1", "B2", "B3", "B4", "B5"), help="Filter by group"
+    )
+    p_tog_status.add_argument(
+        "--enabled",
+        dest="enabled_only",
+        action="store_true",
+        help="Only currently-enabled toggles",
+    )
+    p_tog_status.add_argument("--json", action="store_true")
+    p_tog_status.set_defaults(func=_cmd_toggles_status)
+
+    p_tog_doctor = p_toggles_sub.add_parser(
+        "doctor", help="Verify every toggle is actually wired (no drift)"
+    )
+    p_tog_doctor.add_argument("--registry", help="Override registry YAML path")
+    p_tog_doctor.add_argument("--json", action="store_true")
+    p_tog_doctor.set_defaults(func=_cmd_toggles_doctor)
 
     # self-audit — a Petri-style auditor->target->judge loop that scores JARVIS
     # behavior against the JARVIS Constitution (docs/jarvis-constitution.md).

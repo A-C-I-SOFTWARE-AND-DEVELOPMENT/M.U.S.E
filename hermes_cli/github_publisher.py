@@ -43,6 +43,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
+from utils import is_truthy_value
+
 from hermes_cli.decision_engine import (
     live_publish_input,
     merge_decision_inputs,
@@ -936,6 +938,14 @@ def run(
     executed = False
     pushed = False
 
+    # HERMES_PUBLISH_LIVE is the documented live-publish gate (see
+    # docs/orchestration/release-checklist.md): no code path contacts the
+    # network unless it is set. The local branch/stage/commit below run under
+    # ``approve=True`` (they are offline); only the push — the single step that
+    # reaches a remote — requires the env flag (and a token via git's own
+    # credential layer). Default (env unset) stays local-only.
+    publish_live = is_truthy_value(os.environ.get("HERMES_PUBLISH_LIVE"))
+
     if approve and not findings and repo_allowlisted:
         try:
             create_branch(job_id, repo_root=repo.root, base_branch=base, dry_run=False)
@@ -947,12 +957,18 @@ def run(
             )
             commit(commit_message, repo_root=repo.root, dry_run=False)
             executed = True
-            try:
-                _run_git(push_cmd[1:], cwd=repo.root, check=True)
-                pushed = True
-            except subprocess.CalledProcessError as exc:
+            if publish_live:
+                try:
+                    _run_git(push_cmd[1:], cwd=repo.root, check=True)
+                    pushed = True
+                except subprocess.CalledProcessError as exc:
+                    errors.append(
+                        f"git push failed: {exc.stderr.strip() if exc.stderr else exc}"
+                    )
+            else:
                 errors.append(
-                    f"git push failed: {exc.stderr.strip() if exc.stderr else exc}"
+                    "live push skipped: HERMES_PUBLISH_LIVE=1 is required to push "
+                    "to a remote (the commit is local-only without it)"
                 )
         except SecretBlocked as exc:
             errors.append(str(exc))

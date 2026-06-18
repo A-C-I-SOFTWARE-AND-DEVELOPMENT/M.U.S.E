@@ -454,6 +454,29 @@ class TestOfflineMode:
         # Hermes-local survives.
         assert d.primary == "hermes-local"
 
+    def test_hermes_offline_env_forces_offline(self, registry, monkeypatch):
+        # The env flag is a floor: with no offline context, HERMES_OFFLINE=1
+        # must still exclude cloud workers (the wiring in route()).
+        monkeypatch.setenv("HERMES_OFFLINE", "1")
+        ctx = RouterContext(available_workers={"codex", "aider", "claude-code-local"})
+        d = route("implement foo", "implementation", registry=registry, context=ctx)
+        for cloud in ("codex", "aider", "claude-code-local"):
+            assert cloud in d.rejected
+            assert "offline" in d.rejected[cloud].lower()
+        assert d.primary == "hermes-local"
+
+    def test_no_env_keeps_cloud_eligible(self, registry, monkeypatch):
+        # Sanity: without the env flag and without an offline context, cloud
+        # workers are not excluded for offline reasons.
+        monkeypatch.delenv("HERMES_OFFLINE", raising=False)
+        ctx = RouterContext(available_workers={"codex", "aider", "claude-code-local"})
+        d = route("implement foo", "implementation", registry=registry, context=ctx)
+        accounted = set(d.selected_ids()) | set(d.rejected.keys())
+        for cloud in ("codex", "aider", "claude-code-local"):
+            if cloud in d.rejected:
+                assert "offline" not in d.rejected[cloud].lower()
+        assert "hermes-local" in accounted
+
 
 # ---------------------------------------------------------------------------
 # YAML loader sanity (not a substitute for the built-in test set above)

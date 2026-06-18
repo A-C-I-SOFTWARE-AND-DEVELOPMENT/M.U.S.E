@@ -592,3 +592,24 @@ def test_live_publish_refused_when_repo_not_allowlisted(
     assert verdict is not None
     assert verdict["tier"] == "refuse"
     assert "live_publish" in verdict["reason_codes"]
+
+
+@requires_git
+def test_approve_without_publish_live_commits_but_does_not_push(
+    repo: Path, monkeypatch
+) -> None:
+    # HERMES_PUBLISH_LIVE is the network gate: approve=True still makes the
+    # local commit, but the push is skipped unless the env flag is set.
+    monkeypatch.delenv("HERMES_PUBLISH_LIVE", raising=False)
+    monkeypatch.setattr(gp.shutil, "which", lambda _: None)
+    (repo / "foo.py").write_text("x = 1\n", encoding="utf-8")
+    result = gp.run(
+        job_id="no-live",
+        files=["foo.py"],
+        commit_message="feat: foo",
+        repo_root=repo,
+        approve=True,
+    )
+    assert result.executed is True
+    assert result.pushed is False
+    assert any("HERMES_PUBLISH_LIVE" in e for e in result.errors)

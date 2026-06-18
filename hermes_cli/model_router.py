@@ -42,8 +42,10 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Iterable
+
+from utils import env_var_enabled
 
 from hermes_cli.model_registry import (
     Registry,
@@ -459,6 +461,12 @@ def route(
         )
 
     ctx = context or RouterContext()
+    # HERMES_OFFLINE is an environment floor: when the host declares itself
+    # offline, cloud workers are off the table regardless of caller context, so
+    # force offline + local-first. Explicit ``offline=True`` callers are
+    # unchanged; we only ever raise the floor, never lower it.
+    if env_var_enabled("HERMES_OFFLINE") and not ctx.offline:
+        ctx = replace(ctx, offline=True, prefer_local=True)
     reg = registry or load_registry()
 
     # ------------------------------------------------------------------
