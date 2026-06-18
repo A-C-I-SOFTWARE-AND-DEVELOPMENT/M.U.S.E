@@ -24,8 +24,16 @@ export function TopBar() {
   const meta = LINK_META[link];
   return (
     <header
-      className="flex items-center justify-between px-4"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: 10 }}
+      className="flex items-center justify-between px-4 backdrop-blur-xl"
+      style={{
+        paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+        paddingBottom: 10,
+        // Floating glass app bar: a soft top-down scrim so the wordmark and
+        // status read cleanly over the cinematic aurora, closed by a hairline.
+        background:
+          'linear-gradient(180deg, rgba(8,11,16,0.78) 0%, rgba(8,11,16,0.42) 70%, transparent 100%)',
+        borderBottom: '1px solid var(--hairline)',
+      }}
     >
       <div className="flex items-center gap-2.5">
         <div
@@ -38,7 +46,7 @@ export function TopBar() {
           <span className="text-[13px] font-bold text-black">N</span>
         </div>
         <div className="leading-none">
-          <div className="text-[15px] font-bold tracking-wide">NEXUS</div>
+          <div className="cinematic-title text-[15px] font-bold">NEXUS</div>
           <div className="hud-label mt-0.5">{TITLES[pathname] ?? ''}</div>
         </div>
       </div>
