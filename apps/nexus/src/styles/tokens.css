@@ -81,13 +81,18 @@ body {
 .glass {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)) ,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
     var(--panel);
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  /* Layered elevation + a crisp specular top edge so panels read as lit glass
+     rather than flat fills — part of the cinematic commercial finish. */
+  box-shadow:
+    var(--shadow-2),
+    0 0 0 1px rgba(255, 255, 255, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
 /* Tactile press feedback for any interactive surface. */
