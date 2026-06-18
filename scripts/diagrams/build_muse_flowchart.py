@@ -989,10 +989,14 @@ PIPELINE: list[dict[str, object]] = [
 
 
 def export_data() -> dict[str, object]:
-    """Serialize the whole model to a plain dict for the 3D scene + JSON."""
+    """Serialize the whole model to a plain dict for the 3D scene + JSON.
+
+    Intentionally deterministic — no build date or other time-varying field — so
+    the committed atlas data and the regenerated output are byte-identical on any
+    day. The drift check in .github/workflows/muse-3d-atlas.yml relies on this.
+    """
     return {
         "schema": "muse.architecture_viz.v1",
-        "generated": date.today().isoformat(),
         "planes": [asdict(p) for p in PLANES],
         "pipeline": PIPELINE,
         "stats": [
