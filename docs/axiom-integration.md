@@ -57,23 +57,33 @@ in an untrusted repo is HIGH on its own.
 | `MUSE_AXIOM_GATES=0` | Bridge inert: no chain reads/writes, `chain_valid: null`, release chain-check skipped. Exported in CI unit-test workflows for hermeticity. |
 | `HERMES_HOME` | Relocates the chain (and all runtime state). The bridge singleton re-resolves it on every `get_bridge()`. |
 | `MUSE_UE5_ALLOW_SPAWN=1` | Owner gate for `ue5.launch_offscreen_render` — without it the command is built but never spawned. |
+| `AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1` | Owner gate for the kernel's **fail-closed** contract policy. Default (unset): when z3 is unavailable a unit that declares contracts is *rejected* (`contracts:unverified`), never attested unproven. Set it only on platforms that genuinely cannot run z3 (e.g. Termux/aarch64) to re-open the degraded attest-with-warning path. |
 
-## Degraded mode (no z3)
+## Degraded mode (no z3) — fail-closed
 
-`z3-solver` ships no aarch64 wheels, so on Termux the kernel runs
-degraded — honestly:
+`z3-solver` ships no aarch64 wheels, so on Termux the kernel cannot
+prove contracts. Because AXIOM never trusts what it cannot verify
+(invariant **I2 — verify before attest**), the kernel **fails closed**:
 
 - `axiom.core.contracts.check_contracts` validates every clause against
   the restricted grammar but makes **no SAT/consistency/vacuity claims**;
   the report carries `degraded=True`.
-- Attestations label the check `contracts:degraded` (instead of
-  `contracts:z3`) and carry the warning
-  `z3 unavailable — contracts checked syntactically, not proven`.
-- Runtime postcondition enforcement (`eval_concrete`) works fully — a
-  unit that lies at runtime still yields no result.
+- **By default, a unit that declares contracts is rejected** with
+  `contracts:unverified` — an unproven contract earns no attestation.
+  A unit with *no* contracts has nothing to prove and still attests
+  (labelled `contracts:degraded`).
+- The legacy attest-with-warning behaviour is preserved only as an
+  explicit, owner-gated opt-in: set
+  `AXIOM_ALLOW_UNVERIFIED_CONTRACTS=1`. Then degraded units attest with
+  the warning `z3 unavailable — contracts checked syntactically, not
+  proven` and the honest `contracts:degraded` label.
+- Runtime postcondition enforcement (`eval_concrete`) works fully in
+  every mode — a unit that lies at runtime still yields no result, even
+  when opted in.
 - The bridge chain is stdlib-only and unaffected.
 
-Install the kernel deps with the marker-guarded extra:
+Install the kernel deps with the marker-guarded extra (recommended — it
+keeps you on the proven path):
 
 ```bash
 pip install -e '.[axiom]'   # skips z3 automatically on aarch64
