@@ -79,7 +79,7 @@ PLANES: list[Plane] = [
             ),
             Card(
                 "Nexus PWA",
-                "A mobile-first command console: a 32-capability registry across seven planes, a draggable octagon steering vector, a neural observatory, a live repo mirror and an offline zero-server mode.",
+                "A mobile-first command console: a 32-capability registry across seven planes, a draggable octagon steering vector, a neural observatory, a live repo mirror and an offline zero-server mode. On launch it auto-syncs to the MUSE gateway on the device and imports your providers.",
                 ["pwa", "steering"],
             ),
             Card(
@@ -349,7 +349,7 @@ PLANES: list[Plane] = [
         [
             Card(
                 "Model Router",
-                "Discovers providers and routes each task by capability, cost and latency, recording every model choice in the decision ledger.",
+                "Discovers providers and routes each task by capability, cost and latency — provider-agnostic, with no privileged default vendor — recording every model choice in the decision ledger.",
                 ["routing"],
                 gate=True,
             ),
@@ -371,7 +371,7 @@ PLANES: list[Plane] = [
             "Claude Code / Codex worker lanes",
             "Paid (opt-in)",
         ],
-        strip_label="Routing lanes — local-first, escalating only when needed · Providers: Anthropic · OpenAI · Gemini · OpenRouter · NovitaAI · NVIDIA NIM · z.ai · Kimi · MiniMax · Hugging Face · DeepSeek · xAI · Bedrock · Azure · Ollama · custom",
+        strip_label="Routing lanes — local-first, escalating only when needed · No default vendor — any model, any time · 40+ providers: Anthropic · OpenAI · Gemini · OpenRouter · NovitaAI · NVIDIA NIM · z.ai · Kimi · MiniMax · Hugging Face · DeepSeek · xAI · Groq · Mistral · Together · Cerebras · Perplexity · Fireworks · GMI · Kilo Code · OpenCode Zen · Xiaomi · Bedrock · Azure · Ollama · custom",
     ),
     Plane(
         "07",

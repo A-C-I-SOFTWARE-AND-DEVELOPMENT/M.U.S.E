@@ -31,7 +31,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5)); // ultra-HD
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
+renderer.toneMappingExposure = 1.12;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x05080f, 0.00075);
@@ -42,6 +42,40 @@ scene.add(new THREE.AmbientLight(0x2a3a55, 1.25));
 const keyLight = new THREE.PointLight(0x36e6f0, 1.1, 0, 1.4); keyLight.position.set(260, 520, 320); scene.add(keyLight);
 const fillLight = new THREE.PointLight(0xa06bff, 1.0, 0, 1.4); fillLight.position.set(-320, -360, -260); scene.add(fillLight);
 const rimLight = new THREE.PointLight(0xffb13d, 0.5, 0, 1.6); rimLight.position.set(0, -560, 240); scene.add(rimLight);
+scene.add(new THREE.HemisphereLight(0x223a5a, 0x05070f, 0.6)); // soft natural fill
+
+/* Procedural image-based lighting: a dark studio gradient with a few coloured
+ * highlights, pre-filtered into an environment map so the metallic nodes pick up
+ * realistic reflections. Wrapped defensively — if PMREM is unavailable the scene
+ * still renders perfectly without reflections. */
+(function buildEnvironment() {
+  try {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 256;
+    const g = c.getContext("2d");
+    const base = g.createLinearGradient(0, 0, 0, 256);
+    base.addColorStop(0, "#0c1838"); base.addColorStop(0.5, "#0a1020"); base.addColorStop(1, "#04060d");
+    g.fillStyle = base; g.fillRect(0, 0, 512, 256);
+    for (const [x, y, r, col] of [
+      [120, 80, 110, "rgba(54,230,240,0.55)"],
+      [380, 60, 120, "rgba(160,107,255,0.50)"],
+      [260, 200, 90, "rgba(47,208,122,0.40)"],
+      [450, 180, 80, "rgba(255,177,61,0.30)"],
+    ]) {
+      const rg = g.createRadialGradient(x, y, 0, x, y, r);
+      rg.addColorStop(0, col); rg.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = rg; g.fillRect(0, 0, 512, 256);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    scene.environment = pmrem.fromEquirectangular(tex).texture;
+    pmrem.dispose(); tex.dispose();
+  } catch (_e) {
+    /* no IBL — still looks great with the lights + emissive glow */
+  }
+})();
 
 /* ════════════════════════════════════════════════════════════════════════
  * Texture + sprite helpers
@@ -73,7 +107,7 @@ function makeLabel(text, opts = {}) {
   const font = `${weight} ${fs}px -apple-system, "Segoe UI", Inter, Roboto, Arial, sans-serif`;
   const mc = document.createElement("canvas"); const mg = mc.getContext("2d");
   mg.font = font; const tw = Math.ceil(mg.measureText(text).width);
-  const dpr = 2;
+  const dpr = 3; // crisp at 4K / high-DPI
   mc.width = (tw + pad * 2) * dpr; mc.height = (fs + pad * 2) * dpr;
   mg.scale(dpr, dpr);
   mg.font = font; mg.textBaseline = "middle"; mg.textAlign = "center";
@@ -161,7 +195,7 @@ flowGeo.setAttribute("position", new THREE.BufferAttribute(flowPos, 3));
 const flow = new THREE.Points(flowGeo, new THREE.PointsMaterial({ color: 0x8fe8ff, size: 3.2, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
 root.add(flow);
 
-const ICO = new THREE.IcosahedronGeometry(1, 1);
+const ICO = new THREE.IcosahedronGeometry(1, 3); // smoother spheres for a polished look
 
 function buildPlane(p, i) {
   const accent = new THREE.Color(p.accent || "#36e6f0");
@@ -187,7 +221,7 @@ function buildPlane(p, i) {
   ringGlow.rotation.x = Math.PI / 2; group.add(ringGlow);
 
   // hub
-  const hub = new THREE.Mesh(ICO, new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 1.1, metalness: 0.4, roughness: 0.3 }));
+  const hub = new THREE.Mesh(ICO, new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 1.1, metalness: 0.62, roughness: 0.22, envMapIntensity: 1.0 }));
   hub.scale.setScalar(5); group.add(hub);
   const hubGlow = makeGlow(accent, 34, 0.45); group.add(hubGlow);
 
@@ -202,7 +236,7 @@ function buildPlane(p, i) {
     const a = phase + (k / Math.max(1, m)) * Math.PI * 2;
     const x = Math.cos(a) * ringR, z = Math.sin(a) * ringR;
 
-    const mat = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.95, metalness: 0.35, roughness: 0.32 });
+    const mat = new THREE.MeshStandardMaterial({ color: accent, emissive: accent, emissiveIntensity: 0.95, metalness: 0.68, roughness: 0.24, envMapIntensity: 0.9 });
     const node = new THREE.Mesh(ICO, mat);
     node.position.set(x, 0, z);
     node.scale.setScalar(card.gate ? 7.2 : 6.4);
@@ -230,7 +264,7 @@ function buildPlane(p, i) {
     group.add(spoke);
 
     // node label
-    const nlabel = makeLabel(card.title, { fs: 30, worldH: 7.6, weight: 650, color: "#dfe8ff" });
+    const nlabel = makeLabel(card.title, { fs: 30, worldH: 7.6, weight: 650, color: "#eaf1ff", bg: "rgba(7,11,22,0.55)" });
     nlabel.position.set(x, 13, z);
     group.add(nlabel); labelSprites.push(nlabel);
 
@@ -250,8 +284,8 @@ planes.forEach(buildPlane);
 const coreY = topY + 96;
 const coreGroup = new THREE.Group(); coreGroup.position.y = coreY; root.add(coreGroup);
 const core = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(15, 2),
-  new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbfe4ff, emissiveIntensity: 1.3, metalness: 0.5, roughness: 0.18 })
+  new THREE.IcosahedronGeometry(15, 4),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xbfe4ff, emissiveIntensity: 1.25, metalness: 0.72, roughness: 0.1, envMapIntensity: 1.25 })
 );
 coreGroup.add(core);
 coreGroup.add(makeGlow(0xbfe4ff, 130, 0.6));
