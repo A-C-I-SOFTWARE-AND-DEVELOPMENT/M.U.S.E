@@ -176,9 +176,11 @@ button.ctl.on { background: rgba(54, 230, 240, 0.22); border-color: rgba(54, 230
   #controls .btnrow { display: contents; } /* flatten both rows into one wrapping row */
   button.ctl { font-size: 12px; padding: 7px 11px; border-radius: 10px; }
 
-  /* Full-bleed panels with even side margins; keep them clear of each other. */
+  /* Full-bleed panels with even side margins; keep them clear of each other.
+     transform:none cancels the desktop translateX(-50%) centering, which would
+     otherwise shift the now-full-width panel half off the left edge. */
   #detail { left: 8px; right: 8px; width: auto; bottom: 168px; }
-  #pipeline { left: 8px; right: 8px; width: auto; bottom: 8px; padding: 13px 15px; }
+  #pipeline { left: 8px; right: 8px; width: auto; transform: none; bottom: 8px; padding: 13px 15px; }
   #pipeline .ptitle { font-size: 15px; }
   #pipeline .pdesc { font-size: 12.5px; }
   #tip { font-size: 12px; }
