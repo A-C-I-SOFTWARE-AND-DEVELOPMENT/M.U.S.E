@@ -1,0 +1,545 @@
+# M.U.S.E feature-toggle registry — the single, machine-readable inventory of
+# every opt-in / owner-gated environment toggle MUSE honours at runtime.
+#
+# This is the source of truth behind:
+#   * docs/security/opt-in-owner-gated-inventory.md (the human-readable guide)
+#   * hermes_cli/jarvis_prime/toggles.py (the loader / validator / resolver)
+#   * `python -m hermes_cli.jarvis_prime toggles` (the CLI surface)
+#
+# Governance rules (enforced by tests/jarvis_prime/test_toggles.py):
+#   * every toggle's `env` matches ^(MUSE|HERMES|JARVIS)_[A-Z0-9_]+$
+#   * `group` is one of B1..B5 (see the group legend below)
+#   * B1 toggles MUST be owner_gated; the rest default to not owner_gated
+#   * `default` is a bool — the value MUSE resolves to when the env is unset
+#   * every `read_sites` path exists AND contains the env name, so the registry
+#     can never claim a wiring that the code does not actually have ("drift")
+#
+# Group legend:
+#   B1 — opt-in AND owner-gated (deferred until "Yes, with authorization.")
+#   B2 — spawn / self-improvement gates (nothing runs without the flag)
+#   B3 — cognition / retrieval opt-ins (supplement, never replace, defaults)
+#   B4 — approval / safety toggles
+#   B5 — runtime / deployment toggles
+schema: muse.toggle_registry.v1
+
+groups:
+  B1: opt-in and owner-gated
+  B2: spawn / self-improvement gates
+  B3: cognition / retrieval opt-ins
+  B4: approval / safety toggles
+  B5: runtime / deployment toggles
+
+toggles:
+  # ---------------------------------------------------------------- B1 -------
+  - env: MUSE_SYSTEM_CONTRACT
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Live-inject the pre-prompt System Contract (SC1..SC12) ahead of any
+      prompt. Default-off; opt-in/owner-gated behavioural floor.
+    read_sites:
+      - agent/system_prompt.py
+      - hermes_cli/jarvis_prime/system_contract.py
+    docs:
+      - docs/muse-system-contract.md
+
+  - env: HERMES_COCKPIT_SECRET_IMPORT
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Allow the cockpit to import ~/.hermes/.env keys. Owner-gated, opt-in,
+      loopback-only; returns only key names.
+    read_sites:
+      - gateway/cockpit/server.py
+      - gateway/cockpit/handlers.py
+    docs:
+      - docs/security/private-local-security-guide.md
+
+  - env: HERMES_JARVIS_ENABLE_PAID
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Enable paid-API model routing (paid_api_explicit_only). Free/local-first
+      otherwise; paid lanes are explicit opt-in.
+    read_sites:
+      - hermes_cli/jarvis_prime/model_bootstrap.py
+      - hermes_cli/jarvis_prime/task_router.py
+    docs:
+      - docs/jarvis-free-first-launch.md
+
+  - env: HERMES_PUBLISH_LIVE
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      The live-publish gate. No code path pushes to a remote unless this is set
+      (in addition to approve=True and a token). Default is dry-run artifacts.
+    read_sites:
+      - hermes_cli/github_publisher.py
+    docs:
+      - docs/orchestration/release-checklist.md
+
+  - env: HERMES_RELEASE_GATE_STRICT
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Make the release gate hard-fail when its tooling (ruff/pytest) is absent
+      instead of degrading. Ledgered as a behaviour change -> owner-gated.
+    read_sites:
+      - hermes_cli/release_gate.py
+    docs:
+      - docs/launch/followups/wc-2-release-gate-tooling.md
+
+  - env: HERMES_CAPABILITY_GATE
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Enable the capability-band wall on top of the 8 verification gates.
+      Default-off keeps the strict-gate suite unchanged.
+    read_sites:
+      - hermes_cli/jarvis_prime/gates.py
+      - hermes_cli/jarvis_prime/capability_wall.py
+    docs:
+      - docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md
+
+  - env: HERMES_ORCHESTRATOR_DISPATCH
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Un-403 the orchestrator dispatch route. Registered but refused unless the
+      flag is set.
+    read_sites:
+      - hermes_cli/orchestrator_api.py
+    docs:
+      - docs/launch/10_10_followups_ledger.md
+
+  - env: HERMES_CODEX_WORKER_EXECUTE
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Let the Codex worker actually execute its plan instead of staying
+      plan-only.
+    read_sites:
+      - hermes_cli/workers/codex.py
+    docs:
+      - docs/orchestration/workers/codex.md
+
+  - env: HERMES_COCKPIT_AUTONOMY_LOCKED
+    group: B1
+    owner_gated: true
+    default: false
+    summary: >-
+      Lock cockpit autonomy controls at runtime (owner override) without a code
+      change.
+    read_sites:
+      - gateway/cockpit/handlers_autonomy.py
+    docs:
+      - docs/launch/followups/fu-12-cockpit-owner-gate.md
+
+  # ---------------------------------------------------------------- B2 -------
+  - env: MUSE_AUTORESEARCH_ALLOW_SPAWN
+    group: B2
+    owner_gated: false
+    default: false
+    summary: >-
+      Required for ANY live autoresearch training spawn. Nothing runs without
+      it; each worker re-checks at handle time.
+    read_sites:
+      - hermes_cli/background_learner/runner.py
+      - hermes_cli/background_learner/queue.py
+    docs:
+      - docs/integrations/autoresearch.md
+
+  - env: MUSE_UE5_ALLOW_SPAWN
+    group: B2
+    owner_gated: false
+    default: false
+    summary: >-
+      Allow spawning a live UE5 render process. Refused unless explicitly set.
+    read_sites:
+      - hermes_cli/jarvis_prime/research_fabric/ue5.py
+      - deploy/pixelstreaming/run-render-node.sh
+    docs:
+      - docs/integrations/autoresearch.md
+
+  - env: MUSE_PS_ALLOW_SPAWN
+    group: B2
+    owner_gated: false
+    default: false
+    summary: >-
+      Allow spawning a Pixel Streaming render node. The launcher refuses unless
+      set — an explicit, auditable opt-in.
+    read_sites:
+      - deploy/pixelstreaming/run-render-node.sh
+    docs:
+      - deploy/pixelstreaming/README.md
+
+  - env: HERMES_JARVIS_GEMMA_AUTO_RUNNER
+    group: B2
+    owner_gated: false
+    default: false
+    summary: >-
+      Opt in to the local Gemma auto-runner (spawns a llama-server for the
+      templates fast-path / bench).
+    read_sites:
+      - hermes_cli/jarvis_prime/gemma_runner.py
+    docs:
+      - docs/ai-intelligence/gemma4-integration.md
+
+  # ---------------------------------------------------------------- B3 -------
+  - env: MUSE_SECOND_BRAIN
+    group: B3
+    owner_gated: false
+    default: false
+    summary: >-
+      Fuse the Second Brain into retrieval. Supplements (never replaces) native
+      RAG; degrades honestly when off.
+    read_sites:
+      - hermes_cli/jarvis_prime/runtime.py
+      - gateway/cockpit/handlers.py
+    docs:
+      - docs/architecture/MUSE_CONTEXT_ENGINEERING.md
+
+  - env: MUSE_OBSERVATORY
+    group: B3
+    owner_gated: false
+    default: false
+    summary: >-
+      Enable observatory telemetry (or touch ~/.hermes/observatory/.enabled).
+    read_sites:
+      - gateway/cockpit/observatory_metrics.py
+    docs:
+      - docs/launch/one-command-install.md
+
+  - env: MUSE_TEMPLATES
+    group: B3
+    owner_gated: false
+    default: false
+    summary: >-
+      Route through the templates fast-path during benchmarking instead of the
+      default lane.
+    read_sites:
+      - scripts/templates_fastpath/phase3_bench.sh
+    docs:
+      - docs/ai-intelligence/model-routing-policy.md
+
+  - env: MUSE_TEMPLATES_SERVER
+    group: B3
+    owner_gated: false
+    default: false
+    summary: >-
+      Endpoint URL for the templates fast-path server used by MUSE_TEMPLATES.
+    read_sites:
+      - hermes_cli/jarvis_prime/template_fastpath.py
+    docs:
+      - docs/ai-intelligence/model-routing-policy.md
+
+  # ---------------------------------------------------------------- B4 -------
+  - env: HERMES_YOLO_MODE
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Auto-approve actions / bypass approvals. Cannot bypass the hardline
+      blocklist; surfaces a visible YOLO badge.
+    read_sites:
+      - tools/approval.py
+      - cli.py
+    docs:
+      - website/docs/user-guide/security.md
+
+  - env: HERMES_ACCEPT_HOOKS
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Auto-accept shell hooks (equivalent to --accept-hooks). Set by the
+      gateway for non-interactive runs.
+    read_sites:
+      - agent/shell_hooks.py
+      - gateway/run.py
+    docs:
+      - website/docs/user-guide/features/hooks.md
+
+  - env: HERMES_EXEC_ASK
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Force exec confirmation. Automatically set when running the gateway.
+    read_sites:
+      - tools/approval.py
+      - gateway/run.py
+    docs:
+      - website/docs/user-guide/security.md
+
+  - env: HERMES_ALLOW_ROOT_GATEWAY
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Permit running the gateway as root (refused by default to avoid
+      root-owned state files).
+    read_sites:
+      - hermes_cli/gateway.py
+    docs:
+      - website/docs/user-guide/docker.md
+
+  - env: HERMES_ALLOW_PRIVATE_URLS
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Allow fetching private / loopback URLs (SSRF guard relaxation).
+    read_sites:
+      - tools/url_safety.py
+    docs:
+      - docs/security/private-local-security-guide.md
+
+  - env: HERMES_ENABLE_PROJECT_PLUGINS
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Auto-load repo-local ./.hermes/plugins/. Trust-gated by design; disabled
+      by default.
+    read_sites:
+      - hermes_cli/plugins.py
+    docs:
+      - website/docs/user-guide/features/built-in-plugins.md
+
+  - env: HERMES_DISABLE_FILE_STATE_GUARD
+    group: B4
+    owner_gated: false
+    default: false
+    summary: >-
+      Turn off the "file changed since you read it" guard on patch/write_file.
+    read_sites:
+      - tools/file_state.py
+    docs:
+      - hermes_cli/tips.py
+
+  - env: HERMES_REDACT_SECRETS
+    group: B4
+    owner_gated: false
+    default: true
+    summary: >-
+      Redact secrets in transcripts and tool IO. Defaults ON; set to a falsey
+      value to disable (not recommended).
+    read_sites:
+      - agent/redact.py
+      - gateway/run.py
+    docs:
+      - website/docs/user-guide/security.md
+
+  # ---------------------------------------------------------------- B5 -------
+  - env: HERMES_OFFLINE
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Declare the host offline: the model router excludes cloud workers and
+      forces local-first routing.
+    read_sites:
+      - hermes_cli/model_router.py
+    docs:
+      - docs/ai-intelligence/model-routing-policy.md
+
+  - env: HERMES_GATEWAY_FORCE_STARTUP
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      On Windows, install the Startup-folder login item directly and skip the
+      Scheduled Task (for group-policy-locked boxes).
+    read_sites:
+      - hermes_cli/gateway_windows.py
+    docs:
+      - website/docs/user-guide/windows-native.md
+
+  - env: HERMES_DASHBOARD
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Launch the web dashboard as a side-process (e.g. inside the Docker
+      gateway container on port 9119).
+    read_sites:
+      - docker/entrypoint.sh
+      - web/src/lib/dashboard-flags.ts
+    docs:
+      - website/docs/user-guide/docker.md
+
+  - env: HERMES_DASHBOARD_TUI
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Expose the in-browser Chat tab (embedded TUI) on the dashboard.
+    read_sites:
+      - docker/entrypoint.sh
+      - web/src/lib/dashboard-flags.ts
+    docs:
+      - website/docs/user-guide/features/web-dashboard.md
+
+  - env: HERMES_TUI
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Prefer the React/Ink TUI over the classic CLI (equivalent to --tui).
+    read_sites:
+      - cli.py
+      - hermes_cli/main.py
+    docs:
+      - website/docs/user-guide/tui.md
+
+  - env: HERMES_TUI_RESUME
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Auto-re-attach to the most recent TUI session on launch.
+    read_sites:
+      - hermes_cli/main.py
+      - hermes_cli/config.py
+    docs:
+      - website/docs/user-guide/tui.md
+
+  - env: HERMES_BOOTSTRAP_MODELS
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      On first boot, wire every reachable model route (compose default; guarded
+      by a marker file so it runs once).
+    read_sites:
+      - docker/entrypoint.sh
+    docs:
+      - docs/deploy/vps-deployment-guide.md
+
+  - env: HERMES_TERMUX_GATEWAY
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Start the gateway alongside the local API on Termux / at boot.
+    read_sites:
+      - scripts/hermes-termux-service.sh
+    docs:
+      - docs/termux/hermes-termux-boot.md
+
+  - env: HERMES_TERMUX_NO_WAKELOCK
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Skip acquiring the Android wake-lock for short foreground Termux
+      sessions.
+    read_sites:
+      - scripts/hermes-termux-service.sh
+    docs:
+      - docs/termux/hermes-wake-lock-policy.md
+
+  - env: HERMES_CRON_MAX_PARALLEL
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Cap concurrent cron jobs (set to 1 to restore the legacy serial
+      behaviour).
+    read_sites:
+      - cron/scheduler.py
+    docs:
+      - cron/scheduler.py
+
+  - env: HERMES_GATEWAY_DETACHED
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Marker that the gateway was launched detached by a service wrapper.
+    read_sites:
+      - hermes_cli/gateway.py
+      - hermes_cli/gateway_windows.py
+    docs:
+      - hermes_cli/gateway.py
+
+  - env: HERMES_DEV
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Developer mode: bypass container routing and run the local checkout
+      directly.
+    read_sites:
+      - hermes_cli/config.py
+    docs:
+      - website/docs/getting-started/nix-setup.md
+
+  - env: HERMES_IGNORE_USER_CONFIG
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Ignore the user's ~/.hermes/config.yaml for this invocation.
+    read_sites:
+      - cli.py
+      - hermes_cli/main.py
+    docs:
+      - cli.py
+
+  - env: HERMES_IGNORE_RULES
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Flip HermesCLI.ignore_rules True (skip repo rule files).
+    read_sites:
+      - cli.py
+      - hermes_cli/main.py
+    docs:
+      - hermes_cli/tips.py
+
+  - env: HERMES_NO_CONSOLIDATE
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      For forks: skip the upstream/main + branch consolidation merge during
+      update; just fast-forward main.
+    read_sites:
+      - hermes_cli/main.py
+      - hermes_cli/branch_consolidation.py
+    docs:
+      - website/docs/reference/cli-commands.md
+
+  - env: HERMES_SKIP_NODE_BOOTSTRAP
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      Disable the automatic Node.js bootstrap/auto-install on launch.
+    read_sites:
+      - hermes_cli/main.py
+    docs:
+      - hermes_cli/main.py
+
+  - env: MUSE_NO_SECRET_IMPORT
+    group: B5
+    owner_gated: false
+    default: false
+    summary: >-
+      On the Termux nexus gateway, do not auto-import secrets into the cockpit
+      (defaults to importing on your own device).
+    read_sites:
+      - scripts/termux-nexus-gateway.sh
+    docs:
+      - scripts/termux-nexus-gateway.sh

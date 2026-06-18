@@ -43,6 +43,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
+from utils import is_truthy_value
+
 from hermes_cli.decision_engine import (
     live_publish_input,
     merge_decision_inputs,
@@ -936,7 +938,19 @@ def run(
     executed = False
     pushed = False
 
-    if approve and not findings and repo_allowlisted:
+    # HERMES_PUBLISH_LIVE is the documented live-publish gate (see
+    # docs/orchestration/release-checklist.md): no code path contacts the
+    # network unless it is set. ``approve=True`` alone writes the artifacts but
+    # never pushes — the live push additionally requires the env flag *and* a
+    # token (git's own credential layer). This keeps the default dry-run.
+    publish_live = is_truthy_value(os.environ.get("HERMES_PUBLISH_LIVE"))
+    if approve and not publish_live:
+        errors.append(
+            "blocked: live publish requires HERMES_PUBLISH_LIVE=1 — approve=True "
+            "wrote the artifacts but did not push (set the env flag to go live)"
+        )
+
+    if approve and publish_live and not findings and repo_allowlisted:
         try:
             create_branch(job_id, repo_root=repo.root, base_branch=base, dry_run=False)
             stage_files(

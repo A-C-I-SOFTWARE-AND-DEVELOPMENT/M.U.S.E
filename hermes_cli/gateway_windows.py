@@ -715,6 +715,20 @@ def install(
     task_name = get_task_name()
     script_path = _write_task_script()
 
+    # HERMES_GATEWAY_FORCE_STARTUP=1 skips the Scheduled Task entirely and
+    # installs the Startup-folder login item directly. This is the documented
+    # escape hatch for locked-down boxes where group policy blocks ONLOGON
+    # scheduled tasks (see docs/.../windows-native.md).
+    if _install_choice_from_env("HERMES_GATEWAY_FORCE_STARTUP"):
+        print(
+            "↻ HERMES_GATEWAY_FORCE_STARTUP=1 — installing the Startup-folder "
+            "login item directly (skipping the Scheduled Task)."
+        )
+        _install_startup_fallback(
+            script_path, start_now, "forced via HERMES_GATEWAY_FORCE_STARTUP"
+        )
+        return
+
     # On machines where the current user's scheduled-task ACL is locked down,
     # schtasks /Create or /Change can sit for the timeout before returning
     # Access Denied. We already collected all intent questions above, so avoid
