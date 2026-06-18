@@ -1,0 +1,15 @@
+# M.U.S.E. daily backup (oneshot, driven by muse-backup.timer).
+#
+# Writes a full, restorable zip of ~/.hermes (config, .env, sessions, memory,
+# cron, state.db — the codebase is excluded) into the backup dir, then prunes
+# anything older than the retention window. Restore with `muse import <zip>`.
+# Placeholders are substituted on install; see deploy/longhorizon/README.md.
+
+[Unit]
+Description=M.U.S.E. daily backup of the Hermes home directory
+Documentation=https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/deploy/long-horizon-vps-runbook.md
+
+[Service]
+Type=oneshot
+__USER_LINE__Environment=HERMES_HOME=__HERMES_HOME__
+ExecStart=/bin/bash -c '__MUSE_BIN__ backup -o "__BACKUP_DIR__" && find "__BACKUP_DIR__" -maxdepth 1 -name "hermes-backup-*.zip" -mtime +__KEEP_DAYS__ -delete'

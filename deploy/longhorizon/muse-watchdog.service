@@ -1,0 +1,18 @@
+# M.U.S.E. gateway watchdog (oneshot, driven by muse-watchdog.timer).
+#
+# `gateway ensure` is idempotent: a no-op when the gateway is already up, and a
+# full (re)establish when it is not. Running it on a short timer is the slow
+# backstop behind systemd's own Restart= — it also recovers the gateway after a
+# reboot from a *cleanly stopped* state, which Restart= alone does not.
+# Placeholders are substituted on install; see deploy/longhorizon/README.md.
+
+[Unit]
+Description=M.U.S.E. gateway watchdog — re-establish the gateway if it is down
+Documentation=https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/deploy/long-horizon-vps-runbook.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+__USER_LINE__Environment=HERMES_HOME=__HERMES_HOME__
+ExecStart=__MUSE_BIN__ gateway ensure
