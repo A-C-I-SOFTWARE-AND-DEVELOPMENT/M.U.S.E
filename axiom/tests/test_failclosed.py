@@ -38,17 +38,26 @@ def no_z3(monkeypatch):
     monkeypatch.delenv("AXIOM_ALLOW_UNVERIFIED_CONTRACTS", raising=False)
 
 
-def _unit_with_contracts(**over) -> Unit:
-    kw = dict(
-        name="double", doc="",
+_DOUBLE_BODY: tuple[dict, ...] = (
+    {"op": "mul", "in": ["x", 2.0], "into": "y"},
+    {"op": "return", "in": ["y"]},
+)
+
+
+def _unit_with_contracts(
+    *,
+    name: str = "double",
+    contracts: tuple[str, ...] = ("result == x * 2.0",),
+    body: tuple[dict, ...] = _DOUBLE_BODY,
+) -> Unit:
+    return Unit(
+        name=name,
+        doc="",
         params={"x": "float"},
         intent="THE unit SHALL return two times x.",
-        contracts=("result == x * 2.0",),
-        body=({"op": "mul", "in": ["x", 2.0], "into": "y"},
-              {"op": "return", "in": ["y"]}),
+        contracts=contracts,
+        body=body,
     )
-    kw.update(over)
-    return Unit(**kw)
 
 
 def test_no_z3_rejects_unit_with_contracts(world, no_z3):
