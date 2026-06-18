@@ -86,6 +86,12 @@ The older, still-accurate plain-English walkthrough lives at
   — the gate checklist before you trust the mobile cockpit with real
   authority.
 
+## Roadmap
+
+- **[NEXUS_UNIFIED_APP_PLAN.md](NEXUS_UNIFIED_APP_PLAN.md)** — the PWA-first
+  single-codebase merge: collapse the native MUSE app + NEXUS PWA into one
+  shell (PWA UI + native service bridge). Phased, owner-gated.
+
 ## Phone-as-backend (Termux)
 
 If you run the backend on the *same* phone via Termux:
