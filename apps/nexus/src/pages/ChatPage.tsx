@@ -95,7 +95,9 @@ export default function ChatPage() {
           onChange={(e) => updateModel(e.target.value)}
           className="mono rounded-md bg-[var(--panel-solid)] px-2 py-1 text-[11px] text-[var(--ink)]"
         >
-          {modelsFor(cfg).map((m) => <option key={m} value={m}>{m}</option>)}
+          {modelsFor(cfg).map((m) => (
+            <option key={m} value={m}>{m === 'auto' ? 'Auto · any model (no main provider)' : m}</option>
+          ))}
         </select>
         <div className="mono flex-1 truncate text-[9px] text-[var(--ink-faint)]">
           {transportLabel}
@@ -121,8 +123,9 @@ export default function ChatPage() {
               <div className="text-[13px] font-semibold">Unified provider chat</div>
               {transport === 'direct' ? (
                 <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
-                  Direct from this app — Claude, GPT, Gemini & 300+ models through your own provider
-                  keys or OpenRouter. <b className="text-[var(--ink)]">No server, no terminal.</b>
+                  Direct from this app — <b className="text-[var(--ink)]">any of 300+ models across every provider</b>,
+                  no main provider, through your own keys or OpenRouter.{' '}
+                  <b className="text-[var(--ink)]">No server, no terminal.</b>
                   {' '}
                   <button onClick={() => navigate('/models')} className="underline" style={{ color: 'var(--octa-glow)' }}>Browse all models →</button>
                 </div>

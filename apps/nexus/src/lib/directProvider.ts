@@ -19,9 +19,11 @@ export function anyProviderReady(): boolean {
   return configuredProviders().length > 0 || !!getSecret('OPENROUTER_API_KEY');
 }
 
-// Legacy export kept for callers that still pass an OpenRouter-y model id.
+// Legacy export kept for callers that still pass a starter model id. 'auto' leads
+// (no main provider — MUSE picks any model); the rest are an unranked spread, with
+// no vendor privileged as a default.
 export const DIRECT_MODELS = [
-  'openrouter/auto', 'anthropic/claude-3.7-sonnet', 'openai/gpt-4o', 'google/gemini-2.0-flash-001',
+  'auto', 'openrouter/auto', 'anthropic/claude-3.7-sonnet', 'google/gemini-2.0-flash-001', 'deepseek/deepseek-chat',
 ];
 
 function keyForDirect(t: Extract<Transport, { kind: 'direct' }>): string {

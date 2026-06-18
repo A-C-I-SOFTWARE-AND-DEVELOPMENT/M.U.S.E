@@ -56,6 +56,17 @@ export const PROVIDERS: Provider[] = [
   { id: 'vercel', label: 'Vercel AI Gateway', baseUrl: 'https://ai-gateway.vercel.sh/v1', keyEnv: 'AI_GATEWAY_API_KEY', browserDirect: true, shape: 'openai', curated: ['anthropic/claude-3.7-sonnet', 'openai/gpt-4o'] },
   { id: 'lmstudio', label: 'LM Studio (local)', baseUrl: 'http://localhost:1234/v1', keyEnv: 'LMSTUDIO_API_KEY', browserDirect: true, shape: 'openai', local: true, curated: ['local-model'], note: 'Enable the local server in LM Studio.' },
   { id: 'ollama', label: 'Ollama (local)', baseUrl: 'http://localhost:11434/v1', keyEnv: 'OLLAMA_API_KEY', browserDirect: true, shape: 'openai', local: true, curated: ['llama3.2', 'qwen2.5-coder'], note: 'Set OLLAMA_ORIGINS to allow the browser.' },
+  { id: 'ollama-cloud', label: 'Ollama Cloud', baseUrl: 'https://ollama.com/v1', keyEnv: 'OLLAMA_API_KEY', browserDirect: true, shape: 'openai', curated: ['gpt-oss:120b', 'qwen3-coder:480b', 'deepseek-v3.1:671b'], note: 'Hosted Ollama models with your ollama.com key.' },
+  { id: 'alibaba-coding-plan', label: 'Alibaba Coding Plan (Qwen)', baseUrl: 'https://coding-intl.dashscope.aliyuncs.com/v1', keyEnv: 'ALIBABA_CODING_PLAN_API_KEY', browserDirect: true, shape: 'openai', curated: ['qwen3-coder-plus', 'qwen-max'] },
+  { id: 'gmi', label: 'GMI Cloud', baseUrl: 'https://api.gmi-serving.com/v1', keyEnv: 'GMI_API_KEY', browserDirect: true, shape: 'openai', curated: ['deepseek-ai/DeepSeek-V3', 'Qwen/Qwen2.5-72B-Instruct'] },
+  { id: 'kilocode', label: 'Kilo Code', baseUrl: 'https://api.kilo.ai/api/gateway', keyEnv: 'KILOCODE_API_KEY', browserDirect: true, shape: 'openai', curated: ['auto'], note: 'Routing gateway over many coding models.' },
+  { id: 'opencode-zen', label: 'OpenCode Zen', baseUrl: 'https://opencode.ai/zen/v1', keyEnv: 'OPENCODE_ZEN_API_KEY', browserDirect: true, shape: 'openai', curated: ['claude-sonnet-4', 'grok-code', 'qwen3-coder'] },
+  { id: 'xiaomi', label: 'Xiaomi MiMo', baseUrl: 'https://api.xiaomimimo.com/v1', keyEnv: 'XIAOMI_API_KEY', browserDirect: true, shape: 'openai', curated: ['mimo-v2-pro'] },
+  { id: 'azure-foundry', label: 'Azure AI Foundry', baseUrl: '', keyEnv: 'AZURE_FOUNDRY_API_KEY', browserDirect: false, shape: 'openai', note: 'Per-resource endpoint — configure via gateway.' },
+  { id: 'copilot', label: 'GitHub Copilot', baseUrl: 'https://api.githubcopilot.com', keyEnv: 'COPILOT_GITHUB_TOKEN', browserDirect: false, shape: 'openai', curated: ['gpt-4o', 'claude-3.7-sonnet'], note: 'GitHub token — routes via gateway.' },
+  { id: 'openai-codex', label: 'OpenAI Codex (OAuth)', baseUrl: '', keyEnv: 'OPENAI_CODEX_TOKEN', browserDirect: false, shape: 'openai', curated: ['gpt-5-codex'], note: 'OAuth/ChatGPT sign-in — gateway only.' },
+  { id: 'qwen-oauth', label: 'Qwen (OAuth)', baseUrl: '', keyEnv: 'QWEN_OAUTH_TOKEN', browserDirect: false, shape: 'openai', curated: ['qwen3-coder-plus'], note: 'Browser device-code sign-in — gateway only.' },
+  { id: 'copilot-acp', label: 'Copilot ACP', baseUrl: '', keyEnv: 'COPILOT_ACP_TOKEN', browserDirect: false, shape: 'openai', note: 'Autonomous coding process — gateway only.' },
   { id: 'custom', label: 'Custom (OpenAI-compatible)', baseUrl: '', keyEnv: 'CUSTOM_API_KEY', browserDirect: true, shape: 'openai', note: 'Add your own base URL + key in Add-ons.' },
 ];
 
@@ -106,7 +117,36 @@ export type Transport =
  *   provider-direct (key + browserDirect) → OpenRouter (key + prefix) →
  *   gateway (configured) → unavailable.
  */
+/**
+ * The vendor-neutral "no main provider" choice. MUSE/NEXUS is provider-agnostic:
+ * there is deliberately NO privileged default vendor (and OpenAI is never the
+ * default). `'auto'` resolves to the best model the owner can actually use right
+ * now — the OpenRouter auto-router when present (it spans 300+ models across every
+ * vendor), otherwise the first provider they hold a key for in list order, then a
+ * configured local server. Selection is purely "what you have", with no bias.
+ */
+export function bestAvailableModel(): string {
+  if (getSecret('OPENROUTER_API_KEY')) return 'openrouter/auto';
+  for (const p of PROVIDERS) {
+    if (p.local || p.id === 'custom' || p.id === 'openrouter') continue;
+    if (!p.browserDirect) continue; // OAuth/IAM/gateway-only can't serve a browser pick
+    const key = getSecret(p.keyEnv);
+    if (key) {
+      const m = p.curated?.[0];
+      if (m) return m.includes('/') ? m : `${p.id}/${m}`;
+    }
+  }
+  for (const p of PROVIDERS) {
+    if (p.local && getSecret(p.keyEnv)) {
+      const m = p.curated?.[0];
+      if (m) return `${p.id}/${m}`;
+    }
+  }
+  return 'openrouter/auto';
+}
+
 export function resolveModelTransport(model: string): Transport {
+  if (model === 'auto') model = bestAvailableModel();
   const p = providerForModel(model);
   const baseUrl = p.id === 'custom' ? getSecret('CUSTOM_BASE_URL') : p.baseUrl;
 
