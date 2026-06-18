@@ -98,13 +98,22 @@ TRACKED_TOOLS: tuple[dict, ...] = (
             "https://docs.continue.dev",
         ),
     },
-    {
+{
         "id": "openhands",
         "vendor": "All-Hands-AI",
         "category": "coding-agent",
         "official_sources": (
             "https://github.com/All-Hands-AI/OpenHands",
             "https://docs.all-hands.dev",
+        ),
+    },
+    {
+        "id": "opencode",
+        "vendor": "Anomalyco",
+        "category": "coding-agent",
+        "official_sources": (
+            "https://github.com/anomalyco/opencode",
+            "https://opencode.ai",
         ),
     },
     {
