@@ -60,12 +60,19 @@ body,
   height: 100%;
 }
 
+/* The opaque base lives on the canvas (html), NOT body. The CinematicBackdrop
+   is a fixed `z-index: -1` descendant of #root; a negative-z layer paints above
+   the canvas background but below any in-flow background. So body must stay
+   transparent — otherwise its fill would occlude the entire aurora layer. The
+   html base is also the dark fallback for surfaces that omit the backdrop (e.g.
+   full-bleed wallpaper mode). */
+html {
+  background-color: var(--bg-base);
+}
+
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 800px at 50% -10%, rgba(52, 229, 200, 0.06), transparent 60%),
-    radial-gradient(900px 700px at 100% 110%, rgba(194, 100, 254, 0.05), transparent 60%),
-    var(--bg-base);
+  background: transparent;
   color: var(--ink);
   font-family: Inter, system-ui, sans-serif;
   overscroll-behavior: none;
