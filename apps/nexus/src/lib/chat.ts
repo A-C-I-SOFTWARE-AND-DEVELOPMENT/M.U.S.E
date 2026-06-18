@@ -4,7 +4,7 @@
 // 'auto' picks direct when an OpenRouter key is present, else gateway.
 
 import { streamDirect } from './directProvider';
-import { resolveModelTransport, configuredProviders } from './providers';
+import { resolveModelTransport, configuredProviders, bestAvailableModel } from './providers';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -21,16 +21,19 @@ export interface ChatConfig {
   mode: ChatTransport;
 }
 
+// 'auto' is the default model id on purpose: MUSE is provider-agnostic with NO
+// main/default vendor. It resolves at call time to whatever the owner can use
+// (see bestAvailableModel) so any model can be used at any time.
 export function getChatConfig(): ChatConfig {
   try {
     const s = JSON.parse(localStorage.getItem(LS) ?? '{}');
     return {
       baseUrl: s.baseUrl || 'http://127.0.0.1:8782/v1',
-      model: s.model || 'openrouter/auto',
+      model: s.model || 'auto',
       mode: (s.mode as ChatTransport) || 'auto',
     };
   } catch {
-    return { baseUrl: 'http://127.0.0.1:8782/v1', model: 'openrouter/auto', mode: 'auto' };
+    return { baseUrl: 'http://127.0.0.1:8782/v1', model: 'auto', mode: 'auto' };
   }
 }
 
@@ -50,7 +53,9 @@ export function effectiveTransport(cfg: ChatConfig = getChatConfig()): 'direct' 
 /** A quick sync model list for the dropdown: curated models of configured
  *  providers (+ openrouter/auto). The Models tab has the full async catalog. */
 export function modelsFor(_cfg: ChatConfig = getChatConfig()): string[] {
-  const out = new Set<string>(['openrouter/auto']);
+  // 'auto' (no main provider — pick any model) leads; then every configured
+  // provider's models, no vendor privileged.
+  const out = new Set<string>(['auto', 'openrouter/auto']);
   for (const p of configuredProviders()) {
     for (const m of p.curated ?? []) out.add(m.includes('/') || p.id === 'openrouter' ? m : `${p.id}/${m}`);
   }
@@ -71,10 +76,12 @@ export async function streamChat(
   if (effectiveTransport(cfg) === 'direct') {
     return streamDirect(cfg.model, messages, onToken, signal);
   }
+  // Resolve the neutral 'auto' to a concrete model for the gateway router.
+  const gwModel = cfg.model === 'auto' ? bestAvailableModel() : cfg.model;
   const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: cfg.model, messages, stream: true }),
+    body: JSON.stringify({ model: gwModel, messages, stream: true }),
     signal,
   });
   if (!res.ok || !res.body) {

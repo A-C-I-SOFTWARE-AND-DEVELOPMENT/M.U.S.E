@@ -5,9 +5,14 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { startHealthMonitor } from './lib/health';
 import { registerUpdater, markNeedRefresh, markOfflineReady } from './lib/appUpdate';
+import { autoSyncOnLaunch } from './lib/autoSync';
 import './styles/index.css';
 
 startHealthMonitor();
+
+// On install / every launch: silently sync to a MUSE gateway on this device and
+// import the owner's existing providers + keys (owner-gated first pairing aside).
+void autoSyncOnLaunch();
 
 // Register the service worker ourselves (vite-plugin-pwa injectRegister:false) so
 // the Repo Sync surface can drive a one-click "Update NEXUS" — pulling the newest
