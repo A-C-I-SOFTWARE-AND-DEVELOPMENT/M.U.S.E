@@ -673,9 +673,64 @@ def render_strip(label: str, items: list[str]) -> str:
       </div>"""
 
 
-def render_plane(p: Plane) -> str:
+# What actually passes from each plane down to the next — the descending request
+# flow through the layered stack. One label per gap between consecutive planes.
+FLOW_EDGES: list[str] = [
+    "the request enters the operating layer",
+    "intent, mode &amp; bounded context",
+    "authorized, in-scope work",
+    "tasks that need knowledge",
+    "grounded, source-backed context",
+    "the task on its best-fit model",
+    "tool, plugin &amp; skill calls",
+    "results, traces &amp; candidate improvements",
+    "proposals to verify",
+    "attested, verified artifacts",
+    "rendered docs, tokens &amp; runtime targets",
+]
+
+
+def render_pipeline_ribbon() -> str:
+    """The actual end-to-end pipeline a goal travels, as a connected flow chain."""
+    gate_names = (PLANES[2].strip or []) if len(PLANES) > 2 else []
+    n = len(PIPELINE)
+    parts: list[str] = []
+    for i, s in enumerate(PIPELINE):
+        cls = "rib-node"
+        extra = ""
+        if s.get("gates"):
+            cls += " gatenode"
+            pills = "".join(f'<span class="gp">{esc(g)}</span>' for g in gate_names)
+            extra = f'<div class="rib-gates">{pills}</div>'
+        if i == n - 1:
+            cls += " product"
+        parts.append(
+            f'<div class="{cls}"><span class="rn">{i + 1:02d}</span>'
+            f'<span class="rt">{esc(str(s["title"]))}</span>'
+            f'<span class="rd">{esc(str(s["desc"]))}</span>{extra}</div>'
+        )
+        if i < n - 1:
+            parts.append('<span class="rib-arrow">&#10142;</span>')
+    flow = "".join(parts)
+    return f"""
+  <div class="ribbon">
+    <h2>The pipeline &mdash; first prompt &rarr; shipped product</h2>
+    <div class="rib-sub">The actual end-to-end flow a goal travels through M.U.S.E &mdash; every stage bounded, grounded, verified and audited before anything ships.</div>
+    <div class="rib-flow">{flow}</div>
+    <div class="rib-loop"><span class="lp">&#8635;</span>&nbsp; the shipped result and its captured evidence feed back into the Memory Tree, the decision ledger and the learning loop &mdash; closing the cycle.</div>
+  </div>"""
+
+
+def render_plane(p: Plane, idx: int) -> str:
     cards = "".join(render_card(c) for c in p.cards)
     strip = render_strip(p.strip_label or "", p.strip) if p.strip else ""
+    if idx < len(FLOW_EDGES):
+        connector = (
+            '<div class="connector"><span class="ar">&#9660;</span>'
+            f'<span class="conn-label">{FLOW_EDGES[idx]}</span></div>'
+        )
+    else:
+        connector = '<div class="connector"><span class="ar">&#9660;</span></div>'
     return f"""
     <section class="plane" style="--accent:{p.accent};--accent2:{p.accent2}">
       <div class="plane-head">
@@ -688,11 +743,12 @@ def render_plane(p: Plane) -> str:
       <div class="cards">{cards}</div>
       {strip}
     </section>
-    <div class="connector"><span>&#9660;</span></div>"""
+    {connector}"""
 
 
 def build_html() -> str:
-    planes_html = "".join(render_plane(p) for p in PLANES)
+    planes_html = "".join(render_plane(p, i) for i, p in enumerate(PLANES))
+    ribbon_html = render_pipeline_ribbon()
     today = date.today().isoformat()
     # final connector after last plane is harmless; CSS hides the trailing one.
     return f"""<!doctype html>
@@ -826,10 +882,60 @@ def build_html() -> str:
   }}
   .flowstrip .arrow {{ color:var(--accent); font-size:22px; font-weight:800; }}
 
-  /* ---------------- connectors between planes ---------------- */
-  .connector {{ display:flex; justify-content:center; height:46px; align-items:center; }}
-  .connector span {{ font-size:34px; color:rgba(255,255,255,0.32);
-    text-shadow:0 0 18px rgba(120,160,255,0.4); }}
+  /* ---------------- end-to-end pipeline ribbon ---------------- */
+  .ribbon {{ margin:16px 0 8px; padding:24px 28px; border-radius:22px;
+    border:1px solid var(--panel-line);
+    background:
+      linear-gradient(90deg, rgba(54,230,240,0.12), rgba(160,107,255,0.08) 50%, rgba(47,208,122,0.12)),
+      rgba(10,16,32,0.55); }}
+  .ribbon h2 {{ margin:0; font-size:38px; font-weight:780; color:#fff; letter-spacing:0.3px; }}
+  .rib-sub {{ font-size:22px; color:var(--ink-dim); margin:6px 0 20px; }}
+  .rib-flow {{ display:flex; flex-wrap:wrap; align-items:stretch; gap:10px; }}
+  .rib-node {{ position:relative; display:flex; flex-direction:column; justify-content:flex-start;
+    flex:1 1 218px; min-width:200px; padding:14px 17px; border-radius:15px;
+    background:rgba(8,13,28,0.78); border:1px solid var(--panel-line);
+    box-shadow:0 0 0 1px rgba(255,255,255,0.02) inset; }}
+  .rib-node .rn {{ font-size:15px; font-weight:800; color:#36e6f0; letter-spacing:1px; }}
+  .rib-node .rt {{ font-size:21px; font-weight:750; color:#fff; margin-top:3px; line-height:1.12; }}
+  .rib-node .rd {{ font-size:15.5px; color:var(--ink-faint); margin-top:6px; line-height:1.32; }}
+  .rib-node.gatenode {{ flex:1 1 420px; border-color:rgba(255,90,122,0.55);
+    background:linear-gradient(180deg, rgba(255,90,122,0.10), transparent 60%), rgba(28,10,16,0.7); }}
+  .rib-node.gatenode .rn {{ color:#ff8fa6; }}
+  .rib-gates {{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }}
+  .rib-gates .gp {{ font-size:14px; font-weight:700; color:#ffd6de; background:rgba(255,90,122,0.16);
+    border:1px solid rgba(255,90,122,0.45); border-radius:8px; padding:4px 9px; }}
+  .rib-node.product {{ border-color:rgba(47,208,122,0.6);
+    background:linear-gradient(180deg, rgba(47,208,122,0.12), transparent 60%), rgba(10,28,20,0.7); }}
+  .rib-node.product .rn {{ color:#5ef0a6; }}
+  .rib-arrow {{ display:flex; align-items:center; color:#8fb4ff; font-size:30px; font-weight:800;
+    text-shadow:0 0 14px rgba(120,160,255,0.55); }}
+  .rib-loop {{ margin-top:18px; font-size:20px; color:#bfe0ff; font-weight:600;
+    display:flex; align-items:center; }}
+  .rib-loop .lp {{ font-size:30px; color:#36e6f0; }}
+
+  /* ---------------- flow arteries through the stack ---------------- */
+  .planes-wrap {{ position:relative; padding-left:66px; padding-right:66px; }}
+  .artery {{ position:absolute; top:6px; bottom:6px; width:36px; pointer-events:none; z-index:2; }}
+  .artery.fwd {{ left:6px; }}
+  .artery.ret {{ right:6px; }}
+  .artery .pipe {{ position:absolute; top:10px; bottom:30px; left:50%; transform:translateX(-50%); }}
+  .artery.fwd .pipe {{ width:8px; border-radius:8px;
+    background:linear-gradient(180deg,#36e6f0,#33d6c4 12%,#ff5a7a 26%,#a06bff 38%,#2fd07a 46%,#ffb13d 56%,#4f9dff 66%,#ff5fb3 74%,#ffd24a 82%,#7c8bff 90%,#9aa7bd);
+    box-shadow:0 0 26px 3px rgba(120,160,255,0.45); }}
+  .artery.ret .pipe {{ width:0; border-left:3px dashed rgba(120,200,255,0.55); top:30px; bottom:10px; }}
+  .artery .cap {{ position:absolute; left:50%; transform:translateX(-50%); font-size:30px; }}
+  .artery.fwd .cap {{ bottom:0; color:#9ad6b0; text-shadow:0 0 14px rgba(47,208,122,0.7); }}
+  .artery.ret .cap {{ top:0; color:#8fc6ff; text-shadow:0 0 14px rgba(120,200,255,0.7); }}
+  .artery.ret .rlabel {{ position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%) rotate(180deg); writing-mode:vertical-rl;
+    font-size:16px; letter-spacing:3px; color:#8fb4cc; white-space:nowrap; font-weight:700; }}
+
+  /* ---------------- labeled connectors between planes ---------------- */
+  .connector {{ display:flex; justify-content:center; align-items:center; height:56px; gap:16px; }}
+  .connector .ar {{ font-size:30px; color:#8fb4ff; text-shadow:0 0 16px rgba(120,160,255,0.55); }}
+  .conn-label {{ font-size:19px; color:var(--ink-dim); font-weight:600;
+    background:rgba(10,16,32,0.7); border:1px solid var(--panel-line);
+    border-radius:999px; padding:7px 20px; }}
   .connector:last-of-type {{ display:none; }}
 
   /* ---------------- feedback note + footer ---------------- */
@@ -896,7 +1002,13 @@ def build_html() -> str:
     <span><b>RC0–RC4</b> = blast-radius risk class of changing a component</span>
   </div>
 
-  {planes_html}
+  {ribbon_html}
+
+  <div class="planes-wrap">
+    <div class="artery fwd" aria-hidden="true"><div class="pipe"></div><span class="cap">&#9660;</span></div>
+    <div class="artery ret" aria-hidden="true"><div class="pipe"></div><span class="cap">&#9650;</span><span class="rlabel">CLOSED LOOP · RESULTS, EVIDENCE &amp; MEMORY FLOW BACK UP</span></div>
+    {planes_html}
+  </div>
 
   <div class="loopnote">
     <span class="a">Closed learning loop:</span>&nbsp; session events &rarr; normalized sources &rarr; Memory Tree &amp; Research Vault &rarr; GraphRAG &amp; fusion &rarr; context compiler &rarr; model router &rarr; agents &amp; workers &rarr; new session events. &nbsp;Memory cites its sources and is never silently overwritten; the safety spine sits across every layer.
@@ -989,10 +1101,14 @@ PIPELINE: list[dict[str, object]] = [
 
 
 def export_data() -> dict[str, object]:
-    """Serialize the whole model to a plain dict for the 3D scene + JSON."""
+    """Serialize the whole model to a plain dict for the 3D scene + JSON.
+
+    Intentionally deterministic — no build date or other time-varying field — so
+    the committed atlas data and the regenerated output are byte-identical on any
+    day. The drift check in .github/workflows/muse-3d-atlas.yml relies on this.
+    """
     return {
         "schema": "muse.architecture_viz.v1",
-        "generated": date.today().isoformat(),
         "planes": [asdict(p) for p in PLANES],
         "pipeline": PIPELINE,
         "stats": [
