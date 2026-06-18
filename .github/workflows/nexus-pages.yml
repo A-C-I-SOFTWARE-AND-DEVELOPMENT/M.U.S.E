@@ -8,12 +8,20 @@
 # The site is built with base=/M.U.S.E/ (project Pages subpath) and HashRouter,
 # and the deployed commit SHA is embedded so the in-app "Update NEXUS" control can
 # tell when a newer main build is live.
+#
+# It also bundles the static MUSE 3D Systems Atlas (docs/3d-model/) into the same
+# deploy under /atlas/, regenerating its data from the shared architecture model
+# first so the published 3D model reflects the current architecture.
 name: Deploy NEXUS to Pages
 
 on:
   push:
     branches: [main]
-    paths: ['apps/nexus/**', '.github/workflows/nexus-pages.yml']
+    paths:
+      - 'apps/nexus/**'
+      - 'docs/3d-model/**'
+      - 'scripts/diagrams/**'
+      - '.github/workflows/nexus-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -40,6 +48,16 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
           touch dist/.nojekyll
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bundle the MUSE 3D Systems Atlas into the site (served at /atlas/)
+        run: |
+          # Regenerate the atlas data from the shared architecture model, then
+          # ship the static atlas alongside NEXUS. stdlib-only, no build step.
+          python3 scripts/diagrams/build_muse_flowchart.py
+          mkdir -p apps/nexus/dist/atlas
+          cp -r docs/3d-model/. apps/nexus/dist/atlas/
       - name: Publish to gh-pages
         working-directory: apps/nexus/dist
         env:
