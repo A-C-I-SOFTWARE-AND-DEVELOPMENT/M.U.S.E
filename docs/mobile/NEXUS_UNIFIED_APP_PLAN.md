@@ -97,8 +97,8 @@ hosted PWA URL); arbitrary web content never sees `NexusBridge`.
 | Phase | Work | Destructive? | Gate |
 |---|---|---|---|
 | **0** | This plan + bridge contract spec | no | none — **this PR** |
-| **1** | Add `WebViewHostActivity` + `NexusBridge` to `apps/android`; add the TS bridge client + shell-detection to the PWA. Behind a flag, **default OFF** — native screens still ship. Fully reversible. | no (additive) | none (additive, opt-in) |
-| **2** | **Cutover:** flip the default UI to the PWA host; route the kept services through the bridge; Compose screens go dormant behind the flag. | changes default behavior | **OWNER-GATED** |
+| **1 ✅** | `WebViewHostActivity` + `NexusBridge` (+ origin guard, unit-tested) in `apps/android`; `unifiedPwaShellEnabled` flag (**default OFF**); TS bridge client + shell-detection in the PWA (unit-tested). Additive, `exported=false`, nothing reaches it until the flag flips. **Done — this branch.** | no (additive) | none (additive, opt-in) |
+| **2** | **Cutover:** wire `MainActivity` to honor the flag, flip the default UI to the PWA host, route the kept services through the bridge; Compose screens go dormant. | changes default behavior | **OWNER-GATED** |
 | **3** | **Cleanup:** delete the dormant Compose screens / viewmodels / nav / design-system; retire `apps/nexus/android`. | yes (deletes a shipped surface) | **OWNER-GATED** |
 | **4** | **Release:** unify `nexus-android.yml` + `android-release.yml` into one signed, versioned release of the combined app. | publish | **OWNER-GATED** + signing secrets |
 

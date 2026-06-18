@@ -89,6 +89,12 @@ class SettingsRepository(
         val DEVICE_CONSENTED_CAPS = stringSetPreferencesKey("device_consented_capabilities")
         val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
         val CAMERA_ATTENTION_ENABLED = booleanPreferencesKey("camera_attention_enabled")
+
+        // Unified PWA-first shell (docs/mobile/NEXUS_UNIFIED_APP_PLAN.md).
+        // Phase-1 opt-in: when on, the app renders the NEXUS PWA in
+        // WebViewHostActivity instead of the native Compose UI. Defaults OFF
+        // so the shipped app is unchanged until the owner-gated Phase-2 cutover.
+        val UNIFIED_PWA_SHELL_ENABLED = booleanPreferencesKey("unified_pwa_shell_enabled")
     }
 
     val themeMode: Flow<ThemeMode> = store.data.map {
@@ -210,6 +216,16 @@ class SettingsRepository(
      */
     val cameraAttentionEnabled: Flow<Boolean> = store.data.map {
         it[Keys.CAMERA_ATTENTION_ENABLED] ?: false
+    }
+
+    /**
+     * Opt into the unified PWA-first shell (default off). When on, the app
+     * hosts the NEXUS PWA in [com.aci.hermes.ui.web.WebViewHostActivity]
+     * instead of the native Compose UI. Off keeps the shipped, native behavior
+     * unchanged — the flag is the Phase-1 seam for the owner-gated cutover.
+     */
+    val unifiedPwaShellEnabled: Flow<Boolean> = store.data.map {
+        it[Keys.UNIFIED_PWA_SHELL_ENABLED] ?: false
     }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
@@ -373,6 +389,10 @@ class SettingsRepository(
 
     suspend fun setCameraAttentionEnabled(value: Boolean) {
         store.edit { it[Keys.CAMERA_ATTENTION_ENABLED] = value }
+    }
+
+    suspend fun setUnifiedPwaShellEnabled(value: Boolean) {
+        store.edit { it[Keys.UNIFIED_PWA_SHELL_ENABLED] = value }
     }
 
     suspend fun resetAll() {
