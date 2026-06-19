@@ -27,7 +27,7 @@ const TABS: Tab[] = [
 export function TabBar() {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-[var(--hairline)] bg-[rgba(10,14,20,0.86)] backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-[var(--hairline)] bg-[rgba(10,14,20,0.86)] backdrop-blur-xl md:hidden"
       style={{
         height: 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',

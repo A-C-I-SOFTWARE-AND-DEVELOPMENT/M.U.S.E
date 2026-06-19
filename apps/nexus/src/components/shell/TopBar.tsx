@@ -36,6 +36,13 @@ export function TopBar() {
       }}
     >
       <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('nexus:open-nav'))}
+          aria-label="Open navigation"
+          className="grid h-7 w-7 place-items-center rounded-md border border-[var(--hairline)] text-[var(--ink-dim)] md:hidden"
+        >
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+        </button>
         <div
           className="grid h-7 w-7 place-items-center rounded-md"
           style={{

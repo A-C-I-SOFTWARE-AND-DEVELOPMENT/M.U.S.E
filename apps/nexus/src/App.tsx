@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
+import { SideNav } from './components/shell/SideNav';
 import { TopBar } from './components/shell/TopBar';
 import { CinematicBackdrop } from './components/shell/CinematicBackdrop';
 import { CommandPalette } from './components/shell/CommandPalette';
@@ -86,10 +87,9 @@ export default function App() {
       <ConnectWizard open={wizard} onClose={closeWizard} />
       <CommandPalette />
       <TopBar />
-      <main
-        className="scroll-area flex-1"
-        style={{ paddingBottom: 'calc(var(--tab-h) + env(safe-area-inset-bottom))' }}
-      >
+      <div className="flex min-h-0 flex-1">
+        <SideNav />
+        <main className="scroll-area flex-1 pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Page><ConsolePage /></Page>} />
@@ -113,7 +113,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AnimatePresence>
-      </main>
+        </main>
+      </div>
       <TabBar />
     </div>
   );
