@@ -1,0 +1,47 @@
+# Caddyfile — expose the MUSE cockpit over HTTPS so the NEXUS PWA can drive it.
+#
+# The cockpit (`muse cockpit serve`) binds 127.0.0.1:8765 and is same-origin /
+# loopback by design — it sends NO CORS headers. This reverse proxy:
+#   1. Terminates TLS automatically (Caddy gets a Let's Encrypt cert for __DOMAIN__).
+#   2. Proxies everything to the loopback cockpit, so the cockpit-served PWA at
+#      https://__DOMAIN__/nexus/ works same-origin (no CORS needed — recommended).
+#   3. ALSO injects CORS for the public GitHub Pages origin, so the Pages-hosted
+#      PWA (https://__PAGES_ORIGIN__) can call /v1/cockpit/* cross-origin.
+#
+# Auth is unchanged: every cockpit call still needs the Bearer token from
+# `muse cockpit token`, entered in the NEXUS ConnectWizard. CORS does not weaken
+# that — it only lets the browser make the request; the token still gates it.
+#
+# Install (on the VPS, with DNS for __DOMAIN__ pointing at this box):
+#   sudo apt install -y caddy        # or: https://caddyserver.com/docs/install
+#   sudo cp deploy/cockpit-https/Caddyfile /etc/caddy/Caddyfile
+#   # replace __DOMAIN__ and __PAGES_ORIGIN__ below, then:
+#   sudo systemctl restart caddy
+#
+# __DOMAIN__         public hostname for the cockpit, e.g. muse.example.com
+# __PAGES_ORIGIN__   the Pages origin (scheme+host, NO path), e.g.
+#                    https://a-c-i-software-and-development.github.io
+
+__DOMAIN__ {
+	# Preflight: answer OPTIONS for the Pages origin before proxying.
+	@preflight {
+		method OPTIONS
+		header Origin __PAGES_ORIGIN__
+	}
+	handle @preflight {
+		header Access-Control-Allow-Origin "__PAGES_ORIGIN__"
+		header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+		header Access-Control-Allow-Headers "Authorization, Content-Type"
+		header Access-Control-Max-Age "86400"
+		header Vary "Origin"
+		respond 204
+	}
+
+	# Actual requests from the Pages origin get CORS response headers.
+	@pages header Origin __PAGES_ORIGIN__
+	header @pages Access-Control-Allow-Origin "__PAGES_ORIGIN__"
+	header @pages Vary "Origin"
+
+	# Everything (including the same-origin /nexus/ PWA + /v1/cockpit/*) → cockpit.
+	reverse_proxy 127.0.0.1:8765
+}
