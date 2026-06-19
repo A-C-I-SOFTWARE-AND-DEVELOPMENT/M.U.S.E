@@ -69,31 +69,31 @@ def platonic_vertices(name: str) -> list[tuple[float, float, float]]:
     """Exact vertices of the five Platonic solids (research spec, area 2)."""
     p = PHI
     if name == "tetrahedron":
-        return [(1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1)]
+        return [(1.0, 1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, 1.0)]
     if name == "cube":
-        return [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+        return [(x, y, z) for x in (-1.0, 1.0) for y in (-1.0, 1.0) for z in (-1.0, 1.0)]
     if name == "octahedron":
         return [
-            (1, 0, 0), (-1, 0, 0),
-            (0, 1, 0), (0, -1, 0),
-            (0, 0, 1), (0, 0, -1),
+            (1.0, 0.0, 0.0), (-1.0, 0.0, 0.0),
+            (0.0, 1.0, 0.0), (0.0, -1.0, 0.0),
+            (0.0, 0.0, 1.0), (0.0, 0.0, -1.0),
         ]
     if name == "icosahedron":
         out: list[tuple[float, float, float]] = []
-        for a in (-1, 1):
+        for a in (-1.0, 1.0):
             for b in (-p, p):
-                out.append((0, a, b))
-                out.append((a, b, 0))
-                out.append((b, 0, a))
+                out.append((0.0, a, b))
+                out.append((a, b, 0.0))
+                out.append((b, 0.0, a))
         return out
     if name == "dodecahedron":
-        out = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+        out = [(x, y, z) for x in (-1.0, 1.0) for y in (-1.0, 1.0) for z in (-1.0, 1.0)]
         inv = 1.0 / p
         for a in (-inv, inv):
             for b in (-p, p):
-                out.append((0, a, b))
-                out.append((a, b, 0))
-                out.append((b, 0, a))
+                out.append((0.0, a, b))
+                out.append((a, b, 0.0))
+                out.append((b, 0.0, a))
         return out
     raise ValueError(f"unknown Platonic solid: {name!r}")
 
@@ -116,7 +116,7 @@ def _distinct_positions(values: Vec4) -> list[tuple[int, ...]]:
     seen: set[Vec4] = set()
     orders: list[tuple[int, ...]] = []
     for perm in permutations(range(4)):
-        arranged = tuple(values[perm[k]] for k in range(4))
+        arranged = (values[perm[0]], values[perm[1]], values[perm[2]], values[perm[3]])
         if arranged not in seen:
             seen.add(arranged)
             orders.append(perm)
@@ -143,7 +143,7 @@ def _signed(values: Vec4, sign_zero: bool = False) -> list[Vec4]:
 
 
 def _dedupe(points: list[Vec4]) -> list[Vec4]:
-    seen: set[tuple[int, ...]] = set()
+    seen: set[tuple[float, ...]] = set()
     out: list[Vec4] = []
     for p in points:
         key = tuple(round(c, 9) for c in p)
