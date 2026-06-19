@@ -111,7 +111,7 @@ class JobNotifier(private val context: Context) {
         if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Progress for running MUSE jobs"
+                description = "Progress for running muse jobs"
                 setShowBadge(false)
             },
         )
@@ -122,7 +122,7 @@ class JobNotifier(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "hermes_jobs"
-        private const val CHANNEL_NAME = "MUSE jobs"
+        private const val CHANNEL_NAME = "muse jobs"
         private const val NOTIFICATION_BASE = 2_000
 
         const val EXTRA_JOB_ID = "hermes_job_id"

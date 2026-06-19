@@ -6,7 +6,7 @@ description: "Set up the Microsoft Teams meeting summary pipeline with Microsoft
 
 # Microsoft Teams Meetings
 
-Use the Teams meeting pipeline when you want M.U.S.E. to ingest Microsoft Graph meeting events, fetch transcripts first, fall back to recordings plus STT when needed, and deliver a structured summary to downstream sinks.
+Use the Teams meeting pipeline when you want muse to ingest Microsoft Graph meeting events, fetch transcripts first, fall back to recordings plus STT when needed, and deliver a structured summary to downstream sinks.
 
 This page focuses on setup and enablement:
 - Graph credentials
@@ -37,7 +37,7 @@ muse teams-pipeline maintain-subscriptions
 
 Before enabling the meetings pipeline, make sure you have:
 
-- a working M.U.S.E. install
+- a working muse install
 - the existing [Microsoft Teams bot setup](/docs/user-guide/messaging/teams) if you want Teams outbound delivery
 - Microsoft Graph application credentials with the permissions required for the meeting resources you plan to subscribe to
 - a public HTTPS URL that Microsoft Graph can call for webhook delivery
@@ -141,7 +141,7 @@ platforms:
 
 ### `graph`
 
-Use this when you want M.U.S.E. to post the summary through Microsoft Graph into a Teams chat or channel.
+Use this when you want muse to post the summary through Microsoft Graph into a Teams chat or channel.
 
 Supported targets:
 - `chat_id`
@@ -162,13 +162,13 @@ platforms:
 
 ## Step 4: Start the Gateway
 
-Start M.U.S.E. normally after updating config:
+Start muse normally after updating config:
 
 ```bash
 muse gateway run
 ```
 
-Or, if you run M.U.S.E. in Docker, start the gateway the same way you already do for your deployment.
+Or, if you run muse in Docker, start the gateway the same way you already do for your deployment.
 
 Check the listener:
 
@@ -196,7 +196,7 @@ muse teams-pipeline subscribe \
 
 :::warning Graph subscriptions expire in 72 hours
 
-Microsoft Graph caps webhook subscriptions at 72 hours and will not auto-renew them. You MUST schedule `muse teams-pipeline maintain-subscriptions` before going live, or notifications will silently stop three days after any manual subscription creation. See [Automating subscription renewal](/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production) in the operator runbook — three options (M.U.S.E. cron, systemd timer, plain crontab).
+Microsoft Graph caps webhook subscriptions at 72 hours and will not auto-renew them. You MUST schedule `muse teams-pipeline maintain-subscriptions` before going live, or notifications will silently stop three days after any manual subscription creation. See [Automating subscription renewal](/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production) in the operator runbook — three options (muse cron, systemd timer, plain crontab).
 
 :::
 

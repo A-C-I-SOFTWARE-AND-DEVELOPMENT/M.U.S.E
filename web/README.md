@@ -1,6 +1,6 @@
-# MUSE — Web UI
+# muse — Web UI
 
-Browser-based dashboard for managing MUSE configuration, API keys, and monitoring active sessions.
+Browser-based dashboard for managing muse configuration, API keys, and monitoring active sessions.
 
 ## Stack
 

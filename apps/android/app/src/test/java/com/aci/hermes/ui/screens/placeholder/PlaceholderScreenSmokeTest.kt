@@ -34,7 +34,7 @@ class PlaceholderScreenSmokeTest {
                 PlaceholderScreen(
                     paddingValues = PaddingValues(0.dp),
                     title = "Chat",
-                    description = "Talk to MUSE.",
+                    description = "Talk to muse",
                     comingSoonNote = "Full chat is on the way.",
                 )
             }

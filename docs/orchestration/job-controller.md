@@ -156,7 +156,7 @@ orch.run_implementation_phase(job.id, remote=True, approve=True)
 
 ### Continuous-listening mode
 
-The gateway flips on continuous-listening mode whenever M.U.S.E. is
+The gateway flips on continuous-listening mode whenever muse is
 running as a passive listener (Telegram, Discord, Signal, etc.).  In
 that mode the controller refuses to auto-run `implementation` or
 `publish` even if the caller forgets the `approve=False` default:

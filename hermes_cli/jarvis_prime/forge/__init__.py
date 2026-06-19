@@ -1,4 +1,4 @@
-"""The Expert Forge at scale (MUSE Unbound Volume VI, Part 5).
+"""The Expert Forge at scale (muse Unbound Volume VI, Part 5).
 
 Diversity-seeded tournaments over a **content-addressed candidate registry**
 (resolve-or-fail lookup — the L1 pattern), Glicko-2 matchmaking, a MAP-Elites

@@ -1,12 +1,12 @@
 /**
- * M.U.S.E. gateway client.
+ * muse gateway client.
  *
  * A small, dependency-free typed wrapper over the cockpit gateway API. It
  * mirrors the live browser cockpit (gateway/cockpit/static/index.html) so the
  * desktop app speaks exactly the same protocol:
  *
  *   - bearer token in the `Authorization` header (stored in localStorage under
- *     `muse.cockpit.token`);
+ *     `musecockpit.token`);
  *   - pairing via POST /v1/cockpit/pair/start → POST /v1/cockpit/pair/confirm;
  *   - the jobs stream over GET /v1/cockpit/jobs/stream as Server-Sent Events,
  *     consumed with fetch() + a ReadableStream reader (NOT EventSource, because
@@ -19,8 +19,8 @@
  * page origin so the cockpit's same-origin paths keep working.
  */
 
-export const TOKEN_KEY = "muse.cockpit.token";
-const BASE_KEY = "muse.gateway.base";
+export const TOKEN_KEY = "musecockpit.token";
+const BASE_KEY = "musegateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
 /** Resolve the configured gateway base URL (no trailing slash). */

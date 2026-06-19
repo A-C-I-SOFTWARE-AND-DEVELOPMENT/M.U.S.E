@@ -2,7 +2,7 @@
 // typed client surface for the additive read-only /v1/observatory/* route
 // family (10-observatory-spec.md §3). Holds NO policy logic — every number
 // rendered arrives fully formed from the gateway. All gateway traffic goes
-// through SynapseNet (the only module that talks to a MUSE gateway).
+// through SynapseNet (the only module that talks to a muse gateway).
 
 using UnrealBuildTool;
 
@@ -19,7 +19,7 @@ public class SynapseObservatory : ModuleRules
 		bEnableExceptions = false;
 
 		// SynapseNet is PUBLIC: ObservatorySubsystem.h forward-declares
-		// UMuseSseClient, and consumers of this module (SynapseUI, the
+		// UmuseSseClient, and consumers of this module (SynapseUI, the
 		// future galaxy renderer) reach the gateway through us.
 		PublicDependencyModuleNames.AddRange(new string[]
 		{

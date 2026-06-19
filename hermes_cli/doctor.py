@@ -1,7 +1,7 @@
 """
 Doctor command for hermes CLI.
 
-Diagnoses issues with MUSE setup.
+Diagnoses issues with muse setup.
 """
 
 import os
@@ -380,7 +380,7 @@ def run_doctor(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│                 🩺 MUSE Doctor                          │", Colors.CYAN))
+    print(color("│                 🩺 muse Doctor                          │", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
 
     _section("Security Advisories")
@@ -882,7 +882,7 @@ def run_doctor(args):
         else:
             check_info(f"{_DHH}/SOUL.md exists but is empty — edit it to customize personality")
     else:
-        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give MUSE a custom personality)")
+        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give muse a custom personality)")
         if should_fix:
             from hermes_cli.default_soul import DEFAULT_SOUL_MD
 

@@ -1,4 +1,4 @@
-# Catálogo de mensajes estáticos de MUSE -- Español
+# Catálogo de mensajes estáticos de muse -- Español
 # See locales/en.yaml for the source of truth; keep keys in sync.
 
 approval:
@@ -99,7 +99,7 @@ gateway:
     header:                "**Informe de depuración subido:**"
     auto_delete:           "⏱ Los pastes se eliminarán automáticamente en 6 horas."
     full_logs_hint:        "Para subir registros completos, usa `muse debug share` desde la CLI."
-    share_hint:            "Comparte estos enlaces con el equipo de MUSE para obtener soporte."
+    share_hint:            "Comparte estos enlaces con el equipo de muse para obtener soporte."
 
   deny:
     stale:                 "❌ Comando denegado (la aprobación había caducado)."
@@ -136,7 +136,7 @@ gateway:
     set:                   "⊙ Objetivo establecido (presupuesto de {budget} turnos): {goal}\nSeguiré trabajando hasta que el objetivo se complete, lo pauses/elimines o se agote el presupuesto.\nControles: /goal status · /goal pause · /goal resume · /goal clear"
 
   help:
-    header:                "📖 **Comandos de MUSE**\n"
+    header:                "📖 **Comandos de muse**\n"
     skill_header:          "\n⚡ **Comandos de skill** ({count} activos):"
     more_use_commands:     "\n... y {count} más. Usa `/commands` para la lista paginada completa."
 
@@ -247,7 +247,7 @@ gateway:
     success:               "✅ Canal principal establecido en **{name}** (ID: {chat_id}).\nLas tareas cron y los mensajes entre plataformas se entregarán aquí."
 
   status:
-    header:                "📊 **Estado de MUSE Gateway**"
+    header:                "📊 **Estado de muse Gateway**"
     session_id:            "**ID de sesión:** `{session_id}`"
     title:                 "**Título:** {title}"
     created:               "**Creado:** {timestamp}"
@@ -282,7 +282,7 @@ gateway:
     topics_user_disallowed:  "Los topics de Telegram están habilitados, pero los usuarios no pueden crearlos.\n\nAbre @BotFather → elige tu bot → Bot Settings → Threads Settings, luego desactiva 'Disallow users to create new threads'.\n\nLuego envía /topic de nuevo."
     enable_failed:           "No se pudo habilitar el modo topic de Telegram: {error}"
     bound_status:            "Este topic está vinculado a:\nSesión: {label}\nID: {session_id}\n\nUsa /new para reemplazar este topic con una sesión nueva.\nPara trabajo paralelo, abre All Messages y envía un mensaje allí para crear otro topic."
-    thread_ready:            "Los topics multisesión de Telegram están habilitados.\n\nEste topic se usará como una sesión independiente de MUSE. Usa /new para reemplazar la sesión actual de este topic. Para trabajo paralelo, abre All Messages y envía un mensaje allí para crear otro topic."
+    thread_ready:            "Los topics multisesión de Telegram están habilitados.\n\nEste topic se usará como una sesión independiente de muse Usa /new para reemplazar la sesión actual de este topic. Para trabajo paralelo, abre All Messages y envía un mensaje allí para crear otro topic."
     untitled_session:        "Sesión sin título"
 
   undo:
@@ -292,9 +292,9 @@ gateway:
   update:
     platform_not_messaging:  "✗ /update solo está disponible en plataformas de mensajería. Ejecuta `muse update` desde la terminal."
     not_git_repo:            "✗ No es un repositorio git — no se puede actualizar."
-    hermes_cmd_not_found:    "✗ No se pudo localizar el comando `muse`. MUSE está en ejecución, pero el comando de actualización no encontró el ejecutable en PATH ni a través del intérprete de Python actual. Intenta ejecutar `muse update` manualmente en tu terminal."
+    hermes_cmd_not_found:    "✗ No se pudo localizar el comando `muse`. muse está en ejecución, pero el comando de actualización no encontró el ejecutable en PATH ni a través del intérprete de Python actual. Intenta ejecutar `muse update` manualmente en tu terminal."
     start_failed:            "✗ No se pudo iniciar la actualización: {error}"
-    starting:                "◉ Iniciando la actualización de MUSE… Transmitiré el progreso aquí."
+    starting:                "◉ Iniciando la actualización de muse… Transmitiré el progreso aquí."
 
   usage:
     rate_limits:              "⏱️ **Límites de tasa:** {state}"

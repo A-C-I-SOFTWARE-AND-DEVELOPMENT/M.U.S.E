@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.flow
  * real gateway client lands, and kept around afterwards as the
  * default for offline / preview / test runs.
  *
- * Behaviour matches the MUSE conversation engine spec:
+ * Behaviour matches the muse conversation engine spec:
  *  - casual input → quick ack, no detail, no card
  *  - task-shaped input → short reply + inline Task card
  *  - architecture input → short reply + expandable detail
@@ -28,7 +28,7 @@ class MockJarvisChatGateway(
     private val chunkDelayMs: Long = DEFAULT_CHUNK_DELAY_MS,
 ) : JarvisChatGateway {
 
-    override val displayName: String = "MUSE (mock)"
+    override val displayName: String = "muse (mock)"
     override val supportsStreaming: Boolean = true
 
     override fun send(history: List<JarvisChatMessage>, prompt: String): Flow<JarvisChatChunk> = flow {

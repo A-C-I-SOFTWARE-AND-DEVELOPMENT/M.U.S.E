@@ -3,7 +3,7 @@ package com.aci.hermes.data.model.ledger
 import com.aci.hermes.data.model.audit.RiskTier
 
 /**
- * One canonical category of activity on the MUSE timeline. Mirrors
+ * One canonical category of activity on the muse timeline. Mirrors
  * the server's `LEDGER_CATEGORIES` (gateway/cockpit/contract.py). Some
  * categories (MEMORY_WRITE, EVIDENCE_PROMOTION) only appear when the
  * orchestrator actually emits such entries — the timeline never fabricates.

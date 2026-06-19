@@ -45,8 +45,8 @@ import com.aci.hermes.data.model.audit.RouteSummary
 import com.aci.hermes.data.model.audit.VerificationResult
 import com.aci.hermes.data.model.audit.VerificationStatus
 import com.aci.hermes.data.model.audit.WorkerRun
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museEmptyState
 import com.aci.hermes.ui.theme.JarvisTokens
 
 object AuditDetailTags {
@@ -94,7 +94,7 @@ fun AuditDetailScreen(
                     .testTag(AuditDetailTags.NOT_FOUND),
                 contentAlignment = Alignment.Center,
             ) {
-                MuseEmptyState(
+                museEmptyState(
                     title = stringResource(R.string.audit_detail_missing),
                     body = "This audit record could not be found.",
                 )
@@ -147,7 +147,7 @@ fun AuditDetailScreen(
 @Composable
 private fun SummaryCard(record: AuditRecord) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard {
+    museCard {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -244,7 +244,7 @@ private fun RouteRow(route: RouteSummary) {
 @Composable
 fun ProofDetail(proof: ProofRecord) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.PROOF),
@@ -331,7 +331,7 @@ private fun LabeledList(label: String, items: List<String>) {
 @Composable
 fun FailedVerificationCard(verification: VerificationResult) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.FAILED_VERIFICATION),
@@ -386,7 +386,7 @@ fun ApprovalHistoryCard(
     val scheme = MaterialTheme.colorScheme
     val highlight = riskTier == RiskTier.SERIOUS || riskTier == RiskTier.CRITICAL
 
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.APPROVAL_HISTORY),
@@ -440,7 +440,7 @@ fun ApprovalHistoryCard(
 @Composable
 fun WorkerRunCard(run: WorkerRun) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(JarvisTokens.SpaceMd),
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
@@ -490,7 +490,7 @@ private fun WorkerRunsSection(runs: List<WorkerRun>) {
 @Composable
 fun RollbackCard(plan: RollbackPlan) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.ROLLBACK),
@@ -529,7 +529,7 @@ fun RollbackCard(plan: RollbackPlan) {
 @Composable
 private fun ImpactReportCard(report: String) {
     val scheme = MaterialTheme.colorScheme
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.IMPACT_REPORT),

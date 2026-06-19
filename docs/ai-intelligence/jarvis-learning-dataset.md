@@ -1,6 +1,6 @@
-# MUSE Learning Dataset Pipeline
+# muse Learning Dataset Pipeline
 
-MUSE turns its day-to-day work — coding tasks, research answers, evidence
+muse turns its day-to-day work — coding tasks, research answers, evidence
 checks, mobile actions, worker reviews, even failures — into a
 **high-quality, source-backed dataset** for future fine-tuning, preference
 training, skill creation, and model evaluation. The pipeline is built so it
@@ -16,7 +16,7 @@ verification gates, or the owner-approval queue.
 > [`top-open-data-sources-for-training.md`](top-open-data-sources-for-training.md)
 > — the complementary *external* data path: a ranked inventory of public,
 > license-aware datasets (and a held-out benchmark wall) that feed the
-> Research Vault. This pipeline captures MUSE's *own* validated traces.
+> Research Vault. This pipeline captures muse's *own* validated traces.
 
 ## What it reuses
 
@@ -58,7 +58,7 @@ verification gates, or the owner-approval queue.
 
 ## Quality gates (the labels every example carries)
 
-Mirrors the MUSE verification gates — `tests_passed`,
+Mirrors the muse verification gates — `tests_passed`,
 `citations_verified`, `owner_approved`, `reviewer_passed`,
 `rollback_available`. A non-negative example must satisfy the gates required
 for its type before it can be exported. `QualityGates.from_gate_summary`

@@ -4,10 +4,10 @@ sidebar_position: 15
 
 # WeCom Callback (Self-Built App)
 
-Connect M.U.S.E. to WeCom (Enterprise WeChat) as a self-built enterprise application using the callback/webhook model.
+Connect muse to WeCom (Enterprise WeChat) as a self-built enterprise application using the callback/webhook model.
 
 :::info WeCom Bot vs WeCom Callback
-M.U.S.E. supports two WeCom integration modes:
+muse supports two WeCom integration modes:
 - **[WeCom Bot](wecom.md)** — bot-style, connects via WebSocket. Simpler setup, works in group chats.
 - **WeCom Callback** (this page) — self-built app, receives encrypted XML callbacks. Shows as a first-class app in users' WeCom sidebar. Supports multi-corp routing.
 :::
@@ -16,7 +16,7 @@ M.U.S.E. supports two WeCom integration modes:
 
 1. You register a self-built application in the WeCom Admin Console
 2. WeCom pushes encrypted XML to your HTTP callback endpoint
-3. M.U.S.E. decrypts the message, queues it for the agent
+3. muse decrypts the message, queues it for the agent
 4. Immediately acknowledges (silent — nothing displayed to the user)
 5. The agent processes the request (typically 3–30 minutes)
 6. The reply is delivered proactively via the WeCom `message/send` API

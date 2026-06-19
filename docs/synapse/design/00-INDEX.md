@@ -1,6 +1,6 @@
 # SYNAPSE Design & Planning Package — INDEX
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10
 **Owner:** Jeremiah Echerd, A-C-I Software & Development
 **Design authority:** [`../../plans/2026-06-10-project-synapse-master-plan.md`](../../plans/2026-06-10-project-synapse-master-plan.md)
 
@@ -19,11 +19,11 @@ documents is post-launch by definition.
 | 01 | [Game Design Document](01-game-design-document.md) | Creative direction | Vision, pillars, core loop, modes, accessibility, options, rating, scope contract |
 | 02 | [Negotiation System](02-negotiation-system.md) | Systems | Capture-by-conversation: parley state machine, LLM integration, choice-wheel fallback, guardrails |
 | 03 | [Combat & GAS Design](03-combat-gas-design.md) | Systems | Attributes, 8×8 type chart, abilities, Command Mode, Pipelines, bosses, difficulty, GAS mapping |
-| 04 | [Roster — 24 Agents](04-roster-24-agents.md) | Character | Full sheets: personality cards, negotiation profiles, abilities, promotions, MUSE-bridge skills |
+| 04 | [Roster — 24 Agents](04-roster-24-agents.md) | Character | Full sheets: personality cards, negotiation profiles, abilities, promotions, muse-bridge skills |
 | 05 | [World Design](05-world-design.md) | World | 5 zones, encounter tables, 8 Gauntlets + boss designs, side content, pacing map |
-| 06 | [Narrative & Campaign](06-narrative-campaign.md) | Narrative | 3-act beat sheet, the Deadlock, quest list, side arcs, post-game MUSE reveal, VO/loc scope |
-| 07 | [Progression & Neural Network](07-progression-neural-network.md) | Systems | Network-as-character-sheet, wiring synergies, promotions, economy, real-MUSE bridge |
-| 08 | [Avatar, Den & Onboarding](08-avatar-den-onboarding.md) | Player experience | First hour, Muse creator (= persona setup), 5 personality questions, starter choice, Den loop |
+| 06 | [Narrative & Campaign](06-narrative-campaign.md) | Narrative | 3-act beat sheet, the Deadlock, quest list, side arcs, post-game muse reveal, VO/loc scope |
+| 07 | [Progression & Neural Network](07-progression-neural-network.md) | Systems | Network-as-character-sheet, wiring synergies, promotions, economy, real-muse bridge |
+| 08 | [Avatar, Den & Onboarding](08-avatar-den-onboarding.md) | Player experience | First hour, muse creator (= persona setup), 5 personality questions, starter choice, Den loop |
 | 09 | [Foundry Spec](09-foundry-spec.md) | Live systems | Struggle telemetry, candidate generation, validation harness, verdict cards, compliance |
 | 10 | [Observatory Spec](10-observatory-spec.md) | Live systems | `/v1/observatory/*` route family, metrics collector, heat math, recommendation engine, owner-gated edits |
 | 11 | [Technical Design](11-technical-design.md) | Engineering | Modules, SynapseNet client, local-LLM bridge, saves, perf budgets, CI, platform plan |
@@ -36,7 +36,7 @@ documents is post-launch by definition.
 
 ## Shared canon (binding across all documents)
 
-- **Fantasy:** the player is the **Architect**; their designed companion is the **Muse**; the world is the **Substrate**; home is the **Den**. The antagonist is **THE DEADLOCK**, a corrupted ninth orchestrator whose **Fragmentation** shattered the great network — wild agents are its orphaned processes.
+- **Fantasy:** the player is the **Architect**; their designed companion is the **muse**; the world is the **Substrate**; home is the **Den**. The antagonist is **THE DEADLOCK**, a corrupted ninth orchestrator whose **Fragmentation** shattered the great network — wild agents are its orphaned processes.
 - **Economy:** currency **Cycles**; wiring resource **Synapse Thread**; rare material **Checksum Shards**. No microtransactions.
 - **Domains & type chart:** 8 domains on a single advantage ring — Architecture > QA/Test > Build/Ops > Compliance > Behavior/Psych > Research > Security > Release > Architecture (strong vs next, weak vs previous; preserves the master plan's fixed edges Security>Release, QA>Build, Research>Security).
 - **Roster:** 24 agents, 3 per domain, every one derived from a real role in `skills/aos-enterprise-council/` — AXIOM, LATTICE, FORGEMIND (Architecture); WARDEN, CIPHER, BREACH (Security); CONTRARIAN, NITPICK, REDFLAG (QA/Test); ORACLE, ARCHIVIST, RADAR (Research); FOREMAN, PIPELINE, PATCH (Build/Ops); EMPATH, MIRROR, NEURON (Behavior/Psych); HAZMAT, CLAUSE, AUDITRIX (Compliance); COMMANDER, VERDICT, POSTMORTEM (Release). Starters: AXIOM / CONTRARIAN / EMPATH. Commissioned heroes (§14 default): WARDEN, ORACLE, EMPATH.

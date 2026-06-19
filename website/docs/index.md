@@ -1,19 +1,19 @@
 ---
 slug: /
 sidebar_position: 0
-title: "M.U.S.E. Documentation"
+title: "muse Documentation"
 description: "The self-improving AI agent built by Nous Research. A built-in learning loop that creates skills from experience, improves them during use, and remembers across sessions."
 hide_table_of_contents: true
 displayed_sidebar: docs
 ---
 
-# M.U.S.E. — Multi-Use Synaptic Entity
+# muse — Multi-Use Synaptic Entity
 
 A self-improving, local-first AI operating partner — one mind over a synaptic substrate (built on the [Nous Research](https://nousresearch.com) Hermes base). The only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, and builds a deepening model of who you are across sessions.
 
 <div style={{display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap'}}>
   <a href="/docs/getting-started/installation" style={{display: 'inline-block', padding: '0.6rem 1.2rem', backgroundColor: '#FFD700', color: '#07070d', borderRadius: '8px', fontWeight: 600, textDecoration: 'none'}}>Get Started →</a>
-  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E" style={{display: 'inline-block', padding: '0.6rem 1.2rem', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '8px', textDecoration: 'none'}}>View on GitHub</a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse" style={{display: 'inline-block', padding: '0.6rem 1.2rem', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '8px', textDecoration: 'none'}}>View on GitHub</a>
 </div>
 
 ## Install
@@ -21,20 +21,20 @@ A self-improving, local-first AI operating partner — one mind over a synaptic 
 **Linux / macOS / WSL2**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 ```
 
 **Windows (native, PowerShell)** — *early beta, [details →](/docs/user-guide/windows-native)*
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1)
 ```
 
 **Android (Termux)** — same curl one-liner as Linux; the installer auto-detects Termux.
 
 See the full **[Installation Guide](/docs/getting-started/installation)** for what the installer does, the per-user vs root layout, and Windows-specific notes.
 
-## What is M.U.S.E.?
+## What is muse
 
 It's not a coding copilot tethered to an IDE or a chatbot wrapper around a single API. It's an **autonomous agent** that gets more capable the longer it runs. It lives wherever you put it — a $5 VPS, a GPU cluster, or serverless infrastructure (Daytona, Modal) that costs nearly nothing when idle. Talk to it from Telegram while it works on a cloud VM you never SSH into yourself. It's not tied to your laptop.
 
@@ -50,14 +50,14 @@ It's not a coding copilot tethered to an IDE or a chatbot wrapper around a singl
 | 🔧 **[Tools & Toolsets](/docs/user-guide/features/tools)** | 70+ built-in tools and how to configure them |
 | 🧠 **[Memory System](/docs/user-guide/features/memory)** | Persistent memory that grows across sessions |
 | 📚 **[Skills System](/docs/user-guide/features/skills)** | Procedural memory the agent creates and reuses |
-| 🔌 **[MCP Integration](/docs/user-guide/features/mcp)** | Connect to MCP servers, filter their tools, and extend M.U.S.E. safely |
+| 🔌 **[MCP Integration](/docs/user-guide/features/mcp)** | Connect to MCP servers, filter their tools, and extend muse safely |
 | 🧭 **[Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)** | Practical MCP setup patterns, examples, and tutorials |
 | 🎙️ **[Voice Mode](/docs/user-guide/features/voice-mode)** | Real-time voice interaction in CLI, Telegram, Discord, and Discord VC |
-| 🗣️ **[Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes)** | Hands-on setup and usage patterns for M.U.S.E. voice workflows |
-| 🎭 **[Personality & SOUL.md](/docs/user-guide/features/personality)** | Define M.U.S.E.' default voice with a global SOUL.md |
+| 🗣️ **[Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes)** | Hands-on setup and usage patterns for muse voice workflows |
+| 🎭 **[Personality & SOUL.md](/docs/user-guide/features/personality)** | Define muse' default voice with a global SOUL.md |
 | 📄 **[Context Files](/docs/user-guide/features/context-files)** | Project context files that shape every conversation |
 | 🔒 **[Security](/docs/user-guide/security)** | Command approval, authorization, container isolation |
-| 💡 **[Tips & Best Practices](/docs/guides/tips)** | Quick wins to get the most out of M.U.S.E. |
+| 💡 **[Tips & Best Practices](/docs/guides/tips)** | Quick wins to get the most out of muse |
 | 🏗️ **[Architecture](/docs/developer-guide/architecture)** | How it works under the hood |
 | ❓ **[FAQ & Troubleshooting](/docs/reference/faq)** | Common questions and solutions |
 

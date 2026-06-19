@@ -26,7 +26,7 @@ private val BloomMid = Color(0xFFD4F2FF)   // mid halo
 private val BloomEdge = Color(0xFFE0F8FF)  // wide faint edge
 
 /**
- * The MUSE incandescent mark — "one mind, many pathways."
+ * The muse incandescent mark — "one mind, many pathways."
  *
  * A single white [core][JarvisGold] that blazes in the void, wrapped by one
  * thin **matte** spectral ring ([JarvisCyan] → [JarvisViolet]) with a single
@@ -46,7 +46,7 @@ private val BloomEdge = Color(0xFFE0F8FF)  // wide faint edge
  *                  collapse the icon into a blob.
  */
 @Composable
-fun MuseGlyph(
+fun museGlyph(
     size: Dp = 64.dp,
     showBloom: Boolean = true,
     modifier: Modifier = Modifier,

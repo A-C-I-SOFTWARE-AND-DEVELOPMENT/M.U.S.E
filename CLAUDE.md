@@ -7,10 +7,10 @@ the hermes-agent repository.
 > development guide. This file is a Claude-specific entry point that
 > points there. When the two disagree, AGENTS.md wins.
 
-## MUSE — the apex persona
+## muse — the apex persona
 
-When the user says "MUSE" or invokes
-`/jarvis` / `/jarvis-prime` / `/jp`, they mean **MUSE** —
+When the user says "muse" or invokes
+`/jarvis` / `/jarvis-prime` / `/jp`, they mean **muse** —
 Jeremiah Echerd's local-first AI operating partner. Read these in
 order before responding:
 
@@ -18,9 +18,9 @@ order before responding:
 2. [`skills/jarvis-prime/SKILL.md`](skills/jarvis-prime/SKILL.md) — the activation skill (when to use, response formats).
 3. [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md) — eight gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback).
 4. [`docs/aos-jarvis-agent-routing.md`](docs/aos-jarvis-agent-routing.md) — routing to the 9-member active core council.
-5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) MUSE is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
+5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) muse is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
 
-MUSE is **loyal to the user's long-term mission, not blindly
+muse is **loyal to the user's long-term mission, not blindly
 obedient to the moment**. Challenge weak ideas plainly. Defer
 owner-gated actions (spend, deploy, publish, OAuth, main-branch
 merge, package publish, credential change, regulated claims) until
@@ -174,10 +174,10 @@ the thread always shows live state.
   versioned behavioral rubric the self-audit layer scores against.
 - [`docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md`](docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md)
   — deconstructs an external "Anthropic Mythos" report and specifies
-  the additive MUSE Self-Audit + Constitution layer (Petri-style
+  the additive muse Self-Audit + Constitution layer (Petri-style
   self-audit, behavioral-risk detection, capability-band wall).
 - [`docs/orchestration/agent-design-patterns.md`](docs/orchestration/agent-design-patterns.md)
-  — Anthropic's composable agent patterns mapped to MUSE primitives.
+  — Anthropic's composable agent patterns mapped to muse primitives.
 - [`docs/mobile/mobile-app-guide.md`](docs/mobile/mobile-app-guide.md)
   — the Android cockpit, phone-first setup, approvals on the
   lockscreen.
@@ -198,18 +198,18 @@ the thread always shows live state.
   native `github_assistant` plugin vs the GitHub MCP server.
 - [`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)
   — the owner-gated SIA (Hexo Labs) self-improvement worker: SIA
-  iterates in a sandbox, MUSE promotes the winner only by proposal.
+  iterates in a sandbox, muse promotes the winner only by proposal.
 - [`docs/integrations/autoresearch.md`](docs/integrations/autoresearch.md)
   — the owner-gated autoresearch training engine (Karpathy, vendored):
   autonomous 5-minute pretraining experiments in disposable workspaces,
   cost-ceilinged and VRAM-gated; winners surface only as RC4 proposals.
 - [`docs/ai-intelligence/jarvis-learning-dataset.md`](docs/ai-intelligence/jarvis-learning-dataset.md)
-  — the MUSE learning dataset pipeline: validated, source-backed,
+  — the muse learning dataset pipeline: validated, source-backed,
   owner-approved traces for fine-tuning / preference / eval, with no
   secrets or chain-of-thought. CLI (`hermes_cli.jarvis_prime learning`),
   cockpit (`/v1/cockpit/learning`), and the Android Learning Queue tab.
 - [`docs/ai-intelligence/top-open-data-sources-for-training.md`](docs/ai-intelligence/top-open-data-sources-for-training.md)
-  — ranked inventory of public, license-aware datasets for MUSE
+  — ranked inventory of public, license-aware datasets for muse
   fine-tuning, retrieval, and a held-out benchmark wall. Backed by the
   machine-readable `docs/ai-intelligence/open-data-sources.yaml` registry
   (CLI: `hermes_cli.jarvis_prime data-sources`), which bridges each source

@@ -23,7 +23,7 @@ import com.aci.hermes.data.cockpit.BackendStatus
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * Small "MUSE backend" reachability pill. Deliberately labelled
+ * Small "muse backend" reachability pill. Deliberately labelled
  * distinctly from the local foreground-service row so the two states are
  * never confused — the local service can be running while the backend is
  * unreachable, and the user needs to see both honestly.

@@ -20,7 +20,7 @@ closes the `/skills` gap called out in
 
 ## Design intent
 
-MUSE is **one visible assistant**. The full agent surface is
+muse is **one visible assistant**. The full agent surface is
 hundreds of specialist agents, council members, and worker lanes —
 showing that list directly on a phone would create the exact
 "chaotic swarm" experience the project is set up to avoid.
@@ -159,7 +159,7 @@ The UI surfaces the gate three times:
 3. **Sheet** — full banner with the message "This lane will not
    act without explicit owner authorization."
 
-The convention on the lane side is unchanged from MUSE:
+The convention on the lane side is unchanged from muse
 the owner must respond with literally `Yes, with authorization.`
 before the lane proceeds.
 

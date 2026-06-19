@@ -11,7 +11,7 @@
 This is the proof-bar centerpiece for "a proven tool, not a demo." It is one
 **recorded, end-to-end** test that boots the *real* cockpit HTTP server
 (`gateway.cockpit.server.serve` on a loopback ephemeral port, tmp `HERMES_HOME`,
-known bearer token) and drives the MUSE core loop over the wire with `urllib`,
+known bearer token) and drives the muse core loop over the wire with `urllib`,
 asserting the **owner gates** and the **decision/audit ledger** at every hop.
 It exercises the genuine handlers, the genuine owner-phrase gate, the genuine
 orchestrator worker, and the genuine audit trail — it does **not** mock the

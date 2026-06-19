@@ -1,6 +1,6 @@
 # Kanban tutorial
 
-A walkthrough of the four use-cases the M.U.S.E. Kanban system was designed for, with the dashboard open in a browser. If you haven't read the [Kanban overview](./kanban) yet, start there — this assumes you know what a task, run, assignee, and dispatcher are.
+A walkthrough of the four use-cases the muse Kanban system was designed for, with the dashboard open in a browser. If you haven't read the [Kanban overview](./kanban) yet, start there — this assumes you know what a task, run, assignee, and dispatcher are.
 
 ## Setup
 
@@ -240,7 +240,7 @@ muse kanban create "Deploy to staging (missing creds)" \
     --max-retries 3
 ```
 
-The dispatcher tries to spawn the worker. Spawn fails (`RuntimeError: AWS_ACCESS_KEY_ID not set`). The dispatcher releases the claim, increments a failure counter, and tries again next tick. Because this example sets `--max-retries 3`, the circuit trips after three consecutive failures: the task goes to `blocked` with outcome `gave_up`. If you omit the flag, M.U.S.E. uses `kanban.failure_limit` (default: 2). No more retries until a human unblocks it.
+The dispatcher tries to spawn the worker. Spawn fails (`RuntimeError: AWS_ACCESS_KEY_ID not set`). The dispatcher releases the claim, increments a failure counter, and tries again next tick. Because this example sets `--max-retries 3`, the circuit trips after three consecutive failures: the task goes to `blocked` with outcome `gave_up`. If you omit the flag, muse uses `kanban.failure_limit` (default: 2). No more retries until a human unblocks it.
 
 Click the blocked task:
 

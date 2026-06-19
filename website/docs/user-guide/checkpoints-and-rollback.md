@@ -7,7 +7,7 @@ description: "Filesystem safety nets for destructive operations using shadow git
 
 # Checkpoints and `/rollback`
 
-M.U.S.E. can automatically snapshot your project before **destructive operations** and restore it with a single command. Checkpoints are **opt-in** as of v2 — most users never use `/rollback`, and the shadow-store storage is non-trivial over time, so the default is off.
+muse can automatically snapshot your project before **destructive operations** and restore it with a single command. Checkpoints are **opt-in** as of v2 — most users never use `/rollback`, and the shadow-store storage is non-trivial over time, so the default is off.
 
 Enable checkpoints per-session with `--checkpoints`:
 
@@ -59,7 +59,7 @@ CLI for inspecting and managing the store outside a session:
 
 At a high level:
 
-- M.U.S.E. detects when tools are about to **modify files** in your working tree.
+- muse detects when tools are about to **modify files** in your working tree.
 - Once per conversation turn (per directory), it:
   - Resolves a reasonable project root for the file.
   - Initialises or reuses the **single shared shadow store** at `~/.hermes/checkpoints/store/`.
@@ -121,7 +121,7 @@ From a CLI session:
 /rollback
 ```
 
-M.U.S.E. responds with a formatted list showing change statistics:
+muse responds with a formatted list showing change statistics:
 
 ```text
 📸 Checkpoints for /path/to/project:
@@ -184,7 +184,7 @@ This shows a git diff stat summary followed by the actual diff.
 /rollback 1
 ```
 
-Behind the scenes, M.U.S.E.:
+Behind the scenes, muse
 
 1. Verifies the target commit exists in the shadow store.
 2. Takes a **pre-rollback snapshot** of the current state so you can "undo the undo" later.
@@ -202,7 +202,7 @@ Restore just one file from a checkpoint without affecting the rest of the direct
 ## Safety and Performance Guards
 
 - **Git availability** — if `git` is not found on `PATH`, checkpoints are transparently disabled.
-- **Directory scope** — M.U.S.E. skips overly broad directories (root `/`, home `$HOME`).
+- **Directory scope** — muse skips overly broad directories (root `/`, home `$HOME`).
 - **Repository size** — directories with more than 50,000 files are skipped.
 - **Per-file size cap** — files larger than `max_file_size_mb` (default 10 MB) are excluded from the snapshot. Prevents accidentally swallowing datasets, model weights, or generated media.
 - **Total store size cap** — when the store exceeds `max_total_size_mb` (default 500 MB), the oldest commit per project is dropped round-robin until under the cap.
@@ -244,6 +244,6 @@ to reclaim the space. Legacy archives are also swept by `auto_prune` after `rete
 - **Use `/rollback diff` before restoring** — preview what will change to pick the right checkpoint.
 - **Use `/rollback` instead of `git reset`** when you want to undo agent-driven changes only.
 - **Check `muse checkpoints status` occasionally** if you use checkpoints regularly — shows which projects are active and what the store costs you.
-- **Combine with Git worktrees** for maximum safety — keep each M.U.S.E. session in its own worktree/branch, with checkpoints as an extra layer.
+- **Combine with Git worktrees** for maximum safety — keep each muse session in its own worktree/branch, with checkpoints as an extra layer.
 
 For running multiple agents in parallel on the same repo, see the guide on [Git worktrees](./git-worktrees.md).

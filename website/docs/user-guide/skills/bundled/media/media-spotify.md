@@ -17,7 +17,7 @@ Spotify: play, search, queue, manage playlists and devices.
 | Source | Bundled (installed by default) |
 | Path | `skills/media/spotify` |
 | Version | `1.0.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `spotify`, `music`, `playback`, `playlists`, `media` |
@@ -26,12 +26,12 @@ Spotify: play, search, queue, manage playlists and devices.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Spotify
 
-Control the user's Spotify account via the M.U.S.E. Spotify toolset (7 tools). Setup guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/spotify
+Control the user's Spotify account via the muse Spotify toolset (7 tools). Setup guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/spotify
 
 ## When to use this skill
 

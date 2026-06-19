@@ -1,4 +1,4 @@
-# M.U.S.E. orchestration pipeline
+# muse orchestration pipeline
 
 A small, file-on-disk pipeline that turns a one-line user mission into a
 council-reviewed plan, patch, and PR draft. Workers cooperate by reading
@@ -13,7 +13,7 @@ the files every later phase will rely on.
 Phase 03 is a foundation-hardening pass. `scripts/hermes-orchestrate.sh`
 creates every artifact described below but does not yet invoke any
 external model tool. The controller that fills the artifacts in (calls
-M.U.S.E. locally, dispatches to Claude Code / Codex / Aider / Goose, runs
+muse locally, dispatches to Claude Code / Codex / Aider / Goose, runs
 the council merge, opens the PR, deploys) is built on top of this
 contract in a later phase.
 
@@ -141,7 +141,7 @@ contain a brief stub explaining what will live there.
 
 Six worker slots are scaffolded for every job:
 
-- `hermes-local` — the M.U.S.E. brain running on the user's machine. The
+- `hermes-local` — the muse brain running on the user's machine. The
   planner of record, validator, and publisher.
 - `claude-code-windows` — Claude Code CLI on the user's Windows machine
   (or any host where Claude Code is detected); long-context reasoning,

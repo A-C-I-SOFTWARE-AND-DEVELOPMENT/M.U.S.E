@@ -1,7 +1,7 @@
 """Forge intake poison filter (Vol VI Part 5).
 
 When trajectories arrive from federated peers or community contributors, the
-central threat is data poisoning. MUSE's defense is structural, not
+central threat is data poisoning. muse's defense is structural, not
 statistical: a contribution enters the distillation set only if **all** of
 these hold —
 

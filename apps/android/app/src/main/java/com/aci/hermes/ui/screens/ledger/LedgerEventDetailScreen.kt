@@ -28,11 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.aci.hermes.data.model.ledger.LedgerEventDetail
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 import com.aci.hermes.ui.screens.audit.displayLabel
 
@@ -78,7 +78,7 @@ fun LedgerEventDetailScreen(
                     .testTag(LedgerDetailTags.NOT_FOUND),
                 contentAlignment = Alignment.Center,
             ) {
-                MuseEmptyState(
+                museEmptyState(
                     title = "Event not found",
                     body = "This ledger event is no longer available.",
                 )
@@ -204,10 +204,10 @@ private fun DetailBody(
                 style = MaterialTheme.typography.bodyMedium,
             )
             RollbackRequestState.Idle -> if (detail.rollbackAvailable) {
-                MuseButton(
+                museButton(
                     onClick = onRequestRollback,
                     text = "Request rollback",
-                    variant = MuseButtonVariant.Danger,
+                    variant = museButtonVariant.Danger,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag(LedgerDetailTags.ROLLBACK_BUTTON),
@@ -219,12 +219,12 @@ private fun DetailBody(
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    MuseCard {
+    museCard {
         Column(
             modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
-            MuseSectionHeader(title = title)
+            museSectionHeader(title = title)
             content()
         }
     }
@@ -252,14 +252,14 @@ private fun RollbackDialog(onDismiss: () -> Unit, onConfirm: (String?) -> Unit) 
             }
         },
         confirmButton = {
-            MuseButton(
+            museButton(
                 onClick = { onConfirm(reason.ifBlank { null }) },
                 text = "Queue request",
-                variant = MuseButtonVariant.Danger,
+                variant = museButtonVariant.Danger,
             )
         },
         dismissButton = {
-            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onDismiss, text = "Cancel", variant = museButtonVariant.Secondary)
         },
     )
 }

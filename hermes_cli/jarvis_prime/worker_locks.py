@@ -1,4 +1,4 @@
-"""Branch lease/lock semantics for MUSE worker lanes.
+"""Branch lease/lock semantics for muse worker lanes.
 
 Claude Code and Codex are *external* worker lanes (subscription-backed
 official tools). When JARVIS hands a branch to one of them, the other

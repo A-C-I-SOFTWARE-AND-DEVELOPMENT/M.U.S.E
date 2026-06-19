@@ -1,4 +1,4 @@
-"""MUSE — local-first context handoff packet.
+"""muse — local-first context handoff packet.
 
 Assembles the *structured* context a coding model needs — an architecture
 summary, the relevant files, their tests, the GraphRAG nodes, prior

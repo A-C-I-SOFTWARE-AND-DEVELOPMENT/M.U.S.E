@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "FAQ & Troubleshooting"
-description: "Frequently asked questions and solutions to common issues with M.U.S.E."
+description: "Frequently asked questions and solutions to common issues with muse"
 ---
 
 # FAQ & Troubleshooting
@@ -12,9 +12,9 @@ Quick answers and fixes for the most common questions and issues.
 
 ## Frequently Asked Questions
 
-### What LLM providers work with M.U.S.E.?
+### What LLM providers work with muse
 
-M.U.S.E. works with any OpenAI-compatible API. Supported providers include:
+muse works with any OpenAI-compatible API. Supported providers include:
 
 - **[OpenRouter](https://openrouter.ai/)** — access hundreds of models through one API key (recommended for flexibility)
 - **Nous Portal** — Nous Research's own inference endpoint
@@ -30,24 +30,24 @@ Set your provider with `muse model` or by editing `~/.hermes/.env`. See the [Env
 
 ### Does it work on Windows?
 
-**Not natively.** M.U.S.E. requires a Unix-like environment. On Windows, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run M.U.S.E. from inside it. The standard install command works perfectly in WSL2:
+**Not natively.** muse requires a Unix-like environment. On Windows, install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and run muse from inside it. The standard install command works perfectly in WSL2:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 ```
 
-### I run M.U.S.E. in WSL2. What's the best way to control my normal Windows Chrome?
+### I run muse in WSL2. What's the best way to control my normal Windows Chrome?
 
 Prefer an MCP bridge over `/browser connect`.
 
 Recommended pattern:
 
-- run M.U.S.E. inside WSL2
+- run muse inside WSL2
 - keep using your normal signed-in Chrome on Windows
 - add `chrome-devtools-mcp` as an MCP server through `cmd.exe` or `powershell.exe`
-- let M.U.S.E. use the resulting MCP browser tools
+- let muse use the resulting MCP browser tools
 
-This is more reliable than trying to force M.U.S.E. core browser transport to attach directly across the WSL2/Windows boundary.
+This is more reliable than trying to force muse core browser transport to attach directly across the WSL2/Windows boundary.
 
 See:
 
@@ -56,12 +56,12 @@ See:
 
 ### Does it work on Android / Termux?
 
-Yes — M.U.S.E. now has a tested Termux install path for Android phones.
+Yes — muse now has a tested Termux install path for Android phones.
 
 Quick install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 ```
 
 For the fully explicit manual steps, supported extras, and current limitations, see the [Termux guide](../getting-started/termux.md).
@@ -70,7 +70,7 @@ Important caveat: the full `.[all]` extra is not currently available on Android 
 
 ### Is my data sent anywhere?
 
-API calls go **only to the LLM provider you configure** (e.g., OpenRouter, your local Ollama instance). M.U.S.E. does not collect telemetry, usage data, or analytics. Your conversations, memory, and skills are stored locally in `~/.hermes/`.
+API calls go **only to the LLM provider you configure** (e.g., OpenRouter, your local Ollama instance). muse does not collect telemetry, usage data, or analytics. Your conversations, memory, and skills are stored locally in `~/.hermes/`.
 
 ### Can I use it offline / with local models?
 
@@ -94,25 +94,25 @@ model:
   base_url: http://localhost:11434/v1
 ```
 
-M.U.S.E. persists the endpoint, provider, and base URL in `config.yaml` so it survives restarts. If your local server has exactly one model loaded, `/model custom` auto-detects it. You can also set `provider: custom` in config.yaml — it's a first-class provider, not an alias for anything else.
+muse persists the endpoint, provider, and base URL in `config.yaml` so it survives restarts. If your local server has exactly one model loaded, `/model custom` auto-detects it. You can also set `provider: custom` in config.yaml — it's a first-class provider, not an alias for anything else.
 
 This works with Ollama, vLLM, llama.cpp server, SGLang, LocalAI, and others. See the [Configuration guide](../user-guide/configuration.md) for details.
 
 :::tip Ollama users
-If you set a custom `num_ctx` in Ollama (e.g., `ollama run --num_ctx 16384`), make sure to set the matching context length in M.U.S.E. — Ollama's `/api/show` reports the model's *maximum* context, not the effective `num_ctx` you configured.
+If you set a custom `num_ctx` in Ollama (e.g., `ollama run --num_ctx 16384`), make sure to set the matching context length in muse — Ollama's `/api/show` reports the model's *maximum* context, not the effective `num_ctx` you configured.
 :::
 
 :::tip Timeouts with local models
-M.U.S.E. auto-detects local endpoints and relaxes streaming timeouts (read timeout raised from 120s to 1800s, stale stream detection disabled). If you still hit timeouts on very large contexts, set `HERMES_STREAM_READ_TIMEOUT=1800` in your `.env`. See the [Local LLM guide](../guides/local-llm-on-mac.md#timeouts) for details.
+muse auto-detects local endpoints and relaxes streaming timeouts (read timeout raised from 120s to 1800s, stale stream detection disabled). If you still hit timeouts on very large contexts, set `HERMES_STREAM_READ_TIMEOUT=1800` in your `.env`. See the [Local LLM guide](../guides/local-llm-on-mac.md#timeouts) for details.
 :::
 
 ### How much does it cost?
 
-M.U.S.E. itself is **free and open-source** (MIT license). You pay only for the LLM API usage from your chosen provider. Local models are completely free to run.
+muse itself is **free and open-source** (MIT license). You pay only for the LLM API usage from your chosen provider. Local models are completely free to run.
 
 ### Can multiple people use one instance?
 
-Yes. The [messaging gateway](../user-guide/messaging/index.md) lets multiple users interact with the same M.U.S.E. instance via Telegram, Discord, Slack, WhatsApp, or Home Assistant. Access is controlled through allowlists (specific user IDs) and DM pairing (first user to message claims access).
+Yes. The [messaging gateway](../user-guide/messaging/index.md) lets multiple users interact with the same muse instance via Telegram, Discord, Slack, WhatsApp, or Home Assistant. Access is controlled through allowlists (specific user IDs) and DM pairing (first user to message claims access).
 
 ### What's the difference between memory and skills?
 
@@ -123,7 +123,7 @@ Both persist across sessions. See [Memory](../user-guide/features/memory.md) and
 
 ### Can I use it in my own Python project?
 
-Yes. Import the `AIAgent` class and use M.U.S.E. programmatically:
+Yes. Import the `AIAgent` class and use muse programmatically:
 
 ```python
 from run_agent import AIAgent
@@ -165,7 +165,7 @@ The installer adds `~/.local/bin` to your PATH. If you use a non-standard shell 
 
 #### Python version too old
 
-**Cause:** M.U.S.E. requires Python 3.11 or newer.
+**Cause:** muse requires Python 3.11 or newer.
 
 **Solution:**
 ```bash
@@ -180,9 +180,9 @@ The installer handles this automatically — if you see this error during manual
 
 #### Terminal commands say `node: command not found` (or `nvm`, `pyenv`, `asdf`, …)
 
-**Cause:** M.U.S.E. builds a per-session environment snapshot by running `bash -l` once at startup. A bash login shell reads `/etc/profile`, `~/.bash_profile`, and `~/.profile`, but **does not source `~/.bashrc`** — so tools that install themselves there (`nvm`, `asdf`, `pyenv`, `cargo`, custom `PATH` exports) stay invisible to the snapshot. This most commonly happens when M.U.S.E. runs under systemd or in a minimal shell where nothing has pre-loaded the interactive shell profile.
+**Cause:** muse builds a per-session environment snapshot by running `bash -l` once at startup. A bash login shell reads `/etc/profile`, `~/.bash_profile`, and `~/.profile`, but **does not source `~/.bashrc`** — so tools that install themselves there (`nvm`, `asdf`, `pyenv`, `cargo`, custom `PATH` exports) stay invisible to the snapshot. This most commonly happens when muse runs under systemd or in a minimal shell where nothing has pre-loaded the interactive shell profile.
 
-**Solution:** M.U.S.E. auto-sources `~/.bashrc` by default. If that's not enough — e.g. you're a zsh user whose PATH lives in `~/.zshrc`, or you init `nvm` from a standalone file — list the extra files to source in `~/.hermes/config.yaml`:
+**Solution:** muse auto-sources `~/.bashrc` by default. If that's not enough — e.g. you're a zsh user whose PATH lives in `~/.zshrc`, or you init `nvm` from a standalone file — list the extra files to source in `~/.hermes/config.yaml`:
 
 ```yaml
 terminal:
@@ -225,7 +225,7 @@ source ~/.bashrc
 # If you previously installed with sudo, clean up:
 sudo rm /usr/local/bin/hermes
 # Then re-run the standard installer
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 ```
 
 ---
@@ -239,7 +239,7 @@ curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.
 **Solution:** Exit your session and use `muse model` from your terminal to add new providers:
 
 ```bash
-# Exit the M.U.S.E. chat session first (Ctrl+C or /quit)
+# Exit the muse chat session first (Ctrl+C or /quit)
 
 # Run the full provider setup wizard
 muse model
@@ -305,7 +305,7 @@ muse chat --model openrouter/meta-llama/llama-3.1-70b-instruct
 
 #### Context length exceeded
 
-**Cause:** The conversation has grown too long for the model's context window, or M.U.S.E. detected the wrong context length for your model.
+**Cause:** The conversation has grown too long for the model's context window, or muse detected the wrong context length for your model.
 
 **Solution:**
 ```bash
@@ -319,7 +319,7 @@ muse chat
 muse chat --model openrouter/google/gemini-3-flash-preview
 ```
 
-If this happens on the first long conversation, M.U.S.E. may have the wrong context length for your model. Check what it detected:
+If this happens on the first long conversation, muse may have the wrong context length for your model. Check what it detected:
 
 Look at the CLI startup line — it shows the detected context length (e.g., `📊 Context limit: 128000 tokens`). You can also check with `/usage` during a session.
 
@@ -351,14 +351,14 @@ See [Context Length Detection](../integrations/providers.md#context-length-detec
 
 #### Command blocked as dangerous
 
-**Cause:** M.U.S.E. detected a potentially destructive command (e.g., `rm -rf`, `DROP TABLE`). This is a safety feature.
+**Cause:** muse detected a potentially destructive command (e.g., `rm -rf`, `DROP TABLE`). This is a safety feature.
 
 **Solution:** When prompted, review the command and type `y` to approve it. You can also:
 - Ask the agent to use a safer alternative
 - See the full list of dangerous patterns in the [Security docs](../user-guide/security.md)
 
 :::tip
-This is working as intended — M.U.S.E. never silently runs destructive commands. The approval prompt shows you exactly what will execute.
+This is working as intended — muse never silently runs destructive commands. The approval prompt shows you exactly what will execute.
 :::
 
 #### `sudo` not working via messaging gateway
@@ -590,7 +590,7 @@ mcp_servers:
 # Verify MCP servers are configured
 muse config show | grep -A 12 mcp_servers
 
-# Restart M.U.S.E. or reload MCP after config changes
+# Restart muse or reload MCP after config changes
 muse chat
 ```
 
@@ -609,7 +609,7 @@ See also:
 - For remote HTTP MCP servers, check network connectivity
 
 :::warning
-If an MCP server crashes mid-request, M.U.S.E. will report a timeout. Check the server's own logs (not just M.U.S.E. logs) to diagnose the root cause.
+If an MCP server crashes mid-request, muse will report a timeout. Check the server's own logs (not just muse logs) to diagnose the root cause.
 :::
 
 ---
@@ -645,7 +645,7 @@ There is no hard limit. Each profile is just a directory under `~/.hermes/profil
 
 **Scenario:** You use GPT-5.4 as your daily driver, but Gemini or Grok writes better social media content. Manually switching models every time is tedious.
 
-**Solution: Delegation config.** M.U.S.E. can route subagents to a different model automatically. Set this in `~/.hermes/config.yaml`:
+**Solution: Delegation config.** muse can route subagents to a different model automatically. Set this in `~/.hermes/config.yaml`:
 
 ```yaml
 delegation:
@@ -653,7 +653,7 @@ delegation:
   provider: "openrouter"                    # provider for subagents
 ```
 
-Now when you tell M.U.S.E. "write me a Twitter thread about X" and it spawns a `delegate_task` subagent, that subagent runs on Gemini instead of your main model. Your primary conversation stays on GPT-5.4.
+Now when you tell muse "write me a Twitter thread about X" and it spawns a `delegate_task` subagent, that subagent runs on Gemini instead of your main model. Your primary conversation stays on GPT-5.4.
 
 You can also be explicit in your prompt: *"Delegate a task to write social media posts about our product launch. Use your subagent for the actual writing."* The agent will use `delegate_task`, which automatically picks up the delegation config.
 
@@ -669,9 +669,9 @@ See [Subagent Delegation](../user-guide/features/delegation.md) for more on how 
 
 ### Running multiple agents on one WhatsApp number (per-chat binding)
 
-**Scenario:** In OpenClaw, you had multiple independent agents bound to specific WhatsApp chats — one for a family shopping list group, another for your private chat. Can M.U.S.E. do this?
+**Scenario:** In OpenClaw, you had multiple independent agents bound to specific WhatsApp chats — one for a family shopping list group, another for your private chat. Can muse do this?
 
-**Current limitation:** M.U.S.E. profiles each require their own WhatsApp number/session. You cannot bind multiple profiles to different chats on the same WhatsApp number — the WhatsApp bridge (Baileys) uses one authenticated session per number.
+**Current limitation:** muse profiles each require their own WhatsApp number/session. You cannot bind multiple profiles to different chats on the same WhatsApp number — the WhatsApp bridge (Baileys) uses one authenticated session per number.
 
 **Workarounds:**
 
@@ -687,7 +687,7 @@ See [Profiles](../user-guide/profiles.md) and [WhatsApp setup](../user-guide/mes
 
 ### Controlling what shows up in Telegram (hiding logs and reasoning)
 
-**Scenario:** You see gateway exec logs, M.U.S.E. reasoning, and tool call details in Telegram instead of just the final output.
+**Scenario:** You see gateway exec logs, muse reasoning, and tool call details in Telegram instead of just the final output.
 
 **Solution:** The `display.tool_progress` setting in `config.yaml` controls how much tool activity is shown:
 
@@ -733,7 +733,7 @@ Skills with very long descriptions are truncated to 40 characters in the Telegra
 
 **Scenario:** You have a Telegram or Discord thread where multiple people mention the bot. You want all mentions in that thread to be part of one shared conversation, not separate per-user sessions.
 
-**Current behavior:** M.U.S.E. creates sessions keyed by user ID on most platforms, so each person gets their own conversation context. This is by design for privacy and context isolation.
+**Current behavior:** muse creates sessions keyed by user ID on most platforms, so each person gets their own conversation context. This is by design for privacy and context isolation.
 
 **Workarounds:**
 
@@ -743,15 +743,15 @@ Skills with very long descriptions are truncated to 40 characters in the Telegra
 
 3. **Use a Discord channel.** Discord sessions are keyed by channel, so all users in the same channel share context. Use a dedicated channel for the shared conversation.
 
-### Exporting M.U.S.E. to another machine
+### Exporting muse to another machine
 
 **Scenario:** You've built up skills, cron jobs, and memories on one machine and want to move everything to a new dedicated Linux box.
 
 **Solution:**
 
-1. Install M.U.S.E. on the new machine:
+1. Install muse on the new machine:
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
    ```
 
 2. On the **source machine**, create a full backup:
@@ -801,12 +801,12 @@ rsync -av --exclude='hermes-agent' ~/.hermes/ newmachine:~/.hermes/
 ```
 
 :::tip
-`muse backup` produces a consistent snapshot even while M.U.S.E. is actively running. The restored archive excludes machine-local runtime files like `gateway.pid` and `cron.pid`.
+`muse backup` produces a consistent snapshot even while muse is actively running. The restored archive excludes machine-local runtime files like `gateway.pid` and `cron.pid`.
 :::
 
 ### Permission denied when reloading shell after install
 
-**Scenario:** After running the M.U.S.E. installer, `source ~/.zshrc` gives a permission denied error.
+**Scenario:** After running the muse installer, `source ~/.zshrc` gives a permission denied error.
 
 **Cause:** This usually happens when `~/.zshrc` (or `~/.bashrc`) has incorrect file permissions, or when the installer couldn't write to it cleanly. It's not a Hermes-specific issue — it's a shell config permissions problem.
 
@@ -855,6 +855,6 @@ If using OpenRouter, make sure your API key has credits. A 400 from OpenRouter o
 
 If your issue isn't covered here:
 
-1. **Search existing issues:** [GitHub Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
+1. **Search existing issues:** [GitHub Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues)
 2. **Ask the community:** [Nous Research Discord](https://discord.gg/nousresearch)
-3. **File a bug report:** Include your OS, Python version (`python3 --version`), M.U.S.E. version (`muse --version`), and the full error message
+3. **File a bug report:** Include your OS, Python version (`python3 --version`), muse version (`muse --version`), and the full error message

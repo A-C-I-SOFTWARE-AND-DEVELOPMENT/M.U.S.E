@@ -46,8 +46,8 @@ import com.aci.hermes.data.cockpit.BackendStatus
 import com.aci.hermes.data.cockpit.CockpitHttp
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.preferences.SettingsRepository
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
@@ -268,7 +268,7 @@ private fun ObservatoryDormant(
         )
         Text(
             text = if (unpaired) {
-                "The Observatory is served by your MUSE gateway. Pair this " +
+                "The Observatory is served by your muse gateway. Pair this " +
                     "device in Settings → Connection to light it up."
             } else {
                 "The paired gateway is not answering right now. Check that " +
@@ -278,10 +278,10 @@ private fun ObservatoryDormant(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        MuseButton(
+        museButton(
             onClick = onRetry,
             text = "Retry",
-            variant = MuseButtonVariant.Secondary,
+            variant = museButtonVariant.Secondary,
         )
     }
 }

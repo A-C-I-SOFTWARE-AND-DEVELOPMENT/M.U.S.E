@@ -52,9 +52,9 @@ muse teams-pipeline maintain-subscriptions --dry-run
 
 You MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:
 
-#### Option 1: M.U.S.E. cron (recommended if you already run the M.U.S.E. gateway)
+#### Option 1: muse cron (recommended if you already run the muse gateway)
 
-M.U.S.E. ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
+muse ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
 
 ```bash
 mkdir -p ~/.hermes/scripts
@@ -88,7 +88,7 @@ Create `/etc/systemd/system/hermes-teams-pipeline-maintain.service`:
 
 ```ini
 [Unit]
-Description=M.U.S.E. Teams pipeline subscription maintenance
+Description=muse Teams pipeline subscription maintenance
 After=network-online.target
 
 [Service]
@@ -102,7 +102,7 @@ And `/etc/systemd/system/hermes-teams-pipeline-maintain.timer`:
 
 ```ini
 [Unit]
-Description=Run M.U.S.E. Teams pipeline subscription maintenance every 12 hours
+Description=Run muse Teams pipeline subscription maintenance every 12 hours
 
 [Timer]
 OnBootSec=5min
@@ -239,7 +239,7 @@ Check:
 - [ ] Notion and Linear sinks are configured only if actually needed
 - [ ] `muse teams-pipeline validate` returns an OK snapshot
 - [ ] `muse teams-pipeline token-health --force-refresh` succeeds
-- [ ] **`maintain-subscriptions` is scheduled** (M.U.S.E. cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
+- [ ] **`maintain-subscriptions` is scheduled** (muse cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
 - [ ] a real end-to-end meeting event has produced a stored job
 - [ ] at least one summary has reached the intended delivery sink
 

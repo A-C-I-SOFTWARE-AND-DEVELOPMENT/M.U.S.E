@@ -8,9 +8,9 @@
 ## Intent
 
 Visual-only re-skin of the **conversation & live** Android screens onto the merged
-`Muse*` Compose component library (the same target pattern the pilot proved on
+`muse*` Compose component library (the same target pattern the pilot proved on
 `home/`, `jobs/`, `orchestrator/`). Swap raw Material 3 controls for the branded
-`MuseButton` / `MuseCard` / `MuseChip`, with correct button valence. **No behavior
+`museButton` / `museCard` / `museChip`, with correct button valence. **No behavior
 change**: every `viewModel::*` call, state hoist, nav callback, `.testTag(...)`,
 `contentDescription`, and `enabled` gate is preserved byte-for-byte. The app is
 already on the Singularity palette at the theme level; this only changes the
@@ -30,58 +30,58 @@ component surface.
 ## Before → after component swaps, per file
 
 ### `VoiceCaptureScreen.kt`
-- Transcript `Card(colors = surfaceVariant)` → `MuseCard`.
-- Save `Button` → `MuseButton(Primary)` (keeps `enabled = !saving`, `weight(1f)`, `testTag(SAVE_TASK)`).
-- Clear `OutlinedButton` → `MuseButton(Secondary)` (keeps `enabled`, `weight(1f)`).
+- Transcript `Card(colors = surfaceVariant)` → `museCard`.
+- Save `Button` → `museButton(Primary)` (keeps `enabled = !saving`, `weight(1f)`, `testTag(SAVE_TASK)`).
+- Clear `OutlinedButton` → `museButton(Secondary)` (keeps `enabled`, `weight(1f)`).
 - Hardcoded `dp` in the rewritten card block → `JarvisTokens.Space{Lg,Md,Sm}`.
 - **Left:** Scaffold/TopAppBar; the circular mic-capture FAB (`Surface` + `CircleShape`);
   the inline privacy/listening/error `Text` (inline status beside the mic, not a
-  full-screen empty/error panel — `MuseEmptyState` would wrongly hide the mic).
+  full-screen empty/error panel — `museEmptyState` would wrongly hide the mic).
 
 ### `AvatarPickerScreen.kt`
-- "Choose photo" `Button` → `MuseButton(Primary, fillMaxWidth)`.
-- Save `Button` → `MuseButton(Primary)`; Delete/Reset `OutlinedButton` → `MuseButton(Secondary)`.
-- `RoomEditor` Generate `Button` → `MuseButton(Primary)` (dynamic "Generating…"/"Generate" label preserved).
-- `PersonaCreator` Become `Button` → `MuseButton(Primary)` (dynamic label); Reset `OutlinedButton` → `MuseButton(Secondary)`.
-- `BuiltInCard` `Card(onClick=…)` → `MuseCard(modifier = …height(96.dp).border(selectionStroke, RoundedCornerShape(12.dp)).clickable(onClick=…))`
+- "Choose photo" `Button` → `museButton(Primary, fillMaxWidth)`.
+- Save `Button` → `museButton(Primary)`; Delete/Reset `OutlinedButton` → `museButton(Secondary)`.
+- `RoomEditor` Generate `Button` → `museButton(Primary)` (dynamic "Generating…"/"Generate" label preserved).
+- `PersonaCreator` Become `Button` → `museButton(Primary)` (dynamic label); Reset `OutlinedButton` → `museButton(Secondary)`.
+- `BuiltInCard` `Card(onClick=…)` → `museCard(modifier = …height(96.dp).border(selectionStroke, RoundedCornerShape(12.dp)).clickable(onClick=…))`
   — preserves the selection ring (primary/outline) on top of the card's own edge
-  hairline, mirroring the pilot's `PendingApprovalCard` bordered-MuseCard pattern.
+  hairline, mirroring the pilot's `PendingApprovalCard` bordered-museCard pattern.
 - **Left:** Scaffold/TopAppBar; every `OutlinedTextField`; `SingleChoiceSegmentedButtonRow`/`SegmentedButton`;
   `CircularProgressIndicator`; the `CharacterGrid` sprite-selection `Surface` thumbnails
   and the `PreviewArea` bordered `Box` (image selection tiles, not content panels); `Image`.
 
 ### `JarvisChatScreen.kt`
-- `ErrorBubble` Retry `Button(gold)` → `MuseButton(Primary, leadingIcon = Refresh)` (drops manual `Icon+Spacer`).
-- `TaskCardView`: two display `AssistChip(onClick = {})` (taskType, targetTool) → `MuseChip(label = …)`;
-  "Add to orchestrator" `Button(cyan)` → `MuseButton(Primary)`.
-- `ApprovalCardView`: approve `Button(jade)` → `MuseButton(Approve)` (jade = the owner-gate valence, exact);
-  deny/hold `OutlinedButton` → `MuseButton(Secondary)`.
-- `CriticalCardView`: "Acknowledge" `Button(crimson, enabled = typed.isNotBlank())` → `MuseButton(Danger, enabled = …)`.
-- `ChatInputArea`: streaming-abort `Stop OutlinedButton` → `MuseButton(Danger, leadingIcon = Stop)` (drops manual `Icon+Spacer`).
+- `ErrorBubble` Retry `Button(gold)` → `museButton(Primary, leadingIcon = Refresh)` (drops manual `Icon+Spacer`).
+- `TaskCardView`: two display `AssistChip(onClick = {})` (taskType, targetTool) → `museChip(label = …)`;
+  "Add to orchestrator" `Button(cyan)` → `museButton(Primary)`.
+- `ApprovalCardView`: approve `Button(jade)` → `museButton(Approve)` (jade = the owner-gate valence, exact);
+  deny/hold `OutlinedButton` → `museButton(Secondary)`.
+- `CriticalCardView`: "Acknowledge" `Button(crimson, enabled = typed.isNotBlank())` → `museButton(Danger, enabled = …)`.
+- `ChatInputArea`: streaming-abort `Stop OutlinedButton` → `museButton(Danger, leadingIcon = Stop)` (drops manual `Icon+Spacer`).
 - **Left (deliberate):** all chat bubbles (`User` gold bubble, `Jarvis` bubble with
   asymmetric corners + tone accent border, `IndicatorBubble`, `ErrorBubble` outer
-  `Surface`) — these are bubbles, not panels; `MuseCard` would flatten the tail and
+  `Surface`) — these are bubbles, not panels; `museCard` would flatten the tail and
   drop the gold fill. `InlineCardFrame` (`Surface` + per-tone accent border) stays —
-  it is already a branded accent frame and `MuseCard` cannot carry the cyan/gold/amber/
+  it is already a branded accent frame and `museCard` cannot carry the cyan/gold/amber/
   crimson tone border. `ToolCallChip` (specialized expandable tool row) stays.
   `MockModeBanner` (`Surface` banner) stays. The "Show detail" + `RecordRow` `AssistChip`s
-  carry a leading icon / disclosure chevron with no `MuseChip` equivalent → left.
+  carry a leading icon / disclosure chevron with no `museChip` equivalent → left.
   `ActionTextButton` (Copy/Continue/Create-job) — quiet inline icon+label toolbar actions
   inside a bubble; converting 3-across to bordered secondary buttons would visually
   overweight the bubble, so left as `TextButton`. The compose bar (`AskJarvisBar`) and
   the critical-ack `OutlinedTextField` stay.
 
 ### `JarvisLiveScreen.kt`
-- Avatar CTAs: `showApprovalCta Button(gold)` → `MuseButton(Primary)`; `showFixCta Button(crimson)` → `MuseButton(Danger)`;
-  `showWarningCta Button(gold)` → `MuseButton(Primary)` (gold = brand core, no warn-button variant exists);
-  `showEmergencyReleaseCta Button(crimson)` → `MuseButton(Danger)`.
-- Emergency-confirm `AlertDialog`: confirm `Button(crimson)` → `MuseButton(Danger)`; dismiss `TextButton` →
-  `MuseButton(Secondary)` (mirrors the pilot's `OwnerApproveDialog` dialog-button pattern).
+- Avatar CTAs: `showApprovalCta Button(gold)` → `museButton(Primary)`; `showFixCta Button(crimson)` → `museButton(Danger)`;
+  `showWarningCta Button(gold)` → `museButton(Primary)` (gold = brand core, no warn-button variant exists);
+  `showEmergencyReleaseCta Button(crimson)` → `museButton(Danger)`.
+- Emergency-confirm `AlertDialog`: confirm `Button(crimson)` → `museButton(Danger)`; dismiss `TextButton` →
+  `museButton(Secondary)` (mirrors the pilot's `OwnerApproveDialog` dialog-button pattern).
 - **Left:** Scaffold + the custom `JarvisTopBar`; `CircleIconButton` (`Surface`+`CircleShape`);
   the custom `JarvisStatusPill` (branded `Surface` pill, GatewayStatusPill-class); the
   `JarvisCommandBar` compose/command bar; `PixelRoom`/`DenFurnitureLayer`/particles/avatar
   hosts; `ModalBottomSheet` status sheet; the privacy-indicator `Surface`. The status-sheet
-  `AssistChip`s carry a colored On/Off trailing value with no `MuseChip` equivalent → left.
+  `AssistChip`s carry a colored On/Off trailing value with no `museChip` equivalent → left.
 
 No list-entrance motion was added: none of the four screens has a `LazyColumn` of
 homogeneous item rows in the rewritten regions (chat transcript items are bubbles
@@ -103,15 +103,15 @@ slideInVertically` row entrance from the pilot's `JobsScreen` did not apply.
     `AssistChip`/`AssistChipDefaults`, `OutlinedTextField`, `Icon`, `IconButton`,
     `Text`, `CircularProgressIndicator`, `SegmentedButton*`, layout `size`/`dp`,
     `Color`, the `Hermes*`/`Jarvis*` color tokens) verified **still used**.
-  - *New imports resolve + used:* `MuseButton`/`MuseButtonVariant` (all 4),
-    `MuseCard` (voice, avatar), `MuseChip` (chat), `JarvisTokens` (voice). Each
+  - *New imports resolve + used:* `museButton`/`museButtonVariant` (all 4),
+    `museCard` (voice, avatar), `museChip` (chat), `JarvisTokens` (voice). Each
     matches a real designsystem signature and is used ≥1×.
   - *Behavior parity vs base:* marker counts vs `origin/main` —
     `testTag` (chat 0/0, live 0/0, voice 3/3, avatar 0/0),
     `viewModel::` (8/8, 8/8, 2/2, 8/8) all **unchanged**;
     `contentDescription` unchanged except chat 10→8: the only two removed were the
-    `contentDescription = null` **decorative** icons folded into `MuseButton.leadingIcon`
-    (Retry, Stop). `MuseButton` renders `leadingIcon` with `contentDescription = null`
+    `contentDescription = null` **decorative** icons folded into `museButton.leadingIcon`
+    (Retry, Stop). `museButton` renders `leadingIcon` with `contentDescription = null`
     too, and the accessible name is the preserved button text — semantics are equivalent,
     no a11y regression.
   - *No signature changes:* no public/private signatures changed; no new params added
@@ -122,17 +122,17 @@ slideInVertically` row entrance from the pilot's `JobsScreen` did not apply.
 - **Visual-only judgment calls** (documented above): kept `ActionTextButton`
   (Copy/Continue/Create-job), the disclosure/record `AssistChip`s, the status-sheet
   trailing-value `AssistChip`s, and the avatar sprite-selection `Surface` thumbnails
-  on raw Material 3 because no `Muse*` component carries their affordance (icon slot /
+  on raw Material 3 because no `muse*` component carries their affordance (icon slot /
   colored trailing value / image tile) and forcing a swap would *worsen* craft. A
   reviewer wanting maximal coverage could revisit these, but they are out of the
   mechanical swap set.
-- `showWarningCta` maps to `MuseButton(Primary)` (the original used the gold core);
+- `showWarningCta` maps to `museButton(Primary)` (the original used the gold core);
   there is no dedicated "warn" button variant. If a warn valence is later added to
-  `MuseButton`, this call should switch to it.
+  `museButton`, this call should switch to it.
 - Compile not locally verified (no SDK). Mitigated by: exhaustive per-file orphan/usage
-  grep, signature-checked Muse calls against the real component sources, and structural
+  grep, signature-checked muse calls against the real component sources, and structural
   diff review (every removed `{ … }` button body fully replaced by a self-closing
-  `MuseButton(...)`). CI must confirm.
+  `museButton(...)`). CI must confirm.
 
 ## PR
 

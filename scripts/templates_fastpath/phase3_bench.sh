@@ -33,7 +33,7 @@ for _ in $(seq 1 120); do
   sleep 1
 done
 
-MUSE_TEMPLATES=1 MUSE_TEMPLATES_SERVER="http://127.0.0.1:${PORT}" python3 - "$REPORT" <<'EOF'
+muse_TEMPLATES=1 muse_TEMPLATES_SERVER="http://127.0.0.1:${PORT}" python3 - "$REPORT" <<'EOF'
 import statistics
 import sys
 import time

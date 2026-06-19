@@ -1,8 +1,8 @@
-# MUSE Interactive Icon
+# muse Interactive Icon
 
 ## Mission
 
-Build MUSE's visible presence as an in-app icon that:
+Build muse's visible presence as an in-app icon that:
 
 - shows the assistant's current state at a glance
 - accepts a handful of common commands as gestures

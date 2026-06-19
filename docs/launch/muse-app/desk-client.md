@@ -1,6 +1,6 @@
-# DESK — M.U.S.E. desktop client surfaces
+# DESK — muse desktop client surfaces
 
-Builder-grain snapshot for the MUSE App Grainler Parallel Swarm.
+Builder-grain snapshot for the muse App Grainler Parallel Swarm.
 
 - **Grain:** DESK — the desktop client surfaces (Chat, Jobs, Approvals, Autonomy,
   Settings) built on the already-merged G0.2 Tauri scaffold.
@@ -51,7 +51,7 @@ scaffold) · Chat (10) · Jobs (20) · Approvals (30) · Autonomy (40) · Settin
    403 on a raise re-prompts once. The workspace-path field appears for
    High-Autonomy Coding.
 5. **Settings** (`src/views/Settings.tsx`) — three cards: **Gateway** (view/change
-   base URL, persisted to `muse.gateway.base`, with a reachability ping); **Device
+   base URL, persisted to `musegateway.base`, with a reachability ping); **Device
    pairing** (the scaffold's owner-gated pair/start → pair/confirm flow, plus
    paste-a-token and clear-token); and an **Emergency stop** (owner-gated, danger
    styling) that confirms, prompts for the phrase, and re-prompts once on 403.
@@ -62,7 +62,7 @@ Shared additions:
   component, driven by the shared `phaseStates()` vocabulary so it never drifts
   from the cockpit's rail.
 - **Left nav + header + offline banner** — the scaffold already builds the nav
-  from the route registry and renders the Glyph + "M.U.S.E." wordmark + a status
+  from the route registry and renders the Glyph + "muse" wordmark + a status
   dot in the header. This grain adds an **offline banner** (`App.tsx`, the single
   8-line shell edit) shown when the health poll reports offline, pointing the user
   at the gateway URL in Settings.
@@ -85,7 +85,7 @@ New exports: `phaseStates` / `JOB_PHASES` / `JOB_PHASE_LABEL`, `getApprovals` /
 `decideApproval`, `getAutonomy` / `setAutonomy` / `revokeAutonomy` /
 `AUTONOMY_LEVELS` / `AUTONOMY_RANK` / `isAutonomyRaise`, `emergencyStop`, and
 `promptOwnerPhrase`. All authenticated calls reuse the existing `api()` wrapper
-(bearer token from localStorage `muse.cockpit.token`).
+(bearer token from localStorage `musecockpit.token`).
 
 ## Owner-gate handling (audit)
 
@@ -100,7 +100,7 @@ New exports: `phaseStates` / `JOB_PHASES` / `JOB_PHASE_LABEL`, `getApprovals` /
 - **Raise detection** uses the same ordinal ranking the cockpit uses
   (`AUTONOMY_RANK`); sending the phrase on a lower/equal change is harmless and is
   avoided anyway.
-- **Bearer token stays in localStorage** (`muse.cockpit.token`), set only via
+- **Bearer token stays in localStorage** (`musecockpit.token`), set only via
   pairing or explicit paste, and clearable from Settings. **No secrets in code.**
 - **Service worker never caches `/v1/*`.** The scaffold's `vite.config.ts` keeps
   `globPatterns` shell-only and `navigateFallbackDenylist: [/^\/v1\//]`; this grain

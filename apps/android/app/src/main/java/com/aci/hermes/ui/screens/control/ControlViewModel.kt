@@ -56,7 +56,7 @@ class ControlViewModel(
                 val workers = client.runtimeWorkers()
                 if (workers is CockpitResult.Success) {
                     services = buildList {
-                        add(ConnectedService("runtime", "Muse runtime", reachable))
+                        add(ConnectedService("runtime", "muse runtime", reachable))
                         workers.value.workers.forEach {
                             add(ConnectedService(it.id, it.displayName, it.available))
                         }
@@ -182,7 +182,7 @@ class ControlViewModel(
                     pendingWarning = PendingWarning(
                         level = level,
                         title = "Disable owner approvals?",
-                        message = "Muse will run multi-step work without asking first. " +
+                        message = "muse will run multi-step work without asking first. " +
                             "Destructive steps still need explicit owner consent in the moment.",
                         confirmLabel = "Disable approvals",
                         action = action,
@@ -212,7 +212,7 @@ class ControlViewModel(
                     pendingWarning = PendingWarning(
                         level = level,
                         title = "Disable safety gates?",
-                        message = "Verification gates are the rails that keep Muse owner-loyal. " +
+                        message = "Verification gates are the rails that keep muse owner-loyal. " +
                             "Turning them off is a critical change and is not reversible " +
                             "without a fresh owner confirmation.",
                         confirmLabel = "Disable safety gates",
@@ -240,7 +240,7 @@ class ControlViewModel(
                 pendingWarning = PendingWarning(
                     level = level,
                     title = "Emergency stop?",
-                    message = "MUSE will halt the orchestrator service and " +
+                    message = "muse will halt the orchestrator service and " +
                         "decline any further outbound action until you release the stop. " +
                         "Pending tasks stay saved.",
                     confirmLabel = "Engage emergency stop",
@@ -324,7 +324,7 @@ class ControlViewModel(
             putExtra(HermesService.EXTRA_MODE, HermesService.DEFAULT_MODE)
         }
         ContextCompat.startForegroundService(ctx, intent)
-        logBuffer.info(TAG, "Muse service start requested from control")
+        logBuffer.info(TAG, "muse service start requested from control")
         refresh()
     }
 
@@ -336,7 +336,7 @@ class ControlViewModel(
     private fun stopServiceInternal(reason: String) {
         val ctx = getApplication<Application>()
         ctx.stopService(Intent(ctx, HermesService::class.java))
-        logBuffer.info(TAG, "Muse service stop requested ($reason)")
+        logBuffer.info(TAG, "muse service stop requested ($reason)")
     }
 
     @Suppress("DEPRECATION")
@@ -346,7 +346,7 @@ class ControlViewModel(
     }
 
     private fun placeholderServices(): List<ConnectedService> = listOf(
-        ConnectedService(id = "gateway", displayName = "Muse gateway", connected = false),
+        ConnectedService(id = "gateway", displayName = "muse gateway", connected = false),
         ConnectedService(id = "termux", displayName = "Termux bridge", connected = false),
         ConnectedService(id = "memory", displayName = "Memory store", connected = true),
     )

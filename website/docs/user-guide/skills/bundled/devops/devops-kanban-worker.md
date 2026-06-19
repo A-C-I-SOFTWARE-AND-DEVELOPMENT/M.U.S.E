@@ -1,14 +1,14 @@
 ---
-title: "Kanban Worker — Pitfalls, examples, and edge cases for M.U.S.E. Kanban workers"
+title: "Kanban Worker — Pitfalls, examples, and edge cases for muse Kanban workers"
 sidebar_label: "Kanban Worker"
-description: "Pitfalls, examples, and edge cases for M.U.S.E. Kanban workers"
+description: "Pitfalls, examples, and edge cases for muse Kanban workers"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
 # Kanban Worker
 
-Pitfalls, examples, and edge cases for M.U.S.E. Kanban workers. The lifecycle itself is auto-injected into every worker's system prompt as KANBAN_GUIDANCE (from agent/prompt_builder.py); this skill is what you load when you want deeper detail on specific scenarios.
+Pitfalls, examples, and edge cases for muse Kanban workers. The lifecycle itself is auto-injected into every worker's system prompt as KANBAN_GUIDANCE (from agent/prompt_builder.py); this skill is what you load when you want deeper detail on specific scenarios.
 
 ## Skill metadata
 
@@ -24,12 +24,12 @@ Pitfalls, examples, and edge cases for M.U.S.E. Kanban workers. The lifecycle it
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Kanban Worker — Pitfalls and Examples
 
-> You're seeing this skill because the M.U.S.E. Kanban dispatcher spawned you as a worker with `--skills kanban-worker` — it's loaded automatically for every dispatched worker. The **lifecycle** (6 steps: orient → work → heartbeat → block/complete) also lives in the `KANBAN_GUIDANCE` block that's auto-injected into your system prompt. This skill is the deeper detail: good handoff shapes, retry diagnostics, edge cases.
+> You're seeing this skill because the muse Kanban dispatcher spawned you as a worker with `--skills kanban-worker` — it's loaded automatically for every dispatched worker. The **lifecycle** (6 steps: orient → work → heartbeat → block/complete) also lives in the `KANBAN_GUIDANCE` block that's auto-injected into your system prompt. This skill is the deeper detail: good handoff shapes, retry diagnostics, edge cases.
 
 ## Workspace handling
 

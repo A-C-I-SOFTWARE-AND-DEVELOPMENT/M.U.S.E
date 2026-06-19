@@ -17,7 +17,7 @@ Pre-commit review: security scan, quality gates, auto-fix.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/requesting-code-review` |
 | Version | `2.0.0` |
-| Author | M.U.S.E. (adapted from obra/superpowers + MorAlekss) |
+| Author | muse (adapted from obra/superpowers + MorAlekss) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `code-review`, `security`, `verification`, `quality`, `pre-commit`, `auto-fix` |
@@ -26,7 +26,7 @@ Pre-commit review: security scan, quality gates, auto-fix.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Pre-Commit Code Verification

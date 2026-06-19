@@ -1,4 +1,4 @@
-"""Proactive tick — MUSE's quiet daemon loop.
+"""Proactive tick — muse's quiet daemon loop.
 
 Runs every N minutes via cron (default 10m, disabled by default).
 Only emits a notification when something material has changed
@@ -151,7 +151,7 @@ def run_once(
             notifications.append(
                 TickNotification(
                     kind="daily_briefing",
-                    title=f"MUSE briefing — {today_key}",
+                    title=f"muse briefing — {today_key}",
                     body=snap.summary(),
                     severity="info",
                 )

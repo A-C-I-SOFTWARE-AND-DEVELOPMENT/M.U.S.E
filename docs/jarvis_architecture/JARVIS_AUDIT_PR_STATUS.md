@@ -1,4 +1,4 @@
-# MUSE Audit PR Status
+# muse Audit PR Status
 
 This branch was opened from current `main` after owner approval.
 

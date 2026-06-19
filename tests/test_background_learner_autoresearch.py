@@ -10,7 +10,7 @@ from hermes_cli.background_learner.queue import ALLOWED_KINDS, JobQueue, JobReje
 from hermes_cli.background_learner.runner import BackgroundLearnerRunner
 from hermes_cli.jarvis_prime.self_update import ProposalBook, ProposalStatus
 
-SPAWN_ENV = "MUSE_AUTORESEARCH_ALLOW_SPAWN"
+SPAWN_ENV = "muse_AUTORESEARCH_ALLOW_SPAWN"
 PAYLOAD = {"tag": "nightly", "lanes": 2, "max_experiments": 4, "max_cost_usd": 1.0}
 
 

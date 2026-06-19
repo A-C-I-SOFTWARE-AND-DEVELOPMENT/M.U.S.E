@@ -6,7 +6,7 @@ package com.aci.hermes.data.jarvis
  * pure so the rule set is unit-testable without Android.
  *
  * Changing approvals or safety gates is always elevated — those
- * are the rails that keep MUSE owner-loyal.
+ * are the rails that keep muse owner-loyal.
  */
 object ControlWarnings {
 

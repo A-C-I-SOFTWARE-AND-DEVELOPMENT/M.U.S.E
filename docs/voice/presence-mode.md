@@ -1,7 +1,7 @@
-# MUSE Presence Mode (mobile-native, hands-free)
+# muse Presence Mode (mobile-native, hands-free)
 
 Presence Mode turns the Android cockpit into a hands-free command center.
-MUSE lives over the launcher and other apps (the existing floating
+muse lives over the launcher and other apps (the existing floating
 avatar), the conversation is hands-free by default, and the avatar
 animates from the **real** voice/job/action state — not a demo.
 
@@ -10,7 +10,7 @@ animates from the **real** voice/job/action state — not a demo.
 > [voice-first-user-guide.md](voice-first-user-guide.md) and
 > [driving-mode-safety.md](driving-mode-safety.md). Presence Mode does
 > **not** change what the backend can do — a spoken turn and a typed
-> turn produce the same M.U.S.E. job, ledger, and gates.
+> turn produce the same muse job, ledger, and gates.
 
 ---
 
@@ -20,14 +20,14 @@ Presence Mode never press-and-holds to talk. A turn starts from the first
 **available** trigger in this strict order:
 
 ```
-camera attention (opt-in)  →  wake word ("Hey MUSE")  →  mic button
+camera attention (opt-in)  →  wake word ("Hey muse")  →  mic button
 ```
 
 - **Camera attention** — opt-in only, behind the `CAMERA` permission, with
   a visible on-screen privacy indicator whenever the camera is active. If
   the permission is denied or the hardware is absent, Presence Mode falls
   back automatically.
-- **Wake word** — an on-device, keyless "Hey MUSE" spotter
+- **Wake word** — an on-device, keyless "Hey muse" spotter
   (`SpeechRecognizerWakeWordEngine`). Audio never leaves the device; it
   only arms when Presence Mode is enabled and the RECORD_AUDIO permission
   is granted. It is pluggable — a dedicated low-power engine (Porcupine /
@@ -49,7 +49,7 @@ enable Presence Mode, and an emergency stop disarms every trigger.
 | **Long press** | Emergency stop (confirm dialog) |
 
 The status sheet is no longer the single-tap action — tapping the avatar
-talks to MUSE.
+talks to muse
 
 ## What the avatar shows (real state)
 
@@ -58,7 +58,7 @@ voice loop and the agent stream:
 
 `Idle → Listening → Thinking → Working → Speaking`, plus
 `ApprovalNeeded`, `Blocked`, and `EmergencyStop`. When listening, the live
-transcript is surfaced so you can see what MUSE heard. The floating
+transcript is surfaced so you can see what muse heard. The floating
 overlay mirrors the same state.
 
 ## Knowing when the mic / camera is on
@@ -66,7 +66,7 @@ overlay mirrors the same state.
 You are never left guessing:
 
 - The hands-free loop runs as a **foreground service** with a persistent
-  "MUSE is listening" notification and the OS microphone indicator.
+  "muse is listening" notification and the OS microphone indicator.
 - Camera attention (when enabled) shows an in-app privacy indicator plus
   the OS camera indicator.
 - The status pill reads **Listening** while the mic is open.
@@ -77,7 +77,7 @@ High-risk, owner-gated actions (deploy, merge, publish, spend, credential
 change, …) can be approved hands-free, but only through a mandatory
 ceremony enforced by `VoiceApprovalCoordinator`:
 
-1. MUSE **reads the exact action back** aloud.
+1. muse **reads the exact action back** aloud.
 2. You must reply with an **explicit authorization phrase** — e.g.
    *"yes, with authorization"*, *"confirm"*, *"approve"*.
 3. A bare *"yes"* / *"ok"* is **insufficient** and will not approve. A

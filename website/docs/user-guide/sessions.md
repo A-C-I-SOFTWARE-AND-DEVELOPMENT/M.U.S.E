@@ -6,7 +6,7 @@ description: "Session persistence, resume, search, management, and per-platform 
 
 # Sessions
 
-M.U.S.E. automatically saves every conversation as a session. Sessions enable conversation resume, cross-session search, and full conversation history management.
+muse automatically saves every conversation as a session. Sessions enable conversation resume, cross-session search, and full conversation history management.
 
 ## How Sessions Work
 
@@ -27,10 +27,10 @@ The SQLite database stores:
 
 ### What Counts Toward Context
 
-M.U.S.E. stores session history so it can resume conversations, but it does not
+muse stores session history so it can resume conversations, but it does not
 keep re-sending every byte it has ever handled. On each turn, the model sees
 the selected system prompt, the current conversation window, and any content
-M.U.S.E. explicitly injects for that turn.
+muse explicitly injects for that turn.
 
 Media attachments are handled as turn-scoped inputs:
 
@@ -43,8 +43,8 @@ Media attachments are handled as turn-scoped inputs:
   the raw image, audio, or binary file bytes are not repeatedly copied into
   future prompts.
 
-For example, if a user sends an image and asks M.U.S.E. to make a meme from it,
-M.U.S.E. may inspect that image once with vision and run an image-processing
+For example, if a user sends an image and asks muse to make a meme from it,
+muse may inspect that image once with vision and run an image-processing
 script. Future turns do not automatically carry the original JPEG in context.
 They carry only whatever was written into the conversation, such as the user's
 request, a short image description, a local cache path, or the final assistant
@@ -143,9 +143,9 @@ Session IDs are shown when you exit a CLI session, and can be found with `muse s
 
 ### Conversation Recap on Resume
 
-When you resume a session, M.U.S.E. displays a compact recap of the previous conversation in a styled panel before the input prompt:
+When you resume a session, muse displays a compact recap of the previous conversation in a styled panel before the input prompt:
 
-<img className="docs-terminal-figure" src="/img/docs/session-recap.svg" alt="Stylized preview of the Previous Conversation recap panel shown when resuming a M.U.S.E. session." />
+<img className="docs-terminal-figure" src="/img/docs/session-recap.svg" alt="Stylized preview of the Previous Conversation recap panel shown when resuming a muse session." />
 <p className="docs-figure-caption">Resume mode shows a compact recap panel with recent user and assistant turns before returning you to the live prompt.</p>
 
 The recap:
@@ -211,7 +211,7 @@ Give sessions human-readable titles so you can find and resume them easily.
 
 ### Auto-Generated Titles
 
-M.U.S.E. automatically generates a short descriptive title (3–7 words) for each session after the first exchange. This runs in a background thread using a fast auxiliary model, so it adds no latency. You'll see auto-generated titles when browsing sessions with `muse sessions list` or `muse sessions browse`.
+muse automatically generates a short descriptive title (3–7 words) for each session after the first exchange. This runs in a background thread using a fast auxiliary model, so it adds no latency. You'll see auto-generated titles when browsing sessions with `muse sessions list` or `muse sessions browse`.
 
 Auto-titling only fires once per session and is skipped if you've already set a title manually.
 
@@ -240,7 +240,7 @@ muse sessions rename 20250305_091523_a1b2c3d4 "refactoring auth module"
 
 ### Auto-Lineage on Compression
 
-When a session's context is compressed (manually via `/compress` or automatically), M.U.S.E. creates a new continuation session. If the original had a title, the new session automatically gets a numbered title:
+When a session's context is compressed (manually via `/compress` or automatically), muse creates a new continuation session. If the original had a title, the new session automatically gets a numbered title:
 
 ```
 "my project" → "my project #2" → "my project #3"
@@ -257,7 +257,7 @@ The `/title` command works in all gateway platforms (Telegram, Discord, Slack, W
 
 ## Session Management Commands
 
-M.U.S.E. provides a full set of session management commands via `muse sessions`:
+muse provides a full set of session management commands via `muse sessions`:
 
 ### List Sessions
 
@@ -452,13 +452,13 @@ On messaging platforms, sessions are keyed by a deterministic session key built 
 | Group thread/topic | `agent:main:<platform>:group:<chat_id>:<thread_id>` | Shared session for all thread participants (default). Per-user with `thread_sessions_per_user: true`. |
 | Channel | `agent:main:<platform>:channel:<chat_id>:<user_id>` | Per-user inside the channel when the platform exposes a user ID |
 
-When M.U.S.E. cannot get a participant identifier for a shared chat, it falls back to one shared session for that room.
+When muse cannot get a participant identifier for a shared chat, it falls back to one shared session for that room.
 
 ### Shared vs Isolated Group Sessions
 
-By default, M.U.S.E. uses `group_sessions_per_user: true` in `config.yaml`. That means:
+By default, muse uses `group_sessions_per_user: true` in `config.yaml`. That means:
 
-- Alice and Bob can both talk to M.U.S.E. in the same Discord channel without sharing transcript history
+- Alice and Bob can both talk to muse in the same Discord channel without sharing transcript history
 - one user's long tool-heavy task does not pollute another user's context window
 - interrupt handling also stays per-user because the running-agent key matches the isolated session key
 
@@ -509,7 +509,7 @@ Key tables in `state.db`:
 - Before reset, the agent saves memories and skills from the expiring session
 - Opt-in auto-pruning: when `sessions.auto_prune` is `true`, ended sessions older than `sessions.retention_days` (default 90) are pruned at CLI/gateway startup
 - After a prune that actually removed rows, `state.db` is `VACUUM`ed to reclaim disk space (SQLite does not shrink the file on plain DELETE)
-- Pruning runs at most once per `sessions.min_interval_hours` (default 24); the last-run timestamp is tracked inside `state.db` itself so it's shared across every M.U.S.E. process in the same `HERMES_HOME`
+- Pruning runs at most once per `sessions.min_interval_hours` (default 24); the last-run timestamp is tracked inside `state.db` itself so it's shared across every muse process in the same `HERMES_HOME`
 
 Default is **off** — session history is valuable for `session_search` recall, and silently deleting it could surprise users. Enable in `~/.hermes/config.yaml`:
 

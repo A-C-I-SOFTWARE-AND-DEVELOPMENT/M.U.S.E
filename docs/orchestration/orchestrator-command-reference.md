@@ -1,6 +1,6 @@
 # Orchestrator slash command reference
 
-The orchestrator surface is exposed as a set of first-class M.U.S.E. slash
+The orchestrator surface is exposed as a set of first-class muse slash
 commands.  Every command listed here is defined in
 `hermes_cli/commands.py` and dispatched through the shared controller
 in `hermes_cli/orchestrator.py`, so the CLI (`cli.py`) and the gateway

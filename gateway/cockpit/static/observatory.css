@@ -1,4 +1,4 @@
-/* M.U.S.E. Neural Observatory — chrome over the WebGL stage.
+/* muse Neural Observatory — chrome over the WebGL stage.
  * Inherits the "Singularity" tokens (tokens.css): one white core, one
  * spectral ring, everything else is the dark. */
 
@@ -202,7 +202,7 @@ pre.json {
   display: flex; align-items: center; justify-content: center;
 }
 
-/* The MUSE glyph — pure CSS: white core + slow spectral ring. */
+/* The muse glyph — pure CSS: white core + slow spectral ring. */
 .glyph { position: relative; display: inline-block; flex: none; }
 .glyph .core {
   position: absolute; inset: 50%; width: 18%; height: 18%;

@@ -4,13 +4,13 @@
  *
  * Four cards:
  *   1. Gateway — view/change the gateway base URL (persisted in localStorage
- *      `muse.gateway.base`); a live health ping confirms reachability.
+ *      `musegateway.base`); a live health ping confirms reachability.
  *   2. Brain (gateway process) — native-shell only: running/stopped status,
  *      the detected `muse` binary, autostart toggle, and start/stop buttons
  *      wired to the shell's brain commands (lib/brain → src-tauri/src/brain.rs).
  *   3. Device pairing — the scaffold's owner-gated pairing flow (pair/start →
  *      pair/confirm), plus paste-a-token and clear-token. The bearer token lives
- *      only in localStorage `muse.cockpit.token`; the owner phrase is entered to
+ *      only in localStorage `musecockpit.token`; the owner phrase is entered to
  *      confirm and never stored.
  *   4. Emergency stop — POST /v1/cockpit/emergency-stop (cancel all jobs, latch
  *      autonomy to read-only). Owner-gated and styled as a danger action; the
@@ -90,7 +90,7 @@ function GatewayCard() {
         </span>
       </div>
       <p className="muted">
-        The local M.U.S.E. gateway this client talks to. Default{" "}
+        The local muse gateway this client talks to. Default{" "}
         <span className="mono">{DEFAULT_GATEWAY_BASE}</span>.
       </p>
       <div className="row">
@@ -115,7 +115,7 @@ function GatewayCard() {
 
 /** GitHub README with the CLI install one-liner. */
 const INSTALL_DOCS_URL =
-  "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E#readme";
+  "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse#readme";
 
 function BrainCard() {
   const native = brainAvailable();
@@ -185,7 +185,7 @@ function BrainCard() {
       ) : (
         <>
           <p className="muted">
-            The local MUSE gateway process. With autostart on, the app starts it
+            The local muse gateway process. With autostart on, the app starts it
             for you at launch (when the <span className="mono">muse</span> CLI is
             installed) and stops it when you quit — never on hide-to-tray.
           </p>
@@ -195,7 +195,7 @@ function BrainCard() {
               <span className="mono">{status.binary}</span>
             ) : (
               <span className="muted">
-                not found — install the MUSE CLI via the one-liner (
+                not found — install the muse CLI via the one-liner (
                 <a href={INSTALL_DOCS_URL} target="_blank" rel="noreferrer">
                   docs
                 </a>
@@ -424,7 +424,7 @@ function EmergencyCard() {
       </div>
       <p className="muted">
         Immediately cancel all running jobs and latch autonomy to read-only. Use
-        this if M.U.S.E. is doing something it shouldn’t. You’ll confirm and enter
+        this if muse is doing something it shouldn’t. You’ll confirm and enter
         the owner phrase.
       </p>
       <div className="row">

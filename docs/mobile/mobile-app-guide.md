@@ -1,6 +1,6 @@
-# Mobile app guide — M.U.S.E. from your phone
+# Mobile app guide — muse from your phone
 
-This is the plain-English guide to running M.U.S.E. from your phone:
+This is the plain-English guide to running muse from your phone:
 what the Android app is, what the backend is, how they talk, what
 "approval" looks like on the lockscreen, and how to keep working when
 your network drops.
@@ -15,8 +15,8 @@ your network drops.
 ## What the app does
 
 The Android app at [`apps/android/`](../../apps/android/) is a
-**cockpit** for a running M.U.S.E. backend. It is **not** a
-self-contained M.U.S.E. — there's no Python, no model, no kanban
+**cockpit** for a running muse backend. It is **not** a
+self-contained muse — there's no Python, no model, no kanban
 database inside the app. It is:
 
 - a **window** into your backend (live job list, task graph, logs),
@@ -52,7 +52,7 @@ Same backend on every surface; only the input/output differs.
 |------|---------------------|-------------------|-----------|
 | **Remote gateway** *(recommended)* | A VPS, home server, or workstation you control | `https://<your-host>` | You want phone access from anywhere, want the backend to keep running while the phone sleeps. |
 | **On-device Termux** | `muse gateway start` inside Termux on this same phone | `http://127.0.0.1:8080` | You want everything on-device — no cloud, no other machines. |
-| **Local handoff (fallback)** | No M.U.S.E. backend at all | n/a | You only want the clipboard handoff to Codex / Claude / ChatGPT — the workflow that predates the orchestration stack. |
+| **Local handoff (fallback)** | No muse backend at all | n/a | You only want the clipboard handoff to Codex / Claude / ChatGPT — the workflow that predates the orchestration stack. |
 
 The cockpit detects which mode is reachable on first launch. You can
 change modes any time under **Settings → Mode**.
@@ -64,7 +64,7 @@ change modes any time under **Settings → Mode**.
 The shortest path to a working cockpit, in roughly the order you'll
 do it.
 
-### 1. Install M.U.S.E. on your backend host
+### 1. Install muse on your backend host
 
 Pick the host first. Options:
 
@@ -75,7 +75,7 @@ Pick the host first. Options:
 Install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 source ~/.bashrc
 muse doctor              # confirm clean install
 ```
@@ -138,7 +138,7 @@ thinking → routing → tool → verification → final), compact **tool
 activity** you can expand (secrets redacted), tappable **evidence/ledger**
 chips, and inline **owner approvals**. Replies can be **continued**,
 **copied**, or promoted into a **job**. See
-[MUSE mobile chat](jarvis-chat-streaming.md) for the wire contract
+[muse mobile chat](jarvis-chat-streaming.md) for the wire contract
 and behaviour.
 
 ### 5. (Optional) Build the APK yourself
@@ -161,11 +161,11 @@ The cockpit's primary screens are described below (full wireframes in
 [`../android/hermes-apk-ui-wireframes.md`](../android/hermes-apk-ui-wireframes.md)).
 
 ### Home — the command center
-The Home tab is the glanceable state of MUSE plus the launchpad to every
+The Home tab is the glanceable state of muse plus the launchpad to every
 backend function. When the gateway is paired it shows **live** data pulled
 from the cockpit API on open and on pull-to-refresh:
 
-- MUSE presence (idle / listening / thinking / working / waiting-for-
+- muse presence (idle / listening / thinking / working / waiting-for-
   approval / serious / critical / service-stopped / emergency-stop / mock),
 - gateway connection pill and current **model/router** policy
   (`GET /v1/cockpit/models`),
@@ -176,7 +176,7 @@ from the cockpit API on open and on pull-to-refresh:
 - on-device **voice/listening** state and **device capability** (RAM/API),
 - an always-present **Emergency Stop**.
 
-Quick actions launch the powerful paths: **Ask MUSE**, **Audit repo**,
+Quick actions launch the powerful paths: **Ask muse**, **Audit repo**,
 **Continue coding**, **Run tests**, **Review patch**, **Approvals**,
 **Memory**, **Start voice**, and **Stop all work**. Actions that imply
 external or irreversible work open the owner-gated authoring/approval
@@ -212,7 +212,7 @@ write), and three buttons: **Approve**, **Deny**, **Defer**. Buttons
 write directly to the kanban; the backend resumes the job.
 
 ### Activity timeline
-The answer to *"what did MUSE do?"* — reached from the **Activity**
+The answer to *"what did muse do?"* — reached from the **Activity**
 action on the Audit screen. It streams the orchestrator's event ledger
 (every job's `ledger.jsonl`) as one redacted, filterable timeline: worker
 runs, commands, file edits, approvals, validations, deploy/publish
@@ -233,7 +233,7 @@ submits the resulting prompt. See
 
 ### Research
 A full-screen surface (reached from the Home quick links) onto the
-backend **Evidence Engine**. Ask a factual question; MUSE gathers
+backend **Evidence Engine**. Ask a factual question; muse gathers
 sources, ranks them by trust, extracts evidence cards, and answers with
 citations and a calibrated uncertainty — or honestly says it doesn't
 know when no source-backed evidence is available. Each finding can be
@@ -244,7 +244,7 @@ task** (a queued job — nothing runs without the usual approval). See
 
 ---
 
-## Device control — letting MUSE operate the phone
+## Device control — letting muse operate the phone
 
 The Android cockpit can physically operate the phone for you — run to an
 app, push it open, scroll, turn the home-screen page, go back/home — driven
@@ -280,7 +280,7 @@ Reach it from **Control → Device control**. The screen has five parts:
    refuses new actions until you release it. The global emergency stop in
    the top bar does the same thing in addition to halting the orchestrator.
 5. **Recent device actions.** An append-only, on-device log of *every*
-   action MUSE took or was refused — newest first — so "what did MUSE
+   action muse took or was refused — newest first — so "what did muse
    do on my phone?" is always answerable.
 
 **How a command flows.** Every device action passes through one broker
@@ -330,7 +330,7 @@ Three rules to remember:
 
 ## How notifications work
 
-MUSE notifies you about long-running work with **local Android
+muse notifies you about long-running work with **local Android
 notifications** — no Firebase, no Google Play Services, no cloud push.
 This keeps the cockpit fully local-first and Termux-friendly: the only
 thing that has to be reachable is your own gateway.
@@ -364,7 +364,7 @@ The nine notifications, the channel they use, and where a tap lands:
 | Tests failed | Alerts | Tasks |
 | Worker needs attention | Alerts | Diagnostics |
 | Emergency stop engaged | Alerts | Diagnostics |
-| Voice/listening active (persistent) | MUSE voice | Voice |
+| Voice/listening active (persistent) | muse voice | Voice |
 
 Approval notifications open the owner-gated **Approvals** queue — they
 **never** approve anything on their own. The decision still requires
@@ -420,7 +420,7 @@ Safety guardrails — these are not optional:
   the car is moving.
 - **No text input.** The keyboard is hidden. Only voice and the big
   red **Cancel** button are reachable.
-- **Wake word optional.** If enabled, the wake word ("Hey M.U.S.E.")
+- **Wake word optional.** If enabled, the wake word ("Hey muse")
   only arms a single capture — it doesn't leave the mic open.
 - **TTS is short-form.** Replies longer than 60s of speech truncate
   to a summary; the full reply is queued for after-drive review.
@@ -429,8 +429,8 @@ Safety guardrails — these are not optional:
   icon.
 
 You activate it from **Settings → Driving mode** or via the
-voice command *"M.U.S.E., start driving mode."* You exit with
-*"M.U.S.E., stop driving mode"* or by tapping the lock icon. The full
+voice command *"muse start driving mode."* You exit with
+*"muse stop driving mode"* or by tapping the lock icon. The full
 behavior is in [voice/voice-first-user-guide.md §driving-mode](../voice/voice-first-user-guide.md#driving-mode).
 
 ---
@@ -596,7 +596,7 @@ and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
 - [voice/presence-mode.md](../voice/presence-mode.md) — hands-free
   Presence Mode, the trigger fallback chain, gestures, approval-by-voice.
 - [remote/windows-claude-code-bridge-guide.md](../remote/windows-claude-code-bridge-guide.md)
-  — using M.U.S.E. on the phone to drive a Windows Claude Code session.
+  — using muse on the phone to drive a Windows Claude Code session.
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)
   — keeping the on-device path fully private-local.
 - [orchestration/getting-started.md](../orchestration/getting-started.md)

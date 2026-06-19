@@ -1,4 +1,4 @@
-"""Approved-proposal executor for MUSE.
+"""Approved-proposal executor for muse
 
 Bridges :mod:`self_update` proposals to bounded coding work packets. It
 turns an *approved* proposal into an executable plan (branch name, exact

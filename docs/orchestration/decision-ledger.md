@@ -1,6 +1,6 @@
 # Decision Ledger
 
-The decision ledger is M.U.S.E.'s externally-visible record of a single
+The decision ledger is muse's externally-visible record of a single
 non-trivial decision. It replaces hidden chain-of-thought with a
 structured artefact that a human reviewer, a later session, or the
 enterprise Judge can audit.
@@ -78,7 +78,7 @@ and commit (or post, or persist) the result.
 - Commands:
 - Docs:
 - Web sources, if available:
-- Prior M.U.S.E. memory / session notes, if available:
+- Prior muse memory / session notes, if available:
 - Gaps:
 
 ## Options Considered
@@ -96,7 +96,7 @@ and commit (or post, or persist) the result.
 - Validation:
 
 ## Selected Model / Worker
-<!-- Which M.U.S.E. worker, subagent profile, or model. -->
+<!-- Which muse worker, subagent profile, or model. -->
 
 ## Why This Choice
 <!-- Why selected beats the alternatives for THIS task. -->
@@ -175,7 +175,7 @@ Concrete artefacts only. Six sub-bullets:
 | Commands | Verbatim commands plus a one-line result summary | "(none — read-only research)" |
 | Docs | Path or URL plus the section/heading you used | "(none consulted)" |
 | Web sources | URL + retrieval date + a relevant quote | "(none — answer was local)" |
-| Prior M.U.S.E. memory / session notes | Session id + ledger path, or "(none found)" | "(none found)" |
+| Prior muse memory / session notes | Session id + ledger path, or "(none found)" | "(none found)" |
 | Gaps | What you did not check (feeds Open Risks) | "(none — coverage complete)" |
 
 Hand-waving is the failure mode here. "I considered the codebase" is
@@ -205,7 +205,7 @@ when to reopen the question) is always available and often correct.
 
 ### `## Selected Model / Worker`
 
-Which M.U.S.E. worker, subagent profile, or model will execute this?
+Which muse worker, subagent profile, or model will execute this?
 Name it precisely:
 
 ```
@@ -213,7 +213,7 @@ delegation toolset -> anthropic/claude-sonnet-4-6
 ```
 
 For tasks that don't delegate (single-process work), record the
-*model* that produced the ledger itself: "M.U.S.E. main loop, model
+*model* that produced the ledger itself: "muse main loop, model
 `claude-opus-4-7`, reasoning level `medium`".
 
 ### `## Why This Choice`
@@ -413,7 +413,7 @@ non-empty":
 | Any section | A body of bare `N/A`, `NA`, or `none` (no justification) counts as empty. |
 
 These rules are the bare minimum the Judge and curator need to
-operate on ledgers as data rather than as prose. M.U.S.E. can layer
+operate on ledgers as data rather than as prose. muse can layer
 richer checks (LLM-based "does this answer the question?") on top,
 but the three above are non-negotiable for tooling.
 

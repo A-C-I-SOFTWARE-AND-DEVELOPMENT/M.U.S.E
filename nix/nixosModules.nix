@@ -634,7 +634,7 @@
       (lib.mkIf cfg.createUser {
         users.groups.${cfg.group} = { };
         users.users.${cfg.user} = {
-          isSystemUser = true;
+          isSystemuser = true;
           group = cfg.group;
           home = cfg.stateDir;
           createHome = true;

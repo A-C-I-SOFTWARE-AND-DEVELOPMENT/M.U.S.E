@@ -1,6 +1,6 @@
 # Private / local security guide
 
-This guide is the plain-English answer to: *"How do I keep M.U.S.E.
+This guide is the plain-English answer to: *"How do I keep muse
 fully private — nothing leaves my devices?"*
 
 It is also the practical guide to **secrets protection** in normal
@@ -24,18 +24,18 @@ There are three things people mean. They overlap but aren't the same.
    don't go to anyone but the model provider. Memory, jobs, code
    stay on your machines.
 2. **Local-only models.** No cloud model is involved at all. The
-   model server runs on the same host as M.U.S.E., on loopback.
+   model server runs on the same host as muse on loopback.
 3. **Air-gapped.** No outbound network connections of any kind.
    Local model, local everything, kernel-level firewall.
 
-You can run M.U.S.E. in any of the three. Each adds restrictions but
+You can run muse in any of the three. Each adds restrictions but
 keeps the orchestration shape unchanged.
 
 ---
 
 ## The threat model, briefly
 
-M.U.S.E. is a multi-tool agent with the ability to:
+muse is a multi-tool agent with the ability to:
 
 - Edit files on the host.
 - Run shell commands (subject to allowlists).
@@ -89,7 +89,7 @@ ELEVENLABS_API_KEY=...
 DEEPGRAM_API_KEY=...
 ```
 
-**Who reads it.** The M.U.S.E. process startup loads it; individual
+**Who reads it.** The muse process startup loads it; individual
 plugins fetch the variables they need; the underlying model client
 gets the model-provider key it needs.
 
@@ -113,12 +113,12 @@ phone never holds your API keys.
 
 On Windows, the installer uses Credential Manager for tokens where
 applicable. On macOS, the user keychain. On Linux desktops, Secret
-Service. M.U.S.E. prefers the keyring over plain files when one is
+Service. muse prefers the keyring over plain files when one is
 available.
 
 ### SSH keys (Windows Claude Code bridge)
 
-The bridge uses SSH keys you control. M.U.S.E. does not generate or
+The bridge uses SSH keys you control. muse does not generate or
 manage them; it reads from `~/.ssh/` like any other SSH client.
 
 ### Memory backend
@@ -233,7 +233,7 @@ as you use them).
 
 ### Recipe B — Local model
 
-Run a local model server (llama.cpp, vLLM, Ollama) and point M.U.S.E.
+Run a local model server (llama.cpp, vLLM, Ollama) and point muse
 at it. Disable cloud providers. Full recipe in
 [orchestration/private-local-mode.md](../orchestration/private-local-mode.md).
 
@@ -260,7 +260,7 @@ those plugins too.
 Recipe B plus:
 
 ```bash
-# Linux: drop all outbound except loopback for the M.U.S.E. user
+# Linux: drop all outbound except loopback for the muse user
 sudo nft add table inet hermes-private
 sudo nft add chain inet hermes-private output \
   { type filter hook output priority 0 \; policy drop \; }
@@ -268,7 +268,7 @@ sudo nft add rule inet hermes-private output oif lo accept
 sudo nft add rule inet hermes-private output meta skuid != $(id -u hermes-user) accept
 ```
 
-Use a separate user for M.U.S.E. (`hermes-user` above) and run with
+Use a separate user for muse (`hermes-user` above) and run with
 `sudo -u hermes-user hermes`. The firewall confines that user's
 outbound traffic to loopback only.
 
@@ -282,7 +282,7 @@ For Termux, see the Termux subsection in
 The Windows Claude Code bridge is a special case because it crosses
 machines. Important properties:
 
-- **No API keys cross the wire.** The M.U.S.E. backend's keys stay on
+- **No API keys cross the wire.** The muse backend's keys stay on
   the backend. The Windows Claude Code session uses its own
   credentials configured on the Windows side.
 - **Workdir is scoped.** The bridge refuses operations outside the
@@ -342,7 +342,7 @@ See [profile/github-history-profile-guide.md](../profile/github-history-profile-
    PAT settings, Vercel tokens, Supabase access tokens — invalidate
    the old token there first.
 2. **Update `~/.hermes/.env`** with the new key.
-3. **Restart M.U.S.E..** `pkill hermes` and start again.
+3. **Restart muse** `pkill hermes` and start again.
 4. **Audit recent jobs.** `grep -l <last-4-chars-of-old-key>
    ~/.hermes/jobs/*/ledger.jsonl` — the agent should never have
    logged the key; if it did, file a security issue and tar the
@@ -363,7 +363,7 @@ didn't intend.
 
 ### Lost phone with the cockpit installed
 
-1. From any M.U.S.E. host:
+1. From any muse host:
    `muse gateway revoke-token <phone-device-id>`. The cockpit's
    bearer is now invalid.
 2. The phone never held API keys; the conversation and job folders

@@ -1,4 +1,4 @@
-"""Gemma 4 memory-curator lane for MUSE.
+"""Gemma 4 memory-curator lane for muse
 
 Deterministic capture (:mod:`hermes_cli.jarvis_prime.memory_capture`) is and
 stays the **safety baseline**. This module lets a *local* Gemma model *enhance*

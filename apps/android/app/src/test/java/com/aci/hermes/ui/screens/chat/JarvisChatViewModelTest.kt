@@ -182,7 +182,7 @@ class JarvisChatViewModelTest {
         val welcome = vm.state.value.messages.single()
         vm.copyMessage(welcome.id)
         assertEquals(1, clipboard.writes.size)
-        assertEquals("MUSE", clipboard.writes.single().first)
+        assertEquals("muse", clipboard.writes.single().first)
     }
 
     @Test

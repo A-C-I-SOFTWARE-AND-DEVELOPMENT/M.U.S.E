@@ -50,7 +50,7 @@ for SWA_FLAG in "" "--swa-full"; do
     curl -s --max-time 2 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1 && break
     sleep 1
   done
-  PREFIX="$(python3 -c "print('You are MUSE, a careful assistant. ' * 30)")"
+  PREFIX="$(python3 -c "print('You are muse a careful assistant. ' * 30)")"
   probe() {
     curl -s "http://127.0.0.1:${PORT}/completion" -d "{\"prompt\": \"${PREFIX} $1\", \
 \"n_predict\": 8, \"id_slot\": 0, \"cache_prompt\": true, \"temperature\": 0}" \

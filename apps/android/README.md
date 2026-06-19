@@ -1,6 +1,6 @@
-# M.U.S.E. — Android cockpit
+# muse — Android cockpit
 
-> **Status:** alpha. The Android app is the **MUSE cockpit**: a
+> **Status:** alpha. The Android app is the **muse cockpit**: a
 > networked review-and-control client for a Hermes **cockpit gateway**. When
 > paired, it talks to the gateway over HTTP with a bearer token — streaming
 > chat, jobs, approvals, evidence/research, autonomy, and voice intake — and
@@ -71,7 +71,7 @@ Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 1. **Pairs** to a Hermes cockpit gateway: set the endpoint and paste the
    gateway's bearer token (stored in `EncryptedSharedPreferences`).
-2. **Streams chat** with MUSE over `POST /v1/jarvis/chat` (NDJSON), and
+2. **Streams chat** with muse over `POST /v1/jarvis/chat` (NDJSON), and
    reads/controls **jobs, approvals, evidence/research, memory, autonomy, and
    diagnostics** over the `/v1/cockpit/*` REST routes.
 3. **Submits voice** by transcribing on-device and posting the transcript to
@@ -258,7 +258,7 @@ screen for per-job deep links).
 
 ## Sentient avatar (the living body)
 
-The cockpit now ships MUSE's **living body** — a character that
+The cockpit now ships muse's **living body** — a character that
 floats over your apps, physically operates the phone, and talks to you
 hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avatar/sentient-avatar-architecture.md).
 
@@ -270,7 +270,7 @@ hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avata
   app launches, node-tree targeting.
 - **Presence** (`service/JarvisOverlayService`): the floating overlay +
   the run/push/page-turn performance + the idle/sleep/wander life loop.
-- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey Muse" →
+- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey muse" →
   STT → agent → TTS over a Bluetooth headset.
 - **Create**: image/video generation and photo→avatar conversion are
   surfaced in the capability catalog (`create.*`).
@@ -298,7 +298,7 @@ hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avata
 
 ## Interactive surface (v1.0)
 
-For MUSE control without opening the full app:
+For muse control without opening the full app:
 
 - **Launcher shortcuts** (`res/xml/shortcuts.xml`) â€” long-press the
   launcher icon for **Approve** (Owner Approve flow) and **Stop JARVIS**

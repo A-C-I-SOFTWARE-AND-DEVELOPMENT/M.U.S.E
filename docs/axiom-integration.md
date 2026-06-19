@@ -54,9 +54,9 @@ in an untrusted repo is HIGH on its own.
 
 | Variable | Effect |
 |---|---|
-| `MUSE_AXIOM_GATES=0` | Bridge inert: no chain reads/writes, `chain_valid: null`, release chain-check skipped. Exported in CI unit-test workflows for hermeticity. |
+| `muse_AXIOM_GATES=0` | Bridge inert: no chain reads/writes, `chain_valid: null`, release chain-check skipped. Exported in CI unit-test workflows for hermeticity. |
 | `HERMES_HOME` | Relocates the chain (and all runtime state). The bridge singleton re-resolves it on every `get_bridge()`. |
-| `MUSE_UE5_ALLOW_SPAWN=1` | Owner gate for `ue5.launch_offscreen_render` — without it the command is built but never spawned. |
+| `muse_UE5_ALLOW_SPAWN=1` | Owner gate for `ue5.launch_offscreen_render` — without it the command is built but never spawned. |
 
 ## Degraded mode (no z3)
 

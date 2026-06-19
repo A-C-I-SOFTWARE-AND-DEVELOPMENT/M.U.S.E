@@ -80,7 +80,7 @@ hook in `tests/conftest.py` so the default CI lane is unchanged.
   infrastructure; the BFCL harness adoption is a separate packet
   ("Wave D — Real depth benchmark") and needs an owner go/no-go on
   budget for a self-hosted vLLM lane.
-- The live smoke deliberately does not exercise M.U.S.E.'s own gateway
+- The live smoke deliberately does not exercise muse's own gateway
   (Telegram / Discord / cockpit). Those paths have their own integration
   suites; WC-3 targets the single claim the offline E2E cannot make
   — "the configured model produces output". Anything broader would

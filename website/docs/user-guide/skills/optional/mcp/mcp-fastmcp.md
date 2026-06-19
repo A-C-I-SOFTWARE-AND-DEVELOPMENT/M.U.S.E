@@ -17,7 +17,7 @@ Build, test, inspect, install, and deploy MCP servers with FastMCP in Python. Us
 | Source | Optional — install with `muse skills install official/mcp/fastmcp` |
 | Path | `optional-skills/mcp/fastmcp` |
 | Version | `1.0.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `MCP`, `FastMCP`, `Python`, `Tools`, `Resources`, `Prompts`, `Deployment` |
@@ -26,7 +26,7 @@ Build, test, inspect, install, and deploy MCP servers with FastMCP in Python. Us
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # FastMCP
@@ -40,11 +40,11 @@ Use this skill when the task is to:
 - create a new MCP server in Python
 - wrap an API, database, CLI, or file-processing workflow as MCP tools
 - expose resources or prompts in addition to tools
-- smoke-test a server with the FastMCP CLI before wiring it into M.U.S.E. or another client
+- smoke-test a server with the FastMCP CLI before wiring it into muse or another client
 - install a server into Claude Code, Claude Desktop, Cursor, or a similar MCP client
 - prepare a FastMCP server repo for HTTP deployment
 
-Use `native-mcp` when the server already exists and only needs to be connected to M.U.S.E.. Use `mcporter` when the goal is ad-hoc CLI access to an existing MCP server instead of building one.
+Use `native-mcp` when the server already exists and only needs to be connected to muse Use `mcporter` when the goal is ad-hoc CLI access to an existing MCP server instead of building one.
 
 ## Prerequisites
 
@@ -185,7 +185,7 @@ fastmcp install cursor acme_server.py -e .
 
 Use `fastmcp discover` to inspect named MCP servers already configured on the machine.
 
-When the goal is M.U.S.E. integration, either:
+When the goal is muse integration, either:
 
 - configure the server in `~/.hermes/config.yaml` using the `native-mcp` skill, or
 - keep using FastMCP CLI commands during development until the interface stabilizes
@@ -306,9 +306,9 @@ fastmcp call server.py your_tool_name --json
 
 This usually exposes naming mismatches, missing required arguments, or non-serializable return values.
 
-### M.U.S.E. cannot see the deployed server
+### muse cannot see the deployed server
 
-The server-building part may be correct while the M.U.S.E. config is not. Load the `native-mcp` skill and configure the server in `~/.hermes/config.yaml`, then restart M.U.S.E..
+The server-building part may be correct while the muse config is not. Load the `native-mcp` skill and configure the server in `~/.hermes/config.yaml`, then restart muse
 
 ## References
 

@@ -3,7 +3,7 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'M.U.S.E.',
+  title: 'muse',
   tagline: 'One mind, many pathways.',
   favicon: 'img/favicon.ico',
 
@@ -77,7 +77,7 @@ const config: Config = {
         docs: {
           routeBasePath: '/',  // Docs at the root of /docs/
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/edit/main/website/',
+          editUrl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/edit/main/website/',
         },
         blog: false,
         theme: {
@@ -100,9 +100,9 @@ const config: Config = {
       },
     },
     navbar: {
-      title: 'M.U.S.E.',
+      title: 'muse',
       logo: {
-        alt: 'M.U.S.E.',
+        alt: 'muse',
         src: 'img/logo.png',
       },
       items: [
@@ -127,7 +127,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E',
+          href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse',
           label: 'GitHub',
           position: 'right',
         },
@@ -154,14 +154,14 @@ const config: Config = {
           title: 'Community',
           items: [
             { label: 'Discord', href: 'https://discord.gg/NousResearch' },
-            { label: 'GitHub Discussions', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/discussions' },
+            { label: 'GitHub Discussions', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/discussions' },
             { label: 'Skills Hub', href: 'https://agentskills.io' },
           ],
         },
         {
           title: 'More',
           items: [
-            { label: 'GitHub', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E' },
+            { label: 'GitHub', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse' },
             { label: 'Nous Research', href: 'https://nousresearch.com' },
           ],
         },

@@ -1,6 +1,6 @@
 # @muse/design-system
 
-The **canonical source of craft** for M.U.S.E. One white core in the void,
+The **canonical source of craft** for muse One white core in the void,
 wrapped by one thin spectral ring — *"one mind, many pathways."* This package
 holds the design tokens (color, spacing, radius, type, elevation, motion, glyph
 geometry) and a pure-Node generator that emits **platform artifacts** for both
@@ -17,7 +17,7 @@ here and regenerate.
 | `tokens.json` | The canonical tokens. **Edit this**, nothing in `dist/`. |
 | `scripts/generate.mjs` | Pure Node (zero deps) generator. |
 | `dist/tokens.css` | Generated CSS custom properties (web). |
-| `dist/Tokens.kt` | Generated Kotlin `object MuseTokens` (Compose). |
+| `dist/Tokens.kt` | Generated Kotlin `object museTokens` (Compose). |
 | `test/tokens.test.mjs` | Asserts the generated artifacts carry the exact Singularity hex on both targets. |
 
 `dist/` is generated output — never edit it by hand. It is committed so
@@ -58,22 +58,22 @@ The existing cockpit aliases (`--radius`, `--sans`, `--mono`) are preserved, so
 ## Consume from Compose (Android)
 
 Drop `dist/Tokens.kt` into the app's design-system module (package
-`muse.designsystem`) and reference it:
+`musedesignsystem`) and reference it:
 
 ```kotlin
-import muse.designsystem.MuseTokens
+import musedesignsystem.museTokens
 
 Surface(
-    color = MuseTokens.Color.void3,
-    shape = RoundedCornerShape(MuseTokens.Radius.md),
+    color = museTokens.Color.void3,
+    shape = RoundedCornerShape(museTokens.Radius.md),
 ) {
     Text(
-        "M.U.S.E.",
-        color = MuseTokens.Color.signal,
-        fontSize = MuseTokens.Type.title.size,
+        "muse",
+        color = museTokens.Color.signal,
+        fontSize = museTokens.Type.title.size,
     )
 }
-// Spectral ring: Brush.horizontalGradient(MuseTokens.ringGradientStops)
+// Spectral ring: Brush.horizontalGradient(museTokens.ringGradientStops)
 ```
 
 Colors are emitted as `androidx.compose.ui.graphics.Color(0xFF......)`, radii

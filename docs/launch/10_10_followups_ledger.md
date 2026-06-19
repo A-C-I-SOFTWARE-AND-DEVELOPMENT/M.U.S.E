@@ -139,7 +139,7 @@ lacks pytest/plugins — this is also the root cause of FU-10).
 | **FU-19-gateways-surface** | B | Raise ONE weakest gateway to capability/health parity (exact file declared pre-start) | `gateway/<one_gateway>.py` + its test | additive | P2 | planned |
 | **FU-20-voice-graphrag-surface** | B | Raise ONE of voice/GraphRAG backend parity (exact module declared pre-start; not handlers/server/index) | `hermes_cli/jarvis_prime/<module>.py` + test | additive | P2 | planned |
 | **FU-21-council-router-proof** | B | Prove AOS routing resolves only registry members (registry read-only) | `tests/test_aos_council_routing.py` (new) | additive (test) | P2 | planned |
-| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/MUSE_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
+| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/muse_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
 
 ## Wave plan (disjoint ⇒ truly parallel)
 
@@ -262,7 +262,7 @@ checkout):
   files →** `apps/.../ui/jarvis/JarvisIconColors.kt` + new `IconColorsTest.kt`
   ONLY (drop `Theme.kt`). CI-verified only.
 - **M4/M5 dropped from my scope.** "Android `LaunchGate`" (M4) matches no Android
-  artifact — it's the MUSE owner-gate concept, mis-tagged; nothing to fix. APK
+  artifact — it's the muse owner-gate concept, mis-tagged; nothing to fix. APK
   release signing (M5) is real but **owner-only** (needs the owner's keystore;
   `build.gradle.kts` falls back to debug-signing by design) → stays owner-gated,
   not a builder task.
@@ -345,7 +345,7 @@ pre-authorization:
 - **FU-15 run hop uses the offline planner** (repo-mutating execute lanes shell out to paid CLIs + network, not hermetic). A live owner-present execute→real-PR run is the next layer, intentionally out of the no-network test.
 - **Planner perf:** rooting the navigator at the full checkout takes ~306s (FU-15 finding) — a real optimization opportunity, out of this program's scope.
 - **`IconState.kt` stale "Gold ring" doc comments** (FU-17b residual) — cosmetic, deferred to a doc sweep.
-- **Owner-only outward actions remain (by design, never builder-merged):** GitHub repo rename to the MUSE slug; real Android release signing + Play Store permission/disclosure; any paid-API enablement (still OFF / ask-per-call).
+- **Owner-only outward actions remain (by design, never builder-merged):** GitHub repo rename to the muse slug; real Android release signing + Play Store permission/disclosure; any paid-API enablement (still OFF / ask-per-call).
 
 ### Decision log (close)
 
@@ -374,7 +374,7 @@ scope pass); every writable file has exactly one owning grain.
 
 | Grain | Wave | Owned (writable) files | Risk | Gate | Status |
 |---|---|---|---|---|---|
-| **g-rename-prep** | 1 | `README.md` · `CONTRIBUTING.md` · `.github/**` (templates, dependabot, codeql-config, actions, workflows) · `packaging/homebrew/hermes-agent.rb`→`muse.rb` | outward (slug) | **repo-rename gate LIFTED → stage draft PR, do NOT merge** (merge only at the actual rename, else dead links) | planned |
+| **g-rename-prep** | 1 | `README.md` · `CONTRIBUTING.md` · `.github/**` (templates, dependabot, codeql-config, actions, workflows) · `packaging/homebrew/hermes-agent.rb`→`muserb` | outward (slug) | **repo-rename gate LIFTED → stage draft PR, do NOT merge** (merge only at the actual rename, else dead links) | planned |
 | **g-fu13-allowhost-cli** | 1 | `hermes_cli/main.py` (cockpit_serve parser + cmd_cockpit) · `tests/hermes_cli/test_cockpit_cli_allowhost.py` (new) | additive | merge-on-green | planned |
 | **g-navigator-perf** | 1 | `hermes_cli/jarvis_prime/navigation/repo_index.py` · `tests/jarvis_prime/navigation/test_repo_index_perf.py` (new) | additive (perf) | merge-on-green | planned |
 | **g-gateway-parity** | 1 | `gateway/platforms/sms.py` · `tests/gateway/platforms/test_sms_capabilities.py` (new) | additive | merge-on-green | planned |
@@ -424,21 +424,21 @@ scope pass); every writable file has exactly one owning grain.
 ## Repo rename — COMPLETE (2026-06-08)
 
 Owner lifted the repo-rename gate and renamed the GitHub repo
-`hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`** (Settings → Rename).
-The slug came back as **`M.U.S.E`** (dots/caps), not the lowercase `muse` the
+`hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`** (Settings → Rename).
+The slug came back as **`muse`** (dots/caps), not the lowercase `muse` the
 staged patch assumed — caught before merge (merging the `muse` patch would have
 created dead links, since GitHub redirects only the *old* name `hermes-agent`,
-not `muse`). Owner chose to keep `M.U.S.E`; the patch was reworked accordingly.
+not `muse`). Owner chose to keep `muse`; the patch was reworked accordingly.
 
 - **#389** (`64bead62`) — reworked to the real slug + reduced to a **minimal-safe**
   set: this repo's user-facing GitHub URLs (`README`, `CONTRIBUTING`, issue/PR
-  templates) → `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`. The `github.repository ==`
+  templates) → `A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`. The `github.repository ==`
   **publish/deploy guards**, Docker/PyPI/Cachix registry names, and the homebrew
   formula were **reverted to status quo** (dormant on this repo; registry renames
   are owner-coordinated; changing them risked dead refs or activating publishing).
 - **#392** (`d975651c`) — completion sweep: the **install one-liners**
   (`scripts/install.{sh,ps1}` raw URLs, `docs/jarvis-prime-operating-system.md`,
-  `docs/jarvis-free-first-launch.md`) and `CANONICAL_REPO.md` → `…/M.U.S.E`.
+  `docs/jarvis-free-first-launch.md`) and `CANONICAL_REPO.md` → `…/muse`.
   These use `raw.githubusercontent.com`, which (unlike github.com) does **not**
   reliably follow the rename redirect — so they were the must-fix.
 
@@ -550,7 +550,7 @@ consumes tokens, none edits them.
 | Action | Outcome |
 |---|---|
 | Merge #432 (small-fixes G6, additive tier, 30/30 green) | **merged** (`08e42502`) |
-| Un-draft + merge #433 ("Hey Muse" wake word, green, owner-authorized) | **merged** (`e283d39e`) |
+| Un-draft + merge #433 ("Hey muse" wake word, green, owner-authorized) | **merged** (`e283d39e`) |
 | Fix #423 red check (secret-scan: 4 `env_name` FPs on `${{ secrets.* }}` *references* in `muse-desktop-release.yml`) | pragma-allowlisted on the PR branch (`ebfdba215`); local scan exits 0; merge on green CI; durable scanner fix = grain G8 |
 | #408 (CodeQL advanced setup) | **closed: blocked-on-owner-settings** — repo runs CodeQL Default Setup, which rejects SARIF from advanced workflows; the failing matrix is unfixable from a PR. Owner options recorded on the PR: add Kotlin to Default Setup languages (recommended, one click) or disable Default Setup and revive #408. |
 | Ledger reconciliation | Wave C rows → `merged`; navigator-perf residual **closed** by #388 (306 s → 0.51 s, see `followups/g-navigator-perf.md`); `gateway/platforms/yuanbao.py:4678` TODO T06 **deferred** (needs live Yuanbao credentials — untestable free/local); EPIC P1–P5 remain owner-gated |
@@ -617,7 +617,7 @@ Awaits owner go/no-go before any branch is cut.
 
 **Trigger:** owner directive (`/goal`) — "finish all remaining follow ups."
 **Single-writer (orchestrator).** Base: `main` @ `851930f2d` (post-#454
-autoresearch, post-#455 MUSE final audit). Session branch
+autoresearch, post-#455 muse final audit). Session branch
 `claude/stoic-planck-l3dvd6` (single-branch pattern, as Wave C).
 
 ## Remaining-items inventory (ground-truthed against code/PRs/branches)
@@ -635,8 +635,8 @@ autoresearch, post-#455 MUSE final audit). Session branch
 | **#408 advanced CodeQL** | blocked on owner repo settings (CodeQL Default Setup). |
 | **Registry/namespace renames** (Docker Hub / PyPI / Cachix / homebrew) | owner-coordinated, publish-time. |
 | **G2 follow-on — promote "Release gate (strict tooling)" to required** | owner GitHub-settings click (several green cycles have elapsed since Wave D). |
-| **PR #453 — deep Hermes→MUSE rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `MUSE_RENAME_REPORT.md`/`MUSE_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
-| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/MUSE_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
+| **PR #453 — deep Hermes→muse rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `muse_RENAME_REPORT.md`/`muse_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
+| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/muse_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
 
 ## Decision log
 

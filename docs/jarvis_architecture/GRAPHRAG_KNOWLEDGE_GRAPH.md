@@ -1,6 +1,6 @@
-# MUSE — GraphRAG Knowledge Graph
+# muse — GraphRAG Knowledge Graph
 
-A typed, source-backed knowledge graph over the MUSE **cognition
+A typed, source-backed knowledge graph over the muse **cognition
 plane**. It *supplements* — never replaces — the Memory Tree, the Research
 Vault, and the HyperAgent navigation substrates. Its job is to unify those
 existing stores into one inspectable graph with three retrieval modes, so

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 /**
- * Zero-data placeholder, per the MUSE design language's EmptyState spec
+ * Zero-data placeholder, per the muse design language's EmptyState spec
  * (docs/brand/muse-design-language.md §EmptyState): a centered stack with
  * generous negative space — dimmed icon, title, helper line, optional CTA.
  *

@@ -6,7 +6,7 @@ description: "Project context files — .hermes.md, AGENTS.md, CLAUDE.md, global
 
 # Context Files
 
-M.U.S.E. automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory. `SOUL.md` is now global to the M.U.S.E. instance and is loaded from `HERMES_HOME` only.
+muse automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory. `SOUL.md` is now global to the muse instance and is loaded from `HERMES_HOME` only.
 
 ## Supported Context Files
 
@@ -15,7 +15,7 @@ M.U.S.E. automatically discovers and loads context files that shape how it behav
 | **.hermes.md** / **HERMES.md** | Project instructions (highest priority) | Walks to git root |
 | **AGENTS.md** | Project instructions, conventions, architecture | CWD at startup + subdirectories progressively |
 | **CLAUDE.md** | Claude Code context files (also detected) | CWD at startup + subdirectories progressively |
-| **SOUL.md** | Global personality and tone customization for this M.U.S.E. instance | `HERMES_HOME/SOUL.md` only |
+| **SOUL.md** | Global personality and tone customization for this muse instance | `HERMES_HOME/SOUL.md` only |
 | **.cursorrules** | Cursor IDE coding conventions | CWD only |
 | **.cursor/rules/*.mdc** | Cursor IDE rule modules | CWD only |
 
@@ -29,7 +29,7 @@ Only **one** project context type is loaded per session (first match wins): `.he
 
 ### Progressive Subdirectory Discovery
 
-At session start, M.U.S.E. loads the `AGENTS.md` from your working directory into the system prompt. As the agent navigates into subdirectories during the session (via `read_file`, `terminal`, `search_files`, etc.), it **progressively discovers** context files in those directories and injects them into the conversation at the moment they become relevant.
+At session start, muse loads the `AGENTS.md` from your working directory into the system prompt. As the agent navigates into subdirectories during the session (via `read_file`, `terminal`, `search_files`, etc.), it **progressively discovers** context files in those directories and injects them into the conversation at the moment they become relevant.
 
 ```
 my-project/
@@ -84,21 +84,21 @@ This is a Next.js 14 web application with a Python FastAPI backend.
 **Location:**
 
 - `~/.hermes/SOUL.md`
-- or `$HERMES_HOME/SOUL.md` if you run M.U.S.E. with a custom home directory
+- or `$HERMES_HOME/SOUL.md` if you run muse with a custom home directory
 
 Important details:
 
-- M.U.S.E. seeds a default `SOUL.md` automatically if one does not exist yet
-- M.U.S.E. loads `SOUL.md` only from `HERMES_HOME`
-- M.U.S.E. does not probe the working directory for `SOUL.md`
+- muse seeds a default `SOUL.md` automatically if one does not exist yet
+- muse loads `SOUL.md` only from `HERMES_HOME`
+- muse does not probe the working directory for `SOUL.md`
 - If the file is empty, nothing from `SOUL.md` is added to the prompt
 - If the file has content, the content is injected verbatim after scanning and truncation
 
 ## .cursorrules
 
-M.U.S.E. is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.hermes.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.
+muse is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.hermes.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.
 
-This means your existing Cursor conventions automatically apply when using M.U.S.E..
+This means your existing Cursor conventions automatically apply when using muse
 
 ## How Context Files Are Loaded
 

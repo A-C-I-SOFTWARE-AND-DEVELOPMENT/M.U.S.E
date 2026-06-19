@@ -1,12 +1,12 @@
 ---
 sidebar_position: 5
 title: "Microsoft Teams"
-description: "Set up M.U.S.E. as a Microsoft Teams bot"
+description: "Set up muse as a Microsoft Teams bot"
 ---
 
 # Microsoft Teams Setup
 
-Connect M.U.S.E. to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a **public HTTPS webhook**, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).
+Connect muse to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a **public HTTPS webhook**, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).
 
 Need meeting summaries from Microsoft Graph events rather than normal bot conversations? Use the dedicated setup page: [Teams Meetings](/docs/user-guide/messaging/teams-meetings).
 
@@ -18,7 +18,7 @@ Need meeting summaries from Microsoft Graph events rather than normal bot conver
 | **Group chat** | Bot only responds when @mentioned. |
 | **Channel** | Bot only responds when @mentioned. |
 
-Teams delivers @mentions as regular messages with `<at>BotName</at>` tags, which M.U.S.E. strips automatically before processing.
+Teams delivers @mentions as regular messages with `<at>BotName</at>` tags, which muse strips automatically before processing.
 
 ---
 
@@ -66,7 +66,7 @@ For production, point your bot's endpoint at your server's public domain instead
 
 ```bash
 teams app create \
-  --name "M.U.S.E." \
+  --name "muse" \
   --endpoint "https://<your-tunnel-url>/api/messages"
 ```
 
@@ -205,7 +205,7 @@ For a permanent server, skip devtunnel and register your bot with your server's 
 
 ```bash
 teams app create \
-  --name "M.U.S.E." \
+  --name "muse" \
   --endpoint "https://your-domain.com/api/messages"
 ```
 

@@ -1,6 +1,6 @@
 """Bearer-token auth for the Hermes cockpit API.
 
-The cockpit HTTP API (consumed by the MUSE Android app) is
+The cockpit HTTP API (consumed by the muse Android app) is
 loopback-only by default, but still requires a bearer token on every
 route except ``/v1/health`` — so a hostile process that can reach the
 loopback port can't drive the agent without the token the user paired

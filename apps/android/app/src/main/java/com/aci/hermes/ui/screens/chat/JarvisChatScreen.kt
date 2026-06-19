@@ -75,9 +75,9 @@ import com.aci.hermes.data.jarvis.JarvisToolCall
 import com.aci.hermes.data.jarvis.JarvisToolStatus
 import com.aci.hermes.data.jarvis.JarvisTone
 import com.aci.hermes.ui.components.AskJarvisBar
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museChip
 import com.aci.hermes.ui.theme.JarvisAmber
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisCyan
@@ -93,7 +93,7 @@ import com.aci.hermes.ui.theme.JarvisSignalMute
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * The MUSE conversational chat surface — the "Chat" shell tab.
+ * The muse conversational chat surface — the "Chat" shell tab.
  *
  * Rendered inside [com.aci.hermes.ui.navigation.JarvisShell], so it takes
  * the shell's [paddingValues] and does NOT own a Scaffold or top bar. It
@@ -206,7 +206,7 @@ fun JarvisChatScreen(
                             RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
                         )
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to MUSE")
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to muse")
                     }
                     viewModel.onVoiceCaptureStart()
                     runCatching { voiceLauncher.launch(intent) }
@@ -646,10 +646,10 @@ private fun ErrorBubble(message: JarvisChatMessage.Error, onRetry: () -> Unit) {
                 message.retryHint?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisSignalMute)
                 }
-                MuseButton(
+                museButton(
                     onClick = onRetry,
                     text = "Retry",
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                     leadingIcon = Icons.Filled.Refresh,
                 )
             }
@@ -723,16 +723,16 @@ private fun TaskCardView(
         Text(card.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = JarvisSignal)
         Text(card.summary, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
-            MuseChip(label = card.taskType.name.lowercase())
-            MuseChip(label = card.targetTool.name.lowercase().replace('_', ' '))
+            museChip(label = card.taskType.name.lowercase())
+            museChip(label = card.targetTool.name.lowercase().replace('_', ' '))
         }
         if (promoted) {
             Text("Added to orchestrator", style = MaterialTheme.typography.labelSmall, color = JarvisJade)
         } else {
-            MuseButton(
+            museButton(
                 onClick = { onPromote(card) },
                 text = "Add to orchestrator",
-                variant = MuseButtonVariant.Primary,
+                variant = museButtonVariant.Primary,
             )
         }
     }
@@ -755,15 +755,15 @@ private fun ApprovalCardView(
             approved -> Text("Approved — proceeding.", color = JarvisJade, style = MaterialTheme.typography.labelMedium)
             held -> Text("Held — nothing executed.", color = JarvisSignalMute, style = MaterialTheme.typography.labelMedium)
             else -> Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseButton(
+                museButton(
                     onClick = { onApprove(card) },
                     text = card.approveLabel,
-                    variant = MuseButtonVariant.Approve,
+                    variant = museButtonVariant.Approve,
                 )
-                MuseButton(
+                museButton(
                     onClick = { onHold(card) },
                     text = card.denyLabel,
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
             }
         }
@@ -807,10 +807,10 @@ private fun CriticalCardView(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            MuseButton(
+            museButton(
                 onClick = { onAck(card, typed) },
                 text = "Acknowledge",
-                variant = MuseButtonVariant.Danger,
+                variant = museButtonVariant.Danger,
                 enabled = typed.isNotBlank(),
             )
         }
@@ -841,12 +841,12 @@ private fun ChatInputArea(
                         .clip(CircleShape)
                         .background(JarvisCyan),
                 )
-                Text("Muse is responding…", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
+                Text("muse is responding…", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
                 Spacer(Modifier.weight(1f))
-                MuseButton(
+                museButton(
                     onClick = onStop,
                     text = "Stop",
-                    variant = MuseButtonVariant.Danger,
+                    variant = museButtonVariant.Danger,
                     leadingIcon = Icons.Filled.Stop,
                 )
             }

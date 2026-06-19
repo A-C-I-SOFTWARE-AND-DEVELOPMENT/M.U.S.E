@@ -5,7 +5,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * MUSE design tokens — spacing, radii, elevations.
+ * muse design tokens — spacing, radii, elevations.
  *
  * Numbers come from docs/jarvis-prime-app-design-system.md. Use these
  * constants in composables instead of hard-coding values, so a future

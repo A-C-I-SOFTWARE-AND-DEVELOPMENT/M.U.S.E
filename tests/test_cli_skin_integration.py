@@ -108,7 +108,7 @@ class TestCompactBannerSkinIntegration:
              patch.dict(_build_compact_banner.__globals__, {"format_banner_version_label": lambda: "Hermes Agent v0.1.0 (test)"}):
             banner = _build_compact_banner()
 
-        assert "M.U.S.E." in banner
+        assert "muse" in banner
         assert "NOUS HERMES" not in banner
         assert "#7AE0FF" in banner  # the ring's cyan border
 

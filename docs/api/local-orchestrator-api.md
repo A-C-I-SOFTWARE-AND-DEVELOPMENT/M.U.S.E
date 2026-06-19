@@ -1,9 +1,9 @@
 # Local Orchestrator API
 
-`hermes_cli.orchestrator_api` exposes M.U.S.E. orchestration jobs through
+`hermes_cli.orchestrator_api` exposes muse orchestration jobs through
 a small **local-only** FastAPI app. The Android cockpit, the Flutter
 companion, the TUI, and any other on-device client drives the
-orchestrator over plain HTTP/WebSocket without embedding M.U.S.E.' Python
+orchestrator over plain HTTP/WebSocket without embedding muse' Python
 internals.
 
 > Companion doc: [websocket-events.md](./websocket-events.md) — the

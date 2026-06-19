@@ -501,7 +501,7 @@ export default function App() {
                   className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground"
                   style={{ mixBlendMode: "plus-lighter" }}
                 >
-                  MUSE
+                  muse
                 </Typography>
               </div>
 

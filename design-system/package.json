@@ -2,7 +2,7 @@
   "name": "@muse/design-system",
   "version": "0.1.0",
   "private": true,
-  "description": "Canonical M.U.S.E. 'Singularity' design tokens — the single source of craft shared by the web cockpit and the Android app.",
+  "description": "Canonical muse 'Singularity' design tokens — the single source of craft shared by the web cockpit and the Android app.",
   "type": "module",
   "files": [
     "tokens.json",

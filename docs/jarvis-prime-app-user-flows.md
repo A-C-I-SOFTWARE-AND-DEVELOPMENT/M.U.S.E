@@ -1,4 +1,4 @@
-# MUSE — Android App User Flows
+# muse — Android App User Flows
 
 > **Status:** product spec, v1. Companion to
 > [`jarvis-prime-app-product-spec.md`](jarvis-prime-app-product-spec.md),
@@ -6,7 +6,7 @@
 > [`jarvis-prime-app-onboarding-spec.md`](jarvis-prime-app-onboarding-spec.md),
 > [`jarvis-prime-app-launch-standard.md`](jarvis-prime-app-launch-standard.md).
 >
-> Twenty primary flows for the MUSE Android app. Each flow
+> Twenty primary flows for the muse Android app. Each flow
 > is a contract: trigger, happy path, fallback paths, safety
 > behavior, accessibility behavior, and offline behavior must all be
 > supported end-to-end before the flow is considered done.
@@ -19,9 +19,9 @@
 ## Conventions
 
 - *Owner* is the user — Jeremiah by default.
-- *MUSE* is MUSE, the operating partner running in the
+- *muse* is muse the operating partner running in the
   gateway.
-- *Gateway* is the Hermes Python core / AOS Council / MUSE
+- *Gateway* is the Hermes Python core / AOS Council / muse
   runtime that the app talks to over HTTP + SSE.
 - *Confirm phrase* is the literal tap or spoken phrase the owner
   must match to complete a gated action — see product spec §6.2.
@@ -33,8 +33,8 @@
 
 ## Index
 
-1. [Open app and see MUSE status](#1-open-app-and-see-jarvis-status)
-2. [Ask MUSE a casual question](#2-ask-jarvis-a-casual-question)
+1. [Open app and see muse status](#1-open-app-and-see-jarvis-status)
+2. [Ask muse a casual question](#2-ask-jarvis-a-casual-question)
 3. [Use voice capture](#3-use-voice-capture)
 4. [Convert rough voice idea into a task](#4-convert-rough-voice-idea-into-a-task)
 5. [View active tasks](#5-view-active-tasks)
@@ -56,10 +56,10 @@
 
 ---
 
-## 1. Open app and see MUSE status
+## 1. Open app and see muse status
 
-**Trigger.** Owner taps the MUSE app icon, or unlocks the
-phone with the MUSE widget pinned.
+**Trigger.** Owner taps the muse app icon, or unlocks the
+phone with the muse widget pinned.
 
 **Happy path.**
 
@@ -84,13 +84,13 @@ phone with the MUSE widget pinned.
 - **First launch, no settings.** Splash → Onboarding (see flow
   19 / onboarding spec).
 - **Emergency stop engaged from a prior session.** Icon enters
-  *Stopped*; persistent banner *"MUSE is stopped. Tap to
+  *Stopped*; persistent banner *"muse is stopped. Tap to
   resume."* across the app.
 
 **Safety.** Home never auto-dispatches anything on open. No write
 fires from open.
 
-**Accessibility.** Status pill announces *"MUSE: connected"*
+**Accessibility.** Status pill announces *"muse connected"*
 through TalkBack. Icon announces its state. Tiles are traversable
 top-to-bottom in priority order.
 
@@ -99,7 +99,7 @@ dimmed and labelled *"Voice (offline — capture queued)"*.
 
 ---
 
-## 2. Ask MUSE a casual question
+## 2. Ask muse a casual question
 
 **Trigger.** Owner taps the icon (single tap) or the *New chat*
 quick action on Home.
@@ -112,7 +112,7 @@ quick action on Home.
    sits in the bottom 25%.
 3. Owner types *"What's the weather like for my logistics audit
    timeline?"* and taps *Send*.
-4. MUSE classifies the request as Companion / Strategy and routes
+4. muse classifies the request as Companion / Strategy and routes
    through the appropriate mode (mode chip in header reflects the
    choice).
 5. Streaming dots appear in a new assistant bubble; tokens arrive
@@ -124,11 +124,11 @@ quick action on Home.
 
 - **Stream interruption.** Inline red note under the partial reply
   with a *Tap to retry* banner. Partial reply is preserved.
-- **Out-of-scope (touches an Owner Gate).** MUSE classifies the
+- **Out-of-scope (touches an Owner Gate).** muse classifies the
   request as touching a gated action (e.g. "deploy", "publish",
   "spend"). The reply contains a *Risky action proposed* card with
   a *Review in Approvals* CTA. Nothing is dispatched from chat.
-- **Rate limit / 429.** Banner *"MUSE is rate-limited by the
+- **Rate limit / 429.** Banner *"muse is rate-limited by the
   provider — retrying in <s>s"* with manual *Retry now*.
 
 **Safety.** No destructive action completes from chat. Even if the
@@ -136,10 +136,10 @@ owner says *"go ahead and do it"* to a gated proposal, the proposal
 goes to Approvals first.
 
 **Accessibility.** Streaming text is announced in chunks, not
-characters. *Abort* reads as *"Stop MUSE"*.
+characters. *Abort* reads as *"Stop muse"*.
 
 **Offline.** Compose works; the message goes to the outbox; banner
-*"Offline — messages will send when MUSE is back"*. The owner
+*"Offline — messages will send when muse is back"*. The owner
 taps *Send queued* on reconnect — never silent replay.
 
 ---
@@ -169,15 +169,15 @@ mic FAB on Chat, or says the wake phrase if Continuous mode is on.
 - **STT fails.** Phase label *"STT failed — type instead"*. Capture
   buffer is saved locally so the owner can replay or type from it.
   The app never silently swaps to cloud STT.
-- **Out-of-grammar in driving mode.** MUSE speaks *"I only take a
-  small set of commands while you're driving. Say 'MUSE, end
+- **Out-of-grammar in driving mode.** muse speaks *"I only take a
+  small set of commands while you're driving. Say 'muse end
   driving mode' when you can use the screen."*
 - **Mic permission denied.** Banner *"Microphone permission is
   off. Tap to fix in Settings."* Voice features remain disabled.
 
 **Safety.** Voice capture cannot complete an approval by itself —
-even *"MUSE, approve"* opens the relevant approval screen, never
-fires the write. The exception is *"MUSE, stop everything"* which
+even *"muse approve"* opens the relevant approval screen, never
+fires the write. The exception is *"muse stop everything"* which
 triggers the emergency-stop confirm sheet (see flow 11).
 
 **Accessibility.** Phase label is announced through
@@ -194,15 +194,15 @@ unchanged so the owner cannot misread the offline state as
 ## 4. Convert rough voice idea into a task
 
 **Trigger.** Owner is in Chat (or just dispatched a voice capture)
-and MUSE surfaces a *Convert to task* chip beneath the latest
+and muse surfaces a *Convert to task* chip beneath the latest
 assistant reply.
 
 **Happy path.**
 
 1. Owner taps *Convert to task*. **Task draft sheet** opens with:
    - **Captured idea** (the raw transcript or owner message),
-   - **Clean task title** (MUSE-suggested),
-   - **Short summary** (MUSE-generated),
+   - **Clean task title** (muse-suggested),
+   - **Short summary** (muse-generated),
    - **Recommended agent** (e.g. *AOS Principal Systems Architect*),
    - **Recommended worker** (e.g. *Claude Code Builder*).
 2. Owner reviews and edits any field inline.
@@ -216,7 +216,7 @@ assistant reply.
 **Fallback paths.**
 
 - **Gateway 5xx on create.** Task draft is preserved; banner
-  *"Couldn't reach MUSE — kept as draft"*. Drafts live under
+  *"Couldn't reach muse — kept as draft"*. Drafts live under
   *Tasks → Drafts* and replay only when the owner taps *Create now*.
 - **Mode is Mobile Voice.** The task draft sheet is collapsed to
   the **Mobile Voice format** (captured idea · clean title · summary
@@ -262,7 +262,7 @@ on you*).
 - **SSE drop.** *Live* pill turns amber: *"Live updates paused —
   reconnecting"*. Manual *Reconnect* in overflow menu. List still
   renders.
-- **Empty.** *"No tasks yet. Ask MUSE to do something."* with a
+- **Empty.** *"No tasks yet. Ask muse to do something."* with a
   *Start a task* primary button.
 - **Failed task.** Red glyph on the row; tap *View why* opens the
   audit ledger filtered to that task id.
@@ -310,7 +310,7 @@ Tasks swipe shortcut, or from the icon's *Waiting on you* swipe-up).
   card and re-asks for confirm. The original button never fires
   twice.
 - **Approval revoked between view and confirm.** Sheet shows
-  *"This approval was withdrawn by MUSE — nothing to approve."*
+  *"This approval was withdrawn by muse — nothing to approve."*
   Approve button is hidden.
 - **Write 5xx.** Banner with *Retry* and *Copy decision payload*.
   No silent retry.
@@ -324,7 +324,7 @@ engaged.
 link. Confirm phrase is voice-actionable.
 
 **Offline.** Approvals are **never completable offline.** Buttons
-are dimmed with *"Approvals need MUSE online — they live in the
+are dimmed with *"Approvals need muse online — they live in the
 gateway's audit ledger."*
 
 ---
@@ -354,7 +354,7 @@ a new skill", "change a default model").
   acknowledgement is **not** persisted across navigation. Re-opening
   the approval requires re-reading the evidence card. This is
   intentional — the acknowledgement is *fresh consent*.
-- **Evidence card cannot be rendered.** Banner *"MUSE could not
+- **Evidence card cannot be rendered.** Banner *"muse could not
   produce the impact summary. You can still reject this approval."*
   *Approve as authorized* stays disabled.
 
@@ -441,7 +441,7 @@ claim").
 **Fallback paths.**
 
 - **Impact Report missing a section.** That section renders as
-  *"MUSE could not produce this section."* Owner can still
+  *"muse could not produce this section."* Owner can still
   reject. *Acknowledged* still requires scrolling to the bottom
   to enable, but the owner is informed about what was missing.
 - **Impact Report fails to load.** Banner *"Impact report
@@ -485,7 +485,7 @@ and chooses not to authorize it.
 
 **Safety.** Rejecting is one-step and easy on purpose. The original
 proposal is not deleted — the audit keeps both the proposal and the
-rejection. MUSE is allowed to propose again with new context.
+rejection. muse is allowed to propose again with new context.
 
 **Accessibility.** *Reject* is a destructive-style button with red
 fill and high-contrast text; screen reader announces *"Reject this
@@ -499,20 +499,20 @@ completable offline.** Rejection is also a signed ledger write.
 ## 11. Trigger emergency stop
 
 **Trigger.** Owner is on **any screen** and wants to stop all
-MUSE activity immediately.
+muse activity immediately.
 
 **Happy path.**
 
 1. Owner **double-taps the interactive icon** (any screen) or
-   long-presses the lock-screen widget, or speaks *"MUSE, stop
+   long-presses the lock-screen widget, or speaks *"muse stop
    everything"* if voice mode is on.
 2. **Emergency stop confirm sheet** rises immediately. The sheet
-   shows: *"Stop MUSE right now? All running tasks pause, all
-   approvals are blocked, and MUSE won't take any new action
+   shows: *"Stop muse right now? All running tasks pause, all
+   approvals are blocked, and muse won't take any new action
    until you Resume."*
 3. Owner taps **Stop now** (or speaks *"Stop now"*).
 4. Local effect (≤ 200 ms): icon flips to *Stopped* (red bar)
-   across the app; persistent banner *"MUSE is stopped"* appears
+   across the app; persistent banner *"muse is stopped"* appears
    app-wide; all approval buttons are disabled; outgoing writes
    are blocked at the source.
 5. Gateway-side stop is dispatched; if the gateway acknowledges,
@@ -525,7 +525,7 @@ MUSE activity immediately.
 **Fallback paths.**
 
 - **Owner triggers stop on a screen that already shows Stopped.**
-  No-op. Sheet shows *"MUSE is already stopped. Tap to resume."*
+  No-op. Sheet shows *"muse is already stopped. Tap to resume."*
 - **Owner cancels the confirm sheet.** No state change; banner not
   shown.
 - **Gateway never acknowledges.** Local state remains Stopped
@@ -537,11 +537,11 @@ MUSE activity immediately.
 tap) triggers a destructive-looking sheet. The confirm sheet is
 still required — there is no double-tap-to-fire. The icon's
 double-tap is mapped specifically because a single accidental
-tap should not pause MUSE.
+tap should not pause muse
 
-**Accessibility.** Stop announces *"MUSE stopped"* through
+**Accessibility.** Stop announces *"muse stopped"* through
 `TYPE_ANNOUNCEMENT`. The confirm sheet has dialog semantics. Voice
-trigger *"MUSE, stop everything"* is honored in every voice mode.
+trigger *"muse stop everything"* is honored in every voice mode.
 
 **Offline.** Stop **works offline.** Device-side stop is immediate
 and reconciles when the gateway returns. The outbox holds the
@@ -574,7 +574,7 @@ from the Settings *Memory* section).
   editing — review the new version."* Owner re-edits.
 - **Secret-shaped content.** Gateway refuses with classification
   *secret-shaped*; inline red note: *"That looks like a secret.
-  MUSE won't store secrets. Edit out the credential and try
+  muse won't store secrets. Edit out the credential and try
   again."* Local edit is preserved so the owner can sanitize.
 
 **Safety.** Memory writes are gated by the gateway's
@@ -586,7 +586,7 @@ in <category>"*. Save and Cancel are both reachable with one
 thumb.
 
 **Offline.** Correction queues in the visible outbox; banner
-*"Memory edit queued — send when MUSE is back"*. The local
+*"Memory edit queued — send when muse is back"*. The local
 list shows the queued value with an *Outbox* badge until released.
 
 ---
@@ -600,7 +600,7 @@ durable fact.
 
 1. Owner taps **Delete** on the row. Confirm sheet rises with
    the fact text and *"Delete this memory? It will be removed from
-   MUSE's context immediately."*
+   muse's context immediately."*
 2. Owner taps **Delete now**.
 3. Row slides out. *Undo* snackbar appears for 5 s.
 4. If the owner does not tap *Undo* within 5 s, write fires and
@@ -697,7 +697,7 @@ gestures on the icon.
 
 **Safety.** Gestures are consistent across every screen — the
 owner does not have to relearn them. Double-tap → Emergency stop
-confirm (not direct stop) so a misfire does not pause MUSE. Long
+confirm (not direct stop) so a misfire does not pause muse Long
 press → Voice (a hold) so an accidental brush of the icon does not
 start the mic.
 
@@ -768,7 +768,7 @@ Connection**.
 **Happy path.**
 
 1. **Persistent banner** appears across the app: *"Mock mode is on
-   — MUSE is not connected to a real gateway."*
+   — muse is not connected to a real gateway."*
 2. Status pill on Home shows *Mock* (distinct color from any live
    state).
 3. Chat streams canned responses; Tasks shows demo tasks;
@@ -779,7 +779,7 @@ Connection**.
    complete locally without writing to a real ledger. The mock
    ledger is clearly labelled *(mock)*.
 5. Toggling mock off opens a confirm sheet: *"Switching to live —
-   MUSE will start using your real gateway. Continue?"* On
+   muse will start using your real gateway. Continue?"* On
    confirm, the banner disappears and live behavior resumes.
 
 **Fallback paths.**
@@ -802,7 +802,7 @@ on every screen.
 ## 18. Use Termux gateway mode
 
 **Trigger.** Owner has Termux installed on the device and wants
-MUSE running fully on the phone, with the app talking to
+muse running fully on the phone, with the app talking to
 `http://127.0.0.1:8080`.
 
 **Happy path.**
@@ -820,7 +820,7 @@ MUSE running fully on the phone, with the app talking to
    lifecycle card shows *Gateway running on this phone*.
 6. Owner uses the app exactly as in any other live mode. Tasks,
    approvals, memory, audit all work; the Python core, AOS
-   Council, MUSE runtime are all on this phone.
+   Council, muse runtime are all on this phone.
 
 **Fallback paths.**
 
@@ -841,7 +841,7 @@ MUSE running fully on the phone, with the app talking to
 audit ledger as a *control* entry. Stop is the same.
 
 **Accessibility.** Lifecycle card actions are labelled *"Start
-MUSE on this phone"* and *"Stop MUSE on this phone"* for
+muse on this phone"* and *"Stop muse on this phone"* for
 TalkBack rather than the technical *Termux gateway* label.
 
 **Offline.** Termux mode is by definition not internet-dependent
@@ -867,7 +867,7 @@ pin.
    - **Notifications.** *Gained: approval pending, validation
      failed, emergency stop, gateway lost alerts. Lost: you must
      open the app to see these.*
-   - **Foreground service.** *Gained: MUSE can keep the gateway
+   - **Foreground service.** *Gained: muse can keep the gateway
      connection alive in the background and queue voice. Lost:
      disconnects when the app is closed.*
    - **Bluetooth.** *Gained: driving mode auto-enter when your car
@@ -893,7 +893,7 @@ pin.
   explanation.
 
 **Safety.** Declining permissions cannot create a state where
-MUSE silently fails. Every feature that depends on a
+muse silently fails. Every feature that depends on a
 declined permission either:
 
 - shows the inline *Tap to fix* affordance,
@@ -910,8 +910,8 @@ labelled with the actual feature that depends on the permission.
 
 ## 20. Resume after emergency stop
 
-**Trigger.** MUSE is in *Stopped* state. Owner is on **Control**
-(or taps the persistent *"MUSE is stopped. Tap to resume."*
+**Trigger.** muse is in *Stopped* state. Owner is on **Control**
+(or taps the persistent *"muse is stopped. Tap to resume."*
 banner from any screen, which navigates to Control).
 
 **Happy path.**
@@ -924,8 +924,8 @@ banner from any screen, which navigates to Control).
    - **Last action before the stop**.
    - **Approvals pending at stop time** that need re-review (with
      direct links).
-   - The confirm phrase: *"Resume MUSE"* (tap) or *"Resume
-     MUSE"* (voice).
+   - The confirm phrase: *"Resume muse"* (tap) or *"Resume
+     muse"* (voice).
 3. Owner reads the self-check, matches the phrase, and taps
    **Confirm resume**.
 4. Local state flips: icon goes from *Stopped* to *Ready* (or to
@@ -936,7 +936,7 @@ banner from any screen, which navigates to Control).
 
 **Fallback paths.**
 
-- **Self-check fails** (gateway unreachable). Sheet shows *"MUSE
+- **Self-check fails** (gateway unreachable). Sheet shows *"muse
   can't be resumed yet — the gateway isn't reachable."* Resume is
   blocked until the gateway comes back. No timer-based auto-resume.
 - **Self-check degraded.** Sheet shows the degradation reasons;
@@ -955,7 +955,7 @@ Read the self-check first."* The self-check is screen-reader-read
 in document order before the confirm button is reachable.
 
 **Offline.** Resume requires the gateway online. While offline,
-the *Resume* button is dimmed with *"Resume needs MUSE online —
+the *Resume* button is dimmed with *"Resume needs muse online —
 the self-check runs on the gateway."* Emergency stop is still
 sticky and still reachable.
 

@@ -6,7 +6,7 @@ description: "Schedule automated tasks with natural language, manage them with o
 
 # Scheduled Tasks (Cron)
 
-Schedule tasks to run automatically with natural language or cron expressions. M.U.S.E. exposes cron management through a single `cronjob` tool with action-style operations instead of separate schedule/list/remove tools.
+Schedule tasks to run automatically with natural language or cron expressions. muse exposes cron management through a single `cronjob` tool with action-style operations instead of separate schedule/list/remove tools.
 
 ## What cron can do now
 
@@ -19,10 +19,10 @@ Cron jobs can:
 - run in fresh agent sessions with the normal static tool list
 - run in **no-agent mode** — a script on a schedule, its stdout delivered verbatim, zero LLM involvement (see the [no-agent mode](#no-agent-mode-script-only-jobs) section below)
 
-All of this is available to M.U.S.E. itself through the `cronjob` tool, so you can create, pause, edit, and remove jobs by asking in plain language — no CLI required.
+All of this is available to muse itself through the `cronjob` tool, so you can create, pause, edit, and remove jobs by asking in plain language — no CLI required.
 
 :::warning
-Cron-run sessions cannot recursively create more cron jobs. M.U.S.E. disables cron management tools inside cron executions to prevent runaway scheduling loops.
+Cron-run sessions cannot recursively create more cron jobs. muse disables cron management tools inside cron executions to prevent runaway scheduling loops.
 :::
 
 ## Creating scheduled tasks
@@ -49,13 +49,13 @@ muse cron create "every 1h" "Use both skills and combine the result" \
 
 ### Through natural conversation
 
-Ask M.U.S.E. normally:
+Ask muse normally:
 
 ```text
 Every morning at 9am, check Hacker News for AI news and send me a summary on Telegram.
 ```
 
-M.U.S.E. will use the unified `cronjob` tool internally.
+muse will use the unified `cronjob` tool internally.
 
 ## Skill-backed cron jobs
 
@@ -123,7 +123,7 @@ Jobs with a `workdir` run sequentially on the scheduler tick, not in the paralle
 
 ## Running cron jobs in a specific profile
 
-By default a cron job inherits whichever M.U.S.E. profile owned the gateway / CLI that created it. Pass `--profile <name>` (CLI) or `profile=` (cronjob tool) to re-target the job at a different profile — the scheduler resolves that profile's `HERMES_HOME`, temporarily switches into it for the duration of the run, loads its `.env` + `config.yaml`, and executes the job there:
+By default a cron job inherits whichever muse profile owned the gateway / CLI that created it. Pass `--profile <name>` (CLI) or `profile=` (cronjob tool) to re-target the job at a different profile — the scheduler resolves that profile's `HERMES_HOME`, temporarily switches into it for the duration of the run, loads its `.env` + `config.yaml`, and executes the job there:
 
 ```bash
 # Pin a job to the `night-ops` profile regardless of where it was scheduled
@@ -142,7 +142,7 @@ cronjob(
 )
 ```
 
-Use `--profile default` to explicitly pin to the root M.U.S.E. profile. The named profile must already exist; the scheduler refuses to create profiles on the fly. To clear a profile pin during `cron edit`, pass an empty string (`--profile ""` or `profile=""`) — the job reverts to running in whatever profile the scheduler itself is in.
+Use `--profile default` to explicitly pin to the root muse profile. The named profile must already exist; the scheduler refuses to create profiles on the fly. To clear a profile pin during `cron edit`, pass an empty string (`--profile ""` or `profile=""`) — the job reverts to running in whatever profile the scheduler itself is in.
 
 If the pinned profile is later deleted, the scheduler logs a warning and falls back to running the job in its current profile rather than crashing — so a stale `profile` reference never wedges a job.
 
@@ -234,7 +234,7 @@ muse cron status
 
 ### Gateway scheduler behavior
 
-On each tick M.U.S.E.:
+On each tick muse
 
 1. loads jobs from `~/.hermes/cron/jobs.json`
 2. checks `next_run_at` against the current time
@@ -368,13 +368,13 @@ Semantics:
 
 ### The agent sets these up for you
 
-The `cronjob` tool's schema exposes `no_agent` to M.U.S.E. directly, so you can describe a watchdog in chat and let the agent wire it up:
+The `cronjob` tool's schema exposes `no_agent` to muse directly, so you can describe a watchdog in chat and let the agent wire it up:
 
 ```text
 Ping me on Telegram if RAM is over 85%, every 5 minutes.
 ```
 
-M.U.S.E. will write the check script to `~/.hermes/scripts/` via `write_file`, then call:
+muse will write the check script to `~/.hermes/scripts/` via `write_file`, then call:
 
 ```python
 cronjob(action="create", schedule="every 5m",
@@ -421,7 +421,7 @@ cronjob(
 
 **How it works:**
 
-- When Job 2 fires, M.U.S.E. reads Job 1's most recent output from `~/.hermes/cron/output/{job1_id}/*.md`
+- When Job 2 fires, muse reads Job 1's most recent output from `~/.hermes/cron/output/{job1_id}/*.md`
 - That output is prepended to Job 2's prompt automatically
 - Job 2 doesn't need to hardcode "read this file" — it receives the content as context
 - The chain can be any length: Job 1 → Job 2 → Job 3 → ...
@@ -452,7 +452,7 @@ This means cron jobs that run at high frequency or during peak hours are more re
 
 ## Schedule formats
 
-The agent's final response is automatically delivered — you do **not** need to include `send_message` in the cron prompt for that same destination. If a cron run calls `send_message` to the exact target the scheduler will already deliver to, M.U.S.E. skips that duplicate send and tells the model to put the user-facing content in the final response instead. Use `send_message` only for additional or different targets.
+The agent's final response is automatically delivered — you do **not** need to include `send_message` in the cron prompt for that same destination. If a cron run calls `send_message` to the exact target the scheduler will already deliver to, muse skips that duplicate send and tells the model to put the user-facing content in the final response instead. Use `send_message` only for additional or different targets.
 
 ### Relative delays (one-shot)
 
@@ -540,11 +540,11 @@ cronjob(action="create", name="weekly-news-summary",
         prompt="Summarize this week's AI news: ...")
 ```
 
-When `enabled_toolsets` is set on a job it wins; otherwise the `muse tools` cron-platform config wins; otherwise M.U.S.E. falls back to the built-in defaults. This matters for cost control: carrying `moa`, `browser`, `delegation` into every tiny "fetch news" job bloats the tool-schema prompt on every LLM call.
+When `enabled_toolsets` is set on a job it wins; otherwise the `muse tools` cron-platform config wins; otherwise muse falls back to the built-in defaults. This matters for cost control: carrying `moa`, `browser`, `delegation` into every tiny "fetch news" job bloats the tool-schema prompt on every LLM call.
 
 ### Skipping the agent entirely: `wakeAgent`
 
-If your cron job attaches a pre-check script (via `script=`), the script can decide at runtime whether M.U.S.E. should even invoke the agent. Emit a final stdout line of the form:
+If your cron job attaches a pre-check script (via `script=`), the script can decide at runtime whether muse should even invoke the agent. Emit a final stdout line of the form:
 
 ```text
 {"wakeAgent": false}
@@ -641,10 +641,10 @@ cronjob(action="create", name="summarize-new-msgs",
 The same pattern works for any data source you can query from a script — Postgres, an HTTP API, your own state store — without baking a SQL evaluator into the cron subsystem.
 
 :::tip
-M.U.S.E.'s own `~/.hermes/state.db` is an internal schema that changes between releases. Don't query it from a pre-run gate — point at your own database or feed instead.
+muse's own `~/.hermes/state.db` is an internal schema that changes between releases. Don't query it from a pre-run gate — point at your own database or feed instead.
 :::
 
-Credit: this recipe set was prompted by @iankar8's exploration in [#2654](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/pull/2654), which proposed adding sql/file/command triggers as a parallel mechanism. The `script` + `wakeAgent` gate already covers all three cases at $0, so the work landed as documentation instead.
+Credit: this recipe set was prompted by @iankar8's exploration in [#2654](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/pull/2654), which proposed adding sql/file/command triggers as a parallel mechanism. The `script` + `wakeAgent` gate already covers all three cases at $0, so the work landed as documentation instead.
 
 ### Chaining jobs: `context_from`
 
@@ -663,7 +663,7 @@ The referenced jobs' most recent completed outputs are injected above the prompt
 
 Jobs are stored in `~/.hermes/cron/jobs.json`. Output from job runs is saved to `~/.hermes/cron/output/{job_id}/{timestamp}.md`.
 
-Jobs may store `model` and `provider` as `null`. When those fields are omitted, M.U.S.E. resolves them at execution time from the global configuration. They only appear in the job record when a per-job override is set.
+Jobs may store `model` and `provider` as `null`. When those fields are omitted, muse resolves them at execution time from the global configuration. They only appear in the job record when a per-job override is set.
 
 The storage uses atomic file writes so interrupted writes do not leave a partially written job file behind.
 

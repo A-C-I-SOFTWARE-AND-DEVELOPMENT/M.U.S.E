@@ -25,10 +25,10 @@ import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * The kinds of action a MUSE button can express. Valence is carried by the
+ * The kinds of action a muse button can express. Valence is carried by the
  * button, not the label — so the surface reads the same everywhere.
  */
-enum class MuseButtonVariant {
+enum class museButtonVariant {
     /** The single hero action: white core fill, dark text. Use one per view. */
     Primary,
 
@@ -43,9 +43,9 @@ enum class MuseButtonVariant {
 }
 
 /**
- * The MUSE button.
+ * The muse button.
  *
- * One component, four [variants][MuseButtonVariant]. The primary is the white
+ * One component, four [variants][museButtonVariant]. The primary is the white
  * incandescent core itself rendered as a CTA (white fill, void text) — there
  * should only ever be one per view, mirroring "nothing outshines the core."
  * Secondary recedes to void-3 with an edge hairline; danger and approve carry
@@ -54,39 +54,39 @@ enum class MuseButtonVariant {
  *
  * @param onClick invoked on tap when [enabled].
  * @param text the button label.
- * @param variant which valence to render. Defaults to [MuseButtonVariant.Primary].
+ * @param variant which valence to render. Defaults to [museButtonVariant.Primary].
  * @param enabled when false, the button dims and ignores taps.
  * @param leadingIcon optional icon drawn before the label.
  */
 @Composable
-fun MuseButton(
+fun museButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier,
-    variant: MuseButtonVariant = MuseButtonVariant.Primary,
+    variant: museButtonVariant = museButtonVariant.Primary,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
 ) {
     val colors = when (variant) {
-        MuseButtonVariant.Primary -> ButtonDefaults.buttonColors(
+        museButtonVariant.Primary -> ButtonDefaults.buttonColors(
             containerColor = JarvisGold,
             contentColor = JarvisInkAbyss,
             disabledContainerColor = JarvisInkDeep,
             disabledContentColor = JarvisSignalGhost,
         )
-        MuseButtonVariant.Secondary -> ButtonDefaults.buttonColors(
+        museButtonVariant.Secondary -> ButtonDefaults.buttonColors(
             containerColor = JarvisInkDeep,
             contentColor = JarvisSignal,
             disabledContainerColor = JarvisInkDeep,
             disabledContentColor = JarvisSignalGhost,
         )
-        MuseButtonVariant.Danger -> ButtonDefaults.buttonColors(
+        museButtonVariant.Danger -> ButtonDefaults.buttonColors(
             containerColor = JarvisCrimson,
             contentColor = JarvisInkAbyss,
             disabledContainerColor = JarvisInkDeep,
             disabledContentColor = JarvisSignalGhost,
         )
-        MuseButtonVariant.Approve -> ButtonDefaults.buttonColors(
+        museButtonVariant.Approve -> ButtonDefaults.buttonColors(
             containerColor = JarvisJade,
             contentColor = JarvisInkAbyss,
             disabledContainerColor = JarvisInkDeep,
@@ -97,7 +97,7 @@ fun MuseButton(
     // Only the secondary (quiet) variant carries a visible frame; the filled
     // variants are defined by their fill, not a border.
     val border: BorderStroke? = when (variant) {
-        MuseButtonVariant.Secondary ->
+        museButtonVariant.Secondary ->
             BorderStroke(JarvisTokens.BorderHairline, if (enabled) JarvisInkEdge else JarvisInkDeep)
         else -> null
     }

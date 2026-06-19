@@ -2,7 +2,7 @@
 ### One brain. One UE5 world. Three shipping products.
 **Owner:** Jeremiah Echerd · A-C-I Software & Development
 **Date:** 2026-06-10 · **Status:** OWNER REVIEW
-**Working title:** **SYNAPSE** *(subtitle: "A M.U.S.E. Game")* — trademark/name search is Task 0.4. Backups: *Synaptic Hunters*, *MUSE: Substrate*.
+**Working title:** **SYNAPSE** *(subtitle: "A muse Game")* — trademark/name search is Task 0.4. Backups: *Synaptic Hunters*, *muse Substrate*.
 
 ---
 
@@ -10,10 +10,10 @@
 
 | # | Decision | Locked answer |
 |---|---|---|
-| 1 | What is the app | M.U.S.E. (Multi-Use Synaptic Entity) — the repo at `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` |
+| 1 | What is the app | muse (Multi-Use Synaptic Entity) — the repo at `A-C-I-SOFTWARE-AND-DEVELOPMENT/muse` |
 | 2 | Where UE5 lives | **Everything in one UE5 app** — game + cockpit + Neural Observatory + avatar/Den. Python gateway stays the brain; UE5 is a C++ client over the frozen 96-route cockpit wire contract |
 | 3 | Dev machine | Legion / Core Ultra 9 / RTX 5070 — **GO** (verify 32GB RAM, keep 250GB free) |
-| 4 | AI brain on Steam | **Hybrid 3-tier ladder:** bundled local GGUF model (always works, offline) → hosted server (foundry, image-gen, heavy reasoning) → BYO MUSE-gateway/API-key pairing |
+| 4 | AI brain on Steam | **Hybrid 3-tier ladder:** bundled local GGUF model (always works, offline) → hosted server (foundry, image-gen, heavy reasoning) → BYO muse-gateway/API-key pairing |
 | 5 | Art direction | **High-end stylized realism** — Lumen/Nanite, Fab/Megascans environments, small hero roster done stunningly. PC is the visual flagship; Android ships a scaled tier later |
 | 6 | Resources | **Full-time, $10k+** |
 | 7 | Combat | **Real-time with tactical pause** (FF7R-style), built on Gameplay Ability System |
@@ -23,7 +23,7 @@
 
 ## 1. What ships — three products, one brain
 
-**P1 — MUSE Platform v1.0 (the finished, installable app).** The existing repo, completed end-to-end and packaged as one-command installers per platform. This is the brain everything else talks to.
+**P1 — muse Platform v1.0 (the finished, installable app).** The existing repo, completed end-to-end and packaged as one-command installers per platform. This is the brain everything else talks to.
 
 **P2 — SYNAPSE (the UE5 application).** One C++/Blueprint application containing four "maps": the **Game**, the **Neural Observatory** (the cockpit visualization), the **Avatar & Den**, and the **Command Deck** (chat/jobs/approvals — the classic cockpit). Ships on Steam (PC flagship) and later Android (scaled rendering tier, same app).
 
@@ -45,9 +45,9 @@
 | C++ + Unreal, visually stunning, full animation/interaction | §5 (stack), §6 (phases), Decision 5 |
 | Expand the avatar/room idea | §4.6 |
 | Pokémon-like game catching agents/skills into your neural network | §4 |
-| MUSE autonomously builds characters & tailored agents from observed user struggle, validated + tested | §4.7 (The Foundry) |
+| muse autonomously builds characters & tailored agents from observed user struggle, validated + tested | §4.7 (The Foundry) |
 | Research AAA/indie mechanics, character selection → onboarding | §4.6, §8.1 (research digest) |
-| Standalone game, not a MUSE add-on | §4.8 |
+| Standalone game, not a muse add-on | §4.8 |
 | #1 on Steam | §8 (honest math + engineered targets) |
 
 ---
@@ -55,7 +55,7 @@
 ## 3. The Neural Observatory (the cockpit visualization, in UE5)
 
 ### 3.1 What you see
-A 3D, flyable, living rendering of MUSE's actual mind:
+A 3D, flyable, living rendering of muse's actual mind:
 
 - **The Graph.** GraphRAG's real graph (~28k nodes / ~52k edges) rendered as a galaxy. **LOD strategy is mandatory:** the gateway pre-clusters into ~200 super-nodes (communities by type: code, docs, memory, ledger); zooming expands clusters on demand. Force-directed layout is computed **gateway-side** in Python (networkx/igraph, cached) and streamed as positions — UE renders, it does not solve 28k-node physics per frame.
 - **The Pipelines.** Live orchestrator jobs as light-packets flowing through stations: `Job → Navigator → Worker → Gate → Ledger`. Niagara particle systems on splines; each packet is clickable → the real job record.
@@ -86,36 +86,36 @@ Owner-gated POSTs (existing `owner-phrase` mechanism, ledger-logged, reversible)
 ## 4. SYNAPSE — the game (design core)
 
 ### 4.1 Fantasy & premise
-You are an **Architect** dropped into the **Substrate** — a vast mind-world where autonomous agents roam wild. Your task: rebuild a shattered neural network by **recruiting** specialized agents, wiring them into your growing mind, and proving the network at the eight great **Gauntlets**. The Den is your home node; your Muse avatar is your first companion.
+You are an **Architect** dropped into the **Substrate** — a vast mind-world where autonomous agents roam wild. Your task: rebuild a shattered neural network by **recruiting** specialized agents, wiring them into your growing mind, and proving the network at the eight great **Gauntlets**. The Den is your home node; your muse avatar is your first companion.
 
 ### 4.2 The differentiator: capture by conversation
 You don't throw a ball. You **negotiate** (Shin Megami Tensei lineage, modernized): approach a wild agent, enter a parley, and *talk it into joining* — live dialogue powered by the bundled local LLM, with each agent's personality derived from its real council role (a Security agent is paranoid and tests your intentions; a QA agent demands proof; a Research agent can be lured with a mystery). Structured fallbacks (choice wheels) keep it playable on min-spec and fully offline. This is simultaneously the genre hook nobody has shipped at quality, the showcase for the local AI tier, and the infinitely-clippable streamer moment.
 
 ### 4.3 Roster — the AOS Enterprise Council made flesh
-**24 launch hero agents** (not 151 — AAA quality over quantity), drawn from the real 233-role council registry, across **8 domains that double as the type chart**: Architecture, Security, QA/Test, Research, Build/Ops, Behavior/Psych, Compliance (HazMat heritage), Release. Domain interactions form advantages (Security counters Release; QA counters Build; Research counters Security…). Each agent ships with: a commissioned-or-curated AAA model, a shared-skeleton rig, 6–10 GAS abilities, a personality card (drives negotiation + combat banter), and a **real capability** — because caught agents map to actual MUSE skills (§4.5).
+**24 launch hero agents** (not 151 — AAA quality over quantity), drawn from the real 233-role council registry, across **8 domains that double as the type chart**: Architecture, Security, QA/Test, Research, Build/Ops, Behavior/Psych, Compliance (HazMat heritage), Release. Domain interactions form advantages (Security counters Release; QA counters Build; Research counters Security…). Each agent ships with: a commissioned-or-curated AAA model, a shared-skeleton rig, 6–10 GAS abilities, a personality card (drives negotiation + combat banter), and a **real capability** — because caught agents map to actual muse skills (§4.5).
 
 ### 4.4 Combat — real-time with tactical pause, on GAS
 Party of 3 active agents fighting semi-autonomously per personality; **pause = Command Mode** (the orchestrator fantasy made literal): queue abilities, swap members, target-call, trigger **Pipelines** — chained cross-agent combos (Research *marks* → Security *exploits* → Build *detonates*). Built entirely on Unreal's Gameplay Ability System (attributes, gameplay effects, ability queues, tags) — battle-tested, single-player-simple without replication burden.
 
 ### 4.5 Progression — the network IS the character sheet
-No XP bars as the spine; instead a **Neural Network screen**: caught agents are nodes you physically wire into your mind-graph. Adjacency creates synergies; deeper wiring unlocks evolved forms ("promotions" — the agent's council senior role). And the bridge that makes this *not just a game*: wiring an agent into your network can unlock its **real counterpart** in your actual MUSE install (owner-gated, cosmetic-by-default, opt-in) — catch the QA agent in-game, gain the QA skill in your real cockpit. The Observatory and the in-game network screen share one UI system: build once, ship twice.
+No XP bars as the spine; instead a **Neural Network screen**: caught agents are nodes you physically wire into your mind-graph. Adjacency creates synergies; deeper wiring unlocks evolved forms ("promotions" — the agent's council senior role). And the bridge that makes this *not just a game*: wiring an agent into your network can unlock its **real counterpart** in your actual muse install (owner-gated, cosmetic-by-default, opt-in) — catch the QA agent in-game, gain the QA skill in your real cockpit. The Observatory and the in-game network screen share one UI system: build once, ship twice.
 
 ### 4.6 Avatar, Den, and onboarding-as-character-creation
-Onboarding **is** designing your Muse: a character creator that doubles as MUSE's persona setup (the existing `/v1/cockpit/avatar/persona` endpoint pattern). Research-informed beats from the genre greats: a meaningful starter choice (Pokémon), an aesthetic-identity creator (Palworld/Temtem), and a personality-shaping question sequence (Persona/SMT) whose answers seed the avatar's negotiation style. The **Den** expands the existing room concept (`/v1/cockpit/avatar/room*` endpoints are live): your in-game base, furnishable via the AI room editor once the image-gen provider is wired (P3 unblocks the one documented gap), with placed items granting small network buffs so decoration feeds the loop.
+Onboarding **is** designing your muse a character creator that doubles as muse's persona setup (the existing `/v1/cockpit/avatar/persona` endpoint pattern). Research-informed beats from the genre greats: a meaningful starter choice (Pokémon), an aesthetic-identity creator (Palworld/Temtem), and a personality-shaping question sequence (Persona/SMT) whose answers seed the avatar's negotiation style. The **Den** expands the existing room concept (`/v1/cockpit/avatar/room*` endpoints are live): your in-game base, furnishable via the AI room editor once the image-gen provider is wired (P3 unblocks the one documented gap), with placed items granting small network buffs so decoration feeds the loop.
 
 ### 4.7 The Foundry — agents born from your struggle (the genuinely new thing)
 The autonomous system specified by the owner, run honestly:
 
 1. **Observe:** telemetry (opt-in, disclosed) detects struggle patterns — repeated deaths to a Gauntlet, failed negotiations with a domain, economy stalls.
-2. **Hypothesize:** the hosted MUSE proposes a tailored helper agent/skill ("this player loses to burst damage in Security fights → candidate: a Mitigation-class agent with interrupt tools").
+2. **Hypothesize:** the hosted muse proposes a tailored helper agent/skill ("this player loses to burst damage in Security fights → candidate: a Mitigation-class agent with interrupt tools").
 3. **Build:** generated via the existing skill-creation loop (stats, GAS ability set from a vetted component library, personality card; art from a pre-approved modular part bank — no raw live-gen 3D).
 4. **Validate:** simulated battle harness replays the player's failure scenarios with and without the candidate; promote only on a measured win (the benchmark-wall pattern, verbatim).
 5. **Ship:** the agent **spawns in that player's world as a discoverable rare**, its card showing real validation stats: *"Forged for you. In 400 simulations of your last 6 defeats, survival 31% → 64%."*
 
 Steam compliance is designed-in (§8.4): this is live-generated content → disclosed, guardrailed (template-constrained generation, profanity/illegal filters, no live-gen raw art), player-facing AI indicator on negotiation dialogue, and the overlay report path honored.
 
-### 4.8 Standalone-game test (so it's never "a MUSE add-on")
-SYNAPSE must clear all five: (1) complete and excellent **fully offline** with zero MUSE knowledge required; (2) a real campaign — 5 zones, 8 Gauntlets, a Council finale, 20–30h; (3) self-contained fiction (the Substrate stands alone; MUSE integration is a post-game reveal, not a prerequisite); (4) its own Steam identity, capsule, and community; (5) reviewable as a creature-collector RPG, full stop. Market reality supporting the bet: Temtem moved 500k+ copies in a month, Coromon passed 100k, Steam now runs a dedicated Creature Collector Fest, and the genre still lacks its Stardew-scale indie king — demand is proven, the throne is open, and *negotiation-by-AI at AAA fidelity* is a differentiator no incumbent has.
+### 4.8 Standalone-game test (so it's never "a muse add-on")
+SYNAPSE must clear all five: (1) complete and excellent **fully offline** with zero muse knowledge required; (2) a real campaign — 5 zones, 8 Gauntlets, a Council finale, 20–30h; (3) self-contained fiction (the Substrate stands alone; muse integration is a post-game reveal, not a prerequisite); (4) its own Steam identity, capsule, and community; (5) reviewable as a creature-collector RPG, full stop. Market reality supporting the bet: Temtem moved 500k+ copies in a month, Coromon passed 100k, Steam now runs a dedicated Creature Collector Fest, and the genre still lacks its Stardew-scale indie king — demand is proven, the throne is open, and *negotiation-by-AI at AAA fidelity* is a differentiator no incumbent has.
 
 ### 4.9 World scope (fixed, do not grow)
 Five dense zones, AAA-lit, Megascans-built: **The Stacks** (archive-forest), **The Foundry** (industrial heat), **The Vault** (security citadel), **Gardens of Memory** (overgrown data-ruins), **The Gate Spire** (endgame). Eight Gauntlets distributed across them — each themed as one of the verification gates: *Planning, Build, Review, Test, Security, Release, Owner Approval, Rollback* — bosses that teach the mechanic their gate enforces. The Council awaits at the Spire.
@@ -132,7 +132,7 @@ Five dense zones, AAA-lit, Megascans-built: **The Stacks** (archive-forest), **T
 | UI | **CommonUI** + UMG | One widget library shared by game network screen & Observatory |
 | VFX | **Niagara** | Graph edges, pipeline packets, ability VFX |
 | Local LLM | **Fab plugin (Runtime Local LLM or GenAI Llama)** — buy, don't build | GGUF, streaming, Blueprint+C++, Win/Mac/Linux/Android. Bundle one ~3–4B instruct model (Q4) ≈ 2.5GB |
-| Repo | **New repo `SYNAPSE` + Git LFS** | UE binary assets do not belong in the MUSE monorepo. Coupling = pinned wire-contract version checked in CI |
+| Repo | **New repo `SYNAPSE` + Git LFS** | UE binary assets do not belong in the muse monorepo. Coupling = pinned wire-contract version checked in CI |
 | Module map | `SynapseCore`, `SynapseNet` (gateway client, SSE), `SynapseAgents` (GAS), `SynapseObservatory`, `SynapseFoundryClient`, `SynapseUI` | |
 | Claude Code workflow | Claude Code writes/compiles C++ headless via UnrealBuildTool & `UnrealEditor-Cmd` automation tests; **the owner** drives the editor for levels/art/Blueprint visual work | Honest split: ~70% of engineering is promptable; lighting/art taste is the owner's to learn — it's also the fun part |
 | Assets | Fab + Quixel Megascans (included with UE) for environments; 3 commissioned hero creatures; modular creature part-bank for the rest | |
@@ -150,9 +150,9 @@ Five dense zones, AAA-lit, Megascans-built: **The Stacks** (archive-forest), **T
 | **4 — Production** | 17–40 | Remaining 4 zones, 24 agents, 8 Gauntlets, Council finale, save system, options/accessibility, foundry server v1 | Full campaign playable start→finish by an outsider without dev help |
 | **5 — Market engine** | 30→launch | Steam page live (week 30 at the latest — the wishlist clock starts here), capsule art commissioned, trailer, demo build, Discord, devlog cadence; enter **Creature Collector Fest**; pick the **last Next Fest before launch** | 2,000+ wishlists before Next Fest (target 5,000); demo session length ≥ 25 min median |
 | **6 — Launch (PC/Steam)** | ~64–80 (mo. 16–20) | 1.0 premium release, **$24.99**, single-player complete; AI disclosure finalized; press/creator kit out 6 weeks prior | 7,000+ wishlists (Popular Upcoming threshold); ship decision per §8.3 |
-| **7 — Android tier + MUSE bridge** | post-launch | Mobile renderer pass, touch UI for Observatory/Den first, game tier where hardware allows; deepen game↔real-MUSE unlocks | Play-store track green; crash-free ≥ 99.5% |
+| **7 — Android tier + muse bridge** | post-launch | Mobile renderer pass, touch UI for Observatory/Den first, game tier where hardware allows; deepen game↔real-muse unlocks | Play-store track green; crash-free ≥ 99.5% |
 
-**P1 (MUSE Platform v1.0) runs as a parallel lane in weeks 4–20** — see §10. Timeline honesty: vertical slice month ~4, demo month ~9–10, launch month 16–20. Anyone promising a Steam-topping UE5 RPG faster than that is selling something.
+**P1 (muse Platform v1.0) runs as a parallel lane in weeks 4–20** — see §10. Timeline honesty: vertical slice month ~4, demo month ~9–10, launch month 16–20. Anyone promising a Steam-topping UE5 RPG faster than that is selling something.
 
 ---
 
@@ -198,7 +198,7 @@ Same UE5 app, mobile rendering tier: baked/cheaper lighting, LOD'd agents, touch
 
 ---
 
-## 10. P1 — Finish MUSE Platform v1.0 (parallel lane, weeks 4–20)
+## 10. P1 — Finish muse Platform v1.0 (parallel lane, weeks 4–20)
 
 **10.1 Definition of done:** the held PR chain resolved per the `R00` decision matrix (#131 → #142 → #143 → #147 → #149 → #150 rebased and landed, owner-authorized at each gate); image-gen provider wired (unblocks the room editor — also feeds P3); voice engine concretes bound; live gateway default-on after pairing; test suite green; docs current.
 **10.2 Everything-functional audit:** run `aos-audit-validator` against the README's claims table; every UNSUPPORTED/PARTIAL becomes a ticket; v1.0 means the claims table is all SUPPORTED.
@@ -235,7 +235,7 @@ Same UE5 app, mobile rendering tier: baked/cheaper lighting, LOD'd agents, touch
 ## 13. Prompt 0 — Claude Code master prompt (Hermes structure)
 
 > **Role:** Senior UE5 C++ engineer scaffolding a production game client.
-> **Task:** In the SYNAPSE UE 5.6 C++ project, create modules `SynapseCore` and `SynapseNet`. `SynapseNet` implements `UMuseGatewayClient` (UGameInstanceSubsystem): bearer-token auth from a local config (never hardcoded), `GET /health`, `GET /v1/cockpit/capabilities`, and an SSE consumer for streaming routes, with delegates broadcasting typed events to Blueprint.
+> **Task:** In the SYNAPSE UE 5.6 C++ project, create modules `SynapseCore` and `SynapseNet`. `SynapseNet` implements `UmuseGatewayClient` (UGameInstanceSubsystem): bearer-token auth from a local config (never hardcoded), `GET /health`, `GET /v1/cockpit/capabilities`, and an SSE consumer for streaming routes, with delegates broadcasting typed events to Blueprint.
 > **Context:** Gateway contract = `cockpit-wire-contract.md` in repo docs (96 routes; bearer auth; 6 open routes). Target: Win64 first. Engine 5.6 pinned. HTTP via FHttpModule; SSE via streamed response parsing.
 > **Constraints:** No engine-source edits. No plugins beyond engine defaults for this task. All network off the game thread. No secrets in code or logs. Compile must pass via UBT command line; warnings-as-errors for our modules.
 > **Output:** Module files, Build.cs files, the subsystem, a minimal test map BP that prints `/health` + capabilities on BeginPlay, and a `docs/synapsenet.md`.

@@ -1,16 +1,16 @@
-# M.U.S.E. Local worker
+# muse Local worker
 
-The M.U.S.E. Local worker is the **always-available** adapter that
+The muse Local worker is the **always-available** adapter that
 inspects the local repository, surfaces evidence, and prepares the
 ground every other worker stands on. It ships as
 [`hermes_cli/workers/hermes_local.py`](../../../hermes_cli/workers/hermes_local.py)
-and runs anywhere M.U.S.E. runs — Linux, macOS, Windows, Termux — with
+and runs anywhere muse runs — Linux, macOS, Windows, Termux — with
 zero external dependencies beyond the standard library and a working
 ``git`` (used read-only and gracefully skipped when absent).
 
 ## When to use it
 
-M.U.S.E. Local is the first worker every orchestrated job invokes. It:
+muse Local is the first worker every orchestrated job invokes. It:
 
 - Discovers the repo's languages, runtimes, and package managers.
 - Infers (but **never runs**) validation commands from
@@ -25,7 +25,7 @@ M.U.S.E. Local is the first worker every orchestrated job invokes. It:
   ``CONTRIBUTING.md``, …).
 
 Other workers (Codex, Aider, Goose, Claude Code, the ChatGPT handoff)
-read its output to ground their prompts. Without M.U.S.E. Local the
+read its output to ground their prompts. Without muse Local the
 downstream workers either lack repo context or duplicate the work.
 
 ## What it never does
@@ -84,7 +84,7 @@ the failure without re-running the worker.
 
 ## Validation command inference
 
-M.U.S.E. Local infers commands from the following sources:
+muse Local infers commands from the following sources:
 
 | Source            | Examples it extracts                                                          |
 | ----------------- | ----------------------------------------------------------------------------- |
@@ -127,7 +127,7 @@ returns a :class:`WorkerStatus` dataclass with:
 
 ## Score stub
 
-M.U.S.E. Local is an evidence worker, not a judgement worker — it does
+muse Local is an evidence worker, not a judgement worker — it does
 not score the repo. Callers that want to slot it into the same
 scoring pipeline as the other adapters should treat a successful run
 as ``value=0.0, confidence=1.0`` (we know the evidence, no judgement

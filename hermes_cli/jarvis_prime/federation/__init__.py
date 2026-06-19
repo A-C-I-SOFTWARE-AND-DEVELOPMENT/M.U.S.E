@@ -1,6 +1,6 @@
-"""MUSE federation & scaling-governance layer (MUSE Unbound Volume VI).
+"""muse federation & scaling-governance layer (muse Unbound Volume VI).
 
-Sovereign MUSE nodes cross-attest by content hash — never by central control.
+Sovereign muse nodes cross-attest by content hash — never by central control.
 This package implements the Volume VI scaling layer on top of the existing
 single-instance primitives (``guardrail_evidence``, ``owner_auth``,
 ``constitution``):

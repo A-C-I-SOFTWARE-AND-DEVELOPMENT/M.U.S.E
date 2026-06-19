@@ -6,7 +6,7 @@ description: "Ready-to-use automation recipes — scheduled tasks, GitHub event 
 
 # Automation Templates
 
-Copy-paste recipes for common automation patterns. Each template uses M.U.S.E.'s built-in [cron scheduler](/docs/user-guide/features/cron) for time-based triggers and [webhook platform](/docs/user-guide/messaging/webhooks) for event-driven triggers.
+Copy-paste recipes for common automation patterns. Each template uses muse's built-in [cron scheduler](/docs/user-guide/features/cron) for time-based triggers and [webhook platform](/docs/user-guide/messaging/webhooks) for event-driven triggers.
 
 Every template works with **any model** — not locked to a single provider.
 
@@ -32,9 +32,9 @@ Label, prioritize, and summarize new issues every night. Delivers a digest to yo
 
 ```bash
 muse cron create "0 2 * * *" \
-  "You are a project manager triaging the A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E GitHub repo.
+  "You are a project manager triaging the A-C-I-SOFTWARE-AND-DEVELOPMENT/muse GitHub repo.
 
-1. Run: gh issue list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E --state open --json number,title,labels,author,createdAt --limit 30
+1. Run: gh issue list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state open --json number,title,labels,author,createdAt --limit 30
 2. Identify issues opened in the last 24 hours
 3. For each new issue:
    - Suggest a priority label (P0-critical, P1-high, P2-medium, P3-low)
@@ -114,9 +114,9 @@ Weekly scan of merged PRs to find API changes that need documentation updates.
 
 ```bash
 muse cron create "0 9 * * 1" \
-  "Scan the A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E repo for documentation drift.
+  "Scan the A-C-I-SOFTWARE-AND-DEVELOPMENT/muse repo for documentation drift.
 
-1. Run: gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E --state merged --json number,title,files,mergedAt --limit 30
+1. Run: gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state merged --json number,title,files,mergedAt --limit 30
 2. Filter to PRs merged in the last 7 days
 3. For each merged PR, check if it modified:
    - Tool schemas (tools/*.py) — may need docs/reference/tools-reference.md update
@@ -334,7 +334,7 @@ Daily arXiv scan that saves summaries to your note-taking system.
 
 ```bash
 muse cron create "0 8 * * *" \
-  "Search arXiv for the 3 most interesting papers on 'language model reasoning' OR 'tool-use agents' from the past day. For each paper, create an Obsidian note with the title, authors, abstract summary, key contribution, and potential relevance to M.U.S.E. development." \
+  "Search arXiv for the 3 most interesting papers on 'language model reasoning' OR 'tool-use agents' from the past day. For each paper, create an Obsidian note with the title, authors, abstract summary, key contribution, and potential relevance to muse development." \
   --skill arxiv --skill obsidian \
   --name "Paper digest" \
   --deliver local

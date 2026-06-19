@@ -1,8 +1,8 @@
-# Batch B — MUSE Android setup / config / coding re-skin (snapshot)
+# Batch B — muse Android setup / config / coding re-skin (snapshot)
 
 **Grain:** Batch B fan-out — re-skin the **setup, config & coding** screens
 (settings, releasecenter, tasks, placeholder, onboarding, splash, pairing,
-coding) onto the merged `Muse*` Compose component library. Visual-only craft
+coding) onto the merged `muse*` Compose component library. Visual-only craft
 refinement: swap raw Material 3 for the branded
 `com.aci.hermes.ui.designsystem` components and add empty states. The app is
 already on the Singularity palette at the theme level; this grain is
@@ -34,11 +34,11 @@ or build files were modified.
 ## Screens re-skinned + components swapped (before → after)
 
 ### `SettingsScreen.kt` (form-heavy — inputs left, containers re-skinned)
-- `SettingsSection` helper: raw `Card(surfaceVariant)` → **`MuseCard`**; section
+- `SettingsSection` helper: raw `Card(surfaceVariant)` → **`museCard`**; section
   title `Text(colorScheme.primary)` → `JarvisSignal`. `HorizontalDivider` kept.
 - All 8 navigation/action `OutlinedButton`s (Pair a device, Avatar picker,
   Diagnostics, Knowledge graph, Model routes, Model Center, Release & download,
-  Reset) → **`MuseButton`** `Secondary` (full-width, `onClick` + `confirmReset`
+  Reset) → **`museButton`** `Secondary` (full-width, `onClick` + `confirmReset`
   trigger unchanged).
 - `SettingsRow` / `SwitchRow` / `RadioRow` labels recolored to the value ladder
   (`JarvisSignal` titles, `JarvisSignalDim` subtitles); the two inline
@@ -49,26 +49,26 @@ or build files were modified.
   confirm/dismiss.
 
 ### `ReleaseCenterScreen.kt`
-- `SectionCard` helper: `Card` → **`MuseCard`**; in-card title → `JarvisSignal`.
-- Backend capability `AssistChip(onClick={})` (display-only) → **`MuseChip`**.
-- Copy-download-link + Retry `OutlinedButton` → **`MuseButton`** `Secondary`.
+- `SectionCard` helper: `Card` → **`museCard`**; in-card title → `JarvisSignal`.
+- Backend capability `AssistChip(onClick={})` (display-only) → **`museChip`**.
+- Copy-download-link + Retry `OutlinedButton` → **`museButton`** `Secondary`.
 - `Line` helper + body copy recolored (`JarvisSignal` values, `JarvisSignalDim`
   labels/prose).
 
 ### `TasksScreen.kt`
-- `SectionHeader` helper (`"$title · $count"` text) → **`MuseSectionHeader`** with
-  a **`MuseChip`** count in the trailing slot.
+- `SectionHeader` helper (`"$title · $count"` text) → **`museSectionHeader`** with
+  a **`museChip`** count in the trailing slot.
 - Backend-jobs header `Row{SectionHeader + OutlinedButton}` →
-  `MuseSectionHeader` whose `trailing` carries `MuseChip(count)` +
-  `MuseButton(Secondary)` "new job".
-- Backend `JobRow`: `Card` → `MuseCard`; status/worker/validation
-  `AssistChip(onClick={})` → `MuseChip` (display-only); Run `Button` →
-  `MuseButton` `Primary`, Cancel `OutlinedButton` → `MuseButton` `Secondary`
+  `museSectionHeader` whose `trailing` carries `museChip(count)` +
+  `museButton(Secondary)` "new job".
+- Backend `JobRow`: `Card` → `museCard`; status/worker/validation
+  `AssistChip(onClick={})` → `museChip` (display-only); Run `Button` →
+  `museButton` `Primary`, Cancel `OutlinedButton` → `museButton` `Secondary`
   (both keep `enabled = !terminal`). `HorizontalDivider` kept.
-- Local `TaskRow`: `Card(onClick=onTap)` → `MuseCard` + `Modifier.clickable`;
-  five metadata `AssistChip(onClick=onTap)` → `MuseChip(onClick=onTap)` (tap
+- Local `TaskRow`: `Card(onClick=onTap)` → `museCard` + `Modifier.clickable`;
+  five metadata `AssistChip(onClick=onTap)` → `museChip(onClick=onTap)` (tap
   preserved); the four bottom `OutlinedButton`s (copy / open / approvals /
-  audit) → `MuseButton` `Secondary`.
+  audit) → `museButton` `Secondary`.
 - `LocalTasksEmpty` / `JobsNotice` recolored to value ladder
   (`JarvisSignal` / `JarvisSignalDim` / `JarvisCrimson` for the emphasised error).
 - **Left as-is:** `ExtendedFloatingActionButton`, the `DispatchJobDialog` /
@@ -77,30 +77,30 @@ or build files were modified.
   owner-phrase gate `enabled = … phrase.trim() == ownerPhrase`).
 
 ### `PlaceholderScreen.kt`
-- Added a **`MuseGlyph`** (72dp) hero above the title; "coming soon" `Card`
-  (surfaceVariant) → **`MuseCard`**; title/description recolored to the value
+- Added a **`museGlyph`** (72dp) hero above the title; "coming soon" `Card`
+  (surfaceVariant) → **`museCard`**; title/description recolored to the value
   ladder. (Kept the three text params — `title`, `description`, `comingSoonNote`
   — so `PlaceholderScreenSmokeTest` still passes.)
 
 ### `OnboardingScreen.kt` (sensitive — first run)
-- `JarvisPrimeIcon` (72dp) → **`MuseGlyph`** (72dp).
-- "Get started" `Button` → **`MuseButton`** `Primary` (full-width hero CTA);
-  "Skip" `TextButton` → `MuseButton` `Secondary`. `onFinish` / `onSkip`
+- `JarvisPrimeIcon` (72dp) → **`museGlyph`** (72dp).
+- "Get started" `Button` → **`museButton`** `Primary` (full-width hero CTA);
+  "Skip" `TextButton` → `museButton` `Secondary`. `onFinish` / `onSkip`
   callbacks unchanged.
 - Title / subtitle / bullet copy recolored to the value ladder.
 
 ### `SplashScreen.kt` (sensitive — first run)
-- `JarvisPrimeIcon(84dp)` → **`MuseGlyph(84dp)`**; app-name color
+- `JarvisPrimeIcon(84dp)` → **`museGlyph(84dp)`**; app-name color
   `colorScheme.onBackground` → `JarvisSignal`. **The `LaunchedEffect` /
   `delay(600)` / `currentOnReady()` boot timing and the `CircularProgressIndicator`
   are byte-for-byte untouched** (verified in the diff).
 
 ### `DevicePairingScreen.kt` (sensitive — owner-gated pairing)
-- `PairingCard` helper: `Card` → **`MuseCard`**.
-- "Request code" `OutlinedButton` → `MuseButton` `Primary`; the owner-gated
-  **"Confirm"** `OutlinedButton` → `MuseButton` **`Approve`** (the
+- `PairingCard` helper: `Card` → **`museCard`**.
+- "Request code" `OutlinedButton` → `museButton` `Primary`; the owner-gated
+  **"Confirm"** `OutlinedButton` → `museButton` **`Approve`** (the
   "Yes, with authorization"-style affordance), Cancel `TextButton` →
-  `MuseButton` `Secondary`; Paired "OK" → `Primary`; Error "Try again" →
+  `museButton` `Secondary`; Paired "OK" → `Primary`; Error "Try again" →
   `Secondary`. **All `enabled` gates preserved verbatim**, including
   `enabled = !submitting && code.isNotBlank() && authorization ==
   DevicePairingClient.OWNER_AUTHORIZATION_PHRASE`.
@@ -110,50 +110,50 @@ or build files were modified.
   phrase), `HorizontalDivider`, `Scaffold`/`TopAppBar`.
 
 ### `CodeHandoffHubScreen.kt`
-- Group header `Text("label · n")` → **`MuseSectionHeader`** + `MuseChip` count.
-- `HandoffCard`: `Card(onClick=onOpen)` → `MuseCard` + `Modifier.clickable`;
-  risk/demo `AssistChip(onClick=onOpen)` → `MuseChip(onClick=onOpen)`; the three
-  `TextButton`s → `MuseButton` (Copy/Retry = `Secondary`, **Delete = `Danger`**;
+- Group header `Text("label · n")` → **`museSectionHeader`** + `museChip` count.
+- `HandoffCard`: `Card(onClick=onOpen)` → `museCard` + `Modifier.clickable`;
+  risk/demo `AssistChip(onClick=onOpen)` → `museChip(onClick=onOpen)`; the three
+  `TextButton`s → `museButton` (Copy/Retry = `Secondary`, **Delete = `Danger`**;
   Retry keeps `enabled = !busy`). `.testTag(CodingTestTags.HUB_LIST)` preserved.
-- `EmptyHub`: bare `Text` + `TextButton` → **`MuseEmptyState`** (glyph + title +
+- `EmptyHub`: bare `Text` + `TextButton` → **`museEmptyState`** (glyph + title +
   body + a `New coding task` action wired to `onNewTask`).
 
 ### `NewCodingTaskScreen.kt` (form — input + busy-spinner CTA left)
-- `ModeBanner` / `AuditPreviewCard`: `Card` → **`MuseCard`**; copy recolored;
+- `ModeBanner` / `AuditPreviewCard`: `Card` → **`museCard`**; copy recolored;
   the blocked-state error line `colorScheme.error` → `JarvisCrimson`.
-- "Preview risk" `OutlinedButton` → `MuseButton` `Secondary`.
+- "Preview risk" `OutlinedButton` → `museButton` `Secondary`.
 - `LabeledLine` recolored. `.testTag(NEW_AUDIT_PREVIEW)` preserved.
 - **Left as-is (deliberate, to preserve behavior):** both `OutlinedTextField`s
   (prompt + repo path) and the **"Generate work packet" `Button`** — it embeds a
-  `CircularProgressIndicator` when `state.busy`, which `MuseButton` has no slot
+  `CircularProgressIndicator` when `state.busy`, which `museButton` has no slot
   for; converting it would drop the inline busy spinner, so the M3 `Button` (and
   its `.testTag(NEW_GENERATE)`) is kept verbatim.
 
 ### `WorkPacketDetailScreen.kt`
 - `HeaderCard` / `EmptyPacketCard` / `Section` / `BulletSection`: `Card` →
-  **`MuseCard`**; the header status/risk/demo `AssistChip(onClick={})` →
-  `MuseChip` (display-only); the note line `colorScheme.error` → `JarvisCrimson`.
-- "Copy Claude Code prompt" `OutlinedButton` → `MuseButton` `Secondary`
-  (`.testTag(PACKET_COPY)`); "Send to backend" `Button` → `MuseButton` `Primary`
+  **`museCard`**; the header status/risk/demo `AssistChip(onClick={})` →
+  `museChip` (display-only); the note line `colorScheme.error` → `JarvisCrimson`.
+- "Copy Claude Code prompt" `OutlinedButton` → `museButton` `Secondary`
+  (`.testTag(PACKET_COPY)`); "Send to backend" `Button` → `museButton` `Primary`
   (`.testTag(PACKET_SEND)`, `enabled = !state.busy && task.packet != null`
-  preserved); "Retry planning" → `MuseButton` `Secondary` (`enabled = !busy`).
+  preserved); "Retry planning" → `museButton` `Secondary` (`enabled = !busy`).
 - **Left as-is:** the `OwnerGateDialog` `AlertDialog` and everything inside it
   (`OutlinedTextField` for the owner phrase, confirm `Button` +
   `enabled = phrase.isNotBlank()`, dismiss `TextButton`) — owner-gate dialog
   chrome, behavior preserved exactly.
 
-## Deliberately left as-is (no Muse equivalent, or out of scope)
+## Deliberately left as-is (no muse equivalent, or out of scope)
 
 - **`Scaffold` / `TopAppBar` / `IconButton` / `CircularProgressIndicator` /
   `AlertDialog`** across all screens — structural M3 chrome with no designsystem
   counterpart.
 - **All form controls** — every `OutlinedTextField`, `RadioButton`, `Switch`,
   `FilterChip`, `Modifier.selectable` (+ `Role.RadioButton`). There is no
-  `MuseTextField` / `MuseSwitch` / `MuseRadio` in the library yet, and Settings is
+  `museTextField` / `museSwitch` / `museRadio` in the library yet, and Settings is
   intentionally input-heavy (only its card containers, buttons, and section
   headers were re-skinned).
-- **`ExtendedFloatingActionButton`** (Tasks new-task FAB) — no Muse equivalent.
-- **`JarvisPrimeIcon` swap scope** — replaced with `MuseGlyph` only on the two
+- **`ExtendedFloatingActionButton`** (Tasks new-task FAB) — no muse equivalent.
+- **`JarvisPrimeIcon` swap scope** — replaced with `museGlyph` only on the two
   hero marks the brief named (splash + onboarding). `JarvisPrimeIcon` itself lives
   in `ui/components/` (read-only) and is untouched there.
 - **Dialog-internal buttons** (`DispatchJobDialog`, `RunJobDialog`,
@@ -163,13 +163,13 @@ or build files were modified.
 
 ## Design-language fidelity
 
-- **White core is the hero:** the only hero fills are the `MuseButton.Primary`
+- **White core is the hero:** the only hero fills are the `museButton.Primary`
   CTAs (onboarding Get-started, pairing Request-code/OK, Tasks Run, WorkPacket
-  Send) and the `MuseGlyph` core; spectral cyan→violet appears only inside the
+  Send) and the `museGlyph` core; spectral cyan→violet appears only inside the
   matte glyph ring. The owner-gated approvals use the jade `Approve` valence and
   destructive actions (Delete) the crimson `Danger` valence — UI status colors,
   correct on interactive controls.
-- **Value, not effects:** every panel is now a `MuseCard` (void-3 fill + edge
+- **Value, not effects:** every panel is now a `museCard` (void-3 fill + edge
   hairline, zero elevation/shadow).
 - **≤3 color roles + value ladder:** body copy stepped to `JarvisSignal` /
   `JarvisSignalDim`; emphasised error lines use `JarvisCrimson`.
@@ -177,7 +177,7 @@ or build files were modified.
   every rewritten card/list/button block. (Non-token leftovers are intentional:
   the FAB's `96.dp` list clearance + `16.dp` offset, the `RadioRow`'s `48.dp`
   a11y target / `2.dp`, and the `8.dp` spacings *inside the left-as-is dialogs*.)
-- **Empty states:** the Code-handoff empty hub now uses `MuseEmptyState`
+- **Empty states:** the Code-handoff empty hub now uses `museEmptyState`
   (glyph + title + body + action), matching the pilot's Jobs treatment.
 - **Motion:** none added in this grain. The setup/config/coding screens are
   predominantly forms + `verticalScroll` columns (not `LazyColumn` lists of
@@ -215,8 +215,8 @@ or build files were modified.
   provisions the SDK and is the compile gate.
 - **Manual self-review (compensating for the absent SDK):**
   - Every new `com.aci.hermes.ui.designsystem.*` import resolves to a real public
-    composable/enum in the merged library (`MuseButton` + `MuseButtonVariant`,
-    `MuseCard`, `MuseChip`, `MuseEmptyState`, `MuseGlyph`, `MuseSectionHeader`)
+    composable/enum in the merged library (`museButton` + `museButtonVariant`,
+    `museCard`, `museChip`, `museEmptyState`, `museGlyph`, `museSectionHeader`)
     and each imported symbol is used — verified per file.
   - **Zero orphaned imports** across all 10 files (automated scan; the `by`
     delegation operators `getValue`/`setValue` are still used by the unchanged
@@ -229,10 +229,10 @@ or build files were modified.
     `Switch`, `HorizontalDivider`, `CircularProgressIndicator`,
     `ExtendedFloatingActionButton`, `AlertDialog`, `Scaffold`, `TopAppBar`) are
     each still used.
-  - `MuseButton` is always called with named args, satisfying its
+  - `museButton` is always called with named args, satisfying its
     `(onClick, text, modifier, variant, enabled, leadingIcon)` signature;
     `Modifier.weight(1f)` and `.testTag(…)` survive as the button's `modifier`.
-  - `MuseCard` + `Modifier.clickable(onClick=…)` reproduces every old
+  - `museCard` + `Modifier.clickable(onClick=…)` reproduces every old
     `Card(onClick=…)` tap (HandoffCard, TaskRow).
   - `@OptIn(ExperimentalMaterial3Api::class)` was **removed** from the three
     composables (`HandoffCard`, `JobRow`, `TaskRow`) whose only experimental
@@ -245,9 +245,9 @@ or build files were modified.
 1. **Compilation unverified locally** (Android SDK absent). Mitigated by the
    self-review above; CI is the gate. The diff is mechanical (component swaps +
    color/spacing token substitution), so confidence is high.
-2. **`MuseGlyph` differs visually from `JarvisPrimeIcon`** on splash / onboarding
+2. **`museGlyph` differs visually from `JarvisPrimeIcon`** on splash / onboarding
    / placeholder — by design (the brief specifies the splash/onboarding hero mark
-   → `MuseGlyph`, the canonical brand glyph the pilot already adopted for Home's
+   → `museGlyph`, the canonical brand glyph the pilot already adopted for Home's
    greeting + empty states). `JarvisPrimeIcon` (the older two-ring caduceus mark)
    remains untouched in `ui/components/` for any other caller.
 3. **No motion added** (rationale above). If a reviewer wants the Tasks/Hub lists

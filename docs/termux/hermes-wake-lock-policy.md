@@ -1,6 +1,6 @@
-# M.U.S.E. wake lock policy
+# muse wake lock policy
 
-The M.U.S.E. phone-first runtime holds a **Termux wake lock** for as
+The muse phone-first runtime holds a **Termux wake lock** for as
 long as the service is running, and releases it as soon as the
 service stops. This document explains why, what kind of wake lock
 that is, when we acquire and release it, and how to opt out when
@@ -29,13 +29,13 @@ into a "do not throttle" state. A partial wake lock:
 
 The wake lock is **process-scoped to the Termux Android service**,
 not to any individual Linux process. Releasing it does not kill
-the M.U.S.E. API; the API just becomes subject to normal Doze
+the muse API; the API just becomes subject to normal Doze
 throttling.
 
 ## Why the runtime needs it
 
 On Android 8 and later, a background app loses CPU within minutes
-of the screen turning off. The M.U.S.E. API is a long-lived Python
+of the screen turning off. The muse API is a long-lived Python
 process listening on `127.0.0.1:8765`. Without a wake lock:
 
 - Network reads block indefinitely and time out.
@@ -169,7 +169,7 @@ idempotent — they bump the same refcount inside Termux.
 
 A held partial wake lock prevents the CPU from entering deep idle
 when the screen is off. On a typical Pixel-class phone running an
-idle M.U.S.E. API, that costs roughly 1–3% of battery per hour —
+idle muse API, that costs roughly 1–3% of battery per hour —
 noticeable over a full day, negligible over a few hours.
 
 If battery cost matters more than always-on availability:

@@ -1,7 +1,7 @@
-# G2 — CLI "Singularity" skin (the M.U.S.E. terminal redesign)
+# G2 — CLI "Singularity" skin (the muse terminal redesign)
 
 Builder grain **G2**. Adds a new **`singularity`** built-in CLI skin — the
-M.U.S.E. terminal centerpiece — and makes it the **default** active skin. The
+muse terminal centerpiece — and makes it the **default** active skin. The
 classic gold Hermes look is preserved, fully intact, as the opt-in **`caduceus`**
 skin. The `default` built-in key is kept as the (gold) inheritance base so
 existing skins and tests are unaffected.
@@ -19,11 +19,11 @@ existing skins and tests are unaffected.
 | File | Change |
 |---|---|
 | `hermes_cli/skin_engine.py` | New `singularity` + `caduceus` built-in skins; runtime default flipped to `singularity` (module `_active_skin_name` + `init_skin_from_config` fallback). |
-| `hermes_cli/banner.py` | New `MUSE_WORDMARK` + `MUSE_GLYPH` Rich-markup art constants (M.U.S.E. block wordmark + ring/core glyph). |
-| `cli.py` (branding strings only) | Welcome / help-header / goodbye fallbacks mirrored to M.U.S.E.; the local `load_cli_config()` default `display.skin` → `singularity`. |
+| `hermes_cli/banner.py` | New `muse_WORDMARK` + `muse_GLYPH` Rich-markup art constants (muse block wordmark + ring/core glyph). |
+| `cli.py` (branding strings only) | Welcome / help-header / goodbye fallbacks mirrored to muse the local `load_cli_config()` default `display.skin` → `singularity`. |
 | `hermes_cli/config.py` (1 line) | `DEFAULT_CONFIG["display"]["skin"]` → `singularity`. **Out of the originally declared owned set**, but the *actual* runtime-default control points live in `cli.py`/`config.py`, not skin_engine — without this the launch banner stays gold. Single-token, collision-free. See "Residual risks". |
 | `tests/hermes_cli/test_skin_engine.py` | Updated the 3 change-detector asserts that pinned the old default-skin *name* (no-skin / null / non-dict display → `singularity`); added positive coverage for `singularity`, `caduceus`, and `list_skins`. |
-| `tests/test_cli_skin_integration.py` | Added a compact-banner test for the singularity default (M.U.S.E. branding + cyan border). |
+| `tests/test_cli_skin_integration.py` | Added a compact-banner test for the singularity default (muse branding + cyan border). |
 | `docs/launch/muse-app/g2-cli-skin.md` | This snapshot. |
 
 ---
@@ -31,7 +31,7 @@ existing skins and tests are unaffected.
 ## What became the default
 
 - **Runtime default active skin** is now **`singularity`** — a fresh,
-  unconfigured `hermes` session shows the M.U.S.E. banner/branding/palette.
+  unconfigured `hermes` session shows the muse banner/branding/palette.
   Verified: `import cli; skin_engine.get_active_skin_name()` → `"singularity"`.
 - **`caduceus`** is the classic gold Hermes skin, fully intact, available via
   `/skin caduceus` or `display.skin: caduceus`.
@@ -62,17 +62,17 @@ existing skins and tests are unaffected.
 
 **Branding:**
 
-- `agent_name`: `M.U.S.E.`
-- `welcome`: `Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands.`
-- `help_header`: `✦ M.U.S.E. Commands`
+- `agent_name`: `muse`
+- `welcome`: `Welcome to muse — one mind, many pathways. Type your message or /help for commands.`
+- `help_header`: `✦ muse Commands`
 - `goodbye`: `Goodbye. ◯`
-- `response_label`: ` ◉ M.U.S.E. `
+- `response_label`: ` ◉ muse `
 - `prompt_symbol`: `❯` (rendered white/cyan)
 - `tool_prefix`: `│`
 
 **Tagline / sub (banner tiers):** `Multi-Use Synaptic Entity` + `One mind, many pathways.`
 
-**Art:** `banner_logo` = the M.U.S.E. block wordmark; `banner_hero` = the ring +
+**Art:** `banner_logo` = the muse block wordmark; `banner_hero` = the ring +
 core glyph + the two tagline tiers (matte cyan→violet ring, single gap at
 lower-right, pure-white core `◉`; no glow on the ring — honors the value ladder
 core → wordmark → expansion → motto → void).
@@ -129,7 +129,7 @@ Compact (narrow-terminal) banner with singularity active:
 
 ```
 ╔════════════════════════════════════════════════════════════════════════════════════════╗
-║ M.U.S.E. - AI Agent Framework                                                       ║
+║ muse - AI Agent Framework                                                       ║
 ║ Hermes Agent v0.14.0 (test) · upstream abc12345                                     ║
 ╚════════════════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -187,7 +187,7 @@ plugin args don't apply to a hand-picked selection.)
    gated by banner tests (`test_banner.py` asserts `"Hermes Agent v"`; integration
    tests patch it) and is arguably product-name versioning, not skin branding —
    left unchanged to avoid scope creep + test breakage. A follow-up could make it
-   skin-aware (`agent_name`-derived) if M.U.S.E. should own the version line too.
+   skin-aware (`agent_name`-derived) if muse should own the version line too.
 3. **Test edits in `tests/hermes_cli/test_skin_engine.py` +
    `tests/test_cli_skin_integration.py`** were required because the prior tests
    were change-detectors pinning the old default-skin *name*. The gold-value tests
@@ -195,6 +195,6 @@ plugin args don't apply to a hand-picked selection.)
    untouched and still green, since `default` stays gold.
 4. **Glyph at very narrow widths.** The wordmark only prints when the terminal is
    ≥95 cols (existing `build_welcome_banner` gate); below that the compact banner
-   (M.U.S.E. + cyan border) shows instead. The ring hero renders inside the panel
+   (muse + cyan border) shows instead. The ring hero renders inside the panel
    at all widths but is most legible ≥110 cols. No regression vs the prior
    caduceus hero, which had the same gate.

@@ -1,20 +1,20 @@
-// UMuseGatewayClient implementation.
+// UmuseGatewayClient implementation.
 // Copyright A-C-I Software & Development. All rights reserved.
 
-#include "MuseGatewayClient.h"
+#include "museGatewayClient.h"
 
 #include "Async/Async.h"
 #include "Dom/JsonObject.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
-#include "MuseGatewaySettings.h"
+#include "museGatewaySettings.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "SynapseNet.h"
 
 namespace
 {
-	constexpr float GMuseRequestTimeoutSeconds = 15.0f;
+	constexpr float GmuseRequestTimeoutSeconds = 15.0f;
 
 	/** Marker used in place of any token material in log output. */
 	const TCHAR* GRedacted = TEXT("<redacted>");
@@ -38,26 +38,26 @@ namespace
 	}
 }
 
-void UMuseGatewayClient::Initialize(FSubsystemCollectionBase& Collection)
+void UmuseGatewayClient::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	const UMuseGatewaySettings* Settings = GetDefault<UMuseGatewaySettings>();
+	const UmuseGatewaySettings* Settings = GetDefault<UmuseGatewaySettings>();
 	UE_LOG(LogSynapseNet, Log,
-		TEXT("MuseGatewayClient ready. Gateway=%s TokenFile=%s Token=%s"),
+		TEXT("museGatewayClient ready. Gateway=%s TokenFile=%s Token=%s"),
 		*Settings->GatewayBaseUrl,
 		*Settings->ResolveTokenFilePath(),
 		GRedacted);
 }
 
-void UMuseGatewayClient::Deinitialize()
+void UmuseGatewayClient::Deinitialize()
 {
 	OnGatewayHealth.Clear();
 	OnCapabilities.Clear();
 	Super::Deinitialize();
 }
 
-FString UMuseGatewayClient::BuildUrl(const FString& BaseUrl, const FString& Path)
+FString UmuseGatewayClient::BuildUrl(const FString& BaseUrl, const FString& Path)
 {
 	FString Trimmed = BaseUrl;
 	while (Trimmed.EndsWith(TEXT("/")))
@@ -67,14 +67,14 @@ FString UMuseGatewayClient::BuildUrl(const FString& BaseUrl, const FString& Path
 	return Path.StartsWith(TEXT("/")) ? Trimmed + Path : Trimmed + TEXT("/") + Path;
 }
 
-TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UMuseGatewayClient::MakeGetRequest(const FString& Path, bool bWithAuth) const
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UmuseGatewayClient::MakeGetRequest(const FString& Path, bool bWithAuth) const
 {
-	const UMuseGatewaySettings* Settings = GetDefault<UMuseGatewaySettings>();
+	const UmuseGatewaySettings* Settings = GetDefault<UmuseGatewaySettings>();
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->SetVerb(TEXT("GET"));
 	Request->SetURL(BuildUrl(Settings->GatewayBaseUrl, Path));
-	Request->SetTimeout(GMuseRequestTimeoutSeconds);
+	Request->SetTimeout(GmuseRequestTimeoutSeconds);
 	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
 
 	if (bWithAuth)
@@ -98,20 +98,20 @@ TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UMuseGatewayClient::MakeGetRequest
 	return Request;
 }
 
-TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UMuseGatewayClient::CreateAuthorizedGetRequest(const FString& Path) const
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UmuseGatewayClient::CreateAuthorizedGetRequest(const FString& Path) const
 {
 	// Thin public wrapper over the private factory: one place builds
 	// authorized requests; consumers never touch the token file themselves.
 	return MakeGetRequest(Path, /*bWithAuth=*/true);
 }
 
-void UMuseGatewayClient::CheckHealth()
+void UmuseGatewayClient::CheckHealth()
 {
 	// Contract route: GET /v1/health — open (no bearer), liveness + version.
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeGetRequest(TEXT("/v1/health"), /*bWithAuth=*/false);
 
 	Request->OnProcessRequestComplete().BindLambda(
-		[WeakThis = TWeakObjectPtr<UMuseGatewayClient>(this)](FHttpRequestPtr /*Req*/, FHttpResponsePtr Response, bool bConnected)
+		[WeakThis = TWeakObjectPtr<UmuseGatewayClient>(this)](FHttpRequestPtr /*Req*/, FHttpResponsePtr Response, bool bConnected)
 		{
 			// Completion arrives on an HTTP worker thread — compute here,
 			// broadcast on the game thread.
@@ -121,7 +121,7 @@ void UMuseGatewayClient::CheckHealth()
 
 			AsyncTask(ENamedThreads::GameThread, [WeakThis, bOk, Code, Body]()
 			{
-				if (UMuseGatewayClient* Self = WeakThis.Get())
+				if (UmuseGatewayClient* Self = WeakThis.Get())
 				{
 					UE_LOG(LogSynapseNet, Log, TEXT("/v1/health -> HTTP %d ok=%s"), Code, bOk ? TEXT("true") : TEXT("false"));
 					Self->OnGatewayHealth.Broadcast(bOk, Body);
@@ -132,13 +132,13 @@ void UMuseGatewayClient::CheckHealth()
 	Request->ProcessRequest();
 }
 
-void UMuseGatewayClient::FetchCapabilities()
+void UmuseGatewayClient::FetchCapabilities()
 {
 	// Contract route: GET /v1/cockpit/capabilities — bearer auth required.
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = MakeGetRequest(TEXT("/v1/cockpit/capabilities"), /*bWithAuth=*/true);
 
 	Request->OnProcessRequestComplete().BindLambda(
-		[WeakThis = TWeakObjectPtr<UMuseGatewayClient>(this)](FHttpRequestPtr /*Req*/, FHttpResponsePtr Response, bool bConnected)
+		[WeakThis = TWeakObjectPtr<UmuseGatewayClient>(this)](FHttpRequestPtr /*Req*/, FHttpResponsePtr Response, bool bConnected)
 		{
 			const int32 Code = (bConnected && Response.IsValid()) ? Response->GetResponseCode() : 0;
 			const FString Body = (bConnected && Response.IsValid()) ? Response->GetContentAsString() : FString();
@@ -146,7 +146,7 @@ void UMuseGatewayClient::FetchCapabilities()
 
 			AsyncTask(ENamedThreads::GameThread, [WeakThis, bOk, Code, Body]()
 			{
-				UMuseGatewayClient* Self = WeakThis.Get();
+				UmuseGatewayClient* Self = WeakThis.Get();
 				if (!Self)
 				{
 					return;

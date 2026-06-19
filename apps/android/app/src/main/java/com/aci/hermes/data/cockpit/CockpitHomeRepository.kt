@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Aggregating, read-only repository behind the MUSE command-center
+ * Aggregating, read-only repository behind the muse command-center
  * home screen. A single [refresh] fans out (concurrently) to every cockpit
  * read the home screen needs — runtime status, model/router policy, worker
  * detection, jobs, owner approvals, recent memory, ledger events, and

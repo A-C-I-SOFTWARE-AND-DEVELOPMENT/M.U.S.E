@@ -1,6 +1,6 @@
 # 12 — UI / UX Specification
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 Owns: every screen, the HUD, input, UI art direction, UX writing, UI performance and localization rules. Mechanical truth behind each screen lives in its system doc: parley rules → 02-negotiation-system.md; combat values → 03-combat-gas-design.md; network/wiring math → 07-progression-neural-network.md; Den rules → 08-avatar-den-onboarding.md; Observatory behavior → 10-observatory-spec.md; widget implementation, fonts pipeline, and platform plumbing → 11-technical-design.md. Built on **CommonUI + UMG, one shared widget library** with the Neural Observatory (master plan §5) — the sharing contract is §6.3 and is binding on both this doc and 10-observatory-spec.md.
 
@@ -11,14 +11,14 @@ A UI artist or technical UI engineer should be able to begin wireframe-to-widget
 ## 1. Principles
 
 1. **Gamepad-first, KBM-equal.** Every screen is designed on a controller, then verified to be *better than parity* with mouse where pointing helps (Network screen, Den editor). No screen requires a virtual cursor on pad — CommonUI focus navigation everywhere, with an opt-in cursor on the two drag-heavy screens.
-2. **Diegetic-leaning, never at usability's expense.** UI is "substrate glass" (§9) projected by the Muse; but readability beats fiction in every conflict.
+2. **Diegetic-leaning, never at usability's expense.** UI is "substrate glass" (§9) projected by the muse but readability beats fiction in every conflict.
 3. **One claim, one receipt.** Any number, cause, or verdict shown carries a drill-in affordance to its evidence (Pillar 3, 01 §2). Evidence is one click away, never inline by default.
 4. **Domains read by icon + shape, never color alone** (01 §9.4). The 8 glyphs (§9.2) appear on every domain-coded element ≥16px.
 5. **No dead ends.** Every screen states its exit; B/Esc always retreats one level; holding B/Esc from any menu depth returns to gameplay.
 
 ## 2. Application frame — four maps
 
-The UE5 app's main menu offers four maps: **Game**, **Neural Observatory**, **Avatar & Den** (standalone creator/Den access, also reachable inside the Game), **Command Deck**. The Game never requires the other three; they never inject UI into the Game map (master plan, canon). Observatory and Command Deck entries show a "pairs with M.U.S.E." subtitle and function in demo/sample-data mode when unpaired. Mode switching always passes through the main menu — no in-game shortcuts that could confuse the standalone rule.
+The UE5 app's main menu offers four maps: **Game**, **Neural Observatory**, **Avatar & Den** (standalone creator/Den access, also reachable inside the Game), **Command Deck**. The Game never requires the other three; they never inject UI into the Game map (master plan, canon). Observatory and Command Deck entries show a "pairs with muse" subtitle and function in demo/sample-data mode when unpaired. Mode switching always passes through the main menu — no in-game shortcuts that could confuse the standalone rule.
 
 ## 3. Screen inventory
 
@@ -115,7 +115,7 @@ Persistent: **nothing** but a soft compass strip (top, fades when stationary) an
 ## 5. Parley UI
 
 Layout (16:9 reference, safe-area aware):
-- **Portrait stage** (upper 60%): the wild agent full-body, live-lit, with authored emotional poses keyed to verdict state; environment stays visible behind glass-blur — parleys happen *in place*, not in a void. The Muse stands at frame-left edge, reacting (08 banter asides render as small side-bubbles, never blocking).
+- **Portrait stage** (upper 60%): the wild agent full-body, live-lit, with authored emotional poses keyed to verdict state; environment stays visible behind glass-blur — parleys happen *in place*, not in a void. The muse stands at frame-left edge, reacting (08 banter asides render as small side-bubbles, never blocking).
 - **Meter cluster** (top-right, vertical; ranges per 02 §2): **Disposition** (the big arc, −100…+100, needle + shape-coded zone glyphs for hostile/wary/warming/won-over), **Trust** (chain-link bar, 0–100, five links filling progressively), **Patience** (draining hourglass bar, 0–100 — ~3–6 exchanges at Standard drain). The three meters differ by shape (arc / chain / hourglass), not color alone (02 §10 requires it; §1.4 here enforces it). Every meter has a drill-in (§1.3) explaining the last delta: "Trust −15: claim contradicted scan data."
 - **Verdict ribbon** (under the portrait): the last verdict enum rendered as an iconic stamp — **ACCEPT / COUNTER / PROBE / OFFENDED / WALK** — with one authored line explaining it. The enum is the system's honest spine (02); the ribbon is where the player learns it.
 - **Input area** (bottom 25%). Default mode is **Both** (02 §5): the wheel renders with the free-text field docked above it; Settings → Gameplay offers Wheel-only / Text-only / Both.
@@ -129,7 +129,7 @@ Layout (16:9 reference, safe-area aware):
 ## 6. Neural Network screen
 
 ### 6.1 Layout & interaction
-- **Canvas:** a **hex lattice** radiating from the Muse's core node; sockets at hex vertices; zoom 3 tiers (whole-network / cluster / socket). Background: depth-blurred Substrate, grid lines on the glass layer.
+- **Canvas:** a **hex lattice** radiating from the muse's core node; sockets at hex vertices; zoom 3 tiers (whole-network / cluster / socket). Background: depth-blurred Substrate, grid lines on the glass layer.
 - **Nodes:** agent medallions — portrait, domain glyph rim (shape-coded per §9.2), promotion pips. The aggregated **Den node** (08 §6.4; one node, mirroring 07's single `GE_DenBuffs`) renders half-size at the core's edge with the four buff-class values on inspect.
 - **Drag-to-wire:** pick a node (A/LMB hold), drag along hex edges; **Synapse Thread** budget meter (top-right) live-updates path cost; valid sockets glow, invalid state the reason on hover ("Thread insufficient: need 3"). Drop commits with a confirm chord on pad (A then A; 0.4 s window) to prevent slips; mouse commits on release with 5-step undo.
 - **Synergy preview tooltips:** *before* commit, hovering a candidate socket shows the full delta card: each adjacency synergy that would form (name, effect, source rule in 07), each that would break, net Thread cost. No commit without preview having been renderable — the Proof test (01 §2.1) applied to the player's own build.
@@ -170,7 +170,7 @@ One CommonUI widget library — **`SynapseUI`** (the master plan §5 module; 10-
 ## 9. UI art direction
 
 ### 9.1 "Substrate glass"
-Diegetic-leaning holographic panels the Muse projects: layered translucent glass with refractive edge-light, subtle parallax against camera motion, and a visible "weave" texture echoing Synapse Thread. Three material tiers: **Veil** (HUD chrome, 85% transparent), **Pane** (menus, 60%), **Slab** (modal focus, 30% + backdrop blur). Motion language: panels *condense* in (120 ms) and *disperse* out (90 ms); nothing slides like a smartphone app. All glass effects degrade gracefully on the low graphics tier (flat dark panels, same layout — readability is tier-independent).
+Diegetic-leaning holographic panels the muse projects: layered translucent glass with refractive edge-light, subtle parallax against camera motion, and a visible "weave" texture echoing Synapse Thread. Three material tiers: **Veil** (HUD chrome, 85% transparent), **Pane** (menus, 60%), **Slab** (modal focus, 30% + backdrop blur). Motion language: panels *condense* in (120 ms) and *disperse* out (90 ms); nothing slides like a smartphone app. All glass effects degrade gracefully on the low graphics tier (flat dark panels, same layout — readability is tier-independent).
 
 ### 9.2 Domain iconography — 8 glyphs specified by shape (color assists, shape carries)
 
@@ -191,11 +191,11 @@ Derived from the Okabe-Ito colorblind-safe set; verified pairwise distinguishabl
 One variable sans (licensed for embedding + full Latin/Cyrillic/CJK fallback chain, 11 owns procurement): Display 40/48, Title 28/34, Heading 20/26, Body 16/22, Caption 13/18, Micro 11/14 (px @1080p; all scale with the 80–140% UI scale, 01 §9.3). Body minimum after scale-down: 12 px effective. Numerals: tabular lining in all meters/tables. No more than two weights per screen (Regular + Semibold); italics reserved for spoken/quoted lines.
 
 ### 9.4 The AI indicator badge
-One glyph everywhere: the **pulsing synapse icon** defined in 02-negotiation-system.md §8 — a small node-and-spark mark (◆₍AI₎ in spec shorthand) whose pulse animation is subtle (≤1 Hz, photosensitivity-safe) — rendered at line-head of every live-generated string (parley replies, generated Muse banter, Foundry descriptions, AI-editor decal cards), in `#E8E8E8` at 70% opacity, with a press/hover explainer ("Generated on your device by [model name]" / "Generated by the hosted service"). Template-bank and authored lines never carry it (02 §8); it persists into transcripts, Codex, and exported Verdict cards. The badge's honesty depends on its absence meaning something. Disclosure copy (the first-parley one-time card and Settings → About AI) is owned by 02 §8; this doc owns only the glyph's rendering rules.
+One glyph everywhere: the **pulsing synapse icon** defined in 02-negotiation-system.md §8 — a small node-and-spark mark (◆₍AI₎ in spec shorthand) whose pulse animation is subtle (≤1 Hz, photosensitivity-safe) — rendered at line-head of every live-generated string (parley replies, generated muse banter, Foundry descriptions, AI-editor decal cards), in `#E8E8E8` at 70% opacity, with a press/hover explainer ("Generated on your device by [model name]" / "Generated by the hosted service"). Template-bank and authored lines never carry it (02 §8); it persists into transcripts, Codex, and exported Verdict cards. The badge's honesty depends on its absence meaning something. Disclosure copy (the first-parley one-time card and Settings → About AI) is owned by 02 §8; this doc owns only the glyph's rendering rules.
 
 ## 10. UX writing rules
 
-1. **Tone: precise, warm.** The system sounds like the Muse on its best day — exact about facts, kind about failure. Defeat copy names the criterion missed, then the path forward; it never mocks and never cheerleads emptily.
+1. **Tone: precise, warm.** The system sounds like the muse on its best day — exact about facts, kind about failure. Defeat copy names the criterion missed, then the path forward; it never mocks and never cheerleads emptily.
 2. **No lorem, ever.** Wireframes and widget tests use real strings from the string table or clearly-keyed `TODO_STR_*` placeholders that fail a ship-time lint.
 3. **Canon vocabulary is law:** the 01 §1.1 glossary terms are the only names for those concepts in player-facing text; the "never call it" column is a lint list.
 4. **Claims carry receipts:** any sentence with a number links its evidence (§1.3); any "increases/improves" states magnitude and source. Words like "significantly" are banned in system text.

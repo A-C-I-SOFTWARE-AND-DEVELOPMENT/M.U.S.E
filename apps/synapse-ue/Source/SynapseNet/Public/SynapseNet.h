@@ -7,7 +7,7 @@
 #include "Modules/ModuleManager.h"
 
 /** Log category for the gateway client / SSE consumer. Token values are
- *  NEVER written to this (or any) log — see MuseGatewaySettings.h. */
+ *  NEVER written to this (or any) log — see museGatewaySettings.h. */
 SYNAPSENET_API DECLARE_LOG_CATEGORY_EXTERN(LogSynapseNet, Log, All);
 
 /** SynapseNet — HTTP/SSE wire-contract client module (TDD §2.2). */

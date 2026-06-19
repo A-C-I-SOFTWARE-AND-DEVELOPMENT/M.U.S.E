@@ -26,7 +26,7 @@ OpenAI's model connecting vision and language. Enables zero-shot image classific
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # CLIP - Contrastive Language-Image Pre-Training

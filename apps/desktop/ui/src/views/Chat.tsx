@@ -98,7 +98,7 @@ export function Chat() {
         <div className="chatlog" ref={logRef}>
           {messages.length === 0 ? (
             <div className="empty">
-              Ask M.U.S.E. anything. Responses stream live from the local agent.
+              Ask muse anything. Responses stream live from the local agent.
             </div>
           ) : (
             messages.map((m, i) => (
@@ -116,7 +116,7 @@ export function Chat() {
             rows={2}
             placeholder={
               paired
-                ? "Message M.U.S.E.…  (Enter to send, Shift+Enter for newline)"
+                ? "Message muse…  (Enter to send, Shift+Enter for newline)"
                 : "Pair this device in Settings to chat…"
             }
             value={draft}

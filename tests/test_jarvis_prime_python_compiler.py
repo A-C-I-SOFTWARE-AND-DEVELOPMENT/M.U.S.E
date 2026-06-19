@@ -1,4 +1,4 @@
-"""Tests for the MUSE Python-module backend compiler.
+"""Tests for the muse Python-module backend compiler.
 
 Behavioral coverage: compiling a hand-built IntentGraph (one ENTITY with
 slots, one OPERATION) yields a PythonModule whose rendered source parses and

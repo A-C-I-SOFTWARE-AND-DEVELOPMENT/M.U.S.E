@@ -38,9 +38,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
 import com.aci.hermes.ui.theme.JarvisTokens
 
 object VoiceCaptureTestTags {
@@ -171,7 +171,7 @@ fun VoiceCaptureScreen(
             }
 
             if (state.transcript.isNotBlank()) {
-                MuseCard(
+                museCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
@@ -189,19 +189,19 @@ fun VoiceCaptureScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                         ) {
-                            MuseButton(
+                            museButton(
                                 onClick = viewModel::saveAsTask,
                                 text = stringResource(R.string.voice_save_task),
-                                variant = MuseButtonVariant.Primary,
+                                variant = museButtonVariant.Primary,
                                 enabled = !state.saving,
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag(VoiceCaptureTestTags.SAVE_TASK),
                             )
-                            MuseButton(
+                            museButton(
                                 onClick = viewModel::clearTranscript,
                                 text = stringResource(R.string.voice_clear),
-                                variant = MuseButtonVariant.Secondary,
+                                variant = museButtonVariant.Secondary,
                                 enabled = !state.saving,
                                 modifier = Modifier.weight(1f),
                             )

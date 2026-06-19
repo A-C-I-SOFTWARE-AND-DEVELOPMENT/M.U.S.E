@@ -1,8 +1,8 @@
 # Aider worker
 
-The Aider worker is the M.U.S.E. adapter for [Aider](https://aider.chat),
+The Aider worker is the muse adapter for [Aider](https://aider.chat),
 a git-native pair-programming CLI. It is one of the local CLI agents
-M.U.S.E. can hand work to without ever calling a hosted API on the
+muse can hand work to without ever calling a hosted API on the
 user's behalf — the user already has Aider installed and configured.
 
 ## When to use Aider
@@ -65,7 +65,7 @@ workspace/
 
 ## Default mode is handoff-required
 
-`run(..., execute=False)` is the default. M.U.S.E. writes the prompt and
+`run(..., execute=False)` is the default. muse writes the prompt and
 the status file, then surfaces the printed command for the user to run:
 
 ```text
@@ -92,7 +92,7 @@ documented as safe for non-interactive use:
 | `--no-show-release-notes`  | Quiet startup.                            |
 | `--no-analytics`           | No telemetry on the user's behalf.        |
 
-Flags M.U.S.E. **never** adds automatically:
+Flags muse **never** adds automatically:
 
 - `--yes-always` (auto-applies every suggestion)
 - `--auto-commits`
@@ -140,7 +140,7 @@ dashboard can render the box.
 
 ## Limits
 
-- M.U.S.E. does not install Aider for the user — that is a deliberate
+- muse does not install Aider for the user — that is a deliberate
   choice to avoid silently pulling network dependencies.
 - The worker cannot drive Aider's interactive `/commands`; it sends a
   single prompt via `--message-file`.

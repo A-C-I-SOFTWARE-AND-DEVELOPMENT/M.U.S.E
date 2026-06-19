@@ -1,4 +1,4 @@
-"""Tests for the MUSE W3 Rust backend compiler.
+"""Tests for the muse W3 Rust backend compiler.
 
 Behavioral coverage: a graph with one ENTITY + one OPERATION compiles to a
 RustModule whose rendered source validates and contains the expected scaffold;

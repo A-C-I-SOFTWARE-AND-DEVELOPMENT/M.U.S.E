@@ -1,4 +1,4 @@
-"""Short-term + long-term memory with recollection for MUSE.
+"""Short-term + long-term memory with recollection for muse
 
 The user asked for JARVIS to be "a true friend and partner, with
 short term and long term memory as well as memory recollection,

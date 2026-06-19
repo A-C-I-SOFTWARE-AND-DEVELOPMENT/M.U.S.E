@@ -1,34 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      MUSE — user-facing strings.
+      muse — user-facing strings.
       The Android package stays com.aci.hermes for install / signing
       continuity, and resource keys keep their historical names
       (ask_jarvis_*, jarvis_*, …) for code stability — but every value
-      the user sees says "Muse" / "MUSE", and the spoken wake phrase is
-      "Hey Muse". The Hermes name survives only in technical
+      the user sees says "muse" / "muse", and the spoken wake phrase is
+      "Hey muse". The Hermes name survives only in technical
       identifiers (package, notification channel IDs), never in
       user-visible copy.
     -->
 
-    <string name="app_name">MUSE</string>
+    <string name="app_name">muse</string>
     <string name="app_tagline">Your command-center agent.</string>
-    <string name="app_backend_label">MUSE runtime</string>
+    <string name="app_backend_label">muse runtime</string>
 
     <!-- Splash / welcome -->
-    <string name="welcome_title">Welcome to MUSE</string>
+    <string name="welcome_title">Welcome to muse</string>
     <string name="welcome_subtitle">An agent that asks permission, confirms intent, and shows the work.</string>
     <string name="welcome_continue">Begin</string>
 
     <!-- Foreground service notification -->
-    <string name="orchestrator_notification_title">MUSE is on duty</string>
+    <string name="orchestrator_notification_title">muse is on duty</string>
     <string name="orchestrator_notification_text">Coordinating local AI workflow on this device.</string>
     <string name="orchestrator_notification_stop">Stand down</string>
     <string name="orchestrator_notification_owner_approve">Owner Approve</string>
 
     <!-- Work-watcher foreground service (only runs while active work exists) -->
     <string name="workwatch_notification_title">Watching active work</string>
-    <string name="workwatch_notification_text">MUSE is tracking running jobs and approvals.</string>
+    <string name="workwatch_notification_text">muse is tracking running jobs and approvals.</string>
 
     <!-- Long-running-work notifications (event-driven). Bodies take a job title
          or worker name; no prompts, diffs, tokens, or model reasoning. -->
@@ -49,22 +49,22 @@
     <string name="notify_research_text">%1$s is ready to review.</string>
     <string name="notify_tests_failed_title">Tests failed</string>
     <string name="notify_emergency_title">Emergency stop engaged</string>
-    <string name="notify_emergency_text">MUSE work is halted.</string>
+    <string name="notify_emergency_text">muse work is halted.</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_owner_approve_short">Approve</string>
     <string name="shortcut_owner_approve_long">Owner Approve action</string>
-    <string name="shortcut_stop_short">Stop MUSE</string>
-    <string name="shortcut_stop_long">Emergency stop for MUSE</string>
+    <string name="shortcut_stop_short">Stop muse</string>
+    <string name="shortcut_stop_long">Emergency stop for muse</string>
 
     <!-- Orchestrator dashboard -->
-    <string name="orchestrator_title">MUSE</string>
+    <string name="orchestrator_title">muse</string>
     <string name="orchestrator_subtitle">Command center</string>
     <string name="orchestrator_tools_title">Connected AI tools</string>
     <string name="orchestrator_tasks_title">Active tasks</string>
-    <string name="orchestrator_tasks_empty">Nothing on the docket yet. Tap + to brief Muse on a task.</string>
-    <string name="orchestrator_status_running">MUSE online</string>
-    <string name="orchestrator_status_stopped">MUSE standing by</string>
+    <string name="orchestrator_tasks_empty">Nothing on the docket yet. Tap + to brief muse on a task.</string>
+    <string name="orchestrator_status_running">muse online</string>
+    <string name="orchestrator_status_stopped">muse standing by</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
@@ -78,15 +78,15 @@
     <string name="orchestrator_open_tool">Open tool</string>
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
-    <string name="orchestrator_safety_title">About MUSE</string>
-    <string name="orchestrator_safety_body">MUSE does not bypass your AI provider logins. It organizes the work and hands off to the official tools you are already signed into.</string>
+    <string name="orchestrator_safety_title">About muse</string>
+    <string name="orchestrator_safety_body">muse does not bypass your AI provider logins. It organizes the work and hands off to the official tools you are already signed into.</string>
 
-    <!-- Ask Muse (chat input bar) -->
-    <string name="ask_jarvis_hint">Ask Muse…</string>
-    <string name="ask_jarvis_voice_cd">Tap to dictate to Muse</string>
-    <string name="ask_jarvis_send_cd">Send to Muse</string>
+    <!-- Ask muse (chat input bar) -->
+    <string name="ask_jarvis_hint">Ask muse…</string>
+    <string name="ask_jarvis_voice_cd">Tap to dictate to muse</string>
+    <string name="ask_jarvis_send_cd">Send to muse</string>
     <string name="ask_jarvis_listening">Listening… speak naturally</string>
-    <string name="ask_jarvis_thinking">Muse is thinking…</string>
+    <string name="ask_jarvis_thinking">muse is thinking…</string>
     <string name="ask_jarvis_cancel">Stop</string>
 
     <!-- Voice capture -->
@@ -98,7 +98,7 @@
     <string name="voice_action_done">Done</string>
     <string name="voice_action_retry">Retry</string>
     <!-- Voice capture screen (hands-free task capture) -->
-    <string name="voice_privacy_note">Voice runs through your device\'s system speech recognizer. MUSE never records audio itself and uploads nothing.</string>
+    <string name="voice_privacy_note">Voice runs through your device\'s system speech recognizer. muse never records audio itself and uploads nothing.</string>
     <string name="voice_prompt">Speak your task or note</string>
     <string name="voice_listening">Listening…</string>
     <string name="voice_tap_to_speak">Tap the mic to speak</string>
@@ -111,8 +111,8 @@
     <string name="research_query_hint">Ask a research question…</string>
     <string name="research_run">Research</string>
     <string name="research_running">Researching…</string>
-    <string name="research_unpaired">Research needs a paired Muse gateway. Pair one in Settings → Connection.</string>
-    <string name="research_empty_hint">Ask a factual question. Muse gathers sources, ranks them, and answers with citations — or says it doesn\'t know.</string>
+    <string name="research_unpaired">Research needs a paired muse gateway. Pair one in Settings → Connection.</string>
+    <string name="research_empty_hint">Ask a factual question. muse gathers sources, ranks them, and answers with citations — or says it doesn\'t know.</string>
     <string name="research_section_answer">Answer</string>
     <string name="research_section_sources">Sources</string>
     <string name="research_section_evidence">Evidence cards</string>
@@ -121,24 +121,24 @@
     <string name="research_save_to_memory">Save to memory</string>
     <string name="research_saved">Saved</string>
     <string name="research_create_task">Create coding task</string>
-    <string name="research_no_sources">No source-backed evidence was available. Muse did not fabricate an answer.</string>
+    <string name="research_no_sources">No source-backed evidence was available. muse did not fabricate an answer.</string>
 
     <!-- Approval card -->
     <string name="approval_title">Approval needed</string>
-    <string name="approval_body">Muse wants to proceed. Review and approve before anything runs.</string>
+    <string name="approval_body">muse wants to proceed. Review and approve before anything runs.</string>
     <string name="approval_approve">Approve</string>
     <string name="approval_deny">Decline</string>
     <string name="approval_details">See details</string>
 
     <!-- Serious action card -->
     <string name="serious_title">Serious action</string>
-    <string name="serious_body">This will make a meaningful change. Confirm intent before Muse proceeds.</string>
+    <string name="serious_body">This will make a meaningful change. Confirm intent before muse proceeds.</string>
     <string name="serious_confirm">Confirm</string>
     <string name="serious_review">Review change</string>
 
     <!-- Critical action card -->
     <string name="critical_title">Critical action</string>
-    <string name="critical_body">This action is destructive or irreversible. Muse will not proceed without explicit go-ahead.</string>
+    <string name="critical_body">This action is destructive or irreversible. muse will not proceed without explicit go-ahead.</string>
     <string name="critical_confirm">I understand — proceed</string>
     <string name="critical_cancel">Hold</string>
 
@@ -189,10 +189,10 @@
     <string name="emergency_stop">Emergency stop</string>
     <string name="emergency_stop_cd">Halt every active task immediately</string>
     <string name="emergency_stop_confirm_title">Halt everything?</string>
-    <string name="emergency_stop_confirm_body">Muse will stop every running task and stand down. You can bring it back online at any time.</string>
+    <string name="emergency_stop_confirm_body">muse will stop every running task and stand down. You can bring it back online at any time.</string>
     <string name="emergency_stop_confirm_yes">Halt now</string>
     <string name="emergency_stop_confirm_no">Keep going</string>
-    <string name="emergency_stop_engaged">All tasks halted. Muse is standing by.</string>
+    <string name="emergency_stop_engaged">All tasks halted. muse is standing by.</string>
 
     <!-- Gateway status -->
     <string name="gateway_pill_label">Gateway</string>
@@ -203,35 +203,35 @@
     <string name="gateway_status_mock">Mock</string>
     <string name="gateway_status_termux">Termux</string>
     <string name="gateway_status_checking">Checking…</string>
-    <string name="gateway_disconnected_title">Muse is offline</string>
+    <string name="gateway_disconnected_title">muse is offline</string>
     <string name="gateway_disconnected_body">I can’t reach the local gateway right now. Existing work is safe. I’ll reconnect as soon as it’s available.</string>
     <string name="gateway_disconnected_retry">Try again</string>
     <string name="gateway_disconnected_diagnose">Run diagnostics</string>
 
     <!-- Backend connectivity (distinct from the local foreground service) -->
-    <string name="backend_pill_label">MUSE backend</string>
+    <string name="backend_pill_label">muse backend</string>
     <string name="service_status_running">Local service running</string>
     <string name="service_status_stopped">Local service stopped</string>
 
     <!-- Mock mode -->
     <string name="mock_mode_title">Mock mode</string>
-    <string name="mock_mode_body">Muse is running on simulated data. Nothing you do here touches your real accounts or files.</string>
+    <string name="mock_mode_body">muse is running on simulated data. Nothing you do here touches your real accounts or files.</string>
 
     <!-- Termux gateway mode -->
     <string name="termux_mode_title">Termux gateway</string>
-    <string name="termux_mode_body">Muse is talking to the MUSE runtime hosted in Termux on this device. Everything stays local.</string>
+    <string name="termux_mode_body">muse is talking to the muse runtime hosted in Termux on this device. Everything stays local.</string>
 
     <!-- Memory -->
     <string name="memory_card_title">Memory updated</string>
-    <string name="memory_card_body">Muse remembered: %1$s</string>
+    <string name="memory_card_body">muse remembered: %1$s</string>
     <string name="memory_corrected_title">Memory corrected</string>
-    <string name="memory_corrected_body">Got it. Muse updated what it remembered about “%1$s”.</string>
+    <string name="memory_corrected_body">Got it. muse updated what it remembered about “%1$s”.</string>
     <string name="memory_view">Review memory</string>
     <string name="memory_forget">Forget this</string>
 
     <!-- Audit -->
     <string name="audit_card_title">Audit trail</string>
-    <string name="audit_card_subtitle">Every action Muse takes is logged here.</string>
+    <string name="audit_card_subtitle">Every action muse takes is logged here.</string>
     <string name="audit_open">Open audit log</string>
 
     <!-- Task lifecycle -->
@@ -241,24 +241,24 @@
     <string name="task_status_complete">Complete</string>
     <string name="task_status_blocked">Blocked</string>
     <string name="task_complete_title">Task complete</string>
-    <string name="task_complete_body">Muse finished “%1$s”. Tap to review what changed.</string>
+    <string name="task_complete_body">muse finished “%1$s”. Tap to review what changed.</string>
     <string name="task_complete_view">View result</string>
     <string name="worker_failed_title">Worker failed</string>
-    <string name="worker_failed_body">Something went wrong while Muse was working on “%1$s”. Nothing destructive happened — you can retry or open diagnostics.</string>
+    <string name="worker_failed_body">Something went wrong while muse was working on “%1$s”. Nothing destructive happened — you can retry or open diagnostics.</string>
     <string name="worker_failed_retry">Retry</string>
     <string name="worker_failed_diagnose">Diagnose</string>
 
     <!-- Permission education -->
-    <string name="permission_education_title">Why Muse needs this</string>
-    <string name="permission_education_microphone_body">Muse listens only while you hold the dictate button. No background recording. No upload off-device unless you ask for it.</string>
-    <string name="permission_education_notifications_body">Notifications let Muse tell you when an approval is needed or a task finishes. You can turn them off anytime in Settings.</string>
+    <string name="permission_education_title">Why muse needs this</string>
+    <string name="permission_education_microphone_body">muse listens only while you hold the dictate button. No background recording. No upload off-device unless you ask for it.</string>
+    <string name="permission_education_notifications_body">Notifications let muse tell you when an approval is needed or a task finishes. You can turn them off anytime in Settings.</string>
     <string name="permission_education_continue">Continue</string>
     <string name="permission_education_not_now">Not now</string>
 
     <!-- Task detail screen -->
-    <string name="task_detail_new_title">Brief Muse</string>
+    <string name="task_detail_new_title">Brief muse</string>
     <string name="task_detail_edit_title">Edit briefing</string>
-    <string name="task_detail_prompt_preview">Prompt Muse will hand off</string>
+    <string name="task_detail_prompt_preview">Prompt muse will hand off</string>
     <string name="task_detail_mark_handed_off">Mark handed off</string>
     <string name="task_detail_delete_confirm">Delete this task? This cannot be undone.</string>
 
@@ -299,12 +299,12 @@
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title">Welcome to MUSE</string>
+    <string name="onboarding_title">Welcome to muse</string>
     <string name="onboarding_subtitle">A local orchestration shell for the AI tools you already use. Nothing leaves this device unless you say so.</string>
     <string name="onboarding_bullet_local_title">Local-first</string>
     <string name="onboarding_bullet_local_body">All tasks, prompts, and preferences live on this device. No backend, no API key required.</string>
     <string name="onboarding_bullet_handoff_title">Tool handoff, not proxy</string>
-    <string name="onboarding_bullet_handoff_body">MUSE prepares prompts and hands off to the official Codex, ChatGPT, Claude Code, or Claude apps you already use.</string>
+    <string name="onboarding_bullet_handoff_body">muse prepares prompts and hands off to the official Codex, ChatGPT, Claude Code, or Claude apps you already use.</string>
     <string name="onboarding_bullet_safety_title">Emergency stop, always</string>
     <string name="onboarding_bullet_safety_body">The orchestrator runs as a foreground service so you always know it is on, and a global Emergency Stop is one tap away from any screen.</string>
     <string name="onboarding_cta">Get started</string>
@@ -321,10 +321,10 @@
     <string name="tasks_empty_body">Tap the New task button to draft a brief, generate a prompt, and hand it off to Codex or Claude Code.</string>
     <!-- Backend orchestration jobs (cockpit contract §4) surfaced in the Tasks tab. -->
     <string name="jobs_section_title">Backend jobs</string>
-    <string name="jobs_not_paired">Pair a gateway in Settings → Connection to run orchestration jobs on the MUSE backend.</string>
-    <string name="jobs_empty">No backend jobs yet. Dispatch one to run real orchestration on MUSE.</string>
+    <string name="jobs_not_paired">Pair a gateway in Settings → Connection to run orchestration jobs on the muse backend.</string>
+    <string name="jobs_empty">No backend jobs yet. Dispatch one to run real orchestration on muse</string>
     <string name="jobs_new">New backend job</string>
-    <string name="jobs_new_body">Describe a goal. Muse creates a real orchestration job on the MUSE backend that you can then run on a worker lane.</string>
+    <string name="jobs_new_body">Describe a goal. muse creates a real orchestration job on the muse backend that you can then run on a worker lane.</string>
     <string name="jobs_dispatch">Create</string>
     <string name="jobs_run">Run</string>
     <string name="jobs_cancel">Cancel</string>
@@ -359,19 +359,19 @@
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
-    <string name="chat_description">A focused thread surface for talking to MUSE about the active task.</string>
+    <string name="chat_description">A focused thread surface for talking to muse about the active task.</string>
     <string name="chat_coming_soon">The conversational pane is still being built. Until then, use Prepare handoff on the Home screen to draft a prompt for your tool of choice.</string>
 
     <!-- Approvals placeholder + real-list empty states (#107) -->
     <string name="approvals_title">Approvals</string>
-    <string name="approvals_description">Review and approve actions MUSE wants to take on your behalf.</string>
+    <string name="approvals_description">Review and approve actions muse wants to take on your behalf.</string>
     <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
-    <string name="approvals_empty_pending">No approvals waiting. Muse is idle.</string>
+    <string name="approvals_empty_pending">No approvals waiting. muse is idle.</string>
     <string name="approvals_empty_history">No decisions yet.</string>
 
     <!-- Memory placeholder -->
     <string name="memory_title">Memory</string>
-    <string name="memory_description">Inspect long-term context, facts, and preferences MUSE has on file for you.</string>
+    <string name="memory_description">Inspect long-term context, facts, and preferences muse has on file for you.</string>
     <string name="memory_coming_soon">Memory inspection arrives once the local store is wired up. Tasks remain visible on the Tasks tab.</string>
     <!-- Memory screen (live) -->
     <string name="memory_search_hint">Search memory</string>
@@ -386,7 +386,7 @@
 
     <!-- Audit placeholder -->
     <string name="audit_title">Audit</string>
-    <string name="audit_description">A chronological log of every decision, handoff, and approval MUSE made on this device.</string>
+    <string name="audit_description">A chronological log of every decision, handoff, and approval muse made on this device.</string>
     <string name="audit_coming_soon">Audit timeline lands next. Use Diagnostics for the raw service log in the meantime.</string>
 
     <!-- Control -->
@@ -394,19 +394,19 @@
 
     <!-- Device control entry point (Control screen → Device control screen) -->
     <string name="device_control_title">Device control</string>
-    <string name="device_control_subtitle">Let Muse operate this phone — taps, swipes, and app launches — behind explicit consent, with every action logged.</string>
+    <string name="device_control_subtitle">Let muse operate this phone — taps, swipes, and app launches — behind explicit consent, with every action logged.</string>
     <string name="device_control_open">Open device control</string>
 
     <!-- Emergency stop (simpler screen variant from #112; coexists with confirm-flow strings above) -->
     <string name="emergency_stop_title">Emergency stop</string>
-    <string name="emergency_stop_body">Immediately stops the MUSE orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>
+    <string name="emergency_stop_body">Immediately stops the muse orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>
     <string name="emergency_stop_confirm">Stop now</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_orchestrator">Orchestrator preferences</string>
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_section_about">About MUSE</string>
+    <string name="settings_section_about">About muse</string>
     <string name="settings_reset">Reset all settings and tasks</string>
     <string name="settings_reset_confirm">This will clear orchestrator preferences and all saved tasks. Continue?</string>
 
@@ -414,20 +414,20 @@
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
 
     <string name="settings_section_personalization">Personalization</string>
-    <string name="settings_avatar_title">Muse avatar</string>
+    <string name="settings_avatar_title">muse avatar</string>
     <string name="settings_avatar_subtitle">Choose a built-in avatar or create a private pixel avatar from a photo.</string>
     <string name="settings_open_avatar_picker">Open avatar picker</string>
 
     <string name="settings_use_api_keys_label">Use API keys</string>
-    <string name="settings_use_api_keys_subtitle">Off by default. MUSE never requires an API key for the primary workflow.</string>
+    <string name="settings_use_api_keys_subtitle">Off by default. muse never requires an API key for the primary workflow.</string>
     <string name="settings_local_only_mode_label">Local-only mode</string>
     <string name="settings_local_only_mode_subtitle">On by default. All orchestrator state stays on this device.</string>
     <string name="settings_allow_external_label">Allow external app opening</string>
-    <string name="settings_allow_external_subtitle">When on, Muse can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
+    <string name="settings_allow_external_subtitle">When on, muse can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
     <string name="settings_clipboard_label">Clipboard handoff enabled</string>
     <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
     <string name="settings_safety_warnings_label">Show safety warnings</string>
-    <string name="settings_safety_warnings_subtitle">Show the reminder that MUSE does not bypass provider authentication.</string>
+    <string name="settings_safety_warnings_subtitle">Show the reminder that muse does not bypass provider authentication.</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
@@ -462,7 +462,7 @@
     <string name="jobs_empty_title">No jobs yet</string>
     <string name="jobs_empty_body">Dispatched orchestration jobs from the gateway will appear here.</string>
     <string name="jobs_not_paired_title">Not paired with a gateway</string>
-    <string name="jobs_not_paired_body">Pair a Muse gateway in Settings to see real jobs. No mock jobs are shown.</string>
+    <string name="jobs_not_paired_body">Pair a muse gateway in Settings to see real jobs. No mock jobs are shown.</string>
     <string name="jobs_error_title">Couldn\'t load jobs</string>
 
     <!-- Generic -->
@@ -476,10 +476,10 @@
     <string name="action_close">Close</string>
     <string name="action_clear">Clear</string>
 
-    <!-- Muse Live command screen -->
-    <string name="jarvis_live_entry_title">Open Muse Live</string>
-    <string name="jarvis_live_entry_subtitle">See what Muse is thinking, saying, and working on.</string>
-    <string name="jarvis_input_hint">Ask Muse</string>
+    <!-- muse Live command screen -->
+    <string name="jarvis_live_entry_title">Open muse Live</string>
+    <string name="jarvis_live_entry_subtitle">See what muse is thinking, saying, and working on.</string>
+    <string name="jarvis_input_hint">Ask muse</string>
 
     <string name="jarvis_state_idle">Idle</string>
     <string name="jarvis_state_listening">Listening</string>
@@ -509,19 +509,19 @@
     <string name="jarvis_voice_disconnected">I can\'t reach the runtime right now.</string>
     <string name="jarvis_voice_emergency">Emergency stop active.</string>
 
-    <string name="jarvis_avatar_cd_idle">Muse is idle.</string>
-    <string name="jarvis_avatar_cd_listening">Muse is listening.</string>
-    <string name="jarvis_avatar_cd_thinking">Muse is thinking.</string>
-    <string name="jarvis_avatar_cd_researching">Muse is researching.</string>
-    <string name="jarvis_avatar_cd_coding">Muse is writing code.</string>
-    <string name="jarvis_avatar_cd_reviewing">Muse is reviewing the work.</string>
-    <string name="jarvis_avatar_cd_working">Muse is working.</string>
-    <string name="jarvis_avatar_cd_speaking">Muse is speaking.</string>
-    <string name="jarvis_avatar_cd_approval">Muse is waiting for your approval.</string>
-    <string name="jarvis_avatar_cd_blocked">Muse is blocked and needs your input.</string>
-    <string name="jarvis_avatar_cd_warning">Muse needs your attention.</string>
-    <string name="jarvis_avatar_cd_disconnected">Muse cannot reach the runtime.</string>
-    <string name="jarvis_avatar_cd_emergency">Muse emergency stop is active.</string>
+    <string name="jarvis_avatar_cd_idle">muse is idle.</string>
+    <string name="jarvis_avatar_cd_listening">muse is listening.</string>
+    <string name="jarvis_avatar_cd_thinking">muse is thinking.</string>
+    <string name="jarvis_avatar_cd_researching">muse is researching.</string>
+    <string name="jarvis_avatar_cd_coding">muse is writing code.</string>
+    <string name="jarvis_avatar_cd_reviewing">muse is reviewing the work.</string>
+    <string name="jarvis_avatar_cd_working">muse is working.</string>
+    <string name="jarvis_avatar_cd_speaking">muse is speaking.</string>
+    <string name="jarvis_avatar_cd_approval">muse is waiting for your approval.</string>
+    <string name="jarvis_avatar_cd_blocked">muse is blocked and needs your input.</string>
+    <string name="jarvis_avatar_cd_warning">muse needs your attention.</string>
+    <string name="jarvis_avatar_cd_disconnected">muse cannot reach the runtime.</string>
+    <string name="jarvis_avatar_cd_emergency">muse emergency stop is active.</string>
 
     <string name="jarvis_cta_approve">Approve</string>
     <string name="jarvis_cta_open_approvals">Open approvals</string>
@@ -534,7 +534,7 @@
     <string name="jarvis_presence_toggle_on">Turn on Presence Mode</string>
     <string name="jarvis_presence_toggle_off">Turn off Presence Mode</string>
     <string name="jarvis_overflow_change_companion">Change companion</string>
-    <string name="jarvis_presence_armed">Hands-free on · say \"Muse\" or tap to talk</string>
+    <string name="jarvis_presence_armed">Hands-free on · say \"muse\" or tap to talk</string>
     <string name="jarvis_presence_listening">Hands-free · listening</string>
     <string name="jarvis_presence_thinking">Hands-free · thinking</string>
     <string name="jarvis_presence_speaking">Hands-free · speaking</string>
@@ -545,18 +545,18 @@
     <string name="jarvis_menu_cd">Open menu</string>
     <string name="jarvis_more_cd">More options</string>
     <string name="jarvis_edit_avatar_cd">Edit avatar</string>
-    <string name="jarvis_status_pill_cd">Current Muse state: %1$s</string>
+    <string name="jarvis_status_pill_cd">Current muse state: %1$s</string>
     <string name="jarvis_overflow_status_detail">Status detail</string>
     <string name="jarvis_overflow_cycle_character">Cycle character</string>
-    <string name="jarvis_status_sheet_title">Muse status</string>
+    <string name="jarvis_status_sheet_title">muse status</string>
     <string name="jarvis_motion_label">Motion</string>
     <string name="jarvis_particles_label">Particles</string>
 
-    <string name="jarvis_emergency_dialog_title">Stop Muse?</string>
+    <string name="jarvis_emergency_dialog_title">Stop muse</string>
     <string name="jarvis_emergency_dialog_body">Emergency stop halts every running task. You can release the stop afterwards.</string>
 
     <!-- Audit screen and audit-detail screen -->
-    <string name="audit_empty">No audited actions yet. MUSE will log every decision here.</string>
+    <string name="audit_empty">No audited actions yet. muse will log every decision here.</string>
     <string name="audit_failed_badge">Failed</string>
     <string name="audit_activity_action">Activity timeline</string>
     <string name="audit_detail_title">Audit detail</string>
@@ -564,7 +564,7 @@
     <string name="audit_detail_user_request">User request</string>
     <string name="audit_detail_action">Action taken</string>
     <string name="audit_detail_route">Routing</string>
-    <string name="audit_proof_rationale">Why Muse routed it this way</string>
+    <string name="audit_proof_rationale">Why muse routed it this way</string>
     <string name="audit_proof_files">Files changed</string>
     <string name="audit_proof_tests">Tests run</string>
     <string name="audit_proof_evidence">Evidence</string>
@@ -583,8 +583,8 @@
     <string name="capability_title">Capabilities</string>
     <string name="capability_installed_title">Installed on gateway</string>
     <string name="capability_installed_empty">No skills are installed on the paired gateway yet.</string>
-    <string name="capability_header_title">What MUSE can do</string>
-    <string name="capability_header_body">Browse every capability MUSE knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
+    <string name="capability_header_title">What muse can do</string>
+    <string name="capability_header_body">Browse every capability muse knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
     <string name="capability_search_hint">Search capabilities</string>
     <string name="capability_filter_all">All</string>
     <string name="capability_advanced_label">Show advanced</string>
@@ -592,21 +592,21 @@
     <string name="capability_empty">No capabilities match your filters.</string>
     <string name="capability_route_title">Routing</string>
     <string name="capability_prompt_title">Sample prompt</string>
-    <string name="capability_safe_invoke_note">Invoking from here stages a prompt for review — Muse never runs it without your confirmation.</string>
+    <string name="capability_safe_invoke_note">Invoking from here stages a prompt for review — muse never runs it without your confirmation.</string>
     <string name="capability_stage_prompt">Stage prompt</string>
     <string name="capability_owner_gated_title">Owner-gated action</string>
-    <string name="capability_owner_gated_body">This capability is owner-gated. Muse will draft the work, then wait for your explicit approval before running it.</string>
+    <string name="capability_owner_gated_body">This capability is owner-gated. muse will draft the work, then wait for your explicit approval before running it.</string>
 
     <!-- Sentient avatar: overlay + accessibility + voice -->
-    <string name="jarvis_accessibility_description">Lets Muse act as your hands — tapping, swiping, opening apps, and turning home-screen pages on your behalf. Muse only acts when you ask; the emergency stop halts every gesture instantly.</string>
-    <string name="jarvis_overlay_enable_title">Let Muse live on your screen</string>
-    <string name="jarvis_overlay_enable_body">Muse appears as a floating companion over your apps. He runs to what you ask for, pushes it, and turns pages — and rests, wanders, or sleeps when you\'re away. Needs the \"Display over other apps\" permission.</string>
+    <string name="jarvis_accessibility_description">Lets muse act as your hands — tapping, swiping, opening apps, and turning home-screen pages on your behalf. muse only acts when you ask; the emergency stop halts every gesture instantly.</string>
+    <string name="jarvis_overlay_enable_title">Let muse live on your screen</string>
+    <string name="jarvis_overlay_enable_body">muse appears as a floating companion over your apps. He runs to what you ask for, pushes it, and turns pages — and rests, wanders, or sleeps when you\'re away. Needs the \"Display over other apps\" permission.</string>
     <string name="jarvis_overlay_enable_cta">Enable overlay</string>
-    <string name="jarvis_accessibility_enable_title">Give Muse his hands</string>
-    <string name="jarvis_accessibility_enable_body">To actually open apps and turn pages for you, Muse needs the accessibility service. This is what makes the avatar\'s pushes land as real taps.</string>
+    <string name="jarvis_accessibility_enable_title">Give muse his hands</string>
+    <string name="jarvis_accessibility_enable_body">To actually open apps and turn pages for you, muse needs the accessibility service. This is what makes the avatar\'s pushes land as real taps.</string>
     <string name="jarvis_accessibility_enable_cta">Open accessibility settings</string>
-    <string name="jarvis_voice_enable_title">Talk to Muse hands-free</string>
-    <string name="jarvis_voice_enable_body">Say \"Hey Muse\" through your headset to run any command by voice. Needs the microphone permission.</string>
+    <string name="jarvis_voice_enable_title">Talk to muse hands-free</string>
+    <string name="jarvis_voice_enable_body">Say \"Hey muse\" through your headset to run any command by voice. Needs the microphone permission.</string>
     <string name="jarvis_voice_enable_cta">Enable voice</string>
 
     <!-- Model routing (evidence-backed, per task class) -->
@@ -623,7 +623,7 @@
     <string name="model_route_override_save">Pin</string>
     <string name="model_route_override_clear">Clear</string>
     <string name="model_route_paid_title">Paid routing</string>
-    <string name="model_route_paid_subtitle">Off by default. Enabling lets MUSE route to paid APIs — a money-spend gate that needs your authorization.</string>
+    <string name="model_route_paid_subtitle">Off by default. Enabling lets muse route to paid APIs — a money-spend gate that needs your authorization.</string>
     <string name="model_route_paid_confirm_title">Authorize paid routing</string>
     <string name="model_route_paid_confirm_body">Type the exact phrase to authorize this change.</string>
     <string name="model_route_paid_confirm_cta">Authorize</string>

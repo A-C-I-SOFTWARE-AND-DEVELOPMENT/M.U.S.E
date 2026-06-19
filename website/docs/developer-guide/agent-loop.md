@@ -40,7 +40,7 @@ result = agent.run_conversation(
 
 ## API Modes
 
-M.U.S.E. supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
+muse supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
 
 | API mode | Used for | Client type |
 |----------|----------|-------------|

@@ -5,7 +5,7 @@
 > Wiring into the orchestrator job controller is tracked in
 > `docs/orchestration/next-roadmap.md`.
 
-M.U.S.E. runs every non-trivial job through eight explicit, named
+muse runs every non-trivial job through eight explicit, named
 phases. The phase log is on disk under the job folder, the transitions
 are gated, and the gates are auditable. The goal is to make it
 impossible for an autonomous agent to "just keep going" without

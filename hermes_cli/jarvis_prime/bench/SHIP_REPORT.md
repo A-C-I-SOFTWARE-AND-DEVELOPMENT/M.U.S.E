@@ -1,4 +1,4 @@
-# SHIP REPORT — Cluster-Based Token Template Fast Path (`MUSE_TEMPLATES`)
+# SHIP REPORT — Cluster-Based Token Template Fast Path (`muse_TEMPLATES`)
 
 Phases 0–6 implemented end-to-end on branch
 `claude/cluster-token-template-fastpath-vbicqd`. Full per-phase evidence:
@@ -74,7 +74,7 @@ and that `mechanical_only` can never freeze.
 
 ## 4. Owner-gated proposals
 
-1. **Flip `MUSE_TEMPLATES` default to `1`** — ONLY after
+1. **Flip `muse_TEMPLATES` default to `1`** — ONLY after
    `scripts/templates_fastpath/phase4_ratchet.sh` passes on owner hardware and
    freezes a champion. Prepared in `phase_reports.md` (Phase 4); not applied.
    **Status: owner authorization RECEIVED 2026-06-12** ("yes, with
@@ -90,7 +90,7 @@ and that `mechanical_only` can never freeze.
 
 | scope | handle |
 |---|---|
-| Instant runtime kill-switch | `MUSE_TEMPLATES=0` (or unset) — returns to byte-identical champion behavior |
+| Instant runtime kill-switch | `muse_TEMPLATES=0` (or unset) — returns to byte-identical champion behavior |
 | Phase 0 (corpus, bench harness, heldout sets) | revert `834ce05` (additive) |
 | Phase 1 (clusters.py + model artifact) | revert `fcd6006` (additive) |
 | Phase 2 (mining + template registry) | revert `96b22e1` (additive; or delete `templates/<id>/`) |

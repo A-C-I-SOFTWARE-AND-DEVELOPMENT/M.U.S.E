@@ -1,4 +1,4 @@
-// UMuseSseClient — minimal Server-Sent Events consumer over FHttpModule.
+// UmuseSseClient — minimal Server-Sent Events consumer over FHttpModule.
 // Copyright A-C-I Software & Development. All rights reserved.
 
 #pragma once
@@ -7,7 +7,7 @@
 #include "CoreMinimal.h"
 #include "Interfaces/IHttpRequest.h"
 #include "UObject/Object.h"
-#include "MuseSseClient.generated.h"
+#include "museSseClient.generated.h"
 
 /**
  * Broadcast on the game thread for every complete SSE frame.
@@ -40,26 +40,26 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSseEvent, const FString&, EventT
  *  - Stop() cancels the in-flight request and any pending reconnect.
  */
 UCLASS(BlueprintType)
-class SYNAPSENET_API UMuseSseClient : public UObject
+class SYNAPSENET_API UmuseSseClient : public UObject
 {
 	GENERATED_BODY()
 
 public:
 	/** Begin streaming <GatewayBaseUrl><Path> (e.g. "/v1/observatory/stream").
 	 *  Idempotent: a second Start() restarts on the new path. */
-	UFUNCTION(BlueprintCallable, Category = "MUSE|SSE")
+	UFUNCTION(BlueprintCallable, Category = "muse|SSE")
 	void Start(const FString& Path);
 
 	/** Stop streaming: cancels the request and pending reconnects. */
-	UFUNCTION(BlueprintCallable, Category = "MUSE|SSE")
+	UFUNCTION(BlueprintCallable, Category = "muse|SSE")
 	void Stop();
 
 	/** True between Start() and Stop() (regardless of connection health). */
-	UFUNCTION(BlueprintPure, Category = "MUSE|SSE")
+	UFUNCTION(BlueprintPure, Category = "muse|SSE")
 	bool IsStreaming() const { return bWantStream; }
 
 	/** Per-frame SSE events. Always broadcast on the game thread. */
-	UPROPERTY(BlueprintAssignable, Category = "MUSE|SSE")
+	UPROPERTY(BlueprintAssignable, Category = "muse|SSE")
 	FOnSseEvent OnSseEvent;
 
 	//~ Begin UObject

@@ -28,7 +28,7 @@ else
 fi
 
 step "2/4 pytest collect-only"
-if MUSE_AXIOM_GATES=0 python -m pytest tests/ -q --collect-only \
+if muse_AXIOM_GATES=0 python -m pytest tests/ -q --collect-only \
     --ignore=tests/integration --ignore=tests/e2e \
     -p no:cacheprovider > /tmp/self-audit-collect.log 2>&1; then
   tail -1 /tmp/self-audit-collect.log

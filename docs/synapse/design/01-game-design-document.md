@@ -1,6 +1,6 @@
 # 01 — SYNAPSE Game Design Document (The Spine)
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 This is the spine document. Every sibling doc (02–12) elaborates a system named here; where a sibling disagrees with this document, this document wins until a versioned errata is issued. Scope numbers in §11 are contractual and may not be changed by any sibling doc.
 
@@ -19,7 +19,7 @@ The fantasy in one sentence: *be the architect of a mind, and prove every claim 
 | Term | Meaning | Never call it |
 |---|---|---|
 | The Architect | The player | hero, trainer, tamer |
-| The Muse | The player-designed companion avatar | pet, assistant |
+| The muse | The player-designed companion avatar | pet, assistant |
 | The Substrate | The world | the net, cyberspace, the grid |
 | The Den | Home base / player housing | house, camp |
 | THE DEADLOCK | Antagonist; corrupted ninth orchestrator | the virus, the glitch |
@@ -38,7 +38,7 @@ Every feature must serve at least one pillar. A feature that serves none is cut,
 
 **Pillar 2 — The Network Is the Character Sheet.** There is no XP-bar spine. Progression is spatial: caught agents are nodes the player physically wires into a mind-graph with **Synapse Thread**; adjacency creates synergies; deep wiring unlocks promotions (see 07-progression-neural-network.md). Power must always be *legible as topology* — if a player screenshots their network, another player should be able to read the build.
 
-**Pillar 3 — Proof Over Promise.** Every system shows its receipts. Gauntlets grade with visible criteria; Foundry-forged agents arrive with their validation stats printed on the card; negotiation verdicts expose why an agent walked; Verdict cards cite numbers actually measured, never invented. If a screen makes a claim, the evidence is one click away. This is the M.U.S.E. house rule made playable.
+**Pillar 3 — Proof Over Promise.** Every system shows its receipts. Gauntlets grade with visible criteria; Foundry-forged agents arrive with their validation stats printed on the card; negotiation verdicts expose why an agent walked; Verdict cards cite numbers actually measured, never invented. If a screen makes a claim, the evidence is one click away. This is the muse house rule made playable.
 
 ### 2.1 Pillar tests (apply to every feature review)
 
@@ -109,7 +109,7 @@ A full loop revolution: **15–35 minutes.** The loop must complete at least onc
 
 | Act | Zones | Gauntlets cleared | Hours (cume) | Arc beat |
 |---|---|---|---|---|
-| Act 1 — Awakening | The Stacks | Planning, Test | 0–7 | Muse, starter, Den; learn the loop; first Deadlock echo |
+| Act 1 — Awakening | The Stacks | Planning, Test | 0–7 | muse starter, Den; learn the loop; first Deadlock echo |
 | Act 2 — The Working World | The Foundry · Gardens of Memory | Build, Rollback, Review | 7–17 | The Fragmentation's cost made personal; Den stage 2 |
 | Act 3 — The Reckoning | The Vault · The Gate Spire | Security, Owner Approval, Release | 17–27 | THE DEADLOCK confronted; Council finale; Den stage 3 |
 
@@ -134,7 +134,7 @@ Eight Gauntlets, each themed as one verification gate and each *teaching the mec
 | World, zones, encounter tables, lures, vistas | 05-world-design.md |
 | Campaign, acts, THE DEADLOCK, Council finale, Gauntlet narrative framing | 06-narrative-campaign.md |
 | Neural Network progression (wiring, synergies, promotions, buff caps) | 07-progression-neural-network.md |
-| Muse creator, Den, onboarding, FTUE | 08-avatar-den-onboarding.md (this pod) |
+| muse creator, Den, onboarding, FTUE | 08-avatar-den-onboarding.md (this pod) |
 | Foundry (forged-from-failure agents, validation receipts) | master plan §4.7; combat hooks in 03 |
 | Economy (Cycles, Synapse Thread, Checksum Shards; sinks/faucets) | 07 (progression costs), 05 (faucets) |
 | Neural Observatory (separate mode; shared widget contract) | 10-observatory-spec.md |
@@ -207,7 +207,7 @@ The first meaningful choice (staged in 08 §5) is among three starters: **AXIOM*
 | Length / price | 20–30 h / $24.99 |
 | Engine / UI | UE 5.6 pinned · CommonUI+UMG, one widget library shared with the Neural Observatory |
 
-**Standalone rule:** the UE5 application contains four maps — **Game, Neural Observatory, Avatar & Den, Command Deck** — selected from the main menu (12 §3.2). The Game map must be complete and excellent fully offline with zero M.U.S.E. knowledge; Observatory and Command Deck are separate modes the game never requires, and no game-critical content, tutorial, or reward is ever placed in them (master plan §4.8). Pairing with a real M.U.S.E. gateway is a post-game reveal and always opt-in.
+**Standalone rule:** the UE5 application contains four maps — **Game, Neural Observatory, Avatar & Den, Command Deck** — selected from the main menu (12 §3.2). The Game map must be complete and excellent fully offline with zero muse knowledge; Observatory and Command Deck are separate modes the game never requires, and no game-critical content, tutorial, or reward is ever placed in them (master plan §4.8). Pairing with a real muse gateway is a post-game reveal and always opt-in.
 
 ### 11.1 Failure & friction philosophy
 
@@ -227,14 +227,14 @@ The first meaningful choice (staged in 08 §5) is among three starters: **AXIOM*
 | Players completing the game wheel-only | fully supported; tracked, no target — it is a first-class path |
 | Network screen restructures per player per 5 h | ≥ 3 (the sheet is being *played*, not set-and-forgotten) |
 
-**Cut line — ships only post-launch, never blocks 1.0:** New Game+, photo mode (the in-game **Verdict card** export in 12 §3 is the 1.0 share surface), Android game tier (Observatory/Den/Command Deck arrive on Android first per master plan §9), real-MUSE skill-unlock bridge beyond the post-game reveal hooks, additional roster waves, Gauntlet remix/boss-rush mode, Den visitor showcase. New ideas during production go to this list by default; the burden of proof is on promotion *into* 1.0, never on deferral.
+**Cut line — ships only post-launch, never blocks 1.0:** New Game+, photo mode (the in-game **Verdict card** export in 12 §3 is the 1.0 share surface), Android game tier (Observatory/Den/Command Deck arrive on Android first per master plan §9), real-muse skill-unlock bridge beyond the post-game reveal hooks, additional roster waves, Gauntlet remix/boss-rush mode, Den visitor showcase. New ideas during production go to this list by default; the burden of proof is on promotion *into* 1.0, never on deferral.
 
 ## 12. AI-tier behavior summary (player-visible contract)
 
 | Capability | Local LLM (bundled, offline) | Hosted tier (opt-in) | All AI OFF |
 |---|---|---|---|
 | Parley dialogue | Generated, AI-badged | Higher-quality generation, AI-badged | 4-option wheel, authored text |
-| Muse banter | Generated from persona seed, AI-badged | Same, richer | Authored banter pool keyed to persona seed |
+| muse banter | Generated from persona seed, AI-badged | Same, richer | Authored banter pool keyed to persona seed |
 | Foundry forged agents | Not available (needs hosted validation harness) | Available, with printed validation stats | Not available; no content gap — forged agents are bonus rares |
 | Den AI room editor | Not available | Image-gen-assisted furnishing | Manual catalog (complete path, 08 §6) |
 | Game completion | 100% | 100% | 100% |

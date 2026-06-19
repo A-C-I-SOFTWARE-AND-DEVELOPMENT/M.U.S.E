@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="assets/banner.png" alt="M.U.S.E." width="100%">
+  <img src="assets/banner.png" alt="muse" width="100%">
 </p>
 
-# M.U.S.E. — 多用途突触实体 ◉
+# muse — 多用途突触实体 ◉
 
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
   <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT"><img src="https://img.shields.io/badge/Developed%20by-A--C--I%20Software%20%26%20Development-0A7BBB?style=for-the-badge" alt="Developed by A-C-I Software and Development"></a>
   <a href="README.md"><img src="https://img.shields.io/badge/Lang-English-lightgrey?style=for-the-badge" alt="English"></a>
@@ -25,20 +25,20 @@
 <tr><td><b>委派与并行</b></td><td>生成隔离子代理处理并行工作流。编写 Python 脚本通过 RPC 调用工具，将多步管道压缩为零上下文开销的轮次。</td></tr>
 <tr><td><b>随处运行</b></td><td>六种终端后端——本地、Docker、SSH、Daytona、Singularity 和 Modal。Daytona 和 Modal 提供 Serverless 持久化——代理环境空闲时休眠、按需唤醒，空闲期间几乎零成本。$5 VPS 或 GPU 集群都能跑。</td></tr>
 <tr><td><b>研究就绪</b></td><td>批量轨迹生成、轨迹压缩——用于训练下一代工具调用模型。</td></tr>
-<tr><td><b>完整的操作层，而非聊天机器人</b></td><td>MUSE 以运行时形式交付（<code>hermes_cli/jarvis_prime/</code>）：六种模式（Companion、Strategy、Critic、Operator、Builder、Mobile Voice）、意图/模式分类器、运行时人格注入、八道验证关卡、所有者授权和紧急停止。用 <code>/jarvis</code> 调用。</td></tr>
+<tr><td><b>完整的操作层，而非聊天机器人</b></td><td>muse 以运行时形式交付（<code>hermes_cli/jarvis_prime/</code>）：六种模式（Companion、Strategy、Critic、Operator、Builder、Mobile Voice）、意图/模式分类器、运行时人格注入、八道验证关卡、所有者授权和紧急停止。用 <code>/jarvis</code> 调用。</td></tr>
 <tr><td><b>从目标到 PR 的编排</b></td><td>将单个目标分解为经校验的任务图——Job → 专职 Worker → 按任务的模型路由 → 校验关卡 → 防篡改决策账本。可在 TUI、网关私信或 Android 驾驶舱用 <code>/orchestrate</code> 驱动。</td></tr>
 <tr><td><b>可检视的知识图谱</b></td><td>GraphRAG 将仓库代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 个节点），支持 local、global、coding 三种查询模式——让工作复用既有实现，而非重造。</td></tr>
 <tr><td><b>自治企业议会</b></td><td>AOS Enterprise Council——233 个顶层代理 + 108 个子代理，覆盖 18 个领域（架构、安全、合规、QA、发布、产品、心理、HazMat Command 等），用于审计、上线就绪评估和多视角评审。</td></tr>
-<tr><td><b>原生 Android 驾驶舱</b></td><td>Kotlin + Compose 应用（<code>apps/android/</code>），与 M.U.S.E. 网关配对：流式对话、设备端语音录入、作业控制、锁屏式所有者审批、证据/记忆/图谱视图，以及紧急停止。手机上不保存任何模型提供商密钥。</td></tr>
+<tr><td><b>原生 Android 驾驶舱</b></td><td>Kotlin + Compose 应用（<code>apps/android/</code>），与 muse 网关配对：流式对话、设备端语音录入、作业控制、锁屏式所有者审批、证据/记忆/图谱视图，以及紧急停止。手机上不保存任何模型提供商密钥。</td></tr>
 </table>
 
 ---
 
 ## A-C-I Software and Development 构建的内容
 
-M.U.S.E. 是开放底座。在其之上，**[A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT)** 构建了将其转变为受治理、本地优先 AI 操作伙伴的层——**MUSE**。以下每一项都是本仓库中真实、经测试的代码，而非路线图。
+muse 是开放底座。在其之上，**[A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT)** 构建了将其转变为受治理、本地优先 AI 操作伙伴的层——**muse**。以下每一项都是本仓库中真实、经测试的代码，而非路线图。
 
-- **MUSE 操作层** — 位于 [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) 的运行时（约 100 个模块）：六种模式、意图/模式分类器、运行时人格注入、需精确口令的所有者授权、紧急停止，以及带每日所有者简报的只读监视器。见 [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md)。
+- **muse 操作层** — 位于 [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) 的运行时（约 100 个模块）：六种模式、意图/模式分类器、运行时人格注入、需精确口令的所有者授权、紧急停止，以及带每日所有者简报的只读监视器。见 [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md)。
 - **可溯源优先的认知层** — Memory Tree（工作/会话/持久记忆，带来源引用、置信度下限、矛盾报告、取代关系，且绝不静默覆写）、Research Vault、证据引擎（BM25 + 记忆混合检索，带引用校验），以及 TokenJuice——一个确定性、按 token 预算的上下文编译器，会筛除密钥。
 - **GraphRAG 知识图谱** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) 将代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 节点 / 52k 边），支持 local/global/coding 查询。见 [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md)。
 - **从目标到 PR 的编排** — 五个原语（Job、Worker、模型路由、校验关卡、决策账本）将目标分解为经校验的任务图并发布结果，每个决策都记入防篡改账本。见 [`docs/orchestration/`](docs/orchestration/)。
@@ -55,12 +55,12 @@ M.U.S.E. 是开放底座。在其之上，**[A-C-I Software and Development](htt
 ## 快速安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 ```
 
 支持 Linux、macOS、WSL2 和 Android (Termux)。安装程序会自动处理平台特定的配置。
 
-> **Android / Termux：** 已测试的手动安装路径请参考 [Termux 指南](https://hermes-agent.nousresearch.com/docs/getting-started/termux)。在 Termux 上，M.U.S.E. 会安装精选的 `.[termux]` 扩展，因为完整的 `.[all]` 扩展会拉取 Android 不兼容的语音依赖。
+> **Android / Termux：** 已测试的手动安装路径请参考 [Termux 指南](https://hermes-agent.nousresearch.com/docs/getting-started/termux)。在 Termux 上，muse 会安装精选的 `.[termux]` 扩展，因为完整的 `.[all]` 扩展会拉取 Android 不兼容的语音依赖。
 >
 > **Windows：** 原生 Windows 不受支持。请安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install) 并运行上述命令。
 
@@ -91,7 +91,7 @@ muse doctor       # 诊断问题
 
 ## CLI 与消息平台 快速对照
 
-M.U.S.E. 有两种入口：用 `muse` 启动终端 UI，或运行网关从 Telegram、Discord、Slack、WhatsApp、Signal 或 Email 与之对话。进入对话后，许多斜杠命令在两种界面中通用。
+muse 有两种入口：用 `muse` 启动终端 UI，或运行网关从 Telegram、Discord、Slack、WhatsApp、Signal 或 Email 与之对话。进入对话后，许多斜杠命令在两种界面中通用。
 
 | 操作 | CLI | 消息平台 |
 |------|-----|----------|
@@ -135,7 +135,7 @@ M.U.S.E. 有两种入口：用 `muse` 启动终端 UI，或运行网关从 Teleg
 
 ## 从 OpenClaw 迁移
 
-如果你来自 OpenClaw，M.U.S.E. 可以自动导入你的设置、记忆、技能和 API 密钥。
+如果你来自 OpenClaw，muse 可以自动导入你的设置、记忆、技能和 API 密钥。
 
 **首次安装时：** 安装向导（`muse setup`）会自动检测 `~/.openclaw` 并在配置开始前提供迁移选项。
 
@@ -169,7 +169,7 @@ muse claw migrate --overwrite  # 覆盖已有冲突
 贡献者快速开始——克隆并使用 `setup-hermes.sh`：
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
 cd hermes-agent
 ./setup-hermes.sh     # 安装 uv、创建 venv、安装 .[all]、创建符号链接 ~/.local/bin/hermes
 ./hermes              # 自动检测 venv，无需先 source
@@ -191,9 +191,9 @@ python -m pytest tests/ -q
 
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [技能中心](https://agentskills.io)
-- 🐛 [问题反馈](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
-- 💡 [讨论区](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/discussions)
-- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — 社区微信桥接：在同一微信账号上运行 M.U.S.E. 和 OpenClaw。
+- 🐛 [问题反馈](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues)
+- 💡 [讨论区](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/discussions)
+- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — 社区微信桥接：在同一微信账号上运行 muse 和 OpenClaw。
 
 ---
 

@@ -1,4 +1,4 @@
-"""W4 retrieval grounding for the MUSE NL compiler.
+"""W4 retrieval grounding for the muse NL compiler.
 
 Deterministically enriches a repo work packet's file scope with candidate
 files surfaced by the existing :class:`Navigator`. This is a thin, pure

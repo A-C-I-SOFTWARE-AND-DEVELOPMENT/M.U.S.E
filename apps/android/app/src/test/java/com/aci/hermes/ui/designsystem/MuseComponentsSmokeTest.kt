@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Compose smoke tests (Robolectric, no emulator) for the MUSE design-system
+ * Compose smoke tests (Robolectric, no emulator) for the muse design-system
  * components. Each composes a component under [JarvisPrimeTheme] and proves it
  * builds and renders without crashing — the compile-level + basic-semantics
  * proof the verification matrix needs. Mirrors the existing
@@ -23,7 +23,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33])
-class MuseComponentsSmokeTest {
+class museComponentsSmokeTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -33,11 +33,11 @@ class MuseComponentsSmokeTest {
         composeRule.setContent {
             JarvisPrimeTheme {
                 Column {
-                    MuseButton(onClick = {}, text = "Primary", variant = MuseButtonVariant.Primary)
-                    MuseButton(onClick = {}, text = "Secondary", variant = MuseButtonVariant.Secondary)
-                    MuseButton(onClick = {}, text = "Stop", variant = MuseButtonVariant.Danger)
-                    MuseButton(onClick = {}, text = "Approve", variant = MuseButtonVariant.Approve)
-                    MuseButton(onClick = {}, text = "Off", enabled = false)
+                    museButton(onClick = {}, text = "Primary", variant = museButtonVariant.Primary)
+                    museButton(onClick = {}, text = "Secondary", variant = museButtonVariant.Secondary)
+                    museButton(onClick = {}, text = "Stop", variant = museButtonVariant.Danger)
+                    museButton(onClick = {}, text = "Approve", variant = museButtonVariant.Approve)
+                    museButton(onClick = {}, text = "Off", enabled = false)
                 }
             }
         }
@@ -53,8 +53,8 @@ class MuseComponentsSmokeTest {
     fun `card renders its content`() {
         composeRule.setContent {
             JarvisPrimeTheme {
-                MuseCard {
-                    com.aci.hermes.ui.designsystem.MuseSectionHeader(title = "Job")
+                museCard {
+                    com.aci.hermes.ui.designsystem.museSectionHeader(title = "Job")
                 }
             }
         }
@@ -67,9 +67,9 @@ class MuseComponentsSmokeTest {
         composeRule.setContent {
             JarvisPrimeTheme {
                 Column {
-                    MuseStatusPill(status = MuseStatus.Off, label = "Offline", animate = false)
-                    MuseStatusPill(status = MuseStatus.Ok, label = "Paired", animate = false)
-                    MuseStatusPill(status = MuseStatus.Connecting, label = "Connecting", animate = false)
+                    museStatusPill(status = museStatus.Off, label = "Offline", animate = false)
+                    museStatusPill(status = museStatus.Ok, label = "Paired", animate = false)
+                    museStatusPill(status = museStatus.Connecting, label = "Connecting", animate = false)
                 }
             }
         }
@@ -84,9 +84,9 @@ class MuseComponentsSmokeTest {
         composeRule.setContent {
             JarvisPrimeTheme {
                 Column {
-                    MuseChip(label = "All")
-                    MuseChip(label = "Building", selected = true)
-                    MuseChip(label = "Merged", onClick = {})
+                    museChip(label = "All")
+                    museChip(label = "Building", selected = true)
+                    museChip(label = "Merged", onClick = {})
                 }
             }
         }
@@ -100,10 +100,10 @@ class MuseComponentsSmokeTest {
     fun `section header renders title, subtitle and trailing slot`() {
         composeRule.setContent {
             JarvisPrimeTheme {
-                MuseSectionHeader(
+                museSectionHeader(
                     title = "Recent jobs",
                     subtitle = "last 7 days",
-                    trailing = { MuseStatusPill(status = MuseStatus.Ok, label = "Synced", animate = false) },
+                    trailing = { museStatusPill(status = museStatus.Ok, label = "Synced", animate = false) },
                 )
             }
         }
@@ -117,7 +117,7 @@ class MuseComponentsSmokeTest {
     fun `empty state renders glyph, copy and action`() {
         composeRule.setContent {
             JarvisPrimeTheme {
-                MuseEmptyState(
+                museEmptyState(
                     title = "No active jobs",
                     body = "Start a job to see live phases.",
                     actionLabel = "Start a job",
@@ -135,12 +135,12 @@ class MuseComponentsSmokeTest {
     fun `phase rail renders every phase label`() {
         composeRule.setContent {
             JarvisPrimeTheme {
-                MusePhaseRail(
+                musePhaseRail(
                     phases = listOf(
-                        MusePhase("Plan", MusePhaseState.Done),
-                        MusePhase("Build", MusePhaseState.Current),
-                        MusePhase("Review", MusePhaseState.Failed),
-                        MusePhase("Ship", MusePhaseState.Pending),
+                        musePhase("Plan", musePhaseState.Done),
+                        musePhase("Build", musePhaseState.Current),
+                        musePhase("Review", musePhaseState.Failed),
+                        musePhase("Ship", musePhaseState.Pending),
                     ),
                 )
             }

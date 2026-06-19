@@ -1,6 +1,6 @@
-# M.U.S.E. phone-first runtime (Termux backend service)
+# muse phone-first runtime (Termux backend service)
 
-This is the operator manual for running M.U.S.E. as a real
+This is the operator manual for running muse as a real
 **backend service** on an Android phone via [Termux](https://termux.dev/).
 The phone is the host: it owns the venv, the working directories,
 the local API, and the service lifecycle. No desktop machine is
@@ -38,7 +38,7 @@ beyond the `pkg install` set documented below.
 ## Why phone-first
 
 Termux gives you a real POSIX userland (`bash`, `python`, `git`,
-`node`, `ssh`, `pkg`) inside the normal Android app sandbox. M.U.S.E.
+`node`, `ssh`, `pkg`) inside the normal Android app sandbox. muse
 treats this as a first-class deployment target rather than a
 curiosity:
 
@@ -95,7 +95,7 @@ What it covers, grouped:
 4. **Core tooling** — `git`, `python` / `python3`, `pip`, `node`,
    plus the package managers (`npm` or `pnpm`) and `uv`.
 5. **Optional CLI agents** — `gh`, `codex`, `claude`, `aider`, `goose`.
-6. **M.U.S.E. install state** — `HERMES_HOME`, `hermes-agent`
+6. **muse install state** — `HERMES_HOME`, `hermes-agent`
    checkout, venv discovery, `hermes` command on PATH.
 7. **Network sanity** — `resolv.conf` only; no outbound probes.
 8. **Local API reachability** — verifies the PID file matches a
@@ -135,7 +135,7 @@ variables — no separate config file, no secrets in version control.
 
 | Variable                    | Purpose                                          | Default      |
 | --------------------------- | ------------------------------------------------ | ------------ |
-| `HERMES_HOME`               | M.U.S.E. data directory                            | `~/.hermes`  |
+| `HERMES_HOME`               | muse data directory                            | `~/.hermes`  |
 | `HERMES_REPO_DIR`           | Path to the `hermes-agent` checkout              | auto-detect  |
 | `HERMES_TERMUX_API_PORT`    | Local API port                                   | `8765`       |
 | `HERMES_TERMUX_GATEWAY`     | Set to `1` to also start the gateway             | unset        |
@@ -152,7 +152,7 @@ The local API is what `hermes` commands talk to when they need
 the long-running agent state. On phone-first installs, it binds
 to `127.0.0.1:${HERMES_TERMUX_API_PORT}` (default `8765`) and is
 **not** reachable from outside the device unless you explicitly
-expose it (which M.U.S.E. does not do for you).
+expose it (which muse does not do for you).
 
 Lifecycle:
 
@@ -219,7 +219,7 @@ you cannot get rid of.
 ## Crash recovery
 
 Phones are not servers. The runtime can disappear for reasons that
-have nothing to do with M.U.S.E. itself — the OOM killer reclaims
+have nothing to do with muse itself — the OOM killer reclaims
 RAM, the vendor's battery optimizer terminates Termux, a forced
 reboot interrupts work, or Android pushes a system update.
 

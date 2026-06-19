@@ -116,7 +116,7 @@ def test_index_still_served_and_links_to_observatory(server) -> None:
     # The one additive nav link to the Observatory page.
     assert 'href="/cockpit/observatory.html"' in text
     # And the existing shell is intact.
-    assert "M.U.S.E." in text
+    assert "muse" in text
 
 
 # ── self-containment: no remote executable/script/link references ───────────

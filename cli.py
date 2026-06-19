@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-M.U.S.E. CLI - Interactive Terminal Interface
+muse CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for M.U.S.E., inspired by Claude Code.
+A beautiful command-line interface for muse inspired by Claude Code.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -348,10 +348,10 @@ def load_cli_config() -> Dict[str, Any]:
                 "teacher": "You are a patient teacher. Explain concepts clearly with examples.",
                 "kawaii": "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ",
                 "catgirl": "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!",
-                "pirate": "Arrr! Ye be talkin' to Captain MUSE, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
+                "pirate": "Arrr! Ye be talkin' to Captain muse the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
                 "shakespeare": "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?",
                 "surfer": "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga!",
-                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me MUSE - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
+                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me muse - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
                 "uwu": "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<",
                 "philosopher": "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.",
                 "hype": "YOOO LET'S GOOOO!!! I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS!",
@@ -367,7 +367,7 @@ def load_cli_config() -> Dict[str, Any]:
             "persistent_output": True,
             "persistent_output_max_lines": 200,
 
-            # M.U.S.E. "Singularity" — white core + thin spectral ring — is the
+            # muse "Singularity" — white core + thin spectral ring — is the
             # default skin. The classic gold Hermes look is available as `caduceus`.
             "skin": "singularity",
         },
@@ -2457,7 +2457,7 @@ def _build_compact_banner() -> str:
         line1 = "⚕ NOUS HERMES - AI Agent Framework"
         tiny_line = "⚕ NOUS HERMES"
     else:
-        agent_name = _skin.get_branding("agent_name", "M.U.S.E.") if _skin else "M.U.S.E."
+        agent_name = _skin.get_branding("agent_name", "muse") if _skin else "muse"
         line1 = f"{agent_name} - AI Agent Framework"
         tiny_line = agent_name
 
@@ -3505,7 +3505,7 @@ class HermesCLI:
                 parts.append("⚠ YOLO")
             return self._trim_status_bar_text(" │ ".join(parts), width)
         except Exception:
-            return f"◉ {self.model if getattr(self, 'model', None) else 'M.U.S.E.'}"
+            return f"◉ {self.model if getattr(self, 'model', None) else 'muse'}"
 
     def _get_status_bar_fragments(self):
         if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
@@ -4096,10 +4096,10 @@ class HermesCLI:
             try:
                 from hermes_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
-                label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                label = _skin.get_branding("response_label", "◉ muse")
                 _text_hex = _skin.get_color("banner_text", "#FFF8DC")
             except Exception:
-                label = "◉ M.U.S.E."
+                label = "◉ muse"
                 _text_hex = "#FFF8DC"
             # Build a true-color ANSI escape for the response text color
             # so streamed content matches the Rich Panel appearance.
@@ -4733,7 +4733,7 @@ class HermesCLI:
                 f"this is likely too low for agent use with tools.[/]"
             )
             self._console_print(
-                "[dim]   MUSE needs 16k–32k minimum. Tool schemas + system prompt alone use ~4k–8k.[/]"
+                "[dim]   muse needs 16k–32k minimum. Tool schemas + system prompt alone use ~4k–8k.[/]"
             )
             base_url = getattr(self, "base_url", "") or ""
             if "11434" in base_url or "ollama" in base_url.lower():
@@ -4757,7 +4757,7 @@ class HermesCLI:
             self._console_print()
             self._console_print(
                 "[bold yellow]⚠  Nous Research Hermes 3 & 4 models are NOT agentic and are not "
-                "designed for use with MUSE.[/]"
+                "designed for use with muse[/]"
             )
             self._console_print(
                 "[dim]   They lack tool-calling capabilities required for agent workflows. "
@@ -4981,13 +4981,13 @@ class HermesCLI:
                     lines.append(f"         {ml}\n", style="dim")
             elif role == "assistant_last":
                 # Last assistant response shown in full, non-dim
-                lines.append("  ◆ M.U.S.E.: ", style=f"bold {_assistant_label_c}")
+                lines.append("  ◆ muse ", style=f"bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="")
                 for ml in msg_lines[1:]:
                     lines.append(f"              {ml}\n", style="")
             else:
-                lines.append("  ◆ M.U.S.E.: ", style=f"dim bold {_assistant_label_c}")
+                lines.append("  ◆ muse ", style=f"dim bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="dim")
                 for ml in msg_lines[1:]:
@@ -5575,7 +5575,7 @@ class HermesCLI:
         is_running = bool(getattr(self, "_agent_running", False))
 
         lines = [
-            "M.U.S.E. CLI Status",
+            "muse CLI Status",
             "",
             f"Session ID: {self.session_id}",
             f"Path: {display_hermes_home()}",
@@ -5629,10 +5629,10 @@ class HermesCLI:
 
         try:
             from hermes_cli.skin_engine import get_active_help_header
-            header = get_active_help_header("✦ M.U.S.E. Commands")
+            header = get_active_help_header("✦ muse Commands")
         except Exception:
-            header = "✦ M.U.S.E. Commands"
-        header = (header or "").strip() or "✦ M.U.S.E. Commands"
+            header = "✦ muse Commands"
+        header = (header or "").strip() or "✦ muse Commands"
         inner_width = 55
         if len(header) > inner_width:
             header = header[:inner_width]
@@ -5665,7 +5665,7 @@ class HermesCLI:
                     f"{_escape(desc)} [dim]({skill_count} skills)[/]"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with MUSE!{_RST}")
+        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with muse{_RST}")
         _cprint(f"  {_DIM}Multi-line: Alt+Enter for a new line{_RST}")
         _cprint(f"  {_DIM}Draft editor: Ctrl+G (Alt+G in VSCode/Cursor){_RST}")
         if _is_termux_environment():
@@ -6013,7 +6013,7 @@ class HermesCLI:
                 )
                 continue
 
-            print(f"\n  [MUSE #{visible_index}]")
+            print(f"\n  [muse #{visible_index}]")
             tool_calls = msg.get("tool_calls") or []
             if content_text:
                 preview = content_text[:preview_limit]
@@ -7838,11 +7838,11 @@ class HermesCLI:
             print(output)
 
     def _handle_jarvis_prime_slash(self, cmd: str) -> None:
-        """Dispatch /jarvis, /jp, /jarvis-prime, /muse, /m to the MUSE runtime.
+        """Dispatch /jarvis, /jp, /jarvis-prime, /muse /m to the muse runtime.
 
         Imports lazily so the cost only lands when the user invokes the
         slash command. ``/muse`` (or ``/m``) with no intent pulls up the
-        MUSE-branded TUI (singularity skin + banner). ``/<cmd> stop`` is a
+        muse-branded TUI (singularity skin + banner). ``/<cmd> stop`` is a
         special form that maps to :meth:`JarvisPrime.stop`; everything else
         is forwarded as the intent to :meth:`JarvisPrime.handle`.
         """
@@ -7875,7 +7875,7 @@ class HermesCLI:
         if intent.lower() in {"stop", "halt", "panic"}:
             result = jp.stop(reason="cli_user_requested")
             print(
-                f"(•̀ᴗ•́)✧ MUSE stopped. "
+                f"(•̀ᴗ•́)✧ muse stopped. "
                 f"cleared={result['cleared']} actions={result['cleared_actions']} "
                 f"tick_disabled={result['tick_disabled']}"
             )
@@ -8568,11 +8568,11 @@ class HermesCLI:
                     try:
                         from hermes_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                        label = _skin.get_branding("response_label", "◉ muse")
                         _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                         _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                     except Exception:
-                        label = "◉ M.U.S.E."
+                        label = "◉ muse"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -8976,7 +8976,7 @@ class HermesCLI:
         _cprint(f"  ⊙ Goal set ({state.max_turns}-turn budget): {state.goal}")
         _cprint(
             f"  {_DIM}After each turn, a judge model will check if the goal is done. "
-            f"MUSE keeps working until it is, you pause/clear it, or the budget is "
+            f"muse keeps working until it is, you pause/clear it, or the budget is "
             f"exhausted. Use /goal status, /goal pause, /goal resume, /goal clear.{_RST}"
         )
         # Kick the loop off immediately so the user doesn't have to send a
@@ -9178,11 +9178,11 @@ class HermesCLI:
                     logging.debug("goal continuation enqueue failed: %s", exc)
 
     def _activate_muse_tui(self) -> None:
-        """Pull up the MUSE-branded TUI: singularity skin + banner + status.
+        """Pull up the muse-branded TUI: singularity skin + banner + status.
 
         Invoked by ``/muse`` (or ``/m``) with no intent. Reuses the ``/skin``
         switch recipe so the change persists across sessions, then re-renders
-        the welcome banner in the M.U.S.E. look.
+        the welcome banner in the muse look.
         """
         try:
             from hermes_cli.skin_engine import (
@@ -9196,21 +9196,21 @@ class HermesCLI:
 
         if get_active_skin_name() != "singularity":
             set_active_skin("singularity")
-            _ACCENT.reset()  # Re-resolve ANSI accent for the MUSE skin
+            _ACCENT.reset()  # Re-resolve ANSI accent for the muse skin
             save_config_value("display.skin", "singularity")
             self._apply_tui_skin_style()
 
         try:
             self.show_banner()
         except Exception as exc:  # banner is cosmetic — never block activation
-            logging.debug("MUSE banner render failed: %s", exc)
+            logging.debug("muse banner render failed: %s", exc)
 
         skin = get_active_skin()
         welcome = skin.get_branding(
-            "welcome", "Welcome to M.U.S.E. — one mind, many pathways."
+            "welcome", "Welcome to muse — one mind, many pathways."
         )
         _cprint(f"  {welcome}")
-        _cprint(f"  {_DIM}/muse <intent> — route an intent through MUSE{_RST}")
+        _cprint(f"  {_DIM}/muse <intent> — route an intent through muse{_RST}")
         _cprint(f"  {_DIM}/muse stop — emergency stop · /model — switch model · /tools — toolsets · /skin — looks{_RST}")
 
     def _handle_skin_command(self, cmd: str):
@@ -9447,11 +9447,11 @@ class HermesCLI:
         self.busy_input_mode = arg
         if save_config_value("display.busy_input_mode", arg):
             if arg == "queue":
-                behavior = "Enter will queue follow-up input while MUSE is busy."
+                behavior = "Enter will queue follow-up input while muse is busy."
             elif arg == "steer":
                 behavior = "Enter will steer your message into the current run (after the next tool call)."
             else:
-                behavior = "Enter will interrupt the current run while MUSE is busy."
+                behavior = "Enter will interrupt the current run while muse is busy."
             _cprint(f"  {_ACCENT}✓ Busy input mode set to '{arg}' (saved to config){_RST}")
             _cprint(f"  {_DIM}{behavior}{_RST}")
         else:
@@ -9616,7 +9616,7 @@ class HermesCLI:
         run_debug_share(args)
 
     def _handle_update_command(self) -> bool:
-        """Handle /update — update MUSE to the latest version.
+        """Handle /update — update muse to the latest version.
 
         In the classic CLI this exits the session and relaunches as
         ``muse update`` so the user sees update output directly and gets
@@ -9630,7 +9630,7 @@ class HermesCLI:
         from hermes_cli.config import is_managed, format_managed_message
 
         if is_managed():
-            print(f"  ✗ {format_managed_message('update MUSE')}")
+            print(f"  ✗ {format_managed_message('update muse')}")
             return False
 
         # Use the prompt_toolkit-native modal so the confirmation panel
@@ -9638,11 +9638,11 @@ class HermesCLI:
         # with the prompt_toolkit event loop (same pattern as
         # _confirm_destructive_slash).
         choices = [
-            ("once", "Update Now", "exit the current session and update MUSE"),
+            ("once", "Update Now", "exit the current session and update muse"),
             ("cancel", "Cancel", "keep the current session"),
         ]
         raw = self._prompt_text_input_modal(
-            title="◉  Update MUSE",
+            title="◉  Update muse",
             detail="This will exit the current session and run `muse update`.",
             choices=choices,
         )
@@ -11383,7 +11383,7 @@ class HermesCLI:
                     if not _streaming_box_opened:
                         _streaming_box_opened = True
                         w = self._scrollback_box_width(getattr(self.console, "width", 80))
-                        label = " ◉ M.U.S.E. "
+                        label = " ◉ muse "
                         if self.show_timestamps:
                             label = f"{label}{datetime.now().strftime('%H:%M')} "
                         fill = w - 2 - HermesCLI._status_bar_display_width(label)
@@ -11688,11 +11688,11 @@ class HermesCLI:
                 try:
                     from hermes_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
-                    label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                    label = _skin.get_branding("response_label", "◉ muse")
                     _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                     _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                 except Exception:
-                    label = "◉ M.U.S.E."
+                    label = "◉ muse"
                     _resp_color = _maybe_remap_for_light_mode("#CD7F32")
                     _resp_text = _maybe_remap_for_light_mode("#FFF8DC")
 
@@ -12092,10 +12092,10 @@ class HermesCLI:
         try:
             from hermes_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands.")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to muse — one mind, many pathways. Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#EEF2F7")
         except Exception:
-            _welcome_text = "Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands."
+            _welcome_text = "Welcome to muse — one mind, many pathways. Type your message or /help for commands."
             _welcome_color = "#EEF2F7"
         self._console_print(f"[{_welcome_color}]{_welcome_text}[/]")
 
@@ -12919,7 +12919,7 @@ class HermesCLI:
             import signal as _sig
             from prompt_toolkit.application import run_in_terminal
             from hermes_cli.skin_engine import get_active_skin
-            agent_name = get_active_skin().get_branding("agent_name", "M.U.S.E.")
+            agent_name = get_active_skin().get_branding("agent_name", "muse")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
                 os.write(1, msg.encode())
@@ -13455,7 +13455,7 @@ class HermesCLI:
                 else f"  {other_num_prefix}. Other (type your answer)"
             )
             preview_lines.extend(_wrap_panel_text(other_label, 60, subsequent_indent="    "))
-            box_width = _panel_box_width("MUSE needs your input", preview_lines)
+            box_width = _panel_box_width("muse needs your input", preview_lines)
             inner_text_width = max(8, box_width - 2)
 
             # Pre-wrap choices + Other option — these are mandatory.
@@ -13531,7 +13531,7 @@ class HermesCLI:
             # Box top border
             lines.append(('class:clarify-border', '╭─ '))
             lines.append(('class:clarify-title', 'Hermes needs your input'))
-            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("MUSE needs your input") - 3)) + '╮\n'))
+            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("muse needs your input") - 3)) + '╮\n'))
             if not use_compact_chrome:
                 _append_blank_panel_line(lines, 'class:clarify-border', box_width)
 

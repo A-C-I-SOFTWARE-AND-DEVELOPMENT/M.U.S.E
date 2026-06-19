@@ -45,7 +45,7 @@ fun RouteDestination.displayLabel(): String = when (this) {
     RouteDestination.LOCAL_WORKER -> "Local worker"
     RouteDestination.CODEX -> "Codex"
     RouteDestination.CLAUDE -> "Claude"
-    RouteDestination.HERMES_GATEWAY -> "Muse gateway"
+    RouteDestination.HERMES_GATEWAY -> "muse gateway"
     RouteDestination.HUMAN_ONLY -> "Human only"
 }
 

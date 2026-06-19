@@ -150,27 +150,27 @@ def test_templates_enabled_flag_values(monkeypatch: pytest.MonkeyPatch) -> None:
         ("1", True), ("true", True), ("YES", True), (" on ", True),
     ]:
         if value is None:
-            monkeypatch.delenv("MUSE_TEMPLATES", raising=False)
+            monkeypatch.delenv("muse_TEMPLATES", raising=False)
         else:
-            monkeypatch.setenv("MUSE_TEMPLATES", value)
+            monkeypatch.setenv("muse_TEMPLATES", value)
         assert templates_enabled() is expected
 
 
 def test_build_fastpath_returns_none_without_server(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("MUSE_TEMPLATES_SERVER", raising=False)
+    monkeypatch.delenv("muse_TEMPLATES_SERVER", raising=False)
     assert build_fastpath() is None
 
 
 def test_build_fastpath_returns_none_without_artifacts(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv("MUSE_TEMPLATES_SERVER", "http://127.0.0.1:9")
-    monkeypatch.setenv("MUSE_TEMPLATES_DIR", str(tmp_path))  # empty: no model/
+    monkeypatch.setenv("muse_TEMPLATES_SERVER", "http://127.0.0.1:9")
+    monkeypatch.setenv("muse_TEMPLATES_DIR", str(tmp_path))  # empty: no model/
     assert build_fastpath() is None
 
 
 def test_maybe_wrap_runner_identity_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("MUSE_TEMPLATES", raising=False)
+    monkeypatch.delenv("muse_TEMPLATES", raising=False)
 
     def base(prompt: str) -> str:
         return prompt
@@ -180,7 +180,7 @@ def test_maybe_wrap_runner_identity_when_disabled(monkeypatch: pytest.MonkeyPatc
 
 def test_wrapped_runner_falls_back_to_base(fastpath, monkeypatch: pytest.MonkeyPatch) -> None:
     fp, _ = fastpath
-    monkeypatch.setenv("MUSE_TEMPLATES", "1")
+    monkeypatch.setenv("muse_TEMPLATES", "1")
     monkeypatch.setattr(
         "hermes_cli.jarvis_prime.template_fastpath.build_fastpath", lambda **kw: fp
     )
@@ -205,7 +205,7 @@ def test_committed_artifacts_build_a_fastpath_against_stub(
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         url = f"http://127.0.0.1:{server.server_port}"
-        monkeypatch.delenv("MUSE_TEMPLATES_DIR", raising=False)
+        monkeypatch.delenv("muse_TEMPLATES_DIR", raising=False)
         fp = build_fastpath(server_url=url)
         assert fp is not None
         result = fp.run("Write a Python function `sum_list` that returns the sum of a list of integers.")

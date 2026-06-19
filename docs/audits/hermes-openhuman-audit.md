@@ -1,4 +1,4 @@
-# Hermes / MUSE ⇄ OpenHuman Audit
+# Hermes / muse ⇄ OpenHuman Audit
 
 > Audit performed against the live local checkouts at `/home/user/hermes-agent`
 > (this repo) and `/home/user/openhuman` (reference only). Date: 2026-06-03.

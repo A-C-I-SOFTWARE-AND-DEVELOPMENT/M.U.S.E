@@ -4,7 +4,7 @@
 > primitives used by the orchestrator daemon, the local API, and the
 > Android cockpit.
 
-M.U.S.E. orchestrates work that spans long-running workers, remote
+muse orchestrates work that spans long-running workers, remote
 tunnels, and unreliable phone networks. This page describes the three
 modules that make that work survivable:
 
@@ -232,7 +232,7 @@ is mid-flight" sequence:
        w1.status     = DISCONNECTED
        entry.state   = DISCONNECTED   (no other runner)
 3. Worker process on remote machine writes final output
-   somewhere (e.g. resume token) — irrelevant to M.U.S.E..
+   somewhere (e.g. resume token) — irrelevant to muse
 4. Tunnel comes back.
 5. Dispatcher detects w1 is reachable again.
 6. queue.mark_worker_reconnected("job-1", "w1")
@@ -245,7 +245,7 @@ is mid-flight" sequence:
 
 The key invariant: between steps 2 and 6 there is *zero* loss of
 prompt or output state. Both fields live in `queue.json`, which
-survives M.U.S.E. / Termux / phone restarts.
+survives muse / Termux / phone restarts.
 
 ## Mobile app recovery
 

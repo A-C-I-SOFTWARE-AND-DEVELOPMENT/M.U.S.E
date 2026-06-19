@@ -1,4 +1,4 @@
-"""W7 — constrained / grammar decoding for the MUSE NL compiler.
+"""W7 — constrained / grammar decoding for the muse NL compiler.
 
 The model provider interface here is *completion-only*: we hand a prompt to a
 callable and get back a string. There is no token-level masking, so

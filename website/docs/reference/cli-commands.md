@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "CLI Commands Reference"
-description: "Authoritative reference for M.U.S.E. terminal commands and command families"
+description: "Authoritative reference for muse terminal commands and command families"
 ---
 
 # CLI Commands Reference
@@ -21,7 +21,7 @@ muse [global-options] <command> [subcommand/options]
 | Option | Description |
 |--------|-------------|
 | `--version`, `-V` | Show version and exit. |
-| `--profile <name>`, `-p <name>` | Select which M.U.S.E. profile to use for this invocation. Overrides the sticky default set by `muse profile use`. |
+| `--profile <name>`, `-p <name>` | Select which muse profile to use for this invocation. Overrides the sticky default set by `muse profile use`. |
 | `--resume <session>`, `-r <session>` | Resume a previous session by ID or title. |
 | `--continue [name]`, `-c [name]` | Resume the most recent session, or the most recent session matching a title. |
 | `--worktree`, `-w` | Start in an isolated git worktree for parallel-agent workflows. |
@@ -55,9 +55,9 @@ muse [global-options] <command> [subcommand/options]
 | `muse doctor` | Diagnose config and dependency issues. |
 | `muse dump` | Copy-pasteable setup summary for support/debugging. |
 | `muse debug` | Debug tools — upload logs and system info for support. |
-| `muse backup` | Back up M.U.S.E. home directory to a zip file. |
+| `muse backup` | Back up muse home directory to a zip file. |
 | `muse checkpoints` | Inspect / prune / clear `~/.hermes/checkpoints/` (the shadow store used by `/rollback`). Run with no args for a status overview. |
-| `muse import` | Restore a M.U.S.E. backup from a zip file. |
+| `muse import` | Restore a muse backup from a zip file. |
 | `muse logs` | View, tail, and filter agent/gateway/error log files. |
 | `muse config` | Show, edit, migrate, and query configuration files. |
 | `muse pairing` | Approve or revoke messaging pairing codes. |
@@ -65,20 +65,20 @@ muse [global-options] <command> [subcommand/options]
 | `muse bundles` | Group several skills under a single `/<name>` slash command. See [Skill Bundles](../user-guide/features/skills.md#skill-bundles). |
 | `muse curator` | Background skill maintenance — status, run, pause, pin. See [Curator](../user-guide/features/curator.md). |
 | `muse memory` | Configure external memory provider. Plugin-specific subcommands (e.g. `muse honcho`) register automatically when their provider is active. |
-| `muse acp` | Run M.U.S.E. as an ACP server for editor integration. |
-| `muse mcp` | Manage MCP server configurations and run M.U.S.E. as an MCP server. |
-| `muse plugins` | Manage M.U.S.E. plugins (install, enable, disable, remove). |
+| `muse acp` | Run muse as an ACP server for editor integration. |
+| `muse mcp` | Manage MCP server configurations and run muse as an MCP server. |
+| `muse plugins` | Manage muse plugins (install, enable, disable, remove). |
 | `muse tools` | Configure enabled tools per platform. |
 | `muse computer-use` | Install or check the cua-driver backend (macOS Computer Use). |
 | `muse sessions` | Browse, export, prune, rename, and delete sessions. |
 | `muse insights` | Show token/cost/activity analytics. |
 | `muse claw` | OpenClaw migration helpers. |
 | `muse dashboard` | Launch the web dashboard for managing config, API keys, and sessions. |
-| `muse profile` | Manage profiles — multiple isolated M.U.S.E. instances. |
+| `muse profile` | Manage profiles — multiple isolated muse instances. |
 | `muse completion` | Print shell completion scripts (bash/zsh/fish). |
 | `muse version` | Show version information. |
 | `muse update` | Pull latest code and reinstall dependencies (git installs), or check PyPI and `pip install --upgrade` (pip installs). `--check` previews without installing; `--backup` takes a pre-pull `HERMES_HOME` snapshot. |
-| `muse uninstall` | Remove M.U.S.E. from the system. |
+| `muse uninstall` | Remove muse from the system. |
 
 ## `muse chat`
 
@@ -149,7 +149,7 @@ Same agent, same tools, same skills — just strips every interactive / cosmetic
 
 ## `muse model`
 
-Interactive provider + model selector. **This is the command for adding new providers, setting up API keys, and running OAuth flows.** Run it from your terminal — not from inside an active M.U.S.E. chat session.
+Interactive provider + model selector. **This is the command for adding new providers, setting up API keys, and running OAuth flows.** Run it from your terminal — not from inside an active muse chat session.
 
 ```bash
 muse model
@@ -164,11 +164,11 @@ Use this when you want to:
 - save the new default into config
 
 :::warning muse model vs /model — know the difference
-**`muse model`** (run from your terminal, outside any M.U.S.E. session) is the **full provider setup wizard**. It can add new providers, run OAuth flows, prompt for API keys, and configure endpoints.
+**`muse model`** (run from your terminal, outside any muse session) is the **full provider setup wizard**. It can add new providers, run OAuth flows, prompt for API keys, and configure endpoints.
 
-**`/model`** (typed inside an active M.U.S.E. chat session) can only **switch between providers and models you've already set up**. It cannot add new providers, run OAuth, or prompt for API keys.
+**`/model`** (typed inside an active muse chat session) can only **switch between providers and models you've already set up**. It cannot add new providers, run OAuth, or prompt for API keys.
 
-**If you need to add a new provider:** Exit your M.U.S.E. session first (`Ctrl+C` or `/quit`), then run `muse model` from your terminal prompt.
+**If you need to add a new provider:** Exit your muse session first (`Ctrl+C` or `/quit`), then run `muse model` from your terminal prompt.
 :::
 
 ### `/model` slash command (mid-session)
@@ -338,7 +338,7 @@ muse auth remove openrouter 2                          # Remove by index
 muse auth reset openrouter                             # Clear cooldowns
 muse auth status anthropic                             # Show auth status for a provider
 muse auth logout anthropic                             # Log out and clear stored auth state
-muse auth spotify                                      # Authenticate M.U.S.E. with Spotify via PKCE
+muse auth spotify                                      # Authenticate muse with Spotify via PKCE
 ```
 
 Subcommands: `add`, `list`, `remove`, `reset`, `status`, `logout`, `spotify`. When called with no subcommand, launches the interactive management wizard.
@@ -489,7 +489,7 @@ muse doctor [--fix]
 muse dump [--show-keys]
 ```
 
-Outputs a compact, plain-text summary of your entire M.U.S.E. setup. Designed to be copy-pasted into Discord, GitHub issues, or Telegram when asking for support — no ANSI colors, no special formatting, just data.
+Outputs a compact, plain-text summary of your entire muse setup. Designed to be copy-pasted into Discord, GitHub issues, or Telegram when asking for support — no ANSI colors, no special formatting, just data.
 
 | Option | Description |
 |--------|-------------|
@@ -499,7 +499,7 @@ Outputs a compact, plain-text summary of your entire M.U.S.E. setup. Designed to
 
 | Section | Details |
 |---------|---------|
-| **Header** | M.U.S.E. version, release date, git commit hash |
+| **Header** | muse version, release date, git commit hash |
 | **Environment** | OS, Python version, OpenAI SDK version |
 | **Identity** | Active profile name, HERMES_HOME path |
 | **Model** | Configured default model and provider |
@@ -573,7 +573,7 @@ Upload a debug report (system info + recent logs) to a paste service and get a s
 | `--expire <days>` | Paste expiry in days (default: 7). |
 | `--local` | Print the report locally instead of uploading. |
 
-The report includes system info (OS, Python version, M.U.S.E. version), recent agent and gateway logs (512 KB limit per file), and redacted API key status. Keys are always redacted — no secrets are uploaded.
+The report includes system info (OS, Python version, muse version), recent agent and gateway logs (512 KB limit per file), and redacted API key status. Keys are always redacted — no secrets are uploaded.
 
 Paste services tried in order: paste.rs, dpaste.com.
 
@@ -592,7 +592,7 @@ muse debug share --local      # Print report to terminal (no upload)
 muse backup [options]
 ```
 
-Create a zip archive of your M.U.S.E. configuration, skills, sessions, and data. The backup excludes the hermes-agent codebase itself.
+Create a zip archive of your muse configuration, skills, sessions, and data. The backup excludes the hermes-agent codebase itself.
 
 | Option | Description |
 |--------|-------------|
@@ -600,7 +600,7 @@ Create a zip archive of your M.U.S.E. configuration, skills, sessions, and data.
 | `-q`, `--quick` | Quick snapshot: only critical state files (config.yaml, state.db, .env, auth, cron jobs). Much faster than a full backup. |
 | `-l`, `--label <name>` | Label for the snapshot (only used with `--quick`). |
 
-The backup uses SQLite's `backup()` API for safe copying, so it works correctly even when M.U.S.E. is running (WAL-mode safe).
+The backup uses SQLite's `backup()` API for safe copying, so it works correctly even when muse is running (WAL-mode safe).
 
 **What's excluded from the zip:**
 
@@ -661,7 +661,7 @@ See [Checkpoints and `/rollback`](../user-guide/checkpoints-and-rollback.md) for
 muse import <zipfile> [options]
 ```
 
-Restore a previously created M.U.S.E. backup into your M.U.S.E. home directory. All files in the archive overwrite existing files in your M.U.S.E. home; `--force` only skips the confirmation prompt that fires when the target already has a M.U.S.E. installation.
+Restore a previously created muse backup into your muse home directory. All files in the archive overwrite existing files in your muse home; `--force` only skips the confirmation prompt that fires when the target already has a muse installation.
 
 | Option | Description |
 |--------|-------------|
@@ -683,7 +683,7 @@ muse import ~/hermes-backup-20260423.zip --force   # Overwrite without prompting
 muse logs [log_name] [options]
 ```
 
-View, tail, and filter M.U.S.E. log files. All logs are stored in `~/.hermes/logs/` (or `<profile>/logs/` for non-default profiles).
+View, tail, and filter muse log files. All logs are stored in `~/.hermes/logs/` (or `<profile>/logs/` for non-default profiles).
 
 ### Log files
 
@@ -743,7 +743,7 @@ Lines without a parseable timestamp are included when `--since` is active (they 
 
 ### Log rotation
 
-M.U.S.E. uses Python's `RotatingFileHandler`. Old logs are rotated automatically — look for `agent.log.1`, `agent.log.2`, etc. The `muse logs list` subcommand shows all log files including rotated ones.
+muse uses Python's `RotatingFileHandler`. Old logs are rotated automatically — look for `agent.log.1`, `agent.log.2`, etc. The `muse logs list` subcommand shows all log files including rotated ones.
 
 ## `muse config`
 
@@ -825,7 +825,7 @@ Notes:
 - `--force` can override non-dangerous policy blocks for third-party/community skills.
 - `--force` does not override a `dangerous` scan verdict.
 - `--source skills-sh` searches the public `skills.sh` directory.
-- `--source well-known` lets you point M.U.S.E. at a site exposing `/.well-known/skills/index.json`.
+- `--source well-known` lets you point muse at a site exposing `/.well-known/skills/index.json`.
 - `--source browse-sh` searches [browse.sh](https://browse.sh)'s catalog of 200+ site-specific browser-automation skills. Identifiers look like `browse-sh/airbnb.com/search-listings-ddgioa`.
 - Passing an `http(s)://…/*.md` URL installs a single-file SKILL.md directly. When frontmatter has no `name:` and the URL slug isn't a valid identifier, an interactive terminal prompts for a name; non-interactive surfaces (`/skills install` inside the TUI, gateway platforms) require `--name <x>` instead.
 
@@ -955,7 +955,7 @@ When an external memory provider is active, it may register its own top-level `m
 muse acp
 ```
 
-Starts M.U.S.E. as an ACP (Agent Client Protocol) stdio server for editor integration.
+Starts muse as an ACP (Agent Client Protocol) stdio server for editor integration.
 
 Related entrypoints:
 
@@ -978,11 +978,11 @@ See [ACP Editor Integration](../user-guide/features/acp.md) and [ACP Internals](
 muse mcp <subcommand>
 ```
 
-Manage MCP (Model Context Protocol) server configurations and run M.U.S.E. as an MCP server.
+Manage MCP (Model Context Protocol) server configurations and run muse as an MCP server.
 
 | Subcommand | Description |
 |------------|-------------|
-| `serve [-v\|--verbose]` | Run M.U.S.E. as an MCP server — expose conversations to other agents. |
+| `serve [-v\|--verbose]` | Run muse as an MCP server — expose conversations to other agents. |
 | `add <name> [--url URL] [--command CMD] [--args ...] [--auth oauth\|header]` | Add an MCP server with automatic tool discovery. |
 | `remove <name>` (alias: `rm`) | Remove an MCP server from config. |
 | `list` (alias: `ls`) | List configured MCP servers. |
@@ -1019,7 +1019,7 @@ Provider plugin selections are saved to `config.yaml`:
 
 General plugin disabled list is stored in `config.yaml` under `plugins.disabled`.
 
-See [Plugins](../user-guide/features/plugins.md) and [Build a M.U.S.E. Plugin](../guides/build-a-hermes-plugin.md).
+See [Plugins](../user-guide/features/plugins.md) and [Build a muse Plugin](../guides/build-a-hermes-plugin.md).
 
 ## `muse tools`
 
@@ -1057,7 +1057,7 @@ it (for example, on returning-user setups).
 `muse update` automatically re-runs the upstream installer at the end
 of the update if cua-driver is on PATH, so most users will not need to
 call `--upgrade` manually. Use it when upstream ships a fix you want
-right now without waiting for the next M.U.S.E. update.
+right now without waiting for the next muse update.
 
 ## `muse sessions`
 
@@ -1094,13 +1094,13 @@ muse insights [--days N] [--source platform]
 muse claw migrate [options]
 ```
 
-Migrate your OpenClaw setup to M.U.S.E.. Reads from `~/.openclaw` (or a custom path) and writes to `~/.hermes`. Automatically detects legacy directory names (`~/.clawdbot`, `~/.moltbot`) and config filenames (`clawdbot.json`, `moltbot.json`).
+Migrate your OpenClaw setup to muse Reads from `~/.openclaw` (or a custom path) and writes to `~/.hermes`. Automatically detects legacy directory names (`~/.clawdbot`, `~/.moltbot`) and config filenames (`clawdbot.json`, `moltbot.json`).
 
 | Option | Description |
 |--------|-------------|
 | `--dry-run` | Preview what would be migrated without writing anything. |
 | `--preset <name>` | Migration preset: `full` (all compatible settings) or `user-data` (excludes infrastructure config). Neither preset imports secrets — pass `--migrate-secrets` explicitly. |
-| `--overwrite` | Overwrite existing M.U.S.E. files on conflicts (default: refuse to apply when the plan has conflicts). |
+| `--overwrite` | Overwrite existing muse files on conflicts (default: refuse to apply when the plan has conflicts). |
 | `--migrate-secrets` | Include API keys in migration. Required even under `--preset full`. |
 | `--no-backup` | Skip the pre-migration zip snapshot of `~/.hermes/` (by default a single restore-point archive is written to `~/.hermes/backups/pre-migration-*.zip` before apply; restorable with `muse import`). |
 | `--source <path>` | Custom OpenClaw directory (default: `~/.openclaw`). |
@@ -1110,7 +1110,7 @@ Migrate your OpenClaw setup to M.U.S.E.. Reads from `~/.openclaw` (or a custom p
 
 ### What gets migrated
 
-The migration covers 30+ categories across persona, memory, skills, model providers, messaging platforms, agent behavior, session policies, MCP servers, TTS, and more. Items are either **directly imported** into M.U.S.E. equivalents or **archived** for manual review.
+The migration covers 30+ categories across persona, memory, skills, model providers, messaging platforms, agent behavior, session policies, MCP servers, TTS, and more. Items are either **directly imported** into muse equivalents or **archived** for manual review.
 
 **Directly imported:** SOUL.md, MEMORY.md, USER.md, AGENTS.md, skills (4 source directories), default model, custom providers, MCP servers, messaging platform tokens and allowlists (Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost), agent defaults (reasoning effort, compression, human delay, timezone, sandbox), session reset policies, approval rules, TTS config, browser settings, tool settings, exec timeout, command allowlist, gateway config, and API keys from 3 sources.
 
@@ -1174,7 +1174,7 @@ muse dashboard --tui
 muse profile <subcommand>
 ```
 
-Manage profiles — multiple isolated M.U.S.E. instances, each with its own config, sessions, skills, and home directory.
+Manage profiles — multiple isolated muse instances, each with its own config, sessions, skills, and home directory.
 
 | Subcommand | Description |
 |------------|-------------|
@@ -1211,7 +1211,7 @@ muse -p work chat -q "Hello from work profile"
 muse completion [bash|zsh|fish]
 ```
 
-Print a shell completion script to stdout. Source the output in your shell profile for tab-completion of M.U.S.E. commands, subcommands, and profile names.
+Print a shell completion script to stdout. Source the output in your shell profile for tab-completion of muse commands, subcommands, and profile names.
 
 Examples:
 
@@ -1248,7 +1248,7 @@ Additional behavior:
 - **Fork consolidation.** When `origin` is a fork, `muse update` defaults to bringing `upstream/main` and your working branch together into `main` (with optional model-assisted conflict resolution). A heavily-diverged fork can hit unresolvable conflicts and safe-stop without touching `main`; in that case re-run with `--no-consolidate` (or set `update.consolidate: false`) to update only from your fork's `origin/main`.
 
 - **Pairing data snapshot.** Even when `--backup` is off, `muse update` takes a lightweight snapshot of `~/.hermes/pairing/` and the Feishu comment rules before `git pull`. You can roll it back with `muse backup restore --state pre-update` if a pull rewrites a file you were editing.
-- **Legacy `hermes.service` warning.** If M.U.S.E. detects a pre-rename `hermes.service` systemd unit (instead of the current `hermes-gateway.service`), it prints a one-time migration hint so you can avoid flap-loop issues.
+- **Legacy `hermes.service` warning.** If muse detects a pre-rename `hermes.service` systemd unit (instead of the current `hermes-gateway.service`), it prints a one-time migration hint so you can avoid flap-loop issues.
 - **Exit codes.** `0` on success, `1` on pull/install/post-install errors, `2` on unexpected working-tree changes that block `git pull`.
 
 ## Maintenance commands
@@ -1257,7 +1257,7 @@ Additional behavior:
 |---------|-------------|
 | `muse version` | Print version information. |
 | `muse update` | Pull latest changes and reinstall dependencies. |
-| `muse uninstall [--full] [--yes]` | Remove M.U.S.E., optionally deleting all config/data. |
+| `muse uninstall [--full] [--yes]` | Remove muse optionally deleting all config/data. |
 
 ## See also
 

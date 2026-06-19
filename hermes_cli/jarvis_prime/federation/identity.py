@@ -69,7 +69,7 @@ def _write_private_bytes(path: Path, data: bytes) -> None:
 
 @dataclass(frozen=True)
 class NodeIdentity:
-    """One sovereign MUSE node's public identity."""
+    """One sovereign muse node's public identity."""
 
     node_id: str  # "node_" + sha256(public material)[:16] — content-derived
     display_name: str

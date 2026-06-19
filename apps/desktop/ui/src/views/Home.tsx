@@ -34,7 +34,7 @@ function WelcomeCard() {
         <Glyph size={40} />
         <div>
           <div style={{ fontWeight: 600, color: "#eef2f7" }}>
-            Welcome to M.U.S.E.
+            Welcome to muse
           </div>
           <div className="muted">
             Your local-first AI operating partner, on the desktop.
@@ -198,7 +198,7 @@ function ChatCard({
       <div className="chatlog" ref={logRef}>
         {messages.length === 0 ? (
           <div className="empty">
-            Ask M.U.S.E. anything. Responses stream live from the local agent.
+            Ask muse anything. Responses stream live from the local agent.
           </div>
         ) : (
           messages.map((m, i) => (
@@ -213,7 +213,7 @@ function ChatCard({
           rows={2}
           placeholder={
             paired
-              ? "Message M.U.S.E.…  (Enter to send, Shift+Enter for newline)"
+              ? "Message muse…  (Enter to send, Shift+Enter for newline)"
               : "Pair this device to chat…"
           }
           value={draft}

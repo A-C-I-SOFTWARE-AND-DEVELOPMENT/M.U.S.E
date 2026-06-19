@@ -1,4 +1,4 @@
-# G0.1 — MUSE Design System (grain snapshot)
+# G0.1 — muse Design System (grain snapshot)
 
 > Single-writer snapshot for builder grain **G0.1**. Only this grain writes
 > this file. The central program ledger
@@ -7,7 +7,7 @@
 ## Intent
 
 Stand up `design-system/` — a framework-agnostic package that is the **single
-source of craft** for M.U.S.E. It holds the canonical "Singularity" tokens in
+source of craft** for muse It holds the canonical "Singularity" tokens in
 one JSON file and a pure-Node generator that emits platform artifacts so the
 web cockpit and the Android app render pixel-identical values from one source.
 Also document the canonical UI components both apps implement.
@@ -66,7 +66,7 @@ npm test      -> all 35 assertions passed (exit 0)
 The test asserts each canonical hex appears in **both** `dist/tokens.css`
 (e.g. `#050507`, `#7ae0ff`, `#b388ff`, `#5be3a0`, `#f5c451`, `#ff5c63`) and
 `dist/Tokens.kt` (matching `0xFF050507` … `0xFFFF5C63`), plus the ring gradient,
-the 4/8 spacing grid, `--radius: 12px`, the `MuseTokens` object shape, and the
+the 4/8 spacing grid, `--radius: 12px`, the `museTokens` object shape, and the
 glyph `-32` rotate. Both `dist/` artifacts confirmed present with exact values.
 
 Node `v22.22.2`, npm `10.9.7`. No runtime dependencies; `npm install` only
@@ -77,12 +77,12 @@ materializes the workspace.
 - **Kotlin is shape-validated, not compiled.** No Android/Compose toolchain in
   this grain, so `Tokens.kt` is verified by structure + the hex contract test,
   not by `kotlinc`. The downstream Android grain should compile it inside the
-  Compose module (package `muse.designsystem`); it imports
+  Compose module (package `musedesignsystem`); it imports
   `androidx.compose.ui.{graphics.Color, text.font.FontWeight, unit.dp, unit.sp}`.
 - **Adoption is not wired.** This grain ships the source of truth only; it does
   **not** modify `gateway/cockpit/static/tokens.css` or any Android theme. A
   follow-up grain migrates the cockpit to import `dist/tokens.css` and the app
-  to use `MuseTokens`. Until then two token copies coexist (intentional, by
+  to use `museTokens`. Until then two token copies coexist (intentional, by
   ownership boundaries) — values match exactly, so no visual drift.
 - **`dist/` is committed.** Regenerate via `npm run build` after any
   `tokens.json` edit; a stale `dist/` would be caught by `npm test` in CI.

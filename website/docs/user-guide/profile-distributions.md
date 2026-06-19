@@ -4,13 +4,13 @@ sidebar_position: 3
 
 # Profile Distributions: Share a Whole Agent
 
-A **profile distribution** packages a complete M.U.S.E. agent — personality, skills, cron jobs, MCP connections, config — as a git repository. Anyone with access to the repo can install the whole agent with one command, update it in place, and keep their own memories, sessions, and API keys untouched.
+A **profile distribution** packages a complete muse agent — personality, skills, cron jobs, MCP connections, config — as a git repository. Anyone with access to the repo can install the whole agent with one command, update it in place, and keep their own memories, sessions, and API keys untouched.
 
 If a [profile](./profiles.md) is a local agent, a distribution is that agent made shareable.
 
 ## What this means
 
-Before distributions, sharing a M.U.S.E. agent meant sending someone:
+Before distributions, sharing a muse agent meant sending someone:
 
 1. Your SOUL.md
 2. A list of skills to install
@@ -52,7 +52,7 @@ We considered tarballs, HTTP archives, a custom format. None of them beat git:
 - **Private repos work for free.** SSH keys, `git credential` helpers, GitHub CLI stored credentials — whatever auth your terminal is already set up for applies transparently.
 - **Reproducibility is a commit SHA.** The same thing pip and npm record.
 
-The tradeoff: recipients need git installed. On any machine running M.U.S.E. in 2026, that's already true.
+The tradeoff: recipients need git installed. On any machine running muse in 2026, that's already true.
 
 ## When should you use a distribution?
 
@@ -248,7 +248,7 @@ muse profile install github.com/acme/support-bot --name support-eu --alias
 After install, the agent's profile contains a `.env.EXAMPLE`:
 
 ```
-# Environment variables required by this M.U.S.E. distribution.
+# Environment variables required by this muse distribution.
 # Copy to `.env` and fill in your own values before running.
 
 # OpenAI API key (for model access)
@@ -282,7 +282,7 @@ Distribution: research-bot
 Version:      1.0.0
 Description:  Autonomous research assistant with arXiv and web tools
 Author:       Your Name
-Requires:     M.U.S.E. >=0.12.0
+Requires:     muse >=0.12.0
 Source:       https://github.com/you/research-bot
 Installed:    2026-05-08T17:04:32+00:00
 

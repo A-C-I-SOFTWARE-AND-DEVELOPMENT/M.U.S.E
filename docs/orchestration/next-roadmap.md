@@ -1,4 +1,4 @@
-# M.U.S.E. orchestration — next roadmap
+# muse orchestration — next roadmap
 
 Concrete, scoped enhancements to take the Phase 24 substrate from "10/10
 substrate" to "10/10 product". Each item is sized to fit in a single

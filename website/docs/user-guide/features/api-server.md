@@ -19,7 +19,7 @@ Add to `~/.hermes/.env`:
 ```bash
 API_SERVER_ENABLED=true
 API_SERVER_KEY=change-me-local-dev
-# Optional: only if a browser must call M.U.S.E. directly
+# Optional: only if a browser must call muse directly
 # API_SERVER_CORS_ORIGINS=http://localhost:3000
 ```
 
@@ -102,11 +102,11 @@ Standard OpenAI Chat Completions format. Stateless — the full conversation is 
 
 Uploaded files (`file` / `input_file` / `file_id`) and non-image `data:` URLs return `400 unsupported_content_type`.
 
-**Streaming** (`"stream": true`): Returns Server-Sent Events (SSE) with token-by-token response chunks. For **Chat Completions**, the stream uses standard `chat.completion.chunk` events plus M.U.S.E.' custom `hermes.tool.progress` event for tool-start UX. For **Responses**, the stream uses OpenAI Responses event types such as `response.created`, `response.output_text.delta`, `response.output_item.added`, `response.output_item.done`, and `response.completed`.
+**Streaming** (`"stream": true`): Returns Server-Sent Events (SSE) with token-by-token response chunks. For **Chat Completions**, the stream uses standard `chat.completion.chunk` events plus muse' custom `hermes.tool.progress` event for tool-start UX. For **Responses**, the stream uses OpenAI Responses event types such as `response.created`, `response.output_text.delta`, `response.output_item.added`, `response.output_item.done`, and `response.completed`.
 
 **Tool progress in streams**:
-- **Chat Completions**: M.U.S.E. emits `event: hermes.tool.progress` for tool-start visibility without polluting persisted assistant text.
-- **Responses**: M.U.S.E. emits spec-native `function_call` and `function_call_output` output items during the SSE stream, so clients can render structured tool UI in real time.
+- **Chat Completions**: muse emits `event: hermes.tool.progress` for tool-start visibility without polluting persisted assistant text.
+- **Responses**: muse emits spec-native `function_call` and `function_call_output` output items during the SSE stream, so clients can render structured tool UI in real time.
 
 ### POST /v1/responses
 
@@ -215,7 +215,7 @@ Returns a machine-readable description of the API server's stable surface for ex
 }
 ```
 
-Use this endpoint when integrating dashboards, browser UIs, or control planes so they can discover whether the running M.U.S.E. version supports runs, streaming, cancellation, and session continuity without depending on private Python internals.
+Use this endpoint when integrating dashboards, browser UIs, or control planes so they can discover whether the running muse version supports runs, streaming, cancellation, and session continuity without depending on private Python internals.
 
 ### GET /health
 
@@ -240,7 +240,7 @@ Create a new agent run. Returns a `run_id` that can be used to subscribe to prog
 }
 ```
 
-Runs accept a simple `input` string and optional `session_id`, `instructions`, `conversation_history`, or `previous_response_id`. When `session_id` is provided, M.U.S.E. surfaces it in the run status so external UIs can correlate runs with their own conversation IDs.
+Runs accept a simple `input` string and optional `session_id`, `instructions`, `conversation_history`, or `previous_response_id`. When `session_id` is provided, muse surfaces it in the run status so external UIs can correlate runs with their own conversation IDs.
 
 ### GET /v1/runs/\{run_id\}
 
@@ -266,7 +266,7 @@ Server-Sent Events stream of the run's tool-call progress, token deltas, and lif
 
 ### POST /v1/runs/\{run_id\}/stop
 
-Interrupt a running agent turn. The endpoint returns immediately with `{"status": "stopping"}` while M.U.S.E. asks the active agent to stop at the next safe interruption point.
+Interrupt a running agent turn. The endpoint returns immediately with `{"status": "stopping"}` while muse asks the active agent to stop at the next safe interruption point.
 
 ## Jobs API (background scheduled work)
 
@@ -320,7 +320,7 @@ Bearer token auth via the `Authorization` header:
 Authorization: Bearer ***
 ```
 
-Configure the key via `API_SERVER_KEY` env var. If you need a browser to call M.U.S.E. directly, also set `API_SERVER_CORS_ORIGINS` to an explicit allowlist.
+Configure the key via `API_SERVER_KEY` env var. If you need a browser to call muse directly, also set `API_SERVER_CORS_ORIGINS` to an explicit allowlist.
 
 :::warning Security
 The API server gives full access to hermes-agent's toolset, **including terminal commands**. When binding to a non-loopback address like `0.0.0.0`, `API_SERVER_KEY` is **required**. Also keep `API_SERVER_CORS_ORIGINS` narrow to control browser access.
@@ -391,7 +391,7 @@ Any frontend that supports the OpenAI API format works. Tested/documented integr
 
 ## Multi-User Setup with Profiles
 
-To give multiple users their own isolated M.U.S.E. instance (separate config, memory, skills), use [profiles](/docs/user-guide/profiles):
+To give multiple users their own isolated muse instance (separate config, memory, skills), use [profiles](/docs/user-guide/profiles):
 
 ```bash
 # Create a profile per user
@@ -422,7 +422,7 @@ Each profile's API server automatically advertises the profile name as the model
 - `http://localhost:8643/v1/models` → model `alice`
 - `http://localhost:8644/v1/models` → model `bob`
 
-In Open WebUI, add each as a separate connection. The model dropdown shows `alice` and `bob` as distinct models, each backed by a fully isolated M.U.S.E. instance. See the [Open WebUI guide](/docs/user-guide/messaging/open-webui#multi-user-setup-with-profiles) for details.
+In Open WebUI, add each as a separate connection. The model dropdown shows `alice` and `bob` as distinct models, each backed by a fully isolated muse instance. See the [Open WebUI guide](/docs/user-guide/messaging/open-webui#multi-user-setup-with-profiles) for details.
 
 ## Limitations
 
@@ -432,6 +432,6 @@ In Open WebUI, add each as a separate connection. The model dropdown shows `alic
 
 ## Proxy Mode
 
-The API server also serves as the backend for **gateway proxy mode**. When another M.U.S.E. gateway instance is configured with `GATEWAY_PROXY_URL` pointing at this API server, it forwards all messages here instead of running its own agent. This enables split deployments — for example, a Docker container handling Matrix E2EE that relays to a host-side agent.
+The API server also serves as the backend for **gateway proxy mode**. When another muse gateway instance is configured with `GATEWAY_PROXY_URL` pointing at this API server, it forwards all messages here instead of running its own agent. This enables split deployments — for example, a Docker container handling Matrix E2EE that relays to a host-side agent.
 
 See [Matrix Proxy Mode](/docs/user-guide/messaging/matrix#proxy-mode-e2ee-on-macos) for the full setup guide.

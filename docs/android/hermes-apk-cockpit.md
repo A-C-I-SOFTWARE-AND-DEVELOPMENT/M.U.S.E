@@ -1,4 +1,4 @@
-# M.U.S.E. APK Cockpit — Phase 18 specification
+# muse APK Cockpit — Phase 18 specification
 
 > **Status:** specification + integration plan. The cockpit is an evolution
 > of the existing native Android app at [`apps/android/`](../../apps/android/).
@@ -9,7 +9,7 @@
 
 ## 1. What "cockpit" means
 
-The APK is a **control surface** for a running M.U.S.E. backend. It does not
+The APK is a **control surface** for a running muse backend. It does not
 embed Python, does not execute jobs locally, and does not store secrets that
 belong on the backend. It:
 
@@ -24,14 +24,14 @@ backend flies, the phone arms switches and reads instruments.
 
 The existing local-orchestrator handoff flow in `apps/android/` (clipboard
 copy of prompts to Codex / Claude / ChatGPT) is preserved as a **fallback
-mode** for users without a running M.U.S.E. backend, exposed under
+mode** for users without a running muse backend, exposed under
 *Settings → Mode → Local handoff*.
 
 ## 2. Two operating modes
 
 | Mode | Backend location | Reachable as |
 |------|------------------|--------------|
-| **Remote gateway** | A M.U.S.E. gateway on a server / VPS | `https://<host>` |
+| **Remote gateway** | A muse gateway on a server / VPS | `https://<host>` |
 | **On-device Termux** | `muse gateway start` inside Termux on the same phone | `http://127.0.0.1:8080` |
 
 Mode is a runtime choice — the cockpit detects on first launch and falls
@@ -56,7 +56,7 @@ Each screen below carries:
   `GET /v1/cockpit/templates` for prompt templates (optional, falls back
   to bundled defaults); `POST /v1/cockpit/jobs` to dispatch.
 - **Actions:**
-  - Select worker (Codex CLI / Claude Code / M.U.S.E. batch / custom).
+  - Select worker (Codex CLI / Claude Code / muse batch / custom).
   - Pick prompt template or write freeform.
   - Attach workspace path or branch hint.
   - Tap **Dispatch** → creates a job and navigates to its dashboard row.
@@ -231,7 +231,7 @@ Each screen below carries:
 
 ### 3.7 Android / Termux Control Panel
 
-- **Purpose:** Drive the local M.U.S.E. gateway when it lives inside
+- **Purpose:** Drive the local muse gateway when it lives inside
   Termux on the same device — start / stop / restart, hold wake-locks,
   jump into Termux for shell-level diagnosis.
 - **Data source:**
@@ -376,7 +376,7 @@ the *Local handoff* fallback. The cockpit screens (3.1 – 3.8) require a
 reachable backend; when no backend is reachable they remain navigable
 but each surface the same empty-state card:
 
-> Cockpit screens need a M.U.S.E. gateway. Open *Settings → Connection*
+> Cockpit screens need a muse gateway. Open *Settings → Connection*
 > to point at one, start one in Termux from the Control Panel, or
 > switch to *Local handoff* mode if you only want to copy prompts to
 > Codex / Claude / ChatGPT.

@@ -1,4 +1,4 @@
-# P1 Claims Audit — MUSE Platform v1.0 "Everything-Functional" Audit
+# P1 Claims Audit — muse Platform v1.0 "Everything-Functional" Audit
 
 **Project:** SYNAPSE — P1 lane · **Status:** AUDIT v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd
 
@@ -43,7 +43,7 @@ Key facts the rest of this document rests on:
 
 ## 2. Claims table — README user-facing capability claims
 
-Source: `README.md` (headline ¶, features table rows 17–28, "What MUSE is" bullets 37–47, and
+Source: `README.md` (headline ¶, features table rows 17–28, "What muse is" bullets 37–47, and
 section claims below the fold). Verdicts: SUPPORTED / PARTIAL / UNSUPPORTED, each with evidence.
 
 | # | Claim (README source) | Verdict | Evidence |
@@ -69,7 +69,7 @@ section claims below the fold). Verdicts: SUPPORTED / PARTIAL / UNSUPPORTED, eac
 | C19 | Free-first model routing + owner-approved training loop (SFT → ORPO/DPO → GRPO, held-out benchmark wall) (README.md:45) | **SUPPORTED** | `hermes_cli/main.py:5900` (free-first launch doctor), `:5955` (`free_first=True` default); `docs/ai-intelligence/free-continuous-training.md` (GRPO pipeline), `model-registry.yaml`, `model-routing-policy.md` |
 | C20 | Runs where you are — native Windows installer (early beta), Linux/macOS/WSL2, Termux (README.md:47, 110-160) | **SUPPORTED** | `scripts/install.sh`, `scripts/install.ps1`, `constraints-termux.txt`, `packaging/homebrew/`; README honestly labels Windows "Early Beta" (README.md:137) |
 | C21 | Voice memo transcription; voice-first capture (README.md:18, 64) | **SUPPORTED** | `tools/transcription_tools.py`, `tools/voice_mode.py`, `tools/tts_tool.py`; STT extra `faster-whisper==1.2.1` (pyproject.toml:100); see also D3 |
-| C22 | One-click MUSE launch (`--jarvis-launch`), `muse jarvis launch`, `muse doctor --jarvis-launch` (README.md:114-135) | **SUPPORTED** | `hermes_cli/main.py:5900-5955` (launch doctor + free-first ops group); `docs/jarvis-free-first-launch.md` exists |
+| C22 | One-click muse launch (`--jarvis-launch`), `muse jarvis launch`, `muse doctor --jarvis-launch` (README.md:114-135) | **SUPPORTED** | `hermes_cli/main.py:5900-5955` (launch doctor + free-first ops group); `docs/jarvis-free-first-launch.md` exists |
 
 All 12 operating-manual links in the README's "Plain-English operating manual" table
 (README.md:221-229) and the cognition/architecture doc links were existence-checked — **zero
@@ -136,7 +136,7 @@ hygiene work; none requires new product surface.
 
 ## 6. Closing gate statement
 
-**v1.0 means all SUPPORTED.** Per master plan §10.2, MUSE Platform v1.0 may be declared only when
+**v1.0 means all SUPPORTED.** Per master plan §10.2, muse Platform v1.0 may be declared only when
 every row in §2 and §4 reads SUPPORTED with reproducible evidence. As of 2026-06-10 the score is
 **24 / 28 SUPPORTED, 4 PARTIAL, 0 UNSUPPORTED** — the platform's claims are honest, but the v1.0
 gate is **NOT YET MET**. Closing P1-01 … P1-05 (one M + three S + one M; no L) flips all four

@@ -30,9 +30,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.DevicePairingClient
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
@@ -77,7 +77,7 @@ fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Text(
-                "Pair this device with your Muse gateway. Request a code, then " +
+                "Pair this device with your muse gateway. Request a code, then " +
                     "confirm it with the owner authorization phrase to receive a " +
                     "per-device token.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -131,10 +131,10 @@ private fun IdleCard(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Device name (optional)") },
         )
-        MuseButton(
+        museButton(
             onClick = onRequestCode,
             text = "Request code",
-            variant = MuseButtonVariant.Primary,
+            variant = museButtonVariant.Primary,
             enabled = !submitting,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -186,18 +186,18 @@ private fun CodeRequestedCard(
             label = { Text("Authorization phrase") },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseButton(
+            museButton(
                 onClick = { onConfirm(code, authorization) },
                 text = "Confirm",
-                variant = MuseButtonVariant.Approve,
+                variant = museButtonVariant.Approve,
                 enabled = !submitting &&
                     code.isNotBlank() &&
                     authorization == DevicePairingClient.OWNER_AUTHORIZATION_PHRASE,
             )
-            MuseButton(
+            museButton(
                 onClick = onCancel,
                 text = stringResource(R.string.action_cancel),
-                variant = MuseButtonVariant.Secondary,
+                variant = museButtonVariant.Secondary,
             )
         }
     }
@@ -218,10 +218,10 @@ private fun PairedCard(state: DevicePairingState.Paired, onDone: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = JarvisSignalDim,
         )
-        MuseButton(
+        museButton(
             onClick = onDone,
             text = stringResource(R.string.action_ok),
-            variant = MuseButtonVariant.Primary,
+            variant = museButtonVariant.Primary,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -237,10 +237,10 @@ private fun ErrorCard(state: DevicePairingState.Error, onRetry: () -> Unit) {
         )
         Text(state.message, style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
         if (state.retryable) {
-            MuseButton(
+            museButton(
                 onClick = onRetry,
                 text = "Try again",
-                variant = MuseButtonVariant.Secondary,
+                variant = museButtonVariant.Secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -249,7 +249,7 @@ private fun ErrorCard(state: DevicePairingState.Error, onRetry: () -> Unit) {
 
 @Composable
 private fun PairingCard(content: @Composable () -> Unit) {
-    MuseCard {
+    museCard {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             content()
         }

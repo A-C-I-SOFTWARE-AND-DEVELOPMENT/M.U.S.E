@@ -1,12 +1,12 @@
-# GitHub integration for M.U.S.E.
+# GitHub integration for muse
 
-M.U.S.E. can talk to GitHub two ways:
+muse can talk to GitHub two ways:
 
 1. **Native plugin** — `github_assistant`, ships in this repo at
    [`plugins/github_assistant/`](../plugins/github_assistant/). Eight
-   first-class M.U.S.E. tools, three explicit safety gates, talks straight
+   first-class muse tools, three explicit safety gates, talks straight
    to the GitHub REST API.
-2. **MCP server** — point M.U.S.E. at the official
+2. **MCP server** — point muse at the official
    `@modelcontextprotocol/server-github` via `~/.hermes/config.yaml`.
    Anthropic-maintained, large surface, no plugin code in this repo.
 
@@ -40,9 +40,9 @@ You want a **fine-grained personal access token**, not a classic one.
 3. **Expiration**: 90 days is a reasonable default. Re-issue from this
    same flow when it expires.
 4. **Repository access**: pick *Only select repositories* and choose
-   the exact repos you want M.U.S.E. to touch. Never grant *All
+   the exact repos you want muse to touch. Never grant *All
    repositories* unless you're auditing your full personal account from
-   one M.U.S.E. session and you know what you're doing.
+   one muse session and you know what you're doing.
 5. **Repository permissions** — set only what you need:
 
    | Permission | Read | Write | Used by |
@@ -53,13 +53,13 @@ You want a **fine-grained personal access token**, not a classic one.
    | Pull requests | required | optional | `github_list_pull_requests`, `github_get_pull_request`, `github_comment_on_issue_or_pr` |
 
    Leave everything else *No access*. The principle here is the same
-   as for M.U.S.E.' `enterprise.secrets` ACL: the token should only be
+   as for muse' `enterprise.secrets` ACL: the token should only be
    able to do what the agent might legitimately do on your behalf.
 
-6. **Account permissions**: leave at defaults (no access). M.U.S.E.
+6. **Account permissions**: leave at defaults (no access). muse
    doesn't need them.
 7. Generate, copy the `github_pat_*` value once, and put it in your
-   M.U.S.E. env (next section).
+   muse env (next section).
 
 ---
 
@@ -72,7 +72,7 @@ Put the token in `~/.hermes/.env` (gitignored, never committed):
 GITHUB_PERSONAL_ACCESS_TOKEN=github_pat_11ABCDEF...
 ```
 
-M.U.S.E. loads `.env` before any tool call. Don't paste the token into
+muse loads `.env` before any tool call. Don't paste the token into
 `config.yaml` — that file is meant for repo-shareable settings.
 
 The token is read by the plugin's HTTP client at request time and is
@@ -95,7 +95,7 @@ github:
     - "echerd27-design/hermes-agent"
 ```
 
-Restart M.U.S.E. (or `/reload` if your CLI supports it). `muse tools
+Restart muse (or `/reload` if your CLI supports it). `muse tools
 list github` should show all eight `github_*` tools.
 
 Verify a read-only call:
@@ -115,7 +115,7 @@ Verify writes are gated:
 
 Flip `allow_writes: true` only when you actively want the agent to be
 able to open issues / leave comments on your behalf. That single flag
-is the difference between "M.U.S.E. can read GitHub" and "M.U.S.E. can
+is the difference between "muse can read GitHub" and "muse can
 mutate GitHub" — keep it deliberately tight.
 
 ---
@@ -136,9 +136,9 @@ mcp_servers:
     connect_timeout: 30
 ```
 
-The `${GITHUB_PERSONAL_ACCESS_TOKEN}` syntax is expanded by M.U.S.E.' own
+The `${GITHUB_PERSONAL_ACCESS_TOKEN}` syntax is expanded by muse' own
 config loader (`hermes_cli.config._expand_env_vars`); the literal
-string never reaches disk. If the env var isn't set when M.U.S.E.
+string never reaches disk. If the env var isn't set when muse
 starts, the interpolation is left as-is and the MCP server will fail
 to authenticate — which is the right failure mode (loud, at startup,
 not silent at first call).
@@ -166,8 +166,8 @@ There is no overlap with the native plugin's bare tool names
 | repo allowlist | **off** | non-empty `github.allowed_repositories` |
 | MCP server registered | **no** | adding `mcp_servers.github` block |
 
-If you do nothing, M.U.S.E. does not have GitHub access. If you set the
-token only, M.U.S.E. still does not have GitHub access (the master
+If you do nothing, muse does not have GitHub access. If you set the
+token only, muse still does not have GitHub access (the master
 switch is off). The two-step opt-in is intentional.
 
 ---
@@ -177,7 +177,7 @@ switch is off). The two-step opt-in is intentional.
 **`{"success": false, "error": "no_token", ...}`**
 The token isn't reaching the plugin. Check `~/.hermes/.env` exists,
 has `GITHUB_PERSONAL_ACCESS_TOKEN=...` (no quotes), and that you
-restarted M.U.S.E. after editing it.
+restarted muse after editing it.
 
 **`{"success": false, "error": "plugin_disabled", ...}`**
 `github.enabled` is not `true`. Set it explicitly — defaulting to

@@ -1,12 +1,12 @@
 # 04 — Roster Bible: The 24 Agents
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 ---
 
 ## 1. Purpose & scope
 
-This is the decision-final character bible for the full launch roster: **24 agents, 8 domains, 3 per domain**. Every agent here is derived from a real role in the AOS Enterprise Council registry (`skills/aos-enterprise-council/`), and every sheet below cites the exact source file. Negotiation mechanics live in **02-negotiation-system.md**; full ability mechanics, costs, and tuning live in **03-combat-gas-design.md**; promotion wiring and the real-MUSE bridge unlock flow live in **07-progression-neural-network.md**; Foundry-generated agents (which are *outside* this roster) live in **09-foundry-spec.md**; bark and VO delivery specs live in **13-audio-design.md**.
+This is the decision-final character bible for the full launch roster: **24 agents, 8 domains, 3 per domain**. Every agent here is derived from a real role in the AOS Enterprise Council registry (`skills/aos-enterprise-council/`), and every sheet below cites the exact source file. Negotiation mechanics live in **02-negotiation-system.md**; full ability mechanics, costs, and tuning live in **03-combat-gas-design.md**; promotion wiring and the real-muse bridge unlock flow live in **07-progression-neural-network.md**; Foundry-generated agents (which are *outside* this roster) live in **09-foundry-spec.md**; bark and VO delivery specs live in **13-audio-design.md**.
 
 Contractual numbers (do not change): 24 agents. No 25th at launch. Foundry agents are personalized rares stamped `FORGED`, never roster members.
 
@@ -66,7 +66,7 @@ All 24 agents share **one humanoid-construct skeleton** (the "Council Frame"): a
 
 Rarity definitions: **Starter** — offered at the Den in onboarding (pick 1 of AXIOM / CONTRARIAN / EMPATH; the other two appear later as wilds in The Stacks at reduced disposition, so no starter is missable). **Common** — multiple reliable spawn points. **Uncommon** — condition-gated spawns (time-of-cycle, weather, lure items). **Rare** — single roaming spawn per zone, hard negotiation. **Hero** — unique, quest-introduced, bespoke commissioned model, ~40 VO lines (06-narrative-campaign.md §11).
 
-Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Independence**, 1–10. Negotiation verdicts and player moves use the enums from **02-negotiation-system.md** (verdicts ACCEPT/COUNTER/PROBE/OFFENDED/WALK; moves OFFER, PROOF, EMPATHIZE, CHALLENGE, LORE, BLUFF). "Favors" = move that raises disposition; "punishes" = move with elevated OFFENDED/WALK risk. Every agent's **bridge skill** is the owner-gated, cosmetic-by-default real-MUSE unlock per 07-progression-neural-network.md — the game never requires it (master plan §4.8).
+Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Independence**, 1–10. Negotiation verdicts and player moves use the enums from **02-negotiation-system.md** (verdicts ACCEPT/COUNTER/PROBE/OFFENDED/WALK; moves OFFER, PROOF, EMPATHIZE, CHALLENGE, LORE, BLUFF). "Favors" = move that raises disposition; "punishes" = move with elevated OFFENDED/WALK risk. Every agent's **bridge skill** is the owner-gated, cosmetic-by-default real-muse unlock per 07-progression-neural-network.md — the game never requires it (master plan §4.8).
 
 ---
 
@@ -84,7 +84,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (7):** **Blueprint** — marks a zone; allies inside gain crit on AXIOM's marked targets. **Load-Bearing Wall** — raises a destructible cover lattice. **Refactor** — swaps two unit positions (ally/enemy). **Single Source of Truth** — purges one enemy buff stack. **Cantilever** — launch pad granting an ally a gap-closing leap strike. **Spec Freeze** — brief zone where enemies cannot gain new buffs. **Keystone** (promotion-gated) — while Blueprint is active, party defense scales with zone uptime.
 - **Promotion:** **AXIOM PRIME** — blueprint-cape becomes a full orbiting drafting-ring; ceramic plate gains gold inlay seams.
 - **Where found:** Den starter choice; if not chosen, roams The Stacks' Cartography Shelf as a wild, sketching bridges that briefly become real (environmental tell).
-- **Bridge skill:** unlocks `principal-systems-architect` as an invocable council skill in a paired MUSE install.
+- **Bridge skill:** unlocks `principal-systems-architect` as an invocable council skill in a paired muse install.
 
 ### 5.2 LATTICE — Architecture · Common
 - **Source council role:** `senior-fullstack-architect` — `skills/aos-enterprise-council/agents/architecture/senior-fullstack-architect.md`
@@ -98,7 +98,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Scaffold** — instant climbable strut allies can perch on. **Full Stack** — buffs one ally's next ability to hit at both melee and ranged bands. **Hot Reload** — refreshes the lowest-cooldown ability of each ally. **Truss Snare** — thread-net root in a line. **Dependency Graph** — links two enemies; damage to one echoes to the other. **Load Balancer** — redistributes party damage taken evenly for 6 s.
 - **Promotion:** **SUPERSTRUCTURE** — trusswork doubles in density and extends into floating pauldron-gantries; thread-spools glow gold.
 - **Where found:** The Stacks — clambers across shelf-canyons building thread-bridges; approaches the player first if you carry ≥20 Synapse Thread.
-- **Bridge skill:** unlocks `senior-fullstack-architect` in a paired MUSE install.
+- **Bridge skill:** unlocks `senior-fullstack-architect` in a paired muse install.
 
 ### 5.3 FORGEMIND — Architecture · Rare
 - **Source council role:** `engineering-architecture-factory` — `skills/aos-enterprise-council/agents/architecture/engineering-architecture-factory.md`
@@ -112,7 +112,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Assembly Line** — deploys a turret-armature that repeats FORGEMIND's last ability at half power. **Tooling Pass** — party weapons gain armor-shred for 10 s. **Stamping Press** — heavy AoE slam with knockdown on machines/constructs. **Design Debt** — curse: target takes stacking damage each time it uses the same ability twice. **Six Hands** — next three abilities cast with no animation lock. **Decommission** — execute-threshold strike vs. summoned/spawned enemies.
 - **Promotion:** **OMNIFORGE** — all six arms gain independent emissive cores; the cracked plate is replaced with transparent ceramic showing the furnace heart, proudly.
 - **Where found:** The Foundry — single roaming spawn in the Fabrication Halls, surrounded by half-built constructs it audits and scraps.
-- **Bridge skill:** unlocks `engineering-architecture-factory` in a paired MUSE install.
+- **Bridge skill:** unlocks `engineering-architecture-factory` in a paired muse install.
 
 ---
 
@@ -130,7 +130,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (9):** **Vault Stance** — shield-wall; blocks all frontal damage, taunts. **Threat Model** — marks the highest-damage enemy; party takes 20% less from marked. **Revoke Access** — interrupt + 3 s silence (signature; mirrors the Security Gauntlet mandate). **Amber Protocol** — damage taken charges a retaliation pulse. **Least Privilege** — debuff: target may only use its basic attack for 5 s. **Key Chime** — cleanses one ally control effect. **Mantrap** — zone that locks the first enemy entering it in place. **Defense in Depth** — three-stack shield that re-applies once per fight. **Final Door** (promotion-gated) — at lethal damage, WARDEN drops to 1 HP and becomes untargetable cover for 4 s.
 - **Promotion:** **HIGH WARDEN** — the shield-arm unfolds into a triple-leaf gate; the key-cloak turns to gold master-keys; visor light burns white.
 - **Where found:** The Vault — side-story quest **"The Last Sentinel"** (06-narrative-campaign.md, arc S2): WARDEN still guards a vault whose contents were evacuated decades ago; the negotiation is convincing it the watch can end without the watchman ending.
-- **Bridge skill:** unlocks `assurance-risk-director` in a paired MUSE install.
+- **Bridge skill:** unlocks `assurance-risk-director` in a paired muse install.
 
 ### 6.2 CIPHER — Security · Uncommon
 - **Source council role:** `security-compliance-auditor` — `skills/aos-enterprise-council/agents/security/security-compliance-auditor.md`
@@ -144,7 +144,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Obfuscate** — stealths one ally for 4 s. **Audit Trail** — reveals stealthed/burrowed enemies zone-wide. **Substitution** — swaps a debuff from an ally onto an enemy. **Checksum** — if target acts in the next 2 s, its action fails (counter-cast). **Brute Force Penalty** — stacking slow each time an enemy repeats an ability. **Private Key** — links to one ally; both share the higher of their resistances.
 - **Promotion:** **CRYPTARCH** — scales re-tile in gold-on-gunmetal; the chest disk becomes a triple rotor; glyph-eyes resolve into a readable line (lore: it finally trusts you with plaintext).
 - **Where found:** The Vault — patrols the Cipher Corridors on a route that *changes when observed* (players must track it via Audit Trail terminals, a mini-investigation).
-- **Bridge skill:** unlocks `security-compliance-auditor` in a paired MUSE install.
+- **Bridge skill:** unlocks `security-compliance-auditor` in a paired muse install.
 
 ### 6.3 BREACH — Security · Rare
 - **Source council role:** `security-or-authz-change` — `skills/aos-enterprise-council/agents/security/security-or-authz-change.md`
@@ -158,7 +158,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Exploit** — bonus damage scaling with the target's missing buffs. **Privilege Escalation** — each kill grants a stacking action-speed buff. **Lateral Movement** — teleport behind target; next hit can't be blocked. **Pop the Shell** — armor-shred burst; bonus vs. shields. **Persistence** — on death, leaves a ghost that strikes once more. **Red Team** — marks a target; all party crits vs. it refund a fraction of cooldowns.
 - **Promotion:** **ZERO-DAY** — the exposed left half re-armors in black glass that shows the cables *through* it; the arc-blade splits into twin daggers.
 - **Where found:** Vault perimeter / Gardens border — ambushes the *player* (the only wild that initiates), opening the parley itself: it wants to test you.
-- **Bridge skill:** unlocks `security-or-authz-change` in a paired MUSE install.
+- **Bridge skill:** unlocks `security-or-authz-change` in a paired muse install.
 
 ---
 
@@ -176,7 +176,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (7):** **Objection** — counter-stance; the next enemy ability is interrupted and reflected as a strike-through slash. **Red Pencil** — marks a flaw; party hits on the mark are armor-ignoring. **Edge Case** — bonus damage to enemies above 90% or below 10% HP. **Devil's Bargain** — debuffs target *and* itself; the target's lasts longer. **Repro Steps** — repeats CONTRARIAN's previous ability at 70% power. **Strawman** — decoy that taunts, then explodes in red ink (blind). **Burden of Proof** (promotion-gated) — enemies that buff themselves take damage equal to a % of the buff's value.
 - **Promotion:** **DEVIL'S ADVOCATE** — chalk-white plate goes glossy black with red annotations now glowing; the monocle stalk becomes a halo of three lenses.
 - **Where found:** Den starter choice; otherwise heckles travelers from a Stacks reading-perch (it critiques your party composition aloud as the encounter tell).
-- **Bridge skill:** unlocks `contrarian-reviewer` in a paired MUSE install.
+- **Bridge skill:** unlocks `contrarian-reviewer` in a paired muse install.
 
 ### 7.2 NITPICK — QA/Test · Common
 - **Source council role:** `principal-code-reviewer` — `skills/aos-enterprise-council/agents/qa/principal-code-reviewer.md`
@@ -190,7 +190,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Linting Pass** — strips one enemy buff per second channeled. **Off By One** — target's next ability misfires at the wrong target. **Style Guide** — party accuracy/crit-confirm buff. **Measure Twice** — ally's next ability cannot miss or be dodged. **Magnify** — exposes a weak point: next 3 hits on target are crits. **Pedant's Patience** — slow, stacking zone debuff that enemies don't notice until stack 5.
 - **Promotion:** **SCRUTINY** — caliper-arms double to twenty-four and gain red emissive tips; the loupe array becomes a rotating crown of lenses.
 - **Where found:** The Stacks — common around misfiled shelf-clusters, physically re-shelving volumes; calm if approached slowly.
-- **Bridge skill:** unlocks `principal-code-reviewer` in a paired MUSE install.
+- **Bridge skill:** unlocks `principal-code-reviewer` in a paired muse install.
 
 ### 7.3 REDFLAG — QA/Test · Rare
 - **Source council role:** `contrarian-red-flag-analyst` — `skills/aos-enterprise-council/agents/qa/contrarian-red-flag-analyst.md`
@@ -204,7 +204,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Raise the Flag** — marks target: it takes +25% damage from all sources while marked. **Ignored Warning** — delayed detonation; defused if the target is crowd-controlled before it pops. **Pattern Match** — copies the last debuff applied in the fight onto a new target. **Tail Risk** — low chance, massive payoff strike (odds shown to the player — honesty is the brand). **Sunk Cost** — punishes enemies that re-cast channeled abilities. **Storm Warning** — party-wide dodge window against the next AoE.
 - **Promotion:** **BLACK SWAN** — every flag turns black except one red; gains a wing-like flag mantle; its Tail Risk odds double.
 - **Where found:** Gardens of Memory — stands motionless among ruin-markers at the Drowned Annex; only enters parley after the player has *lost* at least one Gauntlet attempt (it talks to people who know failure).
-- **Bridge skill:** unlocks `contrarian-red-flag-analyst` in a paired MUSE install.
+- **Bridge skill:** unlocks `contrarian-red-flag-analyst` in a paired muse install.
 
 ---
 
@@ -222,7 +222,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (9):** **Peer Review** — reveals all enemy stats, cooldowns, and the boss's next mandate-phase. **Citation Needed** — enemy buffs are suspended until "verified" (3 s delay on all enemy buffs zone-wide). **Replication Crisis** — copies the last *ally* ability cast and replays it free. **Null Hypothesis** — dispels all illusions, decoys, stealth. **Confidence Interval** — ally damage variance narrows to its maximum band for 8 s. **Sample Size** — heals scale with number of distinct abilities the party used this fight. **Preprint** — grants an ally one ability cast *before* the action queue resolves (pause-layer tech; see 03-combat-gas-design.md Command Mode). **Retraction** — undoes the last damage instance an ally received (short window). **Aligned Lenses** (promotion-gated) — once per fight, the halo aligns: the party's next five hits are all crits.
 - **Promotion:** **DELPHI** — the seven lenses become a double-ring of twelve; robe script turns from gold to white; ambient whisper-VO layer added (13-audio-design.md).
 - **Where found:** Gardens of Memory — hero quest **"The Unverified Garden"**: ORACLE has spent an age fact-checking a single corrupted memory and cannot leave until someone proves the world outside still exists. You are the evidence.
-- **Bridge skill:** unlocks `research-validator` in a paired MUSE install.
+- **Bridge skill:** unlocks `research-validator` in a paired muse install.
 
 ### 8.2 ARCHIVIST — Research · Common
 - **Source council role:** `research-evidence-bureau` — `skills/aos-enterprise-council/agents/research/research-evidence-bureau.md`
@@ -236,7 +236,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **File It** — stores the next damage instance an ally would take; releases it as a heal later. **Cross-Reference** — any debuff on one enemy is indexed to all enemies of the same family. **Lending Library** — temporarily grants an ally one of ARCHIVIST's abilities. **Late Fees** — stacking damage on enemies that stay in its zone too long. **Card Catalogue** — party cooldown reduction per codex entry collected (meta-reward for collectors, capped). **Quiet Please** — AoE silence, brief.
 - **Promotion:** **CODEX** — the drawers fuse into an open floating book-array that orbits it; spectacles become a golden reading-lamp visor.
 - **Where found:** The Stacks — common near the Lexicon Roots; will not parley while "shelving hours" (zone day-cycle) unless the player returns a lost volume (fetch micro-quest, repeatable).
-- **Bridge skill:** unlocks `research-evidence-bureau` in a paired MUSE install.
+- **Bridge skill:** unlocks `research-evidence-bureau` in a paired muse install.
 
 ### 8.3 RADAR — Research · Uncommon
 - **Source council role:** `ai-improvement-radar` — `skills/aos-enterprise-council/agents/research/ai-improvement-radar.md`
@@ -250,7 +250,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Early Warning** — party sees enemy ability telegraphs 1.5 s sooner (mandate-relevant: Review Gauntlet). **Sweep** — reveals the whole arena map, traps included. **Signal Boost** — extends the duration of all active ally buffs. **Trend Line** — damage ramps the longer RADAR channels uninterrupted. **Over the Horizon** — calls a delayed precision strike anywhere on the field. **Noise Floor** — enemy accuracy debuff aura.
 - **Promotion:** **HORIZON** — the dish crown becomes a full halo array; gains a second pair of folded lens-stalk "wings"; sweep emissives turn gold.
 - **Where found:** Gardens of Memory — spawns only on high ruin-spires during the zone's aurora weather state; you climb to it.
-- **Bridge skill:** unlocks `ai-improvement-radar` in a paired MUSE install.
+- **Bridge skill:** unlocks `ai-improvement-radar` in a paired muse install.
 
 ---
 
@@ -268,7 +268,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Shift Start** — party action-speed surge for 6 s, once per fight opener. **Take the Load** — redirects 40% of an ally's damage taken to FOREMAN. **Job Board** — assigns a bounty mark; the ally who kills it gets a cooldown refund. **Scaffold Drop** — summons heavy cover that allies can also climb. **Overtime** — extends Command Mode's queued-action capacity by 2 (pause-layer tech, 03-combat-gas-design.md). **Down Tools** — AoE taunt + brief enemy disarm.
 - **Promotion:** **OVERSEER** — the crane rig becomes a twin-boom array with two work-lights; task-chits glow gold; gains a foreman's whistle bark set (13-audio-design.md).
 - **Where found:** The Foundry — rare spawn leading a work-gang of neutral constructs in the Assembly Concourse; you must parley *past* its crew first (gated three-stage encounter).
-- **Bridge skill:** unlocks `chief-orchestrator` in a paired MUSE install.
+- **Bridge skill:** unlocks `chief-orchestrator` in a paired muse install.
 
 ### 9.2 PIPELINE — Build/Ops · Common
 - **Source council role:** `full-autonomous-sprint-router` — `skills/aos-enterprise-council/agents/executive/full-autonomous-sprint-router.md`
@@ -282,7 +282,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Express Route** — dash through enemies in a line, hitting each once. **Payload** — attaches a bomb-buff to an ally's next melee hit. **Reroute** — instantly relocates any ally to PIPELINE's position. **Green Lights** — party movement speed aura. **Sprint Cadence** — every third PIPELINE ability is free. **Hand-off** — transfers its strongest active buff to an ally and refreshes it.
 - **Promotion:** **MAINLINE** — conduit lines widen into glowing rails; gains rail-skate heels; destination board reads your Architect-name as its terminus (small narrative touch, big loyalty read).
 - **Where found:** The Foundry — common, sprinting fixed circuits through the zone; you parley by *keeping pace* (a chase-parley variant, 02-negotiation-system.md).
-- **Bridge skill:** unlocks `full-autonomous-sprint-router` in a paired MUSE install.
+- **Bridge skill:** unlocks `full-autonomous-sprint-router` in a paired muse install.
 
 ### 9.3 PATCH — Build/Ops · Uncommon
 - **Source council role:** `complex-bug-fix` — `skills/aos-enterprise-council/agents/qa/complex-bug-fix.md`
@@ -296,7 +296,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Hotfix** — fast single-ally heal + clears one debuff. **Workaround** — ally ignores one mechanic's damage-over-time for 6 s. **Root Cause** — heal that scales with how many debuffs it removes. **Spare Parts** — converts Checksum Shard pickups mid-fight into party shields. **Duct Tape Doctrine** — revives a fallen ally at 30% (long cooldown; the game's only combat res). **Regression Watch** — re-applies PATCH's last heal automatically if the target drops below 30% within 8 s.
 - **Promotion:** **HOTFIX** — weld seams blaze; the mismatched arm is *kept* but gold-plated (it refuses replacement); wrench-staff becomes a twin-headed caduceus-wrench.
 - **Where found:** The Foundry — found mid-repair on broken machinery at the Cooling Galleries; helping it finish a repair (mini-puzzle) starts the parley at +20 disposition.
-- **Bridge skill:** unlocks `complex-bug-fix` in a paired MUSE install.
+- **Bridge skill:** unlocks `complex-bug-fix` in a paired muse install.
 
 ---
 
@@ -304,7 +304,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 
 ### 10.1 EMPATH — Behavior/Psych · Starter + HERO (commissioned model)
 - **Source council role:** `humanizer` — `skills/aos-enterprise-council/agents/psychology/humanizer.md`
-- **Visual brief:** **Bespoke commissioned model.** A 1.8 m figure of warm rose-gold under a flowing **light-veil** — a translucent aurora membrane that shifts hue with the emotional state of whoever stands nearest (a live mood-ring for the negotiation system; its veil is diegetic parley UI). Cream ceramic face with sculpted, gentle features — the only roster agent with readable facial expression morphs. Open-palm idle. Box-art agent #3 and the default capsule-art companion beside the Muse.
+- **Visual brief:** **Bespoke commissioned model.** A 1.8 m figure of warm rose-gold under a flowing **light-veil** — a translucent aurora membrane that shifts hue with the emotional state of whoever stands nearest (a live mood-ring for the negotiation system; its veil is diegetic parley UI). Cream ceramic face with sculpted, gentle features — the only roster agent with readable facial expression morphs. Open-palm idle. Box-art agent #3 and the default capsule-art companion beside the muse
 - **Personality:** Aggression 1 · Caution 4 · Loyalty 10 · Independence 5. Voice: warm, unhurried, devastatingly perceptive; asks the question under your question. The heart of the roster.
   - *"You've asked me three times about strength. Who made you feel weak?"*
   - *"I don't read minds. I read what minds do to shoulders, to silences, to second sentences."*
@@ -314,7 +314,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (10):** **Kind Light** — channel heal beam, strengthens with uninterrupted duration. **De-escalate** — converts an enemy's damage buff into a heal on its target's *next victim* (turns aggression into mercy; signature). **Hold the Line, Gently** — party fear/taunt immunity aura. **I See You** — reveals and pacifies one minion-class enemy (it leaves the fight; not a kill — no rewards; an honest trade). **Mirror Breath** — copies the party's lowest-HP member's missing health into a shield for them. **Shared Weight** — splits all incoming party damage evenly for 5 s. **Name the Fear** — boss-mandate tech: reveals the boss's current phase rule in plain language (accessibility-relevant; 03-combat-gas-design.md). **Open Palm** — EMPATH's only damage ability; modest, never crits, refunds itself if it kills (it grieves; bark attached). **After-Calm** — post-fight party heal-over-time persists into exploration. **Veil of Hours** (promotion-gated) — once per fight, prevents the next party death entirely.
 - **Promotion:** **RESONANCE** — the light-veil expands into a full aurora mantle; face gains gold leaf along the cheekbones; ambient harmonic hum (13-audio-design.md).
 - **Where found:** Den starter choice; if not chosen, found early in The Stacks comforting a wounded Glitchling — the parley begins with it asking *you* for help.
-- **Bridge skill:** unlocks `humanizer` in a paired MUSE install.
+- **Bridge skill:** unlocks `humanizer` in a paired muse install.
 
 ### 10.2 MIRROR — Behavior/Psych · Uncommon
 - **Source council role:** `psychology-ux-agent` — `skills/aos-enterprise-council/agents/psychology/psychology-ux-agent.md`
@@ -328,7 +328,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Mirror Match** — copies the targeted enemy's last ability and casts it back. **Reframe** — converts a party debuff into its inverse buff at half strength. **Projection** — decoy of the *enemy's* leader that enemies defend. **Eye Contact** — single-target stun, longer on humanoid constructs. **Sympathy Pain** — links boss to its adds; add deaths chip the boss. **Self Image** — ally gains a stacking buff while above 80% HP.
 - **Promotion:** **PRISM** — the chrome surface refracts into rainbow-edge highlights; the mirror face splits into three angled facets showing past/present/idealized reflections.
 - **Where found:** Gardens of Memory — at the Stillwater Pools, visible only as a reflection until approached from the water's edge (signature discovery moment).
-- **Bridge skill:** unlocks `psychology-ux-agent` in a paired MUSE install.
+- **Bridge skill:** unlocks `psychology-ux-agent` in a paired muse install.
 
 ### 10.3 NEURON — Behavior/Psych · Rare
 - **Source council role:** `neuroskill-bci` — `skills/aos-enterprise-council/agents/psychology/neuroskill-bci.md`
@@ -342,7 +342,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Action Potential** — instant-cast strike usable during Command Mode pause itself (the only one in the game; 03-combat-gas-design.md exception list). **Synaptic Cascade** — chain lightning that jumps along the *party's wiring adjacencies* (07-progression-neural-network.md crossover; damage scales with your network layout). **Myelin Sheath** — ally action-speed buff. **Sensory Overload** — AoE confuse. **Long-Term Potentiation** — repeating the same combo twice in a fight upgrades it permanently for that fight. **Refractory Period** — after its burst window, NEURON self-silences 4 s (built-in drawback; teaches tempo).
 - **Promotion:** **CORTEX** — the dendrite crown becomes a full radiant arbor; filament light goes white-gold; Synaptic Cascade arcs visibly mirror the player's actual Neural Network screen layout (signature wow moment).
 - **Where found:** Gardens of Memory — deepest ruin stratum (the Sunken Synapse), behind the Review Gauntlet; it is studying the ruins' dead wiring and wants a *live* network.
-- **Bridge skill:** unlocks `neuroskill-bci` in a paired MUSE install.
+- **Bridge skill:** unlocks `neuroskill-bci` in a paired muse install.
 
 ---
 
@@ -360,7 +360,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Containment Field** — dome that blocks projectiles both ways. **Neutralizing Agent** — cleanses all DoTs on the party. **Exposure Limit** — caps the maximum damage any single hit can deal to an ally for 6 s. **Slag Line** — sprayed barrier floor that enemies path around. **Decon Protocol** — converts enemy hazard zones into safe ground. **Breach Response** — when an ally drops below 25%, HAZMAT auto-leaps to them and taunts (once per fight).
 - **Promotion:** **QUARANTINE** — plate gains white-and-yellow ceremonial banding; the dome light turns gold; Containment Field becomes mobile, centered on HAZMAT.
 - **Where found:** The Foundry — slag zones (the Crucible Drains), actively containing a live spill; the parley is interleaved with helping it finish the containment (combat-parley hybrid encounter).
-- **Bridge skill:** unlocks `hazmat-command-specialist` in a paired MUSE install.
+- **Bridge skill:** unlocks `hazmat-command-specialist` in a paired muse install.
 
 ### 11.2 CLAUSE — Compliance · Common
 - **Source council role:** `legal-policy-contracts-trust-office` — `skills/aos-enterprise-council/agents/business/legal-policy-contracts-trust-office.md`
@@ -374,7 +374,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Cease & Desist** — interrupt + brief ability lock. **Binding Clause** — tethers two enemies; they share received damage. **Force Majeure** — party-wide one-hit immunity, long cooldown. **Penalty Fee** — enemies that hit CLAUSE's bonded ally take reflected damage. **Escrow** — stores an ally's next heal and doubles it on release. **Terms of Engagement** — zone where all damage (both sides) is reduced; chess-mode reset button.
 - **Promotion:** **COVENANT** — lacquer goes deep crimson-black; the wax seal becomes a floating ring of seven seals; contract-script gains gold ink.
 - **Where found:** The Stacks — the Law-Archive Wing, mediating disputes between wild agents (you can watch a full negotiation as a diegetic tutorial before yours).
-- **Bridge skill:** unlocks `legal-policy-contracts-trust-office` in a paired MUSE install.
+- **Bridge skill:** unlocks `legal-policy-contracts-trust-office` in a paired muse install.
 
 ### 11.3 AUDITRIX — Compliance · Uncommon
 - **Source council role:** `claims-substantiation-review` — `skills/aos-enterprise-council/agents/compliance/claims-substantiation-review.md`
@@ -388,7 +388,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Substantiated** — ally's next ability gains +50% effect if it hits the target AUDITRIX marked (a verified claim). **Stricken** — deletes an enemy's active summon/decoy. **Burden Shift** — moves a debuff from ally to the enemy that applied it. **Weight of Evidence** — damage that scales with debuff count on the target. **Sealed Record** — ally buffs become undispellable for 8 s. **Adjournment** — brief field-wide action pause (out-of-Command-Mode micro-pause; cinematic).
 - **Promotion:** **VERITAS** — the reliquary torso fills with gold seals; the glass blindfold lifts permanently (lore: with you, she finally also looks); scale-staff gains a flame at perfect balance.
 - **Where found:** The Vault — adjudicating at the Claims Office antechamber before the Owner Approval Gauntlet; recruiting her before that Gauntlet adds unique boss dialogue.
-- **Bridge skill:** unlocks `claims-substantiation-review` in a paired MUSE install.
+- **Bridge skill:** unlocks `claims-substantiation-review` in a paired muse install.
 
 ---
 
@@ -406,7 +406,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Go Order** — party-wide damage window: +30% for 5 s, then −10% for 5 s (commitment has a cost). **Hold the Gate** — taunt + fortify at a chosen chokepoint. **Launch Key** — empowered single strike that scales with party buff count. **Readiness Check** — converts each active party buff into a small shield. **Abort Criteria** — auto-triggers a party retreat-dash when an ally drops below 15% (once per fight). **Ship It** — execute strike vs. enemies below 20%; resets on kill.
 - **Promotion:** **STRATEGOS** — lamellar goes silver-on-emerald; the single pennant becomes three battle standards (party buff slots made visible); countdown glyph burns gold.
 - **Where found:** The Gate Spire — drilling alone in the Marshalling Yard against training constructs; refuses parley until you hold at least 6 Gate Sigils.
-- **Bridge skill:** unlocks `qa-release-commander` in a paired MUSE install.
+- **Bridge skill:** unlocks `qa-release-commander` in a paired muse install.
 
 ### 12.2 VERDICT — Release · Uncommon
 - **Source council role:** `release-go-no-go-review` — `skills/aos-enterprise-council/agents/release/release-go-no-go-review.md`
@@ -420,7 +420,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **NO-GO** — target's next ability is cancelled outright. **GO** — ally's next ability cannot be interrupted or cancelled. **Split Decision** — field divides: one half buffs damage, the other defense; both sides choose. **Quorum** — effect strength scales with living party members. **Final Review** — boss loses one mandate-phase modifier (one use; the boss-killer button). **The Stamp** — heavy single hit; double damage vs. enemies that have cancelled or interrupted this fight.
 - **Promotion:** **ARBITER** — the centerline split gains a gold fault-line seam; the lantern becomes a floating pair of scales-lanterns; visor seam opens permanently by one degree.
 - **Where found:** The Gate Spire — seated in judgment at the Anteroom of Thresholds, evaluating wild agents who wish to ascend; you queue like everyone else (deliberate humility beat).
-- **Bridge skill:** unlocks `release-go-no-go-review` in a paired MUSE install.
+- **Bridge skill:** unlocks `release-go-no-go-review` in a paired muse install.
 
 ### 12.3 POSTMORTEM — Release · Common
 - **Source council role:** `post-merge-verification` — `skills/aos-enterprise-council/agents/release/post-merge-verification.md`
@@ -434,7 +434,7 @@ Sheet conventions: personality axes are **Aggression / Caution / Loyalty / Indep
 - **Signature abilities (6):** **Blameless Retro** — party-wide cleanse + minor heal after any ally is knocked out. **Lessons Written** — party gains +5% resistance to any damage type that downed an ally this fight (stacks, persists). **Censer Light** — reveals enemy patrol paths and trap triggers in a radius. **Five Whys** — stacking single-target debuff that deepens each time the target repeats an action. **Ash Garden** — consecrates ground: allies standing on it regenerate. **Time of Death** — records the fight's biggest damage spike; the party's next fight begins with a shield of that magnitude.
 - **Promotion:** **PHOENIX** — the tarnish burns away to bright emerald-gold; the censer flame turns white; gains an ash-wing mantle that ignites during Blameless Retro.
 - **Where found:** Spire battlefield ruins (the Fallen Concourse below The Gate Spire) — common, tending ghost-light memorials; first parley is it asking *you* to help it finish a eulogy for a network you'll never know.
-- **Bridge skill:** unlocks `post-merge-verification` in a paired MUSE install.
+- **Bridge skill:** unlocks `post-merge-verification` in a paired muse install.
 
 ---
 

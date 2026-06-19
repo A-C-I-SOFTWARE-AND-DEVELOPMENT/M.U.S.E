@@ -1,4 +1,4 @@
-"""Unified release gate for M.U.S.E. — one verdict over every ship signal.
+"""Unified release gate for muse — one verdict over every ship signal.
 
 Backs ``muse doctor --release-gate``. It aggregates the existing 10/10
 release-readiness checks (:func:`hermes_cli.release_readiness_doctor.run_10_10_doctor`)

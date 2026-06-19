@@ -17,7 +17,7 @@ Plan mode: write markdown plan to .hermes/plans/, no exec.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/plan` |
 | Version | `1.0.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `planning`, `plan-mode`, `implementation`, `workflow` |
@@ -26,7 +26,7 @@ Plan mode: write markdown plan to .hermes/plans/, no exec.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Plan Mode
@@ -63,7 +63,7 @@ If the task is code-related, include exact file paths, likely test targets, and 
 Save the plan with `write_file` under:
 - `.hermes/plans/YYYY-MM-DD_HHMMSS-<slug>.md`
 
-Treat that as relative to the active working directory / backend workspace. M.U.S.E. file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
+Treat that as relative to the active working directory / backend workspace. muse file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
 
 If the runtime provides a specific target path, use that exact path.
 If not, create a sensible timestamped filename yourself under `.hermes/plans/`.

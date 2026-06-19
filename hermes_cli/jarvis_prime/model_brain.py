@@ -1,4 +1,4 @@
-"""MUSE ← OSS model brain bridge.
+"""muse ← OSS model brain bridge.
 
 Thin, lazy adapter so the ``jarvis_prime`` package stays stdlib-only at
 import time (it loads in Termux / slim CI). The heavy lifting — YAML
@@ -11,7 +11,7 @@ Public API:
 * ``recommend_models(task, ...)`` — ordered ``OssModel`` list for a task,
   by default filtered to providers installed on this host.
 * ``render_recommendation(task, ...)`` — a compact human-readable block
-  MUSE can print in Builder/Operator mode or the CLI.
+  muse can print in Builder/Operator mode or the CLI.
 * ``KNOWN_TASKS`` — the task categories the catalog routes.
 """
 
@@ -102,7 +102,7 @@ def render_recommendation(
     flag_str = f" [{'; '.join(flags)}]" if flags else ""
 
     header = (
-        f"MUSE — OSS model brain · task: {task}{flag_str} "
+        f"muse — OSS model brain · task: {task}{flag_str} "
         f"(catalog {catalog.updated_at or '?'}, {catalog.source})"
     )
     if not models:

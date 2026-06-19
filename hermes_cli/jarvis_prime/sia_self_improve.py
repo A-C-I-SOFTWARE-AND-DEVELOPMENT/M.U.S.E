@@ -1,4 +1,4 @@
-"""Owner-gated SIA self-improvement glue for MUSE.
+"""Owner-gated SIA self-improvement glue for muse
 
 Connects the sandboxed SIA worker (autonomous scaffold-rewriting) to
 JARVIS's owner-gated proposal flow. SIA iterates freely on a *copy* of

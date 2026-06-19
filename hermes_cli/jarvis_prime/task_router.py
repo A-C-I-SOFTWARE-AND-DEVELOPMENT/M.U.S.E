@@ -1,6 +1,6 @@
-"""MUSE — evidence-backed task-class model router.
+"""muse — evidence-backed task-class model router.
 
-This is the **single** model-route decision layer for MUSE. It does
+This is the **single** model-route decision layer for muse It does
 not detect providers, score outcomes, or store scorecards itself; it *composes*
 the four layers that already exist:
 

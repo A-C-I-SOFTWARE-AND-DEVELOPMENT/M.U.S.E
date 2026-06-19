@@ -10,7 +10,7 @@
 
 Realizes follow-up FU-21 with an executable proof. `CLAUDE.md` states the
 binding rule "never improvise a council member that isn't in the registry,"
-and `hermes_cli/jarvis_prime/router.py` hands MUSE work off to named council
+and `hermes_cli/jarvis_prime/router.py` hands muse work off to named council
 members (e.g. `aos-council-director`, `contrarian-reviewer`,
 `hazmat-command-specialist`). Before this grain there was no test pinning the
 invariant that router hand-offs resolve *only* to members that actually exist

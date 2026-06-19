@@ -8,7 +8,7 @@ description: "Classic watchdog cron jobs that skip the LLM entirely — a script
 
 Sometimes you already know exactly what message you want to send. You don't need an agent to reason about it — you just need a script to run on a timer, and its output (if any) to land in Telegram / Discord / Slack / Signal.
 
-M.U.S.E. calls this **no-agent mode**. It's the cron system minus the LLM.
+muse calls this **no-agent mode**. It's the cron system minus the LLM.
 
 <!-- ascii-guard-ignore -->
 ```
@@ -45,13 +45,13 @@ Use a normal (LLM-driven) cron job when you need the agent to **decide** what to
 
 ## Create One from Chat
 
-The real win of no-agent mode is that the agent itself can set up the watchdog for you — no editor, no shell, no remembering CLI flags. You describe what you want, M.U.S.E. writes the script, schedules it, and tells you when it'll fire.
+The real win of no-agent mode is that the agent itself can set up the watchdog for you — no editor, no shell, no remembering CLI flags. You describe what you want, muse writes the script, schedules it, and tells you when it'll fire.
 
 ### Example transcript
 
 > **You:** ping me on telegram if RAM is over 85% every 5 minutes
 >
-> **M.U.S.E.:** *(writes `~/.hermes/scripts/memory-watchdog.sh`, then calls `cronjob(...)` with `no_agent=true`)*
+> **muse** *(writes `~/.hermes/scripts/memory-watchdog.sh`, then calls `cronjob(...)` with `no_agent=true`)*
 >
 > Set up. Runs every 5 min, alerts Telegram only when RAM is over 85%. Script: `memory-watchdog.sh`. Job ID: `abc123`.
 
@@ -85,7 +85,7 @@ From that point on every tick is free: the scheduler runs the script, pipes its 
 
 ### What the agent decides for you
 
-When you phrase a request like "alert me when X" or "every N minutes check Y and tell me if Z", M.U.S.E.' `cronjob` tool description tells it to reach for `no_agent=True` whenever the message content is fully determined by the script. It falls back to the normal LLM-driven path when the request needs reasoning (*"summarize the new issues"*, *"pick the most interesting headlines"*, *"draft a friendly reminder"*).
+When you phrase a request like "alert me when X" or "every N minutes check Y and tell me if Z", muse' `cronjob` tool description tells it to reach for `no_agent=True` whenever the message content is fully determined by the script. It falls back to the normal LLM-driven path when the request needs reasoning (*"summarize the new issues"*, *"pick the most interesting headlines"*, *"draft a friendly reminder"*).
 
 You don't have to specify `--no-agent` yourself. Just describe the behavior.
 
@@ -95,13 +95,13 @@ The agent can pause, resume, edit, and remove jobs the same way it creates them:
 
 > **You:** stop the memory watchdog for tonight
 >
-> **M.U.S.E.:** *(calls `cronjob(action='pause', job_id='abc123')`)*
+> **muse** *(calls `cronjob(action='pause', job_id='abc123')`)*
 >
 > Paused. Resume with "turn it back on" or via `muse cron resume abc123`.
 
 > **You:** change it to every 15 minutes
 >
-> **M.U.S.E.:** *(calls `cronjob(action='update', job_id='abc123', schedule='every 15m')`)*
+> **muse** *(calls `cronjob(action='update', job_id='abc123', schedule='every 15m')`)*
 
 The full lifecycle (create / list / update / pause / resume / run-now / remove) is available to the agent without you learning any CLI commands.
 
@@ -233,11 +233,11 @@ Silent when both filesystems are under 90%; fires exactly one line per over-thre
 
 | Approach | What runs | When to use |
 |----------|-----------|-------------|
-| `cronjob --no-agent` (this page) | Your script on M.U.S.E.' schedule | Recurring watchdogs / alerts / metrics that don't need reasoning |
+| `cronjob --no-agent` (this page) | Your script on muse' schedule | Recurring watchdogs / alerts / metrics that don't need reasoning |
 | `cronjob` (default, LLM) | Agent with optional pre-check script | When the message content requires reasoning over data |
-| OS cron + `curl` to a [webhook subscription](/docs/user-guide/messaging/webhooks) | Your script on the OS schedule | When M.U.S.E. might be unhealthy (the thing you're monitoring) |
+| OS cron + `curl` to a [webhook subscription](/docs/user-guide/messaging/webhooks) | Your script on the OS schedule | When muse might be unhealthy (the thing you're monitoring) |
 
-For critical system-health watchdogs that must fire *even when the gateway is down*, use OS-level cron with a plain `curl` to a M.U.S.E. webhook subscription (or any external alerting endpoint) — those run as independent OS processes and don't depend on M.U.S.E. being up. The in-gateway scheduler is the right choice when the thing being monitored is external.
+For critical system-health watchdogs that must fire *even when the gateway is down*, use OS-level cron with a plain `curl` to a muse webhook subscription (or any external alerting endpoint) — those run as independent OS processes and don't depend on muse being up. The in-gateway scheduler is the right choice when the thing being monitored is external.
 
 ## Related
 

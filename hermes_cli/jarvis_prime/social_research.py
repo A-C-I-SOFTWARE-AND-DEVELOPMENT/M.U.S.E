@@ -1,4 +1,4 @@
-"""Social-platform public research for MUSE.
+"""Social-platform public research for muse
 
 The user asked: "research websites like reddit, facebook, github,
 etc comment sections and message boards gathering data and storing

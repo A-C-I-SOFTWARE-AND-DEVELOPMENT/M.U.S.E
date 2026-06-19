@@ -1,12 +1,12 @@
-# MUSE Social Intelligence — UI
+# muse Social Intelligence — UI
 
 This document describes the Memory screen and Social Speech Pattern
 data model that the Android companion app uses to surface, audit, and
-delete MUSE's learned speech patterns.
+delete muse's learned speech patterns.
 
 ## What this is
 
-MUSE learns **abstract communication patterns** — how a class
+muse learns **abstract communication patterns** — how a class
 of people typically writes (e.g. "engineers reply short on mobile") —
 to make its own replies sound human. The Social Intelligence UI is
 the user's review surface for that learning.
@@ -51,7 +51,7 @@ for display:
   `com.aci.hermes.data.model.SocialPattern`.
 - The projection infers the `SocialPatternKind` (from tags, else from
   text), derives **safe usage** (kind-specific) and **unsafe usage**
-  (the universal MUSE boundary), maps the item's single
+  (the universal muse boundary), maps the item's single
   provenance source into the public-source provenance list, and reads
   the runtime's redaction markers to flag identity.
 

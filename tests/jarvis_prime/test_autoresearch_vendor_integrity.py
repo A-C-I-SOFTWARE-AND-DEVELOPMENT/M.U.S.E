@@ -4,7 +4,7 @@ Two invariants:
 1. Every vendored file's sha256 matches the committed ``checksums.json``
    manifest — nobody edits upstream files in-repo (the do-not-edit rule in
    ``VENDOR.md``); experiments mutate only workspace copies.
-2. Importing the MUSE-side autoresearch packages never imports torch or any
+2. Importing the muse-side autoresearch packages never imports torch or any
    vendored module — the engine is GPU/owner-hardware only and must stay out
    of test collection and base-install import paths.
 """
@@ -47,7 +47,7 @@ def test_vendored_files_are_byte_identical_to_manifest() -> None:
         actual = hashlib.sha256((VENDOR_DIR / name).read_bytes()).hexdigest()
         assert actual == expected_sha, (
             f"vendor/{name} was modified in-repo — vendored files are "
-            "byte-identical upstream data (see VENDOR.md); MUSE adaptations "
+            "byte-identical upstream data (see VENDOR.md); muse adaptations "
             "belong in sibling modules"
         )
 

@@ -1,14 +1,14 @@
 # 07 — Progression: the Neural Network
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
-The network **is** the character sheet (master plan §4.5). There is no XP bar as the spine of the game; there is a mind you physically rebuild. Sibling references: roster data in `04-roster-24-agents.md`, combat hooks in `03-combat-gas-design.md`, capture flow in `02-negotiation-system.md`, Den spaces in `05-world-design.md`, Foundry rares in `09-foundry-spec.md`, the real-MUSE wire in `10-observatory-spec.md` and `11-technical-design.md`, screen layouts in `12-ui-ux-spec.md`.
+The network **is** the character sheet (master plan §4.5). There is no XP bar as the spine of the game; there is a mind you physically rebuild. Sibling references: roster data in `04-roster-24-agents.md`, combat hooks in `03-combat-gas-design.md`, capture flow in `02-negotiation-system.md`, Den spaces in `05-world-design.md`, Foundry rares in `09-foundry-spec.md`, the real-muse wire in `10-observatory-spec.md` and `11-technical-design.md`, screen layouts in `12-ui-ux-spec.md`.
 
 ---
 
 ## 1. The Neural Network Screen
 
-A full-screen 3D **hex-lattice mind-graph**, the player's primary menu (default key: N). The Muse nucleus sits at center; captured agents are **nodes** placed into lattice slots; **Synapse Thread** is spent to wire **edges** between adjacent occupied slots. Live Resonance pulses travel the edges (Niagara, same edge-flow tech as the Observatory — master plan §4.5's build-once-ship-twice rule; shared widget/render library per `10-observatory-spec.md` and `12-ui-ux-spec.md`).
+A full-screen 3D **hex-lattice mind-graph**, the player's primary menu (default key: N). The muse nucleus sits at center; captured agents are **nodes** placed into lattice slots; **Synapse Thread** is spent to wire **edges** between adjacent occupied slots. Live Resonance pulses travel the edges (Niagara, same edge-flow tech as the Observatory — master plan §4.5's build-once-ship-twice rule; shared widget/render library per `10-observatory-spec.md` and `12-ui-ux-spec.md`).
 
 Screen affordances (locked): grab-and-place nodes (drag from Periphery dock onto a slot), draw edges slot-to-slot, hover any node for full attribute sheet (`03-combat-gas-design.md` §1), hover any edge for its synergy line, a Synergy Ledger panel listing every active bonus with its source, and a Loadout strip showing which 3+3 wired agents form the active party and bench. Everything readable by controller and screen reader (`12-ui-ux-spec.md`).
 
@@ -16,7 +16,7 @@ Screen affordances (locked): grab-and-place nodes (drag from Periphery dock onto
 
 | Tier | Slots | Adjacency | Resonance flow rate (§4) | Unlock |
 |---|---|---|---|---|
-| **Nucleus** | 1 (the Muse — not an agent slot) | touches all 3 Core slots | — | always |
+| **Nucleus** | 1 (the muse — not an agent slot) | touches all 3 Core slots | — | always |
 | **Core ring** | **3** | each touches Nucleus + both Core neighbors + 2 Inner slots | 100% | at start |
 | **Inner ring** | **6** | each touches 1–2 Core, 2 Inner neighbors, 2 Outer | 85% | +2 slots per Gauntlet clear, Gauntlets 1–3 |
 | **Outer ring** | **12** | each touches 1–2 Inner, 2 Outer neighbors | 70% | +3 slots per Gauntlet clear, Gauntlets 4–7 |
@@ -213,18 +213,18 @@ Furnishing the Den (room system per master plan §4.6; AI room editor when P3's 
 
 ---
 
-## 9. The Real-MUSE Bridge (owner-gated, cosmetic-by-default, opt-in)
+## 9. The Real-muse Bridge (owner-gated, cosmetic-by-default, opt-in)
 
-The post-game reveal (master plan §4.5, §4.8): wiring an agent into your in-game network can unlock its **real counterpart** in a paired MUSE install — catch CONTRARIAN, gain the contrarian-reviewer skill in your actual cockpit. Design-level handshake (wire details, schemas, and route specs are owned by `10-observatory-spec.md` and `11-technical-design.md`):
+The post-game reveal (master plan §4.5, §4.8): wiring an agent into your in-game network can unlock its **real counterpart** in a paired muse install — catch CONTRARIAN, gain the contrarian-reviewer skill in your actual cockpit. Design-level handshake (wire details, schemas, and route specs are owned by `10-observatory-spec.md` and `11-technical-design.md`):
 
-1. **Opt-in.** Settings → MUSE Bridge, **off by default**. Enabling runs the existing gateway pairing flow; the game functions identically with the bridge off, forever (standalone-game test, master plan §4.8).
+1. **Opt-in.** Settings → muse Bridge, **off by default**. Enabling runs the existing gateway pairing flow; the game functions identically with the bridge off, forever (standalone-game test, master plan §4.8).
 2. **Manifest.** On every capture and promotion, the game appends a signed entry to a local **Unlock Manifest**: `{agent_id, council_role, event: caught|promoted, save_id, timestamp, save_hash}`.
 3. **Sync.** When paired and online, SYNAPSE posts the manifest to the additive `/v1/game/unlocks` route family (gateway-side, contract-regenerated and frozen per the master plan §1 coupling rule — nothing ported to C++).
 4. **Cosmetic tier (auto):** the gateway applies cosmetic unlocks immediately — cockpit badge per caught agent, Observatory node skin, avatar accessory, promotion flair. No owner gate needed; cosmetic-by-default is the contract.
-5. **Functional tier (owner-gated):** enabling the agent's *real* council skill (the mapping is the roster's source-role column, `04-roster-24-agents.md`) is staged as a **proposal** in the MUSE cockpit and activates only on the exact owner phrase **`Yes, with authorization.`** — the existing owner-gate mechanism, ledger-logged, with one-click rollback. The game never flips a real capability by itself.
+5. **Functional tier (owner-gated):** enabling the agent's *real* council skill (the mapping is the roster's source-role column, `04-roster-24-agents.md`) is staged as a **proposal** in the muse cockpit and activates only on the exact owner phrase **`Yes, with authorization.`** — the existing owner-gate mechanism, ledger-logged, with one-click rollback. The game never flips a real capability by itself.
 6. **Integrity.** The gateway validates manifest signatures and save hashes; replayed or edited manifests are rejected and ledgered. Unlocks are idempotent per save.
 
-The player-facing fiction: the Substrate was your MUSE all along; the Council you rebuilt is the council you now command for real. The bridge is the reward for finishing — never a requirement for starting.
+The player-facing fiction: the Substrate was your muse all along; the Council you rebuilt is the council you now command for real. The bridge is the reward for finishing — never a requirement for starting.
 
 ---
 

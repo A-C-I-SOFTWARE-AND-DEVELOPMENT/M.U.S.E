@@ -6,7 +6,7 @@
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh)
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -43,8 +43,8 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
-REPO_URL_HTTPS="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+REPO_URL_SSH="git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
+REPO_URL_HTTPS="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
@@ -60,7 +60,7 @@ PYTHON_VERSION="3.11"
 NODE_VERSION="22"
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
-#   code at /usr/local/lib/hermes-agent, command at /usr/local/bin/muse,
+#   code at /usr/local/lib/hermes-agent, command at /usr/local/bin/muse
 #   data still at /root/.hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
@@ -389,7 +389,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)"
+            log_info "  iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1)"
             exit 1
             ;;
         *)
@@ -2099,7 +2099,7 @@ resolve_hermes_cmd() {
         echo "$link_dir/muse"; return 0
     fi
     if command -v muse >/dev/null 2>&1; then
-        command -v muse; return 0
+        command -v muse return 0
     fi
     if [ -x "$INSTALL_DIR/venv/bin/muse" ]; then
         echo "$INSTALL_DIR/venv/bin/muse"; return 0
@@ -2260,7 +2260,7 @@ print_first_run_pairing_hint() {
     echo "                          (http://127.0.0.1:8765/cockpit/)."
     echo -e "   ${GREEN}muse cockpit token${NC}     Print the pairing token again (--rotate to rotate it)."
     echo ""
-    echo "   Pair the MUSE Android app (or the browser cockpit) with that base URL"
+    echo "   Pair the muse Android app (or the browser cockpit) with that base URL"
     echo "   + token. The app's pairing screen drives POST /v1/cockpit/pair/start"
     echo "   and /v1/cockpit/pair/confirm for you."
     echo ""

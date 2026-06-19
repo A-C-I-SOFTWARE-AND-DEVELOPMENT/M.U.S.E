@@ -12,14 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseGlyph
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museGlyph
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * Shell placeholder for MUSE sections whose full UI is still being
+ * Shell placeholder for muse sections whose full UI is still being
  * built (Chat, Approvals, Memory, Audit). The screen still lives in the
  * navigation graph so the bottom tab, deep links from Home, and back-stack
  * tests all work; it just shows a "Coming soon" panel.
@@ -39,7 +39,7 @@ fun PlaceholderScreen(
         verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        MuseGlyph(size = 72.dp)
+        museGlyph(size = 72.dp)
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
@@ -51,7 +51,7 @@ fun PlaceholderScreen(
             color = JarvisSignalDim,
             textAlign = TextAlign.Center,
         )
-        MuseCard(
+        museCard(
             modifier = Modifier.padding(top = JarvisTokens.SpaceLg),
         ) {
             Text(

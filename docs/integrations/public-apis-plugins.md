@@ -1,7 +1,7 @@
 # Free public-API plugins (weather, finance, news, timeutil)
 
-Four native M.U.S.E. plugins wire a handful of **free public APIs** into the
-agent so MUSE can answer everyday questions — what's the weather,
+Four native muse plugins wire a handful of **free public APIs** into the
+agent so muse can answer everyday questions — what's the weather,
 what's BTC at, what's in the news, what time is it for my team in Tokyo —
 without you standing up any infrastructure. Three of the four need **no API
 key at all**; only one optional news source needs a key.
@@ -45,7 +45,7 @@ timeutil:
   enabled: true
 ```
 
-Then make M.U.S.E. load them (same as any bundled standalone plugin):
+Then make muse load them (same as any bundled standalone plugin):
 
 ```bash
 muse plugins enable weather finance news timeutil

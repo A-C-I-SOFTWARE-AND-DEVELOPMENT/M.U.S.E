@@ -1,6 +1,6 @@
 # 17 — SYNAPSE Launch Readiness Checklist
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 This is the **single launch gate document** — Gate G6 in 14-production-plan.md, walked end-to-end in Sprint 35 (2027-10-04 → 10-15) ahead of launch on **2027-10-26**. House rule, applied without exception: **no evidence, no claim.** Every item is a checkbox plus an `evidence:` line naming the artifact that proves it. An unchecked box with no artifact is a NO-GO for its section; section NO-GOs roll up to the ceremony in §13. Artifacts are filed under `docs/launch/evidence/` in the SYNAPSE repo, named as cited here.
 
@@ -76,13 +76,13 @@ Sources of each gate: 15-qa-test-plan.md (quality), 16-steam-marketing-launch-pl
 
 - [ ] **Tier 1 (bundled local) certified complete** — the full game, offline, on min-spec CPU inference within latency budget (first token ≤1.5s, reply ≤8s or wheel offered). evidence: offline cert (§2) + latency capture on the 1660 rig
 - [ ] **Tier 2 (hosted) caps tested** — free-tier caps enforce; cap exhaustion degrades to tier 1 with user-visible notice, never an error; queue limits hold under synthetic load. evidence: cap/load test report
-- [ ] **Tier 3 (BYO MUSE-gateway) pairing handshake tested** — pairing, bearer auth, SSE stream, unpair, and auth-expiry recovery against MUSE Platform v1.0. evidence: pairing test log against the GP1-tagged release
+- [ ] **Tier 3 (BYO muse-gateway) pairing handshake tested** — pairing, bearer auth, SSE stream, unpair, and auth-expiry recovery against muse Platform v1.0. evidence: pairing test log against the GP1-tagged release
 - [ ] **Kill-switches verified** — per-tier disable toggles (player-side) and the hosted-service kill-switch (operator-side) each tested live; game remains fully playable on tier 1 in every kill state. evidence: kill-switch test matrix
 - [ ] **Hosted-brain cost guard armed** — monthly spend cap + alerting on the $100/mo budget line. evidence: billing-alert configuration screenshot
 
-## 7. P1 — MUSE Platform v1.0 lane (master plan §10 DoD)
+## 7. P1 — muse Platform v1.0 lane (master plan §10 DoD)
 
-*(Gated at GP1, Sprint 10 — re-verified here because tier 3 and the post-game MUSE bridge depend on it.)*
+*(Gated at GP1, Sprint 10 — re-verified here because tier 3 and the post-game muse bridge depend on it.)*
 
 - [ ] **Held PR chain resolved per R00** — #131 → #142 → #143 → #147 → #149 → #150 rebased and landed, owner-authorized at each gate. evidence: merge commits + per-gate authorization records
 - [ ] **Image-gen provider wired** (room editor unblocked; feeds P3). evidence: room-editor generation demo capture
@@ -123,11 +123,11 @@ Sources of each gate: 15-qa-test-plan.md (quality), 16-steam-marketing-launch-pl
 | Review score | <70% positive at 50 reviews | Theme triage; pinned commitments post per 16 §13 protocol |
 | Hosted-tier spend | >2× daily budget | Hosted-tier soft cap engages automatically (degrades to tier 1 — §6 verified) |
 
-## 10. Observatory & game↔MUSE bridge (ship-config sanity)
+## 10. Observatory & game↔muse bridge (ship-config sanity)
 
 - [ ] **Neural Observatory mode stable** — G3 evidence still reproducible on RC (snapshot, stream, one rec card honest-by-construction). evidence: G3 artifacts re-run on RC
-- [ ] **Real-MUSE unlock bridge** is owner-gated, cosmetic-by-default, opt-in, and fully absent from the offline path (standalone-game test, master plan §4.8). evidence: config audit + offline-cert cross-check
-- [ ] **Post-game MUSE reveal** does not gate any campaign content. evidence: outsider run (§1) reached credits with zero MUSE pairing
+- [ ] **Real-muse unlock bridge** is owner-gated, cosmetic-by-default, opt-in, and fully absent from the offline path (standalone-game test, master plan §4.8). evidence: config audit + offline-cert cross-check
+- [ ] **Post-game muse reveal** does not gate any campaign content. evidence: outsider run (§1) reached credits with zero muse pairing
 
 ## 11. T-minus countdown (the order this checklist gets walked)
 

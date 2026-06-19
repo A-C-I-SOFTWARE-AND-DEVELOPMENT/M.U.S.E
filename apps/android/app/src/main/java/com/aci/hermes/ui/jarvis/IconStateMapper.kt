@@ -1,7 +1,7 @@
 package com.aci.hermes.ui.jarvis
 
 /**
- * Pure, side-effect-free signals that drive the MUSE icon.
+ * Pure, side-effect-free signals that drive the muse icon.
  *
  * One [IconStateInputs] snapshot resolves to exactly one [IconState]
  * via [IconStateMapper.map]. The mapper is the single source of truth

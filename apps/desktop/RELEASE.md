@@ -1,4 +1,4 @@
-# Releasing the M.U.S.E. desktop app
+# Releasing the muse desktop app
 
 The desktop app (Tauri v2, this directory) is built and published by
 [`.github/workflows/muse-desktop-release.yml`](../../.github/workflows/muse-desktop-release.yml).
@@ -11,7 +11,7 @@ marked in the release notes), so forks and first bring-up are never blocked.
 
 ## Cutting a release
 
-- **One button (recommended):** Actions → *MUSE desktop release* → *Run workflow*
+- **One button (recommended):** Actions → *muse desktop release* → *Run workflow*
   with **no input**. Cuts a permanent versioned release auto-stamped
   `0.1.<commit-count>` — no tag to type.
 - **Hand-named version:** push a tag `muse-desktop-v1.2.3` (or set the dispatch
@@ -60,7 +60,7 @@ Self-update is **wired but inert**: `tauri-plugin-updater` is a dependency and
   "updater": {
     "pubkey": "",
     "endpoints": [
-      "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/latest/download/latest.json"
+      "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases/latest/download/latest.json"
     ]
   }
 }

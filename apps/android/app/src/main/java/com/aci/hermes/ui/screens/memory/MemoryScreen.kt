@@ -47,8 +47,8 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
 import com.aci.hermes.ui.theme.JarvisTokens
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -232,7 +232,7 @@ fun MemoryFilter(
 ) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
         item {
-            MuseChip(
+            museChip(
                 label = stringResource(R.string.memory_filter_all),
                 selected = active == null,
                 onClick = { onSelect(null) },
@@ -240,7 +240,7 @@ fun MemoryFilter(
             )
         }
         items(MemoryCategory.values().toList()) { cat ->
-            MuseChip(
+            museChip(
                 label = cat.display,
                 selected = active == cat,
                 onClick = { onSelect(cat) },
@@ -284,7 +284,7 @@ fun MemoryCard(
     onCorrect: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(MemoryScreenTags.card(item.id))
@@ -324,8 +324,8 @@ fun MemoryCard(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
-                MuseChip(label = item.durability.display, onClick = onOpen)
-                MuseChip(label = item.confidence.display, onClick = onOpen)
+                museChip(label = item.durability.display, onClick = onOpen)
+                museChip(label = item.confidence.display, onClick = onOpen)
             }
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {

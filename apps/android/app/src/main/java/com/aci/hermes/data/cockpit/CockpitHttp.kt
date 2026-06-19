@@ -164,7 +164,7 @@ object JdkHttpExecutor : CockpitHttpExecutor {
             request.headers.forEach { (k, v) -> setRequestProperty(k, v) }
             if (request.body != null) {
                 doOutput = true
-                outputStream.use { it.write(request.body.toByteArray(Charsets.UTF_8)) }
+                outputStreamuse { it.write(request.body.toByteArray(Charsets.UTF_8)) }
             }
         }
         try {

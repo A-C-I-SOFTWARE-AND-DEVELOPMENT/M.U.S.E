@@ -191,7 +191,7 @@ class VoiceLoopService : LifecycleService() {
         val channelId = "jarvis_voice"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getSystemService(NotificationManager::class.java).createNotificationChannel(
-                NotificationChannel(channelId, "Muse voice", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(channelId, "muse voice", NotificationManager.IMPORTANCE_LOW),
             )
         }
         // Tapping the persistent "listening" notification opens the Voice
@@ -206,8 +206,8 @@ class VoiceLoopService : LifecycleService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification: Notification = Notification.Builder(this, channelId)
-            .setContentTitle("Muse is listening")
-            .setContentText("Say \"Hey Muse\"")
+            .setContentTitle("muse is listening")
+            .setContentText("Say \"Hey muse\"")
             .setSmallIcon(com.aci.hermes.R.mipmap.ic_launcher)
             .setContentIntent(openVoice)
             .build()

@@ -66,11 +66,11 @@ import com.aci.hermes.data.jarvis.SuggestedAction
 import com.aci.hermes.data.jarvis.SuggestedKind
 import com.aci.hermes.data.jarvis.WorkerStatus
 import com.aci.hermes.voice.VoicePhase
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseGlyph
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museGlyph
 import com.aci.hermes.ui.jarvis.rememberJarvisHaptics
 import com.aci.hermes.ui.theme.HermesError
 import com.aci.hermes.ui.theme.HermesGold
@@ -81,7 +81,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Navigation contract for everything the MUSE home screen can
+ * Navigation contract for everything the muse home screen can
  * launch. Kept as a value class so the screen never depends on
  * NavController directly — that keeps the screen previewable and
  * keeps test-only callers from needing a full nav graph.
@@ -346,24 +346,24 @@ fun JarvisPrimeHomeContent(
             onDismissRequest = { emergencyConfirmOpen = false },
             title = { Text("Engage emergency stop?") },
             text = {
-                Text("Halts MUSE immediately and blocks ask, voice, and worker actions until you deactivate.")
+                Text("Halts muse immediately and blocks ask, voice, and worker actions until you deactivate.")
             },
             confirmButton = {
-                MuseButton(
+                museButton(
                     onClick = {
                         haptics.confirm()
                         emergencyConfirmOpen = false
                         onEmergencyConfirmed()
                     },
                     text = "Engage",
-                    variant = MuseButtonVariant.Danger,
+                    variant = museButtonVariant.Danger,
                 )
             },
             dismissButton = {
-                MuseButton(
+                museButton(
                     onClick = { emergencyConfirmOpen = false },
                     text = "Cancel",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
             },
         )
@@ -380,7 +380,7 @@ fun JarvisPrimeIcon(
 ) {
     val tint = presence.tint()
     val haptics = rememberJarvisHaptics()
-    val label = "MUSE — ${presence.headline()}"
+    val label = "muse — ${presence.headline()}"
     Box(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ICON)
@@ -403,7 +403,7 @@ fun JarvisPrimeIcon(
     ) {
         // The brand mark: one white core in the void, matte cyan→violet ring.
         // The presence-tinted ring lives on the surrounding Box border above.
-        MuseGlyph(size = 44.dp)
+        museGlyph(size = 44.dp)
     }
 }
 
@@ -423,7 +423,7 @@ fun JarvisStatusHeader(
         JarvisPrimeIcon(presence = presence, onClick = onIconTap)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "MUSE",
+                text = "muse",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold,
@@ -446,7 +446,7 @@ fun AskJarvisBar(
     modifier: Modifier = Modifier,
 ) {
     var draft by remember { mutableStateOf("") }
-    val hint = if (enabled) "Ask Muse anything…" else "Emergency stop active"
+    val hint = if (enabled) "Ask muse anything…" else "Emergency stop active"
     Surface(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ASK_BAR)
@@ -483,7 +483,7 @@ fun AskJarvisBar(
                     onSubmit(payload)
                 },
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send to Muse")
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send to muse")
             }
         }
     }
@@ -558,7 +558,7 @@ fun ActiveTaskCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ACTIVE_TASK)
             .fillMaxWidth()
@@ -568,8 +568,8 @@ fun ActiveTaskCard(
             Text("Active task", style = MaterialTheme.typography.labelMedium, color = HermesGold)
             Text(task.title, style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MuseChip(label = task.target.name.lowercase().replace('_', ' '))
-                MuseChip(label = task.status.name.lowercase().replace('_', ' '))
+                museChip(label = task.target.name.lowercase().replace('_', ' '))
+                museChip(label = task.status.name.lowercase().replace('_', ' '))
             }
         }
     }
@@ -587,7 +587,7 @@ fun PendingApprovalCard(
         ApprovalRisk.SERIOUS -> HermesGoldDeep
         ApprovalRisk.LOW -> HermesViolet
     }
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.PENDING_APPROVAL)
             .fillMaxWidth()
@@ -597,7 +597,7 @@ fun PendingApprovalCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Approval needed", style = MaterialTheme.typography.labelMedium, color = border)
-                MuseChip(label = approval.risk.name.lowercase())
+                museChip(label = approval.risk.name.lowercase())
             }
             Text(approval.title, style = MaterialTheme.typography.titleMedium)
             Text(approval.reason, style = MaterialTheme.typography.bodySmall)
@@ -612,7 +612,7 @@ fun WorkerStatusCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.WORKER_STATUS)
             .fillMaxWidth()
@@ -657,7 +657,7 @@ fun MemoryPulseCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.MEMORY_PULSE)
             .fillMaxWidth()
@@ -666,7 +666,7 @@ fun MemoryPulseCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Memory pulse", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
             if (pulse.isEmpty()) {
-                Text("Nothing recent. Memory will fill as Muse works.",
+                Text("Nothing recent. Memory will fill as muse works.",
                     style = MaterialTheme.typography.bodySmall)
             } else {
                 pulse.forEach { entry ->
@@ -688,10 +688,10 @@ fun EmergencyStopButton(
 ) {
     val label = if (active) "Deactivate emergency stop" else "Emergency stop"
     // Engaged → quiet "deactivate"; armed → the danger emergency-stop control.
-    MuseButton(
+    museButton(
         onClick = onPressed,
         text = label,
-        variant = if (active) MuseButtonVariant.Secondary else MuseButtonVariant.Danger,
+        variant = if (active) museButtonVariant.Secondary else museButtonVariant.Danger,
         leadingIcon = Icons.Default.PowerSettingsNew,
         modifier = modifier
             .testTag(JarvisHomeTestTags.EMERGENCY_STOP)
@@ -708,7 +708,7 @@ fun SuggestedNextActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.SUGGESTED_ACTION)
             .fillMaxWidth()
@@ -736,7 +736,7 @@ fun BackendUnavailableBanner(
             "workers, memory, and audit. Local controls still work."
         else -> message ?: "Showing last-known local state. Tap retry once the gateway is up."
     }
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.BACKEND_BANNER)
             .fillMaxWidth()
@@ -747,9 +747,9 @@ fun BackendUnavailableBanner(
             Text(body, style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (notPaired) {
-                    MuseButton(onClick = onPair, text = "Open Settings", variant = MuseButtonVariant.Primary)
+                    museButton(onClick = onPair, text = "Open Settings", variant = museButtonVariant.Primary)
                 } else {
-                    MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Primary)
+                    museButton(onClick = onRetry, text = "Retry", variant = museButtonVariant.Primary)
                 }
             }
         }
@@ -773,7 +773,7 @@ fun QuickActionsCard(
     val actions = listOf(
         QuickAction.NEW_CODING to "New coding task",
         QuickAction.CODE_HANDOFF to "Code handoff",
-        QuickAction.ASK to "Ask MUSE",
+        QuickAction.ASK to "Ask muse",
         QuickAction.AUDIT_REPO to "Audit repo",
         QuickAction.RUN_TESTS to "Run tests",
         QuickAction.REVIEW_PATCH to "Review patch",
@@ -781,7 +781,7 @@ fun QuickActionsCard(
         QuickAction.OPEN_MEMORY to "Memory",
         QuickAction.START_VOICE to "Start voice",
     )
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.QUICK_ACTIONS)
             .fillMaxWidth(),
@@ -791,10 +791,10 @@ fun QuickActionsCard(
             actions.chunked(2).forEach { row ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { (action, label) ->
-                        MuseButton(
+                        museButton(
                             onClick = { onAction(action) },
                             text = label,
-                            variant = MuseButtonVariant.Secondary,
+                            variant = museButtonVariant.Secondary,
                             enabled = enabled,
                             modifier = Modifier.weight(1f),
                         )
@@ -813,7 +813,7 @@ fun ModelRouterCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.MODEL_ROUTER)
             .fillMaxWidth()
@@ -834,7 +834,7 @@ fun JobsCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.JOBS)
             .fillMaxWidth()
@@ -876,7 +876,7 @@ fun AuditEventsCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.AUDIT_EVENTS)
             .fillMaxWidth()
@@ -902,7 +902,7 @@ fun EvidenceCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.EVIDENCE)
             .fillMaxWidth()
@@ -936,12 +936,12 @@ fun VoiceStateCard(
     val label = when {
         !enabled -> "Voice blocked (emergency stop)"
         phase == VoicePhase.DORMANT -> "Voice idle"
-        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Muse”"
+        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey muse”"
         phase == VoicePhase.LISTENING -> "Listening…"
         phase == VoicePhase.THINKING -> "Thinking…"
         else -> "Speaking…"
     }
-    MuseCard(
+    museCard(
         // Disabled card is a no-op while the emergency stop is engaged — voice
         // is one of the actions the stop dialog promises to block.
         modifier = modifier
@@ -967,7 +967,7 @@ fun DeviceCapabilityCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    MuseCard(
+    museCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.DEVICE_CAPABILITY)
             .fillMaxWidth()
@@ -1006,7 +1006,7 @@ private fun JarvisPresence.headline(): String = when (this) {
     JarvisPresence.SERIOUS_ACTION_PENDING -> "Serious action pending."
     JarvisPresence.CRITICAL_ACTION_PENDING -> "Critical action pending."
     JarvisPresence.GATEWAY_DISCONNECTED -> "Gateway disconnected."
-    JarvisPresence.SERVICE_STOPPED -> "Muse service is stopped."
+    JarvisPresence.SERVICE_STOPPED -> "muse service is stopped."
     JarvisPresence.EMERGENCY_STOP_ACTIVE -> "Emergency stop engaged."
     JarvisPresence.OFFLINE_MOCK -> "Offline / mock mode."
 }

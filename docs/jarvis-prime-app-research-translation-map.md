@@ -1,6 +1,6 @@
-# MUSE — research translation map (Python runtime ↔ Android cockpit)
+# muse — research translation map (Python runtime ↔ Android cockpit)
 
-This document maps every concept in the MUSE Python runtime
+This document maps every concept in the muse Python runtime
 (`hermes_cli/jarvis_prime/`) and the operating-system spec
 (`docs/jarvis-prime-operating-system.md`) to the corresponding
 Android surface — what already exists in `apps/android/`, what needs
@@ -239,7 +239,7 @@ the task detail screen (W2).
 Source: `self_update.py:Proposal`, `ProposalBook`, `ProposalEvidence`,
 `ProposalKind`, `ProposalStatus`.
 
-Android target: NTH — a "MUSE suggests" inbox where the runtime's
+Android target: NTH — a "muse suggests" inbox where the runtime's
 self-improvement proposals (e.g. "rename this skill", "this gate is
 flaky") surface to the user. Not part of W0-W4. Tracked here so the
 proposals don't get lost during the rebrand.
@@ -252,7 +252,7 @@ Source: `onboarding.py` (430 LOC, the most behavior-heavy module).
 
 Android target (W0 + W1 split):
 
-- W0: Splash + minimal "Welcome to MUSE" card; preserves the
+- W0: Splash + minimal "Welcome to muse" card; preserves the
   existing `SettingsRepository.hasOnboarded` flag.
 - W1: After the Connection screen lands, the onboarding flow asks
   the user (in order):

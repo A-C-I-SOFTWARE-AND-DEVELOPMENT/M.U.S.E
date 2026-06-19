@@ -172,7 +172,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/observatory/recommendations/{id}/stage"), h_recs.observatory_recommendation_stage, True),
     # SYNAPSE game substrate (master plan §4; additive per the §1 coupling
     # rule). Bearer-authed CRUD over local save/Foundry state — no owner
-    # phrase: nothing here flips a real MUSE capability. Literal "/design"
+    # phrase: nothing here flips a real muse capability. Literal "/design"
     # and "/saves" precede the "{slot}" capture (first-match dispatch).
     ("GET", _compile("/v1/game/design"), h_game.game_design, True),
     ("GET", _compile("/v1/game/saves"), h_game.game_saves_list, True),

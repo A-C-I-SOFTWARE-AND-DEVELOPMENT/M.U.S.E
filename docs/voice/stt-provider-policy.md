@@ -1,6 +1,6 @@
 # STT provider policy
 
-How M.U.S.E. chooses a speech-to-text provider, what it sends, what it
+How muse chooses a speech-to-text provider, what it sends, what it
 stores, and when the user has to opt in.
 
 > **One-line policy:** local STT is preferred, remote STT is
@@ -55,7 +55,7 @@ The user opts in by either:
 Both surfaces show the same first-time confirmation copy:
 
 > Cloud transcription sends short audio clips of your spoken commands
-> to {provider}. M.U.S.E. never streams continuous audio. Each utterance
+> to {provider}. muse never streams continuous audio. Each utterance
 > is sent as a single clip after a wake event or push-to-talk press,
 > and the clip is discarded as soon as the transcript is returned.
 > The transcript itself is stored locally under `~/.hermes/voice/`.

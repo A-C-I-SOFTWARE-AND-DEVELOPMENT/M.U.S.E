@@ -1,4 +1,4 @@
-"""Six MUSE modes + intent classifier.
+"""Six muse modes + intent classifier.
 
 The mode set is the contract from
 ``docs/jarvis-prime-operating-system.md`` § Modes and the SKILL
@@ -15,7 +15,7 @@ from typing import Optional, Sequence
 
 
 class Mode(Enum):
-    """The six canonical MUSE operating modes."""
+    """The six canonical muse operating modes."""
 
     COMPANION = "companion"
     STRATEGY = "strategy"

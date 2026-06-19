@@ -326,7 +326,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         if msg_type not in {"text", "event"}:
             return None
 
-        user_id = root.findtext("FromUserName", default="")
+        user_id = root.findtext("FromuserName", default="")
         corp_id = root.findtext("ToUserName", default=app.get("corp_id", ""))
         scoped_chat_id = self._user_app_key(corp_id, user_id)
         content = root.findtext("Content", default="").strip()

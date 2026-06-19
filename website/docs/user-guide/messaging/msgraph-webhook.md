@@ -1,14 +1,14 @@
 ---
 sidebar_position: 23
 title: "Microsoft Graph Webhook Listener"
-description: "Receive Microsoft Graph change notifications (meetings, calendar, chat, etc.) in M.U.S.E."
+description: "Receive Microsoft Graph change notifications (meetings, calendar, chat, etc.) in muse"
 ---
 
 # Microsoft Graph Webhook Listener
 
-The `msgraph_webhook` gateway platform is an inbound event listener. It's how M.U.S.E. receives **change notifications** from Microsoft Graph — "a Teams meeting ended," "a new message landed in this chat," "this calendar event was updated." Different from the `teams` platform (which is a chat bot users type to) — this one is M365 telling M.U.S.E. something happened, not a person.
+The `msgraph_webhook` gateway platform is an inbound event listener. It's how muse receives **change notifications** from Microsoft Graph — "a Teams meeting ended," "a new message landed in this chat," "this calendar event was updated." Different from the `teams` platform (which is a chat bot users type to) — this one is M365 telling muse something happened, not a person.
 
-Right now the primary consumer is the Teams meeting summary pipeline: Graph notifies when a meeting produces a transcript, the pipeline fetches it, and M.U.S.E. posts a summary back into Teams. Other Graph resources (`/chats/.../messages`, `/users/.../events`) use the same listener — the pipeline consumers land with their own PRs.
+Right now the primary consumer is the Teams meeting summary pipeline: Graph notifies when a meeting produces a transcript, the pipeline fetches it, and muse posts a summary back into Teams. Other Graph resources (`/chats/.../messages`, `/users/.../events`) use the same listener — the pipeline consumers land with their own PRs.
 
 ## Prerequisites
 
@@ -134,4 +134,4 @@ Status code table:
 
 - [Register a Microsoft Graph Application](/docs/guides/microsoft-graph-app-registration) — Azure app registration prereq
 - [Environment Variables → Microsoft Graph](/docs/reference/environment-variables#microsoft-graph-teams-meetings) — full env var list
-- [Microsoft Teams bot setup](/docs/user-guide/messaging/teams) — the different platform that lets users chat with M.U.S.E. in Teams
+- [Microsoft Teams bot setup](/docs/user-guide/messaging/teams) — the different platform that lets users chat with muse in Teams

@@ -1,6 +1,6 @@
 """Compliance evidence matrix + exportable evidence package (Vol VI Part 4).
 
-MUSE is already a compliance artifact: the hash-chained ledger, the eight
+muse is already a compliance artifact: the hash-chained ledger, the eight
 verification gates, the owner-approval gate, and the constitution self-audit
 map almost one-to-one onto EU AI Act high-risk obligations (Art. 9/11/12/14/15),
 SOC 2 common criteria, and ISO 27001 Annex A controls. ``CONTROL_MAPPINGS``

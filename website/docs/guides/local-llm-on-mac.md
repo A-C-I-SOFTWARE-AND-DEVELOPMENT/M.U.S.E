@@ -15,7 +15,7 @@ We cover two backends:
 | **llama.cpp** | `brew install llama.cpp` | Fastest time-to-first-token, quantized KV cache for low memory | GGUF |
 | **omlx** | [omlx.ai](https://omlx.ai) | Fastest token generation, native Metal optimization | MLX (safetensors) |
 
-Both expose an OpenAI-compatible `/v1/chat/completions` endpoint. M.U.S.E. works with either one — just point it at `http://localhost:8080` or `http://localhost:8000`.
+Both expose an OpenAI-compatible `/v1/chat/completions` endpoint. muse works with either one — just point it at `http://localhost:8080` or `http://localhost:8000`.
 
 :::info Apple Silicon only
 This guide targets Macs with Apple Silicon (M1 and later). Intel Macs will work with llama.cpp but without GPU acceleration — expect significantly slower performance.
@@ -208,7 +208,7 @@ Both backends tested on the same machine (Apple M5 Max, 128 GB unified memory) r
 
 ---
 
-## Connect to M.U.S.E.
+## Connect to muse
 
 Once your local server is running:
 
@@ -222,7 +222,7 @@ Select **Custom endpoint** and follow the prompts. It will ask for the base URL 
 
 ## Timeouts
 
-M.U.S.E. automatically detects local endpoints (localhost, LAN IPs) and relaxes its streaming timeouts. No configuration needed for most setups.
+muse automatically detects local endpoints (localhost, LAN IPs) and relaxes its streaming timeouts. No configuration needed for most setups.
 
 If you still hit timeout errors (e.g. very large contexts on slow hardware), you can override the streaming read timeout:
 

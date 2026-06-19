@@ -1,7 +1,7 @@
 # s6-overlay Supervision for Per-Profile Gateways in Docker — Implementation Plan
 
 > **Status: shipped.** Phases 0–5 landed via PR
-> [A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E#30136](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/pull/30136)
+> [A-C-I-SOFTWARE-AND-DEVELOPMENT/muse#30136](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/pull/30136)
 > in May 2026. This document is preserved as a post-implementation reference
 > for the architecture and the resolved design questions. The phase-by-phase
 > TDD walkthrough (≈2,800 lines) and the v2/v3 re-validation preambles have

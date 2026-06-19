@@ -1,7 +1,7 @@
 ---
 sidebar_position: 11
 title: "Automate Anything with Cron"
-description: "Real-world automation patterns using M.U.S.E. cron — monitoring, reports, pipelines, and multi-skill workflows"
+description: "Real-world automation patterns using muse cron — monitoring, reports, pipelines, and multi-skill workflows"
 ---
 
 # Automate Anything with Cron
@@ -15,7 +15,7 @@ Cron jobs run in fresh agent sessions with no memory of your current chat. Promp
 :::
 
 :::tip Don't need the LLM? You have two zero-token options.
-- **Recurring watchdog** where the script already produces the exact message (memory alerts, disk alerts, heartbeats): use [script-only cron jobs](/docs/guides/cron-script-only). Same scheduler, no LLM. You can ask M.U.S.E. to set one up for you in chat — the `cronjob` tool knows when to pick `no_agent=True` and writes the script for you.
+- **Recurring watchdog** where the script already produces the exact message (memory alerts, disk alerts, heartbeats): use [script-only cron jobs](/docs/guides/cron-script-only). Same scheduler, no LLM. You can ask muse to set one up for you in chat — the `cronjob` tool knows when to pick `no_agent=True` and writes the script for you.
 - **One-shot from a script that's already running** (CI step, post-commit hook, deploy script, externally-scheduled monitor): use [`muse send`](/docs/guides/pipe-script-output) to pipe stdout or a file straight to Telegram / Discord / Slack / etc. without setting up a cron entry.
 :::
 
@@ -109,14 +109,14 @@ The `0 9 * * 1` is a standard cron expression: 9:00 AM every Monday.
 Monitor a repository for new issues, PRs, or releases.
 
 ```bash
-/cron add "every 6h" "Check the GitHub repository A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E for:
+/cron add "every 6h" "Check the GitHub repository A-C-I-SOFTWARE-AND-DEVELOPMENT/muse for:
 - New issues opened in the last 6 hours
 - New PRs opened or merged in the last 6 hours
 - Any new releases
 
 Use the terminal to run gh commands:
-  gh issue list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E --state open --json number,title,author,createdAt --limit 10
-  gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E --state all --json number,title,author,createdAt,mergedAt --limit 10
+  gh issue list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state open --json number,title,author,createdAt --limit 10
+  gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state all --json number,title,author,createdAt,mergedAt --limit 10
 
 Filter to only items from the last 6 hours. If nothing new, respond with [SILENT].
 Otherwise, provide a concise summary of the activity." --name "Repo watcher" --deliver discord

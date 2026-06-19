@@ -26,10 +26,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.aci.hermes.data.cockpit.ServerCapabilities
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
@@ -86,10 +86,10 @@ fun ReleaseCenterScreen(
                     color = JarvisSignalDim,
                     fontFamily = FontFamily.Monospace,
                 )
-                MuseButton(
+                museButton(
                     onClick = { clipboard.setText(AnnotatedString(viewModel.downloadUrl)) },
                     text = "Copy download link",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
                 Text(
                     "Install: open the link on your phone, download the .apk, tap it, allow " +
@@ -148,13 +148,13 @@ private fun BackendCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = JarvisSignalDim,
             )
-            MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onRetry, text = "Retry", variant = museButtonVariant.Secondary)
         } else {
             Line("Gateway version", capabilities.gatewayVersion.ifBlank { "—" })
             Line("API version", capabilities.apiVersion.ifBlank { "—" })
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseChip(label = if (capabilities.executeAllowed) "execute allowed" else "execute blocked")
-                MuseChip(label = if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate")
+                museChip(label = if (capabilities.executeAllowed) "execute allowed" else "execute blocked")
+                museChip(label = if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate")
             }
             if (capabilities.detectedClis.isNotEmpty()) {
                 Line("Detected CLIs", capabilities.detectedClis.joinToString(", "))
@@ -165,7 +165,7 @@ private fun BackendCard(
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             content()

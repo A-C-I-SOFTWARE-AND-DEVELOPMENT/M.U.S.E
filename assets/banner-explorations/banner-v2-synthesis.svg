@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="muse — Multi-Use Synaptic Entity — One mind, many pathways.">
   <!--
-    M.U.S.E. banner — COMP V2 "Cinematic synthesis" (Google discipline + AAA light).
+    muse banner — COMP V2 "Cinematic synthesis" (Google discipline + AAA light).
     Multi-layer volumetric bloom on the WHITE CORE ONLY (4 stacked cool-white halos),
     matte saturated ring (no glow), one atmospheric depth layer, 5-stop value ladder,
     crisp matte wordmark. Palette: gateway/cockpit/static/tokens.css.
@@ -54,7 +54,7 @@
     <circle cx="70" cy="90" r="20" fill="url(#halo1)"/>
     <circle cx="70" cy="90" r="12.5" fill="#ffffff"/>
 
-    <!-- wordmark M.U.S.E. — crisp matte white, weight 15 -->
+    <!-- wordmark muse — crisp matte white, weight 15 -->
     <g fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
       <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>
       <path d="M 316,46 L 316,96 A 38,38 0 0 0 392,96 L 392,46"/>

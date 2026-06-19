@@ -1,6 +1,6 @@
 """Research fabric — bounded-autonomous, verifier-gated self-improvement.
 
-A software-development-first self-learning layer for MUSE, modeled on the
+A software-development-first self-learning layer for muse modeled on the
 AlphaGo-Zero evaluator gate (a challenger replaces the champion only after a
 strict, statistically-margined, non-regression win) and the AZR/Darwin-Gödel
 self-improvement engines — wrapped in an owner-gated safety harness the agent can

@@ -1,12 +1,12 @@
-// UMuseSseClient implementation.
+// UmuseSseClient implementation.
 // Copyright A-C-I Software & Development. All rights reserved.
 
-#include "MuseSseClient.h"
+#include "museSseClient.h"
 
 #include "Async/Async.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
-#include "MuseGatewaySettings.h"
+#include "museGatewaySettings.h"
 #include "SynapseNet.h"
 
 namespace
@@ -25,7 +25,7 @@ namespace
 	}
 }
 
-void UMuseSseClient::Start(const FString& Path)
+void UmuseSseClient::Start(const FString& Path)
 {
 	check(IsInGameThread());
 
@@ -37,7 +37,7 @@ void UMuseSseClient::Start(const FString& Path)
 	Connect();
 }
 
-void UMuseSseClient::Stop()
+void UmuseSseClient::Stop()
 {
 	bWantStream = false;
 	CancelReconnect();
@@ -55,20 +55,20 @@ void UMuseSseClient::Stop()
 	ParsedChars = 0;
 }
 
-void UMuseSseClient::BeginDestroy()
+void UmuseSseClient::BeginDestroy()
 {
 	Stop();
 	Super::BeginDestroy();
 }
 
-void UMuseSseClient::Connect()
+void UmuseSseClient::Connect()
 {
 	if (!bWantStream)
 	{
 		return;
 	}
 
-	const UMuseGatewaySettings* Settings = GetDefault<UMuseGatewaySettings>();
+	const UmuseGatewaySettings* Settings = GetDefault<UmuseGatewaySettings>();
 
 	PendingBuffer.Reset();
 	ParsedChars = 0;
@@ -95,7 +95,7 @@ void UMuseSseClient::Connect()
 			*StreamPath, *Settings->ResolveTokenFilePath());
 	}
 
-	TWeakObjectPtr<UMuseSseClient> WeakThis(this);
+	TWeakObjectPtr<UmuseSseClient> WeakThis(this);
 
 	// Progress fires on an HTTP worker thread as bytes arrive. We snapshot
 	// the body-so-far and marshal it; all parsing/state lives game-side.
@@ -110,7 +110,7 @@ void UMuseSseClient::Connect()
 			const FString ContentSoFar = Response->GetContentAsString();
 			AsyncTask(ENamedThreads::GameThread, [WeakThis, ContentSoFar]()
 			{
-				if (UMuseSseClient* Self = WeakThis.Get())
+				if (UmuseSseClient* Self = WeakThis.Get())
 				{
 					Self->ConsumeContent(ContentSoFar);
 				}
@@ -123,7 +123,7 @@ void UMuseSseClient::Connect()
 			const int32 Code = (bConnected && Response.IsValid()) ? Response->GetResponseCode() : 0;
 			AsyncTask(ENamedThreads::GameThread, [WeakThis, Code]()
 			{
-				UMuseSseClient* Self = WeakThis.Get();
+				UmuseSseClient* Self = WeakThis.Get();
 				if (!Self)
 				{
 					return;
@@ -145,7 +145,7 @@ void UMuseSseClient::Connect()
 	UE_LOG(LogSynapseNet, Log, TEXT("SSE stream opening: %s"), *StreamPath);
 }
 
-void UMuseSseClient::ConsumeContent(const FString& FullContent)
+void UmuseSseClient::ConsumeContent(const FString& FullContent)
 {
 	check(IsInGameThread());
 
@@ -174,7 +174,7 @@ void UMuseSseClient::ConsumeContent(const FString& FullContent)
 	}
 }
 
-void UMuseSseClient::DispatchFrame(const FString& Frame)
+void UmuseSseClient::DispatchFrame(const FString& Frame)
 {
 	FString EventType = TEXT("message");
 	TArray<FString> DataLines;
@@ -213,7 +213,7 @@ void UMuseSseClient::DispatchFrame(const FString& Frame)
 	OnSseEvent.Broadcast(EventType, FString::Join(DataLines, TEXT("\n")));
 }
 
-void UMuseSseClient::ScheduleReconnect()
+void UmuseSseClient::ScheduleReconnect()
 {
 	check(IsInGameThread());
 	CancelReconnect();
@@ -230,7 +230,7 @@ void UMuseSseClient::ScheduleReconnect()
 	BackoffSeconds = FMath::Min(BackoffSeconds * 2.0f, GSseBackoffCapSeconds);
 }
 
-void UMuseSseClient::CancelReconnect()
+void UmuseSseClient::CancelReconnect()
 {
 	if (ReconnectHandle.IsValid())
 	{

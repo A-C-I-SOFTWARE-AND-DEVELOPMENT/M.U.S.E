@@ -1,4 +1,4 @@
-"""Subscription-aware worker lanes for MUSE.
+"""Subscription-aware worker lanes for muse
 
 Claude Code and Codex are **official local tools**, used through their
 own installed CLIs and the owner's existing subscription/session. They

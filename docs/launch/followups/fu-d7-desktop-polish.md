@@ -26,7 +26,7 @@
 
 ## Intent (one paragraph)
 
-Polish the M.U.S.E. desktop shell while keeping the Singularity brand intact
+Polish the muse desktop shell while keeping the Singularity brand intact
 (`apps/desktop/ui/src/styles/tokens.css` stays FROZEN byte-identical — not
 touched). Before: the app menu had only Quit, the Help menu carried a disabled
 informational gateway item, window geometry reset every restart, the UI had no
@@ -55,7 +55,7 @@ The deferred G9 Dependabot item (glib) is triaged below.
 
 ## Plan (bounded steps) — all done
 
-1. **About menu item** — `PredefinedMenuItem::about(app, Some("About M.U.S.E."),
+1. **About menu item** — `PredefinedMenuItem::about(app, Some("About muse"),
    Some(AboutMetadata { name, version, comments, ..Default::default() }))` in
    `build_menu`; version comes from `app.package_info().version`, comments are
    "Multi-Use Synaptic Entity — One mind, many pathways."
@@ -102,7 +102,7 @@ The deferred G9 Dependabot item (glib) is triaged below.
   releases; when `tauri > 2.11.x` stops requiring `gtk ^0.18`, a plain
   `cargo update` will pull glib ≥ 0.20 and the alert closes.
 - **Exposure:** the advisory (RUSTSEC-2024-0429) is an unsoundness in glib's
-  `VariantStrIter`; the M.U.S.E. shell does not use `glib` APIs directly —
+  `VariantStrIter`; the muse shell does not use `glib` APIs directly —
   exposure is limited to whatever Tauri/GTK does internally on Linux. Moderate,
   not remotely triggerable through the shell's surface (no custom protocol
   handlers beyond Tauri defaults, no direct variant parsing).

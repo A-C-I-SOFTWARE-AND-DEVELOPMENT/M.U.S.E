@@ -2,7 +2,7 @@
 #
 # ============================ IMPORTANT ====================================
 # This workflow is INTENTIONALLY INERT where it currently sits
-# (apps/synapse-ue/.github/workflows/ inside the M.U.S.E monorepo): GitHub
+# (apps/synapse-ue/.github/workflows/ inside the muse monorepo): GitHub
 # only executes workflows from the repository ROOT's .github/workflows/.
 # It becomes live automatically when this tree is copied verbatim to the
 # root of the standalone SYNAPSE repo (see README.md §Migration).
@@ -64,4 +64,4 @@ jobs:
 
   # Phase 2+: add a Shipping BuildCookRun lane and the nightly cook + packaged
   # smoke boot (TDD §7), plus the synapse/contract.lock wire-contract pin job
-  # that fails when the pinned M.U.S.E contract artifact's hash drifts.
+  # that fails when the pinned muse contract artifact's hash drifts.

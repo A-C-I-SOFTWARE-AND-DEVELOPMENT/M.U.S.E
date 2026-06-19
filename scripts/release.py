@@ -1572,7 +1572,7 @@ def get_pr_number(subject: str) -> str | None:
     return None
 
 
-def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
                        prev_tag=None, first_release=False):
     """Generate markdown changelog from categorized commits."""
     lines = []

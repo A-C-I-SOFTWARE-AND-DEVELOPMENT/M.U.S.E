@@ -1,14 +1,14 @@
-# Canonical Repo Declaration for MUSE
+# Canonical Repo Declaration for muse
 
 This document establishes which repository owns the canonical runtime
-for MUSE and how parallel repository work must be coordinated.
+for muse and how parallel repository work must be coordinated.
 
 ## Canonical source of truth
 
-`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` is the canonical source of
-truth for the MUSE runtime.
+`A-C-I-SOFTWARE-AND-DEVELOPMENT/muse` is the canonical source of
+truth for the muse runtime.
 
-All MUSE runtime files — the `hermes_cli/jarvis_prime/` package
+All muse runtime files — the `hermes_cli/jarvis_prime/` package
 (`runtime.py`, `router.py`, `modes.py`, `gates.py`, `owner_auth.py`,
 `memory.py`, `awareness.py`, `reasoning.py`, `research.py`,
 `social_research.py`, `epistemics.py`, `self_update.py`, `onboarding.py`,
@@ -31,8 +31,8 @@ without first declaring which one is canonical for that change.
 
 ## Branching policy
 
-* All future MUSE runtime work branches from
-  `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` `main`.
+* All future muse runtime work branches from
+  `A-C-I-SOFTWARE-AND-DEVELOPMENT/muse` `main`.
 * Do not edit `main` directly.
 * Do not edit multiple Hermes/JARVIS repositories in parallel without
   declaring which repo is canonical for that change. If a change must
@@ -45,7 +45,7 @@ without first declaring which one is canonical for that change.
 
 ## Worker assignments
 
-* Claude Code is the primary builder for MUSE runtime changes.
+* Claude Code is the primary builder for muse runtime changes.
 * Codex is the reviewer, bounded fix worker, refactorer, and
   second-pass engineer.
 * Claude Code and Codex must not edit the same branch at the same

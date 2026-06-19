@@ -280,8 +280,8 @@ def test_bad_slot_number_400(home: Path, slot: str) -> None:
         # muse constraints (08 §3.1)
         ({"muse": {"name": "x"}}, "2-16"),
         ({"muse": {"name": "x" * 17}}, "2-16"),
-        ({"muse": {"voice": "screamo"}}, "muse.voice"),
-        ({"muse": {"frame": "kaiju"}}, "muse.frame"),
+        ({"muse": {"voice": "screamo"}}, "musevoice"),
+        ({"muse": {"frame": "kaiju"}}, "museframe"),
         ({"muse": {"answers": [0, 1, 2, 0, 1, 2]}}, "at most 5"),
         # section type errors
         ({"settings": "loud"}, "must be an object"),

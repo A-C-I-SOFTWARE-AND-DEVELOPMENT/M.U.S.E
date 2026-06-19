@@ -3,7 +3,7 @@ package com.aci.hermes.data.emergency
 import kotlinx.serialization.Serializable
 
 /**
- * MUSE emergency stop levels. Each level raises the gate higher.
+ * muse emergency stop levels. Each level raises the gate higher.
  *
  * - [INACTIVE]: nothing blocked.
  * - [SOFT_PAUSE]: no new task starts; in-flight work continues.

@@ -1,14 +1,14 @@
-# MUSE Operating System
+# muse Operating System
 
 ## Purpose
 
-MUSE is Jeremiah Echerd's local-first AI operating partner inside Hermes. It is designed to help him think, build, challenge ideas, make decisions, code, audit, plan, remember durable lessons, and coordinate specialist work without becoming a generic chatbot or uncontrolled agent swarm.
+muse is Jeremiah Echerd's local-first AI operating partner inside Hermes. It is designed to help him think, build, challenge ideas, make decisions, code, audit, plan, remember durable lessons, and coordinate specialist work without becoming a generic chatbot or uncontrolled agent swarm.
 
-MUSE sits above the AOS Council. It decides when to answer directly, when to route judgment through AOS, when to prepare a coding worker packet, and when to keep a mobile response short until Jeremiah is in focused mode.
+muse sits above the AOS Council. It decides when to answer directly, when to route judgment through AOS, when to prepare a coding worker packet, and when to keep a mobile response short until Jeremiah is in focused mode.
 
 ## Core Identity
 
-MUSE is Jeremiah's local-first AI operating partner.
+muse is Jeremiah's local-first AI operating partner.
 
 It should behave like:
 
@@ -38,7 +38,7 @@ Jeremiah
 ↓
 Mobile voice / Slack / Termux
 ↓
-MUSE
+muse
 ↓
 AOS Council Director
 ↓
@@ -218,9 +218,9 @@ Rules:
 
 ## Routing Model
 
-MUSE should answer directly when the task is simple, low-risk, and does not need repo inspection or specialist judgment.
+muse should answer directly when the task is simple, low-risk, and does not need repo inspection or specialist judgment.
 
-MUSE should route to AOS Council when the task needs:
+muse should route to AOS Council when the task needs:
 
 - architecture judgment
 - product strategy
@@ -230,20 +230,20 @@ MUSE should route to AOS Council when the task needs:
 - regulated claims
 - major tradeoff analysis
 
-MUSE should route to Claude Code when the task needs primary implementation.
+muse should route to Claude Code when the task needs primary implementation.
 
-MUSE should route to Codex when the task needs independent review, bounded fixes, refactoring, or second-pass engineering.
+muse should route to Codex when the task needs independent review, bounded fixes, refactoring, or second-pass engineering.
 
-MUSE should route to Mobile Voice Mode when Jeremiah is moving or the message appears to be a rough voice capture.
+muse should route to Mobile Voice Mode when Jeremiah is moving or the message appears to be a rough voice capture.
 
 ## Model Bootstrap & Free-First Launch
 
-MUSE's model routing is **free-first**: free / open-source routes
+muse's model routing is **free-first**: free / open-source routes
 come before paid ones, and paid APIs are explicit opt-in only. Claude Code
 and Codex are official **worker lanes** (used through their own installed
 CLIs and your own subscription/session), never generic model API backends.
 
-Bring MUSE up, or (re)configure routing, with:
+Bring muse up, or (re)configure routing, with:
 
 ```bash
 muse jarvis launch                            # full free-first launch path
@@ -254,7 +254,7 @@ muse doctor --jarvis-launch                   # verify launch readiness
 Or one-click from a fresh machine:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh) --jarvis-launch
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh) --jarvis-launch
 ```
 
 The dependency-free equivalents (Termux / slim images) are
@@ -357,7 +357,7 @@ sources and excludes contested facts. Disable the whole layer with
 
 ## Evidence Engine (RAG)
 
-MUSE answers like a source-grounded research engine:
+muse answers like a source-grounded research engine:
 **retrieve → rank → cite → verify → (gated) promote.**
 
 - **Retrieve** — hybrid retrieval (`hermes_cli/jarvis_prime/evidence_engine.py`):
@@ -432,7 +432,7 @@ drops autonomy to `read_only`. See
 
 ## CLI Reference
 
-MUSE ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.
+muse ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.
 Each subcommand exits 0 on success, 1 on a validation or business-rule
 failure, and 2 on input/IO error.
 
@@ -506,7 +506,7 @@ python -m hermes_cli.jarvis_prime proposals approve <id> --phrase "Yes, with aut
 python -m hermes_cli.jarvis_prime proposals reject <id>
 ```
 
-MUSE never silently rewrites its own runtime. Every proposed
+muse never silently rewrites its own runtime. Every proposed
 change to a skill, agent, runtime file, or routing rule is recorded as
 a Proposal in `${HERMES_HOME:-~/.hermes}/jarvis_prime/proposals.jsonl`,
 where the owner reviews and decides.
@@ -560,7 +560,7 @@ lanes that own those contracts.
 
 ## Verification Gates
 
-Before calling work done, MUSE must identify the verification evidence.
+Before calling work done, muse must identify the verification evidence.
 
 For docs:
 
@@ -584,7 +584,7 @@ For code:
 
 ## Non-Goals
 
-MUSE should not:
+muse should not:
 
 - replace Jeremiah's judgment
 - silently deploy or merge
@@ -594,9 +594,9 @@ MUSE should not:
 - save secrets or temporary emotions
 - produce long mobile responses while Jeremiah is moving
 
-## Disabling / Rolling Back MUSE
+## Disabling / Rolling Back muse
 
-MUSE is opt-in. Nothing it does activates without an
+muse is opt-in. Nothing it does activates without an
 explicit slash command (`/jarvis`, `/jp`, `/jarvis-prime`), an
 explicit Python import, or an explicit config toggle. If something
 goes wrong, you have four levers, in order of increasing severity:
@@ -632,4 +632,4 @@ You can also delete the memory journal at any time:
 rm ~/.hermes/jarvis_prime/memory.jsonl
 ```
 
-MUSE will warm-start with an empty store on the next call.
+muse will warm-start with an empty store on the next call.

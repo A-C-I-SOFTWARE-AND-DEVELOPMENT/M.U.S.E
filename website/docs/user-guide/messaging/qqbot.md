@@ -1,6 +1,6 @@
 # QQ Bot
 
-Connect M.U.S.E. to QQ via the **Official QQ Bot API (v2)** — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.
+Connect muse to QQ via the **Official QQ Bot API (v2)** — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.
 
 ## Overview
 

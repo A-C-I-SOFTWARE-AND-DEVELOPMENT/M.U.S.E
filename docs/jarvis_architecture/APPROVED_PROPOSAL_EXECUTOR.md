@@ -21,7 +21,7 @@ publish, and makes no GitHub writes.
 ## Hard rules
 - Never merges/deploys/publishes.
 - Requires owner approval before any GitHub write; `draft_only=True` by
-  default. MUSE surfaces the plan; the owner decides what executes.
+  default. muse surfaces the plan; the owner decides what executes.
 
 ## Owner gates / rollback / risks
 - Owner gates: surfaced, never executed.

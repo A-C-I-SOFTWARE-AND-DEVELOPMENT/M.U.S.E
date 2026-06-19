@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [hermes, setup, configuration, multi-agent, spawning, cli, gateway, development]
-    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse
     related_skills: [claude-code, codex, opencode]
 ---
 
@@ -35,7 +35,7 @@ People use Hermes for software development, research, system administration, dat
 
 ```bash
 # Install
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 
 # Interactive chat (default)
 hermes

@@ -17,7 +17,7 @@ prompt deep cyan `#2E7DA0` (derived from ring-1 `#7AE0FF`); session chrome
 deep violet `#6B4FA3` (derived from ring-2 `#B388FF`, ~6.4:1 contrast on
 white); neutral cool-gray selection backgrounds (`#DCE3EE`); **statusWarn
 `#946300`** — a deliberate readable amber (~5.2:1 on white), chosen over the
-gold-ish `#8A6D1C` family so nothing reads as brand gold — and ships the MUSE
+gold-ish `#8A6D1C` family so nothing reads as brand gold — and ships the muse
 wordmark + core/ring glyph for light terminals with `#12151D` fill, keeping
 the cyan→violet spectral ring stops (they read fine on white). A consistency
 pass moves the last hard-coded Hermes/Nous brand strings in `branding.tsx` and

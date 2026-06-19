@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="assets/banner.png" alt="M.U.S.E." width="100%">
+  <img src="assets/banner.png" alt="muse" width="100%">
 </p>
 
-# M.U.S.E. — Multi-Use Synaptic Entity ◉
+# muse — Multi-Use Synaptic Entity ◉
 
 <p align="center">
-  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
 
-**One mind, many pathways.** MUSE is a self-improving, local-first AI operating partner: a single identity — the *mind* — running over a **synaptic substrate** (its gateway, routing, and model pathways). It creates skills from experience, improves them during use, remembers across sessions, builds a deepening model of who you are, and defers owner-gated actions until you authorize them. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle — and talk to it from Telegram while it works on a cloud VM.
+**One mind, many pathways.** muse is a self-improving, local-first AI operating partner: a single identity — the *mind* — running over a **synaptic substrate** (its gateway, routing, and model pathways). It creates skills from experience, improves them during use, remembers across sessions, builds a deepening model of who you are, and defers owner-gated actions until you authorize them. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle — and talk to it from Telegram while it works on a cloud VM.
 
 Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `muse model` — no code changes, no lock-in.
 
@@ -21,20 +21,20 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
 <tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
 <tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
-<tr><td><b>A full operating layer, not just a chatbot</b></td><td>MUSE ships as a runtime (<code>hermes_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
+<tr><td><b>A full operating layer, not just a chatbot</b></td><td>muse ships as a runtime (<code>hermes_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
 <tr><td><b>Goal-to-PR orchestration</b></td><td>Decomposes one goal into a validated task graph — Job → specialist Worker → per-task Model routing → Validation gate → tamper-evident Decision ledger. Drive it with <code>/orchestrate</code> from the TUI, a gateway DM, or the Android cockpit.</td></tr>
 <tr><td><b>An inspectable knowledge graph</b></td><td>GraphRAG unifies repo code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes over the repo as of 2026-06-10; see the attestation in the GraphRAG doc) with local, global, and coding query modes — so work reuses what already exists instead of rebuilding it.</td></tr>
 <tr><td><b>An autonomous-enterprise council</b></td><td>The AOS Enterprise Council — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files) spanning architecture, security, compliance, QA, release, product, psychology, HazMat Command, and more — convened for audits, launch readiness, and multi-perspective review.</td></tr>
-<tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the M.U.S.E. gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
+<tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the muse gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
 </table>
 
 ---
 
-## What MUSE is
+## What muse is
 
-MUSE is a governed, local-first AI operating partner: **one mind over a synaptic substrate.** Everything below is real, tested code in this repository, not a roadmap. (Heritage + credits in small print at the very bottom.)
+muse is a governed, local-first AI operating partner: **one mind over a synaptic substrate.** Everything below is real, tested code in this repository, not a roadmap. (Heritage + credits in small print at the very bottom.)
 
-- **MUSE operating layer** — a runtime in [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) (~100 modules): six modes, an intent/mode classifier, runtime persona injection, owner-authorization with exact-phrase grants, an emergency stop, and read-only monitors with a daily owner brief. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md).
+- **muse operating layer** — a runtime in [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) (~100 modules): six modes, an intent/mode classifier, runtime persona injection, owner-authorization with exact-phrase grants, an emergency stop, and read-only monitors with a daily owner brief. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md).
 - **Provenance-first cognition plane** — a Memory Tree (working/session/durable memory with source citations, confidence floors, contradiction reports, supersession, and no silent overwrites), a Research Vault, an evidence engine (BM25 + memory hybrid retrieval with citation verification), and TokenJuice — a deterministic, token-bounded context compiler that screens secrets.
 - **GraphRAG knowledge graph** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) unifies code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes / ~63.3k edges over the repo as of 2026-06-10 — attestation in the GraphRAG doc) with local/global/coding queries. See [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
 - **Goal-to-PR orchestration** — five primitives (Job, Worker, Model routing, Validation gate, Decision ledger) decompose a goal into a validated task graph and publish the result, auditing every decision in a tamper-evident ledger. See [`docs/orchestration/`](docs/orchestration/).
@@ -48,11 +48,11 @@ MUSE is a governed, local-first AI operating partner: **one mind over a synaptic
 
 ---
 
-## MUSE Operating Layer
+## muse Operating Layer
 
-> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
+> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for muse live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
 
-MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (M.U.S.E.: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
+muse is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (muse the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
 The operating model is intentionally small and reviewable:
 
@@ -64,13 +64,13 @@ The operating model is intentionally small and reviewable:
 - **Mobile voice capture** supports jogging, walking, driving breaks, and away-from-desk idea capture.
 - **Focused mode** handles long technical review, build planning, local verification, and PR handoff.
 
-MUSE is loyal to the user's long-term mission, not blindly obedient to the moment. It should challenge weak ideas, route code work through builder/reviewer workflows, and defer risky actions such as merges, deploys, public posting, credential changes, and publishing until explicit owner approval.
+muse is loyal to the user's long-term mission, not blindly obedient to the moment. It should challenge weak ideas, route code work through builder/reviewer workflows, and defer risky actions such as merges, deploys, public posting, credential changes, and publishing until explicit owner approval.
 
 Invoke from any gateway DM or REPL with `/jarvis-prime` (alias `/jarvis`, `/jp`), or pin a specific mode with `/companion`, `/strategy`, `/critic`, `/operator`, `/builder`, `/voice`. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md) for the full identity, hierarchy, modes, and gates.
 
 ### Cognition plane — Memory OS, packetizer, research, routing, monitors
 
-MUSE ships a provenance-first cognition plane (all stdlib-only,
+muse ships a provenance-first cognition plane (all stdlib-only,
 local, no network) — see [`docs/jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md`](docs/jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md):
 
 - **Memory Tree** (`memory_tree.py`) — working/session/durable memory with
@@ -95,7 +95,7 @@ local, no network) — see [`docs/jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md`
   read-only, fail-visible monitors with a coverage attestation that surfaces
   blind spots.
 
-These are **local OSS-capable, owner-gated, and reversible** — MUSE is
+These are **local OSS-capable, owner-gated, and reversible** — muse is
 loyal and verification-first, not "fully autonomous." New CLI lanes:
 `packetize`, `packet --gate-check/--validate/--markdown`, `memory-tree
 {add,search,outline,export-markdown} --store`, `research`, `model-scorecard`,
@@ -108,20 +108,20 @@ loyal and verification-first, not "fully autonomous." New CLI lanes:
 ### Linux, macOS, WSL2, Termux
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh)
 ```
 
-### One-click MUSE launch (free-first)
+### One-click muse launch (free-first)
 
-Add `--jarvis-launch` to install **and** bring up MUSE in one
+Add `--jarvis-launch` to install **and** bring up muse in one
 command — free / open-source model routes first, paid APIs explicit
 opt-in only, Claude Code and Codex wired as official worker lanes:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh) --jarvis-launch
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh) --jarvis-launch
 ```
 
-Already installed? Bring MUSE up (or re-verify) with:
+Already installed? Bring muse up (or re-verify) with:
 
 ```bash
 muse jarvis launch                            # full free-first launch path
@@ -129,35 +129,35 @@ muse models bootstrap --free-first --jarvis   # (re)configure model routing only
 muse doctor --jarvis-launch                   # verify launch readiness
 ```
 
-Then invoke MUSE with `/jarvis` (aliases `/jp`, `/jarvis-prime`) and stop
+Then invoke muse with `/jarvis` (aliases `/jp`, `/jarvis-prime`) and stop
 it instantly with `/jarvis stop`. A missing local model runtime (Ollama,
 etc.) is a warning, not a blocker. Full guide:
 [`docs/jarvis-free-first-launch.md`](docs/jarvis-free-first-launch.md).
 
 ### Windows (native, PowerShell) — Early Beta
 
-> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
+> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
 
 Run this in PowerShell:
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1)
 ```
 
-For the one-click MUSE launch on Windows, download and run with the
+For the one-click muse launch on Windows, download and run with the
 `-JarvisLaunch` switch (parity with `--jarvis-launch`):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1))) -JarvisLaunch
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1))) -JarvisLaunch
 ```
 
-The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  M.U.S.E. uses this bundled Git Bash to run shell commands.
+The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  muse uses this bundled Git Bash to run shell commands.
 
 If you already have Git installed, the installer detects it and uses that instead.  Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, M.U.S.E. installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, muse installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
 >
-> **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only M.U.S.E. feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
+> **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only muse feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
 
 After installation:
 
@@ -184,7 +184,7 @@ muse doctor         # Diagnose any issues
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
 
-## M.U.S.E. Orchestration
+## muse Orchestration
 
 Turn a sentence into a graph of validated, auditable jobs run by
 specialist workers. The orchestrator decomposes the goal, the kanban
@@ -212,7 +212,7 @@ demo, worker adapters, private-local mode, troubleshooting, FAQ.
 ## Plain-English operating manual
 
 The [`docs/`](docs/) folder is the human-readable manual that
-explains every M.U.S.E. surface in plain English. Start with
+explains every muse surface in plain English. Start with
 [`docs/README.md`](docs/README.md) — it's a single-page map that
 points to one guide per topic:
 
@@ -220,7 +220,7 @@ points to one guide per topic:
 |---|---|
 | Run your first job | [docs/orchestration/getting-started.md](docs/orchestration/getting-started.md) |
 | See end-to-end Prompt to PR | [docs/orchestration/prompt-to-pr-demo.md](docs/orchestration/prompt-to-pr-demo.md) |
-| Drive M.U.S.E. from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
+| Drive muse from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
 | Use voice-first (driving mode) | [docs/voice/voice-first-user-guide.md](docs/voice/voice-first-user-guide.md) |
 | Bridge to Claude Code Windows | [docs/remote/windows-claude-code-bridge-guide.md](docs/remote/windows-claude-code-bridge-guide.md) |
 | Profile your GitHub history | [docs/profile/github-history-profile-guide.md](docs/profile/github-history-profile-guide.md) |
@@ -231,7 +231,7 @@ points to one guide per topic:
 
 ## CLI vs Messaging Quick Reference
 
-M.U.S.E. has two entry points: start the terminal UI with `muse`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+muse has two entry points: start the terminal UI with `muse`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
 | Action | CLI | Messaging platforms |
 |---------|-----|---------------------|
@@ -275,11 +275,11 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 
 ## Android Native App
 
-A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running M.U.S.E. backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
+A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running muse backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
 
 **Three runtime modes:**
 
-1. **Remote gateway** — point the app at a M.U.S.E. install on your VPS / home server. Recommended.
+1. **Remote gateway** — point the app at a muse install on your VPS / home server. Recommended.
 2. **Local Termux gateway** — `muse gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
 3. **Mock mode** — UI sandbox with canned responses, no backend required (great for trying the UI before committing to a setup).
 
@@ -298,10 +298,10 @@ Architecture, wire format, and the deliberate "no embedded Python" decision are 
 
 ---
 
-## M.U.S.E. Orchestration Pipeline
+## muse Orchestration Pipeline
 
-M.U.S.E. can be used as a private local-first developer command center. The
-M.U.S.E. backend is the engine; the Android APK is the cockpit. Everything
+muse can be used as a private local-first developer command center. The
+muse backend is the engine; the Android APK is the cockpit. Everything
 runs on devices you own — VPS, home server, laptop, or Termux on
 phone — and the Android cockpit talks to it over a gateway you control.
 
@@ -313,10 +313,10 @@ The pipeline ties together:
 - **Model router** — picks the right model for the job (planner,
   builder, reviewer, summarizer) from the model registry.
 - **AI improvement radar** — a continuous scan of new AI capabilities,
-  models, and tools that M.U.S.E. should adopt.
+  models, and tools that muse should adopt.
 - **Competitive feature harvester** — tracks shipping features from
   comparable tools and feeds them into the improvement radar.
-- **Self-improvement loop** — M.U.S.E. proposes patches to its own
+- **Self-improvement loop** — muse proposes patches to its own
   skills, ledger, and routing policy, gated by the decision quality gate.
 - **GitHub publisher** — turns approved changes into branches, PRs,
   and releases without leaving the cockpit.
@@ -343,7 +343,7 @@ for the Android cockpit contract.
 
 ## Migrating from OpenClaw
 
-If you're coming from OpenClaw, M.U.S.E. can automatically import your settings, memories, skills, and API keys.
+If you're coming from OpenClaw, muse can automatically import your settings, memories, skills, and API keys.
 
 **During first-time setup:** The setup wizard (`muse setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
@@ -377,8 +377,8 @@ We welcome contributions! See the [Contributing Guide](https://hermes-agent.nous
 Quick start for contributors — clone and go with `setup-hermes.sh`:
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
-cd M.U.S.E
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
+cd muse
 ./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/muse
 ./hermes              # auto-detects the venv, no need to `source` first
 ```
@@ -399,9 +399,9 @@ scripts/run_tests.sh
 
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
-- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for M.U.S.E. and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
-- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run M.U.S.E. and OpenClaw on the same WeChat account.
+- 🐛 [Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues)
+- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for muse and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
+- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run muse and OpenClaw on the same WeChat account.
 
 ---
 
@@ -410,5 +410,5 @@ scripts/run_tests.sh
 MIT — see [LICENSE](LICENSE).
 
 <sub>
-<b>Heritage &amp; credits — with gratitude.</b> MUSE stands on the shoulders of open work. It grows from the Hermes agent base by <a href="https://nousresearch.com">Nous Research</a> (MIT) and is developed and maintained by <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT">A-C-I Software and Development</a>. Local-first voice/embodiment concepts are inspired by <a href="https://github.com/tinyhumansai/openhuman">OpenHuman</a> (concept only — no code copied). Capability comes from the open-weight model communities — DeepSeek, Z.ai/GLM, Moonshot/Kimi, MiniMax, Alibaba/Qwen, Google/Gemma, Mistral, BAAI and others — and the benchmark/leaderboard maintainers cited in <code>docs/ai-intelligence/</code>. Thank you. Full acknowledgements: <a href="CREDITS.md">CREDITS.md</a>.
+<b>Heritage &amp; credits — with gratitude.</b> muse stands on the shoulders of open work. It grows from the Hermes agent base by <a href="https://nousresearch.com">Nous Research</a> (MIT) and is developed and maintained by <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT">A-C-I Software and Development</a>. Local-first voice/embodiment concepts are inspired by <a href="https://github.com/tinyhumansai/openhuman">OpenHuman</a> (concept only — no code copied). Capability comes from the open-weight model communities — DeepSeek, Z.ai/GLM, Moonshot/Kimi, MiniMax, Alibaba/Qwen, Google/Gemma, Mistral, BAAI and others — and the benchmark/leaderboard maintainers cited in <code>docs/ai-intelligence/</code>. Thank you. Full acknowledgements: <a href="CREDITS.md">CREDITS.md</a>.
 </sub>

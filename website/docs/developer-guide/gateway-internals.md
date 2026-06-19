@@ -6,7 +6,7 @@ description: "How the messaging gateway boots, authorizes users, routes sessions
 
 # Gateway Internals
 
-The messaging gateway is the long-running process that connects M.U.S.E. to 20+ external messaging platforms through a unified architecture.
+The messaging gateway is the long-running process that connects muse to 20+ external messaging platforms through a unified architecture.
 
 ## Key Files
 

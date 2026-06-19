@@ -1,6 +1,6 @@
 //! Brain (gateway process) management.
 //!
-//! "The brain" is the locally-running MUSE gateway (`muse cockpit serve`,
+//! "The brain" is the locally-running muse gateway (`muse cockpit serve`,
 //! default http://127.0.0.1:8765). This module makes the desktop app a true
 //! one-installable: on launch it probes the gateway's `/v1/health`, and — if
 //! the gateway is down AND autostart is enabled in a small persisted config —
@@ -154,7 +154,7 @@ async fn probe_health(base: String) -> bool {
 
 #[cfg(windows)]
 const BINARY_NAMES: &[&str] = &[
-    "muse.exe", "muse.cmd", "muse.bat", "hermes.exe", "hermes.cmd", "hermes.bat",
+    "museexe", "musecmd", "musebat", "hermes.exe", "hermes.cmd", "hermes.bat",
 ];
 // `muse` is canonical; `hermes` is the pre-rename alias of the same entry point.
 #[cfg(not(windows))]
@@ -248,7 +248,7 @@ async fn start_if_needed(app: &AppHandle) -> Result<(), String> {
     }
     let bin = find_muse_binary(app).ok_or_else(|| {
         "muse binary not found on PATH or in common install locations — \
-         install the MUSE CLI first (see Settings → Brain)"
+         install the muse CLI first (see Settings → Brain)"
             .to_string()
     })?;
     let (mut rx, child) = app

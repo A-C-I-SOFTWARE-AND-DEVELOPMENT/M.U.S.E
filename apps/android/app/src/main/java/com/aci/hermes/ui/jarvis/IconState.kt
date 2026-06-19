@@ -1,7 +1,7 @@
 package com.aci.hermes.ui.jarvis
 
 /**
- * Visible presence and behavior modes for the MUSE in-app icon.
+ * Visible presence and behavior modes for the muse in-app icon.
  *
  * The icon is rendered inside the app (no system overlay permission is
  * requested in this wave — the floating-bubble surface ships later
@@ -57,18 +57,18 @@ enum class IconState {
  * verbatim when the icon receives focus.
  */
 fun IconState.accessibilityLabel(): String = when (this) {
-    IconState.IDLE -> "Muse idle"
-    IconState.LISTENING -> "Muse listening"
-    IconState.THINKING -> "Muse thinking"
-    IconState.SPEAKING -> "Muse speaking"
-    IconState.WORKING -> "Muse working"
-    IconState.WAITING_FOR_APPROVAL -> "Muse waiting for your approval"
-    IconState.SERIOUS_ACTION_PENDING -> "Muse: serious action waiting for approval"
-    IconState.CRITICAL_ACTION_PENDING -> "Muse: critical action waiting for approval"
-    IconState.BLOCKED -> "Muse blocked"
-    IconState.WARNING -> "Muse warning"
-    IconState.COMPLETE -> "Muse complete"
-    IconState.OFFLINE -> "Muse offline"
+    IconState.IDLE -> "muse idle"
+    IconState.LISTENING -> "muse listening"
+    IconState.THINKING -> "muse thinking"
+    IconState.SPEAKING -> "muse speaking"
+    IconState.WORKING -> "muse working"
+    IconState.WAITING_FOR_APPROVAL -> "muse waiting for your approval"
+    IconState.SERIOUS_ACTION_PENDING -> "muse serious action waiting for approval"
+    IconState.CRITICAL_ACTION_PENDING -> "muse critical action waiting for approval"
+    IconState.BLOCKED -> "muse blocked"
+    IconState.WARNING -> "muse warning"
+    IconState.COMPLETE -> "muse complete"
+    IconState.OFFLINE -> "muse offline"
 }
 
 /**

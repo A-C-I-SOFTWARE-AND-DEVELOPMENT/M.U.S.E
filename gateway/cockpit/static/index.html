@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>M.U.S.E. — cockpit</title>
+<title>muse — cockpit</title>
 <link rel="stylesheet" href="tokens.css" />
 <style>
   * { box-sizing: border-box; }
@@ -98,7 +98,7 @@
               stroke-dasharray="66 28" stroke-linecap="round"/>
       <circle cx="24" cy="24" r="3.1" fill="#fff"/>
     </svg>
-    M.U.S.E. <span class="full">Multi-Use Synaptic Entity</span>
+    muse <span class="full">Multi-Use Synaptic Entity</span>
   </span>
   <span class="grow"></span>
   <span class="status"><span id="dot" class="dot"></span><span id="statustext">connecting…</span></span>
@@ -110,7 +110,7 @@
 
 <!-- First-run pairing entry point: shown when this browser has no token. -->
 <div id="pairbanner" class="pairbanner">
-  <span>This browser isn't paired yet. Pair it to control MUSE.</span>
+  <span>This browser isn't paired yet. Pair it to control muse</span>
   <span class="grow"></span>
   <button id="pairbtn" class="primary">Pair this device</button>
   <button id="tokenpastebtn">Paste a token instead</button>
@@ -122,14 +122,14 @@
   <button class="tab" data-tab="approvals">Approvals</button>
   <button class="tab" data-tab="routes">Routes</button>
   <button class="tab" data-tab="autonomy">Autonomy</button>
-  <a href="/cockpit/observatory.html" title="Neural Observatory — the live 3D map of MUSE's mind" style="padding:8px 14px;color:var(--signal-mute);text-decoration:none;border-bottom:2px solid transparent">Observatory&nbsp;↗</a>
+  <a href="/cockpit/observatory.html" title="Neural Observatory — the live 3D map of muse's mind" style="padding:8px 14px;color:var(--signal-mute);text-decoration:none;border-bottom:2px solid transparent">Observatory&nbsp;↗</a>
 </div>
 
 <main>
   <section id="chat" class="panel active">
-    <div id="chatlog" class="card"><div class="empty">Ask MUSE anything. Responses stream live from the local agent.</div></div>
+    <div id="chatlog" class="card"><div class="empty">Ask muse anything. Responses stream live from the local agent.</div></div>
     <div class="composer">
-      <textarea id="prompt" rows="2" placeholder="Message MUSE…  (Enter to send, Shift+Enter for newline)"></textarea>
+      <textarea id="prompt" rows="2" placeholder="Message muse…  (Enter to send, Shift+Enter for newline)"></textarea>
       <button id="send" class="primary">Send</button>
     </div>
   </section>
@@ -181,7 +181,7 @@
 
 <script>
 const $ = (s) => document.querySelector(s);
-const TOKEN_KEY = "muse.cockpit.token";
+const TOKEN_KEY = "musecockpit.token";
 // The exact owner phrase is NEVER hardcoded or stored: it is prompted for at
 // the moment of each owner-gated action and discarded after the request.
 let token = localStorage.getItem(TOKEN_KEY) || "";

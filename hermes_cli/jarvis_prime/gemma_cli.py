@@ -1,4 +1,4 @@
-"""``hermes models gemma …`` command logic for MUSE.
+"""``hermes models gemma …`` command logic for muse
 
 Kept deliberately small and self-contained so the top-level CLI
 (``hermes_cli/main.py``) only needs a thin parser + a one-line dispatch hook.

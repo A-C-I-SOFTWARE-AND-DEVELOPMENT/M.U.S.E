@@ -1,5 +1,5 @@
 """Tests for the OSS model brain — hermes_cli.oss_model_brain + the
-MUSE bridge in hermes_cli.jarvis_prime.model_brain.
+muse bridge in hermes_cli.jarvis_prime.model_brain.
 
 These are hermetic: they exercise the built-in fallback catalog and the
 shipped YAML on disk. No network, no provider credentials.
@@ -340,7 +340,7 @@ def test_hosted_candidates_disabled_flag_is_byte_for_byte_bare(monkeypatch) -> N
 
 
 # ---------------------------------------------------------------------------
-# MUSE bridge
+# muse bridge
 # ---------------------------------------------------------------------------
 
 

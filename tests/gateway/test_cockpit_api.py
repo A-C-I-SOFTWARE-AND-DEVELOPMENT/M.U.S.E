@@ -106,7 +106,7 @@ def test_runtime_status_has_live_queue_snapshot(server) -> None:
 
 
 def test_axiom_panel_shows_live_chain_status(server, monkeypatch) -> None:
-    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
+    monkeypatch.delenv("muse_AXIOM_GATES", raising=False)
     from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
 
     reset_bridge()
@@ -357,7 +357,7 @@ def test_chat_streams_real_agent_turn(server) -> None:
     assert "body" in types and types[-1] == "done"
     # Real classification, not an echo of the prompt.
     body_text = next(c["text"] for c in lines if c["type"] == "body")
-    assert "MUSE" in body_text
+    assert "muse" in body_text
     assert "You said:" not in body_text
 
 

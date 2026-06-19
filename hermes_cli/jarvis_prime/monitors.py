@@ -1,4 +1,4 @@
-"""Continuous monitors for MUSE — fail-visible, read-only.
+"""Continuous monitors for muse — fail-visible, read-only.
 
 Monitors observe a source, classify severity, and — crucially — track
 per-source last-success timestamps and failure counts so a *silent*

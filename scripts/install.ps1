@@ -5,7 +5,7 @@
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage:
-#   iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
+#   iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1)
 #
 # Or download and run with options:
 #   .\install.ps1 -NoVenv -SkipSetup
@@ -99,8 +99,8 @@ try {
 # Configuration
 # ============================================================================
 
-$RepoUrlSsh = "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
-$RepoUrlHttps = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+$RepoUrlSsh = "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
+$RepoUrlHttps = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
 $PythonVersion = "3.11"
 $NodeVersion = "22"
 
@@ -1079,13 +1079,13 @@ function Install-Repository {
                 # for.  GitHub supports archive URLs for commits, tags, and
                 # branches; we honour Commit > Tag > Branch.
                 if ($Commit) {
-                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/$Commit.zip"
+                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/archive/$Commit.zip"
                     $zipLabel = $Commit
                 } elseif ($Tag) {
-                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/tags/$Tag.zip"
+                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/archive/refs/tags/$Tag.zip"
                     $zipLabel = $Tag
                 } else {
-                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/$Branch.zip"
+                    $zipUrl = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/archive/refs/heads/$Branch.zip"
                     $zipLabel = $Branch
                 }
                 $zipPath = "$env:TEMP\hermes-agent-$zipLabel.zip"
@@ -1230,7 +1230,7 @@ function Install-Dependencies {
         # UV_PROJECT_ENVIRONMENT pins the sync target to our venv\.
         # Without it, modern uv (>=0.5) ignores VIRTUAL_ENV for `sync`
         # and creates a sibling .venv\ inside the repo -- leaving venv\
-        # empty and producing the broken state where `muse.exe` exists
+        # empty and producing the broken state where `museexe` exists
         # in the wrong directory and imports fail with ModuleNotFoundError.
         # (Mirrors the same flag in scripts/install.sh::install_deps.)
         $env:UV_PROJECT_ENVIRONMENT = "$InstallDir\venv"
@@ -1326,7 +1326,7 @@ except Exception:
     # Baseline-import gate. Even if a tier reported success above, the
     # actual deps may have landed somewhere other than $InstallDir\venv\
     # (e.g. uv 0.5+ syncing into a sibling .venv\ when UV_PROJECT_ENVIRONMENT
-    # isn't set, leaving venv\ empty and muse.exe broken with
+    # isn't set, leaving venv\ empty and museexe broken with
     # `ModuleNotFoundError: No module named 'dotenv'` on first run).
     # We probe via the venv's own python so a misdirected sync is caught
     # here, not 30 seconds later when the user runs `muse`.
@@ -1404,7 +1404,7 @@ function Set-PathVariable {
     }
 
     # Add the venv Scripts dir to user PATH so muse is globally available
-    # On Windows, the muse.exe in venv\Scripts\ has the venv Python baked in
+    # On Windows, the museexe in venv\Scripts\ has the venv Python baked in
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     
     if ($currentPath -notlike "*$hermesBin*") {
@@ -1899,7 +1899,7 @@ function Start-GatewayIfConfigured {
 
     if (-not $hasMessaging) { return }
 
-    $hermesCmd = "$InstallDir\venv\Scripts\muse.exe"
+    $hermesCmd = "$InstallDir\venv\Scripts\museexe"
     if (-not (Test-Path $hermesCmd)) {
         $hermesCmd = "muse"
     }
@@ -2287,7 +2287,7 @@ function Invoke-PostInstallMode {
 }
 
 function Resolve-HermesCmd {
-    $candidate = "$InstallDir\venv\Scripts\muse.exe"
+    $candidate = "$InstallDir\venv\Scripts\museexe"
     if (Test-Path $candidate) { return $candidate }
     $onPath = Get-Command muse -ErrorAction SilentlyContinue
     if ($onPath) { return $onPath.Source }
@@ -2307,7 +2307,7 @@ function Invoke-JarvisLaunch {
     $hermesCmd = Resolve-HermesCmd
     if ($hermesCmd -eq "") {
         Write-Warn "muse command not found after install - skipping JARVIS launch"
-        Write-Info "Recovery: & '$InstallDir\venv\Scripts\muse.exe' models bootstrap --free-first --jarvis"
+        Write-Info "Recovery: & '$InstallDir\venv\Scripts\museexe' models bootstrap --free-first --jarvis"
         return
     }
 
@@ -2368,7 +2368,7 @@ function Invoke-ModelsBootstrap {
     $hermesCmd = Resolve-HermesCmd
     if ($hermesCmd -eq "") {
         Write-Warn "muse command not found - skipping model bootstrap"
-        Write-Info "Run later: & '$InstallDir\venv\Scripts\muse.exe' models bootstrap --free-first --jarvis"
+        Write-Info "Run later: & '$InstallDir\venv\Scripts\museexe' models bootstrap --free-first --jarvis"
         return
     }
 
@@ -2434,7 +2434,7 @@ function Write-FirstRunPairingHint {
     Write-Host "   muse cockpit token   " -NoNewline -ForegroundColor Green
     Write-Host "Print the pairing token again (--rotate to rotate it)."
     Write-Host ""
-    Write-Host "   Pair the MUSE Android app (or the browser cockpit) with that base URL"
+    Write-Host "   Pair the muse Android app (or the browser cockpit) with that base URL"
     Write-Host "   + token. The app's pairing screen drives POST /v1/cockpit/pair/start"
     Write-Host "   and /v1/cockpit/pair/confirm for you."
     Write-Host ""
@@ -2647,7 +2647,7 @@ try {
     Write-Err "Installation failed: $_"
     Write-Host ""
     Write-Info "If the error is unclear, try downloading and running the script directly:"
-    Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+    Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
     Write-Host "  .\install.ps1" -ForegroundColor Yellow
     Write-Host ""
 }
