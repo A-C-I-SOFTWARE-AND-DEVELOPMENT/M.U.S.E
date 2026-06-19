@@ -14,6 +14,21 @@ end-to-end," it must talk to a running **MUSE cockpit** (`/v1/cockpit/*`,
 served by `muse cockpit serve`). This page explains the two ways to wire that
 up, and the one gotcha that trips everyone.
 
+## Easiest: one command
+
+On the box that has your `~/.hermes/.env` keys:
+
+```bash
+bash scripts/nexus-up.sh                 # public HTTPS via a Cloudflare quick tunnel (no domain/DNS)
+bash scripts/nexus-up.sh --domain muse.example.com   # stable HTTPS on your hostname (Caddy auto-TLS)
+bash scripts/nexus-up.sh --local         # http://127.0.0.1:8765/nexus/ only
+```
+
+It builds the PWA if needed, starts `muse cockpit serve`, exposes it, and prints
+the **`…/nexus/` URL + the pairing token** to paste into the ConnectWizard. Stop
+it with `bash scripts/nexus-up.sh --stop`. The rest of this page explains what it
+does and the manual equivalents.
+
 ## The gotcha: the cockpit is same-origin by design (no CORS)
 
 `muse cockpit serve` binds `127.0.0.1:8765`, is gated by a Bearer pairing token,
