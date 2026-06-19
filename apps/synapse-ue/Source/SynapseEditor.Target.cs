@@ -17,6 +17,7 @@ public class SynapseEditorTarget : TargetRules
 			"SynapseCore",
 			"SynapseNet",
 			"SynapseObservatory",
+			"SynapseObservatoryRender",
 		});
 	}
 }

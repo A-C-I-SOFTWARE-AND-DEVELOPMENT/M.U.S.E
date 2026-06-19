@@ -28,6 +28,21 @@
 				"HTTP",
 				"Json"
 			]
+		},
+		{
+			"Name": "SynapseObservatoryRender",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"Niagara"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "Niagara",
+			"Enabled": true
 		}
 	]
 }

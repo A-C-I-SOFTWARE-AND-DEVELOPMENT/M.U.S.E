@@ -11,6 +11,15 @@ strata, and the owner-edit grammar are Phase 3 work that binds to this
 subsystem's delegates. The module holds **no policy logic** — every
 number rendered arrives fully formed from the gateway.
 
+> **Phase 3 render layer now staged:** the galaxy ISM renderer +
+> sacred-geometry / 4D-polytope layouts live in the
+> **`SynapseObservatoryRender`** module (binds these delegates;
+> `AObservatoryGalaxyActor`, `UObservatoryValidationViz`,
+> `UObservatoryFlowComponent`), with the closed-form math in
+> `SynapseCore/MuseSacredGeometry`. See
+> [`docs/sacred-geometry.md`](sacred-geometry.md). Source-only,
+> OWNER-BLOCKED on compile like the rest of the scaffold.
+
 ```
 SynapseUI → {SynapseObservatory, FoundryClient, Agents} → SynapseNet → SynapseCore
 ```
