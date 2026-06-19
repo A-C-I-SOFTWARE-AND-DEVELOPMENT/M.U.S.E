@@ -369,6 +369,24 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             self.close_connection = True
             path = urlsplit(self.path).path
 
+            # Nexus-namespaced liveness probe — unauthenticated alias of
+            # /v1/health. Lives BEFORE the static-shell check (which would
+            # otherwise SPA-fallback /nexus/health to index.html) and BEFORE
+            # the authed route table so device-paired clients on the /nexus/
+            # surface can probe the gateway without a bearer token (mirrors
+            # /v1/health's gating).
+            if method == "GET" and path.rstrip("/") == "/nexus/health":
+                req = h.Request(
+                    method=method,
+                    path=path,
+                    query=self._query(),
+                    body={},
+                    path_params={},
+                )
+                resp = h.health(req)
+                self._send_json(resp.status, resp.payload)
+                return
+
             # Static cockpit UI shell (the browser app). Unauthenticated — it's
             # just HTML/CSS/JS; every API call it makes carries the bearer token.
             # GET only, path-traversal-safe. Served before the API route table.
