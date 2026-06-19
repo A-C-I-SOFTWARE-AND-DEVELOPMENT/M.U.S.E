@@ -321,10 +321,12 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             request. Path-traversal-safe; falls back to index.html for unknown
             sub-paths so the single-page app can route client-side."""
             root = (Path(__file__).resolve().parent / "static").resolve()
-            if path in ("/", "/cockpit", "/cockpit/"):
+            if path in ("/", "/cockpit", "/cockpit/", "/nexus", "/nexus/"):
                 rel = "index.html"
             elif path.startswith("/cockpit/"):
                 rel = path[len("/cockpit/"):].lstrip("/") or "index.html"
+            elif path.startswith("/nexus/"):
+                rel = path[len("/nexus/"):].lstrip("/") or "index.html"
             else:
                 return False
             try:
@@ -370,7 +372,7 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             # Static cockpit UI shell (the browser app). Unauthenticated — it's
             # just HTML/CSS/JS; every API call it makes carries the bearer token.
             # GET only, path-traversal-safe. Served before the API route table.
-            if method == "GET" and (path == "/" or path.startswith("/cockpit")):
+            if method == "GET" and (path == "/" or path.startswith("/cockpit") or path.startswith("/nexus")):
                 if self._serve_static(path):
                     return
 
