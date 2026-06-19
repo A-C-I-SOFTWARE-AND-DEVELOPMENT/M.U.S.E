@@ -122,7 +122,7 @@
   <button class="tab" data-tab="approvals">Approvals</button>
   <button class="tab" data-tab="routes">Routes</button>
   <button class="tab" data-tab="autonomy">Autonomy</button>
-  <a href="/cockpit/observatory.html" title="Neural Observatory — the live 3D map of muse's mind" style="padding:8px 14px;color:var(--signal-mute);text-decoration:none;border-bottom:2px solid transparent">Observatory&nbsp;↗</a>
+  <a href="observatory.html" title="Neural Observatory — the live 3D map of muse's mind" style="padding:8px 14px;color:var(--signal-mute);text-decoration:none;border-bottom:2px solid transparent">Observatory&nbsp;↗</a>
 </div>
 
 <main>
@@ -167,9 +167,9 @@
       <span id="paircode" class="mono"></span>
     </div>
     <div id="pairconfirmrow" style="display:none;margin-top:14px">
-      <label class="k" for="pairphrase">Owner authorization phrase</label>
-      <input type="password" id="pairphrase" placeholder="owner phrase" style="width:100%" autocomplete="off" />
-      <p class="hint">Issuing a device token is owner-gated. Enter the exact owner phrase.</p>
+      <label class="k" for="pairphrase">Owner authorization phrase <span class="muted">(optional on loopback)</span></label>
+      <input type="password" id="pairphrase" placeholder="leave blank on this device" style="width:100%" autocomplete="off" />
+      <p class="hint">On a loopback-only cockpit this field can be left blank — the device is already local. The phrase is only required when the cockpit is exposed externally.</p>
     </div>
     <div id="pairmsg" class="hint"></div>
     <div class="row" style="justify-content:flex-end;margin-top:14px">
@@ -285,7 +285,7 @@ $("#pairstart").addEventListener("click", async () => {
     $("#paircode").textContent = "code: " + pendingPairCode;
     $("#pairconfirmrow").style.display = "block";
     $("#pairconfirm").disabled = false;
-    $("#pairmsg").textContent = "Code generated. Enter the owner phrase, then confirm.";
+    $("#pairmsg").textContent = "Code generated. Press Confirm & pair to finish.";
   } catch (e) {
     $("#pairmsg").textContent = "Pairing failed: " + e;
   }
@@ -293,13 +293,14 @@ $("#pairstart").addEventListener("click", async () => {
 $("#pairconfirm").addEventListener("click", async () => {
   const phrase = $("#pairphrase").value.trim();
   if (!pendingPairCode) { $("#pairmsg").textContent = "Get a pairing code first."; return; }
-  if (!phrase) { $("#pairmsg").textContent = "The owner phrase is required."; return; }
   $("#pairmsg").textContent = "Confirming…";
   try {
+    const body = { pairing_code: pendingPairCode };
+    if (phrase) body.authorization = phrase;  // only sent if user typed one
     const r = await fetch("/v1/cockpit/pair/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pairing_code: pendingPairCode, authorization: phrase }),
+      body: JSON.stringify(body),
     });
     const d = await r.json().catch(() => ({}));
     if (r.status === 403) {
