@@ -1205,10 +1205,13 @@ def pair_confirm(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "pairing_code is required"})
 
     # Owner gate: pair/start only mints a short-lived, rate-limited code (no
-    # credential), so it stays open; the device token is issued only here, and
-    # only to a caller that presents the exact owner phrase.
+    # credential), so it stays open; the device token is issued only here.
+    # On a loopback-only cockpit (default) the gate is skipped because nothing
+    # outside this device can reach the route; if the server was started with
+    # ``--allow-external`` (remote-reachable), the exact owner phrase is still
+    # required so a remote caller can never self-issue a credential.
     phrase = str((req.body or {}).get("authorization", "")).strip()
-    if phrase != AUTHORIZATION_PHRASE:
+    if _ALLOW_REMOTE_EXECUTE and phrase != AUTHORIZATION_PHRASE:
         return JsonResponse(
             403,
             {
