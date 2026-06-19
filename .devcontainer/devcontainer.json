@@ -1,0 +1,37 @@
+{
+  "name": "M.U.S.E. (hermes-agent) — dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // Installs deps the same way CI and the web SessionStart hook do.
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  // The dashboard (dev) binds 127.0.0.1:9119; Codespaces forwards it privately.
+  "forwardPorts": [9119],
+  "portsAttributes": {
+    "9119": { "label": "MUSE dashboard (dev)", "onAutoForward": "silent" }
+  },
+
+  // Keep dev state out of the real ~/.hermes — this container is EPHEMERAL and
+  // is NOT a 24/7 host. See .devcontainer/README.md.
+  "remoteEnv": {
+    "HERMES_HOME": "${containerWorkspaceFolder}/.hermes-dev"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.python"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "ruff.enable": true
+      }
+    }
+  }
+}

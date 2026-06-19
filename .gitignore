@@ -113,3 +113,6 @@ docs/_build/
 # same outputs under any nested package (e.g. the vendored axiom/ kernel)
 **/docs/_generated/
 **/docs/_build/
+
+# devcontainer / Codespaces local dev home (HERMES_HOME=.hermes-dev) — may hold .env secrets
+.hermes-dev/
