@@ -1,0 +1,8 @@
+# Namespace for the M.U.S.E. agent fleet.
+# See docs/deploy/aks-fleet-deployment-guide.md for the full walkthrough.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: muse
+  labels:
+    app.kubernetes.io/part-of: muse-fleet
