@@ -132,8 +132,23 @@ def test_format_message_mentions_pids_and_remediation(tmp_path):
     assert "hermes.exe" in msg
     assert "MUSE desktop" in msg
     assert "--force" in msg
-    # Mentions the file that would have been overwritten
-    assert str(tmp_path / "hermes.exe") in msg
+    # Mentions the canonical file that would have been overwritten.
+    assert str(tmp_path / "muse.exe") in msg
+
+
+@patch.object(cli_main, "_is_windows", return_value=True)
+def test_muse_exe_is_in_shim_list_and_quarantined(_winp, tmp_path):
+    """Regression: muse.exe (the canonical command + the process running the
+    update) must be quarantined, not just the legacy hermes.exe."""
+    shims = cli_main._hermes_exe_shims(tmp_path)
+    assert (tmp_path / "muse.exe") in shims
+
+    (tmp_path / "muse.exe").write_bytes(b"old")
+    pairs = cli_main._quarantine_running_hermes_exe(tmp_path)
+
+    quarantined = {orig for orig, _ in pairs}
+    assert (tmp_path / "muse.exe") in quarantined
+    assert not (tmp_path / "muse.exe").exists()
 
 
 # ---------------------------------------------------------------------------
