@@ -86,6 +86,15 @@ providers:
         params_b: 744
         context: 200000
         tags: [oss, coding, agentic, bug-fix, tools, candidate]
+      # GLM-5.2 — current frontier GLM variant (upstream Hermes v0.17.0):
+      # ships a verified 1M-token context window. params_b mirrors glm-5
+      # (same family iteration). Confirm availability on OpenRouter before spend.
+      - id: glm-5.2
+        model: z-ai/glm-5.2
+        family: glm
+        params_b: 744
+        context: 1048576
+        tags: [oss, coding, agentic, bug-fix, tools, candidate]
       - id: kimi-k2
         model: moonshotai/kimi-k2
         family: kimi
