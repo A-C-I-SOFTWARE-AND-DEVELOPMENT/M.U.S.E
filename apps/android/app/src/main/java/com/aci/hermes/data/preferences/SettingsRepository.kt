@@ -78,13 +78,9 @@ class SettingsRepository(
         val TERMUX_GATEWAY_MODE = booleanPreferencesKey("termux_gateway_mode")
         val APPROVALS_REQUIRED = booleanPreferencesKey("approvals_required")
         val SAFETY_GATES_ENABLED = booleanPreferencesKey("safety_gates_enabled")
-        // Android runtime consent (P1-05) — point-of-use prompts for
-        // expanded permissions. Defaults off; owner opts in at first use.
-        val MIC_CONSENT = booleanPreferencesKey("mic_consent")
-        val OVERLAY_CONSENT = booleanPreferencesKey("overlay_consent")
-        val ACCESSIBILITY_CONSENT = booleanPreferencesKey("accessibility_consent")
-        val PRIVACY_DISCLOSURE_ACK = booleanPreferencesKey("privacy_disclosure_ack")
-    }
+        val PRIVACY_LOCAL_ONLY_MEMORY = booleanPreferencesKey("privacy_local_only_memory")
+        val EMERGENCY_STOP_ENGAGED = booleanPreferencesKey("emergency_stop_engaged")
+
         // Mobile-native device control — owner consent for letting Jarvis
         // operate the phone. Master switch defaults off; sensitive actions
         // require confirmation until the owner opts into high-power mode.
@@ -93,6 +89,13 @@ class SettingsRepository(
         val DEVICE_CONSENTED_CAPS = stringSetPreferencesKey("device_consented_capabilities")
         val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
         val CAMERA_ATTENTION_ENABLED = booleanPreferencesKey("camera_attention_enabled")
+
+        // Android runtime consent (P1-05) — point-of-use prompts for
+        // expanded permissions. Defaults off; owner opts in at first use.
+        val MIC_CONSENT = booleanPreferencesKey("mic_consent")
+        val OVERLAY_CONSENT = booleanPreferencesKey("overlay_consent")
+        val ACCESSIBILITY_CONSENT = booleanPreferencesKey("accessibility_consent")
+        val PRIVACY_DISCLOSURE_ACK = booleanPreferencesKey("privacy_disclosure_ack")
 
         // Unified PWA-first shell (docs/mobile/NEXUS_UNIFIED_APP_PLAN.md).
         // Phase-1 opt-in: when on, the app renders the NEXUS PWA in
@@ -202,30 +205,8 @@ class SettingsRepository(
     val emergencyStopEngaged: Flow<Boolean> = store.data.map {
         it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
     }
-
-    // ── Android runtime consent (P1-05) ─────────────────────────────────
-    val micConsent: Flow<Boolean> = store.data.map { it[Keys.MIC_CONSENT] ?: false }
-    val overlayConsent: Flow<Boolean> = store.data.map { it[Keys.OVERLAY_CONSENT] ?: false }
-    val accessibilityConsent: Flow<Boolean> = store.data.map { it[Keys.ACCESSIBILITY_CONSENT] ?: false }
-    val privacyDisclosureAck: Flow<Boolean> = store.data.map { it[Keys.PRIVACY_DISCLOSURE_ACK] ?: false }
-
-    suspend fun setMicConsent(value: Boolean) {
-        store.edit { it[Keys.MIC_CONSENT] = value }
-    }
-
-    suspend fun setOverlayConsent(value: Boolean) {
-        store.edit { it[Keys.OVERLAY_CONSENT] = value }
-    }
-
-    suspend fun setAccessibilityConsent(value: Boolean) {
-        store.edit { it[Keys.ACCESSIBILITY_CONSENT] = value }
-    }
-
-    suspend fun setPrivacyDisclosureAck(value: Boolean) {
-        store.edit { it[Keys.PRIVACY_DISCLOSURE_ACK] = value }
-    }
-
-    /** Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
+    /**
+     * Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
      * mic-button fallback) so conversation starts without press-and-hold.
      * Default off — the owner opts in. No camera is involved (that is a
      * separate, gated capability).
@@ -240,40 +221,8 @@ class SettingsRepository(
      * the user looks at the phone. No frames are stored or transmitted; a
      * visible indicator is shown whenever the camera is active.
      */
-    val emergencyStopEngaged: Flow<Boolean> = store.data.map {
-        it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
-    }
-
-    // ── Android runtime consent (P1-05) ─────────────────────────────────
-    val micConsent: Flow<Boolean> = store.data.map { it[Keys.MIC_CONSENT] ?: false }
-    val overlayConsent: Flow<Boolean> = store.data.map { it[Keys.OVERLAY_CONSENT] ?: false }
-    val accessibilityConsent: Flow<Boolean> = store.data.map { it[Keys.ACCESSIBILITY_CONSENT] ?: false }
-    val privacyDisclosureAck: Flow<Boolean> = store.data.map { it[Keys.PRIVACY_DISCLOSURE_ACK] ?: false }
-
-    suspend fun setMicConsent(value: Boolean) {
-        store.edit { it[Keys.MIC_CONSENT] = value }
-    }
-
-    suspend fun setOverlayConsent(value: Boolean) {
-        store.edit { it[Keys.OVERLAY_CONSENT] = value }
-    }
-
-    suspend fun setAccessibilityConsent(value: Boolean) {
-        store.edit { it[Keys.ACCESSIBILITY_CONSENT] = value }
-    }
-
-    suspend fun setPrivacyDisclosureAck(value: Boolean) {
-        store.edit { it[Keys.PRIVACY_DISCLOSURE_ACK] = value }
-    }
-
-    /** Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
-     * Opt into the unified PWA-first shell (default off). When on, the app
-     * hosts the NEXUS PWA in [com.aci.hermes.ui.web.WebViewHostActivity]
-     * instead of the native Compose UI. Off keeps the shipped, native behavior
-     * unchanged — the flag is the Phase-1 seam for the owner-gated cutover.
-     */
-    val unifiedPwaShellEnabled: Flow<Boolean> = store.data.map {
-        it[Keys.UNIFIED_PWA_SHELL_ENABLED] ?: false
+    val cameraAttentionEnabled: Flow<Boolean> = store.data.map {
+        it[Keys.CAMERA_ATTENTION_ENABLED] ?: false
     }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
@@ -286,8 +235,18 @@ class SettingsRepository(
 
     // ── Device control consent ─────────────────────────────────────────
     /** Master switch: until on, no device action runs. Defaults off. */
-    val emergencyStopEngaged: Flow<Boolean> = store.data.map {
-        it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
+    val deviceControlEnabled: Flow<Boolean> = store.data.map {
+        it[Keys.DEVICE_CONTROL_ENABLED] ?: false
+    }
+
+    /** When on (default), sensitive device actions need explicit confirmation. */
+    val deviceConfirmSensitive: Flow<Boolean> = store.data.map {
+        it[Keys.DEVICE_CONFIRM_SENSITIVE] ?: true
+    }
+
+    /** The capability ids the owner has explicitly consented to. */
+    val deviceConsentedCapabilities: Flow<Set<String>> = store.data.map {
+        it[Keys.DEVICE_CONSENTED_CAPS] ?: emptySet()
     }
 
     // ── Android runtime consent (P1-05) ─────────────────────────────────
@@ -296,30 +255,14 @@ class SettingsRepository(
     val accessibilityConsent: Flow<Boolean> = store.data.map { it[Keys.ACCESSIBILITY_CONSENT] ?: false }
     val privacyDisclosureAck: Flow<Boolean> = store.data.map { it[Keys.PRIVACY_DISCLOSURE_ACK] ?: false }
 
-    suspend fun setMicConsent(value: Boolean) {
-        store.edit { it[Keys.MIC_CONSENT] = value }
-    }
-
-    suspend fun setOverlayConsent(value: Boolean) {
-        store.edit { it[Keys.OVERLAY_CONSENT] = value }
-    }
-
-    suspend fun setAccessibilityConsent(value: Boolean) {
-        store.edit { it[Keys.ACCESSIBILITY_CONSENT] = value }
-    }
-
-    suspend fun setPrivacyDisclosureAck(value: Boolean) {
-        store.edit { it[Keys.PRIVACY_DISCLOSURE_ACK] = value }
-    }
-
-    /** Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
-    val deviceConfirmSensitive: Flow<Boolean> = store.data.map {
-        it[Keys.DEVICE_CONFIRM_SENSITIVE] ?: true
-    }
-
-    /** The capability ids the owner has explicitly consented to. */
-    val deviceConsentedCapabilities: Flow<Set<String>> = store.data.map {
-        it[Keys.DEVICE_CONSENTED_CAPS] ?: emptySet()
+    /**
+     * Opt into the unified PWA-first shell (default off). When on, the app
+     * hosts the NEXUS PWA in [com.aci.hermes.ui.web.WebViewHostActivity]
+     * instead of the native Compose UI. Off keeps the shipped, native behavior
+     * unchanged — the flag is the Phase-1 seam for the owner-gated cutover.
+     */
+    val unifiedPwaShellEnabled: Flow<Boolean> = store.data.map {
+        it[Keys.UNIFIED_PWA_SHELL_ENABLED] ?: false
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -459,6 +402,22 @@ class SettingsRepository(
 
     suspend fun setCameraAttentionEnabled(value: Boolean) {
         store.edit { it[Keys.CAMERA_ATTENTION_ENABLED] = value }
+    }
+
+    suspend fun setMicConsent(value: Boolean) {
+        store.edit { it[Keys.MIC_CONSENT] = value }
+    }
+
+    suspend fun setOverlayConsent(value: Boolean) {
+        store.edit { it[Keys.OVERLAY_CONSENT] = value }
+    }
+
+    suspend fun setAccessibilityConsent(value: Boolean) {
+        store.edit { it[Keys.ACCESSIBILITY_CONSENT] = value }
+    }
+
+    suspend fun setPrivacyDisclosureAck(value: Boolean) {
+        store.edit { it[Keys.PRIVACY_DISCLOSURE_ACK] = value }
     }
 
     suspend fun setUnifiedPwaShellEnabled(value: Boolean) {
