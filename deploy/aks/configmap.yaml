@@ -1,0 +1,39 @@
+# Non-secret runtime config for the M.U.S.E. worker fleet.
+#
+# Secrets (API keys, Redis/DB URLs) do NOT belong here — they come from Azure
+# Key Vault via secretproviderclass.yaml. This file holds only tunables.
+#
+# The single most important knob is SESSIONS_PER_WORKER: how many concurrent
+# async agent sessions each pod hosts. Agents are I/O-bound (waiting on hosted
+# LLM APIs), so pack many per pod rather than running one pod per agent.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: muse-worker-config
+  namespace: muse
+data:
+  # Concurrency: async agent sessions per pod. Tune against provider rate limits.
+  # ~50-100 is a sane starting point for a 0.25-0.5 vCPU / 512Mi-1Gi pod.
+  SESSIONS_PER_WORKER: "50"
+
+  # Where the data dir lives inside the container (matches docker/entrypoint.sh).
+  # On Spot pods this is ephemeral scratch only — durable state goes to
+  # Redis (queue) + the shared memory backend (DATABASE_URL), never here.
+  HERMES_HOME: "/opt/data"
+
+  # First-boot model wiring is a single-box convenience; in the fleet you wire
+  # model routing once out-of-band, so opt the per-pod bootstrap OUT.
+  HERMES_BOOTSTRAP_MODELS: "0"
+
+  # Shared memory backend selection. Pick one that exists under plugins/memory/
+  # (supabase | honcho | mem0 | supermemory). Its connection/keys are supplied
+  # as secrets via the CSI mount, not here.
+  MUSE_MEMORY_BACKEND: "supabase"
+
+  # Free-first routing policy: prefer free/OSS routes before paid APIs so a
+  # runaway fleet can't quietly rack up spend on a paid provider.
+  MUSE_MODEL_POLICY: "free-first"
+
+  # Redis host:port (NOT a secret — the password is). KEDA's addressFromEnv
+  # reads this from the worker container env to scale on queue depth.
+  REDIS_HOST_PORT: "muse-fleet-redis.redis.cache.windows.net:6380"
