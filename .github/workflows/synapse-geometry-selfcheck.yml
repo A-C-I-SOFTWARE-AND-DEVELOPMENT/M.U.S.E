@@ -1,0 +1,43 @@
+# Verify the SYNAPSE sacred-geometry C++ WITHOUT Unreal Engine.
+#
+# Compiles the real MuseSacredGeometry.cpp against a minimal non-UE shim with
+# clang and runs the same invariants the in-engine Synapse.Geometry.* automation
+# checks. This gives an autonomous green signal that the geometry algorithms
+# compile + are numerically correct on a standard GitHub-hosted runner — no UE,
+# no GPU, no self-hosted runner needed. The full engine build (render module)
+# is verified separately by synapse-ue-build.yml on the owner's machine.
+name: SYNAPSE geometry self-check (no UE)
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'apps/synapse-ue/Source/SynapseCore/Public/MuseSacredGeometry.h'
+      - 'apps/synapse-ue/Source/SynapseCore/Private/MuseSacredGeometry.cpp'
+      - 'apps/synapse-ue/tools/geometry-selfcheck/**'
+      - '.github/workflows/synapse-geometry-selfcheck.yml'
+  pull_request:
+    paths:
+      - 'apps/synapse-ue/Source/SynapseCore/Public/MuseSacredGeometry.h'
+      - 'apps/synapse-ue/Source/SynapseCore/Private/MuseSacredGeometry.cpp'
+      - 'apps/synapse-ue/tools/geometry-selfcheck/**'
+      - '.github/workflows/synapse-geometry-selfcheck.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selfcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile MuseSacredGeometry.cpp with clang (no UE) and run invariants
+        run: |
+          clang++ -std=c++17 -Wall -Wextra -Werror \
+            -I apps/synapse-ue/tools/geometry-selfcheck/ueshim \
+            -I apps/synapse-ue/Source/SynapseCore/Public \
+            apps/synapse-ue/tools/geometry-selfcheck/selfcheck.cpp \
+            apps/synapse-ue/Source/SynapseCore/Private/MuseSacredGeometry.cpp \
+            -o geometry-selfcheck
+          ./geometry-selfcheck
