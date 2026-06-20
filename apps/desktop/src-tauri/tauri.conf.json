@@ -4,12 +4,12 @@
   "version": "0.1.0",
   "identifier": "com.aci.muse",
   "build": {
-    "beforeDevCommand": "npm --prefix ../ui run dev",
+    "beforeDevCommand": "npm --prefix apps/desktop/ui run dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "npm --prefix ../ui run build",
+    "beforeBuildCommand": "npm --prefix apps/desktop/ui run build",
     "frontendDist": "../ui/dist"
   },
-  "tauri": {
+  "app": {
     "withGlobalTauri": true,
     "windows": [
       {
@@ -28,15 +28,23 @@
     ],
     "security": {
       "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:8765 http://localhost:8765 ws://127.0.0.1:8765 ws://localhost:8765; frame-src http://127.0.0.1:8765 http://localhost:8765"
-    },
-    "plugins": {
-      "updater": {
-        "pubkey": "",
-        "endpoints": [
-          "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/latest/download/latest.json"
-        ]
-      }
-    },
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/latest/download/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "publisher": "A.C.I. Software and Development",
+    "shortDescription": "Multi-Use Synaptic Entity — local-first AI operating partner.",
+    "longDescription": "M.U.S.E. is a local-first AI operating partner. This desktop shell wraps the lean Singularity cockpit client and talks to your local MUSE gateway; if an installed `muse` CLI is found it can start the gateway for you (autostart, toggleable in Settings).",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -44,14 +52,6 @@
       "icons/icon.png",
       "icons/icon.ico",
       "icons/icon.icns"
-    ],
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "category": "Productivity",
-      "publisher": "A.C.I. Software and Development",
-      "shortDescription": "Multi-Use Synaptic Entity — local-first AI operating partner.",
-      "longDescription": "M.U.S.E. is a local-first AI operating partner. This desktop shell wraps the lean Singularity cockpit client and talks to your local MUSE gateway; if an installed `muse` CLI is found it can start the gateway for you (autostart, toggleable in Settings)."
-    }
+    ]
   }
 }

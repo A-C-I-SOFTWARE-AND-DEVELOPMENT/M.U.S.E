@@ -1,0 +1,38 @@
+[
+  {
+    "intent": "P1-01: Route room editor through ImageGenProvider seam — replace hard-coded Gemini HTTP call in gateway/cockpit/room_store.py with dispatch via agent/image_gen_registry.get_active_provider(), add plugins/image_gen/gemini/ provider if needed, keep honest-when-unavailable behavior, update tests",
+    "globs": [
+      "gateway/cockpit/room_store.py",
+      "agent/image_gen_provider.py",
+      "agent/image_gen_registry.py",
+      "plugins/image_gen/**",
+      "tests/gateway/cockpit/test_room_store*.py"
+    ],
+    "model_lane": "claude"
+  },
+  {
+    "intent": "P1-02: Re-attest GraphRAG graph-size figures — run jarvis_prime graph build against current main, record actual node/edge counts with command output in docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md, update or hedge README.md lines 26/39 to match measured values",
+    "globs": [
+      "docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md",
+      "README.md",
+      "hermes_cli/jarvis_prime/graphrag/**"
+    ],
+    "model_lane": "claude"
+  },
+  {
+    "intent": "P1-03 + P1-04 + P1-05: Capture full-suite green evidence, launch-chain closure cross-linking, AND all Android posture follow-ups — (a) run full pytest suite against main tip, record summary + commit SHA in docs/synapse/phase0/FULL_SUITE_EVIDENCE.md; (b) update LAUNCH_STATUS_CURRENT.md C5/P5 rows to green with evidence link; (c) add bidirectional cross-links between LAUNCH_BRANCH_MATRIX.md header and LAUNCH_STATUS_CURRENT.md, verify R00 addendum linked from both; (d) Android runtime consent: add point-of-use permission prompts for mic/overlay/accessibility in live screens, wire to settings; (e) Play data-safety declarations: generate Data Safety form JSON matching shipped AndroidManifest.xml permissions; (f) privacy disclosure screen in settings; (g) update LAUNCH_STATUS_CURRENT.md O1-O3 rows with resolution or explicit deferral",
+    "globs": [
+      "docs/synapse/phase0/FULL_SUITE_EVIDENCE.md",
+      "docs/launch/LAUNCH_STATUS_CURRENT.md",
+      "docs/launch/LAUNCH_BRANCH_MATRIX.md",
+      "docs/aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md",
+      "scripts/run_tests.sh",
+      "apps/android/app/src/main/java/**/ui/screens/live/**",
+      "apps/android/app/src/main/java/**/ui/screens/settings/**",
+      "apps/android/app/src/main/java/**/preferences/**",
+      "apps/android/app/src/main/AndroidManifest.xml",
+      "apps/android/app/src/main/res/**"
+    ],
+    "model_lane": "claude"
+  }
+]

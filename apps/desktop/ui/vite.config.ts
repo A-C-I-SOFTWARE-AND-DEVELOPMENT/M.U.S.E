@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { resolve } from "path";
 
 // M.U.S.E. desktop UI build.
 //
@@ -19,6 +20,11 @@ export default defineConfig({
   // Relative base so the bundle works both from a web server root and from
   // Tauri's asset protocol.
   base: "./",
+  resolve: {
+    alias: {
+      "@muse/design-system": resolve(__dirname, "../../../design-system"),
+    },
+  },
   plugins: [
     react(),
     VitePWA({
