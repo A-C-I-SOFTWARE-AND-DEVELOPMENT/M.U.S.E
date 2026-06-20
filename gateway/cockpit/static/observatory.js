@@ -61,12 +61,56 @@ const WALLPAPER = (() => {
   } catch (e) { return false; }
 })();
 
+// Standalone demo mode: serve a bundled, clearly-labeled static snapshot so the
+// Observatory renders without a live gateway (always-on static hosting, e.g.
+// GitHub Pages). Opt-in ONLY — enabled when the page sets
+// `window.OBSERVATORY_DEMO_URL` (the Pages build does) or is visited with
+// `?demo=1`. When off, every code path below is the live one, unchanged.
+const DEMO_URL = (() => {
+  try {
+    if (window.OBSERVATORY_DEMO_URL) return String(window.OBSERVATORY_DEMO_URL);
+    const v = new URLSearchParams(window.location.search).get("demo");
+    if (v === "1" || v === "true" || v === "yes") return "./observatory-demo.json";
+  } catch (e) { /* fall through to live mode */ }
+  return "";
+})();
+const DEMO = !!DEMO_URL;
+let demoData = null;
+
+async function loadDemo() {
+  try {
+    const r = await fetch(DEMO_URL, { cache: "no-store" });
+    demoData = await r.json();
+  } catch (e) { demoData = null; }
+}
+
+// Synthesize a fetch-like Response from the bundled snapshot for the
+// /v1/observatory/* GETs the page makes (callers only read .ok/.status/.json()).
+function demoResponse(path) {
+  const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+  const miss = (status) => ({ ok: false, status, json: async () => ({}) });
+  if (!demoData) return miss(503);
+  const p = path.split("?")[0];
+  const snap = demoData.snapshot || {};
+  if (p === "/v1/observatory/snapshot") return ok(snap);
+  if (p === "/v1/observatory/metrics") return ok(snap.metrics_rollup || {});
+  if (p === "/v1/observatory/recommendations")
+    return ok(demoData.recommendations || { v: 1, generated_at: "", cards: [] });
+  if (p === "/v1/observatory/layout") {
+    const cid = new URLSearchParams(path.split("?")[1] || "").get("cluster") || "";
+    const lay = (demoData.layouts || {})[cid];
+    return lay ? ok(lay) : miss(404);
+  }
+  return miss(404);
+}
+
 function authHeaders(extra) {
   const h = Object.assign({}, extra || {});
   if (token) h["Authorization"] = "Bearer " + token;
   return h;
 }
 async function api(path, opts) {
+  if (DEMO) return demoResponse(path);
   const o = Object.assign({}, opts || {});
   o.headers = authHeaders(o.headers);
   return fetch(apiBase + path, o);
@@ -1902,13 +1946,18 @@ $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
 setView("galaxy");
 renderDockStations();
 renderLayoutNote();
-refreshAll();
-startStream();
-startActions();
 if (WALLPAPER) document.body.classList.add("wallpaper");
-if (!token) {
-  setConn("off", "no token");
-  $("#recslist").replaceChildren(el("div", "empty",
-    "Pair this browser first — click ", el("b", "", "Token"),
-    " and paste the cockpit token."));
+if (DEMO) {
+  // Static snapshot mode: load the bundle, render once, no live streams.
+  loadDemo().then(() => { refreshAll(); setConn("warn", "demo · static snapshot"); });
+} else {
+  refreshAll();
+  startStream();
+  startActions();
+  if (!token) {
+    setConn("off", "no token");
+    $("#recslist").replaceChildren(el("div", "empty",
+      "Pair this browser first — click ", el("b", "", "Token"),
+      " and paste the cockpit token."));
+  }
 }
