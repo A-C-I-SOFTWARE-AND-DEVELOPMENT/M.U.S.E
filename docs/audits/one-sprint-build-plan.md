@@ -7,7 +7,10 @@
 2. Integration into `agent/tool_executor.py` (concurrent + sequential), before
    `maybe_persist_tool_result`, behind `tool_output.compaction.enabled`.
 3. Config in `cli-config.yaml` / `hermes_cli/config.py`; `[tokenjuice]` metrics.
-4. Tested scaffold: `hermes_cli/background_learner/` (allowlisted, dry-run queue).
+4. `hermes_cli/background_learner/` — now **ENABLED by default** in `DEFAULT_CONFIG`
+   (`enabled=True`, `idle_only=True`, `max_jobs_per_cycle=50`); self-learning
+   queue runs real handlers in idle time. (Originally shipped as an allowlisted
+   dry-run scaffold; promoted to default-on by commit `a7f5296fd`.)
 5. Tests under `tests/` for all of the above; audit docs under `docs/audits/`.
 6. `THIRD_PARTY_NOTICES.md` attribution; `.gitignore` raw-log path.
 
@@ -28,9 +31,12 @@ systems (verified no parallel architectures):
   opt-in `RouterContext.require_eval_for` in the existing `model_router.py`.
 - **EVAL-1 Eval harness** — DONE. `hermes_cli/evals/` deterministic suite feeding
   ROUTE-2; delegates heavy runs to `mini_swe_runner` via an optional runner.
-- **LEARN-1 Background-learner live jobs** — DONE. `hermes_cli/background_learner/
+- **LEARN-1 Background-learner live jobs** — ENABLED BY DEFAULT. `hermes_cli/background_learner/
   runner.py` real handlers; code/skill jobs emit owner-gated `ProposalBook`
-  proposals; `JobQueue` gained an `executor` hook + `drain()`.
+  proposals; `JobQueue` gained an `executor` hook + `drain()`. Commit `a7f5296fd`
+  promoted this to a default-on capability in `DEFAULT_CONFIG`
+  (`enabled=True`, `idle_only=True`, `max_jobs_per_cycle=50`) — no longer just a
+  scaffold; new installations get self-learning out of the box.
 - **MEM-1 Layered memory** — DONE. `agent/memory_layers/` (raw event log +
   provenance + selective retrieval filter + curator bridge to `ProposalBook`
   `MEMORY_PROMOTION`); untrusted content never auto-promotes.
