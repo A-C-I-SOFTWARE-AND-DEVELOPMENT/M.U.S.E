@@ -17,7 +17,7 @@ import org.robolectric.annotation.GraphicsMode
  * components. Each composes a component under [JarvisPrimeTheme] and proves it
  * builds and renders without crashing — the compile-level + basic-semantics
  * proof the verification matrix needs. Mirrors the existing
- * PlaceholderScreenSmokeTest / DiagnosticsScreenSmokeTest harness exactly
+ * DiagnosticsScreenSmokeTest harness exactly
  * (RobolectricTestRunner, NATIVE graphics, SDK 33, no Main-dispatcher override).
  */
 @RunWith(RobolectricTestRunner::class)

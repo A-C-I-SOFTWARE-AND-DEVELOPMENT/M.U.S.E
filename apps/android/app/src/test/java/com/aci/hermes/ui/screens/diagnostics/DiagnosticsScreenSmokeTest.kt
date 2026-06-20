@@ -16,10 +16,10 @@ import org.robolectric.annotation.GraphicsMode
  * Compose smoke test (Robolectric, no emulator) for [DiagnosticsScreen].
  *
  * Uses a null cockpit client so the backend probe short-circuits — the screen
- * renders with no network — and asserts the static chrome is laid out. Mirrors
- * PlaceholderScreenSmokeTest exactly (no global Main-dispatcher override, to
- * avoid leaking it across the shared Robolectric JVM). The backend-state
- * branches are covered by [DiagnosticsViewModelTest].
+ * renders with no network — and asserts the static chrome is laid out. Uses
+ * the standard MUSE Compose smoke-test harness (no global Main-dispatcher
+ * override, to avoid leaking it across the shared Robolectric JVM). The
+ * backend-state branches are covered by [DiagnosticsViewModelTest].
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
