@@ -76,11 +76,53 @@ def _coerce_content_to_text(content: Any) -> str:
             elif isinstance(p, dict):
                 if p.get("type") == "text" and isinstance(p.get("text"), str):
                     pieces.append(p["text"])
-                # Multimodal (image_url, etc.) — stub for now; log and skip
+                # Multimodal parts are handled by _extract_multimodal_parts;
+                # skip them here to avoid dumping raw URLs into text.
                 elif p.get("type") in {"image_url", "input_audio"}:
-                    logger.debug("Dropping multimodal part (not yet supported): %s", p.get("type"))
+                    pass
         return "\n".join(pieces)
     return str(content)
+
+
+def _extract_multimodal_parts(content: Any) -> List[Dict[str, Any]]:
+    """Extract image/audio parts from OpenAI content as Gemini inlineData parts."""
+    if not isinstance(content, list):
+        return []
+    import base64 as _b64
+
+    parts: List[Dict[str, Any]] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        ptype = item.get("type")
+        if ptype == "image_url":
+            url = ((item.get("image_url") or {}).get("url") or "")
+            if not isinstance(url, str) or not url.startswith("data:"):
+                continue
+            try:
+                header, encoded = url.split(",", 1)
+                mime = header.split(":", 1)[1].split(";", 1)[0]
+                raw = _b64.b64decode(encoded)
+            except Exception:
+                continue
+            parts.append({
+                "inlineData": {
+                    "mimeType": mime,
+                    "data": _b64.b64encode(raw).decode("ascii"),
+                }
+            })
+        elif ptype == "input_audio":
+            audio_data = item.get("input_audio") or {}
+            audio_b64 = audio_data.get("data")
+            if not isinstance(audio_b64, str):
+                continue
+            parts.append({
+                "inlineData": {
+                    "mimeType": "audio/wav",
+                    "data": audio_b64,
+                }
+            })
+    return parts
 
 
 def _translate_tool_call_to_gemini(tool_call: Dict[str, Any]) -> Dict[str, Any]:
@@ -160,6 +202,11 @@ def _build_gemini_contents(
         text = _coerce_content_to_text(msg.get("content"))
         if text:
             parts.append({"text": text})
+
+        # Multimodal parts (images, audio) — convert to Gemini inlineData
+        multimodal = _extract_multimodal_parts(msg.get("content"))
+        if multimodal:
+            parts.extend(multimodal)
 
         # Assistant messages can carry tool_calls
         tool_calls = msg.get("tool_calls") or []
