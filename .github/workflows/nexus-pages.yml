@@ -21,6 +21,9 @@ on:
       - 'apps/nexus/**'
       - 'docs/3d-model/**'
       - 'scripts/diagrams/**'
+      - 'gateway/cockpit/static/observatory*'
+      - 'gateway/cockpit/static/tokens.css'
+      - 'gateway/cockpit/static/vendor/**'
       - '.github/workflows/nexus-pages.yml'
   workflow_dispatch:
 
@@ -58,6 +61,23 @@ jobs:
           python3 scripts/diagrams/build_muse_flowchart.py
           mkdir -p apps/nexus/dist/atlas
           cp -r docs/3d-model/. apps/nexus/dist/atlas/
+      - name: Bundle the Neural Observatory web viewer (served at /observatory/)
+        run: |
+          # The viewer is plain HTML/JS/CSS (vendored three.js, no build step).
+          # Bare /observatory/ serves the always-on, clearly-labeled demo
+          # snapshot; /observatory/observatory.html is the live viewer (point it
+          # at a gateway with #base=...&token=...). See
+          # docs/deploy/observatory-web-hosting.md.
+          OBS=apps/nexus/dist/observatory
+          mkdir -p "$OBS/vendor"
+          cp gateway/cockpit/static/observatory.js "$OBS/"
+          cp gateway/cockpit/static/observatory.css "$OBS/"
+          cp gateway/cockpit/static/tokens.css "$OBS/"
+          cp gateway/cockpit/static/observatory-demo.json "$OBS/"
+          cp gateway/cockpit/static/vendor/three.module.min.js "$OBS/vendor/"
+          cp gateway/cockpit/static/vendor/three.core.min.js "$OBS/vendor/"
+          cp gateway/cockpit/static/observatory-demo.html "$OBS/index.html"
+          cp gateway/cockpit/static/observatory.html "$OBS/observatory.html"
       - name: Publish to gh-pages
         working-directory: apps/nexus/dist
         env:

@@ -57,3 +57,9 @@
 *.dylib filter=lfs diff=lfs merge=lfs -text
 *.pak filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
+
+# Windows scripts must check out with CRLF so cmd.exe runs labels/goto
+# reliably (tools/build-legion.bat et al.).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

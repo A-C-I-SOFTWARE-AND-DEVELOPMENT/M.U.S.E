@@ -18,8 +18,12 @@ binary assets do **not** belong in this monorepo; nothing binary is here.
 ```
 Synapse.uproject                  UE 5.6, modules SynapseCore + SynapseNet
 Source/Synapse(.Editor).Target.cs Game + Editor targets
-Source/SynapseCore/               Foundation module (log category, boilerplate)
+Source/SynapseCore/               Foundation module (log category, boilerplate,
+                                  MuseSacredGeometry closed-form generators)
 Source/SynapseNet/                Gateway client: settings, HTTP subsystem, SSE
+Source/SynapseObservatory/        /v1/observatory/* typed client (data plane)
+Source/SynapseObservatoryRender/  Phase-3 galaxy renderer: sacred-geometry +
+                                  4D-polytope layouts (docs/sacred-geometry.md)
 Config/                           Minimal DefaultEngine/DefaultGame ini
 Content/.gitkeep                  Empty by policy — see file comment
 docs/synapsenet.md                Module doc: threading, token, SSE, backoff
@@ -50,6 +54,7 @@ tools/stub_gateway.py             Prompt 0 fallback stub (validated here)
 | What | Status |
 |---|---|
 | Python stub gateway: `/health` + `/v1/health` 200, capabilities 401-without/200-with bearer (real contract field names), SSE heartbeats | **VALIDATED in this container** — Prompt 0's documented fallback path; transcript in the delivery report |
+| Sacred-geometry reference (`tools/sacred_geometry_reference.py --check`): golden angle 137.50776405°, Platonic counts 4/8/6/12/20, 4-polytope counts 5/8/16/24/120/600 | **VALIDATED in this container** — the numeric ground truth the C++ `MuseSacredGeometry` + `Synapse.Geometry.*` automation tests reproduce |
 | UBT compile (`SynapseEditor Win64 Development`, warnings-as-errors) | **NOT RUN HERE** — UE 5.6/UnrealBuildTool are not installed in this container. This is the documented **OWNER-BLOCKER**, not a failure. Compiling is the **first action on the owner's machine** |
 | PIE test map printing `/v1/health` + capabilities | Deferred to the owner per `docs/testmap-setup.md` |
 
@@ -60,6 +65,10 @@ tools/stub_gateway.py             Prompt 0 fallback stub (validated here)
 > gate stays open until those logs exist.
 
 ### First actions on the Legion
+
+**Shortcut:** `tools\build-legion.bat` does compile + headless tests in one
+double-click; `tools\run-stub.bat` pairs the offline gateway for a PIE smoke.
+See [`docs/build-on-legion.md`](docs/build-on-legion.md). The manual commands:
 
 ```bat
 :: 1) Compile (iterate until clean; warnings-as-errors is on for Synapse* modules)
