@@ -34,7 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
     "babel-plugin-react-compiler": "^1.0.0",
-    "esbuild": "~0.27.0",
+    "esbuild": "~0.28.1",
     "eslint": "^9",
     "eslint-plugin-perfectionist": "^5",
     "eslint-plugin-react": "^7",
@@ -43,7 +43,7 @@
     "eslint-plugin-unused-imports": "^4",
     "globals": "^16",
     "prettier": "^3",
-    "tsx": "^4.19.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.7.0",
     "vitest": "^4.1.3"
   }
