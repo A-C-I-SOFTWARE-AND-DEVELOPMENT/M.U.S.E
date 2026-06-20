@@ -157,6 +157,7 @@ const state = {
   snapshot: null,          // last /v1/observatory/snapshot body
   metrics: null,           // last /v1/observatory/metrics body
   window: "1h",
+  layout: "gateway",       // sacred-geometry galaxy layout (HUD "layout" select)
   graphAvailable: false,
   telemetryLive: false,    // collector has recorded events
   view: "galaxy",
@@ -473,6 +474,109 @@ function clearGalaxy() {
   galaxy.byId.clear();
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+ * Sacred-geometry layouts (client-side). Reposition the gateway clusters onto
+ * closed-form lattices — Vogel phyllotaxis, the spherical Fibonacci lattice,
+ * Platonic (icosahedron) anchors, and a projected 4-polytope (24-cell). Opt-in
+ * via the HUD "layout" select; "gateway" (default) leaves the gateway-computed
+ * positions untouched. The math mirrors the UE renderer's MuseSacredGeometry
+ * and the Python reference (same golden angle 137.50776° + exact vertex sets).
+ * ════════════════════════════════════════════════════════════════════════ */
+const SG_PHI = (1 + Math.sqrt(5)) / 2;
+const SG_GOLDEN = Math.PI * (3 - Math.sqrt(5)); // golden angle (radians)
+
+function sgVogel(n) {
+  const o = [];
+  for (let i = 0; i < n; i++) {
+    const r = Math.sqrt(i), t = i * SG_GOLDEN;
+    o.push([r * Math.cos(t), r * Math.sin(t)]);
+  }
+  return o;
+}
+function sgFibSphere(n) {
+  const o = [];
+  for (let i = 0; i < n; i++) {
+    const y = 1 - 2 * (i + 0.5) / n;
+    const ring = Math.sqrt(Math.max(0, 1 - y * y)), t = SG_GOLDEN * i;
+    o.push([ring * Math.cos(t), y, ring * Math.sin(t)]);
+  }
+  return o;
+}
+function sgIcosa() {
+  const p = SG_PHI, o = [];
+  for (const a of [-1, 1]) for (const b of [-p, p]) {
+    o.push([0, a, b]); o.push([a, b, 0]); o.push([b, 0, a]);
+  }
+  return o.map((v) => {
+    const l = Math.hypot(v[0], v[1], v[2]) || 1;
+    return [v[0] / l, v[1] / l, v[2] / l];
+  });
+}
+function sgCell24() {
+  const o = [];
+  for (let ax = 0; ax < 4; ax++) for (const s of [-1, 1]) {
+    const v = [0, 0, 0, 0]; v[ax] = s; o.push(v);
+  }
+  for (const a of [-0.5, 0.5]) for (const b of [-0.5, 0.5])
+    for (const c of [-0.5, 0.5]) for (const d of [-0.5, 0.5]) o.push([a, b, c, d]);
+  return o; // 8 + 16 = 24 vertices
+}
+function sgProject(p, d) {
+  const den = d - p[3], k = Math.abs(den) > 1e-9 ? d / den : 1e9;
+  return [p[0] * k, p[1] * k, p[2] * k];
+}
+
+function sgTargets(mode, n, R) {
+  const out = [];
+  if (mode === "phyllotaxis") {
+    const pts = sgVogel(n), maxr = Math.sqrt(Math.max(1, n - 1));
+    for (let i = 0; i < n; i++) out.push([pts[i][0] / maxr * R, pts[i][1] / maxr * R, 0]);
+  } else if (mode === "fibonacci") {
+    for (const v of sgFibSphere(n)) out.push([v[0] * R, v[1] * R, v[2] * R]);
+  } else if (mode === "platonic") {
+    const verts = sgIcosa(), m = verts.length;
+    for (let i = 0; i < n; i++) {
+      const v = verts[i % m], shell = 1 + Math.floor(i / m) * 0.2;
+      out.push([v[0] * R * shell, v[1] * R * shell, v[2] * R * shell]);
+    }
+  } else if (mode === "polytope") {
+    const verts = sgCell24(), m = verts.length, c = Math.cos(0.62), s = Math.sin(0.62);
+    for (let i = 0; i < n; i++) {
+      const raw = verts[i % m];
+      const l = Math.hypot(raw[0], raw[1], raw[2], raw[3]) || 1;
+      const v = [raw[0] / l, raw[1] / l, raw[2] / l, raw[3] / l];
+      const rot = [v[0], v[1], v[2] * c - v[3] * s, v[2] * s + v[3] * c]; // ZW rotation
+      const p = sgProject(rot, 2.5);
+      out.push([p[0] * R, p[1] * R, p[2] * R]);
+    }
+  }
+  return out;
+}
+
+// Mutate each cluster's `.pos` for the active layout, remembering the gateway
+// position once (`_gpos`) so modes can be switched losslessly.
+function applyLayout(clusters) {
+  const mode = state.layout || "gateway";
+  for (const c of clusters) {
+    if (!c._gpos && Array.isArray(c.pos) && c.pos.length === 3) c._gpos = c.pos.slice(0, 3);
+  }
+  if (mode === "gateway") {
+    for (const c of clusters) if (c._gpos) c.pos = c._gpos.slice();
+    return;
+  }
+  const n = clusters.length;
+  let R = 0;
+  for (const c of clusters) {
+    if (c._gpos) R = Math.max(R, Math.hypot(c._gpos[0], c._gpos[1], c._gpos[2]));
+  }
+  if (!(R > 1)) R = 90;
+  const targets = sgTargets(mode, n, R);
+  for (let i = 0; i < n; i++) {
+    const t = targets[i] || clusters[i]._gpos || [0, 0, 0];
+    clusters[i].pos = [t[0], t[1], t[2]];
+  }
+}
+
 function buildGalaxy(graph) {
   clearGalaxy();
   galaxy.graphVersion = graph.graph_version || null;
@@ -481,6 +585,7 @@ function buildGalaxy(graph) {
   galaxy.clusters = clusters;
   clusters.forEach((c, i) => { c._index = i; galaxy.byId.set(c.id, c); });
   if (!clusters.length) return;
+  applyLayout(clusters);
 
   // Cluster spheres — one InstancedMesh, color by dominant kind; heat==null
   // renders desaturated gray (no guessed glow, spec §5).
@@ -1744,6 +1849,16 @@ $("#winsel").addEventListener("change", () => {
   loadRecs();
   renderLayoutNote();
 });
+
+// Sacred-geometry layout select — rebuild the galaxy on the new lattice.
+const _layoutSel = $("#layoutsel");
+if (_layoutSel) {
+  _layoutSel.addEventListener("change", () => {
+    state.layout = _layoutSel.value;
+    if (state.snapshot && state.snapshot.graph) buildGalaxy(state.snapshot.graph);
+    renderLayoutNote();
+  });
+}
 
 /* ════════════════════════════════════════════════════════════════════════
  * 12. SSE — fetch-streaming with Authorization + Last-Event-ID resume
