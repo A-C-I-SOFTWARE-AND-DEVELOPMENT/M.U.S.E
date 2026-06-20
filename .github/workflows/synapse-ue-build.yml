@@ -1,0 +1,71 @@
+# SYNAPSE UE 5.6 build on a self-hosted runner (the owner's Legion).
+#
+# Why this exists: no GitHub-hosted runner ships Unreal Engine, and the
+# cloud authoring container has no UE / GPU / .NET. To compile + test the
+# staged SYNAPSE UE project automatically, the owner registers their Legion
+# (UE 5.6 + VS2022 + NVIDIA GPU) as a self-hosted runner with the labels
+# [self-hosted, Windows, UE5_6]; this workflow then builds
+# apps/synapse-ue/Synapse.uproject and runs the headless Synapse.Geometry
+# automation suite. Setup: apps/synapse-ue/docs/self-hosted-runner-setup.md
+#
+# This is the monorepo bridge until the standalone SYNAPSE repo exists
+# (master plan §5); it adds NO binary assets and only triggers on UE changes,
+# so non-UE PRs are unaffected. Until a runner is registered the job simply
+# waits for one (it never runs on a GitHub-hosted machine).
+name: SYNAPSE UE build (self-hosted)
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'apps/synapse-ue/**'
+      - '.github/workflows/synapse-ue-build.yml'
+  pull_request:
+    paths:
+      - 'apps/synapse-ue/**'
+      - '.github/workflows/synapse-ue-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synapse-ue-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Runs ONLY on the owner's self-hosted Windows runner (UE 5.6 + VS2022).
+    runs-on: [self-hosted, Windows, UE5_6]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: cmd
+    env:
+      UE_ROOT: 'C:\Program Files\Epic Games\UE_5.6'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile SynapseEditor Win64 Development (warnings-as-errors)
+        run: >
+          "%UE_ROOT%\Engine\Build\BatchFiles\Build.bat"
+          SynapseEditor Win64 Development
+          -Project="%GITHUB_WORKSPACE%\apps\synapse-ue\Synapse.uproject"
+          -WaitMutex
+
+      - name: Geometry automation (headless, null RHI)
+        run: >
+          "%UE_ROOT%\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          "%GITHUB_WORKSPACE%\apps\synapse-ue\Synapse.uproject"
+          -ExecCmds="Automation RunTests Synapse.Geometry; Quit"
+          -TestExit="Automation Test Queue Empty"
+          -unattended -nopause -nullrhi -nosplash -log
+          -ReportOutputPath="%GITHUB_WORKSPACE%\apps\synapse-ue\Saved\Automation"
+
+      - name: Upload automation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synapse-automation-report
+          path: apps/synapse-ue/Saved/Automation
+          if-no-files-found: ignore

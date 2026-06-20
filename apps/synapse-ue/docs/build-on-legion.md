@@ -34,6 +34,13 @@ NormalizedShell` (golden angle 137.50776405°, 600-cell = 120 vertices,
 > [`tools\run-geometry-tests.bat`](../tools/run-geometry-tests.bat) (pass
 > `Synapse.` to run the whole suite).
 
+> **Want CI to compile it automatically on the Legion?** Register the Legion as a
+> self-hosted GitHub Actions runner — see
+> [`self-hosted-runner-setup.md`](self-hosted-runner-setup.md). Then
+> [`.github/workflows/synapse-ue-build.yml`](../../../.github/workflows/synapse-ue-build.yml)
+> compiles + runs `Synapse.Geometry` on every push and the PR's UE check goes
+> green with no manual step.
+
 ## See it in the editor (PIE)
 
 1. Start the offline gateway + pair the client (writes `Saved\muse_token.txt`):
