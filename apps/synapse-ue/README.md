@@ -66,6 +66,10 @@ tools/stub_gateway.py             Prompt 0 fallback stub (validated here)
 
 ### First actions on the Legion
 
+**Shortcut:** `tools\build-legion.bat` does compile + headless tests in one
+double-click; `tools\run-stub.bat` pairs the offline gateway for a PIE smoke.
+See [`docs/build-on-legion.md`](docs/build-on-legion.md). The manual commands:
+
 ```bat
 :: 1) Compile (iterate until clean; warnings-as-errors is on for Synapse* modules)
 "C:\Program Files\Epic Games\UE_5.6\Engine\Build\BatchFiles\Build.bat" SynapseEditor Win64 Development -Project=<path>\Synapse.uproject -WaitMutex
