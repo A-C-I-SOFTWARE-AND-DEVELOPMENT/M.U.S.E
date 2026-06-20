@@ -199,3 +199,8 @@ auto-applies the reversible learnings. Run it with `python -m hermes_cli.swarm
 
 Start with [getting-started.md](getting-started.md). When that
 clicks, the rest of these docs are reference material — read on demand.
+
+For the unified pre-dispatch layer that composes the Navigator (where to edit)
+with the council Dispatcher (who engages) into one `DispatchPlan` + generalized
+`TaskQueue`, see
+[unified-navigator-dispatcher.md](unified-navigator-dispatcher.md).
