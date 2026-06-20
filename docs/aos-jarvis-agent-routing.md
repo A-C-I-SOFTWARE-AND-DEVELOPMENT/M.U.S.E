@@ -1,6 +1,6 @@
-# AOS and MUSE Agent Routing Plan
+# AOS and muse Agent Routing Plan
 
-This document defines the routing plan for MUSE and the AOS council. It is a plan only: it does not mutate the AOS registry, does not activate new default agents, and does not claim the registry is fixed.
+This document defines the routing plan for muse and the AOS council. It is a plan only: it does not mutate the AOS registry, does not activate new default agents, and does not claim the registry is fixed.
 
 > **Agent routing vs. model routing.** This page is about *which agent /
 > council member* handles a request. For *which LLM* runs a given task class

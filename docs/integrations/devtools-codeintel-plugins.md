@@ -1,6 +1,6 @@
 # Developer + code-intelligence plugins (devtools, codeintel)
 
-Two native M.U.S.E. plugins that give the agent developer-reference lookups and
+Two native muse plugins that give the agent developer-reference lookups and
 code-review intelligence over free public APIs. They follow the same pattern as
 the [public-API plugins](public-apis-plugins.md) and reuse the shared,
 host-pinned, redacting HTTP helper at
@@ -46,7 +46,7 @@ to a third-party sandbox:
 
 - **Never pass secrets or proprietary code** to `run_code`.
 - Input is capped (50 000 chars) to bound egress.
-- There is **no local execution** — M.U.S.E. never runs the code itself.
+- There is **no local execution** — muse never runs the code itself.
 
 Leave `allow_code_execution: false` (the default) and the tool simply never
 appears.

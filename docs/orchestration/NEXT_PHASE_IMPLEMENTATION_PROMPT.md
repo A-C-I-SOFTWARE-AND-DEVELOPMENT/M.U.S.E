@@ -9,7 +9,7 @@ Branch convention: `claude/hermes-router-ledger-radar-wire-<suffix>`.
 ---
 
 ```text id="next-phase-router-ledger-radar-wire"
-You are Claude Code working inside the M.U.S.E. repo.
+You are Claude Code working inside the muse repo.
 
 GOAL: make the existing `muse orchestrate` / `/model-router explain`
 / `/decision-ledger show` / `/ai-radar update` surface honest by

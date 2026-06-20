@@ -1,6 +1,6 @@
 # GitHub, Supabase, and Vercel integrations guide
 
-This page is the plain-English guide to wiring M.U.S.E. to the three
+This page is the plain-English guide to wiring muse to the three
 integrations most teams reach for first: **GitHub** (for code, PRs,
 issues), **Supabase** (for database, auth, storage), and **Vercel**
 (for deploys and runtime logs).
@@ -14,7 +14,7 @@ verbs change.
 
 ## How integrations plug in
 
-M.U.S.E. has two integration shapes:
+muse has two integration shapes:
 
 1. **Native plugins** under `plugins/`. The canonical example is
    `github_assistant` — a first-party plugin written in Python that
@@ -23,7 +23,7 @@ M.U.S.E. has two integration shapes:
    the agent never sees them.
 2. **MCP servers** the gateway forwards tool calls to. Used for
    Supabase and Vercel by default — both publish official MCP
-   servers, and M.U.S.E. can connect to any MCP server you list under
+   servers, and muse can connect to any MCP server you list under
    `mcp_servers` in `~/.hermes/config.yaml`.
 
 Either way, the agent calls tools, the plugin / MCP server calls the
@@ -43,7 +43,7 @@ shortest path:
 GitHub → **Settings → Developer settings → Personal access tokens →
 Fine-grained tokens → Generate new token**.
 
-- **Repository access:** select only the repos you want M.U.S.E. to
+- **Repository access:** select only the repos you want muse to
   touch.
 - **Permissions:**
   - *Contents:* Read (Read & Write if you want PRs).
@@ -54,7 +54,7 @@ Fine-grained tokens → Generate new token**.
 
 Copy the token (`github_pat_...` or `ghp_...`).
 
-### 2. Add it to M.U.S.E.
+### 2. Add it to muse
 
 ```bash
 echo "GITHUB_PERSONAL_ACCESS_TOKEN=ghp_..." >> ~/.hermes/.env
@@ -95,7 +95,7 @@ You should see your username + the writable-repo list.
 
 ```bash
 bash scripts/hermes-orchestrate.sh \
-  "Open a draft issue on echerd27-design/hermes-agent titled 'M.U.S.E. integration smoke test' with body 'ignore me'." \
+  "Open a draft issue on echerd27-design/hermes-agent titled 'muse integration smoke test' with body 'ignore me'." \
   --deliver gateway
 ```
 
@@ -114,12 +114,12 @@ users the native `github_assistant` plugin is the right default.
 
 ## Supabase setup
 
-Supabase ships an official MCP server you point M.U.S.E. at.
+Supabase ships an official MCP server you point muse at.
 
 ### 1. Get a Supabase access token
 
 Supabase Studio → **Account → Access Tokens → Generate new
-token**. Scope it to the projects you want M.U.S.E. to manage.
+token**. Scope it to the projects you want muse to manage.
 
 ### 2. Add the token
 
@@ -204,7 +204,7 @@ Vercel publishes an MCP server too. Same shape.
 ### 1. Get a Vercel token
 
 Vercel dashboard → **Settings → Tokens → Create**. Scope to the
-team / project you want M.U.S.E. to manage.
+team / project you want muse to manage.
 
 ### 2. Add the token
 
@@ -320,7 +320,7 @@ read-only).
 
 ## How secrets are protected across the three
 
-Same model as everywhere in M.U.S.E.:
+Same model as everywhere in muse
 
 - Tokens live in `~/.hermes/.env` (`chmod 600`).
 - Plugins / MCP servers read them at startup; the agent itself never
@@ -356,11 +356,11 @@ The full security model is
 |---------|-------|-----|
 | `github: not configured` | Plugin not enabled or token missing | `muse plugin enable github_assistant`; check `~/.hermes/.env`. |
 | `github: write blocked: repo not in allowed_repositories` | Second-fence list doesn't cover the target | Add the repo to `github.allowed_repositories`; `/reload-skills`. |
-| `mcp: supabase failed to start` | `npx` not on PATH, or token invalid | `which npx`; rotate the Supabase token; restart M.U.S.E.. |
+| `mcp: supabase failed to start` | `npx` not on PATH, or token invalid | `which npx`; rotate the Supabase token; restart muse |
 | `supabase: allow_destructive=false` refuses delete | Defense-in-depth refusal | Set `supabase.allow_destructive: true` *only if you mean it*. |
 | `vercel: production env write refused` | Same as above for Vercel | Set `vercel.allow_production_env_writes: true` if you mean it. |
 | Approval notification not arriving | Gateway down or device unsubscribed | See [mobile/mobile-app-guide.md §disconnect-recovery](../mobile/mobile-app-guide.md#disconnect-recovery). |
-| MCP server connects but no tools appear | Server started but the `tools/list` call failed; check `~/.hermes/logs/agent.log` | Update the MCP server package; restart M.U.S.E.. |
+| MCP server connects but no tools appear | Server started but the `tools/list` call failed; check `~/.hermes/logs/agent.log` | Update the MCP server package; restart muse |
 | Tools available but every call fails 401 | Token expired or scoped wrong | Rotate at the provider, update `~/.hermes/.env`, restart. |
 
 Anything else: see
@@ -375,7 +375,7 @@ Anything else: see
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)
   — secrets and the approval model.
 - [profile/github-history-profile-guide.md](../profile/github-history-profile-guide.md)
-  — what M.U.S.E. learns from your GitHub history.
+  — what muse learns from your GitHub history.
 - [orchestration/prompt-to-pr-demo.md](../orchestration/prompt-to-pr-demo.md)
   — the canonical multi-phase GitHub example.
 - [orchestration/worker-adapters.md](../orchestration/worker-adapters.md)

@@ -1,6 +1,6 @@
 # 15 — SYNAPSE QA & Test Plan
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 QA for SYNAPSE applies the house rule to the game itself: **no evidence, no claim.** A feature is not done until a test proves it; a build is not shippable until the gates in §12 are green with artifacts. Test code is written by Claude Code under the compile-loop contract; playtests are directed by the owner. Schedule references are to sprints in 14-production-plan.md §4.
 
@@ -113,7 +113,7 @@ From S8: one fresh-eyes session per month minimum (14 §9 ritual). Findings tria
 | **Steam Deck** (LCD + OLED if available) | **Verified target — explicit goal** | 30fps @ 800p, full controller glyphs, readable UI at 7", suspend/resume-safe saves, offline tier 1 complete | S30 dedicated pass; every build after |
 | OS | Win10 22H2 + Win11 | Both pass full smoke + save paths + overlay | Betas/RC |
 
-Brain-tier matrix (cross-cutting): every compatibility row is tested in **tier 1 (offline local)**; flagship + 3060 additionally test **tier 2 (hosted, with cap behavior)** and **tier 3 (BYO MUSE-gateway pairing handshake)**. Tier-2 cap exhaustion must degrade to tier 1 with a user-visible notice, never an error.
+Brain-tier matrix (cross-cutting): every compatibility row is tested in **tier 1 (offline local)**; flagship + 3060 additionally test **tier 2 (hosted, with cap behavior)** and **tier 3 (BYO muse-gateway pairing handshake)**. Tier-2 cap exhaustion must degrade to tier 1 with a user-visible notice, never an error.
 
 ## 7. Performance test plan
 

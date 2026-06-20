@@ -1,12 +1,12 @@
 ---
 sidebar_position: 7
 title: "Email"
-description: "Set up M.U.S.E. as an email assistant via IMAP/SMTP"
+description: "Set up muse as an email assistant via IMAP/SMTP"
 ---
 
 # Email Setup
 
-M.U.S.E. can receive and reply to emails using standard IMAP and SMTP protocols. Send an email to the agent's address and it replies in-thread — no special client or bot API needed. Works with Gmail, Outlook, Yahoo, Fastmail, or any provider that supports IMAP/SMTP.
+muse can receive and reply to emails using standard IMAP and SMTP protocols. Send an email to the agent's address and it replies in-thread — no special client or bot API needed. Works with Gmail, Outlook, Yahoo, Fastmail, or any provider that supports IMAP/SMTP.
 
 :::info No External Dependencies
 The Email adapter uses Python's built-in `imaplib`, `smtplib`, and `email` modules. No additional packages or external services are required.
@@ -16,7 +16,7 @@ The Email adapter uses Python's built-in `imaplib`, `smtplib`, and `email` modul
 
 ## Prerequisites
 
-- **A dedicated email account** for your M.U.S.E. agent (don't use your personal email)
+- **A dedicated email account** for your muse agent (don't use your personal email)
 - **IMAP enabled** on the email account
 - **An app password** if using Gmail or another provider with 2FA
 
@@ -43,7 +43,7 @@ Most email providers support IMAP/SMTP. Check your provider's documentation for:
 
 ---
 
-## Step 1: Configure M.U.S.E.
+## Step 1: Configure muse
 
 The easiest way:
 
@@ -135,7 +135,7 @@ When enabled, attachment and inline parts are skipped before payload decoding. T
 
 ## Access Control
 
-Email access follows the same pattern as all other M.U.S.E. platforms:
+Email access follows the same pattern as all other muse platforms:
 
 1. **`EMAIL_ALLOWED_USERS` set** → only emails from those addresses are processed
 2. **No allowlist set** → unknown senders get a pairing code

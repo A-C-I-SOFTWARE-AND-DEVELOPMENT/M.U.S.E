@@ -17,7 +17,7 @@ Clone/create/fork repos; manage remotes, releases.
 | Source | Bundled (installed by default) |
 | Path | `skills/github/github-repo-management` |
 | Version | `1.1.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `GitHub`, `Repositories`, `Git`, `Releases`, `Secrets`, `Configuration` |
@@ -26,7 +26,7 @@ Clone/create/fork repos; manage remotes, releases.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GitHub Repository Management

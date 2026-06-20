@@ -113,7 +113,7 @@ SOFTWARE.
 - **Where:** vendored **byte-identical** at
   `hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor/`
   (sha256 manifest: `hermes_cli/jarvis_prime/research_fabric/autoresearch/checksums.json`).
-  MUSE adaptations (device shim, governance, cost ceilings, swarm) live in
+  muse adaptations (device shim, governance, cost ceilings, swarm) live in
   sibling modules and never modify the vendored files; the experiment loop
   mutates only copies inside disposable `$HERMES_HOME/autoresearch/` workspaces.
 

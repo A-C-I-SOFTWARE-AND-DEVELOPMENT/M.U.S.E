@@ -1,16 +1,16 @@
 ---
 sidebar_position: 16
 title: "xAI Grok OAuth (SuperGrok Subscription)"
-description: "Sign in with your SuperGrok subscription to use Grok models in M.U.S.E. — no API key required"
+description: "Sign in with your SuperGrok subscription to use Grok models in muse — no API key required"
 ---
 
 # xAI Grok OAuth (SuperGrok Subscription)
 
-M.U.S.E. supports xAI Grok through a browser-based OAuth login flow against [accounts.x.ai](https://accounts.x.ai), using your existing **SuperGrok subscription**. No `XAI_API_KEY` is required — log in once and M.U.S.E. automatically refreshes your session in the background.
+muse supports xAI Grok through a browser-based OAuth login flow against [accounts.x.ai](https://accounts.x.ai), using your existing **SuperGrok subscription**. No `XAI_API_KEY` is required — log in once and muse automatically refreshes your session in the background.
 
 The transport reuses the `codex_responses` adapter (xAI exposes a Responses-style endpoint), so reasoning, tool-calling, streaming, and prompt caching work without any adapter changes.
 
-The same OAuth bearer token is also reused by every direct-to-xAI surface in M.U.S.E. — TTS, image generation, video generation, and transcription — so a single login covers all four.
+The same OAuth bearer token is also reused by every direct-to-xAI surface in muse — TTS, image generation, video generation, and transcription — so a single login covers all four.
 
 ## Overview
 
@@ -29,12 +29,12 @@ The same OAuth bearer token is also reused by every direct-to-xAI surface in M.U
 ## Prerequisites
 
 - Python 3.9+
-- M.U.S.E. installed
+- muse installed
 - An active SuperGrok subscription on your xAI account
 - A browser available on the local machine (or use `--no-browser` for remote sessions)
 
 :::warning xAI may restrict OAuth API access by tier
-xAI's backend enforces its own allowlist on the OAuth API surface and has been seen to reject standard SuperGrok subscribers with `HTTP 403` (see issue [#26847](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/26847)) even though the in-app subscription is active. If OAuth login succeeds in the browser but inference returns 403, set `XAI_API_KEY` and switch to the API-key path (`provider: xai`) — that surface is not subject to the same gating today.
+xAI's backend enforces its own allowlist on the OAuth API surface and has been seen to reject standard SuperGrok subscribers with `HTTP 403` (see issue [#26847](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues/26847)) even though the in-app subscription is active. If OAuth login succeeds in the browser but inference returns 403, set `XAI_API_KEY` and switch to the API-key path (`provider: xai`) — that surface is not subject to the same gating today.
 :::
 
 ## Quick Start
@@ -43,7 +43,7 @@ xAI's backend enforces its own allowlist on the OAuth API surface and has been s
 # Launch the provider and model picker
 muse model
 # → Select "xAI Grok OAuth (SuperGrok Subscription)" from the provider list
-# → M.U.S.E. opens your browser to accounts.x.ai
+# → muse opens your browser to accounts.x.ai
 # → Approve access in the browser
 # → Pick a model (grok-4.3 is at the top)
 # → Start chatting
@@ -63,7 +63,7 @@ muse auth add xai-oauth
 
 ### Remote / headless sessions
 
-On servers, containers, or SSH sessions where no browser is available, M.U.S.E. detects the remote environment and prints the authorization URL instead of opening a browser.
+On servers, containers, or SSH sessions where no browser is available, muse detects the remote environment and prints the authorization URL instead of opening a browser.
 
 **Important:** the loopback listener still runs on the remote machine at `127.0.0.1:56121`. The xAI redirect needs to reach *that* listener, so opening the URL on your laptop will fail (`Could not establish connection. We couldn't reach your app.`) unless you forward the port:
 
@@ -82,7 +82,7 @@ See [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) for the full step-by-st
 
 ### Browser-only remotes (Cloud Shell, Codespaces, EC2 Instance Connect)
 
-If you don't have a regular SSH client (e.g. you're running M.U.S.E. inside GCP Cloud Shell, GitHub Codespaces, AWS EC2 Instance Connect, Gitpod, or another browser-based console), the `ssh -L` recipe above isn't available. Use `--manual-paste` instead — M.U.S.E. skips the loopback listener and lets you paste the failed callback URL straight from your browser:
+If you don't have a regular SSH client (e.g. you're running muse inside GCP Cloud Shell, GitHub Codespaces, AWS EC2 Instance Connect, Gitpod, or another browser-based console), the `ssh -L` recipe above isn't available. Use `--manual-paste` instead — muse skips the loopback listener and lets you paste the failed callback URL straight from your browser:
 
 ```bash
 muse auth add xai-oauth --manual-paste
@@ -90,14 +90,14 @@ muse auth add xai-oauth --manual-paste
 muse model --manual-paste
 ```
 
-See [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md#browser-only-remote-cloud-shell--codespaces--ec2-instance-connect) for the full walkthrough. Regression fix for [#26923](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/26923).
+See [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md#browser-only-remote-cloud-shell--codespaces--ec2-instance-connect) for the full walkthrough. Regression fix for [#26923](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues/26923).
 
 ## How the Login Works
 
-1. M.U.S.E. opens your browser to `accounts.x.ai`.
+1. muse opens your browser to `accounts.x.ai`.
 2. You sign in (or confirm your existing session) and approve access.
-3. xAI redirects back to M.U.S.E. and the tokens are saved to `~/.hermes/auth.json`.
-4. From then on, M.U.S.E. refreshes the access token in the background — you stay signed in until you `muse auth remove xai-oauth` or revoke access from your xAI account settings.
+3. xAI redirects back to muse and the tokens are saved to `~/.hermes/auth.json`.
+4. From then on, muse refreshes the access token in the background — you stay signed in until you `muse auth remove xai-oauth` or revoke access from your xAI account settings.
 
 ## Checking Login Status
 
@@ -194,27 +194,27 @@ The chat catalog is derived live from the on-disk `models.dev` cache; new xAI re
 
 ### Token expired — not re-logging in automatically
 
-M.U.S.E. refreshes the token before each session and again reactively on a 401. If refresh fails with `invalid_grant` (the refresh token was revoked, or the account was rotated), M.U.S.E. surfaces a typed re-auth message instead of crashing.
+muse refreshes the token before each session and again reactively on a 401. If refresh fails with `invalid_grant` (the refresh token was revoked, or the account was rotated), muse surfaces a typed re-auth message instead of crashing.
 
-When the refresh failure is terminal (HTTP 4xx, `invalid_grant`, revoked grant, etc.), M.U.S.E. marks the refresh token as dead and quarantines it locally — subsequent calls skip the doomed refresh attempt instead of replaying the same 401 over and over. The agent surfaces a single "re-authentication required" message and stays out of the way until you log in again.
+When the refresh failure is terminal (HTTP 4xx, `invalid_grant`, revoked grant, etc.), muse marks the refresh token as dead and quarantines it locally — subsequent calls skip the doomed refresh attempt instead of replaying the same 401 over and over. The agent surfaces a single "re-authentication required" message and stays out of the way until you log in again.
 
 **Fix:** run `muse auth add xai-oauth` again to start a fresh login. The quarantine clears on the next successful exchange.
 
 ### Authorization timed out
 
-The loopback listener has a finite expiry window (default 180 s). If you don't approve the login in time, M.U.S.E. raises a timeout error.
+The loopback listener has a finite expiry window (default 180 s). If you don't approve the login in time, muse raises a timeout error.
 
 **Fix:** re-run `muse auth add xai-oauth` (or `muse model`). The flow starts fresh.
 
 ### State mismatch (possible CSRF)
 
-M.U.S.E. detected that the `state` value returned by the authorization server doesn't match what it sent.
+muse detected that the `state` value returned by the authorization server doesn't match what it sent.
 
 **Fix:** re-run the login. If it persists, check for a proxy or redirect that is modifying the OAuth response.
 
 ### Logging in from a remote server
 
-On SSH or container sessions M.U.S.E. prints the authorization URL instead of opening a browser. The loopback callback listener still binds `127.0.0.1:56121` on the remote host — your laptop's browser can't reach it without an SSH local-forward:
+On SSH or container sessions muse prints the authorization URL instead of opening a browser. The loopback callback listener still binds `127.0.0.1:56121` on the remote host — your laptop's browser can't reach it without an SSH local-forward:
 
 ```bash
 # Local machine, separate terminal:
@@ -230,7 +230,7 @@ Full walkthrough (jump boxes, mosh/tmux, port conflicts): [OAuth over SSH / Remo
 
 OAuth completed in the browser, tokens are saved, but inference or token refresh returns `HTTP 403` with a message similar to *"The caller does not have permission to execute the specified operation"*.
 
-This is **not** a stale-token problem — re-running `muse model` won't change it. xAI's backend has been seen to restrict OAuth API access to specific SuperGrok tiers despite the in-app subscription being active (issue [#26847](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/26847)).
+This is **not** a stale-token problem — re-running `muse model` won't change it. xAI's backend has been seen to restrict OAuth API access to specific SuperGrok tiers despite the in-app subscription being active (issue [#26847](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues/26847)).
 
 **Fix:** set `XAI_API_KEY` and switch to the API-key path:
 
@@ -259,7 +259,7 @@ This clears both the singleton OAuth entry in `auth.json` and any credential-poo
 
 ## See Also
 
-- [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) — required reading if M.U.S.E. is on a different machine than your browser
+- [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) — required reading if muse is on a different machine than your browser
 - [AI Providers reference](../integrations/providers.md)
 - [Environment Variables](../reference/environment-variables.md)
 - [Configuration](../user-guide/configuration.md)

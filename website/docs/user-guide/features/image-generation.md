@@ -7,7 +7,7 @@ sidebar_position: 6
 
 # Image Generation
 
-M.U.S.E. generates images from text prompts via FAL.ai. Nine models are supported out of the box, each with different speed, quality, and cost tradeoffs. The active model is user-configurable via `muse tools` and persists in `config.yaml`.
+muse generates images from text prompts via FAL.ai. Nine models are supported out of the box, each with different speed, quality, and cost tradeoffs. The active model is user-configurable via `muse tools` and persists in `config.yaml`.
 
 ## Supported Models
 

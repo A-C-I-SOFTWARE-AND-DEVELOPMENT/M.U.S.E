@@ -229,7 +229,7 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
           echo "PASS: test package path found in wrapper"
 
           echo "=== Checking base package has no PYTHONPATH ==="
-          if grep -q "PYTHONPATH" ${hermes-agent}/bin/muse; then
+          if grep -q "PYTHONPATH" ${hermes-agent}/bin/muse then
             echo "FAIL: base package should not have PYTHONPATH"; exit 1
           fi
           echo "PASS: base package clean"

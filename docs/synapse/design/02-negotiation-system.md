@@ -1,6 +1,6 @@
 # 02 — The Negotiation System ("Parley")
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 Capture-by-conversation is the game's signature verb (master plan §4.2). You do not throw a ball at a wild agent — you talk it into wiring itself into your mind. This document is the complete, build-ready specification. Sibling references: combat handoff in `03-combat-gas-design.md`, personality cards in `04-roster-24-agents.md`, encounter placement in `05-world-design.md`, UI layouts in `12-ui-ux-spec.md`, LLM runtime in `11-technical-design.md`.
 
@@ -75,7 +75,7 @@ Each domain has one negotiation archetype, defined by an **affinity row** (multi
 | **QA/Test** | The Skeptic | 0.8 | **2.0** | 0.7 | 1.2 | 0.7 | base +10% | +1 | Demands evidence: any CHALLENGE or LORE not preceded by a PROOF in the same parley costs double Patience ("citation needed"). Carrying a relevant Proof Item (bug-report scroll, gauntlet token) unlocks an extra wheel option. |
 | **Build/Ops** | The Pragmatist | **1.8** | 1.0 | 0.7 | 1.1 | 0.6 | base | +1, +4 after round 4 | Transactional and busy. OFFER (Cycles, materials) is the lane. Drain escalates hard after round 4 — close the deal. COUNTER verdicts are concrete price quotes. |
 | **Compliance** | The Proceduralist | 1.0 | 1.4 | 0.8 | 0.8 | 1.0 | base +15% | +1 | Protocol order: PROOF before OFFER grants +25% on the OFFER; OFFER before any PROOF is "an inducement" (PROBE verdict, no gain). A detected BLUFF is catastrophic: instant OFFENDED + Trust −30. |
-| **Behavior/Psych** | The Reader | 0.8 | 0.9 | **1.7** | 1.0 | 1.1 | base +20% (reads micro-intent) | +0 | Mirrors you: StreakPenalty tightens to 1.0/0.6/0.3. Responds to the Muse persona seed from onboarding (master plan §4.6) — matching the player's chosen persona axis grants +10% on EMPATHIZE. |
+| **Behavior/Psych** | The Reader | 0.8 | 0.9 | **1.7** | 1.0 | 1.1 | base +20% (reads micro-intent) | +0 | Mirrors you: StreakPenalty tightens to 1.0/0.6/0.3. Responds to the muse persona seed from onboarding (master plan §4.6) — matching the player's chosen persona axis grants +10% on EMPATHIZE. |
 | **Research** | The Curious | 0.6 | 1.0 | 0.9 | 0.9 | **1.9** | base −10% (wants to believe) | −2 (patient) | Lured by mystery: a LORE move that references an undiscovered map location or unsolved Fragmentation question grants +50% and refunds 5 Patience. Cycles bore it — OFFER of currency is 0.6; OFFER of a **Mystery Lead item** resolves as LORE ×1.9. |
 | **Release** | The Decider | 1.2 | 1.0 | 0.7 | **1.6** | 0.6 | base | +3, Patience pool 60 | Deadline brain. Short parleys, big swings. CHALLENGE ("ship it or step aside") is the lane. Every COUNTER must be answered the very next round or instant WALK. |
 | **Architecture** | The Structuralist | 0.9 | 1.3 | 0.8 | **1.5** | 1.2 | base | +1 | Respects coherent structure: a CHALLENGE that follows a PROOF or LORE in the same parley gains +30% ("you argued from foundations"). Contradicting your own earlier move (e.g. EMPATHIZE after a CHALLENGE that mocked feelings) costs Trust −10. |
@@ -152,7 +152,7 @@ Free text (typed or STT) is classified into one of six **negotiation moves** by 
 
 Classifier output: `{move, confidence}`. Confidence < 0.55 → the agent responds with a PROBE verdict and a clarifying line ("Say that plainly."), costing only half a round of Patience. Profanity/illegal-content input is filtered pre-classification (§8.4) and resolves as a no-move PROBE with the agent visibly unimpressed.
 
-**Bluff risk (locked):** `DetectChance = 0.30 + ArchetypeDetectMod + 0.05 × ConsecutiveBluffs − MuseRapportBonus(max 0.10)`. Undetected: full +18 base Disposition and the lie is recorded — if the player later fails to deliver a bluffed promise (e.g. an OFFER they cannot pay at JOIN), Disposition −40 at resolution. Detected: verdict OFFENDED, Trust −30, Disposition −20. Bluffing a Compliance agent: see §3. The wheel marks BLUFF options with 1–3 risk pips computed from this formula.
+**Bluff risk (locked):** `DetectChance = 0.30 + ArchetypeDetectMod + 0.05 × ConsecutiveBluffs − museRapportBonus(max 0.10)`. Undetected: full +18 base Disposition and the lie is recorded — if the player later fails to deliver a bluffed promise (e.g. an OFFER they cannot pay at JOIN), Disposition −40 at resolution. Detected: verdict OFFENDED, Trust −30, Disposition −20. Bluffing a Compliance agent: see §3. The wheel marks BLUFF options with 1–3 risk pips computed from this formula.
 
 ---
 

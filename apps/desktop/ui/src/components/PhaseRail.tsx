@@ -1,5 +1,5 @@
 /**
- * PhaseRail — the horizontal job/phase progress indicator from the M.U.S.E.
+ * PhaseRail — the horizontal job/phase progress indicator from the muse
  * design-language component catalog (docs/brand/muse-design-language.md §
  * "PhaseRail"). A row of nodes connected by hairline bars; the spectral ring is
  * the ONLY accent here. Done = ring-1; current = the incandescent white core;

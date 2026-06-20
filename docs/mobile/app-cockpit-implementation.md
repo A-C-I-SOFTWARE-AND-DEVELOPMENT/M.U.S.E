@@ -24,7 +24,7 @@ min SDK 26, target SDK 35, Material 3). That scaffold has:
 
 A parallel Flutter or React-Native app would re-implement DI, secret
 storage, the Termux bridge, and the Kotlin-native OkHttp/SSE client
-without giving M.U.S.E. anything it doesn't already have. Phase 20
+without giving muse anything it doesn't already have. Phase 20
 **does not introduce a second mobile stack**. Future cross-platform
 work — iPad, desktop Linux — should be evaluated in its own phase.
 

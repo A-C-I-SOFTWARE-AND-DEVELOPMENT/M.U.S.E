@@ -203,11 +203,11 @@ class JarvisOverlayService : LifecycleService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
             nm.createNotificationChannel(
-                NotificationChannel(channelId, "Muse presence", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(channelId, "muse presence", NotificationManager.IMPORTANCE_LOW),
             )
         }
         val notification: Notification = Notification.Builder(this, channelId)
-            .setContentTitle("Muse is on screen")
+            .setContentTitle("muse is on screen")
             .setContentText("Tap the avatar to talk · long-press to dismiss")
             .setSmallIcon(com.aci.hermes.R.mipmap.ic_launcher)
             .build()

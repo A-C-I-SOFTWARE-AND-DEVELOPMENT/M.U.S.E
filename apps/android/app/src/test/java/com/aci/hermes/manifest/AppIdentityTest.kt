@@ -7,10 +7,10 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Pins the MUSE user-facing identity and the technical
+ * Pins the muse user-facing identity and the technical
  * package identifier.
  *
- *   * User-facing name (everywhere a label is rendered): "MUSE"
+ *   * User-facing name (everywhere a label is rendered): "muse"
  *   * Technical package / applicationId / namespace: com.aci.hermes
  *
  * These two NEVER move during a launch-stabilization PR.
@@ -18,7 +18,7 @@ import java.io.File
 class AppIdentityTest {
 
     @Test
-    fun `app_name in strings_xml is exactly MUSE`() {
+    fun `app_name in strings_xml is exactly muse`() {
         val strings = readXml("src/main/res/values/strings.xml")
         val match = Regex("""<string\s+name="app_name"\s*>([^<]+)</string>""")
             .find(strings)
@@ -27,8 +27,8 @@ class AppIdentityTest {
             match != null,
         )
         assertEquals(
-            "User-facing app name must be 'MUSE'",
-            "MUSE",
+            "User-facing app name must be 'muse'",
+            "muse",
             match!!.groupValues[1],
         )
     }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# M.U.S.E. Setup Script
+# muse Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
@@ -56,7 +56,7 @@ get_command_link_display_dir() {
 }
 
 echo ""
-echo -e "${CYAN}◉ M.U.S.E. Setup${NC}"
+echo -e "${CYAN}◉ muse Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -341,14 +341,14 @@ fi
 
 echo -e "${CYAN}→${NC} Setting up muse command..."
 
-MUSE_BIN="$SCRIPT_DIR/venv/bin/muse"
+muse_BIN="$SCRIPT_DIR/venv/bin/muse"
 HERMES_BIN="$SCRIPT_DIR/venv/bin/hermes"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
 # `muse` is the canonical command; older venvs may only have the `hermes` shim.
-if [ -f "$MUSE_BIN" ]; then
-    ln -sf "$MUSE_BIN" "$COMMAND_LINK_DIR/muse"
+if [ -f "$muse_BIN" ]; then
+    ln -sf "$muse_BIN" "$COMMAND_LINK_DIR/muse"
 else
     ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/muse"
 fi
@@ -384,7 +384,7 @@ else
         if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
             if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# MUSE — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# muse — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
                 echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
             else

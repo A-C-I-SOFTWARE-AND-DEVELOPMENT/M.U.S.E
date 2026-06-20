@@ -1,4 +1,4 @@
-"""Free-first model bootstrap for MUSE — one unified system.
+"""Free-first model bootstrap for muse — one unified system.
 
 Implements ``hermes models bootstrap --free-first --jarvis``. It ties two
 layers into a single model policy so local model download/detection and
@@ -517,7 +517,7 @@ class BootstrapResult:
         return asdict(self)
 
     def render(self) -> str:
-        lines = ["MUSE — free-first model bootstrap"]
+        lines = ["muse — free-first model bootstrap"]
         cfg = self.config
         lines.append(
             f"  mode: {'dry-run' if self.dry_run else 'apply'}"

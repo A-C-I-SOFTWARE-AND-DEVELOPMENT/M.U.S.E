@@ -1,9 +1,9 @@
-//! M.U.S.E. desktop shell (Tauri v2).
+//! muse desktop shell (Tauri v2).
 //!
 //! This is a thin native shell around the bundled Singularity UI (../ui/dist).
 //! It does **not** bundle the Python backend — the web UI talks to a
-//! locally-running MUSE gateway over HTTP (default http://127.0.0.1:8765,
-//! configurable in-app and via the `MUSE_GATEWAY_URL` build/runtime env). The
+//! locally-running muse gateway over HTTP (default http://127.0.0.1:8765,
+//! configurable in-app and via the `muse_GATEWAY_URL` build/runtime env). The
 //! shell's jobs are: load the UI, provide a native window + menu + system
 //! tray, enforce a single running instance, and (the one-installable story)
 //! keep the gateway alive — if `/v1/health` is down and autostart is enabled,
@@ -28,9 +28,9 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 /// deep-link handling.
 const DEFAULT_GATEWAY_URL: &str = "http://127.0.0.1:8765";
 
-/// Resolve the configured gateway URL for display. Honors `MUSE_GATEWAY_URL`.
+/// Resolve the configured gateway URL for display. Honors `muse_GATEWAY_URL`.
 pub(crate) fn gateway_url() -> String {
-    std::env::var("MUSE_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
+    std::env::var("muse_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
 }
 
 /// The gateway base the UI is *actually* using. The Settings override lives in
@@ -80,18 +80,18 @@ fn focus_main(app: &tauri::AppHandle) {
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let about = PredefinedMenuItem::about(
         app,
-        Some("About M.U.S.E."),
+        Some("About muse"),
         Some(AboutMetadata {
-            name: Some("M.U.S.E.".into()),
+            name: Some("muse".into()),
             version: Some(app.package_info().version.to_string()),
             comments: Some("Multi-Use Synaptic Entity — One mind, many pathways.".into()),
             ..Default::default()
         }),
     )?;
-    let quit = PredefinedMenuItem::quit(app, Some("Quit M.U.S.E."))?;
+    let quit = PredefinedMenuItem::quit(app, Some("Quit muse"))?;
     let app_menu = Submenu::with_items(
         app,
-        "M.U.S.E.",
+        "muse",
         true,
         &[&about, &PredefinedMenuItem::separator(app)?, &quit],
     )?;
@@ -129,14 +129,14 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
 /// Build the system tray icon with a Show / Hide / Quit menu.
 fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "tray-show", "Show M.U.S.E.", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "tray-show", "Show muse", true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "tray-hide", "Hide", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "tray-quit", "Quit", true, None::<&str>)?;
     let tray_menu = Menu::with_items(app, &[&show, &hide, &PredefinedMenuItem::separator(app)?, &quit])?;
 
     TrayIconBuilder::with_id("muse-tray")
         .icon(app.default_window_icon().cloned().expect("default window icon"))
-        .tooltip("M.U.S.E.")
+        .tooltip("muse")
         .menu(&tray_menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -248,7 +248,7 @@ pub fn run() {
 
     builder
         .build(context)
-        .expect("error while building M.U.S.E. desktop")
+        .expect("error while building muse desktop")
         .run(|app, event| {
             // Real exit (tray Quit / app menu Quit) — window close only hides.
             // This is the one place the managed gateway child is reaped.

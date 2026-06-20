@@ -1,6 +1,6 @@
 # Mobile cockpit — API client
 
-> One typed entry point for every call to a M.U.S.E. gateway. The wire
+> One typed entry point for every call to a muse gateway. The wire
 > format is fixed by
 > [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md);
 > this file specifies the **client implementation** that maps that
@@ -233,7 +233,7 @@ The gateway exposes `version` on `/v1/health`. The cockpit:
 - Renders it on the **Settings → About** card.
 - If the gateway version is older than the cockpit's "minimum
   understood gateway version" (a const in `BuildConfig`), shows a
-  *Upgrade your M.U.S.E. gateway* banner on every screen rather than
+  *Upgrade your muse gateway* banner on every screen rather than
   silently failing on routes the gateway doesn't have.
 - If the gateway version is **newer**, the cockpit assumes additive
   changes and proceeds. Unknown JSON fields are ignored by the

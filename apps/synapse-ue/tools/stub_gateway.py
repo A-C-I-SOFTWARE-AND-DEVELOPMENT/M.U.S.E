@@ -41,7 +41,7 @@ Usage (set STUB_TOKEN in the environment first):
   python tools/stub_gateway.py [--port 8787]
 
 Pair the UE client by writing the same token to
-<Project>/Saved/muse_token.txt (see MuseGatewaySettings.h).
+<Project>/Saved/muse_token.txt (see museGatewaySettings.h).
 """
 
 from __future__ import annotations

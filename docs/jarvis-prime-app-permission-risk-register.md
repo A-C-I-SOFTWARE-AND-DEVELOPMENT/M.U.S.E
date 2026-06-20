@@ -1,7 +1,7 @@
-# MUSE — Android permission risk register
+# muse — Android permission risk register
 
 > ⚠️ **RECONCILIATION NOTE (2026-06-01).** The shipped app has **diverged**
-> from this register. The "Sentient MUSE avatar" feature (#170, commit
+> from this register. The "Sentient muse avatar" feature (#170, commit
 > `b8df5c78`) added permissions/services this document originally listed as
 > forbidden: `BIND_ACCESSIBILITY_SERVICE` (`JarvisAccessibilityService`),
 > `SYSTEM_ALERT_WINDOW` (`JarvisOverlayService`), `QUERY_ALL_PACKAGES`, and an
@@ -15,12 +15,12 @@
 > accessibility + `QUERY_ALL_PACKAGES`, and a matching privacy-policy
 > disclosure.
 
-This register defines, by name, the Android permissions the MUSE
+This register defines, by name, the Android permissions the muse
 Prime cockpit may declare, the ones it must **never** declare, and
 the policy that governs adding new ones.
 
-The policy mirrors the MUSE operating principles
-(`docs/jarvis-prime-operating-system.md`) — MUSE is a
+The policy mirrors the muse operating principles
+(`docs/jarvis-prime-operating-system.md`) — muse is a
 *partner*, not a surveillance tool. Every permission declared
 becomes a Play Console disclosure, a privacy-policy line, and a
 trust commitment to the owner.
@@ -78,10 +78,10 @@ the answer is to redesign the workflow, not add the permission.
 
 | Permission | Why not |
 |---|---|
-| `READ_CONTACTS` | MUSE never reads address books. Any "share with a teammate" workflow goes through the gateway side, not contacts scraping. |
+| `READ_CONTACTS` | muse never reads address books. Any "share with a teammate" workflow goes through the gateway side, not contacts scraping. |
 | `WRITE_CONTACTS` | Same as above. |
-| `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CELL_BROADCASTS` | SMS is not a MUSE surface. |
-| `READ_PHONE_STATE`, `READ_CALL_LOG`, `MANAGE_OWN_CALLS`, `ANSWER_PHONE_CALLS` | Telephony is not a MUSE surface. |
+| `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CELL_BROADCASTS` | SMS is not a muse surface. |
+| `READ_PHONE_STATE`, `READ_CALL_LOG`, `MANAGE_OWN_CALLS`, `ANSWER_PHONE_CALLS` | Telephony is not a muse surface. |
 | `READ_CALENDAR`, `WRITE_CALENDAR` | Calendar integration belongs on the gateway side via the platform's OAuth, not on-device read. |
 | `BODY_SENSORS`, `ACTIVITY_RECOGNITION` | Body data is regulated and out of scope. |
 | `USE_FINGERPRINT`, `USE_BIOMETRIC` | Reserved for a future locked-screen unlock; not required for the cockpit and not added until that workflow has its own design. |
@@ -107,12 +107,12 @@ the answer is to redesign the workflow, not add the permission.
 
 | Permission | Why not |
 |---|---|
-| `SYSTEM_ALERT_WINDOW` | MUSE must not draw over other apps. Approval notifications use the standard notification channel and lockscreen surface. |
-| `BIND_ACCESSIBILITY_SERVICE` | Accessibility services are heavyweight, easy to abuse, and Play Console scrutinises them. Not a MUSE pathway. |
+| `SYSTEM_ALERT_WINDOW` | muse must not draw over other apps. Approval notifications use the standard notification channel and lockscreen surface. |
+| `BIND_ACCESSIBILITY_SERVICE` | Accessibility services are heavyweight, easy to abuse, and Play Console scrutinises them. Not a muse pathway. |
 | `BIND_DEVICE_ADMIN`, `BIND_DEVICE_ADMIN`-like | The cockpit does not enroll the device. |
 | `MANAGE_DEVICE_POLICY` | Same. |
 | `BIND_NOTIFICATION_LISTENER_SERVICE` | Reading other apps' notifications is not in scope. |
-| `BIND_VPN_SERVICE` | Not a MUSE pathway. |
+| `BIND_VPN_SERVICE` | Not a muse pathway. |
 
 ### 3.5 Install / packages
 
@@ -130,7 +130,7 @@ the answer is to redesign the workflow, not add the permission.
 | `RECEIVE_BOOT_COMPLETED` | The cockpit does not start at boot. Persistent state lives on the gateway. |
 | `SCHEDULE_EXACT_ALARM` | Exact-alarm requests now require runtime grant on Android 14+ and need a strict use case. Cockpit notifications are gateway-driven, not alarm-driven. |
 | `USE_EXACT_ALARM` | Same. |
-| `WAKE_LOCK` | The Termux-bridge wake-lock work item lives in Termux's process, not MUSE. The cockpit must not hold wake locks. |
+| `WAKE_LOCK` | The Termux-bridge wake-lock work item lives in Termux's process, not muse The cockpit must not hold wake locks. |
 | `HIGH_SAMPLING_RATE_SENSORS` | Not applicable. |
 
 ### 3.7 Camera / extra audio

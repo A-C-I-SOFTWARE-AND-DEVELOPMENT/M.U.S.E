@@ -119,12 +119,12 @@ class TestBuiltinSkins:
         assert skin.get_color("banner_title") == "#FFFFFF"   # the white core
         assert skin.get_color("banner_border") == "#7AE0FF"  # ring cyan stop
         assert skin.get_color("ui_label") == "#B388FF"       # ring violet stop
-        assert skin.get_branding("agent_name") == "M.U.S.E."
-        assert skin.get_branding("help_header") == "✦ M.U.S.E. Commands"
+        assert skin.get_branding("agent_name") == "muse"
+        assert skin.get_branding("help_header") == "✦ muse Commands"
         assert skin.get_branding("goodbye") == "Goodbye. ◯"
         assert skin.get_branding("prompt_symbol") == "❯"
-        # The M.U.S.E. wordmark + glyph art ships with the skin.
-        assert "M.U.S.E." not in skin.banner_logo  # block art, not literal text
+        # The muse wordmark + glyph art ships with the skin.
+        assert "muse" not in skin.banner_logo  # block art, not literal text
         assert skin.banner_logo and "█" in skin.banner_logo
         assert skin.banner_hero and "◉" in skin.banner_hero
 
@@ -186,7 +186,7 @@ class TestSkinManagement:
         assert get_active_skin_name() == "ares"
 
     def test_init_skin_from_empty_config(self):
-        # No configured skin → the M.U.S.E. "Singularity" default.
+        # No configured skin → the muse "Singularity" default.
         from hermes_cli.skin_engine import init_skin_from_config, get_active_skin_name
         init_skin_from_config({})
         assert get_active_skin_name() == "singularity"

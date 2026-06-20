@@ -131,7 +131,7 @@ class BackgroundLearnerRunner:
 
         dry_run (the default; non-dry_run already required an approval token
         at enqueue) => a pure plan report, nothing spawned. A live run
-        additionally requires ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1``; when the
+        additionally requires ``muse_AUTORESEARCH_ALLOW_SPAWN=1``; when the
         env gate is closed the job degrades to plan-only and says so.
         """
 
@@ -177,12 +177,12 @@ class BackgroundLearnerRunner:
             return JobOutcome(
                 job.id, job.kind, "ran", f"plan-only (dry_run): {plan.summary()}"
             )
-        if os.environ.get("MUSE_AUTORESEARCH_ALLOW_SPAWN", "").strip() != "1":
+        if os.environ.get("muse_AUTORESEARCH_ALLOW_SPAWN", "").strip() != "1":
             return JobOutcome(
                 job.id,
                 job.kind,
                 "ran",
-                "plan-only: live run blocked — MUSE_AUTORESEARCH_ALLOW_SPAWN "
+                "plan-only: live run blocked — muse_AUTORESEARCH_ALLOW_SPAWN "
                 f"is not set to 1. {plan.summary()}",
             )
         baseline_bpb = payload.get("baseline_bpb")
@@ -236,7 +236,7 @@ def _default_autoresearch_swarm(plan, *, book, baseline_bpb, min_bpb_delta):
     """The built-in live runner: real workers + the default idea catalog.
 
     Reached only when every gate is already open (approval token at enqueue,
-    ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1``); each worker still re-checks
+    ``muse_AUTORESEARCH_ALLOW_SPAWN=1``); each worker still re-checks
     ``detect()`` fail-closed at run time (uv, training data, CUDA/modal).
     """
 

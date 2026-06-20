@@ -1,13 +1,35 @@
-/* M.U.S.E. — "Singularity" design tokens (desktop).
+/* muse — "Singularity" design tokens (desktop scaffold copy).
  *
  * One white core in the void; a single thin spectral ring.
  *
- * The canonical tokens come from @muse/design-system (imported in main.tsx).
- * This file only contains desktop-local token overrides / aliases for motion
- * curves not yet reconciled in the shared package. Fold them into tokens.json
- * once the motion scale is reconciled across surfaces.
+ * TODO: consume @muse/design-system once merged. This is an INLINE copy of the
+ * canonical values from gateway/cockpit/static/tokens.css so the desktop
+ * scaffold builds standalone today; when the shared design-system package
+ * (grain G0.1) lands, replace this file with an import of its token sheet so
+ * there is one source of truth. Keep these values byte-identical to the
+ * canonical source until then.
  */
 :root {
+  --void: #050507; /* background — the dark */
+  --void-2: #0b0d12; /* raised surface */
+  --void-3: #12151d; /* cards */
+  --edge: #1c2030; /* hairline borders */
+  --core: #ffffff; /* the single point of light — primary accent */
+  --signal: #e8ecf4; /* primary text */
+  --signal-dim: #aab2c4; /* secondary text */
+  --signal-mute: #6b7388; /* tertiary / metadata */
+  --ring-1: #7ae0ff; /* spectral ring — cyan end */
+  --ring-2: #b388ff; /* spectral ring — violet end */
+  --ok: #5be3a0; /* success / online */
+  --warn: #f5c451; /* attention */
+  --danger: #ff5c63; /* destructive / emergency stop */
+  --radius: 12px;
+  --ring-grad: linear-gradient(90deg, var(--ring-1), var(--ring-2));
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Motion — emphasized easing, 250–350ms (per the design language). Value
+     and tonal elevation do the work; no drop-shadows, no ring-glow. */
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --dur-fast: 250ms;
   --dur-slow: 350ms;

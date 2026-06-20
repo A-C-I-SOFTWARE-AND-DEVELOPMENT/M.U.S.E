@@ -2,7 +2,7 @@
 
 Historical release notes for the Hermes Agent lineage this repository
 builds on (newest first). These are period-accurate records — they
-predate the M.U.S.E rebrand and keep their original "Hermes Agent"
+predate the muse rebrand and keep their original "Hermes Agent"
 naming.
 
 | Version | Date | Summary |

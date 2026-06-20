@@ -35,7 +35,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * install with a legacy plaintext token is migrated once, on construction,
  * by [CockpitTokenMigration]; the plaintext copy is removed afterwards.
  *
- * Every MUSE control surface (Control screen, Home dashboard,
+ * Every muse control surface (Control screen, Home dashboard,
  * settings panel) reads through this repository. Defaults are chosen
  * so a fresh install matches the safety floor: lockdown off, approvals
  * required, safety gates on, local-only mode on, mock mode off.
@@ -62,7 +62,7 @@ class SettingsRepository(
         val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
         val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
 
-        // MUSE control surface — added during launch
+        // muse control surface — added during launch
         // stabilization to give the Control screen + Home dashboard
         // a backing store.
         val AUTONOMY_MODE = stringPreferencesKey("autonomy_mode")

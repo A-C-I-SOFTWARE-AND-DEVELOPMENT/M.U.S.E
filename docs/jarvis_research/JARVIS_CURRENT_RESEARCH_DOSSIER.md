@@ -1,6 +1,6 @@
-# MUSE — Current Research Dossier
+# muse — Current Research Dossier
 
-Purpose: ground MUSE's safety, routing, and memory design in current
+Purpose: ground muse's safety, routing, and memory design in current
 primary sources. **Verified facts** are separated from **recommendations**;
 vendor benchmark claims are marked **vendor-reported**. No copyrighted or
 private materials were downloaded; no credentials are stored here.
@@ -25,7 +25,7 @@ Project. The 2025 list (prompt injection remains #1 for a second edition):
 9. LLM09 Misinformation / Model issues
 10. LLM10 Unbounded Consumption
 
-**How MUSE maps to these:**
+**How muse maps to these:**
 - LLM01/LLM07: owner gates + `route_request` blocking of bypass/exfiltration
   prompts; system prompts are not stored in memory.
 - LLM02: Memory Tree write policy rejects secrets/credentials/cookies and
@@ -33,7 +33,7 @@ Project. The 2025 list (prompt injection remains #1 for a second edition):
 - LLM03/LLM04: clean-room modules, no heavyweight deps, provenance-first
   memory with source trust tiers; vendor claims marked unverified.
 - LLM06 Excessive Agency: bounded work packets, builder/reviewer split,
-  eight verification gates, no owner-gated execution by MUSE.
+  eight verification gates, no owner-gated execution by muse
 - LLM08: Memory Tree is deterministic lexical retrieval (no vector store);
   contested facts excluded from context packs.
 - LLM10: TokenJuice hard token budget; monitors track unbounded growth.
@@ -45,7 +45,7 @@ Sources:
 ## 2. NIST AI RMF & GenAI Profile — verify before relying
 
 - NIST AI Risk Management Framework (AI RMF 1.0) organizes risk work into
-  **Govern, Map, Measure, Manage**. MUSE's owner gates + audit ledger +
+  **Govern, Map, Measure, Manage**. muse's owner gates + audit ledger +
   decision provenance align with Govern/Manage; monitors + scorecards align
   with Measure.
 - NIST also published a Generative AI Profile (NIST-AI-600-1) as a
@@ -58,14 +58,14 @@ Sources:
   most capable model for builder/reviewer lanes; reserve an independent
   frontier model for RC3+ review.
 - Claude Code supports memory (CLAUDE.md), subagents, hooks, permissions,
-  and skills. MUSE adds `.claude/agents/jarvis-*` (read-only reviewers)
+  and skills. muse adds `.claude/agents/jarvis-*` (read-only reviewers)
   and `.claude/skills/jarvis-*` without depending on Claude memory as
   enforcement.
 - Verify against https://docs.anthropic.com (models, Claude Code, Agent SDK).
 
 ## 4. OpenAI / Codex agent & approval patterns — verify before relying
 
-- Codex-style agents use background/eval/approval patterns. MUSE treats
+- Codex-style agents use background/eval/approval patterns. muse treats
   Codex (or a different model family) as the **independent reviewer** for
   RC2+ changes so builder ≠ reviewer.
 - Verify current capabilities against official OpenAI docs before relying.
@@ -73,7 +73,7 @@ Sources:
 ## 5. OSS / local model serving — verify before relying; benchmarks vendor-reported
 
 - vLLM (continuous batching), SGLang, Ollama, and llama.cpp expose
-  OpenAI-compatible endpoints; MUSE emits `local_endpoint_packet` with
+  OpenAI-compatible endpoints; muse emits `local_endpoint_packet` with
   `status="wired_not_confirmed"` and never claims a model is running
   without a smoke request.
 - Qwen (coder), DeepSeek, Kimi, GLM family weights are catalogued as lanes.

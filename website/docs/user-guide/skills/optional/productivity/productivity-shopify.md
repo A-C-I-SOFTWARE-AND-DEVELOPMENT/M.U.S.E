@@ -26,7 +26,7 @@ Shopify Admin & Storefront GraphQL APIs via curl. Products, orders, customers, i
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Shopify — Admin & Storefront GraphQL APIs
@@ -142,7 +142,7 @@ mutation($input: ProductCreateInput!) {
     product { id handle }
     userErrors { field message }
   }
-}' '{"input":{"title":"Test Hoodie","status":"DRAFT","vendor":"M.U.S.E.","productType":"Apparel","tags":["test"]}}'
+}' '{"input":{"title":"Test Hoodie","status":"DRAFT","vendor":"muse","productType":"Apparel","tags":["test"]}}'
 ```
 
 Variants now have their own mutations in recent versions:

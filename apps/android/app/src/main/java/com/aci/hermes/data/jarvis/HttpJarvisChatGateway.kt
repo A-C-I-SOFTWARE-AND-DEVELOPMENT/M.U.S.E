@@ -99,7 +99,7 @@ class HttpJarvisChatGateway(
             tokenProvider()?.takeIf { it.isNotBlank() }?.let {
                 setRequestProperty("Authorization", "Bearer $it")
             }
-            outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+            outputStreamuse { it.write(payload.toByteArray(Charsets.UTF_8)) }
         }
 
     private fun parseLine(line: String): JarvisChatChunk? = runCatching {

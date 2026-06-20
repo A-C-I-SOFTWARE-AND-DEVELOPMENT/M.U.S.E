@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-M.U.S.E. CLI - Main entry point.
+muse CLI - Main entry point.
 
 Usage:
     hermes                     # Interactive chat (default)
@@ -33,10 +33,10 @@ Usage:
     muse honcho tokens --dialectic N     # Set dialectic result char cap
     muse honcho identity                 # Show AI peer identity representation
     muse honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
-    muse honcho migrate                  # Step-by-step migration guide: OpenClaw native → MUSE + Honcho
+    muse honcho migrate                  # Step-by-step migration guide: OpenClaw native → muse + Honcho
     muse version             Show version
     muse update              Update to latest version
-    muse uninstall           Uninstall MUSE
+    muse uninstall           Uninstall muse
     muse acp                 Run as an ACP server for editor integration
     muse sessions browse     Interactive session picker with search
 
@@ -1419,7 +1419,7 @@ def cmd_chat(args):
     if not _has_any_provider_configured():
         print()
         print(
-            "It looks like M.U.S.E. isn't configured yet -- no API keys or providers found."
+            "It looks like muse isn't configured yet -- no API keys or providers found."
         )
         print()
         print("  Run:  muse setup")
@@ -1579,7 +1579,7 @@ def cmd_whatsapp(args):
     current_mode = get_env_value("WHATSAPP_MODE") or ""
     if not current_mode:
         print()
-        print("How will you use WhatsApp with MUSE?")
+        print("How will you use WhatsApp with muse")
         print()
         print("  1. Separate bot number (recommended)")
         print("     People message the bot's number directly — cleanest experience.")
@@ -1773,14 +1773,14 @@ def cmd_whatsapp(args):
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '◉ M.U.S.E.'")
+            print("  Tip: Agent responses are prefixed with '◉ muse'")
         else:
             print("  Next steps:")
             print("    1. Start the gateway:  muse gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '◉ M.U.S.E.'")
+            print("  Tip: Agent responses are prefixed with '◉ muse'")
             print("  so you can tell them apart from your own messages.")
         print()
         print("  Or install as a service: muse gateway install")
@@ -1802,7 +1802,7 @@ def cmd_postinstall(args):
 
     stamp_install_method("pip")
 
-    print("⚕ M.U.S.E. post-install bootstrap")
+    print("⚕ muse post-install bootstrap")
     print()
 
     for dep in ("node", "browser", "ripgrep", "ffmpeg"):
@@ -2340,7 +2340,7 @@ def _aux_config_menu() -> None:
         print()
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
-        print("  MUSE only falls back to a lightweight backend (OpenRouter,")
+        print("  muse only falls back to a lightweight backend (OpenRouter,")
         print("  Nous Portal) if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
@@ -3394,7 +3394,7 @@ def _model_flow_custom(config):
     else:
         print(
             f"Warning: could not verify this endpoint via {probe.get('probed_url')}. "
-            f"MUSE will still save it."
+            f"muse will still save it."
         )
         if probe.get("suggested_base_url"):
             suggested = probe["suggested_base_url"]
@@ -3542,7 +3542,7 @@ def _prompt_custom_api_mode_selection(base_url: str, current_api_mode: str = "")
         (
             "",
             "Auto-detect",
-            "Use MUSE URL heuristics; best for standard OpenAI-compatible endpoints.",
+            "Use muse URL heuristics; best for standard OpenAI-compatible endpoints.",
         ),
         (
             "chat_completions",
@@ -3767,7 +3767,7 @@ def _model_flow_azure_foundry(config, current_model=""):
     print("=" * 50)
     print()
     print("Azure Foundry can host models with either OpenAI-style or")
-    print("Anthropic-style API endpoints.  MUSE will probe your")
+    print("Anthropic-style API endpoints.  muse will probe your")
     print("endpoint to auto-detect the transport and the deployed")
     print("models when possible.")
     print()
@@ -3855,7 +3855,7 @@ def _model_flow_azure_foundry(config, current_model=""):
         if not has_azure_identity_installed():
             print("◐ The 'azure-identity' package is not installed yet.")
             print(
-                "  MUSE will install it now (the preflight below "
+                "  muse will install it now (the preflight below "
                 "triggers the lazy-install). To skip lazy installs, "
                 "run:  pip install azure-identity"
             )
@@ -4631,9 +4631,9 @@ def _model_flow_copilot_acp(config, current_model=""):
     )
     effective_base = status.get("base_url") or pconfig.inference_base_url
 
-    print("  GitHub Copilot ACP delegates MUSE turns to `copilot --acp`.")
-    print("  MUSE currently starts its own ACP subprocess for each request.")
-    print("  MUSE uses your selected model as a hint for the Copilot ACP session.")
+    print("  GitHub Copilot ACP delegates muse turns to `copilot --acp`.")
+    print("  muse currently starts its own ACP subprocess for each request.")
+    print("  muse uses your selected model as a hint for the Copilot ACP session.")
     print(f"  Command: {resolved_command}")
     print(f"  Backend marker: {effective_base}")
     print()
@@ -5354,7 +5354,7 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                     "(<= 250 requests/day for gemini-2.5-flash)."
                 )
                 print(
-                    "   MUSE typically makes 3-10 API calls per user turn "
+                    "   muse typically makes 3-10 API calls per user turn "
                     "(tool iterations + auxiliary tasks),"
                 )
                 print(
@@ -5364,7 +5364,7 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                 print("   an agent session.")
                 print()
                 print(
-                    "   To use Gemini with MUSE, enable billing on your "
+                    "   To use Gemini with muse enable billing on your "
                     "Google Cloud project and regenerate"
                 )
                 print(
@@ -5601,7 +5601,7 @@ def _run_anthropic_oauth_flow(save_env_value):
             from hermes_constants import display_hermes_home as _dhh_fn
 
             print(
-                f"    MUSE will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
+                f"    muse will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
             )
             return True
         return False
@@ -5908,7 +5908,7 @@ def cmd_doctor(args):
 
 
 def cmd_jarvis_launch_doctor(args):
-    """Run the free-first MUSE launch-readiness doctor."""
+    """Run the free-first muse launch-readiness doctor."""
     import json as _json
 
     from hermes_cli.jarvis_prime.launch_doctor import run_launch_doctor
@@ -5923,7 +5923,7 @@ def cmd_jarvis_launch_doctor(args):
 
 
 def cmd_10_10_doctor(args):
-    """Run the MUSE 10/10 release-readiness doctor."""
+    """Run the muse 10/10 release-readiness doctor."""
     import json as _json
 
     from hermes_cli.release_readiness_doctor import run_10_10_doctor
@@ -5955,7 +5955,7 @@ def cmd_release_gate(args):
 
 
 def cmd_jarvis(args):
-    """MUSE launch + operations (free-first)."""
+    """muse launch + operations (free-first)."""
     import json as _json
 
     action = getattr(args, "jarvis_command", None)
@@ -5982,13 +5982,13 @@ def cmd_jarvis(args):
         raise SystemExit(0)
     # No subcommand → show help.
     print("usage: muse jarvis {launch|stop} [options]")
-    print("  muse jarvis launch   Run the free-first MUSE launch path")
+    print("  muse jarvis launch   Run the free-first muse launch path")
     print("  muse jarvis stop     Emergency stop (clear gates, leases, autonomy)")
     raise SystemExit(2)
 
 
 def cmd_cockpit(args):
-    """Serve the loopback cockpit API for the MUSE Android app."""
+    """Serve the loopback cockpit API for the muse Android app."""
     action = getattr(args, "cockpit_command", None)
     if action == "token":
         from gateway.cockpit import auth as _auth
@@ -6012,10 +6012,10 @@ def cmd_cockpit(args):
         )
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
-        print(f"MUSE cockpit API listening on http://{bound_host}:{bound_port}")
+        print(f"muse cockpit API listening on http://{bound_host}:{bound_port}")
         print(f"Open the browser cockpit: http://{bound_host}:{bound_port}/cockpit/")
         print(f"Pairing token: {token}")
-        print("Pair the MUSE Android app (or the browser cockpit) with this base URL + token.")
+        print("Pair the muse Android app (or the browser cockpit) with this base URL + token.")
         print("Press Ctrl-C to stop.")
         try:
             while True:
@@ -6095,7 +6095,7 @@ def cmd_sync(args):
 
 
 def cmd_backup(args):
-    """Back up the MUSE home directory to a zip file."""
+    """Back up the muse home directory to a zip file."""
     if getattr(args, "quick", False):
         from hermes_cli.backup import run_quick_backup
 
@@ -6107,7 +6107,7 @@ def cmd_backup(args):
 
 
 def cmd_import(args):
-    """Restore a MUSE backup from a zip file."""
+    """Restore a muse backup from a zip file."""
     from hermes_cli.backup import run_import
 
     run_import(args)
@@ -6115,7 +6115,7 @@ def cmd_import(args):
 
 def cmd_version(args):
     """Show version."""
-    print(f"M.U.S.E. v{__version__} ({__release_date__})")
+    print(f"muse v{__version__} ({__release_date__})")
     print(f"Project: {PROJECT_ROOT}")
 
     # Show Python version
@@ -6153,7 +6153,7 @@ def cmd_version(args):
 
 
 def cmd_uninstall(args):
-    """Uninstall MUSE."""
+    """Uninstall muse"""
     _require_tty("uninstall")
     from hermes_cli.uninstall import run_uninstall
 
@@ -6816,7 +6816,7 @@ _warn_stale_dashboard_processes = _kill_stale_dashboard_processes
 
 
 def _update_via_zip(args):
-    """Update MUSE by downloading a ZIP archive.
+    """Update muse by downloading a ZIP archive.
 
     Used on Windows when git file I/O is broken (antivirus, NTFS filter
     drivers causing 'Invalid argument' errors on file creation).
@@ -6827,7 +6827,7 @@ def _update_via_zip(args):
 
     branch = "main"
     zip_url = (
-        f"https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/{branch}.zip"
+        f"https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/archive/refs/heads/{branch}.zip"
     )
 
     print("→ Downloading latest version...")
@@ -7054,7 +7054,7 @@ def _restore_stashed_changes(
         print(
             "  Restoring them may reapply local customizations onto the updated codebase."
         )
-        print("  Review the result afterward if MUSE behaves unexpectedly.")
+        print("  Review the result afterward if muse behaves unexpectedly.")
         print("Restore local changes now? [Y/n]")
         if input_fn is not None:
             response = input_fn("Restore local changes now? [Y/n]", "y")
@@ -7118,7 +7118,7 @@ def _restore_stashed_changes(
     stash_selector = _resolve_stash_selector(git_cmd, cwd, stash_ref)
     if stash_selector is None:
         print(
-            "⚠ Local changes were restored, but MUSE couldn't find the stash entry to drop."
+            "⚠ Local changes were restored, but muse couldn't find the stash entry to drop."
         )
         print(
             "  The stash was left in place. You can remove it manually after checking the result."
@@ -7133,7 +7133,7 @@ def _restore_stashed_changes(
         )
         if drop.returncode != 0:
             print(
-                "⚠ Local changes were restored, but MUSE couldn't drop the saved stash entry."
+                "⚠ Local changes were restored, but muse couldn't drop the saved stash entry."
             )
             if drop.stdout.strip():
                 print(drop.stdout.strip())
@@ -7145,7 +7145,7 @@ def _restore_stashed_changes(
             _print_stash_cleanup_guidance(stash_ref, stash_selector)
 
     print("⚠ Local changes were restored on top of the updated codebase.")
-    print("  Review `git diff` / `git status` if MUSE behaves unexpectedly.")
+    print("  Review `git diff` / `git status` if muse behaves unexpectedly.")
     return True
 
 
@@ -7154,12 +7154,12 @@ def _restore_stashed_changes(
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
-    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
-    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
-    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
 }
-OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -7292,8 +7292,8 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
 
         # Ask user if they want to add upstream
         print()
-        print("ℹ Your fork is not tracking the official MUSE repository.")
-        print("  This means you may miss updates from A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.")
+        print("ℹ Your fork is not tracking the official muse repository.")
+        print("  This means you may miss updates from A-C-I-SOFTWARE-AND-DEVELOPMENT/muse")
         print()
         try:
             response = (
@@ -7307,7 +7307,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
             print("→ Adding upstream remote...")
             if _add_upstream_remote(git_cmd, cwd):
                 print(
-                    "  ✓ Added upstream: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+                    "  ✓ Added upstream: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
                 )
                 has_upstream = True
             else:
@@ -7315,7 +7315,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
                 return
         else:
             print(
-                "  Skipped. Run 'git remote add upstream https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git' to add later."
+                "  Skipped. Run 'git remote add upstream https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit' to add later."
             )
             _mark_skip_upstream_prompt()
             return
@@ -7604,7 +7604,7 @@ def _format_concurrent_instances_message(
     lines.append(f"  Updating now would fail to overwrite {shim} because")
     lines.append("  Windows blocks REPLACE on a running executable.")
     lines.append("")
-    lines.append("  Close the MUSE desktop app, exit any open `muse` / `hermes` REPLs, and")
+    lines.append("  Close the muse desktop app, exit any open `muse` / `hermes` REPLs, and")
     lines.append("  stop the gateway (`muse gateway stop`) before retrying.")
     lines.append("  Override with `muse update --force` if you've already")
     lines.append("  confirmed those processes will not write to the venv.")
@@ -7707,7 +7707,7 @@ def _quarantine_running_hermes_exe(
             f"another process is holding it open)."
         )
         print(
-            "    Close the MUSE desktop app, exit other `muse` / `hermes` REPLs, stop the "
+            "    Close the muse desktop app, exit other `muse` / `hermes` REPLs, stop the "
             "gateway, or pause AV scanning, then re-run `muse update`."
         )
 
@@ -8359,7 +8359,7 @@ def _ensure_fhs_path_guard() -> None:
 
     path_line = 'export PATH="/usr/local/bin:$PATH"'
     path_comment = (
-        "# MUSE — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
+        "# muse — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
     )
     wrote_any = False
     for candidate in (".bashrc", ".bash_profile"):
@@ -8489,7 +8489,7 @@ def _run_pre_update_backup(args) -> None:
 
 
 def cmd_update(args):
-    """Update MUSE to the latest version.
+    """Update muse to the latest version.
 
     Thin wrapper around ``_cmd_update_impl``: installs hangup protection,
     runs the update, then restores stdio on the way out (even on
@@ -8498,7 +8498,7 @@ def cmd_update(args):
     from hermes_cli.config import is_managed, managed_error
 
     if is_managed():
-        managed_error("update MUSE")
+        managed_error("update muse")
         return
 
     if getattr(args, "check", False):
@@ -8518,7 +8518,7 @@ def cmd_update(args):
 
 
 def _cmd_update_pip(args):
-    """Update MUSE via pip (for PyPI installs)."""
+    """Update muse via pip (for PyPI installs)."""
     from hermes_cli import __version__
 
     print(f"→ Current version: {__version__}")
@@ -8578,7 +8578,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
     )
     assume_yes = bool(getattr(args, "yes", False))
 
-    print("◉ Updating MUSE...")
+    print("◉ Updating muse")
     print()
 
     # On Windows, abort early if another hermes.exe is holding the venv shim
@@ -8613,7 +8613,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 return
             print("✗ Not a git repository. Please reinstall:")
             print(
-                "  curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash"
+                "  curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash"
             )
             sys.exit(1)
 
@@ -10438,7 +10438,7 @@ def cmd_profile(args):
         if data.get("license"):
             print(f"License:      {data['license']}")
         if data.get("hermes_requires"):
-            print(f"Requires:     MUSE {data['hermes_requires']}")
+            print(f"Requires:     muse {data['hermes_requires']}")
         if data.get("source"):
             print(f"Source:       {data['source']}")
         if data.get("installed_at"):
@@ -10467,7 +10467,7 @@ def _render_distribution_plan(plan) -> None:
     if mf.author:
         print(f"  Author:   {mf.author}")
     if mf.hermes_requires:
-        print(f"  Requires: MUSE {mf.hermes_requires}")
+        print(f"  Requires: muse {mf.hermes_requires}")
     print(f"  Source:   {plan.provenance}")
     print(f"  Target:   {plan.target_dir}")
     if plan.existing:
@@ -10635,7 +10635,7 @@ def cmd_completion(args, parser=None):
 
 
 def cmd_logs(args):
-    """View and filter MUSE log files."""
+    """View and filter muse log files."""
     from hermes_cli.logs import tail_log, list_logs
 
     log_name = getattr(args, "log_name", "agent") or "agent"
@@ -11154,7 +11154,7 @@ def main():
     setup_parser = subparsers.add_parser(
         "setup",
         help="Interactive setup wizard",
-        description="Configure MUSE with an interactive wizard. "
+        description="Configure muse with an interactive wizard. "
         "Run a specific section: muse setup model|tts|terminal|gateway|tools|agent",
     )
     setup_parser.add_argument(
@@ -11214,7 +11214,7 @@ def main():
     slack_parser = subparsers.add_parser(
         "slack",
         help="Slack integration helpers (manifest generation, etc.)",
-        description="Slack integration helpers for MUSE.",
+        description="Slack integration helpers for muse",
     )
     slack_sub = slack_parser.add_subparsers(dest="slack_command")
     slack_manifest = slack_sub.add_parser(
@@ -11241,7 +11241,7 @@ def main():
     slack_manifest.add_argument(
         "--name",
         default=None,
-        help='Bot display name (default: "MUSE")',
+        help='Bot display name (default: "muse")',
     )
     slack_manifest.add_argument(
         "--description",
@@ -11413,7 +11413,7 @@ def main():
     )
     auth_logout.add_argument("provider", help="Provider id")
     auth_spotify = auth_subparsers.add_parser(
-        "spotify", help="Authenticate MUSE with Spotify via PKCE"
+        "spotify", help="Authenticate muse with Spotify via PKCE"
     )
     auth_spotify.add_argument(
         "spotify_action",
@@ -11445,7 +11445,7 @@ def main():
     status_parser = subparsers.add_parser(
         "status",
         help="Show status of all components",
-        description="Display status of MUSE components",
+        description="Display status of muse components",
     )
     status_parser.add_argument(
         "--all", action="store_true", help="Show all details (redacted for sharing)"
@@ -11516,7 +11516,7 @@ def main():
     )
     cron_create.add_argument(
         "--profile",
-        help="MUSE profile name to run the job under. Use 'default' for the root profile. Named profiles must already exist. Omit to preserve the scheduler's existing profile.",
+        help="muse profile name to run the job under. Use 'default' for the root profile. Named profiles must already exist. Omit to preserve the scheduler's existing profile.",
     )
 
     # cron edit
@@ -11584,7 +11584,7 @@ def main():
     )
     cron_edit.add_argument(
         "--profile",
-        help="MUSE profile name to run the job under. Use 'default' for the root profile. Pass empty string to clear.",
+        help="muse profile name to run the job under. Use 'default' for the root profile. Pass empty string to clear.",
     )
 
     # lifecycle actions
@@ -11759,7 +11759,7 @@ def main():
     doctor_parser = subparsers.add_parser(
         "doctor",
         help="Check configuration and dependencies",
-        description="Diagnose issues with MUSE setup",
+        description="Diagnose issues with muse setup",
     )
     doctor_parser.add_argument(
         "--fix", action="store_true", help="Attempt to fix issues automatically"
@@ -11778,7 +11778,7 @@ def main():
         "--jarvis-launch",
         action="store_true",
         help=(
-            "Run the free-first MUSE launch-readiness doctor instead "
+            "Run the free-first muse launch-readiness doctor instead "
             "of the general diagnostics. Verifies the one-command launch path "
             "(runtime, owner gate, emergency stop, model brain, model policy, "
             "local runtimes, Claude Code/Codex worker lanes, installer)."
@@ -11789,7 +11789,7 @@ def main():
         dest="ten_ten",
         action="store_true",
         help=(
-            "Run the MUSE 10/10 release-readiness doctor: verifies the "
+            "Run the muse 10/10 release-readiness doctor: verifies the "
             "safe-to-ship gates (dry-run publish, owner gate, redaction, signed "
             "remote bridge, loopback default, exact-pinned deps) and reports the "
             "remaining 10/10 loop-closure punch list as warnings."
@@ -11825,13 +11825,13 @@ def main():
     doctor_parser.set_defaults(func=cmd_doctor)
 
     # =========================================================================
-    # jarvis command — free-first MUSE launch + emergency stop
+    # jarvis command — free-first muse launch + emergency stop
     # =========================================================================
     jarvis_parser = subparsers.add_parser(
         "jarvis",
-        help="MUSE: free-first launch and emergency stop",
+        help="muse free-first launch and emergency stop",
         description=(
-            "Launch and operate MUSE, the local-first AI operating "
+            "Launch and operate muse the local-first AI operating "
             "partner. `jarvis launch` runs the free-first launch path "
             "(runtime check, model bootstrap, memory init, owner gate, "
             "emergency stop, worker detection, launch doctor)."
@@ -11839,7 +11839,7 @@ def main():
     )
     jarvis_subparsers = jarvis_parser.add_subparsers(dest="jarvis_command")
     jarvis_launch_parser = jarvis_subparsers.add_parser(
-        "launch", help="Run the free-first MUSE launch path"
+        "launch", help="Run the free-first muse launch path"
     )
     jarvis_launch_parser.add_argument(
         "--no-free-first", dest="free_first", action="store_false",
@@ -11879,15 +11879,15 @@ def main():
     _register_guardrails(subparsers)
 
     # =========================================================================
-    # cockpit command — loopback API for the MUSE Android app
+    # cockpit command — loopback API for the muse Android app
     # =========================================================================
     cockpit_parser = subparsers.add_parser(
         "cockpit",
-        help="Serve the loopback cockpit API for the MUSE Android app",
+        help="Serve the loopback cockpit API for the muse Android app",
         description=(
             "Run the bearer-token-authenticated, loopback-only HTTP API the "
-            "MUSE Android cockpit pairs with. Backed by the real "
-            "MUSE subsystems (chat, runtime status, memory, "
+            "muse Android cockpit pairs with. Backed by the real "
+            "muse subsystems (chat, runtime status, memory, "
             "diagnostics, models, jobs, audit). Never binds non-loopback "
             "without --allow-external."
         ),
@@ -11924,7 +11924,7 @@ def main():
         "models",
         help="Free-first model bootstrap (local OSS first, paid opt-in only)",
         description=(
-            "Bootstrap MUSE's model routing. Detects local runtimes "
+            "Bootstrap muse's model routing. Detects local runtimes "
             "(ollama/llama.cpp/vllm/lmstudio), already-configured hosted OSS "
             "providers, and the official Claude Code / Codex worker CLIs, then "
             "writes a free-first routing policy. Paid APIs are explicit opt-in "
@@ -11941,7 +11941,7 @@ def main():
     )
     models_bootstrap_parser.add_argument(
         "--jarvis", dest="jarvis", action="store_true", default=True,
-        help="Write the MUSE model policy (default).",
+        help="Write the muse model policy (default).",
     )
     models_bootstrap_parser.add_argument(
         "--dry-run", action="store_true", help="Plan only — write nothing, pull nothing."
@@ -11991,7 +11991,7 @@ def main():
     dump_parser = subparsers.add_parser(
         "dump",
         help="Dump setup summary for support/debugging",
-        description="Output a compact, plain-text summary of your MUSE setup "
+        description="Output a compact, plain-text summary of your muse setup "
         "that can be copy-pasted into Discord/GitHub for support context",
     )
     dump_parser.add_argument(
@@ -12007,7 +12007,7 @@ def main():
     debug_parser = subparsers.add_parser(
         "debug",
         help="Debug tools — upload logs and system info for support",
-        description="Debug utilities for MUSE. Use 'muse debug share' to "
+        description="Debug utilities for muse Use 'muse debug share' to "
         "upload a debug report (system info + recent logs) to a paste "
         "service and get a shareable URL.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -12094,8 +12094,8 @@ Examples:
     # =========================================================================
     backup_parser = subparsers.add_parser(
         "backup",
-        help="Back up the MUSE home directory to a zip file",
-        description="Create a zip archive of your entire MUSE configuration, "
+        help="Back up the muse home directory to a zip file",
+        description="Create a zip archive of your entire muse configuration, "
         "skills, sessions, and data (excludes the hermes-agent codebase). "
         "Use --quick for a fast snapshot of just critical state files.",
     )
@@ -12134,9 +12134,9 @@ Examples:
     # =========================================================================
     import_parser = subparsers.add_parser(
         "import",
-        help="Restore a MUSE backup from a zip file",
-        description="Extract a previously created MUSE backup into your "
-        "MUSE home directory, restoring configuration, skills, "
+        help="Restore a muse backup from a zip file",
+        description="Extract a previously created muse backup into your "
+        "muse home directory, restoring configuration, skills, "
         "sessions, and data",
     )
     import_parser.add_argument("zipfile", help="Path to the backup zip file")
@@ -12154,7 +12154,7 @@ Examples:
     config_parser = subparsers.add_parser(
         "config",
         help="View and edit configuration",
-        description="Manage MUSE configuration",
+        description="Manage muse configuration",
     )
     config_subparsers = config_parser.add_subparsers(dest="config_command")
 
@@ -12859,19 +12859,19 @@ Examples:
     # =========================================================================
     mcp_parser = subparsers.add_parser(
         "mcp",
-        help="Manage MCP servers and run MUSE as an MCP server",
+        help="Manage MCP servers and run muse as an MCP server",
         description=(
-            "Manage MCP server connections and run MUSE as an MCP server.\n\n"
+            "Manage MCP server connections and run muse as an MCP server.\n\n"
             "MCP servers provide additional tools via the Model Context Protocol.\n"
             "Use 'muse mcp add' to connect to a new server, or\n"
-            "'muse mcp serve' to expose MUSE conversations over MCP."
+            "'muse mcp serve' to expose muse conversations over MCP."
         ),
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_action")
 
     mcp_serve_p = mcp_sub.add_parser(
         "serve",
-        help="Run MUSE as an MCP server (expose conversations to other agents)",
+        help="Run muse as an MCP server (expose conversations to other agents)",
     )
     mcp_serve_p.add_argument(
         "-v",
@@ -13251,14 +13251,14 @@ Examples:
     claw_parser = subparsers.add_parser(
         "claw",
         help="OpenClaw migration tools",
-        description="Migrate settings, memories, skills, and API keys from OpenClaw to MUSE",
+        description="Migrate settings, memories, skills, and API keys from OpenClaw to muse",
     )
     claw_subparsers = claw_parser.add_subparsers(dest="claw_action")
 
     # claw migrate
     claw_migrate = claw_subparsers.add_parser(
         "migrate",
-        help="Migrate from OpenClaw to MUSE",
+        help="Migrate from OpenClaw to muse",
         description="Import settings, memories, skills, and API keys from an OpenClaw installation. "
         "Always shows a preview before making changes.",
     )
@@ -13345,9 +13345,9 @@ Examples:
     # =========================================================================
     update_parser = subparsers.add_parser(
         "update",
-        help="Update MUSE to the latest version",
+        help="Update muse to the latest version",
         description=(
-            "Update MUSE. On a fork this autonomously consolidates "
+            "Update muse On a fork this autonomously consolidates "
             "the original code (upstream/main) and your current branch into "
             "your main — auto-resolving conflicts with the configured model, "
             "merging into main, and pushing to origin without prompting — then "
@@ -13419,8 +13419,8 @@ Examples:
     # =========================================================================
     uninstall_parser = subparsers.add_parser(
         "uninstall",
-        help="Uninstall MUSE",
-        description="Remove MUSE from your system. Can keep configs/data for reinstall.",
+        help="Uninstall muse",
+        description="Remove muse from your system. Can keep configs/data for reinstall.",
     )
     uninstall_parser.add_argument(
         "--full",
@@ -13437,15 +13437,15 @@ Examples:
     # =========================================================================
     acp_parser = subparsers.add_parser(
         "acp",
-        help="Run MUSE as an ACP (Agent Client Protocol) server",
-        description="Start MUSE in ACP mode for editor integration (VS Code, Zed, JetBrains)",
+        help="Run muse as an ACP (Agent Client Protocol) server",
+        description="Start muse in ACP mode for editor integration (VS Code, Zed, JetBrains)",
     )
     _add_accept_hooks_flag(acp_parser)
     acp_parser.add_argument(
         "--version",
         action="store_true",
         dest="acp_version",
-        help="Print MUSE ACP version and exit",
+        help="Print muse ACP version and exit",
     )
     acp_parser.add_argument(
         "--check",
@@ -13455,7 +13455,7 @@ Examples:
     acp_parser.add_argument(
         "--setup",
         action="store_true",
-        help="Run interactive MUSE provider/model setup for ACP terminal auth",
+        help="Run interactive muse provider/model setup for ACP terminal auth",
     )
     acp_parser.add_argument(
         "--setup-browser",
@@ -13473,7 +13473,7 @@ Examples:
     )
 
     def cmd_acp(args):
-        """Launch MUSE as an ACP server."""
+        """Launch muse as an ACP server."""
         try:
             from acp_adapter.entry import main as acp_main
 
@@ -13501,7 +13501,7 @@ Examples:
     # =========================================================================
     profile_parser = subparsers.add_parser(
         "profile",
-        help="Manage profiles — multiple isolated MUSE instances",
+        help="Manage profiles — multiple isolated muse instances",
     )
     profile_subparsers = profile_parser.add_subparsers(dest="profile_action")
 
@@ -13633,7 +13633,7 @@ Examples:
         "install",
         help="Install a profile distribution from a git URL or local directory",
         description=(
-            "Install a MUSE profile distribution. SOURCE can be a git URL "
+            "Install a muse profile distribution. SOURCE can be a git URL "
             "(github.com/user/repo, https://..., git@...) or a local "
             "directory containing distribution.yaml at its root."
         ),
@@ -13709,7 +13709,7 @@ Examples:
     dashboard_parser = subparsers.add_parser(
         "dashboard",
         help="Start the web UI dashboard",
-        description="Launch the MUSE web dashboard for managing config, API keys, and sessions",
+        description="Launch the muse web dashboard for managing config, API keys, and sessions",
     )
     dashboard_parser.add_argument(
         "--port", type=int, default=9119, help="Port (default 9119)"
@@ -13765,7 +13765,7 @@ Examples:
     # =========================================================================
     logs_parser = subparsers.add_parser(
         "logs",
-        help="View and filter MUSE log files",
+        help="View and filter muse log files",
         description="View, tail, and filter agent.log / errors.log / gateway.log",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\

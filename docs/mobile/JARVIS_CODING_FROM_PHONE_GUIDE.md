@@ -1,4 +1,4 @@
-# Coding from your phone with MUSE
+# Coding from your phone with muse
 
 You can drive real software work — plan a change, run a coding agent
 against a repo, and review the resulting PR — entirely from the mobile
@@ -15,7 +15,7 @@ powerful part (writing to a repo, pushing) behind the owner gate.
 ## The flow at a glance
 
 ```
-phone: "build packet for X"        → MUSE plans (no execution)
+phone: "build packet for X"        → muse plans (no execution)
 phone: dispatch job (execute lane) → owner gate: "Yes, with authorization."
 backend: worker (Codex / Claude)   → works on an isolated feature branch
 backend: validation gates + ledger → opens a draft PR
@@ -24,8 +24,8 @@ phone: review the PR, approve/merge → owner gate again for merge
 
 ## 1. Plan first — a builder packet
 
-Ask in chat: *"MUSE, builder mode. Prepare a build packet for: &lt;describe
-the change&gt;."* MUSE produces a **bounded work packet** — intent, risk
+Ask in chat: *"muse builder mode. Prepare a build packet for: &lt;describe
+the change&gt;."* muse produces a **bounded work packet** — intent, risk
 class, allowed files, verification steps, and a rollback plan — **without
 executing anything**. Planning and review never require the gate; only
 execution does. (The packet model is the same one the

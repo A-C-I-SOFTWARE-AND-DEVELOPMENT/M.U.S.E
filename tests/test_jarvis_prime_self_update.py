@@ -81,7 +81,7 @@ def test_render_for_owner_lists_pending() -> None:
 
 def test_render_empty_when_no_pending() -> None:
     book = ProposalBook()
-    assert "No MUSE self-update proposals pending." == book.render_for_owner()
+    assert "No muse self-update proposals pending." == book.render_for_owner()
 
 
 def test_mark_applied_records_commit_sha() -> None:

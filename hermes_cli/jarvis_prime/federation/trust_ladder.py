@@ -1,6 +1,6 @@
 """Contributor trust ladder — earned trust, instrumented (Vol VI Part 3).
 
-The human analog of MUSE's graduated autonomy bands: new contributors are
+The human analog of muse's graduated autonomy bands: new contributors are
 **B0 (propose-only)**; a verifiable track record earns B1/B2; **B3
 (maintainer) is never automatic** — it requires an explicit owner or quorum
 grant, mirroring how the vLLM committer ladder ends in a human vote. Any

@@ -51,12 +51,12 @@ import com.aci.hermes.data.capability.RoutePreview
 import com.aci.hermes.data.cockpit.CockpitSkill
 import com.aci.hermes.data.model.Capability
 import com.aci.hermes.data.model.CapabilityCategory
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -142,13 +142,13 @@ fun CapabilityScreen(
 private fun InstalledSkillsCard(sync: InstalledSkillsSync, skills: List<CockpitSkill>) {
     // Nothing to show before pairing — keep the screen clean (catalog still works).
     if (sync is InstalledSkillsSync.Idle || sync is InstalledSkillsSync.NotPaired) return
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
     ) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseSectionHeader(title = stringResource(R.string.capability_installed_title))
+            museSectionHeader(title = stringResource(R.string.capability_installed_title))
             when (sync) {
                 is InstalledSkillsSync.Error ->
                     Text(sync.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -173,7 +173,7 @@ private fun InstalledSkillsCard(sync: InstalledSkillsSync, skills: List<CockpitS
 
 @Composable
 private fun HeaderBlurb() {
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceSm),
@@ -182,7 +182,7 @@ private fun HeaderBlurb() {
             modifier = Modifier.padding(JarvisTokens.SpaceLg),
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
-            MuseSectionHeader(title = stringResource(R.string.capability_header_title))
+            museSectionHeader(title = stringResource(R.string.capability_header_title))
             Text(
                 text = stringResource(R.string.capability_header_body),
                 style = MaterialTheme.typography.bodySmall,
@@ -232,13 +232,13 @@ private fun CategoryFilters(
             .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
         horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
     ) {
-        MuseChip(
+        museChip(
             label = stringResource(R.string.capability_filter_all),
             selected = selected == null,
             onClick = { onSelect(null) },
         )
         CapabilityCategory.values().forEach { cat ->
-            MuseChip(
+            museChip(
                 label = cat.displayName,
                 selected = selected == cat,
                 onClick = { onSelect(cat) },
@@ -294,7 +294,7 @@ private fun CapabilityList(
                 .padding(JarvisTokens.SpaceXxl),
             contentAlignment = Alignment.Center,
         ) {
-            MuseEmptyState(
+            museEmptyState(
                 title = "No capabilities",
                 body = stringResource(R.string.capability_empty),
             )
@@ -336,7 +336,7 @@ private fun InvocationSheet(
             Text(capability.summary, style = MaterialTheme.typography.bodyMedium)
 
             HorizontalDivider()
-            MuseSectionHeader(title = stringResource(R.string.capability_route_title))
+            museSectionHeader(title = stringResource(R.string.capability_route_title))
             preview.lines.forEach { line ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -358,8 +358,8 @@ private fun InvocationSheet(
             }
 
             HorizontalDivider()
-            MuseSectionHeader(title = stringResource(R.string.capability_prompt_title))
-            MuseCard(modifier = Modifier.fillMaxWidth()) {
+            museSectionHeader(title = stringResource(R.string.capability_prompt_title))
+            museCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = preview.staged,
                     modifier = Modifier.padding(JarvisTokens.SpaceMd),
@@ -377,15 +377,15 @@ private fun InvocationSheet(
                     .padding(vertical = JarvisTokens.SpaceSm),
                 horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                MuseButton(
+                museButton(
                     onClick = onStage,
                     text = stringResource(R.string.capability_stage_prompt),
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                 )
-                MuseButton(
+                museButton(
                     onClick = onDismiss,
                     text = stringResource(R.string.action_close),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
             }
         }
@@ -396,7 +396,7 @@ private fun InvocationSheet(
 private fun OwnerGatedBanner() {
     // Kept as an error-container surface: the red banner *is* the owner-gate
     // warning signal (no icon carries it otherwise), and the contentDescription
-    // is an a11y hook. MuseCard has no danger fill, so swapping it would drop
+    // is an a11y hook. museCard has no danger fill, so swapping it would drop
     // the warning valence.
     Card(
         colors = CardDefaults.cardColors(

@@ -56,7 +56,7 @@ export function Observatory() {
         <iframe
           className="observatory-frame"
           src={observatoryUrl()}
-          title="M.U.S.E. Observatory"
+          title="muse Observatory"
         />
       )}
       {probe === "offline" && <BrainDownCard onRetry={check} />}
@@ -100,7 +100,7 @@ function BrainDownCard({ onRetry }: { onRetry: () => void }) {
         <span className="pill">gateway down</span>
       </div>
       <p className="muted">
-        The Observatory streams live from your local MUSE gateway at{" "}
+        The Observatory streams live from your local muse gateway at{" "}
         <span className="mono">{getGatewayBase()}</span>, and it isn’t answering.
         Start the brain — <span className="mono">muse cockpit serve</span> — and
         this view comes alive.

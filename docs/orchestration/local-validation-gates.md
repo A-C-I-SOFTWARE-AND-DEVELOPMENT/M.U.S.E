@@ -1,9 +1,9 @@
 # Local Validation Gates
 
-Phase 14 of the local orchestrator gives M.U.S.E. a publish-blocking
+Phase 14 of the local orchestrator gives muse a publish-blocking
 quality gate. Before any "publish" action — committing,
 opening a PR, exporting a job folder, handing artefacts off to
-another agent — M.U.S.E. runs `hermes_cli.validation.ValidationRunner`
+another agent — muse runs `hermes_cli.validation.ValidationRunner`
 against the workspace and checks the result. If a check tagged
 `critical` produces a `fail`, the publish gate stays **closed**
 regardless of what else passed.

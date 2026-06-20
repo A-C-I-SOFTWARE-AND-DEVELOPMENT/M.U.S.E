@@ -40,9 +40,9 @@ import com.aci.hermes.R
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.ThemeMode
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
@@ -156,12 +156,6 @@ fun SettingsScreen(
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
                 )
-                SwitchRow(
-                    title = stringResource(R.string.settings_unified_shell_label),
-                    subtitle = stringResource(R.string.settings_unified_shell_subtitle),
-                    checked = state.unifiedPwaShellEnabled,
-                    onChange = viewModel::setUnifiedPwaShellEnabled,
-                )
             }
 
             SettingsSection("Connection") {
@@ -169,10 +163,10 @@ fun SettingsScreen(
                     title = "Pair a device",
                     subtitle = "Request a code and confirm it to receive a per-device token.",
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenPairing,
                     text = "Pair a device",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -182,10 +176,10 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_avatar_title),
                     subtitle = stringResource(R.string.settings_avatar_subtitle),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenAvatarPicker,
                     text = stringResource(R.string.settings_open_avatar_picker),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -211,88 +205,49 @@ fun SettingsScreen(
                     title = stringResource(R.string.diagnostics_build_type),
                     subtitle = BuildConfig.BUILD_TYPE,
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenDiagnostics,
                     text = stringResource(R.string.nav_diagnostics),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenKnowledge,
                     text = "Knowledge graph",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenObservatory,
                     text = "Observatory",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenModelRoutes,
                     text = stringResource(R.string.model_route_open),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenModelCenter,
                     text = "Model Center (local / Gemma)",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenReleaseCenter,
                     text = "Release & download",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                museButton(
+                    onClick = { confirmReset = true },
+                    text = stringResource(R.string.settings_reset),
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            // P1-05: Privacy & Consent
-            SettingsSection("Privacy & Consent") {
-                SwitchRow(
-                    title = "Privacy disclosure acknowledged",
-                    subtitle = "Confirm you've read the privacy disclosure for expanded permissions (mic, camera, overlay, accessibility).",
-                    checked = state.privacyDisclosureAck,
-                    onChange = viewModel::setPrivacyDisclosureAck,
-                )
-                SwitchRow(
-                    title = "Microphone consent",
-                    subtitle = "Allow runtime microphone access for voice features.",
-                    checked = state.micConsent,
-                    onChange = viewModel::setMicConsent,
-                )
-                SwitchRow(
-                    title = "Overlay / System alert window consent",
-                    subtitle = "Allow drawing over other apps (live presence indicator).",
-                    checked = state.overlayConsent,
-                    onChange = viewModel::setOverlayConsent,
-                )
-                SwitchRow(
-                    title = "Accessibility service consent",
-                    subtitle = "Allow accessibility service for presence detection.",
-                    checked = state.accessibilityConsent,
-                    onChange = viewModel::setAccessibilityConsent,
-                )
-                SettingsRow(
-                    title = "View full privacy disclosure",
-                    subtitle = "Read the complete privacy disclosure document.",
-                )
-                MuseButton(
-                    onClick = { /* Navigate to privacy disclosure screen */ },
-                    text = "Open privacy disclosure",
-                    variant = MuseButtonVariant.Secondary,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            MuseButton(
-                onClick = { confirmReset = true },
-                text = stringResource(R.string.settings_reset),
-                variant = MuseButtonVariant.Secondary,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 
@@ -318,7 +273,7 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    MuseCard {
+    museCard {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
             HorizontalDivider()

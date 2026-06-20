@@ -148,9 +148,9 @@ class HermesService : Service() {
         // Channel ID stays `hermes_orchestrator` so a user's customized
         // importance/visibility survives the rebrand. The display NAME is
         // what shows in Android Settings → Notifications, so it carries the
-        // MUSE identity.
+        // muse identity.
         const val CHANNEL_ID = "hermes_orchestrator"
-        private const val CHANNEL_NAME = "MUSE"
+        private const val CHANNEL_NAME = "muse"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "com.aci.hermes.action.STOP_ORCHESTRATOR"
 
@@ -178,7 +178,7 @@ class HermesService : Service() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Persistent indicator that MUSE is coordinating local AI workflows."
+                description = "Persistent indicator that muse is coordinating local AI workflows."
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)

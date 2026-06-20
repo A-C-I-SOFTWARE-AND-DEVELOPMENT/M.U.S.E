@@ -92,29 +92,29 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 
 
 # -------------------------------------------------------------------------
-# Axiom "Singularity" art (default skin)
+# muse "Singularity" art (default skin)
 # -------------------------------------------------------------------------
 # Design language: docs/brand/muse-design-language.md — a white core blazing
 # in the void, wrapped by one thin spectral ring with a single gap. White is
 # the hero; the ring is the only spectral accent (matte cyan→violet, never
 # glowed); the wordmark is near-white so the core owns the brightest pixel.
 #
-# AXIOM_WORDMARK — crisp block-letter "AXIOM" in a single near-white fill
+# muse_WORDMARK — crisp block-letter "muse" in a single near-white fill
 # (#EEF2F7), the same full-block style as HERMES_AGENT_LOGO. The wordmark is
 # uniform; the value ladder lives across tiers (core → wordmark → tagline),
 # not within the letters.
-AXIOM_WORDMARK = """[bold #EEF2F7] █████╗ ██╗  ██╗██╗ ██████╗ ███╗   ███╗[/]
-[bold #EEF2F7]██╔══██╗╚██╗██╔╝██║██╔═══██╗████╗ ████║[/]
-[bold #EEF2F7]███████║ ╚███╔╝ ██║██║   ██║██╔████╔██║[/]
-[bold #EEF2F7]██╔══██║ ██╔██╗ ██║██║   ██║██║╚██╔╝██║[/]
-[bold #EEF2F7]██║  ██║██╔╝ ██╗██║╚██████╔╝██║ ╚═╝ ██║[/]
-[bold #EEF2F7]╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝     ╚═╝[/]"""
+muse_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
 
-# AXIOM_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
+# muse_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
 # ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
 # left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
-# brand tiers: the product name (signal-dim) and the motto (dim).
-AXIOM_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+# brand tiers: the acronym expansion (signal-dim) and the motto (dim).
+muse_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
       [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
      [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
@@ -124,12 +124,8 @@ AXIOM_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4F
         [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
            [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
 
-        [#AAB2C4]Axiom — Collective Intelligence[/]
-         [dim #8B93A6]Fusion by default. Many minds, one answer.[/]"""
-
-# Backward compatibility aliases (deprecated)
-MUSE_WORDMARK = AXIOM_WORDMARK
-MUSE_GLYPH = AXIOM_GLYPH
+        [#AAB2C4]Multi-Use Synaptic Entity[/]
+         [dim #8B93A6]One mind, many pathways.[/]"""
 
 
 
@@ -168,7 +164,7 @@ _UPDATE_CHECK_CACHE_SECONDS = 6 * 3600
 # (e.g. nix-built hermes — no local git history to count against).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
-_UPSTREAM_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+_UPSTREAM_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
 
 
 def _check_via_rev(local_rev: str) -> Optional[int]:
@@ -368,7 +364,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     return {"upstream": upstream, "local": local, "ahead": max(ahead, 0)}
 
 
-_RELEASE_URL_BASE = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag"
+_RELEASE_URL_BASE = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases/tag"
 _latest_release_cache: Optional[tuple] = None  # (tag, url) once resolved
 
 
@@ -377,7 +373,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
     Local-only — runs ``git describe --tags --abbrev=0`` against the
     Hermes checkout. Cached per-process. Release URL always points at the
-    canonical A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E repo (forks don't get a link).
+    canonical A-C-I-SOFTWARE-AND-DEVELOPMENT/muse repo (forks don't get a link).
     """
     global _latest_release_cache
     if _latest_release_cache is not None:
@@ -416,7 +412,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"M.U.S.E. v{VERSION} ({RELEASE_DATE})"
+    base = f"muse v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base

@@ -1,14 +1,14 @@
-# MUSE ⇄ OpenHuman — End-to-End Synergy Audit
+# muse ⇄ OpenHuman — End-to-End Synergy Audit
 
 **Date:** 2026-05-28 · **Owner:** Jeremiah Echerd (echerd27) · **Org:** A-C-I Software & Development
-**Scope:** Audit `hermes-agent` (MUSE) and `openhuman` end-to-end; plan and begin a
+**Scope:** Audit `hermes-agent` (muse) and `openhuman` end-to-end; plan and begin a
 license-clean synergy that enhances Jarvis. **Personal use, open-source, org credit preserved.**
 
 ---
 
 ## 1. TL;DR
 
-- **Jarvis already exists and is serious.** MUSE is the apex persona of `hermes-agent`:
+- **Jarvis already exists and is serious.** muse is the apex persona of `hermes-agent`:
   a local-first AI operating partner with six modes, a deterministic router, reasoning,
   epistemics, eight verification gates, owner-authorization gates, memory, persona, six-stream
   awareness, research, self-update proposals, a test suite, and an Android app.
@@ -33,12 +33,12 @@ All claims below are grounded in files actually present in the trees on 2026-05-
 
 ---
 
-## 3. `hermes-agent` (MUSE) — what's there
+## 3. `hermes-agent` (muse) — what's there
 
 **Identity.** MIT (© Nous Research). A self-improving agent that runs on any model and bridges
-many messaging surfaces. MUSE is its owner-facing apex persona.
+many messaging surfaces. muse is its owner-facing apex persona.
 
-**MUSE subsystem** (`hermes_cli/jarvis_prime/`):
+**muse subsystem** (`hermes_cli/jarvis_prime/`):
 
 | Module | Role |
 |---|---|
@@ -142,7 +142,7 @@ DeepSeek-R1 (MATH-500 97.3%) + R1-Distill-8B (local), Qwen3-235B, GPT-OSS-120B/2
 - **Avatar + voice embodiment.** ✅ Shipped — canonical, stdlib-only, JSON-serializable avatar
   (`hermes_cli/jarvis_prime/avatar.py` + `docs/jarvis-prime/avatar.json`) with locale-aware voice
   (en/es/fr/ja/zh/ko) and an OpenHuman-inspired local-first voice stack (faster-whisper + Piper).
-  The Android cockpit was *already* fully branded "MUSE" (launcher icon, `JarvisPrimeIcon`,
+  The Android cockpit was *already* fully branded "muse" (launcher icon, `JarvisPrimeIcon`,
   `JarvisShell`, theme tokens), so this makes that identity a portable artifact the app **and** CLI
   consume — rather than rewriting Kotlin that can't be compiled in this environment.
 - **Later:** a local `ollama` provider plugin (local-first inference); feed `ai_radar.py` findings

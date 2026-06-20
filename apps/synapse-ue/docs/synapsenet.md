@@ -1,8 +1,8 @@
 # SynapseNet — module documentation (Prompt 0)
 
 `SynapseNet` is the **only** module in the SYNAPSE UE 5.6 project that
-talks to a MUSE gateway (TDD §2.2,
-`docs/synapse/design/11-technical-design.md` in the M.U.S.E repo). It is a
+talks to a muse gateway (TDD §2.2,
+`docs/synapse/design/11-technical-design.md` in the muse repo). It is a
 pure wire-contract client over
 `docs/contracts/cockpit-wire-contract.md` (96 routes, bearer auth, 6 open
 routes) — nothing from `hermes_cli/jarvis_prime/`, GraphRAG, the
@@ -17,9 +17,9 @@ SynapseUI → {SynapseObservatory, SynapseFoundryClient, SynapseAgents} → Syna
 
 | Class | Type | Role |
 |---|---|---|
-| `UMuseGatewaySettings` | `UDeveloperSettings` (Config=Game) | `GatewayBaseUrl` (default `http://127.0.0.1:8787`), `TokenFilePath` (default `<Saved>/muse_token.txt`), token read-from-file helpers |
-| `UMuseGatewayClient` | `UGameInstanceSubsystem` | Phase 0 handshake: `GET /v1/health` (open) and `GET /v1/cockpit/capabilities` (bearer). Delegates `OnGatewayHealth(bool, FString)` / `OnCapabilities(FString)` |
-| `UMuseSseClient` | `UObject` (BlueprintType) | Streamed-request SSE consumer; `OnSseEvent(EventType, Data)`; reconnect with backoff; consumed by SynapseObservatory at Phase 3 |
+| `UmuseGatewaySettings` | `UDeveloperSettings` (Config=Game) | `GatewayBaseUrl` (default `http://127.0.0.1:8787`), `TokenFilePath` (default `<Saved>/muse_token.txt`), token read-from-file helpers |
+| `UmuseGatewayClient` | `UGameInstanceSubsystem` | Phase 0 handshake: `GET /v1/health` (open) and `GET /v1/cockpit/capabilities` (bearer). Delegates `OnGatewayHealth(bool, FString)` / `OnCapabilities(FString)` |
+| `UmuseSseClient` | `UObject` (BlueprintType) | Streamed-request SSE consumer; `OnSseEvent(EventType, Data)`; reconnect with backoff; consumed by SynapseObservatory at Phase 3 |
 
 Contract routes implemented so far (each cited at its call site, greppable):
 
@@ -46,7 +46,7 @@ Contract routes implemented so far (each cited at its call site, greppable):
 ## Config & token handling (security rule)
 
 - The bearer token is **read from a file at runtime**
-  (`UMuseGatewaySettings::ReadBearerToken`, default
+  (`UmuseGatewaySettings::ReadBearerToken`, default
   `<ProjectSavedDir>/muse_token.txt`). It is never a UPROPERTY/config
   default, never compiled in, never serialized, **never logged** — log
   lines print `<redacted>` and the file *path*, never the value.
@@ -99,4 +99,4 @@ Contract routes implemented so far (each cited at its call site, greppable):
 | `Build.bat SynapseEditor Win64 Development` compiles clean, warnings-as-errors | owner's Legion (UE 5.6 + VS2022) | **DEFERRED — OWNER-BLOCKER**: UE/UBT not installed in this container |
 | PIE log shows live `/v1/health` + capabilities responses (test map) | owner's Legion, per `docs/testmap-setup.md` | **DEFERRED — OWNER-BLOCKER**: needs editor + pairing |
 | `Automation RunTests Synapse.` (Net parser/backoff against local stub) | owner's Legion / future CI | **DEFERRED** — automation specs land with Phase 1 |
-| Real-gateway handshake (pairing flow, per-device token) | owner's machine running the MUSE gateway | **DEFERRED — OWNER-BLOCKER: pairing needed** |
+| Real-gateway handshake (pairing flow, per-device token) | owner's machine running the muse gateway | **DEFERRED — OWNER-BLOCKER: pairing needed** |

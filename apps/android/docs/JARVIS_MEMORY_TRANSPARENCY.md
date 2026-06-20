@@ -1,6 +1,6 @@
-# MUSE — Memory Transparency
+# muse — Memory Transparency
 
-The Memory screen is the owner's window into everything MUSE
+The Memory screen is the owner's window into everything muse
 remembers. It exists so the owner can:
 
 - **See** what Jarvis thinks it knows, broken down by category.

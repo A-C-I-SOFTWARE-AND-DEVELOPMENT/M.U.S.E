@@ -1,6 +1,6 @@
 # Knowledge + learning plugins (knowledge, learning)
 
-Two native M.U.S.E. plugins that give the agent general-knowledge and learning
+Two native muse plugins that give the agent general-knowledge and learning
 lookups over free public APIs. They follow the
 [public-API plugin](public-apis-plugins.md) pattern and reuse the shared,
 host-pinned, redacting HTTP helper at

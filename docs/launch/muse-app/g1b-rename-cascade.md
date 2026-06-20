@@ -1,6 +1,6 @@
 # G1b — Complete the `hermes` → `muse` rename cascade
 
-**Grain:** G1b (Swarm Grainler Parallel, MUSE app)
+**Grain:** G1b (Swarm Grainler Parallel, muse app)
 **Branch:** `claude/muse-command-rename-cascade`
 **Base commit:** `d0bc7fa38993d82b13f5804796d0a8f4c35afdd8`
 (`origin/claude/muse-command-rename` — **contains G1's commit**, cut with
@@ -98,13 +98,13 @@ all "Hermes" / "Hermes Agent" product prose are intentionally **left as-is**.
    trivial one-line follow-up.
 3. **COLLISION with `claude/g-rename-prep` on `packaging/homebrew/hermes-agent.rb`.**
    `docs/launch/followups/g-rename-prep.md` declares that file as owned and plans
-   to `git mv` it to `packaging/homebrew/muse.rb` (Homebrew formula-name rename),
+   to `git mv` it to `packaging/homebrew/muserb` (Homebrew formula-name rename),
    while explicitly **leaving** the `%w[hermes hermes-agent hermes-acp]` binary
    list (it calls that "binary identity … independent of the repo slug"). This
    grain made exactly that binary-list + `test do` edit. The two are
    complementary (slug/formula-name vs. command/binary name) but touch the same
    file → **the orchestrator must reconcile at merge** (apply this grain's
-   binary-name edits onto the `muse.rb` rename). Per contract rule 7, the
+   binary-name edits onto the `muserb` rename). Per contract rule 7, the
    later-starting grain rebases; flagged here for the single-writer orchestrator.
 4. **Wider docs sweep deferred.** `website/docs/**` + `docs/**` contain 200+ files
    with user-typed `hermes <subcommand>` examples (e.g. `reference/cli-commands.md`

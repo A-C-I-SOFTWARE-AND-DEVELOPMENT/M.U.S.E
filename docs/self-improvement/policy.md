@@ -1,6 +1,6 @@
 # Self-Improvement Policy
 
-Hermes/MUSE may *propose* improvements autonomously, but **never applies them
+Hermes/muse may *propose* improvements autonomously, but **never applies them
 silently**. This policy governs the autonomy features added alongside TokenJuice
 (eval-gated routing, background learner, layered memory) and how they interact
 with the existing self-update machinery.

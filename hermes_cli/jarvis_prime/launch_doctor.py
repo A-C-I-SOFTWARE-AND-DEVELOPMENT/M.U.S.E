@@ -69,7 +69,7 @@ class LaunchReport:
 
     def render(self) -> str:
         glyph = {PASS: "✓", WARN: "⚠", FAIL: "✗"}
-        lines = ["MUSE — launch-readiness doctor", ""]
+        lines = ["muse — launch-readiness doctor", ""]
         for c in self.checks:
             lines.append(f"  {glyph.get(c.status, '?')} {c.name}: {c.detail}")
         lines.append("")

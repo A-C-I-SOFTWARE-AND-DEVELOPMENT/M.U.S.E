@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # Adding a Platform Adapter
 
-This guide covers adding a new messaging platform to the M.U.S.E. gateway. A platform adapter connects M.U.S.E. to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
+This guide covers adding a new messaging platform to the muse gateway. A platform adapter connects muse to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
 
 :::tip
 There are two ways to add a platform:
@@ -30,7 +30,7 @@ Inbound messages are received by the adapter and forwarded via `self.handle_mess
 
 ## Plugin Path (Recommended)
 
-The plugin system lets you add a platform adapter without modifying any core M.U.S.E. code. Your plugin is a directory with two files:
+The plugin system lets you add a platform adapter without modifying any core muse code. Your plugin is a directory with two files:
 
 ```
 ~/.hermes/plugins/my-platform/
@@ -115,7 +115,7 @@ def _env_enablement() -> dict | None:
 
 
 def register(ctx):
-    """Plugin entry point — called by the M.U.S.E. plugin system."""
+    """Plugin entry point — called by the muse plugin system."""
     ctx.register_platform(
         name="my_platform",
         label="My Platform",
@@ -336,7 +336,7 @@ label: My Platform
 kind: platform
 version: 1.0.0
 description: >
-  My Platform gateway adapter for M.U.S.E..
+  My Platform gateway adapter for muse
 author: Your Name
 requires_env:
   - name: MY_PLATFORM_TOKEN
@@ -461,7 +461,7 @@ See `plugins/platforms/irc/` in the repo for a complete working example — a fu
 ## Step-by-Step Checklist (Built-in Path)
 
 :::note
-This checklist is for adding a platform directly to the M.U.S.E. core codebase — typically done by core contributors for officially supported platforms. Community/third-party platforms should use the [Plugin Path](#plugin-path-recommended) above.
+This checklist is for adding a platform directly to the muse core codebase — typically done by core contributors for officially supported platforms. Community/third-party platforms should use the [Plugin Path](#plugin-path-recommended) above.
 :::
 
 ### 1. Platform Enum

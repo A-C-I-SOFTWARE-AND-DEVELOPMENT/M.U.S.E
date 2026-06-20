@@ -6,7 +6,7 @@ description: "Security model, dangerous command approval, user authorization, co
 
 # Security
 
-M.U.S.E. is designed with a defense-in-depth security model. This page covers every security boundary — from command approval to container isolation to user authorization on messaging platforms.
+muse is designed with a defense-in-depth security model. This page covers every security boundary — from command approval to container isolation to user authorization on messaging platforms.
 
 ## Overview
 
@@ -22,7 +22,7 @@ The security model has seven layers:
 
 ## Dangerous Command Approval
 
-Before executing any command, M.U.S.E. checks it against a curated list of dangerous patterns. If a match is found, the user must explicitly approve it.
+Before executing any command, muse checks it against a curated list of dangerous patterns. If a match is found, the user must explicitly approve it.
 
 ### Approval Modes
 
@@ -64,7 +64,7 @@ The `/yolo` command is a **toggle** — each use flips the mode on or off:
 
 YOLO mode is available in both CLI and gateway sessions. Internally, it sets the `HERMES_YOLO_MODE` environment variable which is checked before every command execution.
 
-When YOLO is active, M.U.S.E. shows two persistent visual reminders so it's hard to forget that approval prompts are bypassed:
+When YOLO is active, muse shows two persistent visual reminders so it's hard to forget that approval prompts are bypassed:
 
 - A red banner line at session start when YOLO is already active: `⚠ YOLO mode — all approval prompts bypassed`. Hidden when YOLO is off so the default banner stays uncluttered.
 - A `⚠ YOLO` fragment in the status bar across all width tiers, updated live as you toggle YOLO on or off (rich-text renderer and plain-text fallback).
@@ -77,7 +77,7 @@ For destructive session slash commands (`/clear`, `/new` / `/reset`, `/undo`, `/
 
 ### Hardline Blocklist (Always-On Floor)
 
-Some commands are so catastrophic — irreversible filesystem wipes, fork bombs, direct block-device writes — that M.U.S.E. refuses to run them **regardless** of:
+Some commands are so catastrophic — irreversible filesystem wipes, fork bombs, direct block-device writes — that muse refuses to run them **regardless** of:
 
 - `--yolo` / `/yolo` toggled on
 - `approvals.mode: off`
@@ -195,7 +195,7 @@ Use `muse config edit` to review or remove patterns from your permanent allowlis
 
 ## User Authorization (Gateway)
 
-When running the messaging gateway, M.U.S.E. controls who can interact with the bot through a layered authorization system.
+When running the messaging gateway, muse controls who can interact with the bot through a layered authorization system.
 
 ### Authorization Check Order
 
@@ -241,7 +241,7 @@ or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id).
 
 ### DM Pairing System
 
-For more flexible authorization, M.U.S.E. includes a code-based pairing system. Instead of requiring user IDs upfront, unknown users receive a one-time pairing code that the bot owner approves via the CLI.
+For more flexible authorization, muse includes a code-based pairing system. Instead of requiring user IDs upfront, unknown users receive a one-time pairing code that the bot owner approves via the CLI.
 
 **How it works:**
 
@@ -299,7 +299,7 @@ muse pairing clear-pending
 
 ## Container Isolation
 
-When using the `docker` terminal backend, M.U.S.E. applies strict security hardening to every container.
+When using the `docker` terminal backend, muse applies strict security hardening to every container.
 
 ### Docker Security Flags
 
@@ -408,7 +408,7 @@ required_credential_files:
     description: Google OAuth2 client credentials
 ```
 
-When loaded, M.U.S.E. checks if these files exist in the active profile's `HERMES_HOME` and registers them for mounting:
+When loaded, muse checks if these files exist in the active profile's `HERMES_HOME` and registers them for mounting:
 
 - **Docker**: Read-only bind mounts (`-v host:container:ro`)
 - **Modal**: Mounted at sandbox creation + synced before each command (handles mid-session OAuth setup)
@@ -430,7 +430,7 @@ Paths are relative to `~/.hermes/`. Files are mounted to `/root/.hermes/` inside
 | Sandbox | Default Filter | Passthrough Override |
 |---------|---------------|---------------------|
 | **execute_code** | Blocks vars containing `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `PASSWD`, `AUTH` in name; only allows safe-prefix vars through | ✅ Passthrough vars bypass both checks |
-| **terminal** (local) | Blocks explicit M.U.S.E. infrastructure vars (provider keys, gateway tokens, tool API keys) | ✅ Passthrough vars bypass the blocklist |
+| **terminal** (local) | Blocks explicit muse infrastructure vars (provider keys, gateway tokens, tool API keys) | ✅ Passthrough vars bypass the blocklist |
 | **terminal** (Docker) | No host env vars by default | ✅ Passthrough vars + `docker_forward_env` forwarded via `-e` |
 | **terminal** (Modal) | No host env/files by default | ✅ Credential files mounted; env passthrough via sync |
 | **MCP** | Blocks everything except safe system vars + explicitly configured `env` | ❌ Not affected by passthrough (use MCP `env` config instead) |
@@ -441,7 +441,7 @@ Paths are relative to `~/.hermes/`. Files are mounted to `/root/.hermes/` inside
 - Credential files are mounted **read-only** into Docker containers
 - Skills Guard scans skill content for suspicious env access patterns before installation
 - Missing/unset vars are never registered (you can't leak what doesn't exist)
-- M.U.S.E. infrastructure secrets (provider API keys, gateway tokens) should never be added to `env_passthrough` — they have dedicated mechanisms
+- muse infrastructure secrets (provider API keys, gateway tokens) should never be added to `env_passthrough` — they have dedicated mechanisms
 
 ## MCP Credential Handling
 
@@ -525,7 +525,7 @@ The host-substring guard (which blocks lookalike Unicode domain tricks even when
 
 ### Tirith Pre-Exec Security Scanning
 
-M.U.S.E. integrates [tirith](https://github.com/sheeki03/tirith) for content-level command scanning before execution. Tirith detects threats that pattern matching alone misses:
+muse integrates [tirith](https://github.com/sheeki03/tirith) for content-level command scanning before execution. Tirith detects threats that pattern matching alone misses:
 
 - Homograph URL spoofing (internationalized domain attacks)
 - Pipe-to-interpreter patterns (`curl | bash`, `wget | sh`)
@@ -544,7 +544,7 @@ security:
 
 When `tirith_fail_open` is `true` (default), commands proceed if tirith is not installed or times out. Set to `false` in high-security environments to block commands when tirith is unavailable.
 
-Tirith ships prebuilt binaries for Linux (x86_64 / aarch64) and macOS (x86_64 / arm64). On platforms with no prebuilt binary (Windows, etc.), tirith is silently skipped — pattern-matching guards still run, and the CLI does not surface an "unavailable" banner. To use tirith on Windows, run M.U.S.E. under WSL.
+Tirith ships prebuilt binaries for Linux (x86_64 / aarch64) and macOS (x86_64 / arm64). On platforms with no prebuilt binary (Windows, etc.), tirith is silently skipped — pattern-matching guards still run, and the CLI does not surface an "unavailable" banner. To use tirith on Windows, run muse under WSL.
 
 Tirith's verdict integrates with the approval flow: safe commands pass through, while both suspicious and blocked commands trigger user approval with the full tirith findings (severity, title, description, safer alternatives). Users can approve or deny — the default choice is deny to keep unattended scenarios secure.
 
@@ -610,7 +610,7 @@ The SSH connection details live in `.env` (not `config.yaml`) so they aren't che
 
 ## Supply-chain advisory checking
 
-M.U.S.E. ships with a built-in advisory scanner that flags Python packages in the active venv that match a curated catalog of known-compromised versions (supply-chain worms like the May 2026 `mistralai 2.4.6` poisoning). Implementation lives in `hermes_cli/security_advisories.py`.
+muse ships with a built-in advisory scanner that flags Python packages in the active venv that match a curated catalog of known-compromised versions (supply-chain worms like the May 2026 `mistralai 2.4.6` poisoning). Implementation lives in `hermes_cli/security_advisories.py`.
 
 How it runs:
 
@@ -630,7 +630,7 @@ The check itself is stdlib-only and runs from one `importlib.metadata.version()`
 
 ### Lazy install of optional dependencies
 
-Many features (Mistral TTS, ElevenLabs, Honcho memory, Bedrock, Slack, Matrix, …) depend on Python packages that not every user needs. M.U.S.E. installs these **lazily** on first use rather than eagerly under `hermes-agent[all]`. The implementation lives in `tools/lazy_deps.py`.
+Many features (Mistral TTS, ElevenLabs, Honcho memory, Bedrock, Slack, Matrix, …) depend on Python packages that not every user needs. muse installs these **lazily** on first use rather than eagerly under `hermes-agent[all]`. The implementation lives in `tools/lazy_deps.py`.
 
 The trade-off this fixes:
 

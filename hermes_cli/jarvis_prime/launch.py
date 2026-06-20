@@ -2,7 +2,7 @@
 
 Runs the full launch path end to end:
 
-1. MUSE runtime availability
+1. muse runtime availability
 2. free-first model bootstrap (writes the model policy)
 3. memory path initialization (safe permissions)
 4. owner-gate phrase enforcement
@@ -61,7 +61,7 @@ class LaunchSummary:
         }
 
     def render(self) -> str:
-        lines = ["MUSE — free-first launch", ""]
+        lines = ["muse — free-first launch", ""]
         for s in self.steps:
             lines.append(f"  {'✓' if s.ok else '✗'} {s.name}: {s.detail}")
         lines.append("")
@@ -76,7 +76,7 @@ class LaunchSummary:
         )
         lines.append("")
         if self.ok:
-            lines.append("LAUNCH COMPLETE ✓  MUSE is ready.")
+            lines.append("LAUNCH COMPLETE ✓  muse is ready.")
         else:
             lines.append(
                 "LAUNCH BLOCKED ✗  — resolve the failing steps, then re-run `hermes jarvis launch`."
@@ -106,7 +106,7 @@ def launch(
 
         jp = JarvisPrime()
         jp.handle("launch", skip_perceive=True, skip_recollect=True)
-        steps.append(LaunchStep("runtime", True, "MUSE runtime available"))
+        steps.append(LaunchStep("runtime", True, "muse runtime available"))
     except Exception as exc:
         steps.append(LaunchStep("runtime", False, f"runtime unavailable: {exc}"))
 

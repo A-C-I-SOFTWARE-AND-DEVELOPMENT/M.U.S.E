@@ -6,7 +6,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 
 /**
- * MUSE motion language.
+ * muse motion language.
  *
  * Three deliberate durations and two easings shared by every component in
  * the design system, so animation feels like one hand drew it. Numbers and
@@ -17,7 +17,7 @@ import androidx.compose.animation.core.tween
  * Honour the user's reduced-motion preference at the *call site* — these are
  * just the tokens, not a policy.
  */
-object MuseMotion {
+object museMotion {
 
     // Durations, in milliseconds.
     /** Quick — pressed states, dot pulses, chip toggles. */

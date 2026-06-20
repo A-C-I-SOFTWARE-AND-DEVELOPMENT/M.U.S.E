@@ -1,8 +1,8 @@
-# g-rename-prep: repo-slug `hermes-agent` → `M.U.S.E` (outward surfaces)
+# g-rename-prep: repo-slug `hermes-agent` → `muse` (outward surfaces)
 
 > **REWORKED at merge time (2026-06-08).** The owner renamed the GitHub repo to
-> **`M.U.S.E`** (not lowercase `muse`), so the GitHub URLs were re-pointed
-> `hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`** (README,
+> **`muse`** (not lowercase `muse`), so the GitHub URLs were re-pointed
+> `hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`** (README,
 > CONTRIBUTING, issue/PR templates). The publish/deploy guards, Docker/PyPI/Cachix
 > registry names, and the homebrew formula were **reverted to status quo** — they
 > are dormant on this repo (the `github.repository ==` guards never matched it) and
@@ -45,7 +45,7 @@ touched); `uv run ruff check .` stays green.
 - `.github/actions/hermes-smoke-test/action.yml`
 - `.github/actions/nix-setup/action.yml`
 - `.github/workflows/{docker-publish,android-build,skills-index,deploy-site,upload_to_pypi,sync-aci-to-base44}.yml`
-- `packaging/homebrew/hermes-agent.rb` → **renamed** to `packaging/homebrew/muse.rb` (`git mv`)
+- `packaging/homebrew/hermes-agent.rb` → **renamed** to `packaging/homebrew/muserb` (`git mv`)
 - `docs/launch/followups/g-rename-prep.md` (this snapshot)
 
 > Disjoint from every other in-flight task. No shared files discovered.
@@ -96,9 +96,9 @@ trailing `hermes-agent` slug becomes `muse`.
 
 **.github/workflows/upload_to_pypi.yml** (1) — publish `environment.url: https://pypi.org/p/hermes-agent` (publish-asset/display URL tied to the package name).
 
-**packaging/homebrew/hermes-agent.rb → muse.rb** (file rename + 4 content edits)
+**packaging/homebrew/hermes-agent.rb → muserb** (file rename + 4 content edits)
 - File renamed via `git mv` (formula name derives from the filename).
-- L1 — Ruby class `HermesAgent` → `Muse` (Homebrew requires the class name to match the formula name, or `brew audit` fails).
+- L1 — Ruby class `HermesAgent` → `muse` (Homebrew requires the class name to match the formula name, or `brew audit` fails).
 - L8 — source `url "…github.com/NousResearch/hermes-agent/releases/download/…"` slug → `muse`. The sdist **asset filename `hermes_agent-0.6.0.tar.gz` is preserved byte-for-byte** (it is the published package artifact name, an underscore identifier — not the slug).
 - L20 — comment `brew update-python-resources --print-only hermes-agent` (formula name).
 - L46 — test assertion `assert_match "brew upgrade hermes-agent"` (formula name).
@@ -111,13 +111,13 @@ Per rules 2 (never touch the doc-host or the underscore substrate) and 3
 - **Doc-host `hermes-agent.nousresearch.com`** — runtime data, rule 2. Left in:
   `README.md` (L158, 185, 247, 253, 257–271, 374 — the doc table + "Full
   documentation" links), `CONTRIBUTING.md` L197 (project-structure comment),
-  `packaging/homebrew/muse.rb` L5 (`homepage`),
+  `packaging/homebrew/muserb` L5 (`homepage`),
   `.github/workflows/skills-index.yml` L92 (the `_site/CNAME` value),
   `.github/workflows/deploy-site.yml` L80 (llms.txt comment).
 - **`CONTRIBUTING.md` L137** — `hermes-agent/` is the root label of the
   project-structure ASCII tree (a local directory-name illustration), not a
   repo-slug URL/asset. Left as prose.
-- **`packaging/homebrew/muse.rb` L29** — `%w[hermes hermes-agent hermes-acp]`
+- **`packaging/homebrew/muserb` L29** — `%w[hermes hermes-agent hermes-acp]`
   are the **console-script executable names** the package installs (binary
   identity from `pyproject.toml`), independent of the repo slug. Renaming would
   break the install. Also left: `desc` and the `"Hermes Agent v#{version}"`
@@ -143,7 +143,7 @@ Per rules 2 (never touch the doc-host or the underscore substrate) and 3
   The workflow edits above point CI at the renamed targets; those targets must
   exist (or be renamed) before the workflows run green. This is why the PR is
   STAGED.
-- **`packaging/homebrew/muse.rb` L46 couples to runtime CLI output.** The
+- **`packaging/homebrew/muserb` L46 couples to runtime CLI output.** The
   `brew test` asserts `hermes update` prints `brew upgrade muse`. That string
   is emitted by the Hermes update code path (NOT an owned file). Update it in
   lockstep, or this brew test will fail post-rename. Tracked here, not fixed
@@ -168,5 +168,5 @@ Per rules 2 (never touch the doc-host or the underscore substrate) and 3
   `url` line (present identically on both `-` and `+` sides of the diff); no
   underscore identifier was altered.
 - `git diff --stat` → 15 files, +43/-43; plus the staged `git mv`
-  `packaging/homebrew/{hermes-agent.rb => muse.rb}`.
+  `packaging/homebrew/{hermes-agent.rb => muserb}`.
 - `uv run ruff check .` → **All checks passed!** (no Python touched).

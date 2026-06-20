@@ -4,7 +4,7 @@ Exercises the surfaces a real owner touches, with no network and no model
 configured — proving the pieces *synergize* rather than just import:
 
 1. **Cockpit HTTP server** boots, gates on the bearer token, reports health,
-   and streams a **real** MUSE turn over the chunk vocabulary the
+   and streams a **real** muse turn over the chunk vocabulary the
    Android avatar consumes (``thinking`` → ``tone`` → … → ``body`` → ``done``).
 2. **Shared memory** is one brain across surfaces: a fact written through one
    ``JarvisPrime`` instance is recollected by a *fresh* instance pointed at the

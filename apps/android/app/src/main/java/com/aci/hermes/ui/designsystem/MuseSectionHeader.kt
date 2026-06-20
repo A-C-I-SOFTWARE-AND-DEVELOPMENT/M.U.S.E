@@ -16,7 +16,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * A section header — a title, an optional supporting subtitle, and an optional
- * trailing slot (a "See all" action, a count, a [MuseStatusPill], …). Used to
+ * trailing slot (a "See all" action, a count, a [museStatusPill], …). Used to
  * label groups of cards on a screen.
  *
  * The title is signal-bright; the subtitle steps down to muted, holding the
@@ -27,7 +27,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
  * @param trailing optional composable pinned to the end of the header row.
  */
 @Composable
-fun MuseSectionHeader(
+fun museSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,

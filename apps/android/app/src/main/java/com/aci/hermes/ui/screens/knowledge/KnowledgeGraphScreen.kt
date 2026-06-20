@@ -26,11 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import com.aci.hermes.data.cockpit.GraphAnswer
 import com.aci.hermes.data.cockpit.GraphCommunity
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
@@ -77,7 +77,7 @@ fun KnowledgeGraphScreen(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                     for (mode in GRAPH_QUERY_MODES) {
-                        MuseChip(
+                        museChip(
                             label = mode,
                             selected = state.mode == mode,
                             onClick = { viewModel.onModeChange(mode) },
@@ -87,15 +87,15 @@ fun KnowledgeGraphScreen(
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::runQuery,
                         text = "Query",
                         enabled = !state.loading && state.query.isNotBlank(),
                     )
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::rebuild,
                         text = "Rebuild",
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                         enabled = !state.loading,
                     )
                 }
@@ -118,13 +118,13 @@ fun KnowledgeGraphScreen(
 
 private fun androidx.compose.foundation.lazy.LazyListScope.graphAnswerItems(answer: GraphAnswer) {
     if (answer.communities.isNotEmpty()) {
-        item { MuseSectionHeader(title = "Clusters") }
+        item { museSectionHeader(title = "Clusters") }
         items(answer.communities) { community -> CommunityCard(community) }
     }
     if (answer.nodes.isNotEmpty()) {
-        item { MuseSectionHeader(title = "Related nodes") }
+        item { museSectionHeader(title = "Related nodes") }
         items(answer.nodes) { node ->
-            MuseCard(modifier = Modifier.fillMaxWidth()) {
+            museCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(JarvisTokens.SpaceMd)) {
                     Text("[${node.type}] ${node.title}", style = MaterialTheme.typography.bodyMedium)
                     if (node.key.isNotBlank() && node.key != node.title) {
@@ -137,7 +137,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.graphAnswerItems(answ
         }
     }
     if (answer.citations.isNotEmpty()) {
-        item { MuseSectionHeader(title = "Sources") }
+        item { museSectionHeader(title = "Sources") }
         items(answer.citations) { src ->
             Text("• ${src.kind}: ${src.uri}", style = MaterialTheme.typography.bodySmall,
                 fontFamily = FontFamily.Monospace)
@@ -147,7 +147,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.graphAnswerItems(answ
 
 @Composable
 private fun CommunityCard(community: GraphCommunity) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceMd), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text("cluster (${community.size} nodes)", style = MaterialTheme.typography.labelLarge)
             for (t in community.topTitles) {

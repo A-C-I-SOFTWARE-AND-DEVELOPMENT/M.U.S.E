@@ -24,8 +24,8 @@ import com.aci.hermes.ui.theme.JarvisInkEdge
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalMute
 
-/** State of a single job phase node on a [MusePhaseRail]. */
-enum class MusePhaseState {
+/** State of a single job phase node on a [musePhaseRail]. */
+enum class musePhaseState {
     /** Completed step — drawn as a [JarvisCyan] ring (ring-1). */
     Done,
 
@@ -40,14 +40,14 @@ enum class MusePhaseState {
 }
 
 /** One labelled node on the rail. */
-data class MusePhase(
+data class musePhase(
     val label: String,
-    val state: MusePhaseState,
+    val state: musePhaseState,
 )
 
 /**
  * A horizontal job-phase rail — the "where is this job" tell for orchestrated
- * work. Each [phase][MusePhase] is a node connected by a bar; the bar leading
+ * work. Each [phase][musePhase] is a node connected by a bar; the bar leading
  * *into* a node is "lit" (cyan) once that node is reached, so progress reads
  * left-to-right.
  *
@@ -57,8 +57,8 @@ data class MusePhase(
  * @param phases the ordered steps. Two or more is the useful case.
  */
 @Composable
-fun MusePhaseRail(
-    phases: List<MusePhase>,
+fun musePhaseRail(
+    phases: List<musePhase>,
     modifier: Modifier = Modifier,
 ) {
     if (phases.isEmpty()) return
@@ -71,7 +71,7 @@ fun MusePhaseRail(
             phases.forEachIndexed { index, phase ->
                 // The connecting bar BEFORE this node (skip before the first).
                 if (index > 0) {
-                    val prevReached = phases[index - 1].state != MusePhaseState.Pending
+                    val prevReached = phases[index - 1].state != musePhaseState.Pending
                     PhaseConnector(
                         lit = prevReached,
                         modifier = Modifier.weight(1f),
@@ -90,7 +90,7 @@ fun MusePhaseRail(
                 Text(
                     text = phase.label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (phase.state == MusePhaseState.Current) JarvisSignal
+                    color = if (phase.state == musePhaseState.Current) JarvisSignal
                             else JarvisSignalMute,
                 )
             }
@@ -99,7 +99,7 @@ fun MusePhaseRail(
 }
 
 @Composable
-private fun PhaseNode(state: MusePhaseState, modifier: Modifier = Modifier) {
+private fun PhaseNode(state: musePhaseState, modifier: Modifier = Modifier) {
     Canvas(
         modifier = modifier
             .width(20.dp)
@@ -109,19 +109,19 @@ private fun PhaseNode(state: MusePhaseState, modifier: Modifier = Modifier) {
         val centre = Offset(size.width / 2f, size.height / 2f)
         val node = r * 0.62f
         when (state) {
-            MusePhaseState.Done -> drawCircle(
+            musePhaseState.Done -> drawCircle(
                 color = JarvisCyan,
                 radius = node,
                 center = centre,
                 style = Stroke(width = r * 0.22f),
             )
-            MusePhaseState.Current -> {
+            musePhaseState.Current -> {
                 // Tight cool bloom + the white core.
                 drawCircle(color = JarvisGold.copy(alpha = 0.25f), radius = node * 1.7f, center = centre)
                 drawCircle(color = JarvisGold, radius = node, center = centre)
             }
-            MusePhaseState.Failed -> drawCircle(color = JarvisCrimson, radius = node, center = centre)
-            MusePhaseState.Pending -> drawCircle(
+            musePhaseState.Failed -> drawCircle(color = JarvisCrimson, radius = node, center = centre)
+            musePhaseState.Pending -> drawCircle(
                 color = JarvisSignalMute,
                 radius = node,
                 center = centre,

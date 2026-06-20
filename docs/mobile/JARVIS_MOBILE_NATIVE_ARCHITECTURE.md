@@ -1,4 +1,4 @@
-# MUSE — Mobile-Native Architecture (as-built)
+# muse — Mobile-Native Architecture (as-built)
 
 > **Status:** authoritative, as-built. This document describes what the
 > code in `apps/android/` and `gateway/` **actually does today**, with
@@ -6,7 +6,7 @@
 > intended design that was never implemented (notably SSE streaming),
 > that claim is flagged here as **superseded**.
 >
-> **Scope:** the native Android cockpit (`apps/android/`) and the M.U.S.E.
+> **Scope:** the native Android cockpit (`apps/android/`) and the muse
 > backend surfaces it speaks to. The Python runtime — agent loop, skills,
 > memory, tools, scheduling, orchestration ledger — is **unchanged** and
 > remains the canonical backend. The phone is the **primary control
@@ -19,8 +19,8 @@
 
 ## 1. Purpose and principles
 
-MUSE's mobile-native goal: **Android is the primary cockpit;
-M.U.S.E. remains the canonical backend; no backend power is removed.**
+muse's mobile-native goal: **Android is the primary cockpit;
+muse remains the canonical backend; no backend power is removed.**
 
 Non-negotiable principles this architecture upholds:
 
@@ -67,7 +67,7 @@ Each layer talks only to the one below it. The transport layer is the
                                        │
                                        ▼
                     ┌─────────────────────────────────────────────┐
-                    │  M.U.S.E. backend (Python, off-phone or Termux) │
+                    │  muse backend (Python, off-phone or Termux) │
                     │   • Cockpit REST   gateway/cockpit/server.py  │
                     │   • Chat (JSONL)   gateway/jarvis_local_http.py│
                     └─────────────────────────────────────────────┘

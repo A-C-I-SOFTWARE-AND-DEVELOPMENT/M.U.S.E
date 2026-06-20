@@ -17,7 +17,7 @@ import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * The MUSE empty state — the [MuseGlyph] over a void, a title, a body, and an
+ * The muse empty state — the [museGlyph] over a void, a title, a body, and an
  * optional action. The pattern for "nothing here yet" panels (no jobs, no
  * memory, no approvals) so empty screens still feel like the product, not a
  * blank.
@@ -29,11 +29,11 @@ import com.aci.hermes.ui.theme.JarvisTokens
  * @param title the headline (e.g. "No active jobs").
  * @param body the supporting sentence under the title.
  * @param actionLabel optional CTA label; when set together with [onAction],
- *                    a primary [MuseButton] is shown.
+ *                    a primary [museButton] is shown.
  * @param onAction tap handler for the action button.
  */
 @Composable
-fun MuseEmptyState(
+fun museEmptyState(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
@@ -47,7 +47,7 @@ fun MuseEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
     ) {
-        MuseGlyph(size = 72.dp)
+        museGlyph(size = 72.dp)
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
@@ -62,10 +62,10 @@ fun MuseEmptyState(
             modifier = Modifier.widthIn(max = 320.dp),
         )
         if (actionLabel != null && onAction != null) {
-            MuseButton(
+            museButton(
                 onClick = onAction,
                 text = actionLabel,
-                variant = MuseButtonVariant.Primary,
+                variant = museButtonVariant.Primary,
                 modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
             )
         }

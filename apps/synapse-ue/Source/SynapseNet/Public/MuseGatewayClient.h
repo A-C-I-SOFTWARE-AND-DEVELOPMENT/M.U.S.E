@@ -1,4 +1,4 @@
-// UMuseGatewayClient — the gateway handshake client (GameInstance subsystem).
+// UmuseGatewayClient — the gateway handshake client (GameInstance subsystem).
 // Copyright A-C-I Software & Development. All rights reserved.
 
 #pragma once
@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Interfaces/IHttpRequest.h"
-#include "MuseGatewayClient.generated.h"
+#include "museGatewayClient.generated.h"
 
 /**
  * Broadcast on the game thread after GET /v1/health completes.
@@ -26,7 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnGatewayHealth, bool, bOk, const 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCapabilities, const FString&, RawJson);
 
 /**
- * The only code in the project that talks to a MUSE gateway (TDD §2.2).
+ * The only code in the project that talks to a muse gateway (TDD §2.2).
  *
  * Prompt 0 scope: the Phase 0 handshake —
  *   GET /v1/health                   (open route; liveness + version)
@@ -42,12 +42,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCapabilities, const FString&, Raw
  * on the game thread.
  *
  * Security: the bearer token is read from the token file at call time
- * (UMuseGatewaySettings::ReadBearerToken) and set straight into the
+ * (UmuseGatewaySettings::ReadBearerToken) and set straight into the
  * Authorization header. It is never stored on this object, never logged —
  * log lines that reference auth state use a redaction marker.
  */
 UCLASS()
-class SYNAPSENET_API UMuseGatewayClient : public UGameInstanceSubsystem
+class SYNAPSENET_API UmuseGatewayClient : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
@@ -59,13 +59,13 @@ public:
 
 	/** GET /v1/health (open route). Broadcasts OnGatewayHealth on the game
 	 *  thread. Safe to call before pairing — no token required. */
-	UFUNCTION(BlueprintCallable, Category = "MUSE|Gateway")
+	UFUNCTION(BlueprintCallable, Category = "muse|Gateway")
 	void CheckHealth();
 
 	/** GET /v1/cockpit/capabilities with `Authorization: Bearer <token>`.
 	 *  Broadcasts OnCapabilities (2xx) or OnGatewayHealth(false, body) on
 	 *  auth/transport failure, on the game thread. */
-	UFUNCTION(BlueprintCallable, Category = "MUSE|Gateway")
+	UFUNCTION(BlueprintCallable, Category = "muse|Gateway")
 	void FetchCapabilities();
 
 	/** Build a bearer-authorized GET request for <GatewayBaseUrl><Path>,
@@ -80,11 +80,11 @@ public:
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> CreateAuthorizedGetRequest(const FString& Path) const;
 
 	/** Fired for health results (and capabilities failures). Game thread. */
-	UPROPERTY(BlueprintAssignable, Category = "MUSE|Gateway")
+	UPROPERTY(BlueprintAssignable, Category = "muse|Gateway")
 	FOnGatewayHealth OnGatewayHealth;
 
 	/** Fired with the raw capabilities JSON on success. Game thread. */
-	UPROPERTY(BlueprintAssignable, Category = "MUSE|Gateway")
+	UPROPERTY(BlueprintAssignable, Category = "muse|Gateway")
 	FOnCapabilities OnCapabilities;
 
 private:

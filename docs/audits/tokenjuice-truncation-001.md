@@ -1,7 +1,7 @@
 # TOKENJUICE-TRUNCATION-001
 
 Tracking brief for a pre-existing, `main`-red test failure. **Standalone**
-work item — intentionally separate from the MUSE learning-dataset
+work item — intentionally separate from the muse learning-dataset
 pipeline (PR #222), which did not cause and must not fix this.
 
 ## Symptom
@@ -54,7 +54,7 @@ bug in either alone.
 
 ## Non-goals
 
-- No learning-dataset, gateway-cockpit, MUSE-CLI, or Android changes.
+- No learning-dataset, gateway-cockpit, muse-CLI, or Android changes.
 - Do not bundle this with PR #222.
 
 ## References

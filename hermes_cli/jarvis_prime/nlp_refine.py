@@ -1,4 +1,4 @@
-"""W6 refinement for the MUSE NL compiler.
+"""W6 refinement for the muse NL compiler.
 
 Two capabilities, both deterministic and safe:
 

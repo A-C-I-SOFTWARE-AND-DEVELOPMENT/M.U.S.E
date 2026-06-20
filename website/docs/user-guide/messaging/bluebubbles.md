@@ -1,13 +1,13 @@
 # BlueBubbles (iMessage)
 
-Connect M.U.S.E. to Apple iMessage via [BlueBubbles](https://bluebubbles.app/) — a free, open-source macOS server that bridges iMessage to any device.
+Connect muse to Apple iMessage via [BlueBubbles](https://bluebubbles.app/) — a free, open-source macOS server that bridges iMessage to any device.
 
 ## Prerequisites
 
 - A **Mac** (always on) running [BlueBubbles Server](https://bluebubbles.app/)
 - Apple ID signed into Messages.app on that Mac
 - BlueBubbles Server v1.0.0+ (webhooks require this version)
-- Network connectivity between M.U.S.E. and the BlueBubbles server
+- Network connectivity between muse and the BlueBubbles server
 
 ## Setup
 
@@ -21,7 +21,7 @@ In BlueBubbles Server → **Settings → API**, note:
 - **Server URL** (e.g., `http://192.168.1.10:1234`)
 - **Server Password**
 
-### 3. Configure M.U.S.E.
+### 3. Configure muse
 
 Run the setup wizard:
 
@@ -43,7 +43,7 @@ BLUEBUBBLES_PASSWORD=your-server-password
 Choose one approach:
 
 **DM Pairing (recommended):**
-When someone messages your iMessage, M.U.S.E. automatically sends them a pairing code. Approve it with:
+When someone messages your iMessage, muse automatically sends them a pairing code. Approve it with:
 ```bash
 muse pairing approve bluebubbles <CODE>
 ```
@@ -65,17 +65,17 @@ BLUEBUBBLES_ALLOW_ALL_USERS=true
 muse gateway run
 ```
 
-M.U.S.E. will connect to your BlueBubbles server, register a webhook, and start listening for iMessage messages.
+muse will connect to your BlueBubbles server, register a webhook, and start listening for iMessage messages.
 
 ## How It Works
 
 ```
-iMessage → Messages.app → BlueBubbles Server → Webhook → M.U.S.E.
-M.U.S.E. → BlueBubbles REST API → Messages.app → iMessage
+iMessage → Messages.app → BlueBubbles Server → Webhook → muse
+muse → BlueBubbles REST API → Messages.app → iMessage
 ```
 
 - **Inbound:** BlueBubbles sends webhook events to a local listener when new messages arrive. No polling — instant delivery.
-- **Outbound:** M.U.S.E. sends messages via the BlueBubbles REST API.
+- **Outbound:** muse sends messages via the BlueBubbles REST API.
 - **Media:** Images, voice messages, videos, and documents are supported in both directions. Inbound attachments are downloaded and cached locally for the agent to process.
 
 ## Environment Variables
@@ -114,7 +114,7 @@ Shows "typing..." in the iMessage conversation while the agent is processing. Re
 Automatically marks messages as read after processing. Requires Private API.
 
 ### Chat Addressing
-You can address chats by email or phone number — M.U.S.E. resolves them to BlueBubbles chat GUIDs automatically. No need to use raw GUID format.
+You can address chats by email or phone number — muse resolves them to BlueBubbles chat GUIDs automatically. No need to use raw GUID format.
 
 ## Private API
 

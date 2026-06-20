@@ -29,7 +29,7 @@ Configuration in config.yaml::
           client_secret: "secret"               # confidential clients only
           scope: "read write"                   # default: server-provided
           redirect_port: 0                      # 0 = auto-pick free port
-          client_name: "My Custom Client"       # default: "MUSE"
+          client_name: "My Custom Client"       # default: "muse"
 """
 
 import asyncio
@@ -545,7 +545,7 @@ def _build_client_metadata(cfg: dict) -> "OAuthClientMetadata":
         raise ValueError(
             "_configure_callback_port() must be called before _build_client_metadata()"
         )
-    client_name = cfg.get("client_name", "MUSE")
+    client_name = cfg.get("client_name", "muse")
     scope = cfg.get("scope")
     redirect_uri = f"http://127.0.0.1:{port}/callback"
 

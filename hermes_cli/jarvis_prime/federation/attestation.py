@@ -1,6 +1,6 @@
-"""Cross-attestation between sovereign MUSE nodes (Vol VI Parts 1/3/6).
+"""Cross-attestation between sovereign muse nodes (Vol VI Parts 1/3/6).
 
-The federation principle: MUSE instances are **sovereign nodes, not branches
+The federation principle: muse instances are **sovereign nodes, not branches
 of a central brain**. Sharing happens by content-addressed cross-attestation —
 a node exports a signed :class:`AttestationBundle` (its verified ledger head
 plus any artifact attestations) as a JSON file; a peer imports it into its

@@ -1,6 +1,6 @@
 """AOS council routing proof — routing resolves only registered members.
 
-Realizes follow-up FU-21: prove that MUSE's council/specialist routing can
+Realizes follow-up FU-21: prove that muse's council/specialist routing can
 only hand off to a council member that actually exists in the committed AOS
 Enterprise Council registry, and that an invented (unregistered) name does
 *not* resolve. This encodes the binding rule from ``CLAUDE.md``:

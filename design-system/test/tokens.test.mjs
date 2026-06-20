@@ -75,7 +75,7 @@ check(kt.includes("ringGradientStops"), "Tokens.kt exposes ringGradientStops");
 check(css.includes("--radius: 12px"), "tokens.css keeps --radius: 12px (md)");
 check(css.includes("--space-1: 4px"), "tokens.css spacing 4/8 grid present");
 check(css.includes("--space-16: 64px"), "tokens.css spacing tops out at 64px");
-check(kt.includes("object MuseTokens"), "Tokens.kt defines object MuseTokens");
+check(kt.includes("object museTokens"), "Tokens.kt defines object museTokens");
 check(kt.includes("import androidx.compose.ui.graphics.Color"), "Tokens.kt imports Compose Color");
 
 // ---- glyph geometry --------------------------------------------------------

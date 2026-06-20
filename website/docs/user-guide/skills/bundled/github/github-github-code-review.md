@@ -17,7 +17,7 @@ Review PRs: diffs, inline comments via gh or REST.
 | Source | Bundled (installed by default) |
 | Path | `skills/github/github-code-review` |
 | Version | `1.1.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `GitHub`, `Code-Review`, `Pull-Requests`, `Git`, `Quality` |
@@ -26,7 +26,7 @@ Review PRs: diffs, inline comments via gh or REST.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GitHub Code Review
@@ -280,7 +280,7 @@ curl -s -X POST \
   -d "{
     \"commit_id\": \"$HEAD_SHA\",
     \"event\": \"COMMENT\",
-    \"body\": \"Code review from M.U.S.E.\",
+    \"body\": \"Code review from muse\",
     \"comments\": [
       {\"path\": \"src/auth.py\", \"line\": 45, \"body\": \"Use parameterized queries to prevent SQL injection.\"},
       {\"path\": \"src/models/user.py\", \"line\": 23, \"body\": \"Hash passwords with bcrypt before storing.\"},
@@ -427,7 +427,7 @@ Collect your findings and submit them as a formal review with inline comments.
 **With gh:**
 ```bash
 # If no issues — approve
-gh pr review $PR_NUMBER --approve --body "Reviewed by M.U.S.E.. Code looks clean — good test coverage, no security concerns."
+gh pr review $PR_NUMBER --approve --body "Reviewed by muse Code looks clean — good test coverage, no security concerns."
 
 # If issues found — request changes with inline comments
 gh pr review $PR_NUMBER --request-changes --body "Found a few issues — see inline comments."
@@ -446,7 +446,7 @@ curl -s -X POST \
   -d "{
     \"commit_id\": \"$HEAD_SHA\",
     \"event\": \"REQUEST_CHANGES\",
-    \"body\": \"## M.U.S.E. Review\n\nFound 2 issues, 1 suggestion. See inline comments.\",
+    \"body\": \"## muse Review\n\nFound 2 issues, 1 suggestion. See inline comments.\",
     \"comments\": [
       {\"path\": \"src/auth.py\", \"line\": 45, \"body\": \"🔴 **Critical:** User input passed directly to SQL query — use parameterized queries.\"},
       {\"path\": \"src/models.py\", \"line\": 23, \"body\": \"⚠️ **Warning:** Password stored without hashing.\"},
@@ -480,7 +480,7 @@ gh pr comment $PR_NUMBER --body "$(cat <<'EOF'
 - Good error handling in the middleware layer
 
 ---
-*Reviewed by M.U.S.E.*
+*Reviewed by muse*
 EOF
 )"
 ```

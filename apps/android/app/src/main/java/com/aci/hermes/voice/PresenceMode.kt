@@ -2,7 +2,7 @@ package com.aci.hermes.voice
 
 /**
  * Pure, Android-free logic for hands-free **Presence Mode** — the policy
- * that decides *how* MUSE starts listening and *what* the presence
+ * that decides *how* muse starts listening and *what* the presence
  * surface should show. The Android glue ([PresenceModeController]) only
  * enacts these decisions, so the behavior stays unit-testable.
  */
@@ -75,7 +75,7 @@ object PresenceModePolicy {
  * testing, and the matching rules are pinned by unit tests.
  *
  * Matches on a whole-word, case/punctuation-insensitive basis so
- * "Hey, Muse!" trips "muse" but "museum" does not.
+ * "Hey, muse" trips "muse" but "museum" does not.
  */
 object WakeWordMatcher {
     fun matches(keyword: String, transcript: String): Boolean {

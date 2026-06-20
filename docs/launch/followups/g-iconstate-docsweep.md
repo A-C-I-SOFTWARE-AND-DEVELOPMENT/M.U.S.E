@@ -2,7 +2,7 @@
 
 ## Intent
 
-Sweep two stale "Gold ring" KDoc comments in the Android MUSE icon state
+Sweep two stale "Gold ring" KDoc comments in the Android muse icon state
 enum so they match the **shipped Singularity attention palette**. FU-17 /
 FU-17b already retuned the *actual* colors in `JarvisIconColors.kt` (no gold
 at rest — white core + spectral cyan→violet ring). Only the stale

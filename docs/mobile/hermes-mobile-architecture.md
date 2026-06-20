@@ -1,4 +1,4 @@
-# M.U.S.E. mobile architecture (native Android, primary path)
+# muse mobile architecture (native Android, primary path)
 
 This document describes the architecture implied by the Phase 02
 decision in
@@ -36,7 +36,7 @@ decision in
                                        │
                                        ▼
                                 ┌─────────────────────┐
-                                │  M.U.S.E. gateway     │
+                                │  muse gateway     │
                                 │  (Python, off-phone │
                                 │   or in Termux)     │
                                 └─────────────────────┘
@@ -405,7 +405,7 @@ stable signature without enabling minification.
 
 ## 14. Why this architecture, in one paragraph
 
-M.U.S.E. already chose to be a Python agent. The mobile client's job is
+muse already chose to be a Python agent. The mobile client's job is
 not to re-implement that agent on a phone but to give Jeremiah a way
 to *drive* it from his pocket. Native Android, with a thin transport
 layer between the cockpit screens and the gateway, is the smallest

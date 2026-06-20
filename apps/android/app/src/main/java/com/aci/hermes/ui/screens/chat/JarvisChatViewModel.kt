@@ -50,7 +50,7 @@ data class JarvisChatUiState(
 )
 
 /**
- * Drives the MUSE chat surface (the "Chat" shell tab).
+ * Drives the muse chat surface (the "Chat" shell tab).
  *
  * Responsibilities:
  *  - own the chat transcript (user + jarvis + indicators + errors)
@@ -207,7 +207,7 @@ class JarvisChatViewModel(
             is JarvisChatMessage.Error -> msg.text
             is JarvisChatMessage.Thinking, is JarvisChatMessage.Working -> return
         }
-        val ok = clipboard.copy("MUSE", text)
+        val ok = clipboard.copy("muse", text)
         _state.update {
             it.copy(snackbar = if (ok) "Copied" else "Could not access clipboard")
         }
@@ -288,7 +288,7 @@ class JarvisChatViewModel(
     private fun deriveJobTitle(body: String, prompt: String): String {
         val source = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim()
             ?: prompt.lineSequence().firstOrNull()?.trim()
-            ?: "Muse job"
+            ?: "muse job"
         return if (source.length <= 60) source else source.take(57).trimEnd() + "…"
     }
 
@@ -593,7 +593,7 @@ class JarvisChatViewModel(
     }
 
     private fun welcomeMessage(): JarvisChatMessage.Jarvis = JarvisChatMessage.Jarvis(
-        body = "MUSE here. Short replies on phone — ask for detail when you want the deep cut.",
+        body = "muse here. Short replies on phone — ask for detail when you want the deep cut.",
         detail = null,
     )
 

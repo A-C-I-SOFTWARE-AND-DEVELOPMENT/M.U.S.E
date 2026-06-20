@@ -1,6 +1,6 @@
 # Release & Download (v1.5)
 
-How the MUSE APK is built, signed, published, and installed — and which
+How the muse APK is built, signed, published, and installed — and which
 steps are owner-gated.
 
 ## Build & download paths
@@ -15,7 +15,7 @@ Direct download (rolling):
 `https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk`
 
 Install: download on the phone → open → allow installs from this source if
-prompted → launch **MUSE**. Requires Android 8.0+ (API 26).
+prompted → launch **muse**. Requires Android 8.0+ (API 26).
 
 ## Signing status (what the app/release shows honestly)
 

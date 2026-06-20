@@ -1,4 +1,4 @@
-"""Natural-language coder — bounded work-packet builder for MUSE.
+"""Natural-language coder — bounded work-packet builder for muse
 
 Turns a plain-English request into a bounded, reviewable, gate-compatible
 work packet. It **never executes**; it only describes scope, risk,

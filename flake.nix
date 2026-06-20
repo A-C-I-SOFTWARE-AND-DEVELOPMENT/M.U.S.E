@@ -1,5 +1,5 @@
 {
-  description = "M.U.S.E. - AI agent framework (built on Hermes Agent by Nous Research)";
+  description = "muse - AI agent framework (built on Hermes Agent by Nous Research)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

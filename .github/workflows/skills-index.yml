@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build-index:
     # Only run on the upstream repository, not on forks
-    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -59,7 +59,7 @@ jobs:
     # Only deploy on schedule or manual trigger (not on every push to the
     # script), and only from the canonical repo — this job was previously
     # unguarded by repository.
-    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 

@@ -1,4 +1,4 @@
-"""HyperAgent-style repo navigation for MUSE.
+"""HyperAgent-style repo navigation for muse
 
 A first-class repository navigation layer — *not* another generic agent. It
 combines deterministic lexical, path, import, test, and git-history signals to

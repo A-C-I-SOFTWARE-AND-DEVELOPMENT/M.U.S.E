@@ -151,7 +151,7 @@ Headers:
 - `Authorization: Bearer <cockpit-token>` (sent when paired)
 
 Response: a **newline-delimited JSON** stream (`application/x-ndjson`, chunked).
-Each line is one event from the real MUSE turn — `thinking`, `phase`,
+Each line is one event from the real muse turn — `thinking`, `phase`,
 `tone`, `working`, `body`, `detail`, `done`, `error`. `HttpJarvisChatGateway`
 renders `body` deltas as the reply and surfaces `error` inline rather than
 discarding the accumulated text. There are **no provider-key headers**: the

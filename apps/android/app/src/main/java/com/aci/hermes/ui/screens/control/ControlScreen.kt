@@ -27,12 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.aci.hermes.R
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
-import com.aci.hermes.ui.designsystem.MuseStatus
-import com.aci.hermes.ui.designsystem.MuseStatusDot
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museSectionHeader
+import com.aci.hermes.ui.designsystem.museStatus
+import com.aci.hermes.ui.designsystem.museStatusDot
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
@@ -63,18 +63,18 @@ fun ControlScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
     ) {
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
                 verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                MuseSectionHeader(title = stringResource(R.string.control_service_title))
+                museSectionHeader(title = stringResource(R.string.control_service_title))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 ) {
-                    MuseStatusDot(
-                        status = if (state.serviceRunning) MuseStatus.Ok else MuseStatus.Off,
+                    museStatusDot(
+                        status = if (state.serviceRunning) museStatus.Ok else museStatus.Off,
                     )
                     Text(
                         text = if (state.serviceRunning) stringResource(R.string.orchestrator_status_running)
@@ -85,57 +85,57 @@ fun ControlScreen(
                 }
                 HorizontalDivider()
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::startService,
                         text = stringResource(R.string.orchestrator_start_service),
-                        variant = MuseButtonVariant.Primary,
+                        variant = museButtonVariant.Primary,
                         enabled = !state.serviceRunning,
                     )
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::stopService,
                         text = stringResource(R.string.orchestrator_stop_service),
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                         enabled = state.serviceRunning,
                     )
                 }
             }
         }
 
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
                 verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                MuseSectionHeader(title = stringResource(R.string.device_control_title))
+                museSectionHeader(title = stringResource(R.string.device_control_title))
                 Text(
                     text = stringResource(R.string.device_control_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = JarvisSignalDim,
                 )
-                MuseButton(
+                museButton(
                     onClick = onOpenDeviceControl,
                     text = stringResource(R.string.device_control_open),
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
 
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
                 verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                MuseSectionHeader(title = stringResource(R.string.emergency_stop_title))
+                museSectionHeader(title = stringResource(R.string.emergency_stop_title))
                 Text(
                     text = stringResource(R.string.emergency_stop_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = JarvisSignalDim,
                 )
-                MuseButton(
+                museButton(
                     onClick = { confirmStop = true },
                     text = stringResource(R.string.nav_emergency_stop),
-                    variant = MuseButtonVariant.Danger,
+                    variant = museButtonVariant.Danger,
                     leadingIcon = Icons.Filled.PowerSettingsNew,
                     modifier = Modifier.fillMaxWidth(),
                 )

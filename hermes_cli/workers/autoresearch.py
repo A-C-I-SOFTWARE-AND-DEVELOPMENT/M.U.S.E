@@ -15,7 +15,7 @@ via :mod:`hermes_cli.jarvis_prime.autoresearch_improve`, which reuses the SIA
 ``run_self_improvement`` orchestration (benchmark gate → RC4 proposal →
 ``NEEDS_OWNER_APPROVAL``). This module only produces and scores candidates.
 
-Live spawning is opt-in via ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1`` (the ue5.py
+Live spawning is opt-in via ``muse_AUTORESEARCH_ALLOW_SPAWN=1`` (the ue5.py
 pattern); without it ``detect()`` reports unavailable and nothing runs. torch
 is never imported at module import time.
 """
@@ -39,7 +39,7 @@ from hermes_cli.workers.base import (
 from hermes_cli.workers.registry import register
 
 WORKER_NAME = "autoresearch"
-SPAWN_ENV = "MUSE_AUTORESEARCH_ALLOW_SPAWN"
+SPAWN_ENV = "muse_AUTORESEARCH_ALLOW_SPAWN"
 DATA_CACHE = Path("~/.cache/autoresearch").expanduser()  # prepare.py's CACHE_DIR
 
 
@@ -121,7 +121,7 @@ class AutoresearchWorker(WorkerAdapter):
         )
 
     def prepare_prompt(self, job: Any) -> WorkerPrompt:
-        """Vendored program.md + the MUSE governance addendum."""
+        """Vendored program.md + the muse governance addendum."""
 
         from hermes_cli.jarvis_prime.research_fabric.autoresearch.engine import VENDOR_DIR
 
@@ -129,9 +129,9 @@ class AutoresearchWorker(WorkerAdapter):
         cfg = self.config.experiment if self.config else None
         addendum_lines = [
             "",
-            "## MUSE governance addendum (supersedes the loop above where they conflict)",
+            "## muse governance addendum (supersedes the loop above where they conflict)",
             "",
-            "- MUSE's cost ceiling SUPERSEDES 'NEVER STOP': the run halts at",
+            "- muse's cost ceiling SUPERSEDES 'NEVER STOP': the run halts at",
         ]
         if cfg is not None:
             addendum_lines += [
@@ -141,10 +141,10 @@ class AutoresearchWorker(WorkerAdapter):
                 f"- VRAM budget: {cfg.vram_budget_mb:.0f} MB — over-budget runs are",
                 "  infeasible (reset, never champion).",
                 f"- Branch: {cfg.resolved_branch()} inside the disposable workspace",
-                f"  {cfg.resolved_workspace()} — the MUSE repo is never touched.",
+                f"  {cfg.resolved_workspace()} — the muse repo is never touched.",
             ]
         addendum_lines += [
-            "- Every experiment is recorded to the MUSE flywheel; results.tsv is a",
+            "- Every experiment is recorded to the muse flywheel; results.tsv is a",
             "  local mirror only.",
             "- Nothing is ever promoted without the owner's explicit approval.",
         ]

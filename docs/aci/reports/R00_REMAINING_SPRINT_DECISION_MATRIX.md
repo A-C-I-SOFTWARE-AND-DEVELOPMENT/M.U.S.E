@@ -82,7 +82,7 @@ owner direction (full list mirrors `R00_CURRENT_LAUNCH_STACK_AUDIT.md
 §13`):
 
 - **`apps/android/**`** — owned by the launch chain. **Do not
-  create a duplicate Android module.** The product name is **MUSE
+  create a duplicate Android module.** The product name is **muse
   Prime**; the canonical app is at `apps/android/`.
 - **`apps/android/app/src/main/AndroidManifest.xml`** — locked at
   3 permissions (`POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`,
@@ -119,11 +119,11 @@ owner direction (full list mirrors `R00_CURRENT_LAUNCH_STACK_AUDIT.md
 
 ## E. Global product rules (binding for every sprint prompt)
 
-- **Product-facing name is MUSE.** Hermes can remain only
+- **Product-facing name is muse** Hermes can remain only
   for backend/runtime/package compatibility.
-- **Android is the MUSE body/control surface**, not the
-  full AI brain. Backend/runtime/gateway/MUSE remains in
-  Hermes/MUSE backend code.
+- **Android is the muse body/control surface**, not the
+  full AI brain. Backend/runtime/gateway/muse remains in
+  Hermes/muse backend code.
 - **Do not embed Python runtime inside the APK.**
 - **Do not store gateway-side secrets in Android.**
 - **No SMS, Call Log, overlay, camera, location, media, or
@@ -300,7 +300,7 @@ future audit has to re-derive it.
   `084c132`) — **GREEN** on everything runnable in-repo; the prior "RED — 52%"
   verdict declared obsolete; `docs/launch/LAUNCH_BRANCH_MATRIX.md:4` records lane
   execution complete, 211 commits past the `bc97e43` baseline.
-- **B6 permission-surface accept (2026-06-01):** the "Sentient MUSE avatar"
+- **B6 permission-surface accept (2026-06-01):** the "Sentient muse avatar"
   feature (#170) expanded the Android permission surface beyond §D's
   "locked at 3 permissions" rule. The owner reviewed this (audit §5 B6,
   `LAUNCH_STATUS_CURRENT.md:13-16`) and **ACCEPTED ship-as-is**. §D's manifest

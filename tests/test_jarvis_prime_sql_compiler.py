@@ -1,4 +1,4 @@
-"""Tests for the MUSE W2 SQL backend compiler.
+"""Tests for the muse W2 SQL backend compiler.
 
 Covers: a declarative-read graph compiles into a parameterized ``SqlSelect``
 with >=1 table and explicit columns; the rendered SQL uses ``:pN`` placeholders

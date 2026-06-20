@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: "Adding Tools"
-description: "How to add a new tool to M.U.S.E. — schemas, handlers, registration, and toolsets"
+description: "How to add a new tool to muse — schemas, handlers, registration, and toolsets"
 ---
 
 # Adding Tools
@@ -9,12 +9,12 @@ description: "How to add a new tool to M.U.S.E. — schemas, handlers, registrat
 Before writing a tool, ask yourself: **should this be a [skill](creating-skills.md) instead?**
 
 :::warning Built-in Core Tools Only
-This page is for adding a **built-in M.U.S.E. tool** to the repository itself.
+This page is for adding a **built-in muse tool** to the repository itself.
 If you want a personal, project-local, or otherwise custom tool without
-modifying M.U.S.E. core, use the plugin route instead:
+modifying muse core, use the plugin route instead:
 
 - [Plugins](/docs/user-guide/features/plugins)
-- [Build a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin)
+- [Build a muse Plugin](/docs/guides/build-a-hermes-plugin)
 
 Default to plugins for most custom tool creation. Only follow this page when
 you explicitly want to ship a new built-in tool in `tools/` and `toolsets.py`.

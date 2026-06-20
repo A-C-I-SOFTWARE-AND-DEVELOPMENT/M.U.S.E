@@ -1,13 +1,13 @@
 # Task 0.4 — Name & Trademark Search: "SYNAPSE"
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** SEARCH COMPLETE — TITLE AT RISK · **Date:** 2026-06-10
+**Project:** SYNAPSE — A muse Game · **Status:** SEARCH COMPLETE — TITLE AT RISK · **Date:** 2026-06-10
 **Owner:** Jeremiah Echerd, A-C-I Software & Development
 **Authority:** master plan Task 0.4 / §14 decision 1. This is a preliminary knock-out search to brief the $300 IP consult (§8.5); it is not legal advice and does not replace a professional clearance search.
 
 ## Executive verdict
 
 **The working title "SYNAPSE" is NOT clear for use as a shipped game title.**
-Both backup names from the master plan (**Synaptic Hunters**, **MUSE: Substrate**) returned **no conflicting game titles or marks** in this search. Recommendation in §4 below. "SYNAPSE" remains safe as the **internal codename and repo name** (no commerce, no consumer-facing use).
+Both backup names from the master plan (**Synaptic Hunters**, **muse Substrate**) returned **no conflicting game titles or marks** in this search. Recommendation in §4 below. "SYNAPSE" remains safe as the **internal codename and repo name** (no commerce, no consumer-facing use).
 
 ## 1. Direct conflicts found (video game goods/services)
 
@@ -27,7 +27,7 @@ Steam search also surfaces a developer named "Synapse Games." The field is crowd
 | Candidate | Search result | Verdict |
 |---|---|---|
 | **Synaptic Hunters** | No game, product, or mark found | Clear in this search |
-| **MUSE: Substrate** | No game or mark found (only a Muse-headband neurogame "Semse Planets", unrelated) | Clear in this search; note Muse® is a brain-sensing headband brand (InteraXon) — composite "MUSE: Substrate" in games likely distinguishable, flag for counsel |
+| **muse Substrate** | No game or mark found (only a muse-headband neurogame "Semse Planets", unrelated) | Clear in this search; note muse® is a brain-sensing headband brand (InteraXon) — composite "muse Substrate" in games likely distinguishable, flag for counsel |
 
 ## 3. What this does and does not mean
 
@@ -38,7 +38,7 @@ Steam search also surfaces a developer named "Synapse Games." The field is crowd
 ## 4. Recommendation (owner decides; this is the studio's recommendation)
 
 1. **Keep "SYNAPSE" as the internal codename** (repo, docs, builds) — zero exposure, zero churn.
-2. **Ship under "MUSE: Substrate"** (first choice): unifies the product family with the M.U.S.E. platform brand, the post-game reveal lands harder ("the Substrate was a M.U.S.E. mind all along"), and the composite is distinctive. Verify the InteraXon Muse® adjacency with counsel.
+2. **Ship under "muse Substrate"** (first choice): unifies the product family with the muse platform brand, the post-game reveal lands harder ("the Substrate was a muse mind all along"), and the composite is distinctive. Verify the InteraXon muse® adjacency with counsel.
 3. **"Synaptic Hunters"** (second choice): clean and genre-legible, weaker brand tie.
 4. Brief the $300 IP consult with this document; do not commission capsule art with a title lockup until the consult clears the chosen name (capsule composition work can start title-agnostic).
 

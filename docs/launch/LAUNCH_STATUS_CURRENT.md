@@ -18,7 +18,7 @@ build; permission-posture risk (B6) reviewed and ACCEPTED by owner (ship-as-is,
 The prior "🔴 RED — 52%" verdict is obsolete: the integration it tracked
 (worker engine, orchestrator replay, cockpit↔ledger bridge, Android rebrand,
 chat screen, interactive icon) has all landed on `main`, and
-lint/tests/lockfile are green. A later feature ("Sentient MUSE avatar", #170)
+lint/tests/lockfile are green. A later feature ("Sentient muse avatar", #170)
 expanded the permission surface (accessibility service, system overlay,
 query-all-packages, always-on microphone) beyond the original safety model;
 the owner reviewed this (audit §5 B6) and chose to ship as-is, accepting the

@@ -27,7 +27,7 @@ Each `check(context)` returns a `MonitorResult` with a `Severity`
 `build_owner_brief(results, board=...)` produces an `OwnerBrief`:
 
 - what changed · what matters · what needs approval · what is blocked ·
-  what MUSE learned · **monitor coverage attestation** (observed vs total
+  what muse learned · **monitor coverage attestation** (observed vs total
   + explicit blind spots).
 
 `render()` formats it; `to_dict()` is JSON-friendly.

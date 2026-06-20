@@ -1,6 +1,6 @@
-# MUSE — Open-Source Model Brain
+# muse — Open-Source Model Brain
 
-> The open-weight models MUSE can **learn from** and **route work
+> The open-weight models muse can **learn from** and **route work
 > to**, cross-referenced against public benchmarks and kept refreshable.
 
 This is the narrative companion to
@@ -41,7 +41,7 @@ actually have installed.
 
 ---
 
-## How MUSE uses it
+## How muse uses it
 
 ```text
 # best open coders for general coding, on this host

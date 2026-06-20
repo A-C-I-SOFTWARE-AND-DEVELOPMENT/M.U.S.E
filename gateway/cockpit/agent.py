@@ -1,4 +1,4 @@
-"""Real MUSE chat responder for the cockpit chat endpoint.
+"""Real muse chat responder for the cockpit chat endpoint.
 
 Replaces ``jarvis_local_http.echo_responder`` with one that drives the
 **actual** ``JarvisPrime`` runtime: it perceives, recollects relevant
@@ -53,7 +53,7 @@ def jarvis_responder(
     *,
     generate: Optional[ProseGenerator] = None,
 ) -> Iterator[dict]:
-    """Stream a real MUSE turn for ``prompt``.
+    """Stream a real muse turn for ``prompt``.
 
     ``generate`` (optional) produces the reply prose from the prompt + the
     persona system prompt; when omitted, a turn-derived response is
@@ -431,7 +431,7 @@ def _task_class_for(turn, mode: str, target: str) -> str:
 def _turn_summary(turn, mode: str) -> str:
     """A real (non-echo) reply derived from the JARVIS turn when no model is wired."""
     lines = [
-        f"MUSE — {mode} mode (confidence {turn.classification.confidence:.0%}).",
+        f"muse — {mode} mode (confidence {turn.classification.confidence:.0%}).",
         turn.route.rationale,
     ]
     if turn.route.council_questions:

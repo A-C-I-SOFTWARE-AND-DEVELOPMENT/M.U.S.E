@@ -65,9 +65,9 @@ import com.aci.hermes.data.avatar.AvatarSource
 import com.aci.hermes.data.avatar.AvatarStyle
 import com.aci.hermes.data.avatar.JarvisBuiltin
 import com.aci.hermes.data.avatar.PixelSize
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +83,7 @@ fun AvatarPickerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Muse avatar") },
+                title = { Text("muse avatar") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -147,14 +147,14 @@ fun AvatarPickerScreen(
                 ActivityResultContracts.PickVisualMedia(),
             ) { uri -> viewModel.onPhotoPicked(uri) }
 
-            MuseButton(
+            museButton(
                 onClick = {
                     photoLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
                 text = "Choose photo",
-                variant = MuseButtonVariant.Primary,
+                variant = museButtonVariant.Primary,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -181,17 +181,17 @@ fun AvatarPickerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MuseButton(
+                museButton(
                     onClick = viewModel::save,
                     text = "Save",
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                     enabled = state is AvatarPickerState.PreviewReady,
                     modifier = Modifier.weight(1f),
                 )
-                MuseButton(
+                museButton(
                     onClick = viewModel::reset,
                     text = "Delete / Reset",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -230,10 +230,10 @@ private fun RoomEditor(
             singleLine = true,
             enabled = !room.busy,
         )
-        MuseButton(
+        museButton(
             onClick = { onGenerate(text); text = "" },
             text = if (room.busy) "Generating…" else "Generate",
-            variant = MuseButtonVariant.Primary,
+            variant = museButtonVariant.Primary,
             enabled = !room.busy && text.isNotBlank(),
         )
 
@@ -298,16 +298,16 @@ private fun PersonaCreator(
             enabled = !persona.busy,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MuseButton(
+            museButton(
                 onClick = { onBecome(text) },
                 text = if (persona.busy) "Working…" else "Become",
-                variant = MuseButtonVariant.Primary,
+                variant = museButtonVariant.Primary,
                 enabled = !persona.busy && text.isNotBlank(),
             )
-            MuseButton(
+            museButton(
                 onClick = { onBecome(""); text = "" },
                 text = "Reset",
-                variant = MuseButtonVariant.Secondary,
+                variant = museButtonVariant.Secondary,
                 enabled = !persona.busy,
             )
         }
@@ -401,7 +401,7 @@ private fun BuiltInCard(
 ) {
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     val borderWidth = if (selected) 2.dp else 1.dp
-    MuseCard(
+    museCard(
         modifier = modifier
             .height(96.dp)
             .border(BorderStroke(borderWidth, borderColor), RoundedCornerShape(12.dp))

@@ -42,11 +42,11 @@ the clean-room claim has not been reviewed by counsel.
 
 ---
 
-## 1. Surface P1 — the MUSE platform as distributed
+## 1. Surface P1 — the muse platform as distributed
 
 ### 1.0 Distribution posture
 
-- **Repo license:** MIT, © 2025 Nous Research (`/home/user/M.U.S.E/LICENSE`;
+- **Repo license:** MIT, © 2025 Nous Research (`/home/user/muse/LICENSE`;
   `pyproject.toml` `license = { text = "MIT" }`). Third-party attributions
   live in `THIRD_PARTY_NOTICES.md`.
 - **How P1 ships:** as **source** (pip/uv install from this repo / PyPI
@@ -259,7 +259,7 @@ What weakens the claim (the part counsel must see):
 
 SYNAPSE links **nothing** from this repo. The coupling rule (master plan /
 `docs/synapse/design/11-technical-design.md`) is **HTTP client only**: the
-UE5 app talks to the MUSE gateway over HTTP/SSE with bearer auth. The MIT
+UE5 app talks to the muse gateway over HTTP/SSE with bearer auth. The MIT
 gateway code never enters the shipped binary, and no repo Python ships in
 the pak. The rules below are the posture SYNAPSE adopts at repo creation
 (Sprint S1) — each carries a "verify at signing" step because P2 has no

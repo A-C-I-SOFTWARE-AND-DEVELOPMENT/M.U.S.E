@@ -1,12 +1,12 @@
 ---
 sidebar_position: 8
 title: "Open WebUI"
-description: "Connect Open WebUI to M.U.S.E. via the OpenAI-compatible API server"
+description: "Connect Open WebUI to muse via the OpenAI-compatible API server"
 ---
 
 # Open WebUI Integration
 
-[Open WebUI](https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With M.U.S.E.'s built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.
+[Open WebUI](https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With muse's built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.
 
 ## Architecture
 
@@ -18,21 +18,21 @@ flowchart LR
     B -->|SSE streaming response| A
 ```
 
-Open WebUI connects to M.U.S.E.'s API server just like it would connect to OpenAI. M.U.S.E. handles the requests with its full toolset — terminal, file operations, web search, memory, skills — and returns the final response.
+Open WebUI connects to muse's API server just like it would connect to OpenAI. muse handles the requests with its full toolset — terminal, file operations, web search, memory, skills — and returns the final response.
 
 :::important Runtime location
-The API server is a **M.U.S.E. agent runtime**, not a pure LLM proxy. For each request, M.U.S.E. creates a server-side `AIAgent` on the API-server host. Tool calls run where that API server is running.
+The API server is a **muse agent runtime**, not a pure LLM proxy. For each request, muse creates a server-side `AIAgent` on the API-server host. Tool calls run where that API server is running.
 
-For example, if a laptop points Open WebUI or another OpenAI-compatible client at a M.U.S.E. API server on a remote machine, `pwd`, file tools, browser tools, local MCP tools, and other workspace tools run on the remote API-server host, not on the laptop.
+For example, if a laptop points Open WebUI or another OpenAI-compatible client at a muse API server on a remote machine, `pwd`, file tools, browser tools, local MCP tools, and other workspace tools run on the remote API-server host, not on the laptop.
 :::
 
-Open WebUI talks to M.U.S.E. server-to-server, so you do not need `API_SERVER_CORS_ORIGINS` for this integration.
+Open WebUI talks to muse server-to-server, so you do not need `API_SERVER_CORS_ORIGINS` for this integration.
 
 ## Quick Setup
 
 ### One-command local bootstrap (macOS/Linux, no Docker)
 
-If you want M.U.S.E. + Open WebUI wired together locally with a reusable launcher, run:
+If you want muse + Open WebUI wired together locally with a reusable launcher, run:
 
 ```bash
 cd ~/.hermes/hermes-agent
@@ -42,23 +42,23 @@ bash scripts/setup_open_webui.sh
 What the script does:
 
 - ensures `~/.hermes/.env` contains `API_SERVER_ENABLED`, `API_SERVER_HOST`, `API_SERVER_KEY`, `API_SERVER_PORT`, and `API_SERVER_MODEL_NAME`
-- restarts the M.U.S.E. gateway so the API server comes up
+- restarts the muse gateway so the API server comes up
 - installs Open WebUI into `~/.local/open-webui-venv`
 - writes a launcher at `~/.local/bin/start-open-webui-hermes.sh`
 - on macOS, installs a `launchd` user service; on Linux with `systemd --user`, installs a user service there
 
 Defaults:
 
-- M.U.S.E. API: `http://127.0.0.1:8642/v1`
+- muse API: `http://127.0.0.1:8642/v1`
 - Open WebUI: `http://127.0.0.1:8080`
-- model name advertised to Open WebUI: `M.U.S.E.`
+- model name advertised to Open WebUI: `muse`
 
 Useful overrides:
 
 ```bash
-OPEN_WEBUI_NAME='My M.U.S.E. UI' \
+OPEN_WEBUI_NAME='My muse UI' \
 OPEN_WEBUI_ENABLE_SIGNUP=true \
-HERMES_API_MODEL_NAME='My M.U.S.E.' \
+HERMES_API_MODEL_NAME='My muse' \
 bash scripts/setup_open_webui.sh
 ```
 
@@ -81,7 +81,7 @@ muse config set API_SERVER_KEY your-secret-key
 muse gateway stop && muse gateway
 ```
 
-### 2. Start M.U.S.E. gateway
+### 2. Start muse gateway
 
 ```bash
 muse gateway
@@ -168,7 +168,7 @@ If you prefer to configure the connection through the UI instead of environment 
 5. Click **+ Add New Connection**
 6. Enter:
    - **URL**: `http://host.docker.internal:8642/v1`
-   - **API Key**: the exact same value as `API_SERVER_KEY` in M.U.S.E.
+   - **API Key**: the exact same value as `API_SERVER_KEY` in muse
 7. Click the **checkmark** to verify the connection
 8. **Save**
 
@@ -189,7 +189,7 @@ Open WebUI supports two API modes when connecting to a backend:
 
 ### Using Chat Completions (recommended)
 
-This is the default and requires no extra configuration. Open WebUI sends standard OpenAI-format requests and M.U.S.E. responds accordingly. Each request includes the full conversation history.
+This is the default and requires no extra configuration. Open WebUI sends standard OpenAI-format requests and muse responds accordingly. Each request includes the full conversation history.
 
 ### Using Responses API
 
@@ -200,7 +200,7 @@ To use the Responses API mode:
 3. Change **API Type** from "Chat Completions" to **"Responses (Experimental)"**
 4. Save
 
-With the Responses API, Open WebUI sends requests in the Responses format (`input` array + `instructions`), and M.U.S.E. can preserve full tool call history across turns via `previous_response_id`. When `stream: true`, M.U.S.E. also streams spec-native `function_call` and `function_call_output` items, which enables custom structured tool-call UI in clients that render Responses events.
+With the Responses API, Open WebUI sends requests in the Responses format (`input` array + `instructions`), and muse can preserve full tool call history across turns via `previous_response_id`. When `stream: true`, muse also streams spec-native `function_call` and `function_call_output` items, which enables custom structured tool-call UI in clients that render Responses events.
 
 :::note
 Open WebUI currently manages conversation history client-side even in Responses mode — it sends the full message history in each request rather than using `previous_response_id`. The main advantage of Responses mode today is the structured event stream: text deltas, `function_call`, and `function_call_output` items arrive as OpenAI Responses SSE events instead of Chat Completions chunks.
@@ -211,15 +211,15 @@ Open WebUI currently manages conversation history client-side even in Responses 
 When you send a message in Open WebUI:
 
 1. Open WebUI sends a `POST /v1/chat/completions` request with your message and conversation history
-2. M.U.S.E. creates a server-side `AIAgent` instance using the API server's profile, model/provider config, memory, skills, and configured API-server toolsets
+2. muse creates a server-side `AIAgent` instance using the API server's profile, model/provider config, memory, skills, and configured API-server toolsets
 3. The agent processes your request — it may call tools (terminal, file operations, web search, etc.) on the API-server host
 4. As tools execute, **inline progress messages stream to the UI** so you can see what the agent is doing (e.g. `` `💻 ls -la` ``, `` `🔍 Python 3.12 release` ``)
 5. The agent's final text response streams back to Open WebUI
 6. Open WebUI displays the response in its chat interface
 
-Your agent has access to the same tools and capabilities as that API-server M.U.S.E. instance. If the API server is remote, those tools are remote too.
+Your agent has access to the same tools and capabilities as that API-server muse instance. If the API server is remote, those tools are remote too.
 
-If you need tools to run against your **local** workspace today, run M.U.S.E. locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/18715); it is not the behavior of the current API server.
+If you need tools to run against your **local** workspace today, run muse locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues/18715); it is not the behavior of the current API server.
 
 :::tip Tool Progress
 With streaming enabled (the default), you'll see brief inline indicators as tools run — the tool emoji and its key argument. These appear in the response stream before the agent's final answer, giving you visibility into what's happening behind the scenes.
@@ -227,7 +227,7 @@ With streaming enabled (the default), you'll see brief inline indicators as tool
 
 ## Configuration Reference
 
-### M.U.S.E. (API server)
+### muse (API server)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -240,7 +240,7 @@ With streaming enabled (the default), you'll see brief inline indicators as tool
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_BASE_URL` | M.U.S.E.'s API URL (include `/v1`) |
+| `OPENAI_API_BASE_URL` | muse's API URL (include `/v1`) |
 | `OPENAI_API_KEY` | Must be non-empty. Match your `API_SERVER_KEY`. |
 
 ## Troubleshooting
@@ -259,11 +259,11 @@ This is almost always the missing `/v1` suffix. Open WebUI's connection test is 
 
 ### Response takes a long time
 
-M.U.S.E. may be executing multiple tool calls (reading files, running commands, searching the web) before producing its final response. This is normal for complex queries. The response appears all at once when the agent finishes.
+muse may be executing multiple tool calls (reading files, running commands, searching the web) before producing its final response. This is normal for complex queries. The response appears all at once when the agent finishes.
 
 ### "Invalid API key" errors
 
-Make sure your `OPENAI_API_KEY` in Open WebUI matches the `API_SERVER_KEY` in M.U.S.E..
+Make sure your `OPENAI_API_KEY` in Open WebUI matches the `API_SERVER_KEY` in muse
 
 :::warning
 Open WebUI persists OpenAI-compatible connection settings in its own database after first launch. If you accidentally saved a wrong key in the Admin UI, fixing the environment variables alone is not enough — update or delete the saved connection in **Admin Settings → Connections**, or reset the Open WebUI data directory / database.
@@ -271,7 +271,7 @@ Open WebUI persists OpenAI-compatible connection settings in its own database af
 
 ## Multi-User Setup with Profiles
 
-To run separate M.U.S.E. instances per user — each with their own config, memory, and skills — use [profiles](/docs/user-guide/profiles). Each profile runs its own API server on a different port and automatically advertises the profile name as the model in Open WebUI.
+To run separate muse instances per user — each with their own config, memory, and skills — use [profiles](/docs/user-guide/profiles). Each profile runs its own API server on a different port and automatically advertises the profile name as the model in Open WebUI.
 
 ### 1. Create profiles and configure API servers
 
@@ -309,7 +309,7 @@ In **Admin Settings** → **Connections** → **OpenAI API** → **Manage**, add
 | Alice | `http://host.docker.internal:8650/v1` | `alice-secret` |
 | Bob | `http://host.docker.internal:8651/v1` | `bob-secret` |
 
-The model dropdown will show `alice` and `bob` as distinct models. You can assign models to Open WebUI users via the admin panel, giving each user their own isolated M.U.S.E. agent.
+The model dropdown will show `alice` and `bob` as distinct models. You can assign models to Open WebUI users via the admin panel, giving each user their own isolated muse agent.
 
 :::tip Custom Model Names
 The model name defaults to the profile name. To override it, set `API_SERVER_MODEL_NAME` in the profile's `.env`:

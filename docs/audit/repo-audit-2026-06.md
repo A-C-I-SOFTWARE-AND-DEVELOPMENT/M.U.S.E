@@ -26,7 +26,7 @@ Bring-up (matches CI `.github/workflows/tests.yml`):
 ```bash
 uv pip install -e ".[all,dev]"   # ~4s warm cache; installs core + all extras + dev
 muse doctor                    # health check
-python -m hermes_cli.jarvis_prime launch-doctor   # MUSE launch readiness
+python -m hermes_cli.jarvis_prime launch-doctor   # muse launch readiness
 ```
 
 A **SessionStart hook** (`.claude/hooks/session-start.sh`, registered in
@@ -102,7 +102,7 @@ muse <cmd>
   ├─ gateway   gateway/run.py (Slack/Telegram/Discord/Matrix/SMS + REST)
   ├─ cron      cron/scheduler.py
   ├─ orchestration  hermes_cli/orchestrator.py + cron/job_controller.py + tools/kanban_tools.py (SQLite job graph, worker profiles, decision ledger)
-  └─ MUSE  hermes_cli/jarvis_prime/ (modes, gates, launch-doctor, data-sources, learning dataset, graphrag)
+  └─ muse  hermes_cli/jarvis_prime/ (modes, gates, launch-doctor, data-sources, learning dataset, graphrag)
 ```
 
 Scale: ~2,185 Python files; 18 bundled plugins; 62 skills + 17 optional;

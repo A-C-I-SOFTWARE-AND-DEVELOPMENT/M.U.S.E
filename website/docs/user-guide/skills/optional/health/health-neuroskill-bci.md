@@ -8,7 +8,7 @@ description: "Connect to a running NeuroSkill instance and incorporate the user'
 
 # Neuroskill Bci
 
-Connect to a running NeuroSkill instance and incorporate the user's real-time cognitive and emotional state (focus, relaxation, mood, cognitive load, drowsiness, heart rate, HRV, sleep staging, and 40+ derived EXG scores) into responses. Requires a BCI wearable (Muse 2/S or OpenBCI) and the NeuroSkill desktop app running locally.
+Connect to a running NeuroSkill instance and incorporate the user's real-time cognitive and emotional state (focus, relaxation, mood, cognitive load, drowsiness, heart rate, HRV, sleep staging, and 40+ derived EXG scores) into responses. Requires a BCI wearable (muse 2/S or OpenBCI) and the NeuroSkill desktop app running locally.
 
 ## Skill metadata
 
@@ -17,7 +17,7 @@ Connect to a running NeuroSkill instance and incorporate the user's real-time co
 | Source | Optional — install with `muse skills install official/health/neuroskill-bci` |
 | Path | `optional-skills/health/neuroskill-bci` |
 | Version | `1.0.0` |
-| Author | M.U.S.E. + Nous Research |
+| Author | muse + Nous Research |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `BCI`, `neurofeedback`, `health`, `focus`, `EEG`, `cognitive-state`, `biometrics`, `neuroskill` |
@@ -25,12 +25,12 @@ Connect to a running NeuroSkill instance and incorporate the user's real-time co
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # NeuroSkill BCI Integration
 
-Connect M.U.S.E. to a running [NeuroSkill](https://neuroskill.com/) instance to read
+Connect muse to a running [NeuroSkill](https://neuroskill.com/) instance to read
 real-time brain and body metrics from a BCI wearable. Use this to give
 cognitively-aware responses, suggest interventions, and track mental performance
 over time.
@@ -48,7 +48,7 @@ for intervention protocols, and `references/api.md` for the WebSocket/HTTP API.
 
 - **Node.js 20+** installed (`node --version`)
 - **NeuroSkill desktop app** running with a connected BCI device
-- **BCI hardware**: Muse 2, Muse S, or OpenBCI (4-channel EEG + PPG + IMU via BLE)
+- **BCI hardware**: muse 2, muse S, or OpenBCI (4-channel EEG + PPG + IMU via BLE)
 - `npx neuroskill status` returns data without errors
 
 ### Verify Setup

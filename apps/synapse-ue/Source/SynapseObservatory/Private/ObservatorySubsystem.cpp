@@ -10,8 +10,8 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
-#include "MuseGatewayClient.h"
-#include "MuseSseClient.h"
+#include "museGatewayClient.h"
+#include "museSseClient.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "SynapseObservatory.h"
@@ -509,7 +509,7 @@ void UObservatorySubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	// The gateway client is the network dependency — make sure it spins up
 	// first so ResolveGatewayClient() never races subsystem creation.
-	Collection.InitializeDependency(UMuseGatewayClient::StaticClass());
+	Collection.InitializeDependency(UmuseGatewayClient::StaticClass());
 
 	UE_LOG(LogSynapseObservatory, Log, TEXT("ObservatorySubsystem ready (routes: /v1/observatory/{snapshot,metrics,layout,recommendations,stream})."));
 }
@@ -530,20 +530,20 @@ void UObservatorySubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-UMuseGatewayClient* UObservatorySubsystem::ResolveGatewayClient() const
+UmuseGatewayClient* UObservatorySubsystem::ResolveGatewayClient() const
 {
 	UGameInstance* GameInstance = GetGameInstance();
-	return GameInstance ? GameInstance->GetSubsystem<UMuseGatewayClient>() : nullptr;
+	return GameInstance ? GameInstance->GetSubsystem<UmuseGatewayClient>() : nullptr;
 }
 
 void UObservatorySubsystem::IssueGet(
 	const FString& Path,
 	TFunction<void(TWeakObjectPtr<UObservatorySubsystem>, int32, const FString&)> OnCompleteWorkerThread)
 {
-	UMuseGatewayClient* Gateway = ResolveGatewayClient();
+	UmuseGatewayClient* Gateway = ResolveGatewayClient();
 	if (Gateway == nullptr)
 	{
-		UE_LOG(LogSynapseObservatory, Warning, TEXT("%s skipped — UMuseGatewayClient subsystem unavailable."), *Path);
+		UE_LOG(LogSynapseObservatory, Warning, TEXT("%s skipped — UmuseGatewayClient subsystem unavailable."), *Path);
 		return;
 	}
 
@@ -683,12 +683,12 @@ void UObservatorySubsystem::StartStream()
 
 	if (SseClient == nullptr)
 	{
-		SseClient = NewObject<UMuseSseClient>(this);
+		SseClient = NewObject<UmuseSseClient>(this);
 		SseClient->OnSseEvent.AddDynamic(this, &UObservatorySubsystem::HandleSseEvent);
 	}
 
 	// Contract route: GET /v1/observatory/stream — bearer, SSE (spec §3.2).
-	// Reconnect/backoff is UMuseSseClient policy. Last-Event-ID resume is a
+	// Reconnect/backoff is UmuseSseClient policy. Last-Event-ID resume is a
 	// DOCUMENTED GAP of the Prompt 0 SSE client (docs/observatory-module.md):
 	// after a reconnect, listeners should treat state as suspect and call
 	// FetchSnapshot() — the gateway's `resync` event also forces this.
@@ -712,7 +712,7 @@ bool UObservatorySubsystem::IsStreaming() const
 
 void UObservatorySubsystem::HandleSseEvent(const FString& EventType, const FString& Data)
 {
-	// UMuseSseClient broadcasts on the game thread only (its contract).
+	// UmuseSseClient broadcasts on the game thread only (its contract).
 	check(IsInGameThread());
 
 	// Stream payloads are small per-event deltas (gateway coalesces

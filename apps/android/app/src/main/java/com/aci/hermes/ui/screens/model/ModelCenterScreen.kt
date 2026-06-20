@@ -33,13 +33,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.aci.hermes.data.cockpit.LocalModelEntry
 import com.aci.hermes.data.model.LocalModelLabels
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseMotion
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museMotion
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
@@ -93,14 +93,14 @@ fun ModelCenterScreen(
                 item { RuntimeCard(status.runtimeStatus, status.ollamaBase, status.reachError) }
 
                 item {
-                    MuseSectionHeader(
+                    museSectionHeader(
                         title = "Installed models",
                         modifier = Modifier.padding(top = JarvisTokens.SpaceXs),
                     )
                 }
                 if (status.installed.isEmpty()) {
                     item {
-                        MuseEmptyState(
+                        museEmptyState(
                             title = "No installed models",
                             body = if (status.reachable) {
                                 "No Gemma/Ollama models installed. See Gemma local mode docs to pull one."
@@ -123,7 +123,7 @@ fun ModelCenterScreen(
 
                 if (status.promotions.isNotEmpty()) {
                     item {
-                        MuseSectionHeader(
+                        museSectionHeader(
                             title = "Route by task (local tier)",
                             modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
                         )
@@ -139,7 +139,7 @@ fun ModelCenterScreen(
 
 @Composable
 private fun UnavailableCard(message: String) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text("Backend unavailable", style = MaterialTheme.typography.titleSmall)
             Text(
@@ -152,10 +152,10 @@ private fun UnavailableCard(message: String) {
 
 @Composable
 private fun RuntimeCard(runtimeStatus: String, base: String, reachError: String?) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text("Local runtime", style = MaterialTheme.typography.labelMedium)
-            MuseChip(label = LocalModelLabels.runtime(runtimeStatus))
+            museChip(label = LocalModelLabels.runtime(runtimeStatus))
             Text("Ollama: $base", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
             reachError?.takeIf { it.isNotBlank() }?.let {
                 Text("Reach error: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -176,13 +176,13 @@ private fun ModelCard(
     val appear = remember { MutableTransitionState(false).apply { targetState = true } }
     AnimatedVisibility(
         visibleState = appear,
-        enter = fadeIn(MuseMotion.standard()) +
-            slideInVertically(MuseMotion.standard()) { it / 6 },
+        enter = fadeIn(museMotion.standard()) +
+            slideInVertically(museMotion.standard()) { it / 6 },
     ) {
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Text(entry.name, style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
-                MuseChip(
+                museChip(
                     label = LocalModelLabels.model(entry.status, smokeTested, smokeFailedReason != null),
                 )
                 if (entry.promotedFor.isNotEmpty()) {
@@ -194,10 +194,10 @@ private fun ModelCard(
                 smokeFailedReason?.let {
                     Text("Smoke failed: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
-                MuseButton(
+                museButton(
                     onClick = onSmoke,
                     text = if (busy) "Running smoke test…" else "Run smoke test",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     enabled = !busy,
                 )
             }
@@ -207,7 +207,7 @@ private fun ModelCard(
 
 @Composable
 private fun PromotionsCard(promotions: Map<String, String>) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             promotions.forEach { (task, model) ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -222,7 +222,7 @@ private fun PromotionsCard(promotions: Map<String, String>) {
 @Composable
 private fun RuntimesCard(status: com.aci.hermes.data.cockpit.LocalModelsStatus) {
     if (status.runtimes.isEmpty()) return
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text("Detected runtimes", style = MaterialTheme.typography.labelMedium)
             status.runtimes.forEach { rt ->

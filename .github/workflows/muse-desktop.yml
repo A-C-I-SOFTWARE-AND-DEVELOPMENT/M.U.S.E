@@ -1,4 +1,4 @@
-name: MUSE desktop
+name: muse desktop
 
 # Desktop CI lane for the Tauri v2 app under apps/desktop/. Runs only when
 # desktop sources (or this workflow) change. Two jobs:

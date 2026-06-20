@@ -85,7 +85,7 @@ fun DeleteMemoryDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Muse will forget this memory. Deletion cannot be undone from the app.",
+                    text = "muse will forget this memory. Deletion cannot be undone from the app.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(

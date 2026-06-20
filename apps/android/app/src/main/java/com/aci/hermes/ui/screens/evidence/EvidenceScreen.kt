@@ -36,11 +36,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import com.aci.hermes.data.evidence.EvidenceItem
 import com.aci.hermes.data.evidence.EvidenceSync
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
 import com.aci.hermes.ui.theme.JarvisTokens
 
 object EvidenceScreenTags {
@@ -140,7 +140,7 @@ fun EvidenceScreen(
                         .testTag(EvidenceScreenTags.EMPTY),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MuseEmptyState(
+                    museEmptyState(
                         title = "No evidence yet",
                         body = "Run a search above, or pair a gateway to load live evidence.",
                     )
@@ -169,7 +169,7 @@ fun EvidenceScreen(
 
 @Composable
 private fun EvidenceCard(item: EvidenceItem, onClick: () -> Unit) {
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(EvidenceScreenTags.card(item.id))
@@ -183,9 +183,9 @@ private fun EvidenceCard(item: EvidenceItem, onClick: () -> Unit) {
                 maxLines = 3,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm), verticalAlignment = Alignment.CenterVertically) {
-                MuseChip(label = item.trust.display)
+                museChip(label = item.trust.display)
                 if (item.isStale()) {
-                    MuseChip(label = "Stale")
+                    museChip(label = "Stale")
                 }
             }
         }
@@ -209,8 +209,8 @@ private fun EvidenceDetail(
         Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(item.sourceUri, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseChip(label = item.trust.display)
-            MuseChip(label = if (item.isStale()) "Stale" else "Fresh")
+            museChip(label = item.trust.display)
+            museChip(label = if (item.isStale()) "Stale" else "Fresh")
         }
         HorizontalDivider()
         Text(item.excerpt, style = MaterialTheme.typography.bodyMedium)
@@ -224,12 +224,12 @@ private fun EvidenceDetail(
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseButton(onClick = onVerify, text = "Verify", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onVerify, text = "Verify", variant = museButtonVariant.Secondary)
             // Sends no owner phrase: the gateway promotes high-trust items and
             // rejects low-confidence/unverified ones, which raises an explicit
             // owner-authorization dialog rather than promoting on a tap.
-            MuseButton(onClick = onPromote, text = "Promote to memory")
-            MuseButton(onClick = onClose, text = "Close", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onPromote, text = "Promote to memory")
+            museButton(onClick = onClose, text = "Close", variant = museButtonVariant.Secondary)
         }
     }
 }
@@ -256,10 +256,10 @@ private fun OwnerAuthorizationDialog(
             )
         },
         confirmButton = {
-            MuseButton(onClick = onConfirm, text = "Authorize & promote", variant = MuseButtonVariant.Approve)
+            museButton(onClick = onConfirm, text = "Authorize & promote", variant = museButtonVariant.Approve)
         },
         dismissButton = {
-            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onDismiss, text = "Cancel", variant = museButtonVariant.Secondary)
         },
     )
 }

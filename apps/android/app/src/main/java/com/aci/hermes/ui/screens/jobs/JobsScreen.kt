@@ -34,13 +34,13 @@ import com.aci.hermes.data.cockpit.CockpitJob
 import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.ui.components.JobStatusChip
 import com.aci.hermes.ui.components.JobUiState
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseMotion
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museMotion
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisTokens
 
@@ -146,10 +146,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
 ) {
     if (jobs.isEmpty()) return
     item(key = "header-$title") {
-        MuseSectionHeader(
+        museSectionHeader(
             title = title,
             modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
-            trailing = { MuseChip(label = "${jobs.size}") },
+            trailing = { museChip(label = "${jobs.size}") },
         )
     }
     items(jobs, key = { it.id }) { job ->
@@ -168,10 +168,10 @@ private fun JobRow(
     val appear = remember { MutableTransitionState(false).apply { targetState = true } }
     AnimatedVisibility(
         visibleState = appear,
-        enter = fadeIn(MuseMotion.standard()) +
-            slideInVertically(MuseMotion.standard()) { it / 6 },
+        enter = fadeIn(museMotion.standard()) +
+            slideInVertically(museMotion.standard()) { it / 6 },
     ) {
-        MuseCard(
+        museCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(JobsScreenTags.row(job.id))
@@ -194,10 +194,10 @@ private fun JobRow(
                     // Waiting-for-approval needs the owner phrase → send to detail;
                     // a plain blocked/disconnected job can be resumed inline.
                     val waiting = state == JobUiState.WAITING_APPROVAL
-                    MuseButton(
+                    museButton(
                         onClick = if (waiting) onClick else onResume,
                         text = if (waiting) "Review / approve" else "Resume",
-                        variant = if (waiting) MuseButtonVariant.Approve else MuseButtonVariant.Secondary,
+                        variant = if (waiting) museButtonVariant.Approve else museButtonVariant.Secondary,
                         modifier = Modifier.testTag(JobsScreenTags.unblock(job.id)),
                     )
                 }
@@ -212,6 +212,6 @@ private fun JobsEmptyState(title: String, body: String, tag: String) {
         modifier = Modifier.fillMaxSize().testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
-        MuseEmptyState(title = title, body = body)
+        museEmptyState(title = title, body = body)
     }
 }

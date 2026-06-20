@@ -2,14 +2,14 @@
 sidebar_position: 11
 sidebar_label: "GitHub PR Reviews via Webhook"
 title: "Automated GitHub PR Comments with Webhooks"
-description: "Connect M.U.S.E. to GitHub so it automatically fetches PR diffs, reviews code changes, and posts comments — triggered by webhooks with no manual prompting"
+description: "Connect muse to GitHub so it automatically fetches PR diffs, reviews code changes, and posts comments — triggered by webhooks with no manual prompting"
 ---
 
 # Automated GitHub PR Comments with Webhooks
 
-This guide walks you through connecting M.U.S.E. to GitHub so it automatically fetches a pull request's diff, analyzes the code changes, and posts a comment — triggered by a webhook event with no manual prompting.
+This guide walks you through connecting muse to GitHub so it automatically fetches a pull request's diff, analyzes the code changes, and posts a comment — triggered by a webhook event with no manual prompting.
 
-When a PR is opened or updated, GitHub sends a webhook POST to your M.U.S.E. instance. M.U.S.E. runs the agent with a prompt that instructs it to retrieve the diff via the `gh` CLI, and the response is posted back to the PR thread.
+When a PR is opened or updated, GitHub sends a webhook POST to your muse instance. muse runs the agent with a prompt that instructs it to retrieve the diff via the `gh` CLI, and the response is posted back to the PR thread.
 
 :::tip Want a simpler setup without a public endpoint?
 If you don't have a public URL or just want to get started quickly, check out [Build a GitHub PR Review Agent](./github-pr-review-agent.md) — uses cron jobs to poll for PRs on a schedule, works behind NAT and firewalls.
@@ -27,9 +27,9 @@ Webhook payloads contain attacker-controlled data — PR titles, commit messages
 
 ## Prerequisites
 
-- M.U.S.E. installed and running (`muse gateway`)
+- muse installed and running (`muse gateway`)
 - [`gh` CLI](https://cli.github.com/) installed and authenticated on the gateway host (`gh auth login`)
-- A publicly reachable URL for your M.U.S.E. instance (see [Local testing with ngrok](#local-testing-with-ngrok) if running locally)
+- A publicly reachable URL for your muse instance (see [Local testing with ngrok](#local-testing-with-ngrok) if running locally)
 - Admin access to the GitHub repository (required to manage webhooks)
 
 ---
@@ -130,7 +130,7 @@ GitHub will immediately send a `ping` event to confirm the connection. It is saf
 
 ## Step 4 — Open a test PR
 
-Create a branch, push a change, and open a PR. Within 30–90 seconds (depending on PR size and model), M.U.S.E. should post a review comment.
+Create a branch, push a change, and open a PR. Within 30–90 seconds (depending on PR size and model), muse should post a review comment.
 
 To follow the agent's progress in real time:
 
@@ -142,7 +142,7 @@ tail -f "${HERMES_HOME:-$HOME/.hermes}/logs/gateway.log"
 
 ## Local testing with ngrok
 
-If M.U.S.E. is running on your laptop, use [ngrok](https://ngrok.com/) to expose it:
+If muse is running on your laptop, use [ngrok](https://ngrok.com/) to expose it:
 
 ```bash
 ngrok http 8644
@@ -196,7 +196,7 @@ The "stop here" instruction prevents a meaningful review, but the agent still ru
 
 ## Using a skill for consistent review style
 
-Load a [M.U.S.E. skill](/docs/user-guide/features/skills) to give the agent a consistent review persona. Add `skills` to your route inside `platforms.webhook.extra.routes` in `config.yaml`:
+Load a [muse skill](/docs/user-guide/features/skills) to give the agent a consistent review persona. Add `skills` to your route inside `platforms.webhook.extra.routes` in `config.yaml`:
 
 ```yaml
 platforms:
@@ -226,7 +226,7 @@ platforms:
             pr_number: "{number}"
 ```
 
-> **Note:** Only the first skill in the list that is found is loaded. M.U.S.E. does not stack multiple skills — subsequent entries are ignored.
+> **Note:** Only the first skill in the list that is found is loaded. muse does not stack multiple skills — subsequent entries are ignored.
 
 ---
 
@@ -256,7 +256,7 @@ Valid `deliver` values: `log` · `github_comment` · `telegram` · `discord` · 
 
 ## GitLab support
 
-The same adapter works with GitLab. GitLab uses `X-Gitlab-Token` for authentication (plain string match, not HMAC) — M.U.S.E. handles both automatically.
+The same adapter works with GitLab. GitLab uses `X-Gitlab-Token` for authentication (plain string match, not HMAC) — muse handles both automatically.
 
 For event filtering, GitLab sets `X-GitLab-Event` to values like `Merge Request Hook`, `Push Hook`, `Pipeline Hook`. Use the exact header value in `events`:
 
@@ -265,7 +265,7 @@ events:
   - Merge Request Hook
 ```
 
-GitLab payload fields differ from GitHub's — e.g. `{object_attributes.title}` for the MR title and `{object_attributes.iid}` for the MR number. The easiest way to discover the full payload structure is GitLab's **Test** button in your webhook settings, combined with the **Recent Deliveries** log. Alternatively, omit `prompt` from your route config — M.U.S.E. will then pass the full payload as formatted JSON directly to the agent, and the agent's response (visible in the gateway log with `deliver: log`) will describe its structure.
+GitLab payload fields differ from GitHub's — e.g. `{object_attributes.title}` for the MR title and `{object_attributes.iid}` for the MR number. The easiest way to discover the full payload structure is GitLab's **Test** button in your webhook settings, combined with the **Recent Deliveries** log. Alternatively, omit `prompt` from your route config — muse will then pass the full payload as formatted JSON directly to the agent, and the agent's response (visible in the gateway log with `deliver: log`) will describe its structure.
 
 ---
 

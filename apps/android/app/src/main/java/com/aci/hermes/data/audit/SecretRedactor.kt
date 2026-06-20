@@ -2,7 +2,7 @@ package com.aci.hermes.data.audit
 
 /**
  * Redacts secret-like substrings before audit material is rendered in
- * the UI or copied to the clipboard. MUSE guarantees the audit
+ * the UI or copied to the clipboard. muse guarantees the audit
  * surface never leaks credentials even if a worker accidentally logged
  * one in a diff or command output.
  *

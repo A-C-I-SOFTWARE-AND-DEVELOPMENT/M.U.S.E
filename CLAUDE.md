@@ -7,10 +7,10 @@ the hermes-agent repository.
 > development guide. This file is a Claude-specific entry point that
 > points there. When the two disagree, AGENTS.md wins.
 
-## MUSE — the apex persona
+## muse — the apex persona
 
-When the user says "MUSE" or invokes
-`/jarvis` / `/jarvis-prime` / `/jp`, they mean **MUSE** —
+When the user says "muse" or invokes
+`/jarvis` / `/jarvis-prime` / `/jp`, they mean **muse** —
 Jeremiah Echerd's local-first AI operating partner. Read these in
 order before responding:
 
@@ -18,10 +18,9 @@ order before responding:
 2. [`skills/jarvis-prime/SKILL.md`](skills/jarvis-prime/SKILL.md) — the activation skill (when to use, response formats).
 3. [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md) — eight gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback).
 4. [`docs/aos-jarvis-agent-routing.md`](docs/aos-jarvis-agent-routing.md) — routing to the 9-member active core council.
-5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) MUSE is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
-6. [`docs/muse-system-contract.md`](docs/muse-system-contract.md) — the **pre-prompt System Contract** (sections `SC1…SC12`): MUSE's own behavioral floor, *seen before any prompt*, that fuses 1, 3, 5, and the persona into one ordered pre-prompt. Mirrored in code at [`hermes_cli/jarvis_prime/system_contract.py`](hermes_cli/jarvis_prime/system_contract.py); live injection is opt-in/owner-gated via `MUSE_SYSTEM_CONTRACT=1`.
+5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) muse is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
 
-MUSE is **loyal to the user's long-term mission, not blindly
+muse is **loyal to the user's long-term mission, not blindly
 obedient to the moment**. Challenge weak ideas plainly. Defer
 owner-gated actions (spend, deploy, publish, OAuth, main-branch
 merge, package publish, credential change, regulated claims) until
@@ -113,34 +112,6 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 5. **No secrets in code.** API keys live in `~/.hermes/.env`. The
    plugin layer reads them; the agent never sees them.
 
-## Quality & documentation workflow
-
-This repo ships the `muse-quality` skill
-(`.claude/skills/muse-quality/`). Doxygen is **not** used for Python
-call graphs (its Python graphs are unreliable); the stack is
-Python-native. There is **no `src/`** layout — scripts target the
-first-party packages via `QUALITY_PATHS`
-(`agent tools hermes_cli gateway tui_gateway cron acp_adapter providers
-second_brain` by default).
-
-- **TIERS:** (1) a fast Ruff check runs automatically on every file
-  edit via a `PostToolUse` hook (report-only; do not re-run it);
-  (2) at the end of any phase, run `/phase-complete` for the
-  checkpoint gate (Ruff blocking on the repo's configured rules,
-  `ty` advisory, plus Bandit/radon/xenon/interrogate/import-linter/
-  vulture/TODO when installed); (3) full PDF/diagram builds run in
-  GitHub Actions (`muse-quality-pipeline.yml`), not locally — only run
-  `/document` locally if explicitly asked.
-- **RATCHET RULE** ("Intelligence proposes; the verifier disposes"):
-  never loosen thresholds in `pyproject.toml`, `.importlinter`, or
-  xenon to make a gate pass. Fix the code instead.
-- Use `ty`, not mypy — `ty` is the repo's configured type checker.
-- Prefer `pyreverse -o mmd` (Mermaid) for diagrams so they embed in
-  Markdown and work on Termux without Graphviz.
-- On Termux, do not attempt Docker/MegaLinter/LaTeX/Structurizr; push
-  to CI. Generated outputs live in the git-ignored `docs/_generated/`
-  and `docs/_build/`.
-
 ## Parallel follow-up execution contract
 
 When closing out a backlog of follow-ups (e.g. the post-launch 10/10
@@ -196,11 +167,6 @@ the thread always shows live state.
 - [`SECURITY.md`](SECURITY.md) — reporting vulnerabilities.
 - [`docs/README.md`](docs/README.md) — plain-English operating
   manual index. Points to every user-facing guide below.
-- [`docs/architecture/`](docs/architecture/) — the inspectable
-  architecture map: component registry (machine-readable
-  `muse-component-registry.yaml` + drift test), dataflow diagrams,
-  work-packet/remote-worker schemas, and the technology disposition
-  matrix.
 - [`docs/orchestration/`](docs/orchestration/) — orchestration
   end-to-end. Start with `getting-started.md` and the Prompt to PR
   demo (`prompt-to-pr-demo.md`).
@@ -208,10 +174,10 @@ the thread always shows live state.
   versioned behavioral rubric the self-audit layer scores against.
 - [`docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md`](docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md)
   — deconstructs an external "Anthropic Mythos" report and specifies
-  the additive MUSE Self-Audit + Constitution layer (Petri-style
+  the additive muse Self-Audit + Constitution layer (Petri-style
   self-audit, behavioral-risk detection, capability-band wall).
 - [`docs/orchestration/agent-design-patterns.md`](docs/orchestration/agent-design-patterns.md)
-  — Anthropic's composable agent patterns mapped to MUSE primitives.
+  — Anthropic's composable agent patterns mapped to muse primitives.
 - [`docs/mobile/mobile-app-guide.md`](docs/mobile/mobile-app-guide.md)
   — the Android cockpit, phone-first setup, approvals on the
   lockscreen.
@@ -232,18 +198,18 @@ the thread always shows live state.
   native `github_assistant` plugin vs the GitHub MCP server.
 - [`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)
   — the owner-gated SIA (Hexo Labs) self-improvement worker: SIA
-  iterates in a sandbox, MUSE promotes the winner only by proposal.
+  iterates in a sandbox, muse promotes the winner only by proposal.
 - [`docs/integrations/autoresearch.md`](docs/integrations/autoresearch.md)
   — the owner-gated autoresearch training engine (Karpathy, vendored):
   autonomous 5-minute pretraining experiments in disposable workspaces,
   cost-ceilinged and VRAM-gated; winners surface only as RC4 proposals.
 - [`docs/ai-intelligence/jarvis-learning-dataset.md`](docs/ai-intelligence/jarvis-learning-dataset.md)
-  — the MUSE learning dataset pipeline: validated, source-backed,
+  — the muse learning dataset pipeline: validated, source-backed,
   owner-approved traces for fine-tuning / preference / eval, with no
   secrets or chain-of-thought. CLI (`hermes_cli.jarvis_prime learning`),
   cockpit (`/v1/cockpit/learning`), and the Android Learning Queue tab.
 - [`docs/ai-intelligence/top-open-data-sources-for-training.md`](docs/ai-intelligence/top-open-data-sources-for-training.md)
-  — ranked inventory of public, license-aware datasets for MUSE
+  — ranked inventory of public, license-aware datasets for muse
   fine-tuning, retrieval, and a held-out benchmark wall. Backed by the
   machine-readable `docs/ai-intelligence/open-data-sources.yaml` registry
   (CLI: `hermes_cli.jarvis_prime data-sources`), which bridges each source

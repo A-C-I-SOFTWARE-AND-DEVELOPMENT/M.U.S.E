@@ -1,6 +1,6 @@
 # Session Storage
 
-M.U.S.E. uses a SQLite database (`~/.hermes/state.db`) to persist session
+muse uses a SQLite database (`~/.hermes/state.db`) to persist session
 metadata, full message history, and model configuration across CLI and gateway
 sessions. This replaces the earlier per-session JSONL file approach.
 

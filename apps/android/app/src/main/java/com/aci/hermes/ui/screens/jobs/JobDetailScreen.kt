@@ -46,10 +46,10 @@ import com.aci.hermes.data.cockpit.JobTimelineEntry
 import com.aci.hermes.data.cockpit.JobWorkerRef
 import com.aci.hermes.ui.components.JobStatusChip
 import com.aci.hermes.ui.components.JobUiState
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museSectionHeader
 
 /**
  * Read-only job story + the full control set. The timeline, worker
@@ -182,9 +182,9 @@ private fun JobDetailBody(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ControlButton("Pause", enabled = uiState.isActive, onClick = onPause)
                 ControlButton("Resume", enabled = uiState.needsAttention || uiState == JobUiState.PAUSED, onClick = onResume)
-                ControlButton("Cancel", enabled = uiState.isActive || uiState.needsAttention, onClick = onCancel, variant = MuseButtonVariant.Danger)
+                ControlButton("Cancel", enabled = uiState.isActive || uiState.needsAttention, onClick = onCancel, variant = museButtonVariant.Danger)
                 ControlButton("Rerun step", enabled = uiState == JobUiState.FAILED || uiState == JobUiState.BLOCKED, onClick = onRerun)
-                ControlButton("Approve", enabled = uiState.needsAttention, onClick = onApprove, variant = MuseButtonVariant.Approve)
+                ControlButton("Approve", enabled = uiState.needsAttention, onClick = onApprove, variant = museButtonVariant.Approve)
                 ControlButton("Open patch", enabled = true, onClick = onOpenPatch)
                 ControlButton("Run verification", enabled = !verifying, onClick = onVerify)
                 ControlButton("Navigation", enabled = !navLoading, onClick = onLoadNavigation)
@@ -195,7 +195,7 @@ private fun JobDetailBody(
             item { Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         }
         navigation?.let { nav ->
-            sectionCard("Navigation — where Muse looked") {
+            sectionCard("Navigation — where muse looked") {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (nav.objective.isNotBlank()) {
                         Text(nav.objective, style = MaterialTheme.typography.bodyMedium)
@@ -308,9 +308,9 @@ private fun ControlButton(
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
-    variant: MuseButtonVariant = MuseButtonVariant.Secondary,
+    variant: museButtonVariant = museButtonVariant.Secondary,
 ) {
-    MuseButton(onClick = onClick, text = label, variant = variant, enabled = enabled)
+    museButton(onClick = onClick, text = label, variant = variant, enabled = enabled)
 }
 
 @Composable
@@ -349,9 +349,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sectionCard(
     content: @Composable () -> Unit,
 ) {
     item(key = "section-$title") {
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MuseSectionHeader(title = title)
+                museSectionHeader(title = title)
                 content()
             }
         }
@@ -376,10 +376,10 @@ private fun OwnerApproveDialog(onDismiss: () -> Unit, onApprove: (String) -> Uni
             }
         },
         confirmButton = {
-            MuseButton(onClick = { onApprove(phrase) }, text = "Approve", variant = MuseButtonVariant.Approve)
+            museButton(onClick = { onApprove(phrase) }, text = "Approve", variant = museButtonVariant.Approve)
         },
         dismissButton = {
-            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onDismiss, text = "Cancel", variant = museButtonVariant.Secondary)
         },
     )
 }

@@ -1,4 +1,4 @@
-# M.U.S.E. orchestration — 10/10 final readiness report
+# muse orchestration — 10/10 final readiness report
 
 **Phase:** 24 (release hardening)
 **Branch:** `claude/hermes-release-hardening-10-10-Wx2MN`

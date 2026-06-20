@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pure-Kotlin coverage for the MUSE worker-card additions to
+ * Pure-Kotlin coverage for the muse worker-card additions to
  * [HermesTask]: defaults, the [section] derivation across every status,
  * the Approvals / Audit deep-link predicates, and forward-compatible
  * serialization of the new fields.

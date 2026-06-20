@@ -5,11 +5,11 @@ whose **default branch is "stay solo-plus-agents"** — per the Startup Genome
 finding that 74% of high-growth internet startups fail from *premature*
 scaling, not under-scaling. Four honest kill criteria gate every scale-up:
 
-- K1: no proving-ground user who needs MUSE specifically (no PMF),
+- K1: no proving-ground user who needs muse specifically (no PMF),
 - K2: the verifier gates still need constant manual intervention (the
   management layer isn't trustworthy enough to manage a team),
 - K3: a funding term touches the anti-goals (the slot-machine red line),
-- K4: coordination cost exceeds what MUSE's workers already deliver.
+- K4: coordination cost exceeds what muse's workers already deliver.
 
 Any triggered criterion forces the recommendation back to Scale A. The
 evaluation matrix and mechanism unlocks are the Volume VI tables, verbatim.
@@ -100,7 +100,7 @@ KILL_CRITERIA: tuple[KillCriterion, ...] = (
         "K1",
         "No proving-ground user",
         lambda s: _wants_to_scale(s) and not s.has_proving_ground_user,
-        "No paying or regulated proving-ground user needs MUSE specifically — "
+        "No paying or regulated proving-ground user needs muse specifically — "
         "hiring would be efficiently executing the irrelevant.",
     ),
     KillCriterion(
@@ -124,7 +124,7 @@ KILL_CRITERIA: tuple[KillCriterion, ...] = (
         < s.worker_throughput_hours_weekly
         < s.coordination_hours_weekly,
         "The coordination cost of additional humans exceeds the throughput "
-        "MUSE's workers already provide.",
+        "muse's workers already provide.",
     ),
 )
 
@@ -301,7 +301,7 @@ def recommend_scale(
         recommended = Scale.B_TEAM
     else:
         path.append(
-            "IF solo THEN stay solo-plus-agents — MUSE's workers are the team "
+            "IF solo THEN stay solo-plus-agents — muse's workers are the team "
             "and the verifier gates are the management layer (the default)."
         )
         recommended = Scale.A_SOLO

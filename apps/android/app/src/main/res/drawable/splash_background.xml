@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  MUSE splash background.
+  muse splash background.
   Solid abyss-ink. The branded glow + glyph live in the Compose splash
   layer (SplashScreen.kt) so we don't ship an inflexible bitmap.
 -->

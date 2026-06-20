@@ -12,7 +12,7 @@ here is a structural subset of axiom's (kind/payload/prev/ts/hash) so
 events can be mirrored into a full axiom ledger later without rewrites.
 
 Soft by construction: every write path swallows its own errors, and
-``MUSE_AXIOM_GATES=0`` makes the bridge inert (no reads of the chain,
+``muse_AXIOM_GATES=0`` makes the bridge inert (no reads of the chain,
 no writes, ``chain_valid: None``) for hermetic CI.
 
 CLI:
@@ -34,7 +34,7 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
-MUSE_AXIOM_GATES_ENV = "MUSE_AXIOM_GATES"
+muse_AXIOM_GATES_ENV = "muse_AXIOM_GATES"
 GENESIS_PREV = "0" * 64
 _CHAIN_DIR = "axiom"
 _CHAIN_FILE = "chain.jsonl"
@@ -132,8 +132,8 @@ class AxiomBridge:
 
     @property
     def inert(self) -> bool:
-        """True when MUSE_AXIOM_GATES disables the bridge (re-read each call)."""
-        flag = os.environ.get(MUSE_AXIOM_GATES_ENV, "").strip().lower()
+        """True when muse_AXIOM_GATES disables the bridge (re-read each call)."""
+        flag = os.environ.get(muse_AXIOM_GATES_ENV, "").strip().lower()
         return flag in ("0", "false", "off", "no")
 
     def chain_exists(self) -> bool:

@@ -1,4 +1,4 @@
-"""W5 — model-lane reranker for the MUSE NL compiler.
+"""W5 — model-lane reranker for the muse NL compiler.
 
 Given a compile's task class and risk class, deterministically recommend a
 model lane. Evidence preference order:

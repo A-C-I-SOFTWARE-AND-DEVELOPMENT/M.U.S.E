@@ -1,4 +1,4 @@
-# M.U.S.E. Orchestration — Final Integration Report
+# muse Orchestration — Final Integration Report
 
 > **Document status:** Phase 10 synthesis. Documentation-only deliverable.
 > Audits every Phase 0–9 artifact actually present on this branch, names
@@ -14,7 +14,7 @@
 
 ## 1. Executive verdict
 
-M.U.S.E. ships the load-bearing primitives for a private, multi-worker
+muse ships the load-bearing primitives for a private, multi-worker
 coding orchestrator, and the documentation backbone for every adjacent
 policy concern (model routing, decision quality, AI radar, competitive
 harvest, north-star mission). The unifying *Job Controller* command
@@ -79,7 +79,7 @@ other content changes were made.
 
 ---
 
-## 4. Agents converted into M.U.S.E. skills (already in `main`)
+## 4. Agents converted into muse skills (already in `main`)
 
 ### 4.1 AoS Council (Phase 03)
 
@@ -133,12 +133,12 @@ at import time.
 `skills/enterprise-council/` still ships the eight-role demonstrator
 (`orchestrator`, `judge`, `monitor`, plus the five leaf domain skills
 `sales`, `finance`, `hr`, `customer-service`, `operations`). It is the
-canonical worked example of "an agent expressed as a M.U.S.E. skill with
+canonical worked example of "an agent expressed as a muse skill with
 a typed contract to a runtime."
 
 ---
 
-## 5. New M.U.S.E. skills (Phase 10 inventory)
+## 5. New muse skills (Phase 10 inventory)
 
 The following orchestration-adjacent skills are committed and discoverable
 under `skills/<name>/SKILL.md`:
@@ -151,7 +151,7 @@ under `skills/<name>/SKILL.md`:
 | `research-validator` | Fact-check claims against cited sources. |
 | `self-improvement-loop` | Close every job with a learning pass (proposals only — never auto-applies). |
 | `ai-improvement-radar` | Track external coding-agent improvements and propose routing-policy updates. |
-| `competitive-feature-harvester` | Harvest competitor agent features into a M.U.S.E. backlog. |
+| `competitive-feature-harvester` | Harvest competitor agent features into a muse backlog. |
 | `best-coding-tool-mission` | Anchor every job to the "delivered, validated, accepted" success gate. |
 | `local-quality-gate` | Run local validation gates against a workspace before publishing. |
 | `github-publisher` | Promote a job's `github/` artifacts into a real branch + PR. |
@@ -163,7 +163,7 @@ already on disk.
 
 ---
 
-## 6. How to invoke inside M.U.S.E.
+## 6. How to invoke inside muse
 
 ### 6.1 Shipping today
 
@@ -192,7 +192,7 @@ muse kanban create "<goal>" / dispatch / status
 muse cron create "<cron>" "<prompt>" --skills <csv> --deliver <channel>
 muse webhook subscribe <name> --events <csv> --prompt "<…>"
 
-# External-agent skills loaded into any M.U.S.E. session
+# External-agent skills loaded into any muse session
 /claude-code  /codex  /opencode  /kanban-codex-lane
 
 # Radar review hook (user-triggered, never autonomous)
@@ -327,7 +327,7 @@ Three artifacts collaborate:
    — the operational skill invoked via `/ai-improvement-radar`.
 3. `scripts/hermes-ai-radar.sh` — the local review hook. Creates
    `.hermes-orchestrator/ai-radar/<ts>-request.json`, then tells the
-   user to run `/ai-improvement-radar` inside M.U.S.E..
+   user to run `/ai-improvement-radar` inside muse
 
 `hermes_cli/orchestrator.py:ai_radar_update` exposes
 `/ai-radar update` and `/ai-radar status` at the CLI; today these
@@ -379,21 +379,21 @@ Summary:
 | Does "Paperclip" refer to `paperclipai/paperclip`? | Yes | High |
 | Is Paperclip a coding-agent competitor? | No — orchestrator above other coding agents | High |
 | Are the feature lists complete? | No — only the loudest features | Medium |
-| Should M.U.S.E. copy any feature wholesale? | No — selectively (see relevance notes) | High |
+| Should muse copy any feature wholesale? | No — selectively (see relevance notes) | High |
 
-Relevance to M.U.S.E. (verbatim from the research doc):
+Relevance to muse (verbatim from the research doc):
 
 - From OpenHuman, two ideas to evaluate if their efficacy is real: an
   Obsidian-compatible markdown vault as a memory plugin, and
-  TokenJuice-style compression compared against M.U.S.E.' existing
+  TokenJuice-style compression compared against muse' existing
   `trajectory_compressor.py`.
 - From Paperclip, two ideas worth borrowing: a formal adapter contract
   for external coding agents (already partly realised by
   `hermes_cli/workers/`), and persistent session-ID resume across
-  heartbeats (which M.U.S.E.' kanban worker does not yet do).
+  heartbeats (which muse' kanban worker does not yet do).
 
 Everything else (Rust binary, mascot, 118 OAuth integrations, org-chart
-metaphor, AWS Marketplace listing) is orthogonal to M.U.S.E.' Python-first,
+metaphor, AWS Marketplace listing) is orthogonal to muse' Python-first,
 gateway-driven design.
 
 ---
@@ -445,7 +445,7 @@ This is a hard constraint across every phase, codified in
 
 - **No commercial subscription surface.** No Google Play Billing, no
   in-app purchases, no paywall, no product IDs.
-- **No credential brokering.** M.U.S.E. does not scrape cookies, extract
+- **No credential brokering.** muse does not scrape cookies, extract
   tokens, automate hidden login flows, or read another app's storage.
 - **No unofficial provider proxying.** The Android cockpit does not
   call OpenAI / Anthropic / etc. APIs directly in the primary workflow.
@@ -539,12 +539,12 @@ Phase 10 brief is on disk):
 7. **Phase 0 audit observation persists.** `docs/orchestration/phase-0-evidence-audit.md`
    records that the original brief assumed `.claude/agents/*.md` source
    files which did not exist; Phase 03 (`hermes-agent-skill-map.md`)
-   re-grounded the work against M.U.S.E.' native skill system. The
+   re-grounded the work against muse' native skill system. The
    audit's contradiction with the later skill map is resolved in
-   favor of the skill map — the council exists as M.U.S.E. skills, not
+   favor of the skill map — the council exists as muse skills, not
    as upstream Claude agent files.
 
-None of these block shipping M.U.S.E. today. They are the punch list the
+None of these block shipping muse today. They are the punch list the
 next PR closes.
 
 ---

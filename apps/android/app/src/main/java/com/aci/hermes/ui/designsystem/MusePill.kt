@@ -21,7 +21,7 @@ import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * A status pill: a [MuseStatusDot] + a short label inside a rounded raised
+ * A status pill: a [museStatusDot] + a short label inside a rounded raised
  * capsule. The everyday "Connected / Listening / Offline" tell for headers and
  * job rows. The label color follows the status (muted when off).
  *
@@ -30,13 +30,13 @@ import com.aci.hermes.ui.theme.JarvisTokens
  * @param animate forwarded to the dot's connecting pulse.
  */
 @Composable
-fun MuseStatusPill(
-    status: MuseStatus,
+fun museStatusPill(
+    status: museStatus,
     label: String,
     modifier: Modifier = Modifier,
     animate: Boolean = true,
 ) {
-    val textColor = if (status == MuseStatus.Off) JarvisSignalDim else JarvisSignal
+    val textColor = if (status == museStatus.Off) JarvisSignalDim else JarvisSignal
     Row(
         modifier = modifier
             .clip(JarvisTokens.ShapePill)
@@ -46,7 +46,7 @@ fun MuseStatusPill(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
     ) {
-        MuseStatusDot(status = status, size = 8.dp, animate = animate)
+        museStatusDot(status = status, size = 8.dp, animate = animate)
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
@@ -65,7 +65,7 @@ fun MuseStatusPill(
  * @param onClick optional tap handler; when null the chip is display-only.
  */
 @Composable
-fun MuseChip(
+fun museChip(
     label: String,
     modifier: Modifier = Modifier,
     selected: Boolean = false,

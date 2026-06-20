@@ -1,12 +1,12 @@
 ---
 sidebar_position: 11
 title: "ACP Editor Integration"
-description: "Use M.U.S.E. inside ACP-compatible editors such as VS Code, Zed, and JetBrains"
+description: "Use muse inside ACP-compatible editors such as VS Code, Zed, and JetBrains"
 ---
 
 # ACP Editor Integration
 
-M.U.S.E. can run as an ACP server, letting ACP-compatible editors talk to M.U.S.E. over stdio and render:
+muse can run as an ACP server, letting ACP-compatible editors talk to muse over stdio and render:
 
 - chat messages
 - tool activity
@@ -15,11 +15,11 @@ M.U.S.E. can run as an ACP server, letting ACP-compatible editors talk to M.U.S.
 - approval prompts
 - streamed thinking / response chunks
 
-ACP is a good fit when you want M.U.S.E. to behave like an editor-native coding agent instead of a standalone CLI or messaging bot.
+ACP is a good fit when you want muse to behave like an editor-native coding agent instead of a standalone CLI or messaging bot.
 
-## What M.U.S.E. exposes in ACP mode
+## What muse exposes in ACP mode
 
-M.U.S.E. runs with a curated `hermes-acp` toolset designed for editor workflows. It includes:
+muse runs with a curated `hermes-acp` toolset designed for editor workflows. It includes:
 
 - file tools: `read_file`, `write_file`, `patch`, `search_files`
 - terminal tools: `terminal`, `process`
@@ -33,7 +33,7 @@ It intentionally excludes things that do not fit typical editor UX, such as mess
 
 ## Installation
 
-Install M.U.S.E. normally, then add the ACP extra:
+Install muse normally, then add the ACP extra:
 
 ```bash
 pip install -e '.[acp]'
@@ -45,7 +45,7 @@ This installs the `agent-client-protocol` dependency and enables:
 - `muse-acp`
 - `python -m acp_adapter`
 
-For Zed registry installs, Zed launches M.U.S.E. through the official ACP Registry entry. That entry uses a `uvx` distribution that runs:
+For Zed registry installs, Zed launches muse through the official ACP Registry entry. That entry uses a `uvx` distribution that runs:
 
 ```bash
 uvx --from 'hermes-agent[acp]==<version>' muse-acp
@@ -55,7 +55,7 @@ Make sure `uv` is available on `PATH` before using the registry install path.
 
 ## Launching the ACP server
 
-Any of the following starts M.U.S.E. in ACP mode:
+Any of the following starts muse in ACP mode:
 
 ```bash
 muse acp
@@ -69,7 +69,7 @@ muse-acp
 python -m acp_adapter
 ```
 
-M.U.S.E. logs to stderr so stdout remains reserved for ACP JSON-RPC traffic.
+muse logs to stderr so stdout remains reserved for ACP JSON-RPC traffic.
 
 For non-interactive checks:
 
@@ -108,15 +108,15 @@ Install the [ACP Client](https://marketplace.visualstudio.com/items?itemName=for
 To connect:
 
 1. Open the ACP Client panel from the Activity Bar.
-2. Select **M.U.S.E.** from the built-in agent list.
+2. Select **muse** from the built-in agent list.
 3. Connect and start chatting.
 
-If you want to define M.U.S.E. manually, add it through VS Code settings under `acp.agents`:
+If you want to define muse manually, add it through VS Code settings under `acp.agents`:
 
 ```json
 {
   "acp.agents": {
-    "M.U.S.E.": {
+    "muse": {
       "command": "muse",
       "args": ["acp"]
     }
@@ -130,12 +130,12 @@ Zed v0.221.x and newer installs external agents through the official ACP Registr
 
 1. Open the Agent Panel.
 2. Click **Add Agent**, or run the `zed: acp registry` command.
-3. Search for **M.U.S.E.**.
-4. Install it and start a new M.U.S.E. external-agent thread.
+3. Search for **muse**.
+4. Install it and start a new muse external-agent thread.
 
 Prerequisites:
 
-- Configure M.U.S.E. provider credentials first with `muse model`, or set them in `~/.hermes/.env` / `~/.hermes/config.yaml`.
+- Configure muse provider credentials first with `muse model`, or set them in `~/.hermes/.env` / `~/.hermes/config.yaml`.
 - Install `uv` so the registry launcher can run `uvx --from 'hermes-agent[acp]==<version>' muse-acp`.
 
 For local development before the registry entry is available, use a custom agent server in Zed settings:
@@ -162,7 +162,7 @@ Use an ACP-compatible plugin and point it at:
 
 ## Registry manifest
 
-The source copy of M.U.S.E.' official ACP Registry metadata lives at:
+The source copy of muse' official ACP Registry metadata lives at:
 
 ```text
 acp_registry/agent.json
@@ -181,14 +181,14 @@ The registry CI verifies that the pinned version exists on PyPI, so the manifest
 
 ## Configuration and credentials
 
-ACP mode uses the same M.U.S.E. configuration as the CLI:
+ACP mode uses the same muse configuration as the CLI:
 
 - `~/.hermes/.env`
 - `~/.hermes/config.yaml`
 - `~/.hermes/skills/`
 - `~/.hermes/state.db`
 
-Provider resolution uses M.U.S.E.' normal runtime resolver, so ACP inherits the currently configured provider and credentials. M.U.S.E. also advertises a terminal auth method (`--setup`) for first-run registry clients; this opens M.U.S.E.' interactive model/provider setup.
+Provider resolution uses muse' normal runtime resolver, so ACP inherits the currently configured provider and credentials. muse also advertises a terminal auth method (`--setup`) for first-run registry clients; this opens muse' interactive model/provider setup.
 
 ## Session behavior
 
@@ -202,11 +202,11 @@ Each session stores:
 - current conversation history
 - cancel event
 
-The underlying `AIAgent` still uses M.U.S.E.' normal persistence/logging paths, but ACP `list/load/resume/fork` are scoped to the currently running ACP server process.
+The underlying `AIAgent` still uses muse' normal persistence/logging paths, but ACP `list/load/resume/fork` are scoped to the currently running ACP server process.
 
 ## Working directory behavior
 
-ACP sessions bind the editor's cwd to the M.U.S.E. task ID so file and terminal tools run relative to the editor workspace, not the server process cwd.
+ACP sessions bind the editor's cwd to the muse task ID so file and terminal tools run relative to the editor workspace, not the server process cwd.
 
 ## Approvals
 
@@ -226,12 +226,12 @@ ACP exposes a third tier between *allow once* and *allow always*: **Allow for se
 |---|---|---|---|
 | `allow_once` | Allow once | This one tool call | No |
 | `allow_session` | Allow for session | All matching calls in this ACP session | No — cleared when the session ends |
-| `allow_always` | Allow always | All future sessions | Yes (written to the M.U.S.E. permanent allowlist) |
+| `allow_always` | Allow always | All future sessions | Yes (written to the muse permanent allowlist) |
 | `deny` | Deny | This one tool call | No |
 
 `allow_session` is the right default for an editor workflow where you trust an agent for the duration of a task but don't want to grant a long-lived allowlist entry. The safety trade-off is straightforward: the broader the scope, the less the editor will interrupt you, and the more damage a misbehaving agent (or prompt injection) can do before you notice. Start with `allow_once` for unfamiliar commands; promote to `allow_session` once you've seen the agent run the same pattern correctly a few times; reserve `allow_always` for truly idempotent commands you trust forever (e.g. `git status`).
 
-The ACP bridge maps these options onto M.U.S.E.' internal approval semantics — `allow_always` writes a permanent allowlist entry the same way the CLI does, while `allow_session` only affects the in-process approval cache for the current ACP session.
+The ACP bridge maps these options onto muse' internal approval semantics — `allow_always` writes a permanent allowlist entry the same way the CLI does, while `allow_session` only affects the in-process approval cache for the current ACP session.
 
 ## Troubleshooting
 
@@ -239,9 +239,9 @@ The ACP bridge maps these options onto M.U.S.E.' internal approval semantics —
 
 Check:
 
-- In Zed, open the ACP Registry with `zed: acp registry` and search for **M.U.S.E.**.
+- In Zed, open the ACP Registry with `zed: acp registry` and search for **muse**.
 - For manual/local development, verify the custom `agent_servers` command points to `muse acp`.
-- M.U.S.E. is installed and on your PATH.
+- muse is installed and on your PATH.
 - The ACP extra is installed (`pip install -e '.[acp]'`).
 - `uv` is installed if launching from the official Zed registry entry.
 
@@ -258,17 +258,17 @@ muse status
 
 ### Missing credentials
 
-ACP mode uses M.U.S.E.' existing provider setup. Configure credentials with:
+ACP mode uses muse' existing provider setup. Configure credentials with:
 
 ```bash
 muse model
 ```
 
-or by editing `~/.hermes/.env`. Registry clients can also trigger M.U.S.E.' terminal auth flow, which runs the same interactive provider/model setup.
+or by editing `~/.hermes/.env`. Registry clients can also trigger muse' terminal auth flow, which runs the same interactive provider/model setup.
 
 ### Zed registry launcher cannot find uv
 
-Install `uv` from the official uv installation docs, then retry the M.U.S.E. thread from Zed.
+Install `uv` from the official uv installation docs, then retry the muse thread from Zed.
 
 ## See also
 

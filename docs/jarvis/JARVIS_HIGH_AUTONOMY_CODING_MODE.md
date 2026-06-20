@@ -1,6 +1,6 @@
-# MUSE high-autonomy coding mode
+# muse high-autonomy coding mode
 
-High-autonomy mode lets MUSE do more without asking each time — but
+High-autonomy mode lets muse do more without asking each time — but
 "more" is **scoped, logged, and revocable**, and the owner gates that
 protect irreversible actions never lift. This guide explains the autonomy
 dial, what each level actually permits, and how to pull power back
@@ -16,7 +16,7 @@ instantly.
 `apps/android/app/src/main/java/com/aci/hermes/data/jarvis/AutonomyMode.kt`
 — an owner-controlled level, **never reset implicitly by the runtime**:
 
-| Mode | What MUSE may do on its own |
+| Mode | What muse may do on its own |
 |---|---|
 | **Manual** | Nothing until you tap a step. |
 | **Assisted** | Propose actions; each waits for owner approval. |

@@ -98,8 +98,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
 import com.aci.hermes.ui.theme.HermesCrimson
 import com.aci.hermes.ui.theme.HermesCyan
 import com.aci.hermes.ui.theme.HermesGold
@@ -360,7 +360,7 @@ fun JarvisLiveScreen(
                 }
             }
 
-            // Toggle the floating MUSE that lives over every app.
+            // Toggle the floating muse that lives over every app.
             IconButton(
                 onClick = onToggleOverlay,
                 modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -368,9 +368,9 @@ fun JarvisLiveScreen(
                 Icon(
                     Icons.Default.PictureInPictureAlt,
                     contentDescription = if (overlayOn) {
-                        "Stop floating MUSE over other apps"
+                        "Stop floating muse over other apps"
                     } else {
-                        "Float MUSE over other apps"
+                        "Float muse over other apps"
                     },
                     tint = if (overlayOn) HermesCyan else Color.White.copy(alpha = 0.6f),
                 )
@@ -501,31 +501,31 @@ fun JarvisLiveScreen(
                 if (projection.showApprovalCta) {
                     // Do NOT approve from the avatar — route to the gated
                     // Approvals screen which enforces the owner phrase.
-                    MuseButton(
+                    museButton(
                         onClick = onOpenApprovals,
                         text = stringResource(R.string.jarvis_cta_open_approvals),
-                        variant = MuseButtonVariant.Primary,
+                        variant = museButtonVariant.Primary,
                     )
                 }
                 if (projection.showFixCta) {
-                    MuseButton(
+                    museButton(
                         onClick = { onOpenCurrentJob(currentJobId) },
                         text = stringResource(R.string.jarvis_cta_fix),
-                        variant = MuseButtonVariant.Danger,
+                        variant = museButtonVariant.Danger,
                     )
                 }
                 if (projection.showWarningCta) {
-                    MuseButton(
+                    museButton(
                         onClick = { onOpenCurrentJob(currentJobId) },
                         text = stringResource(R.string.jarvis_cta_warning),
-                        variant = MuseButtonVariant.Primary,
+                        variant = museButtonVariant.Primary,
                     )
                 }
                 if (projection.showEmergencyReleaseCta) {
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::releaseEmergencyStop,
                         text = stringResource(R.string.jarvis_cta_emergency_release),
-                        variant = MuseButtonVariant.Danger,
+                        variant = museButtonVariant.Danger,
                     )
                 }
             }
@@ -550,17 +550,17 @@ fun JarvisLiveScreen(
             title = { Text(stringResource(R.string.jarvis_emergency_dialog_title)) },
             text = { Text(stringResource(R.string.jarvis_emergency_dialog_body)) },
             confirmButton = {
-                MuseButton(
+                museButton(
                     onClick = viewModel::confirmEmergencyStop,
                     text = stringResource(R.string.jarvis_cta_emergency_stop),
-                    variant = MuseButtonVariant.Danger,
+                    variant = museButtonVariant.Danger,
                 )
             },
             dismissButton = {
-                MuseButton(
+                museButton(
                     onClick = viewModel::dismissEmergencyConfirm,
                     text = stringResource(R.string.action_cancel),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
             },
             containerColor = HermesInkSoft,

@@ -273,8 +273,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                "Tools & Skills", cli_only=True, args_hint="run <job-id>",
                subcommands=("run",)),
     CommandDef("jarvis-prime",
-               "Invoke MUSE — local-first AI operating partner. "
-               "/muse alone pulls up the MUSE-branded TUI; with an intent it "
+               "Invoke muse — local-first AI operating partner. "
+               "/muse alone pulls up the muse-branded TUI; with an intent it "
                "prints persona prompt, route decision, and any owner-gate phrase.",
                "Tools & Skills",
                aliases=("jarvis", "jp", "muse", "m"),

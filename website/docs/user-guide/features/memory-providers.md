@@ -6,7 +6,7 @@ description: "External memory provider plugins — Honcho, OpenViking, Mem0, Hin
 
 # Memory Providers
 
-M.U.S.E. ships with 8 external memory provider plugins that give the agent persistent, cross-session knowledge beyond the built-in MEMORY.md and USER.md. Only **one** external provider can be active at a time — the built-in memory is always active alongside it.
+muse ships with 8 external memory provider plugins that give the agent persistent, cross-session knowledge beyond the built-in MEMORY.md and USER.md. Only **one** external provider can be active at a time — the built-in memory is always active alongside it.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ memory:
 
 ## How It Works
 
-When a memory provider is active, M.U.S.E. automatically:
+When a memory provider is active, muse automatically:
 
 1. **Injects provider context** into the system prompt (what the provider knows)
 2. **Prefetches relevant memories** before each turn (background, non-blocking)
@@ -142,15 +142,15 @@ If you previously used `muse honcho setup`, your config and all server-side data
 
 **Multi-peer setup:**
 
-Honcho models conversations as peers exchanging messages — one user peer plus one AI peer per M.U.S.E. profile, all sharing a workspace. The workspace is the shared environment: the user peer is global across profiles, each AI peer is its own identity. Every AI peer builds an independent representation / card from its own observations, so a `coder` profile stays code-oriented while a `writer` profile stays editorial against the same user.
+Honcho models conversations as peers exchanging messages — one user peer plus one AI peer per muse profile, all sharing a workspace. The workspace is the shared environment: the user peer is global across profiles, each AI peer is its own identity. Every AI peer builds an independent representation / card from its own observations, so a `coder` profile stays code-oriented while a `writer` profile stays editorial against the same user.
 
 The mapping:
 
 | Concept | What it is |
 |---------|-----------|
-| **Workspace** | Shared environment. All M.U.S.E. profiles under one workspace see the same user identity. |
+| **Workspace** | Shared environment. All muse profiles under one workspace see the same user identity. |
 | **User peer** (`peerName`) | The human. Shared across profiles in the workspace. |
-| **AI peer** (`aiPeer`) | One per M.U.S.E. profile. Host key `hermes` → default; `hermes.<profile>` for others. |
+| **AI peer** (`aiPeer`) | One per muse profile. Host key `hermes` → default; `hermes.<profile>` for others. |
 | **Observation** | Per-peer toggles controlling what Honcho models from whose messages. `directional` (default, all four on) or `unified` (single-observer pool). |
 
 ### New profile, fresh Honcho peer
@@ -167,7 +167,7 @@ muse profile create coder --clone
 muse honcho sync
 ```
 
-Scans every M.U.S.E. profile, creates host blocks for any profile without one, inherits settings from the default `hermes` block, and creates the new AI peers eagerly. Idempotent — skips profiles that already have a host block.
+Scans every muse profile, creates host blocks for any profile without one, inherits settings from the default `hermes` block, and creates the new AI peers eagerly. Idempotent — skips profiles that already have a host block.
 
 ### Per-profile observation
 
@@ -279,7 +279,7 @@ Context database by Volcengine (ByteDance) with filesystem-style knowledge hiera
 pip install openviking
 openviking-server
 
-# Then configure M.U.S.E.
+# Then configure muse
 muse memory setup    # select "openviking"
 # Or manually:
 muse config set memory.provider openviking
@@ -359,14 +359,14 @@ The setup wizard installs dependencies automatically and only installs what's ne
 | `auto_retain` | `true` | Automatically retain conversation turns |
 | `auto_recall` | `true` | Automatically recall memories before each turn |
 | `retain_async` | `true` | Process retain asynchronously on the server |
-| `retain_context` | `conversation between M.U.S.E. Agent and the User` | Context label for retained memories |
+| `retain_context` | `conversation between muse Agent and the User` | Context label for retained memories |
 | `retain_tags` | — | Default tags applied to retained memories; merged with per-call tool tags |
 | `retain_source` | — | Optional `metadata.source` attached to retained memories |
 | `retain_user_prefix` | `User` | Label used before user turns in auto-retained transcripts |
 | `retain_assistant_prefix` | `Assistant` | Label used before assistant turns in auto-retained transcripts |
 | `recall_tags` | — | Tags to filter on recall |
 
-See [plugin README](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
+See [plugin README](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
 
 ---
 
@@ -447,7 +447,7 @@ Persistent memory via the `brv` CLI — hierarchical knowledge tree with tiered 
 # Install the CLI first
 curl -fsSL https://byterover.dev/install.sh | sh
 
-# Then configure M.U.S.E.
+# Then configure muse
 muse memory setup    # select "byterover"
 # Or manually:
 muse config set memory.provider byterover
@@ -501,7 +501,7 @@ echo 'SUPERMEMORY_API_KEY=***' >> ~/.hermes/.env
 - Session-end conversation ingest for richer graph-level knowledge building
 - Profile facts injected on first turn and at configurable intervals
 - Trivial message filtering (skips "ok", "thanks", etc.)
-- **Profile-scoped containers** — use `{identity}` in `container_tag` (e.g. `hermes-{identity}` → `hermes-coder`) to isolate memories per M.U.S.E. profile
+- **Profile-scoped containers** — use `{identity}` in `container_tag` (e.g. `hermes-{identity}` → `hermes-coder`) to isolate memories per muse profile
 - **Multi-container mode** — enable `enable_custom_container_tags` with a `custom_containers` list to let the agent read/write across named containers. Automatic operations (sync, prefetch) stay on the primary container.
 
 <details>

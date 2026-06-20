@@ -1,7 +1,7 @@
 # 09 — The Foundry Specification
 ### Agents born from your struggle — run honestly
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 ---
 
@@ -249,7 +249,7 @@ appear. The `[AI ✦]` indicator is mandatory (§9).
 - **One Foundry rare active per act.** A second validated candidate queues until the active one
   resolves (recruited/dismissed/ignored-out) or the act ends.
 - Foundry agents wire into the network like any agent but carry the `Foundry` origin tag —
-  visible on the card, excluded from the real-MUSE skill-unlock bridge (master plan §4.5) at
+  visible on the card, excluded from the real-muse skill-unlock bridge (master plan §4.5) at
   v1.0.
 
 ---
@@ -329,6 +329,6 @@ never to "your agent broke."
 - `01-game-design-document.md` — consent UI, options, act structure, suppression beats.
 - `02-negotiation-system.md` — parley verdict enum, recruitment flow, LLM-never-mutates-stats.
 - `03-combat-gas-design.md` — ability registry, attributes, combat rules the sim re-expresses.
-- `10-observatory-spec.md` — the same honesty machinery (measured-only claims) applied to MUSE.
+- `10-observatory-spec.md` — the same honesty machinery (measured-only claims) applied to muse
 - `11-technical-design.md` — `SynapseFoundryClient`, save schema for Foundry rares, consent gate.
 - Master plan §4.7, §7 (budget), §8.4 (compliance), §11 (risk register rows 5–6).

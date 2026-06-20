@@ -13,7 +13,7 @@ import com.aci.hermes.ui.theme.JarvisGold
 import com.aci.hermes.ui.theme.JarvisGoldGlow
 
 /**
- * MUSE brand glyph for in-app use (splash, headers, empty states).
+ * muse brand glyph for in-app use (splash, headers, empty states).
  *
  * Two concentric rings (gold + cyan) around a luminous gold "prime dot"
  * — the watchful eye. Vector-drawn so it scales cleanly at any density.

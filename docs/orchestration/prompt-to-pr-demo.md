@@ -24,7 +24,7 @@ T5. T5 publishes.
 
 ## Prerequisites
 
-- A clone of the repository you want to audit. M.U.S.E. will run
+- A clone of the repository you want to audit. muse will run
   inside it.
 - The `github_assistant` plugin enabled, with a fine-grained PAT
   scoped to that repo, write access allowed for *that one repo only*.

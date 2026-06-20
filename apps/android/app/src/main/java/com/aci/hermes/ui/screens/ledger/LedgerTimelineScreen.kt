@@ -45,12 +45,12 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.ledger.LedgerSync
 import com.aci.hermes.data.model.ledger.LedgerEvent
 import com.aci.hermes.data.model.ledger.LedgerFilters
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museMotion
 import com.aci.hermes.ui.theme.JarvisTokens
 import com.aci.hermes.ui.screens.audit.colorOn
 import com.aci.hermes.ui.screens.audit.displayLabel
@@ -130,9 +130,9 @@ fun LedgerTimelineScreen(
                         .testTag(LedgerScreenTags.EMPTY),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MuseEmptyState(
+                    museEmptyState(
                         title = "No activity yet",
-                        body = "Decisions, diffs, and rollbacks land here as Muse works.",
+                        body = "Decisions, diffs, and rollbacks land here as muse works.",
                     )
                 }
             } else {
@@ -172,7 +172,7 @@ private fun LedgerFilterPanel(
         Text("Risk", style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             RISK_FILTER_OPTIONS.forEach { risk ->
-                MuseChip(
+                museChip(
                     label = risk.lowercase().replaceFirstChar { it.uppercase() },
                     selected = draft.risk == risk,
                     onClick = {
@@ -219,14 +219,14 @@ private fun LedgerFilterPanel(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseButton(onClick = { onApply(draft) }, text = "Apply")
-            MuseButton(
+            museButton(onClick = { onApply(draft) }, text = "Apply")
+            museButton(
                 onClick = {
                     draft = LedgerFilters()
                     onClear()
                 },
                 text = "Clear",
-                variant = MuseButtonVariant.Secondary,
+                variant = museButtonVariant.Secondary,
             )
         }
     }
@@ -240,10 +240,10 @@ private fun LedgerRow(event: LedgerEvent, onClick: () -> Unit) {
     val appear = remember { MutableTransitionState(false).apply { targetState = true } }
     AnimatedVisibility(
         visibleState = appear,
-        enter = fadeIn(MuseMotion.standard()) +
-            slideInVertically(MuseMotion.standard()) { it / 6 },
+        enter = fadeIn(museMotion.standard()) +
+            slideInVertically(museMotion.standard()) { it / 6 },
     ) {
-        MuseCard(
+        museCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(LedgerScreenTags.row(event.id))
@@ -288,10 +288,10 @@ private fun LedgerRow(event: LedgerEvent, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    event.worker?.let { MuseChip(label = it, onClick = onClick) }
-                    if (event.hasDiff) MuseChip(label = "Diff", onClick = onClick)
-                    if (event.hasEvidence) MuseChip(label = "Evidence", onClick = onClick)
-                    if (event.hasRollback) MuseChip(label = "Rollback", onClick = onClick)
+                    event.worker?.let { museChip(label = it, onClick = onClick) }
+                    if (event.hasDiff) museChip(label = "Diff", onClick = onClick)
+                    if (event.hasEvidence) museChip(label = "Evidence", onClick = onClick)
+                    if (event.hasRollback) museChip(label = "Rollback", onClick = onClick)
                 }
             }
         }

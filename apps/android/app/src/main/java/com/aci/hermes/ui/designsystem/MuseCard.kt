@@ -12,7 +12,7 @@ import com.aci.hermes.ui.theme.JarvisInkDeep
 import com.aci.hermes.ui.theme.JarvisInkEdge
 
 /**
- * The MUSE surface card.
+ * The muse surface card.
  *
  * Void-3 fill ([JarvisInkDeep]) with an [edge][JarvisInkEdge] hairline frame
  * and a 12dp radius — the "command-center framed panel." Elevation is tonal /
@@ -23,7 +23,7 @@ import com.aci.hermes.ui.theme.JarvisInkEdge
  *                stack rows with their own padding.
  */
 @Composable
-fun MuseCard(
+fun museCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {

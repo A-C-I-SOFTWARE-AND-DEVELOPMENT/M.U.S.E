@@ -1,7 +1,7 @@
 # Cockpit canonical contract — server-first enrichment plan
 
 **Decision (owner):** the Android cockpit UI data models are the product
-specification. The Python cockpit/MUSE-Prime server contract is made
+specification. The Python cockpit/muse-Prime server contract is made
 **canonical and complete enough to support them with real data** — no
 fabricated fields, no gutted UI. Each screen is cut off mocks **only
 after** its real, enriched endpoint exists.
@@ -13,7 +13,7 @@ Every domain follows the same five steps — Memory is the worked example:
 1. **Canonical schema** in `gateway/cockpit/contract.py`, mirroring the
    Android model field-for-field (wire keys `snake_case`; enum values =
    Android enum constant names).
-2. **Adapter** projecting the MUSE-Prime subsystem record into that
+2. **Adapter** projecting the muse-Prime subsystem record into that
    schema, deriving fields honestly. Genuinely-absent values are `null`
    or an explicit "unknown" vocabulary member (e.g. memory
    `UNCATEGORIZED`) — never guessed.
@@ -106,7 +106,7 @@ lines); reconciliation means enriching/adapting the server, not faking.
   server contract.
 - **Material 3**: theme completed — `MaterialTheme` now wires `JarvisShapes`
   (branded radii) and the dark/light schemes map the full M3
-  `surface*`/`surfaceContainer*` hierarchy onto the MUSE ink/paper ladder,
+  `surface*`/`surfaceContainer*` hierarchy onto the muse ink/paper ladder,
   so every M3 component picks up the brand surfaces + corners by default.
 
 - **Navigation surface**: resolved — `GET /v1/cockpit/navigation` lists the

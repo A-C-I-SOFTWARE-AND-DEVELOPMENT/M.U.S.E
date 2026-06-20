@@ -1,44 +1,44 @@
 ---
 sidebar_position: 5
-title: "Using M.U.S.E. as a Python Library"
+title: "Using muse as a Python Library"
 description: "Embed AIAgent in your own Python scripts, web apps, or automation pipelines — no CLI required"
 ---
 
-# Using M.U.S.E. as a Python Library
+# Using muse as a Python Library
 
-M.U.S.E. isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
+muse isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
 
 ---
 
 ## Installation
 
-Install M.U.S.E. directly from the repository:
+Install muse directly from the repository:
 
 ```bash
-pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+uv pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
 ```
 
 You can also pin it in your `requirements.txt`:
 
 ```text
-hermes-agent @ git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+hermes-agent @ git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
 ```
 
 :::tip
-The same environment variables used by the CLI are required when using M.U.S.E. as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
+The same environment variables used by the CLI are required when using muse as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
 :::
 
 ---
 
 ## Basic Usage
 
-The simplest way to use M.U.S.E. is the `chat()` method — pass a message, get a string back:
+The simplest way to use muse is the `chat()` method — pass a message, get a string back:
 
 ```python
 from run_agent import AIAgent
@@ -54,7 +54,7 @@ print(response)
 `chat()` handles the full conversation loop internally — tool calls, retries, everything — and returns just the final text response.
 
 :::warning
-Always set `quiet_mode=True` when embedding M.U.S.E. in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
+Always set `quiet_mode=True` when embedding muse in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
 :::
 
 ---
@@ -187,7 +187,7 @@ This is ideal for building specialized agents — a code reviewer, a documentati
 
 ## Batch Processing
 
-For running many prompts in parallel, M.U.S.E. includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
+For running many prompts in parallel, muse includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
 
 ```bash
 python batch_runner.py --input prompts.jsonl --output results.jsonl

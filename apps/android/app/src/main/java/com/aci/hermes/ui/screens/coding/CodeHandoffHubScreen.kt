@@ -33,12 +33,12 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import com.aci.hermes.data.coding.SavedCodingTask
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
@@ -102,10 +102,10 @@ fun CodeHandoffHubScreen(
         ) {
             state.groups.forEach { group ->
                 item(key = "h-${group.state.name}") {
-                    MuseSectionHeader(
+                    museSectionHeader(
                         title = group.state.label,
                         modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
-                        trailing = { MuseChip(label = "${group.tasks.size}") },
+                        trailing = { museChip(label = "${group.tasks.size}") },
                     )
                 }
                 items(group.tasks, key = { it.id }) { task ->
@@ -132,7 +132,7 @@ private fun HandoffCard(
     onRetry: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen),
@@ -141,17 +141,17 @@ private fun HandoffCard(
             Text(task.title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 task.packet?.riskClass?.takeIf { it.isNotBlank() }?.let {
-                    MuseChip(label = it, onClick = onOpen)
+                    museChip(label = it, onClick = onOpen)
                 }
-                if (task.demo) MuseChip(label = "demo", onClick = onOpen)
+                if (task.demo) museChip(label = "demo", onClick = onOpen)
             }
             task.note?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseButton(onClick = onCopy, text = "Copy prompt", variant = MuseButtonVariant.Secondary)
-                MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Secondary, enabled = !busy)
-                MuseButton(onClick = onDelete, text = "Delete", variant = MuseButtonVariant.Danger)
+                museButton(onClick = onCopy, text = "Copy prompt", variant = museButtonVariant.Secondary)
+                museButton(onClick = onRetry, text = "Retry", variant = museButtonVariant.Secondary, enabled = !busy)
+                museButton(onClick = onDelete, text = "Delete", variant = museButtonVariant.Danger)
             }
         }
     }
@@ -163,7 +163,7 @@ private fun EmptyHub(modifier: Modifier, onNewTask: () -> Unit) {
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        MuseEmptyState(
+        museEmptyState(
             title = "No coding tasks yet",
             body = "Create a coding task to generate a bounded work packet, copy a Claude " +
                 "Code prompt, or dispatch a gated backend execute. Queued tasks show up " +

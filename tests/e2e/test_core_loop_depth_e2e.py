@@ -1,4 +1,4 @@
-"""Recorded end-to-end proof of the MUSE core loop over the real cockpit HTTP.
+"""Recorded end-to-end proof of the muse core loop over the real cockpit HTTP.
 
 This is the proof-bar centerpiece for "a proven tool, not a demo": one test
 that boots the **real** cockpit server (``gateway.cockpit.server.serve``) on a

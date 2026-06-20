@@ -39,7 +39,7 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // ---------------------------------------------------------------------------
 
 /**
- * MUSE "Singularity" — the brand-canonical theme. White core in the void,
+ * muse "Singularity" — the brand-canonical theme. White core in the void,
  * one thin spectral ring. Tokens come from `design-system/tokens.json`
  * (FROZEN — consumed, never redefined here): void #050507 canvas, signal
  * #e8ecf4 text/chrome, status warn/danger pinned to the brand values.
@@ -239,7 +239,7 @@ export const defaultLargeTheme: DashboardTheme = {
 };
 
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
-  muse: museTheme,
+  muse museTheme,
   default: defaultTheme,
   "default-large": defaultLargeTheme,
   midnight: midnightTheme,

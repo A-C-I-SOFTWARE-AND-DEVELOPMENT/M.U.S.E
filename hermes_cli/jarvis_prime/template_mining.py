@@ -31,7 +31,7 @@ from typing import Any, Optional, Sequence
 from .bench.corpus import CorpusRecord
 from .clusters import ClusterModel, EmbeddingBackend
 
-ENV_TEMPLATES_DIR = "MUSE_TEMPLATES_DIR"
+ENV_TEMPLATES_DIR = "muse_TEMPLATES_DIR"
 DEFAULT_TAU = 0.75
 SCAFFOLD_FILE = "scaffold.gbnf"
 PREFIX_FILE = "prefix.txt"

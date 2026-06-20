@@ -17,7 +17,7 @@ GitHub PR lifecycle: branch, commit, open, CI, merge.
 | Source | Bundled (installed by default) |
 | Path | `skills/github/github-pr-workflow` |
 | Version | `1.1.0` |
-| Author | M.U.S.E. |
+| Author | muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `GitHub`, `Pull-Requests`, `CI/CD`, `Git`, `Automation`, `Merge` |
@@ -26,7 +26,7 @@ GitHub PR lifecycle: branch, commit, open, CI, merge.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GitHub Pull Request Workflow

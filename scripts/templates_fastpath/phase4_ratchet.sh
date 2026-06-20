@@ -33,12 +33,12 @@ for _ in $(seq 1 120); do
 done
 
 HERMES_JARVIS_GEMMA_AUTO_RUNNER=1 \
-MUSE_TEMPLATES_SERVER="http://127.0.0.1:${PORT}" \
+muse_TEMPLATES_SERVER="http://127.0.0.1:${PORT}" \
 python3 -m hermes_cli.jarvis_prime.bench.ratchet_run \
   --rollback-handle "$(git rev-parse HEAD)"
 
 echo ""
 echo "If PASSED+frozen: the promotion is recorded in SnapshotStore + GuardrailLedger;"
-echo "the MUSE_TEMPLATES=1 default-flip proposal in bench/phase_reports.md now awaits"
+echo "the muse_TEMPLATES=1 default-flip proposal in bench/phase_reports.md now awaits"
 echo "the owner's exact 'Yes, with authorization.'"
 echo "If FAILED: see \$HERMES_HOME/flywheel/improvement_queue.jsonl — do not lower bars."

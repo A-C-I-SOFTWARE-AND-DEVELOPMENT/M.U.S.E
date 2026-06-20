@@ -3,13 +3,13 @@
 This is the **Prompt 0 scaffold** from the SYNAPSE master plan
 (`docs/plans/2026-06-10-project-synapse-master-plan.md` §13): the UE 5.6
 C++ project skeleton with modules `SynapseCore` and `SynapseNet`
-(`UMuseGatewayClient` + `UMuseSseClient`) over the frozen cockpit wire
+(`UmuseGatewayClient` + `UmuseSseClient`) over the frozen cockpit wire
 contract (`docs/contracts/cockpit-wire-contract.md`).
 
 **Why it lives here:** the standalone `SYNAPSE` GitHub repo could not be
 created from the build session (403, out of scope for the session's
 credentials), so the scaffold is **staged** at `apps/synapse-ue/` in the
-M.U.S.E monorepo — **source-only, zero binary assets** — designed for
+muse monorepo — **source-only, zero binary assets** — designed for
 verbatim copy into the future SYNAPSE repo. Per the master plan §5, UE
 binary assets do **not** belong in this monorepo; nothing binary is here.
 
@@ -87,5 +87,5 @@ handshake logs that close the gate.
 
 - `docs/synapsenet.md` — architecture, threading rules, token security,
   SSE framing, backoff policy, validation matrix.
-- Design authority: `docs/synapse/design/11-technical-design.md` (M.U.S.E
+- Design authority: `docs/synapse/design/11-technical-design.md` (muse
   repo) — module spec §2; master plan §5 stack table.

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Persistent Memory"
-description: "How M.U.S.E. remembers across sessions — MEMORY.md, USER.md, and session search"
+description: "How muse remembers across sessions — MEMORY.md, USER.md, and session search"
 ---
 
 # Persistent Memory
 
-M.U.S.E. has bounded, curated memory that persists across sessions. This lets it remember your preferences, your projects, your environment, and things it has learned.
+muse has bounded, curated memory that persists across sessions. This lets it remember your preferences, your projects, your environment, and things it has learned.
 
 ## How It Works
 
@@ -213,7 +213,7 @@ memory:
 
 ## External Memory Providers
 
-For deeper, persistent memory that goes beyond MEMORY.md and USER.md, M.U.S.E. ships with 8 external memory provider plugins — including Honcho, OpenViking, Mem0, Hindsight, Holographic, RetainDB, ByteRover, and Supermemory.
+For deeper, persistent memory that goes beyond MEMORY.md and USER.md, muse ships with 8 external memory provider plugins — including Honcho, OpenViking, Mem0, Hindsight, Holographic, RetainDB, ByteRover, and Supermemory.
 
 External providers run **alongside** built-in memory (never replacing it) and add capabilities like knowledge graphs, semantic search, automatic fact extraction, and cross-session user modeling.
 

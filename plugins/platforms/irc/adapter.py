@@ -191,7 +191,7 @@ class IRCAdapter(BasePlatformAdapter):
         if self.server_password:
             await self._send_raw(f"PASS {self.server_password}")
         await self._send_raw(f"NICK {self.nickname}")
-        await self._send_raw(f"USER {self.nickname} 0 * :MUSE")
+        await self._send_raw(f"USER {self.nickname} 0 * :muse")
 
         # Start receive loop
         self._recv_task = asyncio.create_task(self._receive_loop())
@@ -229,7 +229,7 @@ class IRCAdapter(BasePlatformAdapter):
         self._mark_disconnected()
         if self._writer and not self._writer.is_closing():
             try:
-                await self._send_raw("QUIT :MUSE shutting down")
+                await self._send_raw("QUIT :muse shutting down")
                 await asyncio.sleep(0.5)
             except Exception:
                 pass
@@ -557,7 +557,7 @@ def interactive_setup() -> None:
         if not prompt_yes_no("Reconfigure IRC?", False):
             return
 
-    print_info("Connect MUSE to an IRC network. Uses Python stdlib — no extra packages needed.")
+    print_info("Connect muse to an IRC network. Uses Python stdlib — no extra packages needed.")
     print_info("   Works with Libera.Chat, OFTC, your own ZNC/InspIRCd, etc.")
     print()
 
@@ -798,7 +798,7 @@ async def _standalone_send(
         if server_password:
             await _raw(f"PASS {_strip_irc_control_chars(server_password)}")
         await _raw(f"NICK {standalone_nick}")
-        await _raw(f"USER {standalone_nick} 0 * :MUSE (cron)")
+        await _raw(f"USER {standalone_nick} 0 * :muse (cron)")
 
         loop = asyncio.get_running_loop()
         deadline = loop.time() + 15.0

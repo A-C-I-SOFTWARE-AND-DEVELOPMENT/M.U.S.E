@@ -1,4 +1,4 @@
-# MUSE — Mobile-Native Full-Build Audit
+# muse — Mobile-Native Full-Build Audit
 
 - **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
 - **Branch:** `claude/jarvis-prime-android-ZtoB7`
@@ -12,7 +12,7 @@
 
 ## 1. Executive summary
 
-The goal is to finish MUSE as a mobile-first/mobile-native Android
+The goal is to finish muse as a mobile-first/mobile-native Android
 cockpit **without losing Hermes backend power**. The single most important
 finding is that **this is mostly a *wiring* problem, not a *building* problem.**
 
@@ -21,7 +21,7 @@ finding is that **this is mostly a *wiring* problem, not a *building* problem.**
   avatar" Den. Chat, Memory, Audit, Approvals, Control, Persona, and Room are
   **already wired end-to-end** to the live loopback cockpit API.
 - The cockpit API (`gateway/cockpit/`) already serves a **broad, real** surface
-  (~25 routes) backed by the actual MUSE runtime, `JobQueue`,
+  (~25 routes) backed by the actual muse runtime, `JobQueue`,
   orchestrator, and decision ledger.
 - **The gap:** several real backend capabilities are exposed by the server but
   **consumed by no Android screen**. The biggest is the **orchestration Job
@@ -46,7 +46,7 @@ vault/replay. Do **not** build a third API surface or a second task model.
 | Android cockpit | `apps/android` (Kotlin/Compose) | Single `NavHost` in `ui/navigation/HermesNavGraph.kt`; routes in `Screen.kt`; hand-rolled DI in `di/AppContainer.kt`. |
 | Cockpit transport | `data/cockpit/HermesCockpitClient.kt`, `CockpitHttp.kt`, wire models `CockpitApi.kt` | Bearer token, typed `CockpitResult`, honest `Unreachable`. |
 | Cockpit API server | `gateway/cockpit/{server,handlers,contract,auth,agent}.py` | Stdlib HTTP (Termux-safe), loopback-only by default. Launched by `muse cockpit serve` (`hermes_cli/main.py:5868`). |
-| MUSE runtime | `hermes_cli/jarvis_prime/` | `__main__.py` (perceive/classify/gate/handle/stop/forget/remember/recollect/tick), `memory.py`, `research_vault.py`, `avatar.py`. |
+| muse runtime | `hermes_cli/jarvis_prime/` | `__main__.py` (perceive/classify/gate/handle/stop/forget/remember/recollect/tick), `memory.py`, `research_vault.py`, `avatar.py`. |
 | Orchestration | `hermes_cli/job_queue.py`, `orchestrator.py`, `orchestrator_api.py`, `orchestrator_replay.py`, `workers.py` | Real job execution + replay. |
 | Decision ledger | `hermes_cli/decision_ledger.py` | Source for cockpit audit/proof. |
 | Desktop web UI | `hermes_cli/web_server.py` | **Separate** FastAPI `/api/*` surface (status/sessions/config/model mgmt). |

@@ -1734,7 +1734,7 @@ class TestBuiltinDashboardThemes:
         assert len(names) == len(set(names))
 
     def test_muse_is_default_active(self, tmp_path, monkeypatch):
-        """With no `dashboard.theme` configured, the endpoint reports muse."""
+        """With no `dashboard.theme` configured, the endpoint reports muse"""
         import asyncio
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))

@@ -2,7 +2,7 @@
  * App shell.
  *
  * The lean Singularity client: an app on the void with a header lockup (animated
- * glyph + "M.U.S.E." wordmark + a connection status dot), a nav driven by the
+ * glyph + "muse" wordmark + a connection status dot), a nav driven by the
  * append-only route registry, and a minimal hash router that renders the active
  * route. Adding a route is purely additive — register it in src/routes.ts and it
  * shows up here automatically; this file never needs to change to add surfaces.
@@ -93,7 +93,7 @@ export function App() {
         <span className="brand">
           <Glyph size={28} />
           <span className="wordmark">
-            M.U.S.E.
+            muse
             <span className="full">Multi-Use Synaptic Entity</span>
           </span>
         </span>

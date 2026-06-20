@@ -1,6 +1,6 @@
 # 14 — SYNAPSE Production Plan (Sprints 1–40)
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 This document executes master plan §6 (phases & gates), §7 (budget), §10 (P1 parallel lane), and §11 (risk register). It does not re-litigate them. The project clock starts **Monday 2026-06-15 (Week 1)**. Sprints are two weeks, Monday→Friday. Target launch **2027-10-26** (Sprint 36, month 17 — inside the locked 16–20 month window), with contractual slip room to **2028-02-22** absorbed by Sprints 37–40 and the scope ladder in §8 of this doc. A producer handed this document cold should be able to run the project.
 
@@ -84,7 +84,7 @@ Every phase exits through GO/NO-GO with evidence (the house rule). Gates appear 
 | Week 1 / kickoff | 2026-06-15 | S1 |
 | The Moment video (G1) | 2026-08-07 | S4 |
 | Vertical-slice go/no-go (G2, week 16) | 2026-10-02 | S8 |
-| P1 MUSE Platform v1.0 (GP1, week 20) | 2026-10-30 | S10 |
+| P1 muse Platform v1.0 (GP1, week 20) | 2026-10-30 | S10 |
 | Steam page live (week 30 at the latest) | by 2027-01-08 | S15 |
 | Content complete (G4, week 40) | 2027-03-19 | S20 |
 | Demo live | 2027-04-30 | S23 |
@@ -107,7 +107,7 @@ Goals are sprint-goal sentences; deliverables are the evidence. "Lane P1" items 
 | **S2** | 06-29 → 07-10 | 0→1 | Prove the wire, start the spine | Gateway client w/ bearer auth + SSE; empty packaged build runs; GAS skeleton (attributes Integrity/Bandwidth, tags); GAS+Lumen course sprint done; Megascans test room lit (becomes The Stacks' first corner) | **G0** (wk 3) |
 | **S3** | 07-13 → 07-24 | 1 | One gray-box agent that fights | 1 gray-box agent w/ 4 abilities; RTwP pause loop (Command Mode v0); hero-commission contract signed (slot B); shared-skeleton rig spec frozen | |
 | **S4** | 07-27 → 08-07 | 1 | The Moment | Local-LLM parley v0 (free text, closed verdict enum per 02); wheel fallback v0; negotiate → join → paused fight, on video | **G1** |
-| **S5** | 08-10 → 08-21 | 2 | Stacks blockout + agents 1–2 | The Stacks blockout (§6.2 stage 1); agents AXIOM + CONTRARIAN through full pipeline (§6.1 proving run); onboarding/Muse-creator v0 | |
+| **S5** | 08-10 → 08-21 | 2 | Stacks blockout + agents 1–2 | The Stacks blockout (§6.2 stage 1); agents AXIOM + CONTRARIAN through full pipeline (§6.1 proving run); onboarding/muse-creator v0 | |
 | **S6** | 08-24 → 09-04 | 2 | Light the Stacks, land EMPATH | Stacks Megascans dress + lighting key; EMPATH commission delivered + integrated (starter trio complete); network screen v1 (wire/synergy preview) | |
 | **S7** | 09-07 → 09-18 | 2 | The Test Gauntlet | Test Gauntlet boss (UE Functional Test per 15-qa §3); agents 4–5; Den v1; encounter fill of slice area; save system v1 (autosave rules per 01 §8) | |
 | **S8** | 09-21 → 10-02 | 2 | Slice polish + external eyes | 20-min slice content-locked; 5-tester external playtest per 15-qa §5.1; perf capture 60fps on Legion; fix pass | **G2 go/no-go** |
@@ -148,7 +148,7 @@ Goals are sprint-goal sentences; deliverables are the evidence. "Lane P1" items 
 
 ---
 
-## 5. Lane P1 — MUSE Platform v1.0 (parallel, weeks 4–20 = S2–S10)
+## 5. Lane P1 — muse Platform v1.0 (parallel, weeks 4–20 = S2–S10)
 
 Runs alongside Phases 1–3 per master plan §10. Budget: ~20% of owner time + dedicated Claude Code sessions; never allowed to block a game gate (if contention, the game gate wins and P1 slips inside its lane). Definition of done = §10.1–10.3, expressed as sprint rows:
 

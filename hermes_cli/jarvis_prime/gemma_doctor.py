@@ -1,4 +1,4 @@
-"""Gemma 4 wiring doctor for MUSE.
+"""Gemma 4 wiring doctor for muse
 
 Backs ``hermes models gemma doctor``. Verifies that Gemma 4 is correctly wired
 into the catalog / brain / candidate layers and that the safety invariants hold

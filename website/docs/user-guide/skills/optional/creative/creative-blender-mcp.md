@@ -1,14 +1,14 @@
 ---
-title: "Blender Mcp — Control Blender directly from M.U.S.E. via socket connection to the blender-mcp addon"
+title: "Blender Mcp — Control Blender directly from muse via socket connection to the blender-mcp addon"
 sidebar_label: "Blender Mcp"
-description: "Control Blender directly from M.U.S.E. via socket connection to the blender-mcp addon"
+description: "Control Blender directly from muse via socket connection to the blender-mcp addon"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
 # Blender Mcp
 
-Control Blender directly from M.U.S.E. via socket connection to the blender-mcp addon. Create 3D objects, materials, animations, and run arbitrary Blender Python (bpy) code. Use when user wants to create or modify anything in Blender.
+Control Blender directly from muse via socket connection to the blender-mcp addon. Create 3D objects, materials, animations, and run arbitrary Blender Python (bpy) code. Use when user wants to create or modify anything in Blender.
 
 ## Skill metadata
 
@@ -23,12 +23,12 @@ Control Blender directly from M.U.S.E. via socket connection to the blender-mcp 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Blender MCP
 
-Control a running Blender instance from M.U.S.E. via socket on TCP port 9876.
+Control a running Blender instance from muse via socket on TCP port 9876.
 
 ## Setup (one-time)
 

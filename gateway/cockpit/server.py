@@ -204,7 +204,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/observatory/recommendations/{id}/stage"), h_recs.observatory_recommendation_stage, True),
     # SYNAPSE game substrate (master plan §4; additive per the §1 coupling
     # rule). Bearer-authed CRUD over local save/Foundry state — no owner
-    # phrase: nothing here flips a real MUSE capability. Literal "/design"
+    # phrase: nothing here flips a real muse capability. Literal "/design"
     # and "/saves" precede the "{slot}" capture (first-match dispatch).
     ("GET", _compile("/v1/game/design"), h_game.game_design, True),
     ("GET", _compile("/v1/game/saves"), h_game.game_saves_list, True),
@@ -359,10 +359,12 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             request. Path-traversal-safe; falls back to index.html for unknown
             sub-paths so the single-page app can route client-side."""
             root = (Path(__file__).resolve().parent / "static").resolve()
-            if path in ("/", "/cockpit", "/cockpit/"):
+            if path in ("/", "/cockpit", "/cockpit/", "/nexus", "/nexus/"):
                 rel = "index.html"
             elif path.startswith("/cockpit/"):
                 rel = path[len("/cockpit/"):].lstrip("/") or "index.html"
+            elif path.startswith("/nexus/"):
+                rel = path[len("/nexus/"):].lstrip("/") or "index.html"
             else:
                 return False
             try:
@@ -448,10 +450,28 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             self.close_connection = True
             path = urlsplit(self.path).path
 
+            # Nexus-namespaced liveness probe — unauthenticated alias of
+            # /v1/health. Lives BEFORE the static-shell check (which would
+            # otherwise SPA-fallback /nexus/health to index.html) and BEFORE
+            # the authed route table so device-paired clients on the /nexus/
+            # surface can probe the gateway without a bearer token (mirrors
+            # /v1/health's gating).
+            if method == "GET" and path.rstrip("/") == "/nexus/health":
+                req = h.Request(
+                    method=method,
+                    path=path,
+                    query=self._query(),
+                    body={},
+                    path_params={},
+                )
+                resp = h.health(req)
+                self._send_json(resp.status, resp.payload)
+                return
+
             # Static cockpit UI shell (the browser app). Unauthenticated — it's
             # just HTML/CSS/JS; every API call it makes carries the bearer token.
             # GET only, path-traversal-safe. Served before the API route table.
-            if method == "GET" and (path == "/" or path.startswith("/cockpit")):
+            if method == "GET" and (path == "/" or path.startswith("/cockpit") or path.startswith("/nexus")):
                 if self._serve_static(path):
                     return
 

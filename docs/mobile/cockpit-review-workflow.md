@@ -1,6 +1,6 @@
 # Cockpit review → publish workflow — from your phone
 
-This is the plain-English walkthrough for the part of the MUSE
+This is the plain-English walkthrough for the part of the muse
 cockpit that turns a finished job into a pull request: **watch the work,
 review the diff, browse the workspace, run the gates, then open a PR — all
 from your phone**, over the cockpit API in
@@ -251,7 +251,7 @@ On success:
 | Guard | What it protects |
 |---|---|
 | **Loopback-only for sensitive routes** | `/jobs/{id}/tree`, `/file`, `/publish`, and `approve`/`run` are refused (`403`) when the gateway is bound beyond loopback (`--allow-external`). A network-reachable cockpit cannot browse a workspace or open a PR. |
-| **`~/.hermes` is off-limits** | The workspace readers refuse any path resolving into the M.U.S.E. state dir, so a job workspace can't be used to read the gateway's `.env`, bearer token, or memory. |
+| **`~/.hermes` is off-limits** | The workspace readers refuse any path resolving into the muse state dir, so a job workspace can't be used to read the gateway's `.env`, bearer token, or memory. |
 | **Owner phrase for publish** | Opening a PR needs exactly `Yes, with authorization.`. Anything short of that stages an `approval_required` and makes no GitHub call. |
 | **Secrets never leave the gateway** | The app holds only the bearer token. Provider keys and the GitHub PAT stay on the gateway; no route accepts them in a request body. |
 | **Read steps need no phrase** | Listing, diffs, file/tree browsing, and validation all act inside the already-approved local workspace and require only the bearer token. |

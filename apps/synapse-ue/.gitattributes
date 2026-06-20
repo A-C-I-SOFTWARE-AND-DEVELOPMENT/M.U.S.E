@@ -1,7 +1,7 @@
 # Git LFS rules for UE binary assets — SYNAPSE repo.
 #
 # NOTE (staging): while this tree lives at apps/synapse-ue/ inside the
-# M.U.S.E monorepo it contains ZERO binary assets by policy. These rules
+# muse monorepo it contains ZERO binary assets by policy. These rules
 # become load-bearing the moment the tree is copied to the standalone
 # SYNAPSE repo root and `git lfs install` is run (see README.md §Migration).
 

@@ -6,7 +6,7 @@ description: "Step-by-step guide to setting up a Telegram bot that your whole te
 
 # Set Up a Team Telegram Assistant
 
-This tutorial walks you through setting up a Telegram bot powered by M.U.S.E. that multiple team members can use. By the end, your team will have a shared AI assistant they can message for help with code, research, system administration, and anything else — secured with per-user authorization.
+This tutorial walks you through setting up a Telegram bot powered by muse that multiple team members can use. By the end, your team will have a shared AI assistant they can message for help with code, research, system administration, and anything else — secured with per-user authorization.
 
 ## What We're Building
 
@@ -24,12 +24,12 @@ A Telegram bot that:
 
 Before starting, make sure you have:
 
-- **M.U.S.E. installed** on a server or VPS (not your laptop — the bot needs to stay running). Follow the [installation guide](/docs/getting-started/installation) if you haven't yet.
+- **muse installed** on a server or VPS (not your laptop — the bot needs to stay running). Follow the [installation guide](/docs/getting-started/installation) if you haven't yet.
 - **A Telegram account** for yourself (the bot owner)
 - **An LLM provider configured** — at minimum, an API key for OpenAI, Anthropic, or another supported provider in `~/.hermes/.env`
 
 :::tip
-A $5/month VPS is plenty for running the gateway. M.U.S.E. itself is lightweight — the LLM API calls are what cost money, and those happen remotely.
+A $5/month VPS is plenty for running the gateway. muse itself is lightweight — the LLM API calls are what cost money, and those happen remotely.
 :::
 
 ---
@@ -41,7 +41,7 @@ Every Telegram bot starts with **@BotFather** — Telegram's official bot for cr
 1. **Open Telegram** and search for `@BotFather`, or go to [t.me/BotFather](https://t.me/BotFather)
 
 2. **Send `/newbot`** — BotFather will ask you two things:
-   - **Display name** — what users see (e.g., `Team M.U.S.E. Assistant`)
+   - **Display name** — what users see (e.g., `Team muse Assistant`)
    - **Username** — must end in `bot` (e.g., `myteam_hermes_bot`)
 
 3. **Copy the bot token** — BotFather replies with something like:
@@ -57,7 +57,7 @@ Every Telegram bot starts with **@BotFather** — Telegram's official bot for cr
    ```
    Choose your bot, then enter something like:
    ```
-   Team AI assistant powered by M.U.S.E.. DM me for help with code, research, debugging, and more.
+   Team AI assistant powered by muse DM me for help with code, research, debugging, and more.
    ```
 
 5. **Set bot commands** (optional — gives users a command menu):
@@ -130,7 +130,7 @@ muse gateway
 You should see output like:
 
 ```
-[Gateway] Starting M.U.S.E. Gateway...
+[Gateway] Starting muse Gateway...
 [Gateway] Telegram adapter connected
 [Gateway] Cron scheduler started (tick every 60s)
 ```
@@ -403,7 +403,7 @@ journalctl --user -u hermes-gateway -f
 tail -f ~/.hermes/logs/gateway.log
 ```
 
-### Keep M.U.S.E. Updated
+### Keep muse Updated
 
 From Telegram, send `/update` to the bot — it will pull the latest version and restart. Or from the server:
 

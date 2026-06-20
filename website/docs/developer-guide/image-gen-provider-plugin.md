@@ -1,7 +1,7 @@
 ---
 sidebar_position: 11
 title: "Image Generation Provider Plugins"
-description: "How to build an image-generation backend plugin for M.U.S.E."
+description: "How to build an image-generation backend plugin for muse"
 ---
 
 # Building an Image Generation Provider Plugin
@@ -9,12 +9,12 @@ description: "How to build an image-generation backend plugin for M.U.S.E."
 Image-gen provider plugins register a backend that services every `image_generate` tool call — DALL·E, gpt-image, Grok, Flux, Imagen, Stable Diffusion, fal, Replicate, a local ComfyUI rig, anything. Built-in providers (OpenAI, OpenAI-Codex, xAI) all ship as plugins. You can add a new one, or override a bundled one, by dropping a directory into `plugins/image_gen/<name>/`.
 
 :::tip
-Image-gen is one of several **backend plugins** M.U.S.E. supports. The others (with more specialized ABCs) are [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin), [Context Engine Plugins](/docs/developer-guide/context-engine-plugin), and [Model Provider Plugins](/docs/developer-guide/model-provider-plugin). General tool/hook/CLI plugins live in [Build a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin).
+Image-gen is one of several **backend plugins** muse supports. The others (with more specialized ABCs) are [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin), [Context Engine Plugins](/docs/developer-guide/context-engine-plugin), and [Model Provider Plugins](/docs/developer-guide/model-provider-plugin). General tool/hook/CLI plugins live in [Build a muse Plugin](/docs/guides/build-a-hermes-plugin).
 :::
 
 ## How discovery works
 
-M.U.S.E. scans for image-gen backends in three places:
+muse scans for image-gen backends in three places:
 
 1. **Bundled** — `<repo>/plugins/image_gen/<name>/` (auto-loaded with `kind: backend`, always available)
 2. **User** — `~/.hermes/plugins/image_gen/<name>/` (opt-in via `plugins.enabled`)
@@ -285,4 +285,4 @@ my-backend-imggen = "my_backend_imggen_package"
 
 - [Image Generation](/docs/user-guide/features/image-generation) — user-facing feature documentation
 - [Plugins overview](/docs/user-guide/features/plugins) — all plugin types at a glance
-- [Build a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin) — general tools/hooks/slash commands guide
+- [Build a muse Plugin](/docs/guides/build-a-hermes-plugin) — general tools/hooks/slash commands guide

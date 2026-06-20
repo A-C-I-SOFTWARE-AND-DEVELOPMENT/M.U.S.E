@@ -1,6 +1,6 @@
 # Multi-agent isolated worker spawning
 
-Phase 9 of the M.U.S.E. orchestrator adds a small primitive on top of
+Phase 9 of the muse orchestrator adds a small primitive on top of
 the worker adapter base ([`hermes_cli/workers/base.py`](../../hermes_cli/workers/base.py))
 and the git worktree subsystem ([`hermes_cli/worktrees.py`](../../hermes_cli/worktrees.py)):
 a way to spawn many *isolated agent instances* for the same job so
@@ -15,7 +15,7 @@ without an explicit `confirm=True`.
 
 ## Why isolation
 
-M.U.S.E. already had two related building blocks:
+muse already had two related building blocks:
 
 | Module                                  | What it solves                                            |
 |-----------------------------------------|-----------------------------------------------------------|

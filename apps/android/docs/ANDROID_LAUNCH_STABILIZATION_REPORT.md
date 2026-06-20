@@ -1,4 +1,4 @@
-# MUSE — Android launch stabilization report
+# muse — Android launch stabilization report
 
 Branch: `claude-build/launch-android-stabilization` (off PR #131 head
 `claude/hopeful-bardeen-KBVqi`).
@@ -82,7 +82,7 @@ Launch-mission tests (new):
 | `ManifestPermissionsTest.manifest never requests a forbidden permission` | `RECORD_AUDIO`, `SYSTEM_ALERT_WINDOW`, SMS / contacts / call-log / phone / camera / location / storage are NOT requested |
 | `ManifestPermissionsTest.manifest preserves the com_aci_hermes application name` | `.HermesApplication` + `@string/app_name` |
 | `ManifestPermissionsTest.emergency stop is reachable from the orchestrator service controller` | Compile-time pin on `OrchestratorServiceController.emergencyStop` |
-| `AppIdentityTest.app_name in strings_xml is exactly MUSE` | User-facing label |
+| `AppIdentityTest.app_name in strings_xml is exactly muse` | User-facing label |
 | `AppIdentityTest.application id is com_aci_hermes and appears exactly once` | Package preserved + uniqueness |
 | `AppIdentityTest.namespace is com_aci_hermes` | Module namespace preserved |
 | `PackageUniquenessTest.every kotlin source file declares a com_aci_hermes package` | No second app package leaked in |
@@ -137,7 +137,7 @@ Forbidden — confirmed absent (pinned by
 `WRITE_EXTERNAL_STORAGE`, `MANAGE_EXTERNAL_STORAGE`.
 
 Package: `com.aci.hermes` (preserved).
-User-facing label: "MUSE" (from `strings.xml` `app_name`).
+User-facing label: "muse" (from `strings.xml` `app_name`).
 
 ## Files changed
 
@@ -145,9 +145,9 @@ User-facing label: "MUSE" (from `strings.xml` `app_name`).
 |---|---|---|
 | 1 | `app/src/main/java/com/aci/hermes/data/model/audit/AuditRecord.kt` | NEW — defines the `com.aci.hermes.data.model.audit` package (`AuditRecord`, `ProofRecord`, `EvidenceItem`, `RouteSummary`, `VerificationResult`, `ApprovalHistoryItem`, `RollbackPlan`, `WorkerRun` data classes + `ActionResult`, `ApprovalState`, `EvidenceKind`, `RiskTier`, `RouteDestination`, `VerificationStatus` enums). The cherry-picked `AuditRepository.kt` / audit screens / audit tests all imported from this package but the package was missing. |
 | 2 | `app/src/main/java/com/aci/hermes/data/preferences/SettingsRepository.kt` | Added the Control / Home dashboard preferences (`autonomyMode`, `responseLength`, `mobileMode`, `notificationsEnabled`, `voiceEnabled`, `interactiveIconEnabled`, `gatewayEndpoint`, `mockMode`, `termuxGatewayMode`, `approvalsRequired`, `safetyGatesEnabled`, `privacyLocalOnlyMemory`, `emergencyStopEngaged`) — Flow getters, suspend setters, `Snapshot` data-class fields, and `DEFAULT_GATEWAY_ENDPOINT = "http://127.0.0.1:8765"` constant. Exposes `emergencyStopActive` / `setEmergencyStopActive` as Home-screen-friendly aliases over the same key. |
-| 3 | `app/src/main/res/values/strings.xml` | Added `audit_*` (21 strings), `capability_*` (14 strings), `action_back`, `action_close`. All other strings unchanged. `app_name` still "MUSE". |
+| 3 | `app/src/main/res/values/strings.xml` | Added `audit_*` (21 strings), `capability_*` (14 strings), `action_back`, `action_close`. All other strings unchanged. `app_name` still "muse". |
 | 4 | `app/src/test/java/com/aci/hermes/manifest/ManifestPermissionsTest.kt` | NEW — pins the manifest permission allow-list, the forbidden-permission deny-list, the application name, and the emergency-stop service controller path. |
-| 5 | `app/src/test/java/com/aci/hermes/manifest/AppIdentityTest.kt` | NEW — pins user-facing app name ("MUSE") and technical identifiers (`applicationId = "com.aci.hermes"`, `namespace = "com.aci.hermes"`, single occurrence). |
+| 5 | `app/src/test/java/com/aci/hermes/manifest/AppIdentityTest.kt` | NEW — pins user-facing app name ("muse") and technical identifiers (`applicationId = "com.aci.hermes"`, `namespace = "com.aci.hermes"`, single occurrence). |
 | 6 | `app/src/test/java/com/aci/hermes/manifest/PackageUniquenessTest.kt` | NEW — walks the module tree and asserts no second app package was introduced (every Kotlin/Java file declares a `com.aci.hermes.**` package). |
 | 7 | `app/src/test/java/com/aci/hermes/ui/navigation/ScreenTest.kt` | Updated `all_main_destinations_are_shell_routes` to include `Capability` (the nav graph wraps it in `ShellHost`, so it IS a shell route — the prior expectation set was stale). Added `emergency_stop_path_exists_via_orchestrator_service_controller`. |
 | 8 | `gradle/libs.versions.toml` | Added `kotlinx-coroutines-test` library entry (re-uses the existing `kotlinxCoroutines = 1.9.0` version). |

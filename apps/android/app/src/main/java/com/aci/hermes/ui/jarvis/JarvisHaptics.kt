@@ -7,7 +7,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
 /**
- * Haptic feedback for the primary MUSE touch points.
+ * Haptic feedback for the primary muse touch points.
  *
  * Compose only surfaces two platform haptic constants today
  * ([HapticFeedbackType.TextHandleMove] for light ticks,

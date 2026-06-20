@@ -1,4 +1,4 @@
-# MUSE statiese boodskap-katalogus -- Afrikaans
+# muse statiese boodskap-katalogus -- Afrikaans
 # See locales/en.yaml for the source of truth; keep keys in sync.
 
 approval:
@@ -99,7 +99,7 @@ gateway:
     header:                "**Ontfoutverslag opgelaai:**"
     auto_delete:           "⏱ Plakke sal outomaties oor 6 uur uitgevee word."
     full_logs_hint:        "Vir volledige loglae, gebruik `muse debug share` vanaf die CLI."
-    share_hint:            "Deel hierdie skakels met die MUSE-span vir ondersteuning."
+    share_hint:            "Deel hierdie skakels met die muse-span vir ondersteuning."
 
   deny:
     stale:                 "❌ Opdrag geweier (goedkeuring was verouderd)."
@@ -136,7 +136,7 @@ gateway:
     set:                   "⊙ Doelwit gestel ({budget}-beurt-begroting): {goal}\nEk sal aanhou werk totdat die doelwit klaar is, jy dit pouseer/verwyder, of die begroting opgebruik is.\nBeheer: /goal status · /goal pause · /goal resume · /goal clear"
 
   help:
-    header:                "📖 **MUSE-opdragte**\n"
+    header:                "📖 **muse-opdragte**\n"
     skill_header:          "\n⚡ **Vaardigheidsopdragte** ({count} aktief):"
     more_use_commands:     "\n... en nog {count}. Gebruik `/commands` vir die volledige bladsy-lys."
 
@@ -247,7 +247,7 @@ gateway:
     success:               "✅ Tuiste-kanaal gestel op **{name}** (ID: {chat_id}).\nKron-take en kruisplatform-boodskappe sal hier afgelewer word."
 
   status:
-    header:                "📊 **MUSE Gateway Status**"
+    header:                "📊 **muse Gateway Status**"
     session_id:            "**Sessie-ID:** `{session_id}`"
     title:                 "**Titel:** {title}"
     created:               "**Geskep:** {timestamp}"
@@ -282,7 +282,7 @@ gateway:
     topics_user_disallowed:  "Telegram-onderwerpe is geaktiveer, maar gebruikers mag nie onderwerpe skep nie.\n\nOpen @BotFather → kies jou bot → Bot Settings → Threads Settings, en skakel dan 'Disallow users to create new threads' af.\n\nStuur dan weer /topic."
     enable_failed:           "Kon nie Telegram-onderwerpmodus aktiveer nie: {error}"
     bound_status:            "Hierdie onderwerp is gekoppel aan:\nSessie: {label}\nID: {session_id}\n\nGebruik /new om hierdie onderwerp met 'n vars sessie te vervang.\nVir parallelle werk, open All Messages en stuur 'n boodskap daar om 'n ander onderwerp te skep."
-    thread_ready:            "Telegram multi-sessie-onderwerpe is geaktiveer.\n\nHierdie onderwerp sal as 'n onafhanklike MUSE-sessie gebruik word. Gebruik /new om hierdie onderwerp se huidige sessie te vervang. Vir parallelle werk, open All Messages en stuur 'n boodskap daar om 'n ander onderwerp te skep."
+    thread_ready:            "Telegram multi-sessie-onderwerpe is geaktiveer.\n\nHierdie onderwerp sal as 'n onafhanklike muse-sessie gebruik word. Gebruik /new om hierdie onderwerp se huidige sessie te vervang. Vir parallelle werk, open All Messages en stuur 'n boodskap daar om 'n ander onderwerp te skep."
     untitled_session:        "Sessie sonder titel"
 
   undo:
@@ -292,9 +292,9 @@ gateway:
   update:
     platform_not_messaging:  "✗ /update is slegs beskikbaar vanaf boodskapplatforms. Voer `muse update` vanaf die terminale uit."
     not_git_repo:            "✗ Nie 'n git-bewaarplek nie — kan nie opdateer nie."
-    hermes_cmd_not_found:    "✗ Kon nie die `muse`-opdrag vind nie. MUSE loop, maar die opdateeropdrag kon nie die uitvoerbare lêer op PATH of via die huidige Python-vertolker vind nie. Probeer `muse update` met die hand in jou terminale uitvoer."
+    hermes_cmd_not_found:    "✗ Kon nie die `muse`-opdrag vind nie. muse loop, maar die opdateeropdrag kon nie die uitvoerbare lêer op PATH of via die huidige Python-vertolker vind nie. Probeer `muse update` met die hand in jou terminale uitvoer."
     start_failed:            "✗ Kon nie opdatering begin nie: {error}"
-    starting:                "◉ Begin MUSE-opdatering… Ek sal vordering hier stroom."
+    starting:                "◉ Begin muse-opdatering… Ek sal vordering hier stroom."
 
   usage:
     rate_limits:              "⏱️ **Tariefperke:** {state}"

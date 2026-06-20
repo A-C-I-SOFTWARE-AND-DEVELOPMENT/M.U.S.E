@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
 title: "Tips & Best Practices"
-description: "Practical advice to get the most out of M.U.S.E. — prompt tips, CLI shortcuts, context files, memory, cost optimization, and security"
+description: "Practical advice to get the most out of muse — prompt tips, CLI shortcuts, context files, memory, cost optimization, and security"
 ---
 
 # Tips & Best Practices
 
-A quick-wins collection of practical tips that make you immediately more effective with M.U.S.E.. Each section targets a different aspect — scan the headers and jump to what's relevant.
+A quick-wins collection of practical tips that make you immediately more effective with muse Each section targets a different aspect — scan the headers and jump to what's relevant.
 
 ---
 
@@ -78,7 +78,7 @@ Create an `AGENTS.md` in your project root with architecture decisions, coding c
 
 ### SOUL.md: Customize Personality
 
-Want M.U.S.E. to have a stable default voice? Edit `~/.hermes/SOUL.md` (or `$HERMES_HOME/SOUL.md` if you use a custom M.U.S.E. home). M.U.S.E. now seeds a starter SOUL automatically and uses that global file as the instance-wide personality source.
+Want muse to have a stable default voice? Edit `~/.hermes/SOUL.md` (or `$HERMES_HOME/SOUL.md` if you use a custom muse home). muse now seeds a starter SOUL automatically and uses that global file as the instance-wide personality source.
 
 For a full walkthrough, see [Use SOUL.md with Hermes](/docs/guides/use-soul-with-hermes).
 
@@ -93,11 +93,11 @@ Use `SOUL.md` for durable personality. Use `AGENTS.md` for project-specific inst
 
 ### .cursorrules Compatibility
 
-Already have a `.cursorrules` or `.cursor/rules/*.mdc` file? M.U.S.E. reads those too. No need to duplicate your coding conventions — they're loaded automatically from the working directory.
+Already have a `.cursorrules` or `.cursor/rules/*.mdc` file? muse reads those too. No need to duplicate your coding conventions — they're loaded automatically from the working directory.
 
 ### Discovery
 
-M.U.S.E. loads the top-level `AGENTS.md` from the current working directory at session start. Subdirectory `AGENTS.md` files are discovered lazily during tool calls (via `subdirectory_hints.py`) and injected into tool results — they are not loaded upfront into the system prompt.
+muse loads the top-level `AGENTS.md` from the current working directory at session start. Subdirectory `AGENTS.md` files are discovered lazily during tool calls (via `subdirectory_hints.py`) and injected into tool results — they are not loaded upfront into the system prompt.
 
 :::tip
 Keep context files focused and concise. Every character counts against your token budget since they're injected into every single message.
@@ -210,7 +210,7 @@ When the agent triggers a dangerous command approval (`rm -rf`, `DROP TABLE`, et
 
 ### Command Approval Is Your Safety Net
 
-M.U.S.E. checks every command against a curated list of dangerous patterns before execution. This includes recursive deletes, SQL drops, piping curl to shell, and more. Don't disable this in production — it exists for good reasons.
+muse checks every command against a curated list of dangerous patterns before execution. This includes recursive deletes, SQL drops, piping curl to shell, and more. Don't disable this in production — it exists for good reasons.
 
 :::warning
 When running in a container backend (Docker, Singularity, Modal, Daytona), dangerous command checks are **skipped** because the container is the security boundary. Make sure your container images are properly locked down.

@@ -1,4 +1,4 @@
-"""Tests for the MUSE IR backend compilers.
+"""Tests for the muse IR backend compilers.
 
 Covers: the repo backend reuses build_work_packet and emits a gate-compatible
 packet; the automation backend builds a validatable AutomationFlow; flow

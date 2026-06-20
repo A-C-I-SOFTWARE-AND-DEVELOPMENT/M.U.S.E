@@ -56,7 +56,7 @@ def test_serves_cockpit_index_unauthenticated(cockpit):
     for path in ("/cockpit/", "/cockpit", "/"):
         status, body = _get(cockpit, path)
         assert status == 200, path
-        assert b"M.U.S.E." in body, path
+        assert b"muse" in body, path
         assert b"Multi-Use Synaptic Entity" in body
 
 
@@ -168,5 +168,5 @@ def test_shell_loads_without_token_then_uses_token(shell):
     # The shell must boot unauthenticated and only attach the bearer token to
     # its API calls (carried via the Authorization header, like the existing
     # fetch calls).
-    assert "muse.cockpit.token" in shell
+    assert "musecockpit.token" in shell
     assert "Bearer " in shell

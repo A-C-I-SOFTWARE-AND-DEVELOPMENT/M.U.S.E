@@ -1,15 +1,15 @@
 # Autoresearch — the owner-gated training engine
 
-MUSE's self-improvement layer wraps engines: SIA rewrites scaffolds, the
+muse's self-improvement layer wraps engines: SIA rewrites scaffolds, the
 retrospective loop proposes routing changes. **Autoresearch is the engine that
 trains models** — Karpathy's autonomous pretraining loop
 (<https://github.com/karpathy/autoresearch>, MIT), vendored byte-identical and
 dropped into the same socket SIA uses, with the four things it deliberately
-omits added by MUSE: **gates, owner approval, cost ceiling, provenance**.
+omits added by muse **gates, owner approval, cost ceiling, provenance**.
 
 ## How the pieces map
 
-| autoresearch primitive | MUSE primitive |
+| autoresearch primitive | muse primitive |
 |---|---|
 | `results.tsv` row | `flywheel.record("autoresearch.experiment", ...)` (+ TSV kept as local mirror) |
 | keep / discard / crash | driver statuses incl. `killed`/`infeasible`; failures auto-queue improvements |
@@ -40,12 +40,12 @@ cd ~/.hermes/autoresearch/workspaces/setup
 uv sync && uv run prepare.py      # data + tokenizer -> ~/.cache/autoresearch/
 
 # 2. Open the spawn gate (per shell, deliberate).
-export MUSE_AUTORESEARCH_ALLOW_SPAWN=1
+export muse_AUTORESEARCH_ALLOW_SPAWN=1
 ```
 
 The workspace runs against the **vendored `pyproject.toml`** (which carries
 the `pytorch-cu128` index). There is deliberately **no `[autoresearch]` extra**
-in MUSE's own pyproject: the engine's `torch==2.9.1` pin would force a
+in muse's own pyproject: the engine's `torch==2.9.1` pin would force a
 repo-wide torch downgrade (uv unifies versions across extras), so — exactly
 like SIA — the engine lives in its own per-workspace environment.
 
@@ -84,7 +84,7 @@ writes the HIGH-risk AXIOM classification + chain event.
 
 ## Owner-gated inventory
 
-1. Any live spawn: `MUSE_AUTORESEARCH_ALLOW_SPAWN=1`.
+1. Any live spawn: `muse_AUTORESEARCH_ALLOW_SPAWN=1`.
 2. Background live runs: approval token at enqueue AND the spawn env.
 3. Champion adoption: RC4 proposal → exact `Yes, with authorization.` → PR.
 4. Modal spend: explicit `max_cost_usd > 0` (+ `cost_per_hour_usd`).

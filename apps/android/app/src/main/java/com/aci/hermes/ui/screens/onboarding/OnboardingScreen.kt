@@ -19,9 +19,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseGlyph
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museGlyph
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
@@ -44,7 +44,7 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.Start,
         ) {
             Spacer(Modifier.height(JarvisTokens.SpaceSm))
-            MuseGlyph(
+            museGlyph(
                 size = 72.dp,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
@@ -74,16 +74,16 @@ fun OnboardingScreen(
             )
 
             Spacer(Modifier.height(JarvisTokens.SpaceSm))
-            MuseButton(
+            museButton(
                 onClick = onFinish,
                 text = stringResource(R.string.onboarding_cta),
-                variant = MuseButtonVariant.Primary,
+                variant = museButtonVariant.Primary,
                 modifier = Modifier.fillMaxWidth(),
             )
-            MuseButton(
+            museButton(
                 onClick = onSkip,
                 text = stringResource(R.string.onboarding_skip),
-                variant = MuseButtonVariant.Secondary,
+                variant = museButtonVariant.Secondary,
                 modifier = Modifier.align(Alignment.End),
             )
         }

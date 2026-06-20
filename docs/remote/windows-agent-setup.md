@@ -2,7 +2,7 @@
 
 This document describes the **Windows side** of the Claude Code
 bridge — the worker daemon that polls the shared workspace, runs the
-official `claude` CLI on M.U.S.E.' behalf, and writes artifacts back.
+official `claude` CLI on muse' behalf, and writes artifacts back.
 
 > **Status:** the daemon is not shipped in this repo yet. The file
 > below is the spec the daemon must satisfy. A reference Python
@@ -41,7 +41,7 @@ official `claude` CLI on M.U.S.E.' behalf, and writes artifacts back.
          1. Validate schema, command, auth_token presence.
          2. Refuse if allow_remote_execute == false.
          3. Refuse if command not in local allowlist.
-         4. Refuse if device_id (M.U.S.E. side) is not approved.
+         4. Refuse if device_id (muse side) is not approved.
          5. Switch into manifest.extra.remote_repo_path.
          6. Write status.json {state: "running"}.
          7. Run:  claude --print prompt.md  (or equivalent)
@@ -52,7 +52,7 @@ official `claude` CLI on M.U.S.E.' behalf, and writes artifacts back.
              b. Record exit code in status.json.validation_exit_code.
         11. Write final status.json with state, verdict, scores,
             auth_token echoed verbatim.
-        12. Move on to next job. Never delete files M.U.S.E. wrote.
+        12. Move on to next job. Never delete files muse wrote.
 ```
 
 ## Filesystem contract
@@ -61,17 +61,17 @@ The daemon owns these files inside `<workspace_root>/jobs/<job_id>/`:
 
 | File                     | Direction | Required? | Notes |
 |--------------------------|-----------|-----------|-------|
-| `manifest.json`          | M.U.S.E. → worker | yes | Read-only on the worker side. Do not modify. |
-| `prompt.md`              | M.U.S.E. → worker | yes | The text to drive `claude` with. |
-| `cancel.json`            | M.U.S.E. → worker | optional | If it appears mid-run, abort and set `state: canceled`. |
+| `manifest.json`          | muse → worker | yes | Read-only on the worker side. Do not modify. |
+| `prompt.md`              | muse → worker | yes | The text to drive `claude` with. |
+| `cancel.json`            | muse → worker | optional | If it appears mid-run, abort and set `state: canceled`. |
 | `status.json`            | both sides | yes | Worker overwrites with the latest state at least every `manifest.created_at + N`. |
-| `output.md`              | worker → M.U.S.E. | yes | Narrative summary; usually `claude`'s stdout. |
-| `patch.diff`             | worker → M.U.S.E. | when code changes proposed | Unified diff of the working tree. Omit when nothing changed. |
-| `changed-files.txt`      | worker → M.U.S.E. | yes | `git diff --name-only`. Empty file is OK. |
-| `validation-output.txt`  | worker → M.U.S.E. | yes | Tests / build output. Empty when no validation command was supplied. |
+| `output.md`              | worker → muse | yes | Narrative summary; usually `claude`'s stdout. |
+| `patch.diff`             | worker → muse | when code changes proposed | Unified diff of the working tree. Omit when nothing changed. |
+| `changed-files.txt`      | worker → muse | yes | `git diff --name-only`. Empty file is OK. |
+| `validation-output.txt`  | worker → muse | yes | Tests / build output. Empty when no validation command was supplied. |
 
 Anything outside this list (caches, scratch state) belongs **outside**
-the shared directory so it does not get synced to M.U.S.E..
+the shared directory so it does not get synced to muse
 
 ## Auth model the daemon must enforce
 
@@ -84,7 +84,7 @@ The daemon is the second line of defence behind the bridge:
    v1 allowlist: `{"claude"}`.
 3. **`allow_remote_execute` gate.** If the field is `false`, do not
    execute — write `status.json` with `state: awaiting_approval` and
-   move on. M.U.S.E. may rewrite the manifest later with the field
+   move on. muse may rewrite the manifest later with the field
    flipped to `true` (the bridge's `approve()` method does exactly
    that).
 4. **`auth_token` echo.** Every status the worker writes must include
@@ -143,7 +143,7 @@ hopping).
 ## Reference daemon (Python)
 
 The daemon is short enough to fit on one page. It is NOT shipped in
-this repo on purpose (the M.U.S.E. process and the Windows daemon
+this repo on purpose (the muse process and the Windows daemon
 should be deployed independently), but this is the shape it needs:
 
 ```python
@@ -165,7 +165,7 @@ def process(job_dir: Path) -> None:
         return _refuse(job_dir, manifest, "command not allowlisted")
     if not manifest.get("allow_remote_execute"):
         return _write_status(job_dir, manifest, "awaiting_approval",
-                             "waiting for M.U.S.E. approval")
+                             "waiting for muse approval")
 
     repo = manifest["extra"].get("remote_repo_path")
     repo_root = next((p for p in REPOS.values() if str(p) == repo), None)
@@ -241,12 +241,12 @@ This sketch is for illustration. A production daemon should also:
 * persist the `seen` set across restarts,
 * check for `cancel.json` between every long subprocess call,
 * prune completed jobs older than N days,
-* expose Windows-side health to M.U.S.E. (e.g. by writing a heartbeat
+* expose Windows-side health to muse (e.g. by writing a heartbeat
   file at `<workspace_root>/worker-heartbeat.json`).
 
 ## Verifying the setup
 
-1. On the M.U.S.E. side, write a tiny test job:
+1. On the muse side, write a tiny test job:
    ```python
    from hermes_cli import remote_bridge as rb
    from hermes_cli.workers import claude_code_windows as ccw
@@ -271,7 +271,7 @@ This sketch is for illustration. A production daemon should also:
 2. Watch the Windows side write `status.json: running` within
    a poll interval.
 3. Watch it transition to `state: completed` and confirm
-   `output.md` shows up on the M.U.S.E. side.
+   `output.md` shows up on the muse side.
 4. Inspect the audit log at `~/.hermes/remote/audit.log.jsonl` —
    you should see `dispatch` and `collect` events with no secret
    substrings.
@@ -280,10 +280,10 @@ This sketch is for illustration. A production daemon should also:
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `state: awaiting_approval` indefinitely | Endpoint config has `allow_remote_execute: false`, or the daemon's manifest read finds `allow_remote_execute: false`. | Call `bridge.approve(job_id)` from M.U.S.E. — the bridge rewrites the manifest with the flag flipped. |
+| `state: awaiting_approval` indefinitely | Endpoint config has `allow_remote_execute: false`, or the daemon's manifest read finds `allow_remote_execute: false`. | Call `bridge.approve(job_id)` from muse — the bridge rewrites the manifest with the flag flipped. |
 | `state: unknown` with detail `auth_token mismatch` | The daemon is writing the wrong token, or two daemons are racing on the same workspace. | Restart the daemon; ensure exactly one daemon polls the workspace. |
 | Status frozen at `running` for hours | Daemon crashed mid-run; status file never updated. | Side-channel kill the `claude` process on Windows; write a manual `state: failed` to release the workspace. |
-| Tunnel dropped, M.U.S.E. can't see status | Expected — the bridge surfaces `state: unknown` until the tunnel is back. | No action needed unless the tunnel stays down longer than
+| Tunnel dropped, muse can't see status | Expected — the bridge surfaces `state: unknown` until the tunnel is back. | No action needed unless the tunnel stays down longer than
   `endpoint.status_timeout_seconds`. |
 
 ## Hardening checklist
@@ -296,7 +296,7 @@ Before letting this run unsupervised:
       reviewed and minimal.
 - [ ] `repo_roots` is an exhaustive list — no wildcards.
 - [ ] Tunnel auth is on, with a documented rotation cadence.
-- [ ] Audit log on the M.U.S.E. side ships to a long-term sink
+- [ ] Audit log on the muse side ships to a long-term sink
       (e.g. weekly `git commit` to a private repo, or a SIEM).
 - [ ] `cancel.json` propagation tested at least once.
 - [ ] `.env` transfer disabled (`permit_env_transfer: false` unless

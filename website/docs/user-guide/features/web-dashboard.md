@@ -6,7 +6,7 @@ description: "Browser-based dashboard for managing configuration, API keys, sess
 
 # Web Dashboard
 
-The web dashboard is a browser-based UI for managing your M.U.S.E. installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
+The web dashboard is a browser-based UI for managing your muse installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
 
 ## Quick Start
 
@@ -69,7 +69,7 @@ The status page auto-refreshes every 5 seconds.
 
 ### Chat
 
-The **Chat** tab embeds the full M.U.S.E. TUI (the same interface you get from `muse --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.
+The **Chat** tab embeds the full muse TUI (the same interface you get from `muse --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.
 
 **How it works:**
 
@@ -338,8 +338,8 @@ Built-in themes:
 
 | Theme | Character |
 |-------|-----------|
-| **M.U.S.E. Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
-| **M.U.S.E. Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
+| **muse Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
+| **muse Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
 | **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |
 | **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |
 | **Mono** (`mono`) | Grayscale, IBM Plex, compact |
