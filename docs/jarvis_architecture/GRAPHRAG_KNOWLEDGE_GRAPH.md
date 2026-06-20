@@ -89,19 +89,19 @@ de-duplicated source citations. `render()` produces an inspectable summary.
 ## Scale
 
 A full build over the Hermes repo takes well under a minute and produces
-~33.5k nodes / ~63.3k edges across all node/edge types (measured 2026-06-10;
+~36k nodes / ~69k edges across all node/edge types (measured 2026-06-20;
 see the attestation below for the exact counts and command). The build is
 on-demand and cached; queries read the cache. Earlier revisions of this doc
 and the README quoted ~28.6k nodes / ~51.6k edges from a prior tree state;
 those figures are superseded by the attestation.
 
-## Attestation (2026-06-10)
+## Attestation (2026-06-20)
 
 Reproducible graph-size measurement against the current tree (ticket
 **P1-02**, `docs/synapse/phase0/P1_CLAIMS_AUDIT.md` claim C12).
 
-- **Commit:** `10b144c3cc32346c94f52ac24d2f1e41b851db3b` (`git rev-parse HEAD`)
-- **Environment:** system Python 3.11.15, Linux; `HERMES_HOME` pointed at a
+- **Commit:** `73308f749` (`git rev-parse HEAD`)
+- **Environment:** system Python 3.11.15, Windows; `HERMES_HOME` pointed at a
   fresh temp dir so the build wrote nowhere near `~/.hermes` and the
   evidence/memory/ledger indexers saw empty local stores — i.e. the counts
   below are the **repo-only** (code + docs) graph, which is exactly what the
@@ -113,26 +113,25 @@ Reproducible graph-size measurement against the current tree (ticket
       --repo-root . --json
   ```
 
-- **Result (run 1, wall time 42.8s):**
+- **Result (run 1, wall time 48.3s):**
 
   ```json
   {
-    "nodes": 33483,
-    "edges": 63304,
+    "nodes": 35883,
+    "edges": 68811,
     "by_node_type": {
-      "api": 1, "class": 5920, "document": 2052, "file": 6024,
-      "function": 19182, "module": 176, "route": 93, "screen": 35
+      "api": 1, "class": 6113, "component": 29, "document": 2117,
+      "file": 6573, "function": 20700, "module": 202, "route": 112, "screen": 36
     },
     "by_edge_type": {
-      "calls": 5000, "cites": 3778, "depends_on": 10803, "imports": 10803,
-      "owns": 27599, "routes_to": 93, "tests": 5228
+      "calls": 5000, "cites": 4041, "depends_on": 12129, "imports": 12129,
+      "owns": 29561, "routes_to": 112, "tests": 5839
     }
   }
   ```
 
-- **Result (run 2, wall time 38.1s):** 33,483 nodes / 63,307 edges — node
-  count and every edge type identical except `cites` (3,781 vs 3,778), a
-  ±3-edge nondeterminism in citation extraction.
-- **Measured figures:** **33,483 nodes / ~63.3k edges** (63,304–63,307
-  across two runs). No LLM, embedding, or network calls were required; the
-  build is pure-local and completed in under a minute both times.
+- **Result (run 2, wall time 52.3s):** 35,883 nodes / 68,811 edges — node
+  count and every edge type identical across runs (deterministic build).
+- **Measured figures:** **35,883 nodes / ~68.8k edges** (68,811 both runs).
+  No LLM, embedding, or network calls were required; the build is pure-local
+  and completed in under a minute both times.

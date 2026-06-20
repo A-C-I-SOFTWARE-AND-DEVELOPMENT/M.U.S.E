@@ -1,0 +1,187 @@
+{
+  "package_name": "com.aci.hermes",
+  "app_name": "MUSE Prime",
+  "version": "1.0.0",
+  "data_safety": {
+    "data_collected": [
+      {
+        "category": "Personal info",
+        "data_types": ["Name", "Email address", "Phone number", "Address"],
+        "collected": false
+      },
+      {
+        "category": "Messages",
+        "data_types": ["Emails", "SMS/MMS", "Chat messages", "Voicemails"],
+        "collected": false
+      },
+      {
+        "category": "App activity",
+        "data_types": ["App interactions", "In-app search history", "Installed apps", "Other user-generated content"],
+        "collected": true,
+        "description": "App interactions with the local MUSE gateway (chat prompts, task requests, approval decisions) are sent to the user's local Hermes gateway over loopback/LAN. No data leaves the device or local network.",
+        "optional": true,
+        "purpose": "App functionality"
+      },
+      {
+        "category": "Device or other IDs",
+        "data_types": ["Device ID", "Advertising ID"],
+        "collected": false
+      },
+      {
+        "category": "Audio files",
+        "data_types": ["Voice recordings", "Music files", "Other audio"],
+        "collected": true,
+        "description": "Voice recordings (RECORD_AUDIO) are processed on-device by ML Kit face-presence detection and/or sent to the local Hermes gateway for voice chat. No audio is sent to remote servers or third parties. VoiceLoopService runs only with explicit consent.",
+        "optional": true,
+        "purpose": "App functionality"
+      },
+      {
+        "category": "Photos and videos",
+        "data_types": ["Photos", "Videos"],
+        "collected": true,
+        "description": "Camera (CAMERA) is used ONLY for on-device face-presence detection in Presence Mode to arm hands-free listening when the user looks at the phone. No frames are stored or transmitted. ML Kit runs fully on-device. Camera is optional hardware (android:required=\"false\").",
+        "optional": true,
+        "purpose": "App functionality"
+      },
+      {
+        "category": "Location",
+        "data_types": ["Precise location", "Approximate location"],
+        "collected": false
+      },
+      {
+        "category": "Contacts",
+        "data_types": ["Contacts"],
+        "collected": false
+      }
+    ],
+    "data_shared": [
+      {
+        "category": "App functionality",
+        "shared_with": "Local Hermes gateway (user's own device/LAN)",
+        "data_types": ["Chat prompts", "Task requests", "Approval decisions", "Voice audio (with consent)"],
+        "purpose": "Core MUSE functionality — all processing happens locally"
+      }
+    ],
+    "security_practices": {
+      "data_encrypted_in_transit": true,
+      "data_encrypted_at_rest": true,
+      "user_can_request_deletion": true,
+      "independent_security_review": false
+    },
+    "permissions": [
+      {
+        "permission": "android.permission.POST_NOTIFICATIONS",
+        "reason": "Show local notifications for long-running work (jobs, approvals, emergency stop) and work-watcher polls",
+        "data_type": "normal"
+      },
+      {
+        "permission": "android.permission.FOREGROUND_SERVICE",
+        "reason": "Required for all foreground services (HermesService, WorkWatchService, JarvisOverlayService, VoiceLoopService)",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "reason": "HermesService and WorkWatchService sync data with the local gateway",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.INTERNET",
+        "reason": "Reach the local Hermes gateway (default http://127.0.0.1:8765) over loopback/LAN. Never connects to remote AI providers.",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.REQUEST_INSTALL_PACKAGES",
+        "reason": "In-app \"install update\" hands downloaded MUSE update APK to system package installer",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.SYSTEM_ALERT_WINDOW",
+        "reason": "JarvisOverlayService draws the floating avatar/presence indicator over other apps (owner-opted, consent-gated)",
+        "type": "special",
+        "consent_required": true,
+        "consent_key": "overlay_consent"
+      },
+      {
+        "permission": "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+        "reason": "JarvisOverlayService runs as special-use foreground service for on-screen assistant avatar",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "reason": "VoiceLoopService runs microphone foreground service for hands-free voice loop",
+        "type": "normal"
+      },
+      {
+        "permission": "android.permission.RECORD_AUDIO",
+        "reason": "Voice input for chat and hands-free presence mode (owner-opted, consent-gated via mic_consent)",
+        "type": "dangerous",
+        "consent_required": true,
+        "consent_key": "mic_consent"
+      },
+      {
+        "permission": "android.permission.BLUETOOTH_CONNECT",
+        "reason": "Connect to Bluetooth headsets for voice loop audio I/O",
+        "type": "dangerous",
+        "consent_required": false
+      },
+      {
+        "permission": "android.permission.QUERY_ALL_PACKAGES",
+        "reason": "Device control (JarvisAccessibilityService) queries installed packages to launch apps/perform actions",
+        "type": "normal",
+        "consent_required": false
+      },
+      {
+        "permission": "android.permission.CAMERA",
+        "reason": "On-device face-presence detection for Presence Mode (owner-opted, consent-gated via camera_attention_enabled). No frames stored/transmitted. android:required=\"false\".",
+        "type": "dangerous",
+        "consent_required": true,
+        "consent_key": "camera_attention_enabled"
+      }
+    ],
+    "services": [
+      {
+        "name": "HermesService",
+        "foreground_service_type": "dataSync",
+        "purpose": "Background sync with local Hermes gateway; posts local notifications for jobs/approvals"
+      },
+      {
+        "name": "WorkWatchService",
+        "foreground_service_type": "dataSync",
+        "purpose": "Polls cockpit for long-running work state changes; self-stops when idle"
+      },
+      {
+        "name": "JarvisOverlayService",
+        "foreground_service_type": "specialUse",
+        "purpose": "Floating avatar/presence indicator over other apps (owner-opted, overlay_consent required)"
+      },
+      {
+        "name": "VoiceLoopService",
+        "foreground_service_type": "microphone",
+        "purpose": "Hands-free voice loop for wake-word and voice chat (mic_consent required)"
+      },
+      {
+        "name": "JarvisAccessibilityService",
+        "permission": "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "purpose": "Performs taps/swipes, launches apps for device control (accessibility_consent required)"
+      },
+      {
+        "name": "ObservatoryWallpaperService",
+        "permission": "android.permission.BIND_WALLPAPER",
+        "purpose": "Live wallpaper rendering MUSE's real network graph (opt-in)"
+      }
+    ],
+    "consent_flow": {
+      "runtime_consent": true,
+      "point_of_use_prompts": true,
+      "optional_permissions_remain_optional": true,
+      "consent_keys": [
+        "mic_consent",
+        "overlay_consent",
+        "accessibility_consent",
+        "camera_attention_enabled",
+        "privacy_disclosure_ack"
+      ],
+      "default_state": "all_off"
+    }
+  }
+}

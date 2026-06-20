@@ -13,6 +13,12 @@
 > **RESOLUTION ADDENDUM — 2026-06-10** at the bottom of
 > [`../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md`](../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md);
 > both documents link back here. Nothing below this banner was edited.
+>
+> **Cross-link addendum (2026-06-20, P1-04):** This document and
+> [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md) now cross-reference
+> each other bidirectionally. The R00 decision matrix's HOLD instructions are
+> superseded by the resolution addendum. The launch-chain closure is recorded
+> in both places. No HOLD instructions below remain actionable.
 
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Head branch:** `claude/hopeful-bardeen-KBVqi`

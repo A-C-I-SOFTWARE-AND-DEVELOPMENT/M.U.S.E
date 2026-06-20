@@ -247,13 +247,52 @@ fun SettingsScreen(
                     variant = MuseButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+
+            // P1-05: Privacy & Consent
+            SettingsSection("Privacy & Consent") {
+                SwitchRow(
+                    title = "Privacy disclosure acknowledged",
+                    subtitle = "Confirm you've read the privacy disclosure for expanded permissions (mic, camera, overlay, accessibility).",
+                    checked = state.privacyDisclosureAck,
+                    onChange = viewModel::setPrivacyDisclosureAck,
+                )
+                SwitchRow(
+                    title = "Microphone consent",
+                    subtitle = "Allow runtime microphone access for voice features.",
+                    checked = state.micConsent,
+                    onChange = viewModel::setMicConsent,
+                )
+                SwitchRow(
+                    title = "Overlay / System alert window consent",
+                    subtitle = "Allow drawing over other apps (live presence indicator).",
+                    checked = state.overlayConsent,
+                    onChange = viewModel::setOverlayConsent,
+                )
+                SwitchRow(
+                    title = "Accessibility service consent",
+                    subtitle = "Allow accessibility service for presence detection.",
+                    checked = state.accessibilityConsent,
+                    onChange = viewModel::setAccessibilityConsent,
+                )
+                SettingsRow(
+                    title = "View full privacy disclosure",
+                    subtitle = "Read the complete privacy disclosure document.",
+                )
                 MuseButton(
-                    onClick = { confirmReset = true },
-                    text = stringResource(R.string.settings_reset),
+                    onClick = { /* Navigate to privacy disclosure screen */ },
+                    text = "Open privacy disclosure",
                     variant = MuseButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+
+            MuseButton(
+                onClick = { confirmReset = true },
+                text = stringResource(R.string.settings_reset),
+                variant = MuseButtonVariant.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 

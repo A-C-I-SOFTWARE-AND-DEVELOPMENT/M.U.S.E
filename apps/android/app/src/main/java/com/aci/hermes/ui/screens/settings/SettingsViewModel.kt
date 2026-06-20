@@ -25,6 +25,11 @@ data class SettingsUiState(
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
     val unifiedPwaShellEnabled: Boolean = false,
+    // P1-05: Android runtime consent
+    val micConsent: Boolean = false,
+    val overlayConsent: Boolean = false,
+    val accessibilityConsent: Boolean = false,
+    val privacyDisclosureAck: Boolean = false,
 )
 
 class SettingsViewModel(
@@ -53,6 +58,10 @@ class SettingsViewModel(
                 clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
                 showSafetyWarnings = snap.showSafetyWarnings,
                 unifiedPwaShellEnabled = settings.unifiedPwaShellEnabled.first(),
+                micConsent = settings.micConsent.first(),
+                overlayConsent = settings.overlayConsent.first(),
+                accessibilityConsent = settings.accessibilityConsent.first(),
+                privacyDisclosureAck = settings.privacyDisclosureAck.first(),
             )
         }
     }
@@ -102,6 +111,27 @@ class SettingsViewModel(
         viewModelScope.launch { settings.setUnifiedPwaShellEnabled(value) }
     }
 
+    // P1-05: Android runtime consent
+    fun setMicConsent(value: Boolean) {
+        _state.update { it.copy(micConsent = value) }
+        viewModelScope.launch { settings.setMicConsent(value) }
+    }
+
+    fun setOverlayConsent(value: Boolean) {
+        _state.update { it.copy(overlayConsent = value) }
+        viewModelScope.launch { settings.setOverlayConsent(value) }
+    }
+
+    fun setAccessibilityConsent(value: Boolean) {
+        _state.update { it.copy(accessibilityConsent = value) }
+        viewModelScope.launch { settings.setAccessibilityConsent(value) }
+    }
+
+    fun setPrivacyDisclosureAck(value: Boolean) {
+        _state.update { it.copy(privacyDisclosureAck = value) }
+        viewModelScope.launch { settings.setPrivacyDisclosureAck(value) }
+    }
+
     fun resetAll() {
         viewModelScope.launch {
             settings.resetAll()
@@ -119,6 +149,10 @@ class SettingsViewModel(
                 clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
                 showSafetyWarnings = snap.showSafetyWarnings,
                 unifiedPwaShellEnabled = settings.unifiedPwaShellEnabled.first(),
+                micConsent = settings.micConsent.first(),
+                overlayConsent = settings.overlayConsent.first(),
+                accessibilityConsent = settings.accessibilityConsent.first(),
+                privacyDisclosureAck = settings.privacyDisclosureAck.first(),
             )
         }
     }
