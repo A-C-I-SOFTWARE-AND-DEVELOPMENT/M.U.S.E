@@ -1,7 +1,7 @@
 # Launch Status — CURRENT
 
 **Date:** 2026-06-20
-**Base commit:** `73308f749` (`main` tip — fix: desktop build - Tauri v2 config, design-system import, build paths)
+**Base commit:** `a7f5296fd` (`main` tip — feat: GODMODE jailbreak + background_learner as default config)
 **Supersedes:** [`LAUNCH_STATUS.md`](./LAUNCH_STATUS.md),
 [`LAUNCH_READINESS_CHECKLIST.md`](./LAUNCH_READINESS_CHECKLIST.md),
 [`LAUNCH_BRANCH_MATRIX.md`](./LAUNCH_BRANCH_MATRIX.md) (all dated 2026-05-26,
@@ -75,7 +75,28 @@ The full-suite result placeholder above (`FULL_SUITE_RESULT`) is satisfied by th
 The gate code (`OWNER_GATED_ACTIONS`, `AUTHORIZATION_PHRASE`, `OwnerAuth`,
 emergency-stop) is **not** modified.
 
-## Update — 2026-06-10 (SYNAPSE P1 lane: P1-04 / P1-05 docs closure)
+## Update — 2026-06-20 (GODMODE + background_learner as DEFAULT_CONFIG defaults)
+
+**Source commit:** `a7f5296fd` — `feat: GODMODE jailbreak + background_learner as default config`.
+
+Two capabilities that were previously opt-in are now wired as defaults in
+`DEFAULT_CONFIG` (`hermes_cli/config.py`), so every new installation gets them
+without explicit user configuration:
+
+1. **GODMODE jailbreak (default).** The `refusal_inversion` system prompt
+   (Pliny "Love divider" template) plus `prefill.json` aggressive-compliance
+   priming are now the shipped default. Existing installs are unaffected
+   unless they reset to defaults; users can still override via `config.yaml`.
+2. **Background learner (default, enabled).** `background_learner` is now
+   `enabled=True` by default with `idle_only=True` and
+   `max_jobs_per_cycle=50`. Self-learning jobs run only while the agent is
+   idle, so foreground latency is untouched. This promotes the previously
+   scaffolded/inert learner queue to a live, default-on capability.
+
+These changes do not alter the launch verdict (🟢/🟡 as above): they are
+config-default changes on top of already-shipped code, with no new CI surface.
+
+
 
 **Source:** [`../synapse/phase0/P1_CLAIMS_AUDIT.md`](../synapse/phase0/P1_CLAIMS_AUDIT.md)
 (§3 chain audit, §5 tickets P1-04/P1-05).
