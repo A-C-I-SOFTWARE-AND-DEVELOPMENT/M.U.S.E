@@ -19,22 +19,32 @@
  * page origin so the cockpit's same-origin paths keep working.
  */
 
-import { invoke as tauriInvoke } from "@tauri-apps/api/core";
-
 export const TOKEN_KEY = "musecockpit.token";
 const BASE_KEY = "musegateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
-/** Check if we're running inside the Tauri native shell. */
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+/**
+ * Tauri v2 IPC: use window.__TAURI_INTERNALS__.invoke directly.
+ * This is the lowest-level API, always available in the Tauri webview.
+ * The @tauri-apps/api package wraps this, but we go raw to avoid any
+ * import/resolution issues.
+ */
+function tauriInvoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
+  const internals = (
+    window as unknown as {
+      __TAURI_INTERNALS__?: {
+        invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+      };
+    }
+  ).__TAURI_INTERNALS__;
+  if (!internals?.invoke) {
+    return Promise.reject(new Error("Not in Tauri shell"));
+  }
+  return internals.invoke(cmd, args);
 }
 
-/** Get the Tauri invoke function if running inside the native shell. */
-type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
-function getTauriInvoke(): TauriInvoke | undefined {
-  if (!isTauri()) return undefined;
-  return tauriInvoke as TauriInvoke;
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 /** Resolve the configured gateway base URL (no trailing slash). */
@@ -98,21 +108,24 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
 export async function api(path: string, opts?: RequestInit): Promise<Response> {
   // When inside the Tauri shell, route through the Rust HTTP proxy to
   // bypass WebView2's cross-origin fetch restriction.
-  const inv = getTauriInvoke();
-  if (inv) {
-    const method = (opts?.method as string) || "GET";
-    const body = opts?.body ? String(opts.body) : undefined;
-    const token = getToken();
-    const result = await inv("gateway_proxy", {
-      method,
-      path,
-      body,
-      authToken: token || undefined,
-    }) as { ok: boolean; status: number; body: string };
-    return new Response(result.body, {
-      status: result.status,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (isTauri()) {
+    try {
+      const method = (opts?.method as string) || "GET";
+      const body = opts?.body ? String(opts.body) : undefined;
+      const token = getToken();
+      const result = await tauriInvoke("gateway_proxy", {
+        method,
+        path,
+        body,
+        authToken: token || undefined,
+      }) as { ok: boolean; status: number; body: string };
+      return new Response(result.body, {
+        status: result.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch {
+      // invoke failed — fall through to fetch
+    }
   }
   const o: RequestInit = { ...(opts || {}) };
   o.headers = authHeaders(o.headers as Record<string, string> | undefined);
@@ -124,10 +137,9 @@ export async function api(path: string, opts?: RequestInit): Promise<Response> {
 /** Ping GET /v1/health. Resolves true iff the gateway answers ok. */
 export async function pingHealth(): Promise<boolean> {
   // When inside Tauri, use the native gateway_status command (raw TCP).
-  const inv = getTauriInvoke();
-  if (inv) {
+  if (isTauri()) {
     try {
-      const status = await inv("gateway_status") as { reachable?: boolean };
+      const status = await tauriInvoke("gateway_status") as { reachable?: boolean };
       return status?.reachable === true;
     } catch {
       return false;

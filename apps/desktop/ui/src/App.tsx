@@ -22,8 +22,12 @@ type Health = "connecting" | "online" | "offline";
 async function nativeHealth(): Promise<boolean> {
   if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const status = await invoke("gateway_status") as { reachable?: boolean };
+      const internals = (window as unknown as {
+        __TAURI_INTERNALS__?: {
+          invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+        };
+      }).__TAURI_INTERNALS__;
+      const status = await internals!.invoke!("gateway_status") as { reachable?: boolean };
       return status?.reachable === true;
     } catch {
       return false;
