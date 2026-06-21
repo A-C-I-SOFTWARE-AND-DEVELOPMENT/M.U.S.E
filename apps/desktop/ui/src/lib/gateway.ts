@@ -23,6 +23,21 @@ export const TOKEN_KEY = "musecockpit.token";
 const BASE_KEY = "musegateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
+/** Get the Tauri invoke function if running inside the native shell. */
+type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+function getTauriInvoke(): TauriInvoke | undefined {
+  try {
+    const inv = (
+      window as unknown as {
+        __TAURI__?: { core?: { invoke?: TauriInvoke } };
+      }
+    ).__TAURI__?.core?.invoke;
+    return inv;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Resolve the configured gateway base URL (no trailing slash). */
 export function getGatewayBase(): string {
   const stored = safeLocalStorageGet(BASE_KEY);
@@ -82,6 +97,24 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
 
 /** A single authenticated fetch against the gateway. */
 export async function api(path: string, opts?: RequestInit): Promise<Response> {
+  // When inside the Tauri shell, route through the Rust HTTP proxy to
+  // bypass WebView2's cross-origin fetch restriction.
+  const inv = getTauriInvoke();
+  if (inv) {
+    const method = (opts?.method as string) || "GET";
+    const body = opts?.body ? String(opts.body) : undefined;
+    const token = getToken();
+    const result = await inv("gateway_proxy", {
+      method,
+      path,
+      body,
+      authToken: token || undefined,
+    }) as { ok: boolean; status: number; body: string };
+    return new Response(result.body, {
+      status: result.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   const o: RequestInit = { ...(opts || {}) };
   o.headers = authHeaders(o.headers as Record<string, string> | undefined);
   return fetch(getGatewayBase() + path, o);
@@ -91,6 +124,16 @@ export async function api(path: string, opts?: RequestInit): Promise<Response> {
 
 /** Ping GET /v1/health. Resolves true iff the gateway answers ok. */
 export async function pingHealth(): Promise<boolean> {
+  // When inside Tauri, use the native gateway_status command (raw TCP).
+  const inv = getTauriInvoke();
+  if (inv) {
+    try {
+      const status = await inv("gateway_status") as { reachable?: boolean };
+      return status?.reachable === true;
+    } catch {
+      return false;
+    }
+  }
   try {
     const r = await fetch(getGatewayBase() + "/v1/health");
     return r.ok;
@@ -114,7 +157,7 @@ export type PairStartResult = {
  */
 export async function pairStart(deviceName?: string): Promise<PairStartResult> {
   try {
-    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/start", {
+    const r = await api("/v1/cockpit/pair/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device_name: (deviceName || "").trim() }),
@@ -150,7 +193,7 @@ export async function pairConfirm(
   authorization: string,
 ): Promise<PairConfirmResult> {
   try {
-    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/confirm", {
+    const r = await api("/v1/cockpit/pair/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pairing_code: pairingCode, authorization }),
