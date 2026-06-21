@@ -74,6 +74,7 @@ typed in a terminal or spoke into a phone in the car.
 |---|---|
 | Run your first orchestrated job | [orchestration/getting-started.md](orchestration/getting-started.md) |
 | See an end-to-end **Prompt to PR** walkthrough | [orchestration/prompt-to-pr-demo.md](orchestration/prompt-to-pr-demo.md) |
+| Install MUSE on a phone (share-ready, non-technical) | [mobile/install-muse-on-your-phone.md](mobile/install-muse-on-your-phone.md) |
 | Drive muse from your phone | [mobile/mobile-app-guide.md](mobile/mobile-app-guide.md) |
 | Operate the native muse phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
 | Understand muse capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |

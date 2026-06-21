@@ -4,7 +4,7 @@ let
   src = ../ui-tui;
   npmDeps = pkgs.fetchNpmDeps {
     inherit src;
-    hash = "sha256-UYm8ffenFD/qO8qCry6wn7KGfVv+gCGy+0wExPlySFE=";
+    hash = "sha256-85CYVnhwsko84Z/IOr2h3lI7HWpv4Xcxt6uAoRFR48w=";
   };
 
   npm = hermesNpmLib.mkNpmPassthru { folder = "ui-tui"; attr = "tui"; pname = "hermes-tui"; };
