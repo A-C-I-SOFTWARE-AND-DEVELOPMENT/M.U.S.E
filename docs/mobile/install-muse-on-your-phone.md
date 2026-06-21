@@ -42,7 +42,7 @@ a blinking cursor. That's where the next step goes.
 Tap into Termux and paste this single line, then press **Enter**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 ```
 
 > **Tip:** to paste in Termux, touch and hold on the screen, then tap **Paste**.

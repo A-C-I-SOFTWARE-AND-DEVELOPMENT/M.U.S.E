@@ -140,7 +140,7 @@ You no longer need to wrap `muse update` in `screen` or `tmux` to survive a term
 muse version
 ```
 
-Compare against the latest release at the [GitHub releases page](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases).
+Compare against the latest release at the [GitHub releases page](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases).
 
 ### Updating from Messaging Platforms
 

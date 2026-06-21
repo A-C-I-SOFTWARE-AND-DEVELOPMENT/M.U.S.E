@@ -1,6 +1,6 @@
 # ACI muse — Setup Guide
 
-> **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`
+> **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`
 > **Owner:** ACI Software & Development
 >   ( **A**ccountability · **C**ommunication · **I**nformation · Software & Development )
 > **Upstream:** Hermes Agent by [Nous Research](https://nousresearch.com)
@@ -51,8 +51,8 @@ one-liner, see [`README.md`](README.md#quick-install).
 ### 2a. Manual checkout (recommended for contributors)
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
-cd muse
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+cd M.U.S.E
 
 # uv handles Python version + venv creation in one step.
 # If you don't have uv: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -105,8 +105,8 @@ muse's transitive deps build from source on Android.
 ### 3b. Clone and install with the Termux extra
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
-cd muse
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+cd M.U.S.E
 
 uv venv .venv --python 3.11
 source .venv/bin/activate

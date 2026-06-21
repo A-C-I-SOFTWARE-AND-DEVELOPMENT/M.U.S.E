@@ -46,7 +46,7 @@ That does not stop muse from working well as a phone-native CLI agent — it jus
 muse now ships a Termux-aware installer path:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 ```
 
 On Termux, the installer automatically:
@@ -80,8 +80,8 @@ Why these packages?
 ### 2. Clone muse
 
 ```bash
-git clone --recurse-submodules https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
-cd hermes-agent
+git clone --recurse-submodules https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+cd M.U.S.E
 ```
 
 If you already cloned without submodules:

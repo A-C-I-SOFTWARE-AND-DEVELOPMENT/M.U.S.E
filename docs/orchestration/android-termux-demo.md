@@ -79,7 +79,7 @@ Run the gateway on your VPS or home server:
 
 ```bash
 ssh user@your-vps
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 muse setup           # wizard, includes provider keys
 muse gateway setup   # pick auth, set bearer token
 muse gateway start   # foreground, or use systemd
@@ -114,8 +114,8 @@ pkg install -y python rust git binutils-is-llvm \
     clang libjpeg-turbo libxml2 libxslt openssl rustc
 
 # Termux constraints file pins Android-compatible versions.
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | \
-  PIP_CONSTRAINT=https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/constraints-termux.txt bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | \
+  PIP_CONSTRAINT=https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/constraints-termux.txt bash
 ```
 
 On Termux, muse installs `.[termux]` instead of `.[all]` — the full
