@@ -16,6 +16,26 @@ import "./styles/app.css";
 
 type Health = "connecting" | "online" | "offline";
 
+// Tauri invoke — uses the native Rust gateway_status command which probes
+// /v1/health over a raw TCP socket (no CSP / WebView2 fetch restriction).
+// Falls back to the fetch-based pingHealth when not running inside Tauri.
+async function nativeHealth(): Promise<boolean> {
+  try {
+    const inv = (
+      window as unknown as {
+        __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
+      }
+    ).__TAURI__?.core?.invoke;
+    if (inv) {
+      const status = await inv("gateway_status") as { reachable?: boolean };
+      return status?.reachable === true;
+    }
+  } catch {
+    // invoke failed — fall through to fetch
+  }
+  return pingHealth();
+}
+
 function currentHashId(): string {
   return (window.location.hash || "").replace(/^#\/?/, "");
 }
@@ -46,7 +66,7 @@ export function App() {
   useEffect(() => {
     let alive = true;
     const tick = async () => {
-      const ok = await pingHealth();
+      const ok = await nativeHealth();
       if (alive) setHealth(ok ? "online" : "offline");
     };
     void tick();
