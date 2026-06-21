@@ -2,7 +2,7 @@
 name: autoresearch
 description: "Run Karpathy's autoresearch loop — autonomous 5-minute pretraining experiments on the vendored nanochat-style engine — inside a disposable workspace, governed by muse's cost ceiling, VRAM feasibility gate, and benchmark gate, with every experiment on the flywheel. The winning train.py surfaces as an owner-gated proposal; val_bpb LOWER is better; nothing is ever applied without the owner."
 version: 1.0.0
-author: muse (engine: Andrej Karpathy, MIT)
+author: "muse (engine: Andrej Karpathy, MIT)"
 license: MIT
 platforms: [linux]
 metadata:
