@@ -19,23 +19,22 @@
  * page origin so the cockpit's same-origin paths keep working.
  */
 
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+
 export const TOKEN_KEY = "musecockpit.token";
 const BASE_KEY = "musegateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
+/** Check if we're running inside the Tauri native shell. */
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
 /** Get the Tauri invoke function if running inside the native shell. */
 type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
 function getTauriInvoke(): TauriInvoke | undefined {
-  try {
-    const inv = (
-      window as unknown as {
-        __TAURI__?: { core?: { invoke?: TauriInvoke } };
-      }
-    ).__TAURI__?.core?.invoke;
-    return inv;
-  } catch {
-    return undefined;
-  }
+  if (!isTauri()) return undefined;
+  return tauriInvoke as TauriInvoke;
 }
 
 /** Resolve the configured gateway base URL (no trailing slash). */

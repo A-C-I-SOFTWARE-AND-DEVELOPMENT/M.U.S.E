@@ -20,18 +20,14 @@ type Health = "connecting" | "online" | "offline";
 // /v1/health over a raw TCP socket (no CSP / WebView2 fetch restriction).
 // Falls back to the fetch-based pingHealth when not running inside Tauri.
 async function nativeHealth(): Promise<boolean> {
-  try {
-    const inv = (
-      window as unknown as {
-        __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
-      }
-    ).__TAURI__?.core?.invoke;
-    if (inv) {
-      const status = await inv("gateway_status") as { reachable?: boolean };
+  if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const status = await invoke("gateway_status") as { reachable?: boolean };
       return status?.reachable === true;
+    } catch {
+      return false;
     }
-  } catch {
-    // invoke failed — fall through to fetch
   }
   return pingHealth();
 }
