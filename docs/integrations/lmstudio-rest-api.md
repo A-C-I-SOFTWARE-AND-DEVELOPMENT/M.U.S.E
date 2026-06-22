@@ -89,8 +89,18 @@ returns a sentinel on error so callers can stay simple:
   verbatim (LM Studio doesn't formally document the status schema), or `None` on
   error.
 
-These are reusable primitives — no user-facing CLI command or agent tool wraps
-them yet; wire them into whichever surface needs lifecycle control.
+### Auto-unload on model switch
+
+`switch_model` (`agent/agent_runtime_helpers.py`) calls `unload_lmstudio_model`
+automatically when you switch **away** from an LM Studio model — to a different
+model or a different provider. The old model is unloaded **before** the new one
+is preloaded, so its KV cache is released first and the two don't briefly
+co-occupy VRAM on the same box. Staying on the same LM Studio model is a no-op,
+and the unload is best-effort (a failure never blocks the switch).
+
+`download_lmstudio_model` / `lmstudio_download_status` are not yet wrapped by a
+user-facing CLI command or agent tool; wire them into whichever surface needs
+download control.
 
 ## How context length is resolved
 
