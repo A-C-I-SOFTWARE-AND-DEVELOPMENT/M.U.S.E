@@ -13,6 +13,8 @@
   <a href="README.md"><img src="https://img.shields.io/badge/Lang-English-lightgrey?style=for-the-badge" alt="English"></a>
 </p>
 
+> **📣 最新发布 — [v1.2.0 · LM Studio 原生 v1 REST API](docs/launch/RELEASE_NOTES_v1.2.0.md)。** 为本地**和**远程 LM Studio 提供准确的上下文窗口检测、模型生命周期管理（加载 / 卸载 / 下载）及对应的智能体工具，并在切换模型时自动卸载。（[全部发布](docs/releases/README.md)）
+
 **由 [Nous Research](https://nousresearch.com) 构建的自进化 AI 代理。** 它是唯一内置学习闭环的智能代理——从经验中创建技能，在使用中改进技能，主动持久化知识，搜索过往对话，并在跨会话中逐步构建对你的深度理解。可以在 $5 的 VPS 上运行，也可以在 GPU 集群上运行，或者使用几乎零成本的 Serverless 基础设施。它不绑定你的笔记本——你可以在 Telegram 上与它对话，而它在云端 VM 上工作。由 [A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT) 开发与维护。
 
 支持任意模型——[Nous Portal](https://portal.nousresearch.com)、[OpenRouter](https://openrouter.ai)（200+ 模型）、[NVIDIA NIM](https://build.nvidia.com)（Nemotron）、[小米 MiMo](https://platform.xiaomimimo.com)、[z.ai/GLM](https://z.ai)、[Kimi/Moonshot](https://platform.moonshot.ai)、[MiniMax](https://www.minimax.io)、[Hugging Face](https://huggingface.co)、OpenAI，或自定义端点。使用 `muse model` 即可切换——无需改代码，无锁定。
