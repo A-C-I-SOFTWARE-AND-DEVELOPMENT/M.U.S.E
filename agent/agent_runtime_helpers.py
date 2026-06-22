@@ -1317,6 +1317,12 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
 
     old_model = agent.model
     old_provider = agent.provider
+    # Capture the OLD endpoint/credentials before they are swapped below, so a
+    # post-swap LM Studio unload targets the model we're leaving (not the new
+    # one). ``api_key`` may be a callable (e.g. Azure Foundry token provider);
+    # coerce to "" for the unload path, which only handles string bearer tokens.
+    old_base_url = agent.base_url
+    old_api_key = agent.api_key if isinstance(agent.api_key, str) else ""
 
     # Clear the per-config context_length override so the new model's
     # actual context window is resolved via get_model_context_length()
@@ -1387,6 +1393,21 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
             model=new_model,
         )
     )
+
+    # ── LM Studio: free VRAM by unloading the model we're leaving ──
+    # When switching away from an LM Studio model (to a different model or a
+    # different provider), unload it BEFORE preloading the new one so its KV
+    # cache is released first — avoiding a transient double-VRAM spike when the
+    # new model loads on the same box. No-op when staying on the same LM Studio
+    # model. Best-effort: never blocks or fails the switch.
+    if (old_provider or "").strip().lower() == "lmstudio" and old_model and (
+        (new_provider or "").strip().lower() != "lmstudio" or new_model != old_model
+    ):
+        try:
+            from hermes_cli.models import unload_lmstudio_model
+            unload_lmstudio_model(old_model, old_base_url, old_api_key)
+        except Exception as unload_err:
+            logger.debug("LM Studio unload-on-switch skipped: %s", unload_err)
 
     # ── LM Studio: preload before probing context length ──
     agent._ensure_lmstudio_runtime_loaded()
