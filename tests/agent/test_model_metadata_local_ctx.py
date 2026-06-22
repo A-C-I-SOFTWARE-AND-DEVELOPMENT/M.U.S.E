@@ -426,6 +426,70 @@ class TestQueryLocalContextLengthLmStudio:
             "max_context_length (1048576) must not win over loaded_instances."
         )
 
+    def test_lmstudio_not_loaded_falls_back_to_max_context_length(self):
+        """When no instance is loaded, fall back to the v1 API's advertised window.
+
+        Regression for NousResearch/hermes-agent#47678: the probe returned None
+        whenever the model wasn't currently loaded, because it only read
+        loaded_instances[].config.context_length and ignored the top-level
+        max_context_length the /api/v1/models response provides.
+        """
+        from agent.model_metadata import _query_local_context_length
+
+        native_resp = self._make_resp(200, {
+            "models": [
+                {
+                    "key": "nvidia/nvidia-nemotron-super-49b-v1",
+                    "id": "nvidia/nvidia-nemotron-super-49b-v1",
+                    "max_context_length": 131072,
+                    "loaded_instances": [],
+                },
+            ]
+        })
+        client_mock = self._make_client(
+            native_resp,
+            self._make_resp(404, {}),
+            self._make_resp(404, {}),
+        )
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
+             patch("httpx.Client", return_value=client_mock):
+            result = _query_local_context_length(
+                "nvidia-nemotron-super-49b-v1", "http://192.168.1.22:1234/v1"
+            )
+
+        assert result == 131072
+
+    def test_lmstudio_not_loaded_prefers_loaded_context_length(self):
+        """loaded_context_length (last runtime setting) wins over max_context_length
+        when the model is not currently loaded."""
+        from agent.model_metadata import _query_local_context_length
+
+        native_resp = self._make_resp(200, {
+            "models": [
+                {
+                    "key": "nvidia/nvidia-nemotron-super-49b-v1",
+                    "id": "nvidia/nvidia-nemotron-super-49b-v1",
+                    "max_context_length": 1_048_576,
+                    "loaded_context_length": 65536,
+                    "loaded_instances": [],
+                },
+            ]
+        })
+        client_mock = self._make_client(
+            native_resp,
+            self._make_resp(404, {}),
+            self._make_resp(404, {}),
+        )
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
+             patch("httpx.Client", return_value=client_mock):
+            result = _query_local_context_length(
+                "nvidia-nemotron-super-49b-v1", "http://192.168.1.22:1234/v1"
+            )
+
+        assert result == 65536
+
 
 class TestDetectLocalServerTypeAuth:
     def test_passes_bearer_token_to_probe_requests(self):
@@ -490,6 +554,81 @@ class TestFetchEndpointModelMetadataLmStudio:
         }
         assert result["lmstudio-community/Qwen3.5-27B-GGUF/Qwen3.5-27B-Q8_0.gguf"]["context_length"] == 131072
         assert result["Qwen3.5-27B-GGUF/Qwen3.5-27B-Q8_0.gguf"]["context_length"] == 131072
+
+    def test_unloaded_model_uses_max_context_length(self):
+        """Models with no loaded instance still report a window from the v1 API's
+        top-level max_context_length (NousResearch/hermes-agent#47678)."""
+        from agent.model_metadata import fetch_endpoint_model_metadata
+
+        native_resp = self._make_resp(
+            {
+                "models": [
+                    {
+                        "key": "qwen/qwen3-coder-30b",
+                        "id": "qwen/qwen3-coder-30b",
+                        "max_context_length": 262144,
+                        "loaded_instances": [],
+                    }
+                ]
+            }
+        )
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
+             patch("agent.model_metadata.requests.get", return_value=native_resp):
+            result = fetch_endpoint_model_metadata(
+                "http://localhost:1234/v1",
+                force_refresh=True,
+            )
+
+        assert result["qwen/qwen3-coder-30b"]["context_length"] == 262144
+
+    def test_remote_lmstudio_uses_native_endpoint_when_provider_set(self):
+        """A remote (non-local) LM Studio host still queries /api/v1/models when
+        provider='lmstudio' (NousResearch/hermes-agent#47200)."""
+        from agent.model_metadata import fetch_endpoint_model_metadata
+
+        native_resp = self._make_resp(
+            {
+                "models": [
+                    {
+                        "key": "qwen/qwen3-coder-30b",
+                        "id": "qwen/qwen3-coder-30b",
+                        "loaded_instances": [{"config": {"context_length": 100000}}],
+                    }
+                ]
+            }
+        )
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
+             patch("agent.model_metadata.requests.get", return_value=native_resp) as mock_get:
+            result = fetch_endpoint_model_metadata(
+                "https://lmstudio.example.com/v1",
+                provider="lmstudio",
+                force_refresh=True,
+            )
+
+        assert mock_get.call_args[0][0] == "https://lmstudio.example.com/api/v1/models"
+        assert result["qwen/qwen3-coder-30b"]["context_length"] == 100000
+
+    def test_remote_endpoint_without_lmstudio_provider_skips_native(self):
+        """Without provider='lmstudio', a remote host does NOT get the native
+        probe — behavior for arbitrary custom cloud endpoints is unchanged."""
+        from agent.model_metadata import fetch_endpoint_model_metadata
+
+        # Generic OpenAI-compat /models (no context_length) — the path a
+        # non-LM-Studio remote endpoint falls through to.
+        compat_resp = self._make_resp({"data": [{"id": "some-model"}]})
+
+        with patch("agent.model_metadata.detect_local_server_type") as mock_detect, \
+             patch("agent.model_metadata.requests.get", return_value=compat_resp) as mock_get:
+            fetch_endpoint_model_metadata(
+                "https://api.some-cloud.example.com/v1",
+                force_refresh=True,
+            )
+
+        mock_detect.assert_not_called()
+        # Only the OpenAI-compat /models path is hit, never /api/v1/models.
+        assert all("/api/v1/models" not in c[0][0] for c in mock_get.call_args_list)
 
 
 class TestQueryLocalContextLengthNetworkError:
@@ -597,3 +736,24 @@ class TestGetModelContextLengthLocalFallback:
             result = get_model_context_length("unknown-xyz-model", "")
 
         mock_query.assert_not_called()
+
+    def test_remote_lmstudio_provider_resolves_native_context(self):
+        """A remote LM Studio endpoint (provider='lmstudio', non-local URL)
+        resolves its real context window from the native endpoint instead of
+        defaulting to 256K (NousResearch/hermes-agent#47200)."""
+        from agent.model_metadata import get_model_context_length
+
+        with patch("agent.model_metadata.get_cached_context_length", return_value=None), \
+             patch("agent.model_metadata._resolve_endpoint_context_length", return_value=100000) as mock_resolve, \
+             patch("agent.model_metadata.save_context_length") as mock_save:
+            result = get_model_context_length(
+                "qwen3-coder-30b",
+                "https://lmstudio.example.com/v1",
+                provider="lmstudio",
+            )
+
+        assert result == 100000
+        # provider must be forwarded so the native path is taken for the remote host
+        assert mock_resolve.call_args.kwargs.get("provider") == "lmstudio"
+        # LM Studio context is transient — never persisted to the on-disk cache
+        mock_save.assert_not_called()
