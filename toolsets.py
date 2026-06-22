@@ -72,6 +72,9 @@ _HERMES_CORE_TOOLS = [
     "kanban_unblock",
     # Computer use (macOS, gated on cua-driver being installed via check_fn)
     "computer_use",
+    # LM Studio model lifecycle (gated on a reachable LM Studio server via
+    # check_fn in tools/lmstudio_tools.py — hidden in cloud-only sessions).
+    "lmstudio_download_model", "lmstudio_download_status", "lmstudio_unload_model",
 ]
 
 

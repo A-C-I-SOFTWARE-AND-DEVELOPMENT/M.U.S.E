@@ -98,9 +98,24 @@ is preloaded, so its KV cache is released first and the two don't briefly
 co-occupy VRAM on the same box. Staying on the same LM Studio model is a no-op,
 and the unload is best-effort (a failure never blocks the switch).
 
-`download_lmstudio_model` / `lmstudio_download_status` are not yet wrapped by a
-user-facing CLI command or agent tool; wire them into whichever surface needs
-download control.
+### Agent tools
+
+The lifecycle helpers are also exposed as **agent tools** (`tools/lmstudio_tools.py`)
+so the model can manage models on the user's behalf:
+
+| Tool | Wraps | Notes |
+|---|---|---|
+| `lmstudio_download_model` | `download_lmstudio_model` | `model` (catalog id or HF link), optional `quantization`; returns the job status + `job_id`. |
+| `lmstudio_download_status` | `lmstudio_download_status` | poll by `job_id`. |
+| `lmstudio_unload_model` | `unload_lmstudio_model` | free VRAM; idempotent. |
+
+These are listed in `_HERMES_CORE_TOOLS` (`toolsets.py`) but **gated by
+`check_lmstudio_available`** — they only enter the model's tool schema when an
+LM Studio server is actually reachable, so cloud-only sessions never see them.
+Each accepts an optional `base_url` override; otherwise the connection resolves
+exactly like the `lmstudio` provider (`$LM_BASE_URL` → default
+`http://127.0.0.1:1234/v1`). The API key is read from `$LM_API_KEY` only — never
+a model-supplied argument.
 
 ## How context length is resolved
 
