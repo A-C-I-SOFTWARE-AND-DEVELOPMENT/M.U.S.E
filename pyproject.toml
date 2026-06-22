@@ -283,16 +283,21 @@ markers = [
     "real_concurrent_gate: opt out of the autouse stub that disables _detect_concurrent_hermes_instances",
     "ssh: marks tests requiring a reachable SSH server",
 ]
-# pytest-timeout: per-test 60s hard cap with thread method.
+# pytest-timeout: per-test 30s hard cap.
 # Discovered May 2026: the suite reliably hangs at ~96% on full runs even
 # though every individual test completes in <30s. Root cause is leaked
 # threads / atexit handlers accumulating across thousands of tests until
-# something deadlocks at session teardown. Adding pytest-timeout (with
-# thread method, which forces an interrupt into the test thread) breaks
-# the deadlock — the suite then completes cleanly. The 60s cap is large
-# enough that no legitimate test trips it; if a test exceeds it that's a
-# real bug worth surfacing as a Timeout failure.
-addopts = "-m 'not integration' -n auto --timeout=30 --timeout-method=signal"
+# something deadlocks at session teardown. The per-test timeout breaks the
+# deadlock — the suite then completes cleanly. The 30s cap is large enough
+# that no legitimate test trips it; if a test exceeds it that's a real bug
+# worth surfacing as a Timeout failure.
+#
+# The timeout method is intentionally NOT pinned: pytest-timeout auto-selects
+# `signal` where SIGALRM exists (Linux/macOS/CI — interrupts the test thread
+# for a clean Timeout failure) and `thread` on Windows. Pinning
+# `--timeout-method=signal` crashed every xdist worker on Windows with
+# `AttributeError: module 'signal' has no attribute 'SIGALRM'`.
+addopts = "-m 'not integration' -n auto --timeout=30"
 
 [tool.ty.environment]
 python-version = "3.13"
