@@ -208,17 +208,51 @@ def test_pair_confirm_bad_code_is_401(server) -> None:
     assert exc.value.code == 401
 
 
-def test_pair_confirm_requires_owner_phrase(server) -> None:
-    # Owner gate: a valid code without the exact owner phrase cannot mint a token.
+def test_pair_confirm_skips_owner_phrase_on_loopback(server) -> None:
+    # Loopback-only cockpit (default): the owner phrase is NOT required to mint a
+    # device token — anything that can reach 127.0.0.1 is already on the device,
+    # so the phrase was friction without security benefit (see commit
+    # "cockpit/pair_confirm: skip owner-phrase gate on loopback"). A valid code
+    # with a wrong/absent phrase still pairs.
     status, payload = _post(server, "/v1/cockpit/pair/start", {"device_name": "Pixel"})
     assert status == 201
+    status, payload = _post(
+        server,
+        "/v1/cockpit/pair/confirm",
+        {"pairing_code": payload["pairing_code"], "authorization": "nope"},
+    )
+    assert status == 201
+    assert payload["device_id"].startswith("dev_")
+    assert payload["token"]
+
+
+def test_pair_confirm_requires_owner_phrase_when_external(
+    server, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Remote-reachable cockpit (--allow-external): the owner phrase IS enforced,
+    # so a remote caller can never self-issue a credential. A valid code with the
+    # wrong phrase is 403; the same code with the exact phrase then pairs (the
+    # 403 short-circuits before the code is consumed, so it isn't burned).
+    monkeypatch.setattr("gateway.cockpit.handlers._ALLOW_REMOTE_EXECUTE", True)
+    status, start = _post(server, "/v1/cockpit/pair/start", {"device_name": "Pixel"})
+    assert status == 201
+    code = start["pairing_code"]
+
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(
             server,
             "/v1/cockpit/pair/confirm",
-            {"pairing_code": payload["pairing_code"], "authorization": "nope"},
+            {"pairing_code": code, "authorization": "nope"},
         )
     assert exc.value.code == 403
+
+    status, payload = _post(
+        server,
+        "/v1/cockpit/pair/confirm",
+        {"pairing_code": code, "authorization": "Yes, with authorization."},
+    )
+    assert status == 201
+    assert payload["token"]
 
 
 def test_pair_start_rate_limited_is_429(server) -> None:
