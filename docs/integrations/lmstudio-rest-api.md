@@ -56,12 +56,41 @@ hosts strictly need the explicit `lmstudio` provider for native detection.
 |---|---|---|
 | `/api/v1/models` | GET | Detect that the server is LM Studio; read the real context window and capabilities for each model. |
 | `/api/v1/models/load` | POST | Preload a model before probing its context length, so the runtime window is reported instead of a default. |
+| `/api/v1/models/unload` | POST | Free VRAM by unloading a model (idempotent). |
+| `/api/v1/models/download` | POST | Start (or detect) a model download from a catalog id or Hugging Face link. |
+| `/api/v1/models/download/status` | GET | Poll a download job's progress by `job_id`. |
 
 Server detection probes `/api/v1/models` first because it is the most
 specific signal that the server is LM Studio (see
 `agent/model_metadata.py: detect_local_server_type`). Reasoning-effort
 support is read from the per-model `allowed_options` the same endpoint
 returns (see `agent/lmstudio_reasoning.py`).
+
+## Model lifecycle helpers
+
+`hermes_cli/models.py` exposes thin, best-effort wrappers over the native
+lifecycle endpoints (alongside `ensure_lmstudio_model_loaded`, which drives
+`/api/v1/models/load`). Each takes `(…, base_url, api_key)`, never raises, and
+returns a sentinel on error so callers can stay simple:
+
+- **`unload_lmstudio_model(model, base_url, api_key) -> bool`** — POSTs
+  `{"model": <key>}` to `/api/v1/models/unload` to free VRAM. Returns `True` on
+  success **and** on HTTP 404 (nothing loaded under that key — unload is
+  idempotent); `False` otherwise. (LM Studio doesn't document a distinct unload
+  field, so this mirrors the load request shape.)
+- **`download_lmstudio_model(model, base_url, api_key, quantization=None) -> dict | None`**
+  — POSTs `{"model": …, "quantization"?: "Q4_K_M"}` to `/api/v1/models/download`.
+  `model` is a catalog id (`"ibm/granite-4-micro"`) or a Hugging Face link;
+  `quantization` is only honoured for HF links. Returns the parsed response
+  (`status` ∈ `downloading|paused|completed|failed|already_downloaded`, plus an
+  optional `job_id`, absent when already downloaded). This only *starts* the job.
+- **`lmstudio_download_status(job_id, base_url, api_key) -> dict | None`** —
+  GETs `/api/v1/models/download/status?job_id=…`. Returns the status payload
+  verbatim (LM Studio doesn't formally document the status schema), or `None` on
+  error.
+
+These are reusable primitives — no user-facing CLI command or agent tool wraps
+them yet; wire them into whichever surface needs lifecycle control.
 
 ## How context length is resolved
 
