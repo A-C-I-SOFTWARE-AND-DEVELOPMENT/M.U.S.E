@@ -139,7 +139,7 @@ lacks pytest/plugins — this is also the root cause of FU-10).
 | **FU-19-gateways-surface** | B | Raise ONE weakest gateway to capability/health parity (exact file declared pre-start) | `gateway/<one_gateway>.py` + its test | additive | P2 | planned |
 | **FU-20-voice-graphrag-surface** | B | Raise ONE of voice/GraphRAG backend parity (exact module declared pre-start; not handlers/server/index) | `hermes_cli/jarvis_prime/<module>.py` + test | additive | P2 | planned |
 | **FU-21-council-router-proof** | B | Prove AOS routing resolves only registry members (registry read-only) | `tests/test_aos_council_routing.py` (new) | additive (test) | P2 | planned |
-| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/muse_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
+| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/MUSE_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
 
 ## Wave plan (disjoint ⇒ truly parallel)
 

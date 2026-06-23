@@ -146,8 +146,8 @@ ZONES: tuple[str, ...] = (
 )
 
 # muse creator axes (08-avatar-den-onboarding.md §3.1).
-muse_FRAMES: tuple[str, ...] = ("slight", "standard", "sturdy", "tall", "drifting")
-muse_MATERIALS: tuple[str, ...] = (
+MUSE_FRAMES: tuple[str, ...] = ("slight", "standard", "sturdy", "tall", "drifting")
+MUSE_MATERIALS: tuple[str, ...] = (
     "brushed_alloy",
     "porcelain",
     "smoked_glass",
@@ -157,8 +157,8 @@ muse_MATERIALS: tuple[str, ...] = (
     "oxidized_copper",
     "soft_matte_polymer",
 )
-muse_FINISHES: tuple[str, ...] = ("matte", "satin", "polished", "weathered")
-muse_FACE_PLATES: tuple[str, ...] = (
+MUSE_FINISHES: tuple[str, ...] = ("matte", "satin", "polished", "weathered")
+MUSE_FACE_PLATES: tuple[str, ...] = (
     "open",
     "visor",
     "twin_lens",
@@ -167,7 +167,7 @@ muse_FACE_PLATES: tuple[str, ...] = (
     "blank_warm",
     "asymmetric",
 )
-muse_VOICES: tuple[str, ...] = (
+MUSE_VOICES: tuple[str, ...] = (
     "warm_low",
     "bright_quick",
     "measured_deep",
@@ -209,11 +209,11 @@ DESIGN: dict[str, Any] = {
     "resonance": {"min": RESONANCE_MIN, "max": RESONANCE_MAX},
     "den": {"stages": list(DEN_STAGES), "buff_pct_cap": 5, "max_buff_items": 6},
     "muse": {
-        "frames": list(muse_FRAMES),
-        "materials": list(muse_MATERIALS),
-        "finishes": list(muse_FINISHES),
-        "face_plates": list(muse_FACE_PLATES),
-        "voices": list(muse_VOICES),
+        "frames": list(MUSE_FRAMES),
+        "materials": list(MUSE_MATERIALS),
+        "finishes": list(MUSE_FINISHES),
+        "face_plates": list(MUSE_FACE_PLATES),
+        "voices": list(MUSE_VOICES),
         "name_length": [MUSE_NAME_MIN, MUSE_NAME_MAX],
         "question_count": MUSE_QUESTION_COUNT,
     },
@@ -292,11 +292,11 @@ def _tier(slot_id: str) -> str:
 def _validate_muse(muse: Any) -> dict:
     muse = _require_dict(muse, "muse")
     checks: tuple[tuple[str, tuple[str, ...]], ...] = (
-        ("frame", muse_FRAMES),
-        ("material", muse_MATERIALS),
-        ("finish", muse_FINISHES),
-        ("face", muse_FACE_PLATES),
-        ("voice", muse_VOICES),
+        ("frame", MUSE_FRAMES),
+        ("material", MUSE_MATERIALS),
+        ("finish", MUSE_FINISHES),
+        ("face", MUSE_FACE_PLATES),
+        ("voice", MUSE_VOICES),
     )
     for key, allowed in checks:
         if key in muse and muse[key] not in allowed:

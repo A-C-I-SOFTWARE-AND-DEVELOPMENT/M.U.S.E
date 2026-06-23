@@ -113,8 +113,10 @@ def test_index_still_served_and_links_to_observatory(server) -> None:
     assert status == 200
     assert ctype.startswith("text/html")
     text = body.decode("utf-8")
-    # The one additive nav link to the Observatory page.
-    assert 'href="/cockpit/observatory.html"' in text
+    # The Observatory is reachable from the shell. The cinematic redesign moved
+    # it from a static page link to a first-class SPA nav route, so assert the
+    # modular nav target rather than the legacy ``observatory.html`` href.
+    assert 'data-nav="observatory"' in text
     # And the existing shell is intact.
     assert "muse" in text
 

@@ -1,12 +1,12 @@
-"""The muse_TEMPLATES fast path — cluster-routed, grammar-forced, cache-primed.
+"""The MUSE_TEMPLATES fast path — cluster-routed, grammar-forced, cache-primed.
 
 Flag-guarded challenger lane for the Gemma runner (champion = flag-off free
-generation). With ``muse_TEMPLATES`` truthy AND ``muse_TEMPLATES_SERVER``
+generation). With ``MUSE_TEMPLATES`` truthy AND ``MUSE_TEMPLATES_SERVER``
 pointing at a healthy llama-server, :func:`maybe_wrap_runner` wraps the base
 ``(prompt) -> completion`` runner:
 
 1. ``clusters.assign(prompt)`` — below the τ gate (default 0.75,
-   ``muse_TEMPLATES_TAU``) or no template for the cluster → base runner,
+   ``MUSE_TEMPLATES_TAU``) or no template for the cluster → base runner,
    fallback logged to flywheel.
 2. ``hard`` template: single grammar-constrained completion, prefix-primed on
    the cluster's prompt-cache slot (stable ``cluster_id % n_slots`` mapping).
@@ -32,9 +32,9 @@ from .clusters import ClusterModel, EmbeddingBackend, HashedFeatureBackend
 from .llama_client import LlamaServerClient
 from .template_mining import DEFAULT_TAU, TemplateFiles, load_template, templates_dir
 
-ENV_TEMPLATES = "muse_TEMPLATES"
-ENV_TEMPLATES_SERVER = "muse_TEMPLATES_SERVER"
-ENV_TEMPLATES_TAU = "muse_TEMPLATES_TAU"
+ENV_TEMPLATES = "MUSE_TEMPLATES"
+ENV_TEMPLATES_SERVER = "MUSE_TEMPLATES_SERVER"
+ENV_TEMPLATES_TAU = "MUSE_TEMPLATES_TAU"
 
 # After this many consecutive hard failures, queue a flywheel improvement
 # entry (once) so the owner sees a structured signal, not just fallbacks.

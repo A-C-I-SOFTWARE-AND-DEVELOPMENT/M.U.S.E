@@ -19,9 +19,9 @@ from hermes_cli.orchestrator_models import JobMode
 
 @pytest.fixture(autouse=True)
 def _fresh_bridge(monkeypatch: pytest.MonkeyPatch):
-    # CI exports muse_AXIOM_GATES=0 for hermeticity; these tests exercise
+    # CI exports MUSE_AXIOM_GATES=0 for hermeticity; these tests exercise
     # the live bridge against the per-test HERMES_HOME, so re-enable it.
-    monkeypatch.delenv("muse_AXIOM_GATES", raising=False)
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
     reset_bridge()
     yield
     reset_bridge()

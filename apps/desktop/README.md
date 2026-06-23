@@ -80,7 +80,7 @@ window at `http://127.0.0.1:1420` (see `build.devUrl` in `tauri.conf.json`).
 The app defaults to `http://127.0.0.1:8765`. Override it at runtime in-app
 (stored in `localStorage` under `muse.gateway.base`), or at build time with the
 `VITE_GATEWAY_BASE` env var for the UI. The native menu's **Help → Gateway**
-item reflects `muse_GATEWAY_URL` if set.
+item reflects `MUSE_GATEWAY_URL` if set.
 
 The first launch is unpaired: use the **Pair this device** card to mint a
 per-device bearer token (owner-phrase gated), exactly like the browser cockpit.

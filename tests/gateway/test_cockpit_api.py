@@ -106,7 +106,7 @@ def test_runtime_status_has_live_queue_snapshot(server) -> None:
 
 
 def test_axiom_panel_shows_live_chain_status(server, monkeypatch) -> None:
-    monkeypatch.delenv("muse_AXIOM_GATES", raising=False)
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
     from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
 
     reset_bridge()

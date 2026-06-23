@@ -78,7 +78,7 @@ jobs:
           OPENAI_API_KEY: ""
           ANTHROPIC_API_KEY: ""
           GITHUB_TOKEN: ""
-          muse_AXIOM_GATES: "0"
+          MUSE_AXIOM_GATES: "0"
           HERMES_ORCHESTRATOR_JOBS_ROOT: ${{ github.workspace }}/.tmp/orchestrator-jobs
         run: |
           python -m pytest \

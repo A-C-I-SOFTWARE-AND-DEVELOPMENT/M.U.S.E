@@ -169,7 +169,7 @@ jobs:
           NOUS_API_KEY: ""
           ANTHROPIC_API_KEY: ""
           GITHUB_TOKEN: ""
-          muse_AXIOM_GATES: "0"
+          MUSE_AXIOM_GATES: "0"
 
       - name: Upload pytest report
         if: always()

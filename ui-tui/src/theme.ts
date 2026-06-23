@@ -254,7 +254,7 @@ const BRAND: ThemeBrand = {
 // lower-right gap and a matte cyan→violet ring. The wordmark/core fill is
 // parameterized so the light theme can swap near-white for primary ink
 // (#12151D) while keeping the spectral ring stops — they read fine on white.
-const muse_WORDMARK_ART = [
+const MUSE_WORDMARK_ART = [
   '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
   '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',
   '██╔████╔██║   ██║   ██║   ███████╗   █████╗',
@@ -263,7 +263,7 @@ const muse_WORDMARK_ART = [
   '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
 ] as const
 
-const museWordmark = (fill: string) => muse_WORDMARK_ART.map(line => `[bold ${fill}]${line}[/]`).join('\n')
+const museWordmark = (fill: string) => MUSE_WORDMARK_ART.map(line => `[bold ${fill}]${line}[/]`).join('\n')
 
 const museGlyph = (core: string, expansion: string, tagline: string) => `           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
@@ -279,13 +279,13 @@ const museGlyph = (core: string, expansion: string, tagline: string) => `       
          [dim ${tagline}]One mind, many pathways.[/]`
 
 // Dark (canonical): near-white wordmark, white core, signal-dim/mute tiers.
-const muse_WORDMARK = museWordmark('#EEF2F7')
-const muse_GLYPH = museGlyph('#FFFFFF', '#AAB2C4', '#8B93A6')
+const MUSE_WORDMARK = museWordmark('#EEF2F7')
+const MUSE_GLYPH = museGlyph('#FFFFFF', '#AAB2C4', '#8B93A6')
 
 // Light: same lockup with primary-ink fill so the wordmark/core stay the
 // value hero on a white field; text tiers darken one step for contrast.
-const muse_WORDMARK_LIGHT = museWordmark('#12151D')
-const muse_GLYPH_LIGHT = museGlyph('#12151D', '#6B7388', '#8B93A6')
+const MUSE_WORDMARK_LIGHT = museWordmark('#12151D')
+const MUSE_GLYPH_LIGHT = museGlyph('#12151D', '#6B7388', '#8B93A6')
 
 const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
   const cleaned = String(s ?? '')
@@ -336,8 +336,8 @@ export const DARK_THEME: Theme = {
 
   brand: BRAND,
 
-  bannerLogo: muse_WORDMARK,
-  bannerHero: muse_GLYPH
+  bannerLogo: MUSE_WORDMARK,
+  bannerHero: MUSE_GLYPH
 }
 
 // Light-terminal palette: Singularity on a white field. Same value ladder as
@@ -386,8 +386,8 @@ export const LIGHT_THEME: Theme = {
 
   brand: BRAND,
 
-  bannerLogo: muse_WORDMARK_LIGHT,
-  bannerHero: muse_GLYPH_LIGHT
+  bannerLogo: MUSE_WORDMARK_LIGHT,
+  bannerHero: MUSE_GLYPH_LIGHT
 }
 
 const TRUE_RE = /^(?:1|true|yes|on)$/
