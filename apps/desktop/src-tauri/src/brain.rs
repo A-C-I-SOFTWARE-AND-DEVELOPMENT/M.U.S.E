@@ -154,7 +154,7 @@ async fn probe_health(base: String) -> bool {
 
 #[cfg(windows)]
 const BINARY_NAMES: &[&str] = &[
-    "museexe", "musecmd", "musebat", "hermes.exe", "hermes.cmd", "hermes.bat",
+    "muse.exe", "muse.cmd", "muse.bat", "hermes.exe", "hermes.cmd", "hermes.bat",
 ];
 // `muse` is canonical; `hermes` is the pre-rename alias of the same entry point.
 #[cfg(not(windows))]

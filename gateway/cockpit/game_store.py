@@ -175,8 +175,8 @@ muse_VOICES: tuple[str, ...] = (
     "clipped_formal",
     "husky_worn",
 )
-muse_NAME_MIN, muse_NAME_MAX = 2, 16  # 08 §3.1: free text, 2–16 chars
-muse_QUESTION_COUNT = 5  # 08 §4: the five questions
+MUSE_NAME_MIN, MUSE_NAME_MAX = 2, 16  # 08 §3.1: free text, 2–16 chars
+MUSE_QUESTION_COUNT = 5  # 08 §4: the five questions
 
 SECTIONS: tuple[str, ...] = ("muse", "network", "roster", "den", "progress", "settings")
 
@@ -214,8 +214,8 @@ DESIGN: dict[str, Any] = {
         "finishes": list(muse_FINISHES),
         "face_plates": list(muse_FACE_PLATES),
         "voices": list(muse_VOICES),
-        "name_length": [muse_NAME_MIN, muse_NAME_MAX],
-        "question_count": muse_QUESTION_COUNT,
+        "name_length": [MUSE_NAME_MIN, MUSE_NAME_MAX],
+        "question_count": MUSE_QUESTION_COUNT,
     },
     "max_save_slots": MAX_SLOTS,
 }
@@ -301,21 +301,21 @@ def _validate_muse(muse: Any) -> dict:
     for key, allowed in checks:
         if key in muse and muse[key] not in allowed:
             raise GameValidationError(
-                f"muse{key}: {muse[key]!r} is not one of {', '.join(allowed)} "
+                f"muse.{key}: {muse[key]!r} is not one of {', '.join(allowed)} "
                 "(08-avatar-den-onboarding.md §3.1)"
             )
     if "name" in muse:
         name = muse["name"]
-        if not isinstance(name, str) or not (muse_NAME_MIN <= len(name) <= muse_NAME_MAX):
+        if not isinstance(name, str) or not (MUSE_NAME_MIN <= len(name) <= MUSE_NAME_MAX):
             raise GameValidationError(
-                f"musename: must be a string of {muse_NAME_MIN}-{muse_NAME_MAX} "
+                f"muse.name: must be a string of {MUSE_NAME_MIN}-{MUSE_NAME_MAX} "
                 f"characters (08 §3.1; got {name!r})"
             )
     if "answers" in muse:
         answers = muse["answers"]
-        if not isinstance(answers, list) or len(answers) > muse_QUESTION_COUNT:
+        if not isinstance(answers, list) or len(answers) > MUSE_QUESTION_COUNT:
             raise GameValidationError(
-                f"museanswers: at most {muse_QUESTION_COUNT} personality answers "
+                f"muse.answers: at most {MUSE_QUESTION_COUNT} personality answers "
                 "(08 §4, the five questions)"
             )
     return muse

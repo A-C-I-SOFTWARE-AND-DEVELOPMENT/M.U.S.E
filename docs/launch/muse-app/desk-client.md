@@ -51,7 +51,7 @@ scaffold) · Chat (10) · Jobs (20) · Approvals (30) · Autonomy (40) · Settin
    403 on a raise re-prompts once. The workspace-path field appears for
    High-Autonomy Coding.
 5. **Settings** (`src/views/Settings.tsx`) — three cards: **Gateway** (view/change
-   base URL, persisted to `musegateway.base`, with a reachability ping); **Device
+   base URL, persisted to `muse.gateway.base`, with a reachability ping); **Device
    pairing** (the scaffold's owner-gated pair/start → pair/confirm flow, plus
    paste-a-token and clear-token); and an **Emergency stop** (owner-gated, danger
    styling) that confirms, prompts for the phrase, and re-prompts once on 403.
@@ -85,7 +85,7 @@ New exports: `phaseStates` / `JOB_PHASES` / `JOB_PHASE_LABEL`, `getApprovals` /
 `decideApproval`, `getAutonomy` / `setAutonomy` / `revokeAutonomy` /
 `AUTONOMY_LEVELS` / `AUTONOMY_RANK` / `isAutonomyRaise`, `emergencyStop`, and
 `promptOwnerPhrase`. All authenticated calls reuse the existing `api()` wrapper
-(bearer token from localStorage `musecockpit.token`).
+(bearer token from localStorage `muse.cockpit.token`).
 
 ## Owner-gate handling (audit)
 
@@ -100,7 +100,7 @@ New exports: `phaseStates` / `JOB_PHASES` / `JOB_PHASE_LABEL`, `getApprovals` /
 - **Raise detection** uses the same ordinal ranking the cockpit uses
   (`AUTONOMY_RANK`); sending the phrase on a lower/equal change is harmless and is
   avoided anyway.
-- **Bearer token stays in localStorage** (`musecockpit.token`), set only via
+- **Bearer token stays in localStorage** (`muse.cockpit.token`), set only via
   pairing or explicit paste, and clearable from Settings. **No secrets in code.**
 - **Service worker never caches `/v1/*`.** The scaffold's `vite.config.ts` keeps
   `globPatterns` shell-only and `navigateFallbackDenylist: [/^\/v1\//]`; this grain
