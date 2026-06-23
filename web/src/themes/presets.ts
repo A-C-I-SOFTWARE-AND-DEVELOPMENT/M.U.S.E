@@ -239,7 +239,7 @@ export const defaultLargeTheme: DashboardTheme = {
 };
 
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
-  muse museTheme,
+  muse: museTheme,
   default: defaultTheme,
   "default-large": defaultLargeTheme,
   midnight: midnightTheme,
