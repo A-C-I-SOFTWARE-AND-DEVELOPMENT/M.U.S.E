@@ -1,6 +1,6 @@
-"""Tests for the /muse slash command — no-arg pulls up the MUSE TUI.
+"""Tests for the /muse slash command — no-arg pulls up the muse TUI.
 
-/muse (and /m) with no intent activates the M.U.S.E. "singularity" skin,
+/muse (and /m) with no intent activates the muse "singularity" skin,
 persists it, and re-renders the banner. Other aliases (/jarvis, /jp,
 /jarvis-prime) keep the usage message, echoing the alias the user typed.
 With an intent, every alias routes to the JarvisPrime runtime unchanged.
@@ -31,7 +31,7 @@ def _restore_skin():
     set_active_skin(original)
 
 
-class TestMuseNoArgActivatesTui:
+class TestmuseNoArgActivatesTui:
     def test_muse_no_arg_activates_singularity_skin(self):
         cli = _make_cli_stub()
         set_active_skin("default")
@@ -86,7 +86,7 @@ class TestMuseNoArgActivatesTui:
             cli._handle_jarvis_prime_slash("/muse")
 
         out = "\n".join(str(call.args[0]) for call in cprint.call_args_list)
-        assert "M.U.S.E." in out
+        assert "muse" in out
         assert "/muse <intent>" in out
 
 
@@ -144,4 +144,4 @@ class TestIntentRouting:
             cli._handle_jarvis_prime_slash("/muse stop")
 
         jp.stop.assert_called_once_with(reason="cli_user_requested")
-        assert "MUSE stopped" in capsys.readouterr().out
+        assert "muse stopped" in capsys.readouterr().out

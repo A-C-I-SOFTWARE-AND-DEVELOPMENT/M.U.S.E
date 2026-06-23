@@ -458,7 +458,7 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
     mcp = FastMCP(
         "hermes",
         instructions=(
-            "MUSE messaging bridge. Use these tools to interact with "
+            "muse messaging bridge. Use these tools to interact with "
             "conversations across Telegram, Discord, Slack, WhatsApp, Signal, "
             "Matrix, and other connected platforms."
         ),

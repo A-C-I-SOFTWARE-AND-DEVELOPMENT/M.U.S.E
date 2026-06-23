@@ -3,11 +3,11 @@ package com.aci.hermes.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ---------------------------------------------------------------------------
-// MUSE palette — the canonical "Singularity" look
+// muse palette — the canonical "Singularity" look
 //
 // Visual identity for the app surface. The package and namespace stay
 // com.aci.hermes for build / install compatibility, but the user-facing
-// product is "MUSE" — a command-center for an agent that asks
+// product is "muse" — a command-center for an agent that asks
 // permission, confirms intent, and shows real work happening.
 //
 // Source of truth: gateway/cockpit/static/tokens.css (the browser cockpit's
@@ -67,7 +67,7 @@ val JarvisViolet      = Color(0xFFB388FF) // --ring-2
 val JarvisVioletGlow  = Color(0x33B388FF)
 
 // ---------------------------------------------------------------------------
-// Light-surface fallbacks — kept restrained. MUSE is dark-first;
+// Light-surface fallbacks — kept restrained. muse is dark-first;
 // light mode is a courtesy for daylight visibility.
 // ---------------------------------------------------------------------------
 val JarvisPaper       = Color(0xFFFAF9F6)

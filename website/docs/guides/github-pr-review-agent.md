@@ -15,7 +15,7 @@ description: "Build an automated AI code reviewer that monitors your repos, revi
 ```
 ┌───────────────────────────────────────────────────────────────────┐
 │                                                                   │
-│   Cron Timer  ──▶  M.U.S.E.  ──▶  GitHub API  ──▶  Review     │
+│   Cron Timer  ──▶  muse  ──▶  GitHub API  ──▶  Review     │
 │   (every 2h)       + gh CLI           (PR diffs)       delivery   │
 │                    + skill                             (Telegram, │
 │                    + memory                            Discord,   │
@@ -27,14 +27,14 @@ description: "Build an automated AI code reviewer that monitors your repos, revi
 This guide uses **cron jobs** to poll for PRs on a schedule — no server or public endpoint needed. Works behind NAT and firewalls.
 
 :::tip Want real-time reviews instead?
-If you have a public endpoint available, check out [Automated GitHub PR Comments with Webhooks](./webhook-github-pr-review.md) — GitHub pushes events to M.U.S.E. instantly when PRs are opened or updated.
+If you have a public endpoint available, check out [Automated GitHub PR Comments with Webhooks](./webhook-github-pr-review.md) — GitHub pushes events to muse instantly when PRs are opened or updated.
 :::
 
 ---
 
 ## Prerequisites
 
-- **M.U.S.E. installed** — see the [Installation guide](/docs/getting-started/installation)
+- **muse installed** — see the [Installation guide](/docs/getting-started/installation)
 - **Gateway running** for cron jobs:
   ```bash
   muse gateway install   # Install as a service
@@ -60,7 +60,7 @@ Use `deliver: "local"` to save reviews to `~/.hermes/cron/output/`. Great for te
 
 ## Step 1: Verify the Setup
 
-Make sure M.U.S.E. can access GitHub. Start a chat:
+Make sure muse can access GitHub. Start a chat:
 
 ```bash
 muse
@@ -69,7 +69,7 @@ muse
 Test with a simple command:
 
 ```
-Run: gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E --state open --limit 3
+Run: gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state open --limit 3
 ```
 
 You should see a list of open PRs. If this works, you're ready.
@@ -78,16 +78,16 @@ You should see a list of open PRs. If this works, you're ready.
 
 ## Step 2: Try a Manual Review
 
-Still in the chat, ask M.U.S.E. to review a real PR:
+Still in the chat, ask muse to review a real PR:
 
 ```
 Review this pull request. Read the diff, check for bugs, security issues,
 and code quality. Be specific about line numbers and quote problematic code.
 
-Run: gh pr diff 3888 --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+Run: gh pr diff 3888 --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse
 ```
 
-M.U.S.E. will:
+muse will:
 1. Execute `gh pr diff` to fetch the code changes
 2. Read through the entire diff
 3. Produce a structured review with specific findings
@@ -98,7 +98,7 @@ If you're happy with the quality, time to automate it.
 
 ## Step 3: Create a Review Skill
 
-A skill gives M.U.S.E. consistent review guidelines that persist across sessions and cron runs. Without one, review quality varies.
+A skill gives muse consistent review guidelines that persist across sessions and cron runs. Without one, review quality varies.
 
 ```bash
 mkdir -p ~/.hermes/skills/code-review
@@ -143,7 +143,7 @@ Verify it loaded — start `muse` and you should see `code-review` in the skills
 
 ## Step 4: Teach It Your Conventions
 
-This is what makes the reviewer actually useful. Start a session and teach M.U.S.E. your team's standards:
+This is what makes the reviewer actually useful. Start a session and teach muse your team's standards:
 
 ```
 Remember: In our backend repo, we use Python with FastAPI.
@@ -280,7 +280,7 @@ The gateway runs in a minimal environment. Ensure `gh` is in the system PATH and
 
 ### Reviews are too generic
 1. Add the `code-review` skill (Step 3)
-2. Teach M.U.S.E. your conventions via memory (Step 4)
+2. Teach muse your conventions via memory (Step 4)
 3. The more context it has about your stack, the better the reviews
 
 ### Cron job doesn't run

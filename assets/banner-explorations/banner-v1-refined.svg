@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="muse — Multi-Use Synaptic Entity — One mind, many pathways.">
   <!--
-    M.U.S.E. banner — COMP V1 "Refined restraint" (Google/Material-led).
+    muse banner — COMP V1 "Refined restraint" (Google/Material-led).
     Single soft cool-white core glow, clean spectral ring, crisp white wordmark.
     Value hierarchy by opacity only; no blur stack, no depth field, no specular.
     Palette: gateway/cockpit/static/tokens.css. Glyph: the cockpit core+ring mark.
@@ -37,7 +37,7 @@
     <circle cx="70" cy="90" r="26" fill="url(#coreglow)"/>
     <circle cx="70" cy="90" r="12.5" fill="#ffffff"/>
 
-    <!-- wordmark M.U.S.E. — bespoke monoline geometric letters (white, weight 15) -->
+    <!-- wordmark muse — bespoke monoline geometric letters (white, weight 15) -->
     <g fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
       <!-- M -->
       <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>

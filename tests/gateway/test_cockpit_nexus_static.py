@@ -1,106 +1,90 @@
-"""The NEXUS PWA, served same-origin by the cockpit HTTP server under /nexus/.
+"""Regression tests for the Nexus static-shell alias and /nexus/health probe
+on the cockpit gateway.
 
-This is what lets a phone running MUSE in Termux reach the whole app + API on a
-single http loopback origin (http://127.0.0.1:8765/nexus/) with no mixed-content
-barrier. Boots the real server on an ephemeral port, points it at a throwaway
-"dist" via NEXUS_DIST_DIR, and confirms: the shell is served unauthenticated,
-assets resolve, deep routes fall back to index.html (SPA), traversal can't leak
-source, the /v1/* API still takes precedence, and the mount cleanly 404s when no
-build is present.
+Grain B (per the swarm-decompose plan): the cockpit serves the same SPA
+shell under both /cockpit/ and /nexus/, and exposes an unauthenticated
+liveness probe at /nexus/health that mirrors /v1/health. These tests pin
+that contract so a future refactor can't quietly regress it.
+
+Hermetic: starts the real stdlib server on a random loopback port with a
+tmp HERMES_HOME and a known token, then drives it with ``urllib``. Same
+pattern as tests/gateway/test_cockpit_api.py.
 """
 
 from __future__ import annotations
 
-import http.client
+import json
+import urllib.request
+from pathlib import Path
 
 import pytest
 
-from gateway.cockpit import server as srv
+from gateway.cockpit.server import serve
 
 
-def _get(port: int, path: str) -> tuple[int, bytes]:
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-    try:
-        conn.request("GET", path)
-        r = conn.getresponse()
-        return r.status, r.read()
-    finally:
-        conn.close()
+TOKEN = "test-cockpit-token-nexus"
 
 
 @pytest.fixture()
-def dist(tmp_path):
-    d = tmp_path / "nexus-dist"
-    (d / "assets").mkdir(parents=True)
-    (d / "index.html").write_text("<!doctype html><title>NEXUS</title><div id=root></div>")
-    (d / "assets" / "app.js").write_text("console.log('nexus')")
-    (d / "manifest.webmanifest").write_text('{"name":"NEXUS"}')
-    return d
+def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
+    return tmp_path
 
 
 @pytest.fixture()
-def cockpit(tmp_path, monkeypatch, dist):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setenv("NEXUS_DIST_DIR", str(dist))
-    httpd = srv.serve("127.0.0.1", 0, token="testtoken", responder=lambda prompt, history: iter(()))
-    try:
-        yield httpd.server_address[1]
-    finally:
-        httpd.shutdown()
+def server(home: Path):
+    srv = serve(host="127.0.0.1", port=0, token=TOKEN)
+    yield srv
+    srv.shutdown()
 
 
-def test_serves_nexus_index_unauthenticated(cockpit):
-    for path in ("/nexus/", "/nexus"):
-        status, body = _get(cockpit, path)
-        assert status == 200, path
-        assert b"NEXUS" in body, path
+def _url(server, path: str) -> str:
+    host, port = server.server_address
+    return f"http://{host}:{port}{path}"
 
 
-def test_serves_nexus_asset(cockpit):
-    status, body = _get(cockpit, "/nexus/assets/app.js")
+def _get_raw(server, path: str, token: str | None = None):
+    """GET that returns (status, content_type, body_bytes) without parsing."""
+    req = urllib.request.Request(_url(server, path), method="GET")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.status, resp.headers.get("Content-Type", ""), resp.read()
+
+
+def test_nexus_root_serves_spa(server) -> None:
+    """GET /nexus/ → 200, text/html, body starts with '<!doctype html>'."""
+    status, ctype, body = _get_raw(server, "/nexus/")
     assert status == 200
-    assert b"console.log('nexus')" in body
+    assert ctype.startswith("text/html")
+    # Body is bytes; the bundled SPA shell begins with the HTML5 doctype.
+    assert body[:15].lower().startswith(b"<!doctype html>")
 
 
-def test_deep_route_falls_back_to_index(cockpit):
-    # A client-side route (no file) returns the SPA shell so HashRouter can route.
-    status, body = _get(cockpit, "/nexus/repo")
+def test_nexus_subpath_serves_spa(server) -> None:
+    """GET /nexus/anything → 200, html (SPA fallback so the SPA can route)."""
+    status, ctype, body = _get_raw(server, "/nexus/anything")
     assert status == 200
-    assert b"<div id=root>" in body
+    assert ctype.startswith("text/html")
+    assert body[:15].lower().startswith(b"<!doctype html>")
 
 
-def test_nexus_traversal_cannot_leak_source(cockpit):
-    for path in (
-        "/nexus/../../gateway/cockpit/server.py",
-        "/nexus/..%2f..%2fserver.py",
-    ):
-        status, body = _get(cockpit, path)
-        assert b"_serve_nexus" not in body
-        assert b"ThreadingHTTPServer" not in body
-        assert status in (200, 404)
-
-
-def test_api_takes_precedence_over_nexus(cockpit):
-    # /v1/health must hit the API, never the static mount.
-    import json
-
-    status, body = _get(cockpit, "/v1/health")
+def test_nexus_health_unauthed(server) -> None:
+    """GET /nexus/health → 200, JSON {ok: true, ...} with NO bearer token."""
+    status, ctype, body = _get_raw(server, "/nexus/health", token=None)
     assert status == 200
-    assert json.loads(body)["ok"] is True
+    assert "application/json" in ctype
+    payload = json.loads(body)
+    assert payload["ok"] is True
+    # Mirrors /v1/health so the rest of the envelope must also be present.
+    assert payload["service"] == "hermes-cockpit"
+    assert payload["api_version"]
 
 
-def test_nexus_mount_absent_without_build(tmp_path, monkeypatch):
-    # With NEXUS_DIST_DIR pointing at a build-less dir, the mount 404s and nothing
-    # else changes (the cockpit's own static UI is unaffected).
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setenv("NEXUS_DIST_DIR", str(tmp_path / "does-not-exist"))
-    httpd = srv.serve("127.0.0.1", 0, token="t", responder=lambda prompt, history: iter(()))
-    try:
-        port = httpd.server_address[1]
-        status, _ = _get(port, "/nexus/")
-        assert status == 404
-        # The cockpit's own shell still serves.
-        status2, _ = _get(port, "/cockpit/")
-        assert status2 == 200
-    finally:
-        httpd.shutdown()
+def test_cockpit_root_still_works(server) -> None:
+    """GET /cockpit/ → 200, html — no regression from adding /nexus routes."""
+    status, ctype, body = _get_raw(server, "/cockpit/")
+    assert status == 200
+    assert ctype.startswith("text/html")
+    assert body[:15].lower().startswith(b"<!doctype html>")

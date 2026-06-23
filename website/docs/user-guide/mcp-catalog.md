@@ -1,13 +1,13 @@
 ---
 title: "MCP catalog & bulk install"
-description: "Browse the curated MCP catalog, install one server or all of them, and share credentials across M.U.S.E. and Claude Code."
+description: "Browse the curated MCP catalog, install one server or all of them, and share credentials across muse and Claude Code."
 ---
 
 # MCP catalog & bulk install
 
-The **MCP catalog** is a curated set of MCP servers that ship with M.U.S.E. as
+The **MCP catalog** is a curated set of MCP servers that ship with muse as
 ready-to-install manifests under `optional-mcps/`. Instead of hand-writing an
-`mcp_servers` block in `~/.hermes/config.yaml`, you pick an entry and M.U.S.E.
+`mcp_servers` block in `~/.hermes/config.yaml`, you pick an entry and muse
 writes the config for you — transport, auth, and a safe default tool selection.
 
 > Manifests **never contain secrets.** Each one references credentials by
@@ -57,7 +57,7 @@ Flags:
 - `--with-bootstrap` — also clone + build git-installed servers (needs the
   relevant toolchain, e.g. Go).
 
-Start a new M.U.S.E. session afterward to load the newly-enabled tools.
+Start a new muse session afterward to load the newly-enabled tools.
 
 ## What ships in the catalog
 

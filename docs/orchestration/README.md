@@ -1,6 +1,6 @@
-# M.U.S.E. Orchestration
+# muse Orchestration
 
-M.U.S.E. Orchestration is the umbrella name for the way M.U.S.E.
+muse Orchestration is the umbrella name for the way muse
 turns one human-sized request — *"Audit this repo"*, *"Build this into
 production quality"*, *"Get my inbox to zero by Friday"* — into a
 graph of small, validated, auditable jobs run by specialist workers.
@@ -48,9 +48,9 @@ laptop.
 | Debug a stuck job | [troubleshooting.md](troubleshooting.md) |
 | Look something up quickly | [faq.md](faq.md) |
 
-## What M.U.S.E. Orchestration is
+## What muse Orchestration is
 
-M.U.S.E. Orchestration takes a high-level goal and:
+muse Orchestration takes a high-level goal and:
 
 1. **Decomposes** it into a task graph — independent lanes run in
    parallel, dependent lanes wait on their parents.
@@ -67,7 +67,7 @@ M.U.S.E. Orchestration takes a high-level goal and:
 It is the same pattern whether you're auditing a repo, writing a
 report, paying invoices, or running a 12-hour overnight refactor.
 
-## What M.U.S.E. Orchestration is *not*
+## What muse Orchestration is *not*
 
 - Not a managed cloud service. Everything runs where you point it —
   laptop, $5 VPS, GPU cluster, Termux on your phone, an air-gapped
@@ -79,13 +79,13 @@ report, paying invoices, or running a 12-hour overnight refactor.
   through the decision ledger, every mutation goes through a policy
   gate, every high-risk step asks before acting.
 - Not a wrapper around Claude Code Routines or any specific provider's
-  agent runtime. M.U.S.E. Orchestration uses Claude when you point it at
+  agent runtime. muse Orchestration uses Claude when you point it at
   Claude, GPT when you point it at GPT, a local model when you point
   it at one. The orchestration shape doesn't change.
 
 ## The five primitives
 
-You only need five concepts to use M.U.S.E. Orchestration end-to-end.
+You only need five concepts to use muse Orchestration end-to-end.
 Every doc in this folder builds on them.
 
 ### 1. Job
@@ -103,8 +103,8 @@ for what's inside.
 
 ### 2. Worker
 
-A *worker* is the thing that actually executes a card. In M.U.S.E.,
-workers are **profiles** — named M.U.S.E. processes with a specific
+A *worker* is the thing that actually executes a card. In muse
+workers are **profiles** — named muse processes with a specific
 model, toolset, skill set, and execution environment. Examples:
 
 - `researcher` — long-context model + web tools + no shell
@@ -155,7 +155,7 @@ result gets out.
 |---|---|
 | `muse` (TUI) | Iterative work, you're at a keyboard |
 | `bash scripts/hermes-orchestrate.sh "<goal>"` | One-shot, scriptable, CI-friendly |
-| `/orchestrate <goal>` slash command | From inside a M.U.S.E. conversation |
+| `/orchestrate <goal>` slash command | From inside a muse conversation |
 | `/orchestrator status` | Quick check on running jobs |
 | Android cockpit (`apps/android`) | From your phone, with a real backend |
 | Termux gateway | From your phone, *as* the backend |
@@ -199,3 +199,8 @@ auto-applies the reversible learnings. Run it with `python -m hermes_cli.swarm
 
 Start with [getting-started.md](getting-started.md). When that
 clicks, the rest of these docs are reference material — read on demand.
+
+For the unified pre-dispatch layer that composes the Navigator (where to edit)
+with the council Dispatcher (who engages) into one `DispatchPlan` + generalized
+`TaskQueue`, see
+[unified-navigator-dispatcher.md](unified-navigator-dispatcher.md).

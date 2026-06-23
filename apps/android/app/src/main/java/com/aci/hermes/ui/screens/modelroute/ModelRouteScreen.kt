@@ -41,13 +41,13 @@ import androidx.compose.ui.text.font.FontFamily
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.ModelRouteDecision
 import com.aci.hermes.data.cockpit.ModelRoutesSync
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseMotion
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museMotion
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,7 +101,7 @@ fun ModelRouteScreen(viewModel: ModelRouteViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MuseEmptyState(
+                    museEmptyState(
                         title = "No gateway paired",
                         body = stringResource(R.string.model_route_not_paired),
                     )
@@ -136,7 +136,7 @@ fun ModelRouteScreen(viewModel: ModelRouteViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun PaidRoutingCard(paidEnabled: Boolean, onToggle: (Boolean) -> Unit) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -168,15 +168,15 @@ private fun RouteCard(
     val appear = remember { MutableTransitionState(false).apply { targetState = true } }
     AnimatedVisibility(
         visibleState = appear,
-        enter = fadeIn(MuseMotion.standard()) +
-            slideInVertically(MuseMotion.standard()) { it / 6 },
+        enter = fadeIn(museMotion.standard()) +
+            slideInVertically(museMotion.standard()) { it / 6 },
     ) {
-        MuseCard(modifier = Modifier.fillMaxWidth()) {
+        museCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseSectionHeader(
+                museSectionHeader(
                     title = decision.taskClass,
                     trailing = if (decision.localFirst) {
-                        { MuseChip(label = stringResource(R.string.model_route_local_first)) }
+                        { museChip(label = stringResource(R.string.model_route_local_first)) }
                     } else {
                         null
                     },
@@ -198,7 +198,7 @@ private fun RouteCard(
                 }
 
                 // Owner override (a reversible preference; pinning is not paid-gated).
-                MuseSectionHeader(title = stringResource(R.string.model_route_owner_override))
+                museSectionHeader(title = stringResource(R.string.model_route_owner_override))
                 OutlinedTextField(
                     value = pin,
                     onValueChange = { pin = it },
@@ -207,16 +207,16 @@ private fun RouteCard(
                     placeholder = { Text(stringResource(R.string.model_route_override_hint)) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseButton(
+                    museButton(
                         onClick = { onPin(pin) },
                         text = stringResource(R.string.model_route_override_save),
-                        variant = MuseButtonVariant.Primary,
+                        variant = museButtonVariant.Primary,
                         enabled = pin.isNotBlank(),
                     )
-                    MuseButton(
+                    museButton(
                         onClick = { pin = ""; onClear() },
                         text = stringResource(R.string.model_route_override_clear),
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                         enabled = decision.isOverridden,
                     )
                 }

@@ -1,13 +1,13 @@
 # 10 — Neural Observatory Specification
 ### The cockpit visualization map + the additive `/v1/observatory/*` route family
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 ---
 
 ## 1. Purpose & scope
 
-The Neural Observatory is the UE5 map (`SynapseObservatory` module) that renders MUSE's actual
+The Neural Observatory is the UE5 map (`SynapseObservatory` module) that renders muse's actual
 mind: the GraphRAG graph as a flyable galaxy, live orchestrator jobs as light-packets, and the
 three-tier brain ladder animating each turn's routing. It is the master plan §3 deliverable
 (Phase 3, weeks 17–26).

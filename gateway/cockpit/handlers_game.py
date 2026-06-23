@@ -5,8 +5,8 @@ rule §1: gateway-side, additive, regenerated into the frozen contract).
 
 All routes are bearer-authed (the standard CRUD default; none are
 owner-phrase gated — saves and Foundry records are local game state, not
-real-MUSE capability changes, which stay behind the existing approvals
-queue per design doc 07 §9, the real-MUSE bridge).
+real-muse capability changes, which stay behind the existing approvals
+queue per design doc 07 §9, the real-muse bridge).
 
 Game saves (``gateway.cockpit.game_store``):
 

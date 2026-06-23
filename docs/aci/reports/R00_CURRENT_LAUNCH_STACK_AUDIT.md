@@ -1,4 +1,4 @@
-# R00 — Current MUSE Launch-Stack Audit (LOCK)
+# R00 — Current muse Launch-Stack Audit (LOCK)
 
 **Snapshot taken:** 2026-05-26 (after PR #152 merged to `main`).
 **Audit branch:** `aci/r00-launch-stack-audit-lock`.
@@ -28,7 +28,7 @@ sprint does not duplicate, overlap, or fight existing PRs.
 
 | PR | Title | State | Base | Head | Notes |
 |---|---|---|---|---|---|
-| **#131** | MUSE + Hermes runtime — 53-PR mass integration | open, NOT merged | `main` (`bc97e43`) | `claude/hopeful-bardeen-KBVqi` (`d0caf92`) | Body explicitly says **owner-gated** — treat as owner-gate even though GitHub `draft=false`. |
+| **#131** | muse + Hermes runtime — 53-PR mass integration | open, NOT merged | `main` (`bc97e43`) | `claude/hopeful-bardeen-KBVqi` (`d0caf92`) | Body explicitly says **owner-gated** — treat as owner-gate even though GitHub `draft=false`. |
 | **#150** | LaunchGate automated merge policy | open | `claude/hopeful-bardeen-KBVqi` (NOT `main` directly — sibling of #143, still routes through #131 to reach main) | `launch/launch-gate-auto-merge` (`ba439da`) | Sibling of the candidate chain; rides #131. |
 | **#152** | Reconcile echerd27 personal enhancements into ACI Hermes | **MERGED** 2026-05-26 23:08:05Z by `echerd27-design` | `main` | `claude/hermes-aci-reconciliation-84ART` | Landed as commit `69a87b4`. 68 files, +24,279/−2. |
 | **#153** | Reconcile follow-up: agent/file_safety + agent/redact hunk ports | open, draft | `main` (`576c334` — picked up the new tip automatically) | `claude/amazing-volta-nXCqM` (`72573f5`) | Independent security follow-up to #152; does NOT depend on the launch chain. |
@@ -40,7 +40,7 @@ sprint does not duplicate, overlap, or fight existing PRs.
 | PR | Title | State | Head |
 |---|---|---|---|
 | **#142** | fix(android-base): wire missing audit model for PR #131 | open, `mergeable_state=clean` | `launch/base-compile-repair` (`846934a`) |
-| **#143** | chore(launch): assemble MUSE launch candidate | open, `mergeable_state=clean` | `launch/jarvis-prime-auto-merge-candidate` (`5a9005d`) — already contains #142 cherry-picked |
+| **#143** | chore(launch): assemble muse launch candidate | open, `mergeable_state=clean` | `launch/jarvis-prime-auto-merge-candidate` (`5a9005d`) — already contains #142 cherry-picked |
 | **#150** | LaunchGate automated merge policy | open, `mergeable_state=clean` | `launch/launch-gate-auto-merge` (`ba439da`) — sibling of #143 |
 
 ---
@@ -49,7 +49,7 @@ sprint does not duplicate, overlap, or fight existing PRs.
 
 | PR | Title | State | Head |
 |---|---|---|---|
-| **#147** | feat(android): living MUSE avatar + live command screen | open, `mergeable_state=unstable` | `launch/jarvis-living-avatar` (`ead15cb`) |
+| **#147** | feat(android): living muse avatar + live command screen | open, `mergeable_state=unstable` | `launch/jarvis-living-avatar` (`ead15cb`) |
 
 ---
 

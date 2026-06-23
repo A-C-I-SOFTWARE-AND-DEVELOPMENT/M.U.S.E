@@ -1,6 +1,6 @@
-# MUSE — One Mind, Many Pathways, Verifiable Arenas
+# muse — One Mind, Many Pathways, Verifiable Arenas
 
-> **What this is.** A theory of how **M.U.S.E. (Multi-Use Synaptic Entity)** becomes durably more capable —
+> **What this is.** A theory of how **muse (Multi-Use Synaptic Entity)** becomes durably more capable —
 > framed as *one identity* learning through a *neural substrate*, improving by
 > *self-play inside verifiable arenas*. It is grounded in the 2024–2026
 > literature (cited) and then **advances original, falsifiable hypotheses**
@@ -10,22 +10,22 @@
 > or (b) explicitly labeled an **original hypothesis** with the **experiment
 > that would validate or refute it**. Nothing is asserted as "proven." This is
 > deliberate: a theory of *self-validation* must hold itself to the same bar it
-> demands of MUSE. Hypotheses are written to be **runnable here** — the repo
+> demands of muse Hypotheses are written to be **runnable here** — the repo
 > is the laboratory, not a thought experiment.
 
 ---
 
 ## Part I — One mind, many pathways
 
-The product is a single identity: **MUSE**. There is no second brand.
-*MUSE is the mind/consciousness; **Hermes is his nervous system** — the
+The product is a single identity: **muse**. There is no second brand.
+*muse is the mind/consciousness; **Hermes is his nervous system** — the
 gateway, the routing, and the model pathways that carry signal.* The `hermes_*`
 code names are the **substrate**, not a co-brand. This is the organizing
 metaphor, and it is load-bearing, not decorative:
 
-| Biology | MUSE | Where it lives |
+| Biology | muse | Where it lives |
 |---|---|---|
-| Mind / locus of self | The single MUSE identity + value function | `jarvis-constitution.md`, `owner_auth.py` |
+| Mind / locus of self | The single muse identity + value function | `jarvis-constitution.md`, `owner_auth.py` |
 | Long-term memory / identity continuity | Memory Tree, Research Vault | `memory_tree.py`, `JARVIS_RESEARCH_VAULT.md` |
 | Thalamus / relay & gating | Task-class **model router** | `task_router.py` |
 | Cortical pathways / specialists | The routed open + worker models | `oss_model_brain.py`, `worker_registry.py` |
@@ -44,7 +44,7 @@ any pathway** — which becomes a testable hypothesis (H3) rather than a posture
 
 The classical lineage (SOAR/ACT-R's observe–decide–act cycle [arXiv:2201.09305])
 matters because it warns what a single controller lacks by default —
-*commitment* and *continuity* — both of which MUSE supplies from the cognition
+*commitment* and *continuity* — both of which muse supplies from the cognition
 plane (Memory Tree + Constitution), not from the model of the moment.
 
 ---
@@ -77,7 +77,7 @@ signal.
 
 ## Part III — The verifiable-arena theory (original)
 
-**Core thesis (original).** MUSE becomes superintelligent *in niches* not by
+**Core thesis (original).** muse becomes superintelligent *in niches* not by
 scaling one model, but by **owning a self-curated portfolio of verifiable
 arenas** and learning through the substrate under a **single value function**.
 The game-playing breakthroughs (AlphaZero self-play; AlphaProof/AlphaGeometry's
@@ -99,7 +99,7 @@ that niche's *verifiability*, far more than by the base model.
 (unit-tested) went ~10%→~70% SWE-bench in ~a year; formal math (Lean-verified)
 reached silver-medal IMO; open-ended dialogue improved far slower
 [arXiv:2602.10975]. Games have a perfect verifier; chat does not.
-**Falsifiable prediction.** Across MUSE's task classes, the *measured* gain from
+**Falsifiable prediction.** Across muse's task classes, the *measured* gain from
 self-generated practice will correlate with a per-class **verifier-soundness**
 score (execution/test ≫ source-check ≫ rubric/LLM-judge ≫ none). A weak-verifier
 niche will plateau or regress under the *same* practice budget that lifts a
@@ -112,7 +112,7 @@ self-generate practice in two high-verifiability lanes (`coding_build` w/ tests,
 low-verifiability lane improves as much as a high one.
 
 ### H2 · The Manufactured Verifier
-**Statement.** Where no natural oracle exists, MUSE can *compose* a
+**Statement.** Where no natural oracle exists, muse can *compose* a
 "good-enough" verifier from signals it already has — and that composite has a
 measurable **agreement ceiling** beyond which more self-play *degrades* quality
 (reward hacking).
@@ -131,7 +131,7 @@ climbing. **Refuted if** quality rises monotonically with no hacking inflection
 (verifier is sounder than theorized) **or** never rises (verifier is unsound).
 
 ### H3 · Thalamic Routing / Identity Invariance
-**Statement.** MUSE's *identity* is preserved iff the **value function and
+**Statement.** muse's *identity* is preserved iff the **value function and
 memory are centralized**, even as the **pathways (models) change arbitrarily**.
 **Why plausible.** Distributed-anchor identity work argues continuity survives
 component failure when reference points are centralized, not stored in any one
@@ -147,7 +147,7 @@ capability variance. **Refuted if** routing changes move the Constitution rubric
 as much as they move capability (identity leaks into the pathways).
 
 ### H4 · Niche Self-Curriculum (Challenge Ladders)
-**Statement.** Improvement is fastest when MUSE generates tasks **just beyond
+**Statement.** Improvement is fastest when muse generates tasks **just beyond
 its current measured competence** per niche — not uniform or random self-play,
 which collapses.
 **Why plausible.** *Absolute Zero* maximizes *learnability* of self-proposed
@@ -327,7 +327,7 @@ held-out verifiable tasks. "Free" is a design constraint, not an aspiration.
 
 ### H6 · The Federation-Interference Theorem (why ONE identity beats many brands)
 
-**Statement.** A single MUSE identity that routes to **frozen, specialized
+**Statement.** A single muse identity that routes to **frozen, specialized
 pathways** under one centralized value function will, on a *mixed* stream of
 verifiable niches, **strictly dominate** a federation of separately-branded
 models that were each *continually tuned* for their niche — and the dominance
@@ -342,18 +342,18 @@ sparse MoE routing does not eliminate forgetting
 (https://arxiv.org/html/2602.12587v1). Routers that *select* among fixed models
 avoid this by construction (RouterBench, https://arxiv.org/html/2403.12031;
 Composition-of-Experts, https://arxiv.org/pdf/2412.01868). The *new* move is to
-read this as an **identity** result: MUSE keeps each pathway frozen and learns
+read this as an **identity** result: muse keeps each pathway frozen and learns
 only in the **router policy + memory + value function** (the scorecards), so the
 thing that improves (identity) is exactly the thing that *cannot* be forgotten,
 while each pathway stays at its specialized optimum.
 
 **Falsifiable prediction.** Hold total parameters/compute roughly equal. Build
-(a) **MUSE-mode**: one base model frozen, N specialized adapters/prompts as
+(a) **muse-mode**: one base model frozen, N specialized adapters/prompts as
 "pathways," routing by `task_router` + scorecards; (b) **Federation-mode**: N
 independently *continually-tuned* copies, one per niche, each updated as new
-niches arrive. As you increase the number of interleaved niches K, MUSE-mode's
+niches arrive. As you increase the number of interleaved niches K, muse-mode's
 aggregate verifiable score stays flat-or-rising while Federation-mode's
-**earlier-niche** scores *decay* (forgetting), so MUSE's advantage `Δ(K)` is
+**earlier-niche** scores *decay* (forgetting), so muse's advantage `Δ(K)` is
 **monotonically increasing in K**.
 
 **Free/local experiment.**
@@ -365,22 +365,22 @@ aggregate verifiable score stays flat-or-rising while Federation-mode's
   string/regex-transform lane with a deterministic checker.
 - Federation-mode = LoRA-tune (or prompt-overfit) each copy on its niche, then
   *re-tune sequentially* as niches are added; measure each niche's held-out
-  score after every addition. MUSE-mode = freeze base, attach all
+  score after every addition. muse-mode = freeze base, attach all
   adapters/prompts, route via `route_for_task`, score via `ModelScorecard`.
 - Metric: aggregate held-out pass-rate vs K, **and** per-niche retention
   (score on niche *i* after niche *i+1…K* added). Advantage `Δ(K) =
-  score_MUSE(K) − score_Fed(K)`.
+  score_muse(K) − score_Fed(K)`.
 
 **Null result that refutes it.** If `Δ(K)` is **flat or shrinking** in K — i.e.
 Federation-mode retains earlier niches without decay (no measurable forgetting
 tax) — then the single-identity advantage is *not* interference-driven and H6 is
 wrong; routing would be a convenience, not a capability argument. (Also refuted
-if MUSE-mode itself degrades earlier niches, which would mean the router/memory
+if muse-mode itself degrades earlier niches, which would mean the router/memory
 is leaking cross-niche interference it was supposed to prevent.)
 
 ### H7 · Verifier Diversity Bound (the manufactured verifier's ceiling has a *known shape*)
 
-**Statement.** The reliability ceiling of MUSE's **manufactured composite
+**Statement.** The reliability ceiling of muse's **manufactured composite
 verifier** (H2) is set not by the number of component signals but by their
 **error *de*correlation**: composite soundness rises with the *independence* of
 its parts (execution result, GraphRAG source-backing, Memory-Tree contradiction
@@ -397,7 +397,7 @@ Classic ensemble theory says error reduction ∝ member independence. The new
 claim makes this **operational for a self-bootstrapped verifier built from repo
 signals**, and predicts a *measurable* decorrelation→soundness curve.
 
-**Falsifiable prediction.** Order MUSE's verifier signals by pairwise error
+**Falsifiable prediction.** Order muse's verifier signals by pairwise error
 correlation. Adding a signal that is *decorrelated* from the current panel
 raises composite agreement-with-ground-truth; adding one that is *correlated*
 (e.g. two LLM-judge rubrics that share a bias) raises agreement by a delta that
@@ -430,8 +430,8 @@ signal, the composite idea itself adds nothing here.)
 ### H8 · Identity Invariance Under Self-Play (identity survives the pathways *rewriting themselves*)
 
 **Statement.** H3 tested identity under **manual** portfolio swaps. The stronger
-claim: MUSE's behavioral identity (Constitution self-audit rubric) stays within a
-**tighter band than capability** even when the portfolio is changed *by MUSE's
+claim: muse's behavioral identity (Constitution self-audit rubric) stays within a
+**tighter band than capability** even when the portfolio is changed *by muse's
 own self-improvement loop* (SIA promoting new pathways) — provided the value
 function (Constitution + gates + owner corrections in scorecards) is the *only*
 thing in the promotion objective. Self-play moves *capability*; it must **not**
@@ -593,10 +593,10 @@ testable-now-with-repo-machinery (the protocol runs on what's already built).
 
 | # | Claim (one line) | Status | Strongest counter-argument |
 |---|---|---|---|
-| **H6** | One frozen-pathway identity beats a continually-tuned federation, and the gap *grows* with niche heterogeneity (interference tax). | **P + T** | The federation can also freeze + adapter-swap, erasing the forgetting tax — then it *is* MUSE under another name, and "single identity" is a branding choice, not a capability claim. The interesting content may be entirely in "frozen pathways," not in "one identity." |
+| **H6** | One frozen-pathway identity beats a continually-tuned federation, and the gap *grows* with niche heterogeneity (interference tax). | **P + T** | The federation can also freeze + adapter-swap, erasing the forgetting tax — then it *is* muse under another name, and "single identity" is a branding choice, not a capability claim. The interesting content may be entirely in "frozen pathways," not in "one identity." |
 | **H7** | The manufactured verifier's soundness is bounded by component error-*decorrelation*, not panel size; small-diverse beats large-redundant. | **P + T** | Repo signals may be *too few and too correlated* to ever form a sound panel for non-code niches; H7 could be true yet useless because the achievable decorrelated subset still tops out below "trustworthy." Verifier soundness may be a property of the *task*, not the *panel*. |
 | **H8** | Behavioral identity stays invariant under *self-play that rewrites the pathways*, held by a value-function-only promotion objective. | **S + T** | The Constitution self-audit rubric may be too coarse to detect real drift (passes everything), making "invariance" an artifact of a blunt instrument. Sharpening the rubric could reveal drift that refutes H8 — i.e. H8 might be *true only because we can't yet measure identity finely enough.* |
-| **H9** | One value function lets MUSE allocate practice budget *across* niches by learning-gain slope, beating uniform/weakest-first. | **P + T** | Learning-gain slope estimated from sparse scorecards is noisy; the allocator may chase noise and underperform dumb uniform allocation in realistic low-sample regimes. The cross-niche advantage may exist only with sample counts a local setup can't reach cheaply. |
+| **H9** | One value function lets muse allocate practice budget *across* niches by learning-gain slope, beating uniform/weakest-first. | **P + T** | Learning-gain slope estimated from sparse scorecards is noisy; the allocator may chase noise and underperform dumb uniform allocation in realistic low-sample regimes. The cross-niche advantage may exist only with sample counts a local setup can't reach cheaply. |
 | **H10** | A frozen, monotone safety predicate makes the self-mod loop's safety floor provably non-decreasing — the realizable fragment of the Gödel-machine ideal. | **P (static check) + T** | The guarantee is **conditional on the safety signals being sound** (H2/H7). If `owner_corrections`/`hallucination_corrections`/tool-reliability are themselves gameable, H10 protects a fake floor. It proves "can't relax the *measured* gate," not "can't become unsafe." This is honestly its load-bearing weakness. |
 
 **Unit-level falsifiability of the whole H6–H10 block.** The block's central new

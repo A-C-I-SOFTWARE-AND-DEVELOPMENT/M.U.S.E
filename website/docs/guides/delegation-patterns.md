@@ -6,7 +6,7 @@ description: "When and how to use subagent delegation — patterns for parallel 
 
 # Delegation & Parallel Work
 
-M.U.S.E. can spawn isolated child agents to work on tasks in parallel. Each subagent gets its own conversation, terminal session, and toolset. Only the final summary comes back — intermediate tool calls never enter your context window.
+muse can spawn isolated child agents to work on tasks in parallel. Each subagent gets its own conversation, terminal session, and toolset. Only the final summary comes back — intermediate tool calls never enter your context window.
 
 For the full feature reference, see [Subagent Delegation](/docs/user-guide/features/delegation).
 
@@ -42,7 +42,7 @@ Research these three topics in parallel:
 Focus on recent developments and key players.
 ```
 
-Behind the scenes, M.U.S.E. uses:
+Behind the scenes, muse uses:
 
 ```python
 delegate_task(tasks=[

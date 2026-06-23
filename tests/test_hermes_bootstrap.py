@@ -1,7 +1,7 @@
 """Tests for hermes_bootstrap — Windows UTF-8 stdio shim.
 
 The bootstrap module is imported at the top of every Hermes entry point
-(muse, muse-agent, muse-acp, gateway, batch_runner, cli.py).  It
+(muse muse-agent, muse-acp, gateway, batch_runner, cli.py).  It
 fixes Python's Windows UTF-8 defaults so print("café") doesn't crash and
 subprocess children inherit UTF-8 mode.
 

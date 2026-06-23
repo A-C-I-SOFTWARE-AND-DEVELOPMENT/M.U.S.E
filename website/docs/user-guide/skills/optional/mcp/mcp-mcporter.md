@@ -25,7 +25,7 @@ Use the mcporter CLI to list, configure, auth, and call MCP servers/tools direct
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # mcporter
@@ -86,7 +86,7 @@ mcporter call --stdio "bun run ./server.ts" scrape url=https://example.com
 # JSON payload
 mcporter call <server.tool> --args '{"limit": 5}'
 
-# Machine-readable output (recommended for M.U.S.E.)
+# Machine-readable output (recommended for muse)
 mcporter call <server.tool> key=value --output json
 ```
 

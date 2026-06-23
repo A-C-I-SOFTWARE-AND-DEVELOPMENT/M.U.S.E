@@ -38,8 +38,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisJade
 import com.aci.hermes.ui.theme.JarvisTokens
 import kotlinx.coroutines.launch
@@ -105,9 +105,9 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun BackendReadinessCard(sync: BackendDiagnosticsSync) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseSectionHeader(title = stringResource(R.string.diagnostics_backend_title))
+            museSectionHeader(title = stringResource(R.string.diagnostics_backend_title))
             when (sync) {
                 is BackendDiagnosticsSync.NotPaired ->
                     Text(stringResource(R.string.diagnostics_backend_not_paired), style = MaterialTheme.typography.bodyMedium)
@@ -146,9 +146,9 @@ private fun RecentSessionsCard(sessions: List<com.aci.hermes.data.cockpit.Cockpi
     // Only render when the backend reported activity — keeps the screen clean
     // when unpaired/empty (no fabricated rows).
     if (sessions.isEmpty()) return
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-            MuseSectionHeader(title = stringResource(R.string.diagnostics_sessions_title))
+            museSectionHeader(title = stringResource(R.string.diagnostics_sessions_title))
             sessions.take(10).forEach { s ->
                 DiagRow(s.id, stringResource(R.string.diagnostics_sessions_count, s.decisionCount))
             }
@@ -159,7 +159,7 @@ private fun RecentSessionsCard(sessions: List<com.aci.hermes.data.cockpit.Cockpi
 @Composable
 private fun DiagInfoCard(state: DiagnosticsUiState) {
     val hasError = state.lastError != null
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             DiagRow(stringResource(R.string.diagnostics_app_version), state.appVersion)
             HorizontalDivider()
@@ -204,9 +204,9 @@ private fun DiagRow(label: String, value: String) {
 
 @Composable
 private fun LogsCard(state: DiagnosticsUiState) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceMd)) {
-            MuseSectionHeader(
+            museSectionHeader(
                 title = stringResource(R.string.diagnostics_logs),
                 modifier = Modifier.padding(bottom = JarvisTokens.SpaceSm),
             )

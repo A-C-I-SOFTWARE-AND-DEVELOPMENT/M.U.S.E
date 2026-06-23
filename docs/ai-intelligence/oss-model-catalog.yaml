@@ -1,4 +1,4 @@
-# MUSE — Open-Source / Open-Weight Model Brain
+# muse — Open-Source / Open-Weight Model Brain
 #
 # Canonical, cross-referenced catalog of the open-weight models JARVIS
 # Prime can learn from and route work to. This is the *model* layer
@@ -120,7 +120,7 @@ families:
     license_spdx: MIT
     open_weights: true
     tier: frontier
-    current_variant: glm-5.1
+    current_variant: glm-5.2
     # Just-released variant (GLM-5 → 5.1): provider slugs + benchmarks below are
     # CANDIDATES pending verification against each provider's live model list.
     candidate: true

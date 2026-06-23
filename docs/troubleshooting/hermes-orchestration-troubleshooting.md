@@ -1,6 +1,6 @@
-# M.U.S.E. orchestration troubleshooting
+# muse orchestration troubleshooting
 
-The single-page symptom-to-fix table for everything in M.U.S.E. —
+The single-page symptom-to-fix table for everything in muse —
 orchestration, mobile, voice, the Windows bridge, integrations,
 disconnects, secrets.
 
@@ -207,7 +207,7 @@ Full guide at
 |---------|-------|-----|
 | `github: not configured` | Plugin not enabled or token missing | `muse plugin enable github_assistant`; check `~/.hermes/.env`. |
 | `github: write blocked: repo not in allowed_repositories` | Defense-in-depth refusal | Add the repo to `github.allowed_repositories`; `/reload-skills`. |
-| Tool returns 401 / 403 | PAT scope insufficient or expired | Regenerate PAT, update `~/.hermes/.env`, restart M.U.S.E.. |
+| Tool returns 401 / 403 | PAT scope insufficient or expired | Regenerate PAT, update `~/.hermes/.env`, restart muse |
 | Worker reports "I don't have a `github_create_issue` tool" | Toolset disabled in the worker profile | Profile's `enabled_toolsets` must include `github_assistant`, or remove from `disabled_toolsets`. |
 
 Full guide at
@@ -252,7 +252,7 @@ chmod 600 ~/.hermes/.env
 1. **Rotate at the provider first.** Anthropic / GitHub / Vercel /
    Supabase — invalidate the old token at the source.
 2. **Update `~/.hermes/.env`** with the new key.
-3. **Restart M.U.S.E..** `pkill hermes; hermes` (or restart the
+3. **Restart muse** `pkill hermes; hermes` (or restart the
    gateway service).
 4. **Audit.** `grep -l <last-4-chars-of-old-key>
    ~/.hermes/jobs/*/ledger.jsonl`. The publishing layer redacts
@@ -332,12 +332,12 @@ Full guide at
 ## Local model issues
 
 Symptoms point to your local model server (llama.cpp / vLLM /
-Ollama), not M.U.S.E..
+Ollama), not muse
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Workers fail with connection errors | Local model server crashed | Check the model server's own log. |
-| Timeouts on long phases | M.U.S.E. timeout too short for the model | `providers.<local>.request_timeout: 600` in `~/.hermes/config.yaml`. |
+| Timeouts on long phases | muse timeout too short for the model | `providers.<local>.request_timeout: 600` in `~/.hermes/config.yaml`. |
 | Server OOMs mid-job | Long-context cards push memory | Reduce `-c` on llama.cpp, or switch to a smaller quant. |
 | Wrong model responded | Routing rule misfired | `jq 'select(.kind == "spawn") | {card, profile, model, route_match}' ledger.jsonl`. |
 

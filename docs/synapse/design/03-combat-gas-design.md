@@ -1,6 +1,6 @@
 # 03 — Combat Design on the Gameplay Ability System
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 Real-time with tactical pause (master plan locked decision #7), party of 3, pure single-player, built entirely on UE 5.6's Gameplay Ability System with GameplayTags as the lingua franca (§5). Pause is the orchestrator fantasy made literal: the Architect stops time and commands the network. Sibling references: per-agent kits in `04-roster-24-agents.md`, encounter/boss placement in `05-world-design.md`, network synergies in `07-progression-neural-network.md`, HUD in `12-ui-ux-spec.md`, module layout in `11-technical-design.md`.
 

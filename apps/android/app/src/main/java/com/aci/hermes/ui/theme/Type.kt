@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// MUSE typography. Sans-serif default for legibility on dark.
+// muse typography. Sans-serif default for legibility on dark.
 // Slight negative tracking on the largest sizes for a deliberate,
 // command-console feel. Monospace is reserved for code-adjacent details
 // (audit log, prompt preview, diagnostics).

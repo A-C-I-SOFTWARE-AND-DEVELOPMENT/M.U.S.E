@@ -17,7 +17,7 @@ Write implementation plans: bite-sized tasks, paths, code.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/writing-plans` |
 | Version | `1.1.0` |
-| Author | M.U.S.E. (adapted from obra/superpowers) |
+| Author | muse (adapted from obra/superpowers) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `planning`, `design`, `implementation`, `workflow`, `documentation` |
@@ -26,7 +26,7 @@ Write implementation plans: bite-sized tasks, paths, code.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Writing Implementation Plans
@@ -89,7 +89,7 @@ Every plan MUST start with:
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For M.U.S.E.:** Use subagent-driven-development skill to implement this plan task-by-task.
+> **For muse** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -159,7 +159,7 @@ Read and understand:
 
 ### Step 2: Explore the Codebase
 
-Use M.U.S.E. tools to understand the project:
+Use muse tools to understand the project:
 
 ```python
 # Understand project structure

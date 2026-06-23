@@ -4,7 +4,7 @@ let
   src = ../web;
   npmDeps = pkgs.fetchNpmDeps {
     inherit src;
-    hash = "sha256-iXbBJpt64MgXMbM5Pab7ikPGMpL3eufLqjjsOpWbZbc=";
+    hash = "sha256-CBAqzhajQULz2CaZ/CKz9J71BBO3W54eKL/nVszYScg=";
   };
 
   npm = hermesNpmLib.mkNpmPassthru { folder = "web"; attr = "web"; pname = "hermes-web"; };

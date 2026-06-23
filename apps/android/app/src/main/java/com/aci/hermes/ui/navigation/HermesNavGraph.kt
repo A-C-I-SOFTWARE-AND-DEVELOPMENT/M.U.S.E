@@ -32,7 +32,7 @@ import com.aci.hermes.learning.state.LearningViewModel
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.service.JobNotifier
-import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.designsystem.museMotion
 import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.ui.screens.audit.AuditDetailScreen
@@ -85,7 +85,7 @@ import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Single NavHost for the entire MUSE app. Owns:
+ * Single NavHost for the entire muse app. Owns:
  *  - The pre-shell flow: Splash → (Onboarding if first run) → Home
  *  - The seven shell destinations (Home, Tasks, Chat, Approvals, Memory,
  *    Audit, Control) rendered inside [JarvisShell] with shared bottom nav
@@ -94,7 +94,7 @@ import kotlinx.coroutines.launch
  *    their own top bar.
  *
  * The class is named HermesNavHost for compatibility with the existing
- * MainActivity entry point; everything user-visible is MUSE.
+ * MainActivity entry point; everything user-visible is muse
  */
 @Composable
 fun HermesNavHost(
@@ -170,7 +170,7 @@ fun HermesNavHost(
     NavHost(
         navController = nav,
         startDestination = Screen.Splash.route,
-        // MUSE motion (MuseMotion tweens only — no springs; the core blazes,
+        // muse motion (museMotion tweens only — no springs; the core blazes,
         // it does not wobble):
         //  * Top-level swaps (bottom tabs, pre-shell flow, the Den) fade
         //    through — incoming on the standard curve, outgoing fast.
@@ -182,14 +182,14 @@ fun HermesNavHost(
         },
         exitTransition = {
             // The outgoing surface always cedes the frame quickly.
-            fadeOut(animationSpec = MuseMotion.fast())
+            fadeOut(animationSpec = museMotion.fast())
         },
         popEnterTransition = {
-            fadeIn(animationSpec = MuseMotion.standard())
+            fadeIn(animationSpec = museMotion.standard())
         },
         popExitTransition = {
             if (initialState.destination.route.isTopLevelRoute()) {
-                fadeOut(animationSpec = MuseMotion.fast())
+                fadeOut(animationSpec = museMotion.fast())
             } else {
                 pushPopExit()
             }
@@ -760,17 +760,17 @@ private fun String?.isTopLevelRoute(): Boolean =
 
 /** Fade-through arrival for top-level swaps: incoming on the standard curve. */
 private fun fadeThroughEnter(): EnterTransition =
-    fadeIn(animationSpec = MuseMotion.standard())
+    fadeIn(animationSpec = museMotion.standard())
 
 /** Detail/push arrival: emphasized fade + a short upward settle (1/24 height). */
 private fun pushEnter(): EnterTransition =
-    fadeIn(animationSpec = MuseMotion.emphasized()) +
-        slideInVertically(animationSpec = MuseMotion.emphasized()) { it / 24 }
+    fadeIn(animationSpec = museMotion.emphasized()) +
+        slideInVertically(animationSpec = museMotion.emphasized()) { it / 24 }
 
 /** Exact mirror of [pushEnter], for popping a detail screen off the stack. */
 private fun pushPopExit(): ExitTransition =
-    fadeOut(animationSpec = MuseMotion.emphasized()) +
-        slideOutVertically(animationSpec = MuseMotion.emphasized()) { it / 24 }
+    fadeOut(animationSpec = museMotion.emphasized()) +
+        slideOutVertically(animationSpec = museMotion.emphasized()) { it / 24 }
 
 @Composable
 private fun ShellHost(

@@ -1,4 +1,4 @@
-// MUSE gateway connection settings (UDeveloperSettings, config-backed).
+// muse gateway connection settings (UDeveloperSettings, config-backed).
 // Copyright A-C-I Software & Development. All rights reserved.
 
 #pragma once
@@ -7,10 +7,10 @@
 #include "Engine/DeveloperSettings.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "MuseGatewaySettings.generated.h"
+#include "museGatewaySettings.generated.h"
 
 /**
- * Connection settings for the paired MUSE gateway (tier 3 of the brain
+ * Connection settings for the paired muse gateway (tier 3 of the brain
  * ladder; TDD §1, §2.2).
  *
  * SECURITY RULE (binding, master plan Prompt 0 + TDD §8):
@@ -23,23 +23,23 @@
  *    (Saved/Config/muse_pairing.bin) populated by the pairing flow
  *    (POST /v1/cockpit/pair/start -> /v1/cockpit/pair/confirm).
  *  - Anything that must mention the token in a log line logs a redaction
- *    marker, never the value (see UMuseGatewayClient).
+ *    marker, never the value (see UmuseGatewayClient).
  */
-UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "MUSE Gateway"))
-class SYNAPSENET_API UMuseGatewaySettings : public UDeveloperSettings
+UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "muse Gateway"))
+class SYNAPSENET_API UmuseGatewaySettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
-	UMuseGatewaySettings()
+	UmuseGatewaySettings()
 	{
 		CategoryName = TEXT("Project");
-		SectionName = TEXT("MUSE Gateway");
+		SectionName = TEXT("muse Gateway");
 		GatewayBaseUrl = TEXT("http://127.0.0.1:8787");
 		TokenFilePath = TEXT("muse_token.txt");
 	}
 
-	/** Base URL of the paired MUSE gateway. Loopback/RFC1918 plain HTTP is
+	/** Base URL of the paired muse gateway. Loopback/RFC1918 plain HTTP is
 	 *  acceptable for the local pairing case only; remote tiers are TLS-only
 	 *  (TDD §8). No trailing slash required. */
 	UPROPERTY(Config, EditAnywhere, Category = "Gateway")

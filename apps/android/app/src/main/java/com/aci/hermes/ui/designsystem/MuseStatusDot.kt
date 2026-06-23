@@ -18,10 +18,10 @@ import com.aci.hermes.ui.theme.JarvisJade
 import com.aci.hermes.ui.theme.JarvisSignalGhost
 
 /**
- * Connection / liveness states a [MuseStatusDot] (and [MuseStatusPill]) can
+ * Connection / liveness states a [museStatusDot] (and [museStatusPill]) can
  * show. Each maps to a Singularity status color.
  */
-enum class MuseStatus {
+enum class museStatus {
     /** Disconnected / inert. Muted, no glow. */
     Off,
 
@@ -35,19 +35,19 @@ enum class MuseStatus {
     Connecting,
 }
 
-/** Resolve the dot/glow color for a [MuseStatus]. */
-internal fun MuseStatus.color(): Color = when (this) {
-    MuseStatus.Off -> JarvisSignalGhost
-    MuseStatus.Ok -> JarvisJade
-    MuseStatus.Live -> JarvisCyan
-    MuseStatus.Connecting -> JarvisCyan
+/** Resolve the dot/glow color for a [museStatus]. */
+internal fun museStatus.color(): Color = when (this) {
+    museStatus.Off -> JarvisSignalGhost
+    museStatus.Ok -> JarvisJade
+    museStatus.Live -> JarvisCyan
+    museStatus.Connecting -> JarvisCyan
 }
 
 /**
  * A small status dot with a soft glow halo — the "is it live?" tell that sits
  * in headers, pills, and list rows.
  *
- * [MuseStatus.Connecting] pulses its glow (a slow breathe via [MuseMotion]
+ * [museStatus.Connecting] pulses its glow (a slow breathe via [museMotion]
  * timing); every other state is static. The dot color and glow always agree,
  * so the signal reads at a glance.
  *
@@ -57,21 +57,21 @@ internal fun MuseStatus.color(): Color = when (this) {
  *                reduced-motion at the call site).
  */
 @Composable
-fun MuseStatusDot(
-    status: MuseStatus,
+fun museStatusDot(
+    status: museStatus,
     modifier: Modifier = Modifier,
     size: Dp = 10.dp,
     animate: Boolean = true,
 ) {
     val color = status.color()
 
-    val pulse: Float = if (status == MuseStatus.Connecting && animate) {
+    val pulse: Float = if (status == museStatus.Connecting && animate) {
         val transition = rememberInfiniteTransition(label = "muse-status-pulse")
         val value by transition.animateFloat(
             initialValue = 0.35f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 900, easing = MuseMotion.StandardEasing),
+                animation = tween(durationMillis = 900, easing = museMotion.StandardEasing),
                 repeatMode = RepeatMode.Reverse,
             ),
             label = "muse-status-pulse-alpha",
@@ -89,7 +89,7 @@ fun MuseStatusDot(
         val cy = h / 2f
         val dotRadius = minOf(w, h) / 2f / 1.8f
 
-        if (status != MuseStatus.Off) {
+        if (status != museStatus.Off) {
             // Soft glow — a single translucent halo, scaled by the pulse.
             drawCircle(
                 color = color.copy(alpha = 0.30f * pulse),

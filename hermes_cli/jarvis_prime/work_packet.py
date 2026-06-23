@@ -1,4 +1,4 @@
-"""Standard MUSE WorkPacket model.
+"""Standard muse WorkPacket model.
 
 Structured descriptor for a single JARVIS unit of work. The shipped
 runtime (``runtime.py``, ``router.py``, ``gates.py``) already speaks
@@ -84,7 +84,7 @@ class WorkPacketValidationFinding:
 
 @dataclass
 class WorkPacket:
-    """Standard MUSE unit-of-work descriptor.
+    """Standard muse unit-of-work descriptor.
 
     All fields are data-only. Construction never performs IO. Owner-gated
     actions are stored verbatim and require the owner to reply with the

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Creating Skills"
-description: "How to create skills for M.U.S.E. — SKILL.md format, guidelines, and publishing"
+description: "How to create skills for muse — SKILL.md format, guidelines, and publishing"
 ---
 
 # Creating Skills
 
-Skills are the preferred way to add new capabilities to M.U.S.E.. They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
+Skills are the preferred way to add new capabilities to muse They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
 
 ## Should it be a Skill or a Tool?
 
@@ -160,7 +160,7 @@ See `skills/apple/` for examples of macOS-only skills.
 
 ## Secure Setup on Load
 
-Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, M.U.S.E. prompts for them securely when the skill is loaded in the local CLI.
+Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, muse prompts for them securely when the skill is loaded in the local CLI.
 
 ```yaml
 required_environment_variables:
@@ -170,7 +170,7 @@ required_environment_variables:
     required_for: full functionality
 ```
 
-The user can skip setup and keep loading the skill. M.U.S.E. never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
+The user can skip setup and keep loading the skill. muse never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
 
 :::tip Sandbox Passthrough
 When your skill is loaded, any declared `required_environment_variables` that are set are **automatically passed through** to `execute_code` and `terminal` sandboxes — including remote backends like Docker and Modal. Your skill's scripts can access `$TENOR_API_KEY` (or `os.environ["TENOR_API_KEY"]` in Python) without the user needing to configure anything extra. See [Environment Variable Passthrough](/docs/user-guide/security#environment-variable-passthrough) for details.
@@ -247,7 +247,7 @@ Each entry supports:
 - `path` (required) — file path relative to `~/.hermes/`
 - `description` (optional) — explains what the file is and how it's created
 
-When loaded, M.U.S.E. checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
+When loaded, muse checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
 - **Mounted into Docker** containers as read-only bind mounts
 - **Synced into Modal** sandboxes (at creation + before each command, so mid-session OAuth works)
 - Available on **local** backend without any special handling
@@ -262,7 +262,7 @@ See the `skills/productivity/google-workspace/SKILL.md` for a complete example u
 
 ### No External Dependencies
 
-Prefer stdlib Python, curl, and existing M.U.S.E. tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
+Prefer stdlib Python, curl, and existing muse tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
 
 ### Progressive Disclosure
 
@@ -325,7 +325,7 @@ muse chat --toolsets skills -q "Use the X skill to do Y"
 
 ## Where Should the Skill Live?
 
-Bundled skills (in `skills/`) ship with every M.U.S.E. install. They should be **broadly useful to most users**:
+Bundled skills (in `skills/`) ship with every muse install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
@@ -362,12 +362,12 @@ All hub-installed skills go through a security scanner that checks for:
 - Shell injection
 
 Trust levels:
-- `builtin` — ships with M.U.S.E. (always trusted)
+- `builtin` — ships with muse (always trusted)
 - `official` — from `optional-skills/` in the repo (builtin trust, no third-party warning)
 - `trusted` — from openai/skills, anthropics/skills, huggingface/skills
 - `community` — non-dangerous findings can be overridden with `--force`; `dangerous` verdicts remain blocked
 
-M.U.S.E. can now consume third-party skills from multiple external discovery models:
+muse can now consume third-party skills from multiple external discovery models:
 - direct GitHub identifiers (for example `openai/skills/k8s`)
 - `skills.sh` identifiers (for example `skills-sh/vercel-labs/json-render/json-render-react`)
 - well-known endpoints served from `/.well-known/skills/index.json`

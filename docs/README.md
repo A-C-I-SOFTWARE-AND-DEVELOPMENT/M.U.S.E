@@ -1,21 +1,21 @@
-# M.U.S.E. — Plain-English Operating Manual
+# muse — Plain-English Operating Manual
 
-Welcome. This folder is the human-readable manual for **M.U.S.E.**:
+Welcome. This folder is the human-readable manual for **muse**:
 what it is, what each piece does, and how to actually use it from a
 phone, a laptop, a Windows box, or a server.
 
-If you've never seen M.U.S.E. before, read this whole page once. Then
+If you've never seen muse before, read this whole page once. Then
 pick whichever sub-guide matches what you're trying to do.
 
-> If you're an AI coding assistant working *on* M.U.S.E., read
+> If you're an AI coding assistant working *on* muse read
 > [`../AGENTS.md`](../AGENTS.md) instead. This file is for humans
-> running and operating M.U.S.E..
+> running and operating muse
 
 ---
 
-## What M.U.S.E. is, in one paragraph
+## What muse is, in one paragraph
 
-M.U.S.E. is a **self-improving AI agent** that you talk to in English.
+muse is a **self-improving AI agent** that you talk to in English.
 You can hand it goals as small as *"summarize my inbox"* or as large
 as *"audit this repo and open a draft PR with the cleanup,"* and it
 will decompose the goal into a graph of small validated tasks, dispatch
@@ -34,11 +34,11 @@ That's the system. The rest of this folder explains the parts.
 
 ## The shape of the system
 
-M.U.S.E. has three layers you'll touch:
+muse has three layers you'll touch:
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  Surfaces — where you talk to M.U.S.E.                           │
+│  Surfaces — where you talk to muse                           │
 │    • Terminal (the `muse` CLI / TUI)                            │
 │    • Phone (Android cockpit app, Termux runtime)                │
 │    • Voice (the voice-first capture path; driving mode)         │
@@ -74,25 +74,24 @@ typed in a terminal or spoke into a phone in the car.
 |---|---|
 | Run your first orchestrated job | [orchestration/getting-started.md](orchestration/getting-started.md) |
 | See an end-to-end **Prompt to PR** walkthrough | [orchestration/prompt-to-pr-demo.md](orchestration/prompt-to-pr-demo.md) |
-| Drive M.U.S.E. from your phone | [mobile/mobile-app-guide.md](mobile/mobile-app-guide.md) |
-| Operate the native MUSE phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
-| Understand MUSE capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |
+| Install MUSE on a phone (share-ready, non-technical) | [mobile/install-muse-on-your-phone.md](mobile/install-muse-on-your-phone.md) |
+| Drive muse from your phone | [mobile/mobile-app-guide.md](mobile/mobile-app-guide.md) |
+| Operate the native muse phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
+| Understand muse capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |
 | Write code from your phone (Codex / Claude Code lanes) | [mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md](mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md) |
-| Understand MUSE evidence / cited research | [jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md) |
+| Understand muse evidence / cited research | [jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md) |
 | Use high-autonomy coding mode safely (scoped/logged/revocable) | [jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md](jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md) |
 | Ship the mobile cockpit (launch gate) | [launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md](launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md) |
-| Use M.U.S.E. hands-free (voice-first, driving mode) | [voice/voice-first-user-guide.md](voice/voice-first-user-guide.md) |
-| Run M.U.S.E. from Windows / drive Claude Code remotely | [remote/windows-claude-code-bridge-guide.md](remote/windows-claude-code-bridge-guide.md) |
-| Deploy M.U.S.E. 24/7 on a cloud VPS (one-click) | [deploy/vps-deployment-guide.md](deploy/vps-deployment-guide.md) |
-| Have M.U.S.E. profile your GitHub history & learn your patterns | [profile/github-history-profile-guide.md](profile/github-history-profile-guide.md) |
+| Use muse hands-free (voice-first, driving mode) | [voice/voice-first-user-guide.md](voice/voice-first-user-guide.md) |
+| Run muse from Windows / drive Claude Code remotely | [remote/windows-claude-code-bridge-guide.md](remote/windows-claude-code-bridge-guide.md) |
+| Have muse profile your GitHub history & learn your patterns | [profile/github-history-profile-guide.md](profile/github-history-profile-guide.md) |
 | Lock everything down to private / local-only | [security/private-local-security-guide.md](security/private-local-security-guide.md) |
 | Wire up GitHub, Supabase, and Vercel | [integrations/github-supabase-vercel-guide.md](integrations/github-supabase-vercel-guide.md) |
+| Run models locally via LM Studio (native v1 REST API) | [integrations/lmstudio-rest-api.md](integrations/lmstudio-rest-api.md) |
 | Add free public-API tools (weather, finance, news, time) | [integrations/public-apis-plugins.md](integrations/public-apis-plugins.md) |
-| Scrape the web & run Apify Actors | [integrations/apify-plugin.md](integrations/apify-plugin.md) |
 | Developer + code-review tools (packages, OSV, deps.dev, sandbox) | [integrations/devtools-codeintel-plugins.md](integrations/devtools-codeintel-plugins.md) |
 | Diagnose a stuck job or a broken integration | [troubleshooting/hermes-orchestration-troubleshooting.md](troubleshooting/hermes-orchestration-troubleshooting.md) |
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
-| See the architecture map: components, dataflow, schemas, tech disposition | [architecture/README.md](architecture/README.md) |
 | Understand the SYNAPSE game / Neural Observatory / Platform-v1.0 program | [plans/2026-06-10-project-synapse-master-plan.md](plans/2026-06-10-project-synapse-master-plan.md) |
 | Build SYNAPSE from the locked design bible (17 docs, design + production + launch) | [synapse/design/00-INDEX.md](synapse/design/00-INDEX.md) |
 
@@ -130,13 +129,13 @@ their parents. Inside this manual you'll also see them called
 **cards** or **tasks** — they're the same thing.
 
 ### Worker
-The thing that executes a phase. In M.U.S.E., a worker is a **profile**:
+The thing that executes a phase. In muse a worker is a **profile**:
 a model + a toolset + a skill set + an execution environment. You
 configure profiles in `~/.hermes/config.yaml`. Examples ship under
 `researcher`, `engineer`, `reviewer`.
 
 ### Approval
-A decision point where M.U.S.E. pauses and waits for you. High-risk
+A decision point where muse pauses and waits for you. High-risk
 phases (anything that mutates GitHub, sends external messages,
 deletes data) classify as HIGH risk and **always** ask first. Low and
 medium risk run automatically. You respond with `approve`, `deny`, or
@@ -159,19 +158,19 @@ a job from it.
 ### Skill
 A Markdown playbook under `skills/` or `~/.hermes/skills/`. Skills
 are not code — they are prompts the agent loads on demand via
-`/<skill-name>`. M.U.S.E. ships hundreds; it also authors new ones for
+`/<skill-name>`. muse ships hundreds; it also authors new ones for
 itself after complex jobs (the self-improvement loop).
 
 ### Gateway
 The messaging gateway (`gateway/`) that bridges your chat platforms
-into a single M.U.S.E. process. Run `muse gateway start` and a DM to
-your Telegram bot lands as a M.U.S.E. turn, just like typing into the
+into a single muse process. Run `muse gateway start` and a DM to
+your Telegram bot lands as a muse turn, just like typing into the
 CLI. Same backend on both ends.
 
 ### Profile
 **Two meanings.** (a) A *worker profile* — the YAML config that
 defines a model + tools + skills + environment combo. (b) A *user
-profile* — the persistent model M.U.S.E. builds of you (your patterns,
+profile* — the persistent model muse builds of you (your patterns,
 preferences, repo history) by curating memory and observing past jobs.
 Context usually disambiguates. The user-profile sense is documented
 in [profile/github-history-profile-guide.md](profile/github-history-profile-guide.md).
@@ -182,7 +181,7 @@ in [profile/github-history-profile-guide.md](profile/github-history-profile-guid
 
 ```bash
 # 1. Install
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
 source ~/.bashrc
 
 # 2. Set a default model (any provider works)
@@ -204,18 +203,18 @@ piece of jargon as it appears.
 
 ---
 
-## What's the difference between "M.U.S.E." and "the orchestrator"?
+## What's the difference between "muse" and "the orchestrator"?
 
 A reasonable question that comes up constantly.
 
 - **Hermes** is the whole product. The CLI, the gateway, the plugins,
   the skills, the memory, the Android app — all of it.
-- **The orchestrator** is one specific M.U.S.E. profile, running with a
+- **The orchestrator** is one specific muse profile, running with a
   specific skill loaded (`kanban-orchestrator` or
   `enterprise-council/orchestrator`), whose job is to *decompose* a
   goal into the task graph that other profiles execute.
 
-You can use M.U.S.E. without ever invoking the orchestrator — just type
+You can use muse without ever invoking the orchestrator — just type
 `muse` and chat. The orchestrator is what you reach for when a goal
 is too big for one turn and you want fan-out, validation, and an audit
 trail. The full orchestration system has its own folder:
@@ -252,7 +251,7 @@ another machine to continue it.
 
 ---
 
-## How M.U.S.E. learns from past jobs
+## How muse learns from past jobs
 
 Three loops, all running quietly while you work.
 
@@ -297,23 +296,18 @@ Read in this order:
 | Topic | File |
 |---|---|
 | Install, providers, models | [`../README.md`](../README.md) |
-| Develop on M.U.S.E. itself | [`../AGENTS.md`](../AGENTS.md) |
+| Develop on muse itself | [`../AGENTS.md`](../AGENTS.md) |
 | Claude-specific dev hints | [`../CLAUDE.md`](../CLAUDE.md) |
 | Security policy + reporting | [`../SECURITY.md`](../SECURITY.md) |
 | Contributing process | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
-| Architecture map (components, dataflow, schemas) | [architecture/README.md](architecture/README.md) |
-| Component registry (source of truth) | [architecture/muse-component-registry.yaml](architecture/muse-component-registry.yaml) |
-| Technology disposition (adopt / migrate / discard) | [architecture/MUSE_TECHNOLOGY_DISPOSITION.md](architecture/MUSE_TECHNOLOGY_DISPOSITION.md) |
 | Orchestration overview | [orchestration/README.md](orchestration/README.md) |
 | Decision ledger schema | [orchestration/decision-ledger.md](orchestration/decision-ledger.md) |
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
-| Open data sources for training MUSE | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
-| NVIDIA Deep Learning Software stack (provenance registry) | [ai-intelligence/nvidia-deep-learning-software.md](ai-intelligence/nvidia-deep-learning-software.md) |
-| Use the NVIDIA / CUDA tools on any device (install + container + remote GPU) | [gpu/using-nvidia-tools-anywhere.md](gpu/using-nvidia-tools-anywhere.md) |
-| MUSE Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
-| Deconstruct "Mythos" → reconstruct into MUSE | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
+| Open data sources for training muse | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
+| muse Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
+| Deconstruct "Mythos" → reconstruct into muse | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
 | Composable agent design patterns | [orchestration/agent-design-patterns.md](orchestration/agent-design-patterns.md) |
-| MUSE visual design language (banner, glyph, palette) | [brand/muse-design-language.md](brand/muse-design-language.md) |
+| muse visual design language (banner, glyph, palette) | [brand/muse-design-language.md](brand/muse-design-language.md) |
 | Repo viability audit (2026-06) | [audit/repo-audit-2026-06.md](audit/repo-audit-2026-06.md) |
 | Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |
 | Android app contract | [android/hermes-apk-api-contract.md](android/hermes-apk-api-contract.md) |

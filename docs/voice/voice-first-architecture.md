@@ -1,18 +1,18 @@
 # Voice-first architecture
 
-Phase 19 — voice-to-text job intake and the contract between M.U.S.E.
+Phase 19 — voice-to-text job intake and the contract between muse
 and the mobile cockpit / Termux gateway.
 
 > **Audience:** anyone wiring a voice surface (Android cockpit, Termux
-> gateway, CLI, an external app talking to the gateway) to M.U.S.E..
+> gateway, CLI, an external app talking to the gateway) to muse
 > Implementers of the *audio* side (sounddevice, faster-whisper,
 > Groq, etc.) — see `hermes_cli/voice.py`.
 
 ## 1. Goals
 
-- Let a user create a M.U.S.E. job by talking — including hands-free
+- Let a user create a muse job by talking — including hands-free
   while driving — without surprising them.
-- Keep raw audio off M.U.S.E.' disk unless the user explicitly opts in.
+- Keep raw audio off muse' disk unless the user explicitly opts in.
 - Make every step auditable: a single intake folder per interaction
   with three text artefacts (transcript, plain-English read-back,
   approval state).
@@ -22,11 +22,11 @@ and the mobile cockpit / Termux gateway.
 
 ## 2. Non-goals
 
-- M.U.S.E. does **not** ship its own audio capture stack. The platform
+- muse does **not** ship its own audio capture stack. The platform
   (Android, Termux, desktop CLI) captures the bytes and sends a
   transcript or audio blob to the gateway. The intake pipeline only
   ever consumes text.
-- M.U.S.E. does **not** continuously upload raw audio. If a user enables
+- muse does **not** continuously upload raw audio. If a user enables
   remote STT, only the chunked audio that follows a wake event or
   push-to-talk press is forwarded — see `stt-provider-policy.md`.
 - Voice intake is **not** an "always-on assistant" surface.

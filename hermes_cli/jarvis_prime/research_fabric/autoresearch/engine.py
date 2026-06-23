@@ -1,13 +1,13 @@
-"""The governed autoresearch experiment driver — program.md's loop + MUSE rules.
+"""The governed autoresearch experiment driver — program.md's loop + muse rules.
 
 Implements the vendored ``program.md`` loop verbatim (edit train.py → commit →
 ``uv run train.py > run.log`` → parse ``val_bpb`` → keep if lower else
 ``git reset``) inside a **disposable workspace** seeded from the vendored
-payload under ``$HERMES_HOME/autoresearch/workspaces/<tag>/`` — the MUSE repo
+payload under ``$HERMES_HOME/autoresearch/workspaces/<tag>/`` — the muse repo
 and the byte-identical vendor files are never touched.
 
 On top of the upstream loop it adds the four things autoresearch deliberately
-omits and MUSE mandates:
+omits and muse mandates:
 
 - **cost ceiling** — ``max_experiments`` / ``max_wall_clock_seconds`` /
   ``max_cost_usd`` (first hit stops the run; supersedes program.md's
@@ -298,8 +298,8 @@ def seed_workspace(
     git(["init", "--quiet"], str(workspace))
     git(["add", "-A"], str(workspace))
     git(
-        ["-c", "user.email=muse@local", "-c", "user.name=MUSE autoresearch",
-         "commit", "--quiet", "-m", "autoresearch: seed from MUSE vendor payload"],
+        ["-c", "user.email=muse@local", "-c", "user.name=muse autoresearch",
+         "commit", "--quiet", "-m", "autoresearch: seed from muse vendor payload"],
         str(workspace),
     )
     git(["checkout", "--quiet", "-b", config.resolved_branch()], str(workspace))
@@ -335,7 +335,7 @@ def run_single_experiment(
         (ws / "train.py").write_text(edit.train_py, encoding="utf-8")
         git(["add", "train.py"], workspace)
         git(
-            ["-c", "user.email=muse@local", "-c", "user.name=MUSE autoresearch",
+            ["-c", "user.email=muse@local", "-c", "user.name=muse autoresearch",
              "commit", "--quiet", "-m", edit.description],
             workspace,
         )

@@ -2,7 +2,7 @@
  * App shell.
  *
  * The lean Singularity client: an app on the void with a header lockup (animated
- * glyph + "M.U.S.E." wordmark + a connection status dot), a nav driven by the
+ * glyph + "muse" wordmark + a connection status dot), a nav driven by the
  * append-only route registry, and a minimal hash router that renders the active
  * route. Adding a route is purely additive — register it in src/routes.ts and it
  * shows up here automatically; this file never needs to change to add surfaces.
@@ -15,6 +15,26 @@ import { pingHealth } from "./lib/gateway";
 import "./styles/app.css";
 
 type Health = "connecting" | "online" | "offline";
+
+// Tauri invoke — uses the native Rust gateway_status command which probes
+// /v1/health over a raw TCP socket (no CSP / WebView2 fetch restriction).
+// Falls back to the fetch-based pingHealth when not running inside Tauri.
+async function nativeHealth(): Promise<boolean> {
+  if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+    try {
+      const internals = (window as unknown as {
+        __TAURI_INTERNALS__?: {
+          invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+        };
+      }).__TAURI_INTERNALS__;
+      const status = await internals!.invoke!("gateway_status") as { reachable?: boolean };
+      return status?.reachable === true;
+    } catch {
+      return false;
+    }
+  }
+  return pingHealth();
+}
 
 function currentHashId(): string {
   return (window.location.hash || "").replace(/^#\/?/, "");
@@ -46,7 +66,7 @@ export function App() {
   useEffect(() => {
     let alive = true;
     const tick = async () => {
-      const ok = await pingHealth();
+      const ok = await nativeHealth();
       if (alive) setHealth(ok ? "online" : "offline");
     };
     void tick();
@@ -93,7 +113,7 @@ export function App() {
         <span className="brand">
           <Glyph size={28} />
           <span className="wordmark">
-            M.U.S.E.
+            muse
             <span className="full">Multi-Use Synaptic Entity</span>
           </span>
         </span>

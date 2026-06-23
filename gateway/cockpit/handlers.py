@@ -1251,12 +1251,16 @@ def pair_confirm(req: Request) -> JsonResponse:
     """Confirm a pairing code — returns a fresh per-device token ONCE.
 
     Body: ``{"pairing_code": "ABCD2345", "authorization": "<owner phrase>"}``.
-    Issuing a device token is owner-gated — the exact owner phrase is required,
-    so a process that can reach the (loopback) pairing route cannot self-issue
-    a credential. On a valid, unexpired code a new ``device_id`` + raw
-    ``token`` are returned; only the token's hash is kept at rest. A
-    bad/expired code (or a locked-out store) is a 401 — and counts toward the
-    brute-force lockout. The raw token is never logged.
+    On a loopback-only cockpit (default ``--host 127.0.0.1``) the owner phrase
+    is NOT required: anything that can reach 127.0.0.1 is already on the device,
+    so the gate was friction without security benefit. When the cockpit is
+    launched ``--allow-external`` (remote-reachable), the exact owner phrase IS
+    required so a remote caller can never self-issue a credential. On a valid,
+    unexpired code a new ``device_id`` + raw ``token`` are returned; only the
+    token's hash is kept at rest. A bad/expired code (or a locked-out store) is
+    a 401 — and counts toward the brute-force lockout. A missing/wrong phrase in
+    external mode is a 403 and short-circuits before the code is consumed. The
+    raw token is never logged.
     """
     from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
@@ -1267,10 +1271,13 @@ def pair_confirm(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "pairing_code is required"})
 
     # Owner gate: pair/start only mints a short-lived, rate-limited code (no
-    # credential), so it stays open; the device token is issued only here, and
-    # only to a caller that presents the exact owner phrase.
+    # credential), so it stays open; the device token is issued only here.
+    # On a loopback-only cockpit (default) the gate is skipped because nothing
+    # outside this device can reach the route; if the server was started with
+    # ``--allow-external`` (remote-reachable), the exact owner phrase is still
+    # required so a remote caller can never self-issue a credential.
     phrase = str((req.body or {}).get("authorization", "")).strip()
-    if phrase != AUTHORIZATION_PHRASE:
+    if _ALLOW_REMOTE_EXECUTE and phrase != AUTHORIZATION_PHRASE:
         return JsonResponse(
             403,
             {

@@ -1,6 +1,6 @@
-// SynapseNet — the ONLY module in the project that talks to a MUSE gateway
+// SynapseNet — the ONLY module in the project that talks to a muse gateway
 // (TDD §2.2). HTTP/SSE client over the frozen cockpit wire contract
-// (docs/contracts/cockpit-wire-contract.md in the M.U.S.E repo).
+// (docs/contracts/cockpit-wire-contract.md in the muse repo).
 
 using UnrealBuildTool;
 
@@ -17,7 +17,7 @@ public class SynapseNet : ModuleRules
 		bEnableExceptions = false;
 
 		// HTTP + DeveloperSettings are PUBLIC because our public headers
-		// (MuseGatewayClient.h / MuseSseClient.h / MuseGatewaySettings.h)
+		// (museGatewayClient.h / museSseClient.h / museGatewaySettings.h)
 		// expose FHttpRequestPtr members and a UDeveloperSettings base —
 		// downstream modules (SynapseObservatory, …) include those headers.
 		PublicDependencyModuleNames.AddRange(new string[]

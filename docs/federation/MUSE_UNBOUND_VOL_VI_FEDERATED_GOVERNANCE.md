@@ -1,15 +1,15 @@
-# MUSE Unbound Volume VI — Scaling Sovereignty Through Federated Governance
+# muse Unbound Volume VI — Scaling Sovereignty Through Federated Governance
 
 > **Status:** Implemented (2026-06-11). This document is the spec for the
 > Volume VI scaling layer: `hermes_cli/jarvis_prime/federation/` and
 > `hermes_cli/jarvis_prime/forge/`. The research capstone it implements
-> concluded that every MUSE mechanism has a higher-resource optimum that is
+> concluded that every muse mechanism has a higher-resource optimum that is
 > *effort-bound, not research-bound* — and that the binding constraint at
 > scale is governance, not compute. So the code ships the governance.
 
 ## The federation principle
 
-MUSE instances are **sovereign nodes, not branches of a central brain**. Each
+muse instances are **sovereign nodes, not branches of a central brain**. Each
 deployment's owner keeps local sovereignty; cross-node sharing happens by
 **content-addressed cross-attestation**, never by central control. The system
 "serves many without belonging to any" — node by node, verified link by
@@ -64,7 +64,7 @@ mode). `federation quorum finalize --file q.json --kill` calls
 
 The empirical record (OpenAI Nov 2023; Anthropic LTBT's shareholder override;
 HashiCorp/Elastic license reversals) shows mission-by-goodwill loses to
-capital. MUSE's answer is structural: Constitution v1.1 adds **Article IX —
+capital. muse's answer is structural: Constitution v1.1 adds **Article IX —
 the Anti-Goal Covenant**:
 
 - **C35 — Not a slot machine** *(fatal)*
@@ -154,10 +154,10 @@ recommendation back to Scale A:
 
 | ID | Criterion |
 |---|---|
-| K1 | No paying/regulated proving-ground user needs MUSE specifically (no PMF). |
+| K1 | No paying/regulated proving-ground user needs muse specifically (no PMF). |
 | K2 | The verifier gates still need constant manual intervention. |
 | K3 | A funding term touches the anti-goals (the slot-machine red line). |
-| K4 | Coordination cost exceeds what MUSE's workers already provide. |
+| K4 | Coordination cost exceeds what muse's workers already provide. |
 
 The Volume VI evaluation matrix ships verbatim (`EVALUATION_MATRIX`; A and B
 tie at the top of the composite — scale to B only when the capability ceiling
@@ -177,7 +177,7 @@ sovereignty guarantee — instrumented as a constitutional metric.
 
 ## Compliance evidence (`federation/compliance_matrix.py`)
 
-MUSE is already a compliance artifact: the mappings to **EU AI Act
+muse is already a compliance artifact: the mappings to **EU AI Act
 Art. 9/11/12/14/15**, **SOC 2 CC4.1/CC6.1/CC7.2/CC8.1**, and **ISO 27001
 A.5.35/A.8.15/A.8.16/A.8.32** live in `CONTROL_MAPPINGS` and the
 human-readable [compliance-evidence-matrix.md](compliance-evidence-matrix.md)
@@ -185,7 +185,7 @@ human-readable [compliance-evidence-matrix.md](compliance-evidence-matrix.md)
 content-addressed package from the **live** ledger — verbatim
 `verify_chain()` diagnostics, grant counts, record-kind histogram,
 constitution version, sovereignty report — sealed with `package_sha256` so
-the export itself is cross-attestable. MUSE supplies the evidence, **not the
+the export itself is cross-attestable. muse supplies the evidence, **not the
 certificate**: conformity assessment requires an external auditor.
 
 ## CLI reference
@@ -224,7 +224,7 @@ them (e.g. `notice_period_days`, the mission-lock rationale string):
 - **Term-sheet red lines.** The slot-machine anti-goal (C35) is an explicit
   term-sheet red line and a golden-share veto trigger. K3 encodes the check;
   the negotiation is human.
-- **Trademark.** Protect the MUSE name and glyph ("white core, spectral
+- **Trademark.** Protect the muse name and glyph ("white core, spectral
   ring") via trademark, not copyright — open code, controlled brand.
 - **Monetization that doesn't corrupt.** Support + certification +
   trust-attestation services and certified compliance evidence; avoid

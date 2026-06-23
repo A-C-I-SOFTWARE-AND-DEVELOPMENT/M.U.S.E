@@ -46,10 +46,10 @@ import com.aci.hermes.data.devicecontrol.DeviceControlCapability
 import com.aci.hermes.ui.components.CardTier
 import com.aci.hermes.ui.components.CommandCard
 import com.aci.hermes.ui.components.EmergencyStopButton
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseStatus
-import com.aci.hermes.ui.designsystem.MuseStatusDot
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museStatus
+import com.aci.hermes.ui.designsystem.museStatusDot
 import com.aci.hermes.ui.theme.JarvisTokens
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -147,23 +147,23 @@ fun DeviceControlScreen(
             state.pending?.let { pending ->
                 CommandCard(
                     title = "Confirm action",
-                    subtitle = "Muse wants to: ${pending.previewLabel}",
+                    subtitle = "muse wants to: ${pending.previewLabel}",
                     tier = CardTier.APPROVAL,
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        MuseButton(
+                        museButton(
                             onClick = { viewModel.approvePending(pending.id) },
                             text = "Approve",
-                            variant = MuseButtonVariant.Approve,
+                            variant = museButtonVariant.Approve,
                             modifier = Modifier.weight(1f),
                         )
-                        MuseButton(
+                        museButton(
                             onClick = { viewModel.dismissPending(pending.id) },
                             text = "Dismiss",
-                            variant = MuseButtonVariant.Secondary,
+                            variant = museButtonVariant.Secondary,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -172,7 +172,7 @@ fun DeviceControlScreen(
 
             // Master switch + sensitive-action posture.
             CommandCard(
-                title = "Let Muse operate this phone",
+                title = "Let muse operate this phone",
                 subtitle = "Master switch. While off, no device action runs — every request " +
                     "is logged and refused.",
                 tier = if (state.enabled) CardTier.ACTIVE else CardTier.INFO,
@@ -195,7 +195,7 @@ fun DeviceControlScreen(
             // The six capabilities.
             CommandCard(
                 title = "Capabilities",
-                subtitle = "Enable each capability you want Muse to use. You can revoke " +
+                subtitle = "Enable each capability you want muse to use. You can revoke " +
                     "consent here instantly; the action layer honors it immediately.",
             ) {
                 state.capabilities.forEachIndexed { index, row ->
@@ -225,10 +225,10 @@ fun DeviceControlScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    MuseButton(
+                    museButton(
                         onClick = viewModel::requestResume,
                         text = "Request resume",
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
@@ -239,7 +239,7 @@ fun DeviceControlScreen(
             // Action log.
             CommandCard(
                 title = "Recent device actions",
-                subtitle = "Every action Muse took or was refused, newest first.",
+                subtitle = "Every action muse took or was refused, newest first.",
                 tier = CardTier.MEMORY,
             ) {
                 if (state.recent.isEmpty()) {
@@ -265,7 +265,7 @@ fun DeviceControlScreen(
             title = { Text("Turn off confirmation?") },
             text = {
                 Text(
-                    "Muse will launch apps and tap targets immediately, without asking " +
+                    "muse will launch apps and tap targets immediately, without asking " +
                         "first. Every action is still logged, and the emergency stop still " +
                         "halts everything. Only do this if you want hands-free high-power mode.",
                 )
@@ -284,19 +284,19 @@ fun DeviceControlScreen(
 
 @Composable
 private fun ActiveIndicator(activeNow: Boolean, halted: Boolean) {
-    // Active → live (Muse operating); halted or idle → off (inert). The label
+    // Active → live (muse operating); halted or idle → off (inert). The label
     // text below still carries the halted-vs-idle distinction in words.
     val (dotStatus, label) = when {
-        halted -> MuseStatus.Off to "Halted — device control stopped"
-        activeNow -> MuseStatus.Live to "Active — Muse can operate this phone"
-        else -> MuseStatus.Off to "Idle — device control not active"
+        halted -> museStatus.Off to "Halted — device control stopped"
+        activeNow -> museStatus.Live to "Active — muse can operate this phone"
+        else -> museStatus.Off to "Idle — device control not active"
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        MuseStatusDot(status = dotStatus, size = 12.dp)
+        museStatusDot(status = dotStatus, size = 12.dp)
         Text(label, style = MaterialTheme.typography.titleSmall)
     }
 }
@@ -353,10 +353,10 @@ private fun CapabilityRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
-            val grantedStatus = if (granted) MuseStatus.Ok else MuseStatus.Off
+            val grantedStatus = if (granted) museStatus.Ok else museStatus.Off
             val statusColor =
                 if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            MuseStatusDot(status = grantedStatus, size = 8.dp)
+            museStatusDot(status = grantedStatus, size = 8.dp)
             Text(
                 if (granted) "Granted by system" else "Not granted",
                 style = MaterialTheme.typography.labelMedium,
@@ -378,7 +378,7 @@ private fun ActionLogRow(entry: DeviceActionLogEntry) {
     ) {
         // The outcome dot carries three distinct colours (ok / needs-confirm /
         // error); kept as a tinted Surface so the blocked-vs-needs-confirmation
-        // signal survives — MuseStatusDot's vocabulary can't express all three.
+        // signal survives — museStatusDot's vocabulary can't express all three.
         val color = when (entry.outcome) {
             DeviceActionLogEntry.Outcome.EXECUTED,
             DeviceActionLogEntry.Outcome.APPROVED -> MaterialTheme.colorScheme.primary

@@ -4,7 +4,7 @@ import com.aci.hermes.data.automation.AvatarClip
 import com.aci.hermes.data.life.AvatarBehavior
 
 /**
- * Pure mapping from "what Muse is doing" to the renderer-neutral
+ * Pure mapping from "what muse is doing" to the renderer-neutral
  * animation inputs every avatar renderer understands. The Rive, sprite,
  * and Filament renderers all consume an [AvatarInputs] so the same
  * blend logic drives every body — and so it's unit-testable without any

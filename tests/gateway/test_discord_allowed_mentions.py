@@ -104,7 +104,7 @@ def test_safe_defaults_block_everyone_and_roles():
     am = _build_allowed_mentions()
     assert am.everyone is False, "default must NOT allow @everyone/@here pings"
     assert am.roles is False, "default must NOT allow role pings"
-    assert am.users is True, "default must allow user pings so replies work"
+    assert amusers is True, "default must allow user pings so replies work"
     assert am.replied_user is True, "default must allow reply-reference pings"
 
 
@@ -114,14 +114,14 @@ def test_env_var_opts_back_into_everyone(monkeypatch):
     assert am.everyone is True
     # other defaults unaffected
     assert am.roles is False
-    assert am.users is True
+    assert amusers is True
     assert am.replied_user is True
 
 
 def test_env_var_can_disable_users(monkeypatch):
     monkeypatch.setenv("DISCORD_ALLOW_MENTION_USERS", "false")
     am = _build_allowed_mentions()
-    assert am.users is False
+    assert amusers is False
     # safe defaults elsewhere remain
     assert am.everyone is False
     assert am.roles is False
@@ -151,5 +151,5 @@ def test_all_four_knobs_together(monkeypatch):
     am = _build_allowed_mentions()
     assert am.everyone is True
     assert am.roles is True
-    assert am.users is False
+    assert amusers is False
     assert am.replied_user is False

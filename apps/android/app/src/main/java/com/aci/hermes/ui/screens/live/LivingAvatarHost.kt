@@ -87,7 +87,7 @@ fun JarvisOverlayContent(inputs: AvatarInputs) {
     LivingAvatarHost(
         kind = AvatarKind.Rive,
         inputs = inputs,
-        contentDescription = "Muse",
+        contentDescription = "muse",
     )
 }
 

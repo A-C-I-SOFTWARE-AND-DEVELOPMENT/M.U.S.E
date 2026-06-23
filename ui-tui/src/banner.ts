@@ -45,7 +45,7 @@ export function parseRichMarkup(markup: string): Line[] {
 
 // Fallback art (used only when a theme leaves bannerLogo/bannerHero empty —
 // e.g. light mode). The dark default renders the faithful per-character
-// markup from theme.ts (MUSE_WORDMARK / MUSE_GLYPH). M.U.S.E. block wordmark:
+// markup from theme.ts (muse_WORDMARK / muse_GLYPH). muse block wordmark:
 const LOGO_ART = [
   '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
   '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',

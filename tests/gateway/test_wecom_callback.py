@@ -60,7 +60,7 @@ class TestWecomCallbackEventConstruction:
         xml_text = """
         <xml>
           <ToUserName>ww1234567890</ToUserName>
-          <FromUserName>zhangsan</FromUserName>
+          <FromuserName>zhangsan</FromuserName>
           <CreateTime>1710000000</CreateTime>
           <MsgType>text</MsgType>
           <Content>\u4f60\u597d</Content>
@@ -80,7 +80,7 @@ class TestWecomCallbackEventConstruction:
         xml_text = """
         <xml>
           <ToUserName>ww1234567890</ToUserName>
-          <FromUserName>zhangsan</FromUserName>
+          <FromuserName>zhangsan</FromuserName>
           <CreateTime>1710000000</CreateTime>
           <MsgType>event</MsgType>
           <Event>subscribe</Event>
@@ -168,7 +168,7 @@ class TestWecomCallbackPollLoop:
             """
             <xml>
               <ToUserName>ww1234567890</ToUserName>
-              <FromUserName>lisi</FromUserName>
+              <FromuserName>lisi</FromuserName>
               <CreateTime>1710000000</CreateTime>
               <MsgType>text</MsgType>
               <Content>test</Content>

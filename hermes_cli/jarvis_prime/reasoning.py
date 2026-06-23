@@ -1,4 +1,4 @@
-"""Inductive + deductive reasoning helpers for MUSE.
+"""Inductive + deductive reasoning helpers for muse
 
 The user asked for JARVIS to "use inductive/deductive reasoning".
 This module provides two structured reasoners:

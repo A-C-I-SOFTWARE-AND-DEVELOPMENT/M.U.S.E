@@ -26,7 +26,7 @@ Simple Preference Optimization for LLM alignment. Reference-free alternative to 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # SimPO - Simple Preference Optimization
@@ -208,11 +208,11 @@ gradient_checkpointing: true
 
 ## Advanced topics
 
-**Loss functions**: See [references/loss-functions.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/simpo/references/loss-functions.md) for sigmoid vs hinge loss, mathematical formulations, and when to use each.
+**Loss functions**: See [references/loss-functions.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/optional-skills/mlops/simpo/references/loss-functions.md) for sigmoid vs hinge loss, mathematical formulations, and when to use each.
 
-**Hyperparameter tuning**: See [references/hyperparameters.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/simpo/references/hyperparameters.md) for beta, gamma, learning rate selection guide, and model-size-specific recommendations.
+**Hyperparameter tuning**: See [references/hyperparameters.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/optional-skills/mlops/simpo/references/hyperparameters.md) for beta, gamma, learning rate selection guide, and model-size-specific recommendations.
 
-**Dataset preparation**: See [references/datasets.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/simpo/references/datasets.md) for preference data formats, quality filtering, and custom dataset creation.
+**Dataset preparation**: See [references/datasets.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/optional-skills/mlops/simpo/references/datasets.md) for preference data formats, quality filtering, and custom dataset creation.
 
 ## Hardware requirements
 

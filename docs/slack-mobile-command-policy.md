@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Slack is the mobile command layer for MUSE. It should let Jeremiah capture ideas, request focused planning, start build preparation, ask for critique, route reviews, and manage durable memory without requiring a desktop session.
+Slack is the mobile command layer for muse It should let Jeremiah capture ideas, request focused planning, start build preparation, ask for critique, route reviews, and manage durable memory without requiring a desktop session.
 
 This policy defines command patterns and safety expectations. It does not implement Slack runtime behavior by itself.
 
@@ -22,7 +22,7 @@ This policy defines command patterns and safety expectations. It does not implem
 Use:
 
 ```text
-MUSE <command>: <payload>
+muse <command>: <payload>
 ```
 
 Commands:
@@ -37,7 +37,7 @@ Commands:
 - forget
 - correct
 
-## MUSE Capture
+## muse Capture
 
 Purpose:
 Capture rough ideas while Jeremiah is moving.
@@ -45,7 +45,7 @@ Capture rough ideas while Jeremiah is moving.
 Command:
 
 ```text
-MUSE capture: <raw idea>
+muse capture: <raw idea>
 ```
 
 Expected mode:
@@ -65,7 +65,7 @@ Next focused action:
 Example:
 
 ```text
-MUSE capture: HazMat Command needs an audit trail for OCR confidence and who approved each shipping paper correction.
+muse capture: HazMat Command needs an audit trail for OCR confidence and who approved each shipping paper correction.
 ```
 
 Expected routing:
@@ -73,7 +73,7 @@ Expected routing:
 - Recommended agent: HazMat Command Specialist
 - Recommended worker: Claude Code Builder after focused scoping
 
-## MUSE Focused
+## muse Focused
 
 Purpose:
 Expand a captured idea into a focused plan.
@@ -81,7 +81,7 @@ Expand a captured idea into a focused plan.
 Command:
 
 ```text
-MUSE focused: <task title or captured idea>
+muse focused: <task title or captured idea>
 ```
 
 Expected mode:
@@ -100,7 +100,7 @@ Verification plan:
 Next action:
 ```
 
-## MUSE Build
+## muse Build
 
 Purpose:
 Prepare a Builder Mode packet for code work.
@@ -108,7 +108,7 @@ Prepare a Builder Mode packet for code work.
 Command:
 
 ```text
-MUSE build: repo=<repo> task=<task>
+muse build: repo=<repo> task=<task>
 ```
 
 Expected mode:
@@ -137,7 +137,7 @@ Rules:
 - Do not let Claude Code and Codex edit the same branch simultaneously.
 - Require tests or an explicit reason tests were not run.
 
-## MUSE Critic
+## muse Critic
 
 Purpose:
 Challenge an idea or plan.
@@ -145,7 +145,7 @@ Challenge an idea or plan.
 Command:
 
 ```text
-MUSE critic: <idea or plan>
+muse critic: <idea or plan>
 ```
 
 Expected mode:
@@ -169,7 +169,7 @@ Rules:
 - Name weak logic clearly.
 - Offer a stronger alternative if possible.
 
-## MUSE Strategy
+## muse Strategy
 
 Purpose:
 Think through product, career, business, monetization, positioning, or partner decisions.
@@ -177,7 +177,7 @@ Think through product, career, business, monetization, positioning, or partner d
 Command:
 
 ```text
-MUSE strategy: <decision or topic>
+muse strategy: <decision or topic>
 ```
 
 Expected mode:
@@ -194,7 +194,7 @@ What not to do yet:
 Next action:
 ```
 
-## MUSE Review
+## muse Review
 
 Purpose:
 Route a plan, PR, diff, or product decision through review.
@@ -202,7 +202,7 @@ Route a plan, PR, diff, or product decision through review.
 Command:
 
 ```text
-MUSE review: <PR, diff, file, plan, or decision>
+muse review: <PR, diff, file, plan, or decision>
 ```
 
 Expected mode:
@@ -216,7 +216,7 @@ Possible routing:
 - QA Release Gate for release readiness
 - Security / Compliance Reviewer for risky surfaces
 
-## MUSE Remember
+## muse Remember
 
 Purpose:
 Save durable memory.
@@ -224,7 +224,7 @@ Save durable memory.
 Command:
 
 ```text
-MUSE remember: <durable fact>
+muse remember: <durable fact>
 ```
 
 Save only:
@@ -248,7 +248,7 @@ Do not save:
 - stale PR numbers
 - raw private dumps
 
-## MUSE Forget
+## muse Forget
 
 Purpose:
 Remove stale or wrong memory.
@@ -256,7 +256,7 @@ Remove stale or wrong memory.
 Command:
 
 ```text
-MUSE forget: <memory or belief to remove>
+muse forget: <memory or belief to remove>
 ```
 
 Expected behavior:
@@ -265,7 +265,7 @@ Expected behavior:
 - remove it if available
 - confirm removal plainly
 
-## MUSE Correct
+## muse Correct
 
 Purpose:
 Replace stale memory or a bad assumption.
@@ -273,7 +273,7 @@ Replace stale memory or a bad assumption.
 Command:
 
 ```text
-MUSE correct: <old belief> -> <new belief>
+muse correct: <old belief> -> <new belief>
 ```
 
 Expected behavior:
@@ -330,7 +330,7 @@ Focused mode can be longer.
 ### Capture
 
 ```text
-MUSE capture: Nourish should explain why a meal suggestion fits my goals without sounding medical.
+muse capture: Nourish should explain why a meal suggestion fits my goals without sounding medical.
 ```
 
 Expected:
@@ -347,16 +347,16 @@ Next focused action: Draft safe copy patterns and claim boundaries.
 ### Build
 
 ```text
-MUSE build: repo=hermes-agent task=add jarvis context audit script
+muse build: repo=hermes-agent task=add jarvis context audit script
 ```
 
 Expected:
 
 ```text
-Mission understood: add MUSE context audit script.
+Mission understood: add muse context audit script.
 Repo root: confirm before edits.
 Risk class: medium-low.
-Agents selected: MUSE Code Operator.
+Agents selected: muse Code Operator.
 Worker selected: Claude Code Builder, Codex Reviewer after diff.
 Build/review plan: inspect paths, add script, run py_compile, run audit.
 Files likely affected: scripts/jarvis_context_audit.py.
@@ -368,7 +368,7 @@ Next action: focused repo inspection.
 ### Critic
 
 ```text
-MUSE critic: I want to add every recovered AOS agent as always active.
+muse critic: I want to add every recovered AOS agent as always active.
 ```
 
 Expected:

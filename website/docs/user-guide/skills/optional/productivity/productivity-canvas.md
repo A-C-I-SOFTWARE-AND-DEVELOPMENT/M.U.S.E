@@ -25,7 +25,7 @@ Canvas LMS integration — fetch enrolled courses and assignments using API toke
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Canvas LMS — Course & Assignment Access
@@ -41,7 +41,7 @@ Read-only access to Canvas LMS for listing courses and assignments.
 1. Log in to your Canvas instance in a browser
 2. Go to **Account → Settings** (click your profile icon, then Settings)
 3. Scroll to **Approved Integrations** and click **+ New Access Token**
-4. Name the token (e.g., "M.U.S.E."), set an optional expiry, and click **Generate Token**
+4. Name the token (e.g., "muse"), set an optional expiry, and click **Generate Token**
 5. Copy the token and add to `~/.hermes/.env`:
 
 ```

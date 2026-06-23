@@ -6,7 +6,7 @@ description: "Run custom code at key lifecycle points — log activity, send ale
 
 # Event Hooks
 
-M.U.S.E. has three hook systems that run custom code at key lifecycle points:
+muse has three hook systems that run custom code at key lifecycle points:
 
 | System | Registered via | Runs in | Use case |
 |--------|---------------|---------|----------|
@@ -186,7 +186,7 @@ async def handle(event_type: str, context: dict):
 
 A popular pattern from the community: drop a Markdown checklist at `~/.hermes/BOOT.md`, and have the agent run it once every time the gateway starts. Useful for "on every boot, check overnight cron failures and ping me on Discord if anything failed," or "summarize the last 24h of deploy.log and post it to Slack #ops."
 
-This tutorial shows how to build it yourself as a user-defined hook. M.U.S.E. does not ship a built-in BOOT.md hook — you wire up exactly the behavior you want.
+This tutorial shows how to build it yourself as a user-defined hook. muse does not ship a built-in BOOT.md hook — you wire up exactly the behavior you want.
 
 #### What we're building
 
@@ -335,7 +335,7 @@ Delete `~/.hermes/BOOT.md` to disable the checklist — the hook stays loaded bu
 
 #### Why this isn't a built-in
 
-An earlier version of M.U.S.E. shipped this as a built-in hook and silently spawned an agent with bare defaults on every gateway boot. That surprised users with custom endpoints and made the feature invisible to users who didn't know it was running. Keeping it as a documented pattern — built by you, in your hooks directory — means you see exactly what it does and opt in by writing the files.
+An earlier version of muse shipped this as a built-in hook and silently spawned an agent with bare defaults on every gateway boot. That surprised users with custom endpoints and made the feature invisible to users who didn't know it was running. Keeping it as a documented pattern — built by you, in your hooks directory — means you see exactly what it does and opt in by writing the files.
 
 ### How It Works
 
@@ -536,7 +536,7 @@ return "Recalled memories:\n- User likes Python"
 return None
 ```
 
-**Where context is injected:** Always the **user message**, never the system prompt. This preserves the prompt cache — the system prompt stays identical across turns, so cached tokens are reused. The system prompt is M.U.S.E.'s territory (model guidance, tool enforcement, personality, skills). Plugins contribute context alongside the user's input.
+**Where context is injected:** Always the **user message**, never the system prompt. This preserves the prompt cache — the system prompt stays identical across turns, so cached tokens are reused. The system prompt is muse's territory (model guidance, tool enforcement, personality, skills). Plugins contribute context alongside the user's input.
 
 All injected context is **ephemeral** — added at API call time only. The original user message in the conversation history is never mutated, and nothing is persisted to the session database.
 
@@ -954,7 +954,7 @@ def my_callback(
 import subprocess
 
 def notify_approval(command, description, session_key, **kwargs):
-    title = "M.U.S.E. needs approval"
+    title = "muse needs approval"
     body = f"{description}: {command[:80]}"
     subprocess.Popen([
         "osascript", "-e",
@@ -1139,7 +1139,7 @@ The hook is guarded on a non-empty, non-interrupted response — it will not fir
 
 ## Shell Hooks
 
-Declare shell-script hooks in your `cli-config.yaml` and M.U.S.E. will run them as subprocesses whenever the corresponding plugin-hook event fires — in both CLI and gateway sessions. No Python plugin authoring required.
+Declare shell-script hooks in your `cli-config.yaml` and muse will run them as subprocesses whenever the corresponding plugin-hook event fires — in both CLI and gateway sessions. No Python plugin authoring required.
 
 Use shell hooks when you want a drop-in, single-file script (Bash, Python, anything with a shebang) to:
 
@@ -1180,7 +1180,7 @@ Event names must be one of the [plugin hook events](#plugin-hooks); typos produc
 
 ### JSON wire protocol
 
-Each time the event fires, M.U.S.E. spawns a subprocess for every matching hook (matcher permitting), pipes a JSON payload to **stdin**, and reads **stdout** back as JSON.
+Each time the event fires, muse spawns a subprocess for every matching hook (matcher permitting), pipes a JSON payload to **stdin**, and reads **stdout** back as JSON.
 
 **stdin — payload the script receives:**
 
@@ -1277,7 +1277,7 @@ else
 fi
 ```
 
-Claude Code's `UserPromptSubmit` event is intentionally not a separate M.U.S.E. event — `pre_llm_call` fires at the same place and already supports context injection. Use it here.
+Claude Code's `UserPromptSubmit` event is intentionally not a separate muse event — `pre_llm_call` fires at the same place and already supports context injection. Use it here.
 
 #### 4. Log every subagent completion
 
@@ -1297,7 +1297,7 @@ printf '{}\n'
 
 ### Consent model
 
-Each unique `(event, command)` pair prompts the user for approval the first time M.U.S.E. sees it, then persists the decision to `~/.hermes/shell-hooks-allowlist.json`. Subsequent runs (CLI or gateway) skip the prompt.
+Each unique `(event, command)` pair prompts the user for approval the first time muse sees it, then persists the decision to `~/.hermes/shell-hooks-allowlist.json`. Subsequent runs (CLI or gateway) skip the prompt.
 
 Three escape hatches bypass the interactive prompt — any one is sufficient:
 

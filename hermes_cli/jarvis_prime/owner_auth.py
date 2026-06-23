@@ -1,4 +1,4 @@
-"""Owner-authorization gate for MUSE.
+"""Owner-authorization gate for muse
 
 Owner-gated actions require an exact phrase before execution per
 ``docs/jarvis-prime-operating-system.md`` § Owner Gates and

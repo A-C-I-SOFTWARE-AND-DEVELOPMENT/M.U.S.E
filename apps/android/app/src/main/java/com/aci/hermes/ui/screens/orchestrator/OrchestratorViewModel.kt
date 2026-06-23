@@ -164,7 +164,7 @@ class OrchestratorViewModel(
         val prompt = promptBuilder.build(task, profile)
         val ok = HandoffLauncher.copyPrompt(
             getApplication(),
-            label = "Muse prompt",
+            label = "muse prompt",
             text = prompt,
         )
         if (ok) {

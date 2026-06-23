@@ -1,6 +1,6 @@
-# M.U.S.E. APK ↔ Termux intent bridge
+# muse APK ↔ Termux intent bridge
 
-> When the M.U.S.E. gateway runs **inside Termux on the same Android
+> When the muse gateway runs **inside Termux on the same Android
 > device**, the cockpit APK can drive it via Android's intent system
 > instead of going through a network round-trip first. This document
 > defines that bridge.
@@ -21,7 +21,7 @@ this — it lets another app start commands inside the Termux userland
 without prompting the user every time, as long as the user has granted
 the *Run external apps* permission to Termux.
 
-M.U.S.E. uses three intents only:
+muse uses three intents only:
 
 1. **`com.termux.RUN_COMMAND`** — for **start / stop / restart** of
    the gateway and for **tailing logs**.
@@ -191,7 +191,7 @@ Implemented entirely in the cockpit process — no intent required. The
 last dispatched prompt is kept in-memory in `OrchestratorViewModel`
 (it's not persisted past process death; secrets-in-prompts hygiene).
 The button fires `ClipboardManager.setPrimaryClip(...)` with a label
-of `"M.U.S.E. — last worker prompt"`.
+of `"muse — last worker prompt"`.
 
 ### 4.9 Approve publish
 
@@ -283,7 +283,7 @@ Manual:
 adb shell pm list packages com.termux
 adb shell appops get com.termux RUN_IN_BACKGROUND
 
-# 2. Inside Termux, install M.U.S.E. and start the gateway once manually:
+# 2. Inside Termux, install muse and start the gateway once manually:
 #      curl -fsSL https://hermes.example/install | bash
 #      muse gateway start --no-banner
 #    Confirm http://127.0.0.1:8080/v1/health from the host.
@@ -318,4 +318,4 @@ is intentionally not under test yet).
   long-running RPC channel.
 - No script generation. The bridge does not write scripts into the
   Termux home directory; everything it runs is a binary already in the
-  M.U.S.E. Termux install.
+  muse Termux install.

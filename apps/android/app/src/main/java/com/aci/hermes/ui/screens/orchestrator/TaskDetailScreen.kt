@@ -49,10 +49,10 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
 import com.aci.hermes.data.model.WorkerPhase
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museSectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,7 +180,7 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // --- MUSE worker-card fields ---
+            // --- muse worker-card fields ---
             EnumDropdown(
                 label = stringResource(R.string.task_field_risk_tier),
                 selected = state.task.riskTier,
@@ -238,7 +238,7 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            MuseCard(modifier = Modifier.fillMaxWidth()) {
+            museCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AssistChip(
@@ -255,7 +255,7 @@ fun TaskDetailScreen(
                         }
                     }
                     HorizontalDivider()
-                    MuseSectionHeader(title = stringResource(R.string.task_detail_prompt_preview))
+                    museSectionHeader(title = stringResource(R.string.task_detail_prompt_preview))
                     Text(
                         text = state.promptPreview,
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -264,15 +264,15 @@ fun TaskDetailScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MuseButton(
+                museButton(
                     onClick = viewModel::markHandedOff,
                     text = stringResource(R.string.task_detail_mark_handed_off),
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                 )
-                MuseButton(
+                museButton(
                     onClick = viewModel::save,
                     text = stringResource(R.string.action_save),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     enabled = !state.saving,
                 )
             }

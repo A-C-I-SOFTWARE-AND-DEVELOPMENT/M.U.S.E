@@ -1,7 +1,7 @@
-# MUSE — finish roadmap (Android)
+# muse — finish roadmap (Android)
 
 This document defines the **fastest safe build order** to take the
-shipped *Hermes Agent* Android app to a faithful MUSE
+shipped *Hermes Agent* Android app to a faithful muse
 cockpit. Five waves, each one small enough to ship as a single PR,
 each one independently green on `assembleDebug` + `lintDebug`.
 
@@ -16,7 +16,7 @@ each one independently green on `assembleDebug` + `lintDebug`.
 
 ## Wave 0 — rebrand only (low risk, immediate user value)
 
-Goal: the user uninstalls *Hermes Agent* and reinstalls *MUSE
+Goal: the user uninstalls *Hermes Agent* and reinstalls *muse
 Prime* and sees a single coherent product. Zero behavior change.
 
 PR shape: one PR, ≤ 30 files touched, no manifest changes beyond
@@ -27,7 +27,7 @@ labels/icons.
    string **keys** stable (`orchestrator_*`) so Compose code does
    not move; only swap values.
 2. **Splash.** Update `SplashScreen.kt:41,46` to show the new
-   MUSE mark + label. Keep the 600 ms delay so existing UI
+   muse mark + label. Keep the 600 ms delay so existing UI
    tests (future) still match timing.
 3. **Theme.** Rename `Theme.HermesAgent` → `Theme.JarvisPrime` in
    `themes.xml` and the manifest. Rename color tokens in
@@ -46,7 +46,7 @@ labels/icons.
 7. **Docs.** Rewrite `apps/android/README.md` and
    `apps/android/docs/ARCHITECTURE.md` to reflect the shipped
    reality: a local prompt-builder cockpit being uplifted to the
-   MUSE cockpit. Move all stale "future network client"
+   muse cockpit. Move all stale "future network client"
    prose to the cockpit/gateway spec under `docs/android/`.
 8. **Verification.** `./gradlew assembleDebug` + `lintDebug`
    green; install on emulator; eyeball the splash + dashboard.
@@ -63,7 +63,7 @@ Risk: LOW. Pure cosmetic. Rollback = `git revert`.
 
 ---
 
-## Wave 1 — MUSE gateway client + cockpit skeleton
+## Wave 1 — muse gateway client + cockpit skeleton
 
 Goal: the app can read the gateway's health + job list + per-job
 diff and validation summary. Approvals are read-only here; deciding
@@ -136,7 +136,7 @@ default it OFF for one release before flipping.
 
 ## Wave 2 — approvals, gates, owner authorization, modes, memory
 
-Goal: cockpit becomes a faithful MUSE surface — gates are
+Goal: cockpit becomes a faithful muse surface — gates are
 visible, approvals can be decided, owner authorization is captured
 the way the Python runtime expects, modes are user-selectable.
 
@@ -155,7 +155,7 @@ PR shape: 2 PRs.
      `hermes_cli/jarvis_prime/owner_auth.py:AUTHORIZATION_PHRASE`.
      Authorization is **not** persisted across launches.
 2. **Gates panel.**
-   - `GatesPanel.kt` Composable visualizing the 8 MUSE
+   - `GatesPanel.kt` Composable visualizing the 8 muse
      gates with `GateOutcome` colors and per-gate evidence link.
    - Embedded into `JobDetailScreen` and `TaskDetailScreen`.
 3. **Memory.**
@@ -322,7 +322,7 @@ Risk: LOW. Tests cannot regress runtime behavior.
 
 | # | Blocker | Decision needed before | Recommendation |
 |---|---|---|---|
-| BLK-01 | Keep `com.aci.hermes` package id, or migrate? | W0 | **Keep**. User-visible label can read "MUSE" without breaking install upgrade path. |
+| BLK-01 | Keep `com.aci.hermes` package id, or migrate? | W0 | **Keep**. User-visible label can read "muse" without breaking install upgrade path. |
 | BLK-02 | Keep `hermes_orchestrator` notification channel id, or migrate? | W0 | **Keep**. Renaming the id orphans user-customized importance settings. |
 | BLK-03 | Keep `hermes_secure_prefs.xml` exclusion in backup_rules.xml + data_extraction_rules.xml? | W1 | **Keep**. Forward compat — the file is the natural home for the gateway token when W1 lands. |
 | BLK-04 | When to add `INTERNET`? | W1 | First commit of W1 — adding it earlier (e.g. in W0) without using it triggers Play Console scrutiny without benefit. |
@@ -337,7 +337,7 @@ Risk: LOW. Tests cannot regress runtime behavior.
 
 | Surface | Tests | Status |
 |---|---|---|
-| MUSE Python runtime (`hermes_cli/jarvis_prime/`) | 159 | All passing in 2.91 s |
+| muse Python runtime (`hermes_cli/jarvis_prime/`) | 159 | All passing in 2.91 s |
 | Android unit tests | 0 | Directory does not exist |
 | Android instrumented tests | 0 | Directory does not exist |
 | CI `assembleDebug` | 1 workflow | Green on main (last run on PR #89 chore/trigger-android-build) |

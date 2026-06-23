@@ -61,7 +61,7 @@ keytool -genkeypair -v \
   -alias jarvis \
   -keyalg RSA -keysize 4096 -validity 10000 \
   -storepass '<store-pass>' -keypass '<key-pass>' \
-  -dname "CN=MUSE, O=ACI Software and Development, C=US"
+  -dname "CN=muse O=ACI Software and Development, C=US"
 ```
 
 Keep the `.jks` and both passwords backed up offline. **If you lose them

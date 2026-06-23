@@ -21,8 +21,8 @@ written to `<Project>/Saved/muse_token.txt`.
    Blueprint*. All wiring below happens on the **Event BeginPlay** graph.
 
 3. **Get the subsystem.** From BeginPlay, add node *Get
-   MuseGatewayClient* (category `Game Instance Subsystems`). This is
-   `UMuseGatewayClient` — it exists automatically; nothing to spawn.
+   museGatewayClient* (category `Game Instance Subsystems`). This is
+   `UmuseGatewayClient` — it exists automatically; nothing to spawn.
 
 4. **Bind the delegates.** From the subsystem node, add *Bind Event to On
    Gateway Health* and *Bind Event to On Capabilities*. Wire each to a
@@ -38,7 +38,7 @@ written to `<Project>/Saved/muse_token.txt`.
    (filter on `LogSynapseNet`). Success is proven by ALL of:
 
    ```
-   LogSynapseNet: MuseGatewayClient ready. Gateway=http://127.0.0.1:8787 TokenFile=... Token=<redacted>
+   LogSynapseNet: museGatewayClient ready. Gateway=http://127.0.0.1:8787 TokenFile=... Token=<redacted>
    LogSynapseNet: /v1/health -> HTTP 200 ok=true
    LogSynapseNet: /v1/cockpit/capabilities -> HTTP 200 (… bytes)
    ```
@@ -49,7 +49,7 @@ written to `<Project>/Saved/muse_token.txt`.
    `/v1/cockpit/capabilities -> HTTP 401` warning means the token file is
    missing or doesn't match — fix `Saved/muse_token.txt` and replay.
 
-Optional SSE smoke: construct a `MuseSseClient` object (Construct Object
+Optional SSE smoke: construct a `museSseClient` object (Construct Object
 from Class), bind *On Sse Event* to a Print String, call *Start* with
 `/v1/observatory/stream`, and watch the stub's scripted Observatory loop
 print (~1 event/s: `job.stage`, `node.activate`, `route.decision`,

@@ -20,20 +20,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import android.content.Context
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.aci.hermes.data.cockpit.ServerCapabilities
-import com.aci.hermes.data.update.ApkInstaller
-import com.aci.hermes.data.update.UpdateState
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
 import com.aci.hermes.ui.theme.JarvisTokens
@@ -77,12 +73,6 @@ fun ReleaseCenterScreen(
                 Line("Application id", viewModel.applicationId)
             }
 
-            UpdateCard(
-                update = state.update,
-                fallbackApkUrl = viewModel.downloadUrl,
-                onRecheck = viewModel::checkForUpdate,
-            )
-
             SectionCard("Download & install") {
                 Text(
                     "The latest APK is published as a rolling GitHub release, refreshed on " +
@@ -96,10 +86,10 @@ fun ReleaseCenterScreen(
                     color = JarvisSignalDim,
                     fontFamily = FontFamily.Monospace,
                 )
-                MuseButton(
+                museButton(
                     onClick = { clipboard.setText(AnnotatedString(viewModel.downloadUrl)) },
                     text = "Copy download link",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                 )
                 Text(
                     "Install: open the link on your phone, download the .apk, tap it, allow " +
@@ -144,96 +134,6 @@ fun ReleaseCenterScreen(
     }
 }
 
-/**
- * Manual "install update" affordance. Shows whether the rolling channel has a
- * newer build and offers a single visible action that downloads it and opens
- * the system installer (installing the newer build updates in place). No
- * background/auto behavior — the user taps to install.
- */
-@Composable
-private fun UpdateCard(
-    update: UpdateState,
-    fallbackApkUrl: String,
-    onRecheck: () -> Unit,
-) {
-    val context = LocalContext.current
-    SectionCard("Update") {
-        when (update) {
-            is UpdateState.Checking ->
-                Text(
-                    "Checking the rolling channel for a newer build…",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = JarvisSignalDim,
-                )
-
-            is UpdateState.UpToDate -> {
-                Text(
-                    "You're on the latest published build (${update.versionName}).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = JarvisSignalDim,
-                )
-                MuseButton(
-                    onClick = { startInstall(context, fallbackApkUrl) },
-                    text = "Reinstall latest",
-                    variant = MuseButtonVariant.Secondary,
-                )
-            }
-
-            is UpdateState.Available -> {
-                Text(
-                    "Update available: ${update.versionName}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = JarvisSignal,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (update.notes.isNotBlank()) {
-                    Text(
-                        update.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = JarvisSignalDim,
-                    )
-                }
-                MuseButton(
-                    onClick = { startInstall(context, update.apkUrl) },
-                    text = "Download & install update",
-                    variant = MuseButtonVariant.Primary,
-                )
-                Text(
-                    "You'll be asked to allow installs from MUSE (once) and to confirm the " +
-                        "install in the system dialog.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = JarvisSignalDim,
-                )
-            }
-
-            is UpdateState.Unknown -> {
-                Text(
-                    update.reason,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = JarvisSignalDim,
-                )
-                MuseButton(
-                    onClick = onRecheck,
-                    text = "Check again",
-                    variant = MuseButtonVariant.Secondary,
-                )
-            }
-        }
-    }
-}
-
-/**
- * Either send the user to grant "install unknown apps" (first time) or start the
- * visible download → system-installer flow. Always user-approved.
- */
-private fun startInstall(context: Context, apkUrl: String) {
-    if (!ApkInstaller.canInstall(context)) {
-        ApkInstaller.requestInstallPermission(context)
-    } else {
-        ApkInstaller.downloadAndInstall(context, apkUrl)
-    }
-}
-
 @Composable
 private fun BackendCard(
     capabilities: ServerCapabilities?,
@@ -248,13 +148,13 @@ private fun BackendCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = JarvisSignalDim,
             )
-            MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Secondary)
+            museButton(onClick = onRetry, text = "Retry", variant = museButtonVariant.Secondary)
         } else {
             Line("Gateway version", capabilities.gatewayVersion.ifBlank { "—" })
             Line("API version", capabilities.apiVersion.ifBlank { "—" })
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseChip(label = if (capabilities.executeAllowed) "execute allowed" else "execute blocked")
-                MuseChip(label = if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate")
+                museChip(label = if (capabilities.executeAllowed) "execute allowed" else "execute blocked")
+                museChip(label = if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate")
             }
             if (capabilities.detectedClis.isNotEmpty()) {
                 Line("Detected CLIs", capabilities.detectedClis.joinToString(", "))
@@ -265,7 +165,7 @@ private fun BackendCard(
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             content()

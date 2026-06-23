@@ -1,13 +1,13 @@
 # G0.3 — Android design-system module (snapshot)
 
-**Grain:** G0.3 — Android Compose design-system module for the MUSE app.
+**Grain:** G0.3 — Android Compose design-system module for the muse app.
 **Branch:** `claude/muse-app-g03-android-ds`
 **Base commit:** `d22c3e4a1efe779e234b0428f82484f8b457f9ce` (`git rev-parse origin/main`).
 **Worktree:** `/home/user/hermes-agent/.claude/worktrees/agent-a778aff2779dd2739`.
 
 ## Intent
 
-Express the MUSE visual design language (`docs/brand/muse-design-language.md`
+Express the muse visual design language (`docs/brand/muse-design-language.md`
 — the Singularity look: one white core in the void, one thin spectral
 cyan→violet ring, value-not-effects hierarchy, no drop shadows, bloom the core
 only) as a **reusable Jetpack Compose component library**, built **only** from
@@ -19,43 +19,43 @@ to any existing file (theme, screens, Gradle, ledger).
 
 New Compose package `com.aci.hermes.ui.designsystem`:
 
-- `apps/android/app/src/main/java/com/aci/hermes/ui/designsystem/MuseMotion.kt`
+- `apps/android/app/src/main/java/com/aci/hermes/ui/designsystem/museMotion.kt`
   — motion tokens: durations 150 / 250 / 350 ms + `StandardEasing` /
   `EmphasizedEasing` (`CubicBezierEasing`) and `fast()` / `standard()` /
   `emphasized()` `tween` factories.
-- `.../MuseGlyph.kt` — Canvas mark: white core + stacked cool-white radial
+- `.../museGlyph.kt` — Canvas mark: white core + stacked cool-white radial
   bloom (core only) + matte spectral cyan→violet ring (arc with a single gap),
   rotated -32°. No ring glow. Cool-white bloom tints are defined *locally* as
   derived glows (the brand doc explicitly calls these derived, not tokens) so
   `Color.kt` is untouched; the brand colors (`JarvisGold`/`JarvisCyan`/
   `JarvisViolet`) are reused.
-- `.../MuseButton.kt` — `MuseButton` + `MuseButtonVariant` (Primary = white
+- `.../museButton.kt` — `museButton` + `museButtonVariant` (Primary = white
   core fill / void text; Secondary = void-3 + edge hairline border; Danger;
   Approve). Optional leading icon.
-- `.../MuseCard.kt` — void-3 fill, edge hairline, 12dp radius, zero
+- `.../museCard.kt` — void-3 fill, edge hairline, 12dp radius, zero
   shadow/tonal elevation (value-not-effects).
-- `.../MusePill.kt` — `MuseStatusPill` (dot + label capsule) and `MuseChip`
+- `.../musePill.kt` — `museStatusPill` (dot + label capsule) and `museChip`
   (neutral / selected core-fill / clickable).
-- `.../MuseStatusDot.kt` — `MuseStatus` (Off / Ok / Live / Connecting) + the
+- `.../museStatusDot.kt` — `museStatus` (Off / Ok / Live / Connecting) + the
   glowing dot; Connecting pulses (freezable via `animate = false`).
-- `.../MusePhaseRail.kt` — `MusePhase` / `MusePhaseState` + the rail:
+- `.../musePhaseRail.kt` — `musePhase` / `musePhaseState` + the rail:
   done = cyan ring, current = white core (tight bloom), failed = danger,
   pending = muted hollow, connecting bars lit cyan once reached.
-- `.../MuseSectionHeader.kt` — title + optional subtitle + optional trailing
+- `.../museSectionHeader.kt` — title + optional subtitle + optional trailing
   slot.
-- `.../MuseEmptyState.kt` — glyph + title + body + optional primary action.
+- `.../museEmptyState.kt` — glyph + title + body + optional primary action.
 - `.../DesignSystemGallery.kt` — `@Preview`-annotated catalog rendering every
   component on the void background.
 
 New tests under `com.aci.hermes.ui.designsystem`:
 
-- `apps/android/app/src/test/java/com/aci/hermes/ui/designsystem/MuseComponentsSmokeTest.kt`
+- `apps/android/app/src/test/java/com/aci/hermes/ui/designsystem/museComponentsSmokeTest.kt`
   — Robolectric/Compose smoke tests (button variants, card, pill, chip,
   section header, empty state, phase rail) asserting render + basic semantics.
-- `.../MuseGlyphSmokeTest.kt` — composes the canvas-only marks (glyph, status
+- `.../museGlyphSmokeTest.kt` — composes the canvas-only marks (glyph, status
   dot in every state) and the full gallery, asserting they build and lay out
   without crashing.
-- `.../MuseMotionTest.kt` — pure-JVM checks of the motion durations and that
+- `.../museMotionTest.kt` — pure-JVM checks of the motion durations and that
   the `tween` factories carry them.
 
 Snapshot: `docs/launch/muse-app/g03-android-ds.md` (this file).
@@ -64,10 +64,10 @@ Snapshot: `docs/launch/muse-app/g03-android-ds.md` (this file).
 
 - **White core is the hero**; spectral color is a sparing accent (the ring,
   the cyan status states). Primary button = the core rendered as a CTA.
-- **Bloom the core only; ring is matte** — `MuseGlyph` blooms the core with
+- **Bloom the core only; ring is matte** — `museGlyph` blooms the core with
   stacked cool-white radial halos and draws the ring as a plain
   cyan→violet-gradient arc with round caps and **no** glow.
-- **Value, not effects** — `MuseCard` uses zero elevation + an edge hairline;
+- **Value, not effects** — `museCard` uses zero elevation + an edge hairline;
   no drop shadows anywhere.
 - **Motion is deliberate, not bouncy** — `tween`s only, no springs.
 
@@ -111,7 +111,7 @@ Snapshot: `docs/launch/muse-app/g03-android-ds.md` (this file).
 ## Residual risks
 
 1. **Compilation unverified locally** (Android SDK absent). Mitigated by the
-   self-review above; CI is the gate. Highest-risk surface is `MuseGlyph`'s
+   self-review above; CI is the gate. Highest-risk surface is `museGlyph`'s
    arc geometry — it will *compile* for certain (APIs match repo usage); the
    exact gap angle / bloom radii are visual-tuning knobs, not correctness.
 2. **`@Preview` in `main`** relies on `ui-tooling-preview` being on the

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Nix & NixOS Setup"
-description: "Install and deploy M.U.S.E. with Nix — from quick `nix run` to fully declarative NixOS module with container mode"
+description: "Install and deploy muse with Nix — from quick `nix run` to fully declarative NixOS module with container mode"
 ---
 
 # Nix & NixOS Setup
 
-M.U.S.E. ships a Nix flake with three levels of integration:
+muse ships a Nix flake with three levels of integration:
 
 | Level | Who it's for | What you get |
 |-------|-------------|--------------|
@@ -35,11 +35,11 @@ No clone needed. Nix fetches, builds, and runs everything:
 
 ```bash
 # Run directly (builds on first use, cached after)
-nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E -- setup
-nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E -- chat
+nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse -- setup
+nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse -- chat
 
 # Or install persistently
-nix profile install github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+nix profile install github:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse
 muse setup
 muse chat
 ```
@@ -50,7 +50,7 @@ After `nix profile install`, `hermes`, `hermes-agent`, and `hermes-acp` are on y
 <summary><strong>Building from a local clone</strong></summary>
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
 cd hermes-agent
 nix build
 ./result/bin/muse setup
@@ -75,7 +75,7 @@ This module requires NixOS. For non-NixOS systems (macOS, other Linux distros), 
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E";
+    hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse";
   };
 
   outputs = { nixpkgs, hermes-agent, ... }: {
@@ -229,7 +229,7 @@ services.hermes-agent.settings = {
 Both are deep-merged at evaluation time. Nix-declared keys always win over keys in an existing `config.yaml` on disk, but **user-added keys that Nix doesn't touch are preserved**. This means if the agent or a manual edit adds keys like `skills.disabled` or `streaming.enabled`, they survive `nixos-rebuild switch`.
 
 :::note Model naming
-`settings.model.default` uses the model identifier your provider expects. With [OpenRouter](https://openrouter.ai) (the default), these look like `"anthropic/claude-sonnet-4"` or `"google/gemini-3-flash"`. If you're using a provider directly (Anthropic, OpenAI), set `settings.model.base_url` to point at their API and use their native model IDs (e.g., `"claude-sonnet-4-20250514"`). When no `base_url` is set, M.U.S.E. defaults to OpenRouter.
+`settings.model.default` uses the model identifier your provider expects. With [OpenRouter](https://openrouter.ai) (the default), these look like `"anthropic/claude-sonnet-4"` or `"google/gemini-3-flash"`. If you're using a provider directly (Anthropic, OpenAI), set `settings.model.base_url` to point at their API and use their native model IDs (e.g., `"claude-sonnet-4-20250514"`). When no `base_url` is set, muse defaults to OpenRouter.
 :::
 
 :::tip Discovering available config keys
@@ -337,7 +337,7 @@ Quick reference for the most common things Nix users want to customize:
 Values in Nix expressions end up in `/nix/store`, which is world-readable. Always use `environmentFiles` with a secrets manager.
 :::
 
-Both `environment` (non-secret vars) and `environmentFiles` (secret files) are merged into `$HERMES_HOME/.env` at activation time (`nixos-rebuild switch`). M.U.S.E. reads this file on every startup, so changes take effect with a `systemctl restart hermes-agent` — no container recreation needed.
+Both `environment` (non-secret vars) and `environmentFiles` (secret files) are merged into `$HERMES_HOME/.env` at activation time (`nixos-rebuild switch`). muse reads this file on every startup, so changes take effect with a `systemctl restart hermes-agent` — no container recreation needed.
 
 ### sops-nix
 
@@ -396,12 +396,12 @@ The file is only copied if `auth.json` doesn't already exist (unless `authFileFo
 
 ## Documents
 
-The `documents` option installs files into the agent's working directory (the `workingDirectory`, which the agent reads as its workspace). M.U.S.E. looks for specific filenames by convention:
+The `documents` option installs files into the agent's working directory (the `workingDirectory`, which the agent reads as its workspace). muse looks for specific filenames by convention:
 
 - **`USER.md`** — context about the user the agent is interacting with.
 - Any other files you place here are visible to the agent as workspace files.
 
-The agent identity file is separate: M.U.S.E. loads its primary `SOUL.md` from `$HERMES_HOME/SOUL.md`, which in the NixOS module is `${services.hermes-agent.stateDir}/.hermes/SOUL.md`. Putting `SOUL.md` in `documents` only creates a workspace file and will not replace the main persona file.
+The agent identity file is separate: muse loads its primary `SOUL.md` from `$HERMES_HOME/SOUL.md`, which in the NixOS module is `${services.hermes-agent.stateDir}/.hermes/SOUL.md`. Putting `SOUL.md` in `documents` only creates a workspace file and will not replace the main persona file.
 
 ```nix
 {
@@ -455,7 +455,7 @@ Environment variables in `env` values are resolved from `$HERMES_HOME/.env` at r
 
 ### HTTP Transport with OAuth
 
-Set `auth = "oauth"` for servers using OAuth 2.1. M.U.S.E. implements the full PKCE flow — metadata discovery, dynamic client registration, token exchange, and automatic refresh.
+Set `auth = "oauth"` for servers using OAuth 2.1. muse implements the full PKCE flow — metadata discovery, dynamic client registration, token exchange, and automatic refresh.
 
 ```nix
 {
@@ -471,7 +471,7 @@ Tokens are stored in `$HERMES_HOME/mcp-tokens/<server-name>.json` and persist ac
 <details>
 <summary><strong>Initial OAuth authorization on headless servers</strong></summary>
 
-The first OAuth authorization requires a browser-based consent flow. In a headless deployment, M.U.S.E. prints the authorization URL to stdout/logs instead of opening a browser.
+The first OAuth authorization requires a browser-based consent flow. In a headless deployment, muse prints the authorization URL to stdout/logs instead of opening a browser.
 
 **Option A: Interactive bootstrap** — run the flow once via `docker exec` (container) or `sudo -u hermes` (native):
 
@@ -620,7 +620,7 @@ services.hermes-agent.extraPlugins = [
 ];
 ```
 
-Plugins are symlinked into `$HERMES_HOME/plugins/` at activation time. M.U.S.E. discovers them via its normal directory scan. Removing a plugin from the list and running `nixos-rebuild switch` removes the symlink.
+Plugins are symlinked into `$HERMES_HOME/plugins/` at activation time. muse discovers them via its normal directory scan. Removing a plugin from the list and running `nixos-rebuild switch` removes the symlink.
 
 ### Entry-Point Plugins (`extraPythonPackages`)
 
@@ -685,7 +685,7 @@ External flakes can override the package directly:
 
 ```nix
 {
-  inputs.hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E";
+  inputs.hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse";
   outputs = { hermes-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ hermes-agent.overlays.default ];
     # Then:
@@ -884,7 +884,7 @@ Same layout, mounted into the container:
 
 | Container path | Host path | Mode | Notes |
 |---|---|---|---|
-| `/nix/store` | `/nix/store` | `ro` | M.U.S.E. binary + all Nix deps |
+| `/nix/store` | `/nix/store` | `ro` | muse binary + all Nix deps |
 | `/data` | `/var/lib/hermes` | `rw` | All state, config, workspace |
 | `/home/hermes` | `${stateDir}/home` | `rw` | Persistent agent home — `pip install --user`, tool caches |
 | `/usr`, `/usr/local`, `/tmp` | (writable layer) | `rw` | `apt`/`pip`/`npm` installs — persists across restarts, lost on recreation |

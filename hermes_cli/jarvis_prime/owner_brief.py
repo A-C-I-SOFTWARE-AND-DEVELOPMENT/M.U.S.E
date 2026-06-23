@@ -1,4 +1,4 @@
-"""Daily owner brief for MUSE.
+"""Daily owner brief for muse
 
 Aggregates monitor results into a structured brief the owner can read in
 under a minute:

@@ -25,7 +25,7 @@ import com.aci.hermes.data.model.SocialPatternKind
  *    in the source and stripped, which the card surfaces as
  *    "private identity flagged" and escalates to HIGH risk.
  *  - **safe / unsafe usage** — the abstract guidance for the pattern.
- *    Unsafe usage is the universal MUSE boundary (never
+ *    Unsafe usage is the universal muse boundary (never
  *    impersonate, never attach identity, never manipulate); safe
  *    usage is tailored to the inferred [SocialPatternKind].
  *  - **provenance** — mapped from the item's single source into the
@@ -126,7 +126,7 @@ object SocialPatternProjection {
     }
 
     /**
-     * The universal MUSE boundary for every social speech
+     * The universal muse boundary for every social speech
      * pattern. This mirrors the mission's blocked list and never
      * changes per-pattern.
      */

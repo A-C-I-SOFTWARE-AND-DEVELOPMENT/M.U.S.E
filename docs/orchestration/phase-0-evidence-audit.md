@@ -1,4 +1,4 @@
-# Phase 0 — Evidence Audit for M.U.S.E. Prompt-First Orchestration
+# Phase 0 — Evidence Audit for muse Prompt-First Orchestration
 
 > **Status:** Read-only audit. No features implemented. No code edited. This
 > document is the factual baseline that later phases (1+) will build on.
@@ -11,7 +11,7 @@
 
 ## 1. Executive verdict
 
-The M.U.S.E. repository is a **mature, shipping AI-agent framework**
+The muse repository is a **mature, shipping AI-agent framework**
 (~35k LOC across `cli.py`, `gateway/run.py`, `hermes_cli/commands.py`,
 `toolsets.py` alone, plus a deep `agent/` package and a large plugin
 ecosystem). It already provides most of the *primitives* the proposed
@@ -20,7 +20,7 @@ slash-command dispatch, a kanban multi-agent dispatcher, a cron
 scheduler, a webhook gateway, MCP server, plugins, a memory subsystem,
 and a self-improvement loop hook in `agent/background_review.py`.
 
-It does **not** currently contain the specific AOS / M.U.S.E.
+It does **not** currently contain the specific AOS / muse
 "orchestration council" described in the brief. In particular:
 
 - There is **no `.claude/` directory** anywhere in the repo (no
@@ -42,7 +42,7 @@ It does **not** currently contain the specific AOS / M.U.S.E.
   an 8-role council with a different naming taxonomy
   (`orchestrator`, `finance`, `hr`, `customer-service`, `operations`,
   `sales`, `judge`, `monitor`). It demonstrates that a multi-agent
-  council pattern already runs inside M.U.S.E. via the skill system.
+  council pattern already runs inside muse via the skill system.
 - A `self-improvement-loop` *reference document* is alluded to in
   `agent/background_review.py:15` and `agent/system_prompt.py:7` as
   `references/self-improvement-loop.md` inside a `hermes-agent-dev`
@@ -51,7 +51,7 @@ It does **not** currently contain the specific AOS / M.U.S.E.
   `skills/autonomous-ai-agents/hermes-agent/` exist).
 
 **Bottom line:** Phase 1 cannot simply "convert `.claude/agents/*.md`
-into M.U.S.E. skills" because the source agent files do not exist in
+into muse skills" because the source agent files do not exist in
 this repository. Phase 1's plan needs to be re-grounded against what
 is actually here. See §10 (Recommended phase dependencies).
 
@@ -92,7 +92,7 @@ is actually here. See §10 (Recommended phase dependencies).
 - `mini_swe_runner.py`, `batch_runner.py`, `run_agent.py` (180 KB),
   `trajectory_compressor.py`, `model_tools.py`.
 - `hermes-already-has-routines.md` — marketing doc demonstrating
-  M.U.S.E.' existing cron / webhook / API-trigger automation parity
+  muse' existing cron / webhook / API-trigger automation parity
   with Claude Code Routines.
 - `docs/hermes-local-orchestrator.md` — describes an **Android**
   app's "local orchestrator" pattern (not the agent council).
@@ -101,7 +101,7 @@ is actually here. See §10 (Recommended phase dependencies).
 
 ---
 
-## 3. Confirmed features (what M.U.S.E. already has)
+## 3. Confirmed features (what muse already has)
 
 ### 3.1 Skill registry + slash-command dispatch
 - `agent/skill_commands.py` scans `skills/`, `optional-skills/`, and
@@ -193,7 +193,7 @@ is actually here. See §10 (Recommended phase dependencies).
   `sales`, `judge`, `monitor` plus `shared/policy.md` and
   `shared/audit.md`.
 - Runtime shim lives at `enterprise/` (Python).
-- Proves M.U.S.E. can host a council via the skill system today.
+- Proves muse can host a council via the skill system today.
 
 ### 3.12 Test infrastructure
 - Pytest suite under `tests/` (~20 subdirs).
@@ -218,7 +218,7 @@ is actually here. See §10 (Recommended phase dependencies).
 > later phases can land.
 
 - **No `.claude/` directory at all** — no `agents/`, no `commands/`.
-  Phase 1's premise ("Convert each `.claude/agents/*.md` into M.U.S.E.
+  Phase 1's premise ("Convert each `.claude/agents/*.md` into muse
   skills") has no source files to convert.
 - **No root `CLAUDE.md`** — the naming-drift fix described in the
   brief (`contrarian-red-flag-analyst` → `contrarian-reviewer`)
@@ -252,7 +252,7 @@ is actually here. See §10 (Recommended phase dependencies).
 - *No "developer UX command center"* skill (the closest analogue is
   the `hermes` TUI + `hermes_cli/web_server.py` dashboard, but
   neither is exposed as a prompt-callable orchestration skill).
-- *No "GitHub publisher" skill* — M.U.S.E. uses GitHub via webhooks,
+- *No "GitHub publisher" skill* — muse uses GitHub via webhooks,
   the GitHub MCP, and tool-level calls, not via a dedicated skill.
 - *No "codex dispatch governor"* — `agent/codex_runtime.py` and
   `agent/codex_responses_adapter.py` exist but there is no orchestration
@@ -282,10 +282,10 @@ role-shaped prompts**:
 | `skills/enterprise-council/sales/SKILL.md` | Domain leaf |
 | `skills/devops/kanban-orchestrator/SKILL.md` | Decomposition playbook for orchestrator profiles |
 | `skills/devops/kanban-worker/SKILL.md` | Worker lifecycle for kanban worker profiles |
-| `skills/autonomous-ai-agents/hermes-agent/SKILL.md` | Self-knowledge skill ("how to work with M.U.S.E.") |
-| `skills/autonomous-ai-agents/claude-code/SKILL.md` | How M.U.S.E. drives Claude Code |
-| `skills/autonomous-ai-agents/codex/SKILL.md` | How M.U.S.E. drives Codex |
-| `skills/autonomous-ai-agents/opencode/SKILL.md` | How M.U.S.E. drives OpenCode |
+| `skills/autonomous-ai-agents/hermes-agent/SKILL.md` | Self-knowledge skill ("how to work with muse") |
+| `skills/autonomous-ai-agents/claude-code/SKILL.md` | How muse drives Claude Code |
+| `skills/autonomous-ai-agents/codex/SKILL.md` | How muse drives Codex |
+| `skills/autonomous-ai-agents/opencode/SKILL.md` | How muse drives OpenCode |
 
 There are also dynamic profile-based "agents" defined per user under
 `~/.hermes/` (configured via `muse profile`); these are not files
@@ -350,7 +350,7 @@ in this repo.
 
 ## 7. Existing command surfaces
 
-### 7.1 M.U.S.E. CLI (`muse …`)
+### 7.1 muse CLI (`muse …`)
 Implemented through `hermes_cli/main.py` (509 KB) and dispatch table
 `hermes_cli/commands.py:CommandDef` / `_build_command_lookup`.
 Selected entry points visible in `commands.py` + neighbouring files:
@@ -389,7 +389,7 @@ debug / dev subcommands (`muse debug …`, `muse dump`, etc.).
   used for kanban / achievements / example-dashboard plugin UIs.
 
 ### 7.6 MCP server
-- `mcp_serve.py` — M.U.S.E. can expose its tools over MCP.
+- `mcp_serve.py` — muse can expose its tools over MCP.
 
 ### 7.7 ACP server
 - `acp_adapter/`, `acp_registry/` — VS Code / Zed / JetBrains.
@@ -438,9 +438,9 @@ file at import time) and is surfaced through `model_tools.py` and
    - (a) Treat `skills/enterprise-council/` as the existing council
      baseline and *rename / extend* it into the proposed
      `aos-full-agent-team`.
-   - (b) Author the proposed agents **from scratch** as M.U.S.E. skills
+   - (b) Author the proposed agents **from scratch** as muse skills
      under `skills/` (skipping the `.claude/agents` intermediate
-     entirely, since M.U.S.E.' skill dispatch already does what those
+     entirely, since muse' skill dispatch already does what those
      files would do).
    - (c) Import a known external `.claude/agents/*.md` collection
      into `.claude/agents/` first, then convert. The brief does not
@@ -514,7 +514,7 @@ file at import time) and is surfaced through `model_tools.py` and
    `hermes-agent-dev` doc reference.
 7. **AOS council master skill** (`aos-full-agent-team`) should follow
    the `skills/enterprise-council/orchestrator/` pattern, which is
-   already proven to compose multiple sub-skills inside M.U.S.E..
+   already proven to compose multiple sub-skills inside muse
 8. **Naming reconciliation memo.** Before creating any
    `contrarian-*` skill, decide whether the proposed
    `contrarian-reviewer` and `contrarian-red-flag-analyst` are two

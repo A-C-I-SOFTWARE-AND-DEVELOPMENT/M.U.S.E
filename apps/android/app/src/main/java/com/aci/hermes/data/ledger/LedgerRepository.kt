@@ -21,7 +21,7 @@ sealed interface LedgerSync {
 }
 
 /**
- * Read access to the MUSE Activity timeline — the redacted
+ * Read access to the muse Activity timeline — the redacted
  * projection of the orchestrator event ledger (`GET /v1/cockpit/ledger`).
  *
  * - **Paired**: [refresh] pulls the live timeline for the current [filters];

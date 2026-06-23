@@ -48,11 +48,11 @@ import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.model.linksApprovals
 import com.aci.hermes.data.model.linksAudit
 import com.aci.hermes.data.model.section
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.jobs.CockpitJobsUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
@@ -66,7 +66,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
  * same [OrchestratorViewModel] used by Home so changes propagate without an
  * extra refresh.
  *
- * Cards are grouped into the five MUSE sections (Active / Waiting for
+ * Cards are grouped into the five muse sections (Active / Waiting for
  * Approval / Blocked / Failed / Complete), derived purely from each task's
  * data via [HermesTask.section]. Waiting-for-approval cards deep-link to the
  * Approvals tab; completed (and proof-carrying) cards deep-link to Audit.
@@ -220,7 +220,7 @@ private fun LazyListScope.backendJobsSection(
     onCancel: (CockpitJob) -> Unit,
 ) {
     item(key = "jobs_header") {
-        MuseSectionHeader(
+        museSectionHeader(
             title = stringResource(R.string.jobs_section_title),
             modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
             trailing = {
@@ -228,11 +228,11 @@ private fun LazyListScope.backendJobsSection(
                     horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MuseChip(label = "${jobsState.jobs.size}")
-                    MuseButton(
+                    museChip(label = "${jobsState.jobs.size}")
+                    museButton(
                         onClick = onNew,
                         text = stringResource(R.string.jobs_new),
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                     )
                 }
             },
@@ -272,16 +272,16 @@ private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
     // Only orchestrator jobs (orc- ids) are runnable by job_run; JobQueue
     // entries from other surfaces show Cancel only (Run would 404).
     val runnable = CockpitJobsViewModel.isRunnable(job)
-    MuseCard {
+    museCard {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(job.title.ifBlank { job.id }, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm), verticalAlignment = Alignment.CenterVertically) {
-                MuseChip(label = job.status.lowercase().replace('_', ' '))
+                museChip(label = job.status.lowercase().replace('_', ' '))
                 if (job.workerId.isNotBlank()) {
-                    MuseChip(label = job.workerId.lowercase().replace('_', ' '))
+                    museChip(label = job.workerId.lowercase().replace('_', ' '))
                 }
                 job.validationSummary?.let { v ->
-                    MuseChip(label = "✓${v.pass} ✗${v.fail} …${v.pending}")
+                    museChip(label = "✓${v.pass} ✗${v.fail} …${v.pending}")
                 }
             }
             job.branch?.takeIf { it.isNotBlank() }?.let {
@@ -290,17 +290,17 @@ private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 if (runnable) {
-                    MuseButton(
+                    museButton(
                         onClick = onRun,
                         text = stringResource(R.string.jobs_run),
-                        variant = MuseButtonVariant.Primary,
+                        variant = museButtonVariant.Primary,
                         enabled = !terminal,
                     )
                 }
-                MuseButton(
+                museButton(
                     onClick = onCancel,
                     text = stringResource(R.string.jobs_cancel),
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     enabled = !terminal,
                 )
             }
@@ -413,10 +413,10 @@ private fun sectionTitleRes(section: TaskSection): Int = when (section) {
 
 @Composable
 private fun SectionHeader(title: String, count: Int) {
-    MuseSectionHeader(
+    museSectionHeader(
         title = title,
         modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
-        trailing = { MuseChip(label = "$count") },
+        trailing = { museChip(label = "$count") },
     )
 }
 
@@ -428,7 +428,7 @@ private fun TaskRow(
     onOpenApprovals: () -> Unit,
     onOpenAudit: () -> Unit,
 ) {
-    MuseCard(
+    museCard(
         modifier = Modifier.clickable(onClick = onTap),
     ) {
         Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
@@ -441,19 +441,19 @@ private fun TaskRow(
                 horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MuseChip(label = task.taskType.name.lowercase(), onClick = onTap)
-                MuseChip(label = task.status.name.lowercase().replace('_', ' '), onClick = onTap)
-                MuseChip(label = task.targetTool.name.lowercase().replace('_', ' '), onClick = onTap)
+                museChip(label = task.taskType.name.lowercase(), onClick = onTap)
+                museChip(label = task.status.name.lowercase().replace('_', ' '), onClick = onTap)
+                museChip(label = task.targetTool.name.lowercase().replace('_', ' '), onClick = onTap)
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MuseChip(
+                museChip(
                     label = stringResource(R.string.task_card_risk_chip, task.riskTier.name.lowercase()),
                     onClick = onTap,
                 )
-                MuseChip(
+                museChip(
                     label = stringResource(R.string.task_card_phase_chip, workerPhaseLabel(task.workerPhase)),
                     onClick = onTap,
                 )
@@ -484,20 +484,20 @@ private fun TaskRow(
             }
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseButton(onClick = onCopyPrompt, text = stringResource(R.string.orchestrator_copy_prompt), variant = MuseButtonVariant.Secondary)
-                MuseButton(onClick = onTap, text = stringResource(R.string.orchestrator_open_task), variant = MuseButtonVariant.Secondary)
+                museButton(onClick = onCopyPrompt, text = stringResource(R.string.orchestrator_copy_prompt), variant = museButtonVariant.Secondary)
+                museButton(onClick = onTap, text = stringResource(R.string.orchestrator_open_task), variant = museButtonVariant.Secondary)
                 if (task.linksApprovals()) {
-                    MuseButton(
+                    museButton(
                         onClick = onOpenApprovals,
                         text = stringResource(R.string.task_card_open_approvals),
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                     )
                 }
                 if (task.linksAudit()) {
-                    MuseButton(
+                    museButton(
                         onClick = onOpenAudit,
                         text = stringResource(R.string.task_card_open_audit),
-                        variant = MuseButtonVariant.Secondary,
+                        variant = museButtonVariant.Secondary,
                     )
                 }
             }
@@ -523,5 +523,5 @@ private fun workerPhaseLabel(phase: WorkerPhase): String = when (phase) {
     WorkerPhase.EDITOR -> "Editor"
     WorkerPhase.EXECUTOR -> "Executor"
     WorkerPhase.REVIEWER -> "Reviewer"
-    WorkerPhase.JARVIS_FINAL_SYNTHESIS -> "Muse Final Synthesis"
+    WorkerPhase.JARVIS_FINAL_SYNTHESIS -> "muse Final Synthesis"
 }

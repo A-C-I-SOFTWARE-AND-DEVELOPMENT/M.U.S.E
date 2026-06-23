@@ -1,8 +1,8 @@
-# M.U.S.E. — Desktop app (Tauri v2)
+# muse — Desktop app (Tauri v2)
 
-A native desktop shell for **M.U.S.E.** (Multi-Use Synaptic Entity), built with
+A native desktop shell for **muse** (Multi-Use Synaptic Entity), built with
 **Tauri v2** wrapping a lean **Singularity** client (Vite + React 19 +
-TypeScript). The shell loads the bundled UI and talks to a locally-running MUSE
+TypeScript). The shell loads the bundled UI and talks to a locally-running muse
 **gateway** over HTTP. It does **not** bundle the Python backend — but it *can
 start it*: when the gateway is down and an installed `muse` CLI is found, the
 shell spawns `muse cockpit serve` as a managed child (see
@@ -31,7 +31,7 @@ apps/desktop/
     ├── src/lib.rs             # window + native menu + system tray + single-instance
     ├── src/brain.rs           # gateway autostart: probe /v1/health, spawn `muse cockpit serve`
     ├── src/main.rs            # thin binary entry → lib::run()
-    ├── tauri.conf.json        # dark window "M.U.S.E.", bundle id com.aci.muse
+    ├── tauri.conf.json        # dark window "muse", bundle id com.aci.muse
     ├── capabilities/default.json  # minimal window/tray/menu permissions
     ├── icons/                 # app icons derived from the glyph
     ├── Cargo.toml
@@ -78,9 +78,9 @@ window at `http://127.0.0.1:1420` (see `build.devUrl` in `tauri.conf.json`).
 ### Pointing at a gateway
 
 The app defaults to `http://127.0.0.1:8765`. Override it at runtime in-app
-(stored in `localStorage` under `muse.gateway.base`), or at build time with the
+(stored in `localStorage` under `musegateway.base`), or at build time with the
 `VITE_GATEWAY_BASE` env var for the UI. The native menu's **Help → Gateway**
-item reflects `MUSE_GATEWAY_URL` if set.
+item reflects `muse_GATEWAY_URL` if set.
 
 The first launch is unpaired: use the **Pair this device** card to mint a
 per-device bearer token (owner-phrase gated), exactly like the browser cockpit.
@@ -141,7 +141,7 @@ cd apps/desktop/ui && npm run build      # → ui/dist/
 cd apps/desktop/src-tauri && cargo tauri build
 ```
 
-Bundle identifier: `com.aci.muse`. Window: dark, titled **M.U.S.E.**, min
+Bundle identifier: `com.aci.muse`. Window: dark, titled **muse**, min
 880×600. Icons are derived from the brand glyph
 (`ui/public/favicon.svg`).
 
@@ -152,7 +152,7 @@ is configured. Activation is owner-gated — see [`RELEASE.md`](RELEASE.md).
 ## PWA
 
 The UI is also an installable PWA: `vite-plugin-pwa` emits
-`manifest.webmanifest` (name **M.U.S.E.**, `theme_color`/`background_color`
+`manifest.webmanifest` (name **muse**, `theme_color`/`background_color`
 `#050507`) and a service worker that precaches the app shell. The gateway API
 (`/v1/*`) is deliberately **not** cached — it's always live. Serve `ui/dist/`
 from any static host (or open the built `index.html`) to install it.

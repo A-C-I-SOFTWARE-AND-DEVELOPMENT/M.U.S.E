@@ -43,10 +43,10 @@ import com.aci.hermes.data.cockpit.ResearchCard
 import com.aci.hermes.data.cockpit.ResearchContradiction
 import com.aci.hermes.data.cockpit.ResearchReport
 import com.aci.hermes.data.research.ResearchSync
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
-import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
+import com.aci.hermes.ui.designsystem.museSectionHeader
 import com.aci.hermes.ui.theme.JarvisTokens
 
 object ResearchTestTags {
@@ -178,7 +178,7 @@ private fun ReportBody(
 
     // Final answer + uncertainty.
     SectionTitle(stringResource(R.string.research_section_answer))
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(
                 report.finalAnswer,
@@ -186,12 +186,12 @@ private fun ReportBody(
                 modifier = Modifier.testTag(ResearchTestTags.ANSWER),
             )
             if (report.uncertainty.isNotBlank()) {
-                MuseChip(label = "${stringResource(R.string.research_uncertainty)}: ${report.uncertainty}")
+                museChip(label = "${stringResource(R.string.research_uncertainty)}: ${report.uncertainty}")
             }
         }
     }
 
-    MuseButton(
+    museButton(
         onClick = onCreateTask,
         text = stringResource(R.string.research_create_task),
         enabled = !creatingTask,
@@ -223,12 +223,12 @@ private fun EvidenceCardView(
     promoted: Boolean,
     onPromote: () -> Unit,
 ) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(card.title, style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseChip(label = card.evidenceStrength)
-                MuseChip(label = card.sourceType)
+                museChip(label = card.evidenceStrength)
+                museChip(label = card.sourceType)
             }
             if (card.excerpt.isNotBlank()) {
                 Text(card.excerpt, style = MaterialTheme.typography.bodyMedium, maxLines = 4)
@@ -260,7 +260,7 @@ private fun EvidenceCardView(
 
 @Composable
 private fun ContradictionView(c: ResearchContradiction) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(c.subject, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
             Text("• ${c.claimA}", style = MaterialTheme.typography.bodyMedium)
@@ -272,12 +272,12 @@ private fun ContradictionView(c: ResearchContradiction) {
 
 @Composable
 private fun SectionTitle(text: String) {
-    MuseSectionHeader(title = text)
+    museSectionHeader(title = text)
 }
 
 @Composable
 private fun HintCard(text: String, error: Boolean = false) {
-    MuseCard(modifier = Modifier.fillMaxWidth()) {
+    museCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text,
             modifier = Modifier.padding(JarvisTokens.SpaceLg),

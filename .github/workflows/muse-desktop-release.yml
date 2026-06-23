@@ -1,9 +1,9 @@
-name: MUSE desktop release
+name: muse desktop release
 
-# Build the M.U.S.E. desktop app (Tauri v2, apps/desktop) for macOS / Windows /
+# Build the muse desktop app (Tauri v2, apps/desktop) for macOS / Windows /
 # Linux and publish the installers as a downloadable GitHub Release.
 #
-# One-button release: Actions -> "MUSE desktop release" -> "Run workflow" (no
+# One-button release: Actions -> "muse desktop release" -> "Run workflow" (no
 # input) cuts a permanent versioned release whose version is auto-derived from
 # the repo's real history (0.1.<total commit count>) -- no tag to type. Pushing
 # an explicit `muse-desktop-v*` tag pins a hand-named version. Pushes to `main`
@@ -31,26 +31,9 @@ on:
         description: 'Optional: hand-name the tag (muse-desktop-v1.2.3). Blank = auto 0.1.<commits> release.'
         required: false
         default: ''
-      channel:
-        description: 'rolling = refresh the muse-desktop-latest download from current main (used by sync-main-to-releases); versioned = cut a permanent release (the default one-button behavior).'
-        required: false
-        type: choice
-        default: versioned
-        options:
-          - versioned
-          - rolling
 
 permissions:
   contents: write  # create/upload the GitHub Release
-
-# Serialize release runs per ref: the hourly sync cron and a path-relevant main
-# push can otherwise launch two rolling builds against `muse-desktop-latest` at
-# once, racing the prune-stale-assets step and the `gh release upload --clobber`
-# (a later run could delete the earlier run's just-uploaded current assets).
-# Never cancel in-flight: a run may be mid-publish. Mirrors android-release.yml.
-concurrency:
-  group: muse-desktop-release-${{ github.ref }}
-  cancel-in-progress: false
 
 defaults:
   run:
@@ -75,7 +58,7 @@ jobs:
       date: ${{ steps.ctx.outputs.date }}
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # full history so the version reflects real work done
 
@@ -86,7 +69,6 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
-          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
         run: |
           # Bundle version must be valid semver (deb/nsis/msi reject date.commits),
           # so we use 0.1.<repo commit count> -- monotonic and reflects real work.
@@ -101,31 +83,24 @@ jobs:
           if [[ "$REF" == refs/tags/muse-desktop-v* ]]; then
             VERSION="${REF_NAME#muse-desktop-v}"; TAG="$REF_NAME"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            TITLE="MUSE Desktop ${TAG}"
-          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$INPUT_CHANNEL" = "rolling" ]; then
-            # sync-main-to-releases dispatches us in rolling mode: refresh the
-            # 'muse-desktop-latest' download from current main instead of cutting
-            # a new permanent version. Same outputs as the main-push branch.
-            VERSION="$AUTO_VERSION"; TAG="muse-desktop-latest"
-            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
-            TITLE="MUSE Desktop — latest build"
+            TITLE="muse Desktop ${TAG}"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
             VERSION="${INPUT_TAG#muse-desktop-v}"; TAG="$INPUT_TAG"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            TITLE="MUSE Desktop ${TAG}"
+            TITLE="muse Desktop ${TAG}"
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             # THE ONE BUTTON: no input -> permanent auto-versioned release.
             VERSION="$AUTO_VERSION"; TAG="muse-desktop-v${VERSION}"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            TITLE="MUSE Desktop v${VERSION}"
+            TITLE="muse Desktop v${VERSION}"
           elif [ "$EVENT" = "push" ] && [[ "$REF" == refs/heads/main ]]; then
             # main push touching the app -> refresh the rolling 'latest' channel.
             VERSION="$AUTO_VERSION"; TAG="muse-desktop-latest"
             PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
-            TITLE="MUSE Desktop — latest build"
+            TITLE="muse Desktop — latest build"
           else
             VERSION="$AUTO_VERSION"; TAG=""; PUBLISH=false; CHANNEL=none
-            TITLE="MUSE Desktop v${VERSION}"
+            TITLE="muse Desktop v${VERSION}"
           fi
 
           {
@@ -145,7 +120,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@v4
 
       - name: Create or update the release (notes, no assets yet)
         env:
@@ -161,16 +136,16 @@ jobs:
         run: |
           # printf keeps every Markdown line at column 0 regardless of YAML indent.
           {
-            printf '%s\n' "**M.U.S.E. Desktop** — the local-first Singularity cockpit (Tauri v2). Version ${VERSION}."
+            printf '%s\n' "**muse Desktop** — the local-first Singularity cockpit (Tauri v2). Version ${VERSION}."
             printf '%s\n' ""
             printf '%s\n' "_Auto-versioned from real history: built **${BUILD_DATE}** (UTC) from commit \`${SHA}\` — **${REPO_COMMITS}** commits total, **${APP_COMMITS}** touching the desktop app._"
             printf '%s\n' ""
-            printf '%s\n' "> This is a native shell around the lean Singularity cockpit. It does **not** bundle or spawn the backend — it talks to **your own local MUSE gateway** (default \`127.0.0.1:8765\`) after you pair it with the owner phrase, and holds no API keys."
+            printf '%s\n' "> This is a native shell around the lean Singularity cockpit. It does **not** bundle or spawn the backend — it talks to **your own local muse gateway** (default \`127.0.0.1:8765\`) after you pair it with the owner phrase, and holds no API keys."
             printf '%s\n' ""
             printf '%s\n' "## Install"
-            printf '%s\n' "- **macOS:** download the \`.dmg\`, open it, drag M.U.S.E. to Applications."
+            printf '%s\n' "- **macOS:** download the \`.dmg\`, open it, drag muse to Applications."
             printf '%s\n' "- **Windows:** download the \`-setup.exe\` and run it."
-            printf '%s\n' "- **Linux:** download the \`.deb\` and install it (\`sudo apt install ./M.U.S.E._*_amd64.deb\`)."
+            printf '%s\n' "- **Linux:** download the \`.AppImage\` (chmod +x and run) or the \`.deb\`."
             printf '%s\n' ""
             printf '%s\n' "Unsigned builds may warn about an unknown developer (Gatekeeper / SmartScreen) until signing certs are provisioned (see apps/desktop/RELEASE.md)."
           } > release-notes.md
@@ -182,33 +157,6 @@ jobs:
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
               --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
           fi
-
-      - name: Prune stale rolling assets
-        if: needs.meta.outputs.channel == 'rolling'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # pragma: allowlist secret
-          TAG: ${{ needs.meta.outputs.tag }}
-          VERSION: ${{ needs.meta.outputs.version }}
-        run: |
-          # Rolling installers embed the version in their filename (e.g.
-          # M.U.S.E._0.1.10140_amd64.AppImage), so the build job's
-          # `gh release upload --clobber` never overwrites a prior build's set
-          # and old versions accumulate on muse-desktop-latest. Runs once here
-          # (before the build matrix uploads the current $VERSION), so deleting
-          # every asset that isn't from $VERSION cleanly removes the previous
-          # rolling build without racing the fresh uploads. Versioned releases
-          # never reach this step (gated on channel == 'rolling').
-          names=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
-                    --json assets --jq '.assets[].name' 2>/dev/null || true)
-          while IFS= read -r name; do
-            [ -z "$name" ] && continue
-            case "$name" in
-              *"$VERSION"*) echo "Keep $name" ;;
-              *) echo "Prune stale asset: $name"
-                 gh release delete-asset "$TAG" "$name" \
-                   --repo "$GITHUB_REPOSITORY" --yes || true ;;
-            esac
-          done <<< "$names"
 
   # ---- 3. Build per-OS and upload installers to the release ------------------
   build:
@@ -226,22 +174,14 @@ jobs:
           # supported x64 label. If this leg ever reports "runner not found",
           # drop it (the arm64 leg still publishes) rather than blocking releases.
           - { os: macos-15-intel, rust_target: x86_64-apple-darwin,  bundles: 'app,dmg' }
-          # Linux ships `.deb` only. AppImage bundling is DISABLED because
-          # Tauri's `linuxdeploy` path regressed upstream (mid-2026) and fails on
-          # GitHub runners with "failed to run linuxdeploy" even with
-          # APPIMAGE_EXTRACT_AND_RUN=1 + GTK/WebKitGTK packages — see
-          # https://github.com/tauri-apps/tauri/issues/14796. The `.deb` builds
-          # reliably and keeps the release green; re-add `appimage` (the
-          # APPIMAGE_EXTRACT_AND_RUN env below is retained for that) once
-          # upstream linuxdeploy is fixed.
-          - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'deb' }
+          - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'appimage,deb' }
           - { os: windows-latest, rust_target: '',                  bundles: 'nsis' }
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@v4
 
       - name: Set up Node 22
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -281,116 +221,53 @@ jobs:
       # Tauri attempt codesigning and die at `security import`
       # ("SecKeychainItemImport: ... not valid"), failing every macOS leg.
       # Probe the cert here; on failure, warn and build unsigned instead.
-      # macOS signing is OPT-IN and OFF by default. Tauri's bundler codesigns
-      # via the deprecated `SecKeychainItemImport` C API, which a `security
-      # import` CLI probe CANNOT faithfully replicate — a malformed/mis-encoded
-      # APPLE_CERTIFICATE can pass a CLI probe yet still make Tauri die at
-      # `SecKeychainItemImport: ... not valid`, failing every macOS leg. Rather
-      # than guess, we gate signing on an explicit repo variable
-      # (ENABLE_MACOS_SIGNING=true) so the default is a deterministic UNSIGNED
-      # build that publishes the .dmg and keeps the release green. Flip the
-      # variable on only after a known-good cert is provisioned (see
-      # apps/desktop/RELEASE.md); the probe below then still guards against a
-      # half-provisioned cert.
       - name: Validate Apple signing certificate (macOS only)
         id: applecert
         if: runner.os == 'macOS'
         env:
-          ENABLE_MACOS_SIGNING: ${{ vars.ENABLE_MACOS_SIGNING }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
         run: |
-          if [ "${ENABLE_MACOS_SIGNING:-false}" != "true" ]; then
-            echo "::warning::macOS signing is disabled (repo variable ENABLE_MACOS_SIGNING is not 'true') — building UNSIGNED. The .dmg still publishes; macOS may warn it is from an unknown developer. Provision a valid cert and set ENABLE_MACOS_SIGNING=true to sign (see apps/desktop/RELEASE.md)."
-            echo "sign=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "No APPLE_CERTIFICATE secret; building unsigned (documented fallback)."
             echo "sign=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # ENABLE_MACOS_SIGNING is on and a cert is present — still guard
-          # against a half-provisioned cert with a faithful keychain import
-          # probe before letting Tauri attempt the (more brittle) codesign.
-          # The probe MUST mirror what Tauri's bundler actually does: import the
-          # full pkcs12 IDENTITY (certificate + private key) and confirm a usable
-          # codesigning identity results. The earlier probe used `-t cert`, which
-          # imports only the certificate and returns success even for a .p12 with
-          # no signing key — a false positive that let Tauri proceed and then die
-          # with "security import: failed to import keychain certificate",
-          # failing the whole release and publishing no .dmg. Requiring a real
-          # codesigning identity makes a non-functional cert fall back to an
-          # UNSIGNED build (green, .dmg ships) instead of a hard failure.
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
-            kc="$RUNNER_TEMP/muse-signing-probe.keychain-db"
-            pw="probe-$RANDOM$RANDOM"
-            security delete-keychain "$kc" 2>/dev/null || true
-            if security create-keychain -p "$pw" "$kc" 2>/dev/null; then
-              security unlock-keychain -p "$pw" "$kc" 2>/dev/null || true
-              # No `-t cert`: import the whole identity exactly as Tauri does.
-              if security import "$cert" -k "$kc" -P "${APPLE_CERTIFICATE_PASSWORD}" \
-                   -f pkcs12 -T /usr/bin/codesign >/dev/null 2>&1; then
-                # find-identity prints "<N> valid identities found"; require N>=1
-                # so a cert lacking its private key does NOT count as signable.
-                n="$(security find-identity -v -p codesigning "$kc" 2>/dev/null \
-                       | sed -n 's/.*[^0-9]\([0-9][0-9]*\) valid identities found.*/\1/p')"
-                [ "${n:-0}" -ge 1 ] 2>/dev/null && ok=true
-              fi
-              security delete-keychain "$kc" 2>/dev/null || true
+            # OpenSSL 3 needs -legacy for .p12 files using the old RC2/3DES
+            # encryption that Apple's Keychain Access exports by default.
+            if openssl pkcs12 -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1 \
+               || openssl pkcs12 -legacy -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1; then
+              ok=true
             fi
           fi
           rm -f "$cert"
           if [ "$ok" = true ]; then
-            echo "APPLE_CERTIFICATE imports into a keychain; signing enabled."
+            echo "APPLE_CERTIFICATE decodes and opens; signing enabled."
             echo "sign=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::APPLE_CERTIFICATE is set but did not yield a usable codesigning identity (not a valid base64 .p12, wrong password, unsupported encoding, or a certificate exported WITHOUT its private key) — building UNSIGNED. Re-export it as a Personal Information Exchange (.p12) INCLUDING the private key and re-provision per apps/desktop/RELEASE.md."
+            echo "::warning::APPLE_CERTIFICATE is set but is not a valid base64-encoded .p12 (or the password is wrong) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build installers
         env:
-          # Tauri reads these for code-signing only when signing is enabled
-          # (applecert probe -> sign=true). When unsigned they are intentionally
-          # absent (unset in the script below), NOT set-to-empty: Tauri's macOS
-          # bundler checks `env::var("APPLE_CERTIFICATE")` by PRESENCE, so a
-          # present-but-empty `APPLE_CERTIFICATE=""` reads as `Ok("")` and still
-          # triggers the keychain import — base64-decoding "" to empty bytes and
-          # running `security import` on them, which dies with
-          # "SecKeychainItemImport: ... not valid" and fails every macOS leg
-          # (publishing no .dmg). Gating with `|| ''` blanked the value but left
-          # the var defined, so it kept tripping Tauri; we therefore unset the
-          # whole Apple var family on the unsigned path. See apps/desktop/RELEASE.md.
-          SIGN: ${{ steps.applecert.outputs.sign }}
+          # Tauri reads these for code-signing; ALL resolve to empty when the
+          # secret is unset OR fails the applecert probe above -> the build
+          # produces UNSIGNED installers and still succeeds (the fork/bring-up
+          # fallback). See apps/desktop/RELEASE.md.
           APPLE_CERTIFICATE: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}  # pragma: allowlist secret
           APPLE_SIGNING_IDENTITY: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
           APPLE_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_ID || '' }}
           APPLE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_PASSWORD || '' }}  # pragma: allowlist secret
           APPLE_TEAM_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_TEAM_ID || '' }}
-          # Retained for when AppImage bundling is re-enabled (see the matrix
-          # note above): linuxdeploy and its plugins are AppImages that FUSE-mount
-          # to run, which GitHub runners don't reliably provide. Extract-and-run
-          # avoids FUSE. NOTE: this alone did NOT clear the mid-2026 upstream
-          # linuxdeploy regression (tauri-apps/tauri#14796), which is why Linux
-          # currently bundles `.deb` only. Harmless on macOS/Windows.
-          APPIMAGE_EXTRACT_AND_RUN: "1"
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
           BUNDLES: ${{ matrix.bundles }}
         run: |
-          # On the UNSIGNED path, remove the Apple signing vars entirely so
-          # Tauri's bundler sees them as absent and produces a clean unsigned
-          # build. A present-but-empty APPLE_CERTIFICATE would otherwise make
-          # Tauri attempt (and fail) a keychain import. `unset` here strips them
-          # from the environment handed to the `tauri` child process.
-          if [ "${SIGN:-false}" != "true" ]; then
-            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
-                  APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
-          fi
           # Stamp the CI-derived semver into the bundle via a --config merge so
           # the installer carries the real version (tauri.conf stays at 0.1.0).
           target_arg=""; [ -n "$TARGET" ] && target_arg="--target $TARGET"

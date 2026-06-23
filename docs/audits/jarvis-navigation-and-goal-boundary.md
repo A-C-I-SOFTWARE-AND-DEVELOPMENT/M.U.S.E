@@ -1,9 +1,9 @@
-# MUSE — Navigation Layer & Goal Boundary (build report)
+# muse — Navigation Layer & Goal Boundary (build report)
 
 Branch: `claude/jarvis-prime-architecture-RmmXr`
 Date: 2026-05-29
 
-This report covers the slice of the "MUSE apex" mission delivered on
+This report covers the slice of the "muse apex" mission delivered on
 this branch, and — per the hard-truth rules — an honest account of what was
 **deliberately not duplicated** because it is already in flight elsewhere.
 
@@ -86,7 +86,7 @@ Tests (all passing): `tests/test_goal_boundary.py`.
 
 ## PR validation report (Phase 9)
 
-- **Open PRs found:** 1 — #177 (draft) "MUSE cognition plane".
+- **Open PRs found:** 1 — #177 (draft) "muse cognition plane".
 - **Merged by me:** none. (Not my branch; merging it is owner-gated
   `main`-branch merge, and it is a draft.)
 - **Skipped/closed PRs:** none ignored; only #177 is open.

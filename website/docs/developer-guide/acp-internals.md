@@ -6,7 +6,7 @@ description: "How the ACP adapter works: lifecycle, sessions, event bridge, appr
 
 # ACP Internals
 
-The ACP adapter wraps M.U.S.E.' synchronous `AIAgent` in an async JSON-RPC stdio server.
+The ACP adapter wraps muse' synchronous `AIAgent` in an async JSON-RPC stdio server.
 
 Key implementation files:
 
@@ -94,15 +94,15 @@ asyncio.run_coroutine_threadsafe(...)
 
 Mapping:
 
-- `allow_once` -> M.U.S.E. `once`
-- `allow_always` -> M.U.S.E. `always`
-- reject options -> M.U.S.E. `deny`
+- `allow_once` -> muse `once`
+- `allow_always` -> muse `always`
+- reject options -> muse `deny`
 
 Timeouts and bridge failures deny by default.
 
 ### Tool rendering helpers
 
-`acp_adapter/tools.py` maps M.U.S.E. tools to ACP tool kinds and builds editor-facing content.
+`acp_adapter/tools.py` maps muse tools to ACP tool kinds and builds editor-facing content.
 
 Examples:
 
@@ -144,12 +144,12 @@ prompt(..., session_id)
 
 ACP does not implement its own auth store.
 
-Instead it reuses M.U.S.E.' runtime resolver:
+Instead it reuses muse' runtime resolver:
 
 - `acp_adapter/auth.py`
 - `hermes_cli/runtime_provider.py`
 
-So ACP advertises and uses the currently configured M.U.S.E. provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open M.U.S.E.' interactive model/provider configuration before starting a normal ACP session.
+So ACP advertises and uses the currently configured muse provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open muse' interactive model/provider configuration before starting a normal ACP session.
 
 ## Working directory binding
 

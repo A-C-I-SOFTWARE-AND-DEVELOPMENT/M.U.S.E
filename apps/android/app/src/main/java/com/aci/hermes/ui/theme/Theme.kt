@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.aci.hermes.data.preferences.ThemeMode
 
-// MUSE is dark-first. The dark scheme is the canonical experience;
+// muse is dark-first. The dark scheme is the canonical experience;
 // the light scheme keeps the product usable in bright daylight but is not
 // the primary identity.
 

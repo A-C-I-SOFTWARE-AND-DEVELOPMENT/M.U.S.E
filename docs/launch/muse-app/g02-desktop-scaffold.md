@@ -1,6 +1,6 @@
 # G0.2 — Desktop scaffold (Tauri v2 + Vite/React + PWA)
 
-Builder-grain snapshot for the MUSE App Grainler Parallel Swarm.
+Builder-grain snapshot for the muse App Grainler Parallel Swarm.
 
 - **Grain:** G0.2 — Desktop scaffold (Tauri v2 + Vite/React 19/TS + PWA).
 - **Branch:** `claude/muse-app-g02-desktop-scaffold`
@@ -11,10 +11,10 @@ Builder-grain snapshot for the MUSE App Grainler Parallel Swarm.
 
 Stand up a **new, lean Singularity desktop client** — a Tauri v2 shell around a
 fresh Vite + React 19 + TypeScript UI (NOT a reuse of the existing `web/` SPA).
-The shell loads the bundled UI and talks to a locally-running MUSE gateway over
+The shell loads the bundled UI and talks to a locally-running muse gateway over
 HTTP; it does **not** bundle or spawn the Python backend. The UI mirrors the
 browser cockpit's protocol (bearer-token pairing, SSE jobs over
-fetch+ReadableStream, NDJSON chat) and honors the M.U.S.E. visual design
+fetch+ReadableStream, NDJSON chat) and honors the muse visual design
 language (white incandescent core, matte spectral ring, value ladder, ≤3 color
 roles, emphasized-easing motion, no lens flare / drop-shadows / ring-glow). A
 core deliverable is an **append-only route registry** so future feature grains
@@ -32,7 +32,7 @@ All under the two owned paths; nothing else touched.
   protocol, fixed dev port 1420).
 - `tsconfig.json` / `tsconfig.app.json` / `tsconfig.node.json`.
 - `src/main.tsx` — entry; seeds the route registry, registers the PWA SW.
-- `src/App.tsx` — app shell: header lockup (Glyph + "M.U.S.E." wordmark +
+- `src/App.tsx` — app shell: header lockup (Glyph + "muse" wordmark +
   status dot), nav from the route registry, minimal hash router. **Adding a
   route never requires editing this file.**
 - `src/components/Glyph.tsx` — the animated incandescent mark as inline SVG
@@ -41,7 +41,7 @@ All under the two owned paths; nothing else touched.
 - `src/lib/gateway.ts` — typed gateway client: `pingHealth`, `pairStart` /
   `pairConfirm`, `subscribeJobs` (SSE via fetch + ReadableStream, reconnect with
   backoff, poll fallback), `chat` (NDJSON). Token in `localStorage`
-  `muse.cockpit.token`; base URL configurable (`muse.gateway.base` /
+  `musecockpit.token`; base URL configurable (`musegateway.base` /
   `VITE_GATEWAY_BASE`), default `http://127.0.0.1:8765`.
 - `src/routes.ts` — **append-only route registry** (`routes` array +
   `registerRoute` / `getRoutes` / `findRoute`); idempotent on `id`.
@@ -64,7 +64,7 @@ All under the two owned paths; nothing else touched.
 - `Cargo.toml` — Tauri 2 (`tray-icon` feature; `devtools` in debug),
   `tauri-plugin-single-instance` 2, serde. Release profile: LTO + strip.
 - `Cargo.lock` — committed (application crate; reproducible builds).
-- `tauri.conf.json` — schema v2; dark window titled **M.U.S.E.** (1180×800, min
+- `tauri.conf.json` — schema v2; dark window titled **muse** (1180×800, min
   880×600, centered, `backgroundColor #050507`); `beforeDevCommand` /
   `beforeBuildCommand` drive the UI; `frontendDist ../ui/dist`; bundle
   identifier **`com.aci.muse`**, all targets, glyph icon set; a tight CSP whose
@@ -96,7 +96,7 @@ cd apps/desktop/ui && npm install && npm run build
 - `npm install` → 351 packages, **0 vulnerabilities**.
 - `npm run build` (= `tsc -b && vite build`) → **green**. 38 modules
   transformed; `dist/` emitted with `index.html`, hashed JS/CSS,
-  `manifest.webmanifest` (name "M.U.S.E.", theme/background `#050507`, 192/512/
+  `manifest.webmanifest` (name "muse", theme/background `#050507`, 192/512/
   maskable + SVG icons, relative `start_url`/`scope`), and the PWA service
   worker (`sw.js`, 16 precache entries). A clean rebuild (`rm -rf dist`) is also
   green. `npx tsc -b` typecheck passes standalone. `ui/dist/` exists.

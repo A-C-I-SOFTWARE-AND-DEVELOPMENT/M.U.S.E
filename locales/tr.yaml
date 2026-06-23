@@ -1,4 +1,4 @@
-# MUSE statik mesaj katalogu -- Turkce
+# muse statik mesaj katalogu -- Turkce
 # See locales/en.yaml for the source of truth; keep keys in sync.
 
 approval:
@@ -99,7 +99,7 @@ gateway:
     header:                "**Hata ayıklama raporu yüklendi:**"
     auto_delete:           "⏱ Paste'ler 6 saat içinde otomatik olarak silinecek."
     full_logs_hint:        "Tam günlük yüklemeleri için CLI'dan `muse debug share` kullanın."
-    share_hint:            "Destek için bu bağlantıları MUSE ekibiyle paylaşın."
+    share_hint:            "Destek için bu bağlantıları muse ekibiyle paylaşın."
 
   deny:
     stale:                 "❌ Komut reddedildi (onay geçersizdi)."
@@ -136,7 +136,7 @@ gateway:
     set:                   "⊙ Hedef ayarlandı ({budget} turluk bütçe): {goal}\nHedef tamamlanana, siz duraklatana/temizleyene veya bütçe tükenene kadar çalışmaya devam edeceğim.\nKontroller: /goal status · /goal pause · /goal resume · /goal clear"
 
   help:
-    header:                "📖 **MUSE Komutları**\n"
+    header:                "📖 **muse Komutları**\n"
     skill_header:          "\n⚡ **Skill Komutları** ({count} aktif):"
     more_use_commands:     "\n... ve {count} tane daha. Tam sayfalı liste için `/commands` kullanın."
 
@@ -247,7 +247,7 @@ gateway:
     success:               "✅ Ana kanal **{name}** (ID: {chat_id}) olarak ayarlandı.\nCron işleri ve platformlar arası mesajlar buraya iletilecek."
 
   status:
-    header:                "📊 **MUSE Gateway Durumu**"
+    header:                "📊 **muse Gateway Durumu**"
     session_id:            "**Oturum kimliği:** `{session_id}`"
     title:                 "**Başlık:** {title}"
     created:               "**Oluşturuldu:** {timestamp}"
@@ -282,7 +282,7 @@ gateway:
     topics_user_disallowed:  "Telegram topic'leri etkin, ancak kullanıcıların topic oluşturmasına izin verilmiyor.\n\n@BotFather → botunuz → Bot Settings → Threads Settings yolunu açın ve 'Disallow users to create new threads' seçeneğini kapatın.\n\nArdından /topic'i tekrar gönderin."
     enable_failed:           "Telegram topic modu etkinleştirilemedi: {error}"
     bound_status:            "Bu topic şuna bağlı:\nOturum: {label}\nID: {session_id}\n\nBu topic'i yeni bir oturumla değiştirmek için /new kullanın.\nParalel çalışma için All Messages'ı açıp orada bir mesaj göndererek başka bir topic oluşturun."
-    thread_ready:            "Telegram çok oturumlu topic'leri etkin.\n\nBu topic bağımsız bir MUSE oturumu olarak kullanılacak. Bu topic'in mevcut oturumunu değiştirmek için /new kullanın. Paralel çalışma için All Messages'ı açıp orada bir mesaj göndererek başka bir topic oluşturun."
+    thread_ready:            "Telegram çok oturumlu topic'leri etkin.\n\nBu topic bağımsız bir muse oturumu olarak kullanılacak. Bu topic'in mevcut oturumunu değiştirmek için /new kullanın. Paralel çalışma için All Messages'ı açıp orada bir mesaj göndererek başka bir topic oluşturun."
     untitled_session:        "Adsız oturum"
 
   undo:
@@ -292,9 +292,9 @@ gateway:
   update:
     platform_not_messaging:  "✗ /update yalnızca mesajlaşma platformlarında kullanılabilir. Terminalden `muse update` komutunu çalıştırın."
     not_git_repo:            "✗ Git deposu değil — güncellenemiyor."
-    hermes_cmd_not_found:    "✗ `muse` komutu bulunamadı. MUSE çalışıyor, ancak güncelleme komutu yürütülebilir dosyayı PATH'te veya mevcut Python yorumlayıcısı aracılığıyla bulamadı. Terminalde `muse update` komutunu manuel olarak çalıştırmayı deneyin."
+    hermes_cmd_not_found:    "✗ `muse` komutu bulunamadı. muse çalışıyor, ancak güncelleme komutu yürütülebilir dosyayı PATH'te veya mevcut Python yorumlayıcısı aracılığıyla bulamadı. Terminalde `muse update` komutunu manuel olarak çalıştırmayı deneyin."
     start_failed:            "✗ Güncelleme başlatılamadı: {error}"
-    starting:                "◉ MUSE güncellemesi başlatılıyor… İlerlemeyi buraya akıtacağım."
+    starting:                "◉ muse güncellemesi başlatılıyor… İlerlemeyi buraya akıtacağım."
 
   usage:
     rate_limits:              "⏱️ **Hız Sınırları:** {state}"

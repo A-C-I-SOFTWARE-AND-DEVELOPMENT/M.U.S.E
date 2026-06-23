@@ -198,7 +198,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
     },
     "singularity": {
         "name": "singularity",
-        "description": "M.U.S.E. — a white core in the void, one thin spectral ring",
+        "description": "muse — a white core in the void, one thin spectral ring",
         "colors": {
             # The void is the field; the white core is the hero; the spectral
             # ring (cyan→violet) is the only accent. ≤3 color roles. See
@@ -249,15 +249,15 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "branding": {
-            "agent_name": "M.U.S.E.",
-            "welcome": "Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands.",
+            "agent_name": "muse",
+            "welcome": "Welcome to muse — one mind, many pathways. Type your message or /help for commands.",
             "goodbye": "Goodbye. ◯",
-            "response_label": " ◉ M.U.S.E. ",
+            "response_label": " ◉ muse ",
             "prompt_symbol": "❯",
-            "help_header": "✦ M.U.S.E. Commands",
+            "help_header": "✦ muse Commands",
         },
         "tool_prefix": "│",
-        # M.U.S.E. wordmark — crisp block "M.U.S.E." in a single near-white
+        # muse wordmark — crisp block "muse" in a single near-white
         # fill; the core (in the hero) owns the brightest pixel.
         "banner_logo": """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
 [bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
@@ -773,7 +773,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 # =============================================================================
 
 _active_skin: Optional[SkinConfig] = None
-# The runtime default skin is the M.U.S.E. "Singularity" look. The ``default``
+# The runtime default skin is the muse "Singularity" look. The ``default``
 # key in _BUILTIN_SKINS remains the classic gold Hermes look (also exposed as
 # ``caduceus``) and is the inheritance base for every other skin's unspecified
 # fields; this only sets which skin a fresh, unconfigured session activates.
@@ -922,7 +922,7 @@ def init_skin_from_config(config: dict) -> None:
     display = config.get("display") or {}
     if not isinstance(display, dict):
         display = {}
-    # No configured skin → the M.U.S.E. "Singularity" default.
+    # No configured skin → the muse "Singularity" default.
     skin_name = display.get("skin", "singularity")
     if isinstance(skin_name, str) and skin_name.strip():
         set_active_skin(skin_name.strip())

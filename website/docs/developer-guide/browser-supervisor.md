@@ -16,7 +16,7 @@ the two biggest gaps in our browser tooling:
    snapshot but could not click, type, or eval inside them — especially
    cross-origin (OOPIF) iframes that live in separate Chromium processes.
 
-[PR #12550](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/pull/12550) proposed a
+[PR #12550](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/pull/12550) proposed a
 stateless `browser_dialog` wrapper. That doesn't solve detection — it's a
 cleaner CDP call for when the agent already knows (via symptoms) that a dialog
 is open. Closed as superseded.
@@ -57,7 +57,7 @@ Camofox stays unsupported for this PR; follow-up upstream issue planned at
 
 ### CDPSupervisor
 
-One `asyncio.Task` running in a background daemon thread per M.U.S.E. `task_id`.
+One `asyncio.Task` running in a background daemon thread per muse `task_id`.
 Holds a persistent WebSocket to the backend's CDP endpoint. Maintains:
 
 - **Dialog queue** — `List[PendingDialog]` with `{id, type, message, default_prompt, session_id, opened_at}`

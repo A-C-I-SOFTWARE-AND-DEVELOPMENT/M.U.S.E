@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      XML-side mirror of the MUSE palette.
+      XML-side mirror of the muse palette.
       Compose draws from ui/theme/Color.kt; this file only exists for
       drawables (splash background, adaptive icon background) that can't
       reach Compose tokens. Keep names in sync with Color.kt.

@@ -38,6 +38,11 @@ model:
   #   Aliases: "ollama", "vllm", "llamacpp" all map to "custom".
   #   LM Studio is first-class and uses provider: "lmstudio".
   #   It works with both no-auth and auth-enabled server modes.
+  #   Set base_url to the OpenAI-compat endpoint (…/v1). Hermes additionally
+  #   reads LM Studio's native v1 REST API at /api/v1/* (released in LM Studio
+  #   0.4.0; the old beta lived at /api/v0/*) to auto-detect the real context
+  #   window — including for models that aren't currently loaded.
+  #   See docs/integrations/lmstudio-rest-api.md.
   #
   # Can also be overridden with --provider flag or HERMES_INFERENCE_PROVIDER env var.
   provider: "auto"

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 11
 title: "Cron Internals"
-description: "How M.U.S.E. stores, schedules, edits, pauses, skill-loads, and delivers cron jobs"
+description: "How muse stores, schedules, edits, pauses, skill-loads, and delivers cron jobs"
 ---
 
 # Cron Internals

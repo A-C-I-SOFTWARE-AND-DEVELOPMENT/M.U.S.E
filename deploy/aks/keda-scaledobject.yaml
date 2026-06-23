@@ -1,0 +1,44 @@
+# KEDA scales the muse-worker Deployment on Redis QUEUE DEPTH, not CPU.
+#
+# Why not CPU/HPA: agents are I/O-bound (waiting on hosted LLM APIs), so CPU
+# stays low even when thousands of agents are in flight — CPU-based autoscaling
+# would chronically under-provision. Queue depth is the honest demand signal.
+#
+# maxReplicaCount is your HARD spend ceiling: combined with the node pool's
+# --max-count, a runaway queue cannot scale you into bankruptcy.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: muse-worker-scaler
+  namespace: muse
+spec:
+  scaleTargetRef:
+    name: muse-worker
+  minReplicaCount: 1
+  maxReplicaCount: 50
+  cooldownPeriod: 120
+  pollingInterval: 15
+  triggers:
+    - type: redis
+      metadata:
+        # Redis list used as the agent job queue.
+        listName: muse:jobs
+        # Target backlog per replica. With SESSIONS_PER_WORKER=50, a value of
+        # 50 means "add a pod for every ~50 queued jobs".
+        listLength: "50"
+        addressFromEnv: REDIS_HOST_PORT   # e.g. muse-fleet-redis.redis.cache.windows.net:6380
+        enableTLS: "true"
+      authenticationRef:
+        name: muse-redis-auth
+---
+# Supplies the Redis password to the KEDA trigger from the projected secret.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: muse-redis-auth
+  namespace: muse
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: muse-secrets
+      key: REDIS_PASSWORD

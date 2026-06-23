@@ -67,11 +67,11 @@ def test_durable_low_confidence_rejected(store: MemoryStore) -> None:
 
 def test_durable_high_confidence_accepted(store: MemoryStore) -> None:
     record = store.remember(
-        "mission", "ship MUSE v1", durability="durable", confidence=0.9
+        "mission", "ship muse v1", durability="durable", confidence=0.9
     )
     assert record is not None
     assert record.durability == "durable"
-    assert store.durable[-1].value == "ship MUSE v1"
+    assert store.durable[-1].value == "ship muse v1"
 
 
 def test_journal_persistence_round_trip(tmp_path: Path) -> None:

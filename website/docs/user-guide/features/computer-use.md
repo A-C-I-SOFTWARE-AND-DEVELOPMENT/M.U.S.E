@@ -1,6 +1,6 @@
 # Computer Use (macOS)
 
-M.U.S.E. can drive your Mac's desktop — clicking, typing, scrolling,
+muse can drive your Mac's desktop — clicking, typing, scrolling,
 dragging — in the **background**. Your cursor doesn't move, keyboard focus
 doesn't change, and macOS doesn't switch Spaces on you. You and the agent
 co-work on the same machine.
@@ -48,7 +48,7 @@ After installing, regardless of which path you took:
 
 3. Grant macOS permissions when prompted:
    - **System Settings → Privacy & Security → Accessibility** → allow the
-     terminal (or M.U.S.E. app).
+     terminal (or muse app).
    - **System Settings → Privacy & Security → Screen Recording** → allow
      the same.
 4. Start a session with the toolset enabled:
@@ -60,10 +60,10 @@ After installing, regardless of which path you took:
 ## Keeping cua-driver up to date
 
 The cua-driver project ships fixes regularly (e.g. v0.1.6 fixed a Safari
-window-focus bug for UTM workflows). M.U.S.E. refreshes the binary in two
+window-focus bug for UTM workflows). muse refreshes the binary in two
 places so you don't get stuck on a stale release:
 
-- **`muse update`** — when you update M.U.S.E. itself, if `cua-driver` is
+- **`muse update`** — when you update muse itself, if `cua-driver` is
   on PATH the upstream installer re-runs at the end of the update.
   No-op for non-macOS users and for users without cua-driver installed.
 - **`muse computer-use install --upgrade`** — manual force-refresh.
@@ -109,7 +109,7 @@ image blocks.
 
 ## Safety
 
-M.U.S.E. applies multi-layer guardrails:
+muse applies multi-layer guardrails:
 
 - Destructive actions (click, type, drag, scroll, key, focus_app) require
   approval — either interactively via the CLI dialog or via the
@@ -126,7 +126,7 @@ Pair with `approvals.mode: manual` in `~/.hermes/config.yaml` if you want every 
 
 ## Token efficiency
 
-Screenshots are expensive. M.U.S.E. applies four layers of optimisation:
+Screenshots are expensive. muse applies four layers of optimisation:
 
 - **Screenshot eviction** — the Anthropic adapter keeps only the 3 most
   recent screenshots in context; older ones become `[screenshot removed
@@ -191,6 +191,6 @@ reconsider.
 
 ## See also
 
-- [Universal skill: `macos-computer-use`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/skills/apple/macos-computer-use/SKILL.md)
+- [Universal skill: `macos-computer-use`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/skills/apple/macos-computer-use/SKILL.md)
 - [cua-driver source (trycua/cua)](https://github.com/trycua/cua)
 - [Browser automation](./browser.md) for cross-platform web tasks.

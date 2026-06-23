@@ -1,4 +1,4 @@
-/* M.U.S.E. Neural Observatory — the live 3D map of MUSE's mind.
+/* muse Neural Observatory — the live 3D map of muse's mind.
  *
  * Renders real gateway data only (docs/synapse/design/10-observatory-spec.md):
  * the GraphRAG cluster galaxy, live job pipelines, the three-tier brain
@@ -28,8 +28,8 @@ import * as THREE from "./vendor/three.module.min.js";
  * ════════════════════════════════════════════════════════════════════════ */
 
 const $ = (s) => document.querySelector(s);
-const TOKEN_KEY = "muse.cockpit.token";
-const BASE_KEY = "muse.cockpit.base";
+const TOKEN_KEY = "musecockpit.token";
+const BASE_KEY = "musecockpit.base";
 
 // Token bootstrap: a launcher may hand us `#token=...&base=...` in the URL
 // fragment. Persist, then strip the fragment so the token never sits in the
@@ -905,7 +905,7 @@ function buildPipelines(stationNames) {
     new THREE.SphereGeometry(2.4, 10, 8),
     new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }),
     PACKET_CAP);
-  pm.userData.kind = "packet";
+  pmuserData.kind = "packet";
   pm.count = 0;
   pipeGroup.add(pm);
   pipes.packetMesh = pm;

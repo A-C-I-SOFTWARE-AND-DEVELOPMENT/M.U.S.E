@@ -1,7 +1,7 @@
 name: LaunchGate
 
 # Aggregator status check. The downstream workflows do the real work
-# (Android build / Lint / MUSE unit / Tests / Orchestration tests
+# (Android build / Lint / muse unit / Tests / Orchestration tests
 # / ruff enforcement / supply-chain audit). LaunchGate just rolls them
 # up into a single check that branch protection can require, so the
 # operator can enable GitHub auto-merge with one tick rather than
@@ -58,7 +58,7 @@ jobs:
           echo "  - Build debug APK            (android-build.yml)"
           echo "  - Lint                       (android-build.yml)"
           echo "  - Android JVM unit (testDebugUnitTest)  (jarvis-prime-unit.yml)"
-          echo "  - Python unit (MUSE + redact + orchestrator)  (jarvis-prime-unit.yml)"
+          echo "  - Python unit (muse + redact + orchestrator)  (jarvis-prime-unit.yml)"
           echo "  - ruff enforcement (blocking) (lint.yml)"
           echo "  - Tests                      (tests.yml)"
           echo "  - Orchestration tests        (orchestration-tests.yml)"
@@ -102,7 +102,7 @@ jobs:
               'Build debug APK',
               'Lint',
               'Android JVM unit (testDebugUnitTest)',
-              'Python unit (MUSE + redact + orchestrator)',
+              'Python unit (muse + redact + orchestrator)',
               'ruff enforcement (blocking)',
               'Orchestration unit tests',
             ];

@@ -1,7 +1,7 @@
 package com.aci.hermes.data.jarvis
 
 /**
- * Owner-controlled autonomy level for MUSE.
+ * Owner-controlled autonomy level for muse
  *
  * The mode gates whether Jarvis runs steps directly, asks first,
  * or refuses any external action at all (Lockdown). It is read by

@@ -1,6 +1,6 @@
 # Driving-mode safety policy
 
-`driving_capture` is the only M.U.S.E. voice mode designed for use
+`driving_capture` is the only muse voice mode designed for use
 while the user is operating a vehicle. It exists because the
 alternative — letting people fall back to `push_to_talk` or unlock
 the phone to type — is *less* safe in practice. The mode is
@@ -18,12 +18,12 @@ is what the safety review measures the implementation against.
   responsible for confirming that the way they expose it complies
   with the user's local rules (hands-free, mounted device,
   voice-only interaction).
-- M.U.S.E. ships `driving_capture` as **opt-in**. A factory build
+- muse ships `driving_capture` as **opt-in**. A factory build
   with no user configuration will run `push_to_talk` and refuse
   driving-mode requests with an explicit "you have not enabled
   driving mode" message rather than silently turning it on.
 - This policy applies to voice intake only. It does not authorise
-  M.U.S.E. to *do* anything risky on the user's behalf — see the
+  muse to *do* anything risky on the user's behalf — see the
   publish gate in §5.
 
 ## 2. Non-negotiable invariants
@@ -89,7 +89,7 @@ The mode exits when:
   wake engine treats this as a built-in command.
 - The cockpit detects the device leaving the car mount (where the
   platform supports it).
-- M.U.S.E. restarts (the mode is not sticky across process restarts
+- muse restarts (the mode is not sticky across process restarts
   unless the persisted setting is set; the env var alone is
   per-session).
 
@@ -154,7 +154,7 @@ so reviewers can see the original reasoning.
   never opens a long-lived microphone-to-cloud socket. See
   `stt-provider-policy.md`.
 - **No "I've been silent for 30 minutes, let me check in" prompts.**
-  Driving mode is reactive: the user wakes M.U.S.E., not the other way
+  Driving mode is reactive: the user wakes muse not the other way
   around. The agent never speaks unsolicited in driving mode.
 - **No screen unlock prompts from voice.** A spoken request that
   would require the device to be unlocked (open a website, launch an

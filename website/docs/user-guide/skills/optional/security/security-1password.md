@@ -17,7 +17,7 @@ Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop
 | Source | Optional — install with `muse skills install official/security/1password` |
 | Path | `optional-skills/security/1password` |
 | Version | `1.0.0` |
-| Author | arceus77-7, enhanced by M.U.S.E. |
+| Author | arceus77-7, enhanced by muse |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `security`, `secrets`, `1password`, `op`, `cli` |
@@ -25,7 +25,7 @@ Set up and use 1Password CLI (op). Use when installing the CLI, enabling desktop
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # 1Password CLI
@@ -37,7 +37,7 @@ Use this skill when the user wants secrets managed through 1Password instead of 
 - 1Password account
 - 1Password CLI (`op`) installed
 - One of: desktop app integration, service account token (`OP_SERVICE_ACCOUNT_TOKEN`), or Connect server
-- `tmux` available for stable authenticated sessions during M.U.S.E. terminal calls (desktop app flow only)
+- `tmux` available for stable authenticated sessions during muse terminal calls (desktop app flow only)
 
 ## When to Use
 
@@ -49,7 +49,7 @@ Use this skill when the user wants secrets managed through 1Password instead of 
 
 ## Authentication Methods
 
-### Service Account (recommended for M.U.S.E.)
+### Service Account (recommended for muse)
 
 Set `OP_SERVICE_ACCOUNT_TOKEN` in `~/.hermes/.env` (the skill will prompt for this on first load).
 No desktop app needed. Supports `op read`, `op inject`, `op run`.
@@ -95,9 +95,9 @@ op --version
 
 3. Choose an auth method above and configure it.
 
-## M.U.S.E. Execution Pattern (desktop app flow)
+## muse Execution Pattern (desktop app flow)
 
-M.U.S.E. terminal commands are non-interactive by default and can lose auth context between calls.
+muse terminal commands are non-interactive by default and can lose auth context between calls.
 For reliable `op` use with desktop app integration, run sign-in and secret operations inside a dedicated tmux session.
 
 Note: This is NOT needed when using `OP_SERVICE_ACCOUNT_TOKEN` — the token persists across terminal calls automatically.

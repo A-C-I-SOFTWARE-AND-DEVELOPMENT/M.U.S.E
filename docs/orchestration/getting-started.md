@@ -1,15 +1,15 @@
-# Getting started with M.U.S.E. Orchestration
+# Getting started with muse Orchestration
 
-This doc walks you from a clean M.U.S.E. install to a first
+This doc walks you from a clean muse install to a first
 orchestrated job, and explains every piece of jargon that shows up
 along the way. Allow ~10 minutes.
 
-> If you have not installed M.U.S.E. yet, do the
+> If you have not installed muse yet, do the
 > [Quick Install](../../README.md#quick-install) first and come back.
 
 ## Prerequisites
 
-- M.U.S.E. installed (`muse doctor` passes).
+- muse installed (`muse doctor` passes).
 - At least one provider configured (`muse model` shows a default
   model). Anything that works for `muse` works for the
   orchestrator — there is no separate API key surface.
@@ -59,7 +59,7 @@ What happens:
 
 1. The script resolves the current git repo (or CWD) and writes a
    new job folder under `~/.hermes/jobs/<job-id>/`.
-2. It spawns a M.U.S.E. process with the **orchestrator profile**
+2. It spawns a muse process with the **orchestrator profile**
    (default: `default` with the `kanban-orchestrator` skill
    pre-loaded). That process reads the prompt, decomposes it into
    Kanban cards, and assigns each card to a profile.
@@ -143,7 +143,7 @@ bash scripts/hermes-orchestrate.sh "Audit this repo" \
 
 ## Skill invocation — how the orchestrator picks its playbook
 
-The orchestrator is a M.U.S.E. profile with the
+The orchestrator is a muse profile with the
 **`kanban-orchestrator`** skill loaded (or
 `enterprise-council/orchestrator` for enterprise mode). The skill is
 the playbook — the "decompose, don't execute" rules, the fan-out
@@ -163,7 +163,7 @@ Skills are loaded in three ways:
          - autonomous-ai-agents/hermes-agent
    ```
 
-2. **Invoked inline via slash.** Inside any M.U.S.E. conversation:
+2. **Invoked inline via slash.** Inside any muse conversation:
 
    ```
    /kanban-orchestrator     # loads the playbook on demand
@@ -186,7 +186,7 @@ needed.
 
 ## Slash commands
 
-The full orchestration vocabulary, available in any M.U.S.E.
+The full orchestration vocabulary, available in any muse
 conversation (CLI, gateway, Android cockpit when connected to a
 gateway):
 

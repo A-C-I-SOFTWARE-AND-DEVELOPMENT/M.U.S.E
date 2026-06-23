@@ -14,7 +14,7 @@ machinery end-to-end:
   scored offline by running it in the research-fabric sandbox (``python -I -S``
   subprocess, scrubbed env, dead-proxy network). No model is ever called.
 * :class:`hermes_cli.jarvis_prime.model_scorecard.ModelScorecard` is the
-  structured scorecard shape the rest of MUSE consumes; each graded task becomes
+  structured scorecard shape the rest of muse consumes; each graded task becomes
   one card (``tests_passed`` / ``tests_failed`` from the verifier's correctness),
   so the artifact is ``ModelScorecard``-compatible rather than a new format.
 * :class:`hermes_cli.jarvis_prime.task_router.TaskClass` supplies the lane labels

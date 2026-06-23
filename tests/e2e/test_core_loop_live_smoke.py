@@ -36,7 +36,7 @@ shapes (no "API key", no "unauthenticated", no "not configured"). That
 is the minimum honest "I produced an artifact" signal — small enough to
 not be theater, real enough to fail when the loop is broken.
 
-It is deliberately **not** a full chat turn through M.U.S.E.'s gateway:
+It is deliberately **not** a full chat turn through muse's gateway:
 that path is exercised by the unit + integration suites and stubbed in
 the offline E2E. The live smoke targets the single concrete claim the
 offline E2E cannot make: "the configured model actually answers." Once

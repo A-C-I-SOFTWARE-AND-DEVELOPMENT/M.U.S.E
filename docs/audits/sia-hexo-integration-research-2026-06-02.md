@@ -1,7 +1,7 @@
-# Research + Audit: Hexo Labs / SIA → Hermes / MUSE integration
+# Research + Audit: Hexo Labs / SIA → Hermes / muse integration
 
 **Date:** 2026-06-02 · **Scope:** evaluate Hexo Labs' "SIA" open-source
-AI for reuse in Hermes/MUSE; audit this repo as the reference baseline;
+AI for reuse in Hermes/muse audit this repo as the reference baseline;
 design and land an owner-gated integration.
 
 ---
@@ -111,7 +111,7 @@ full loop autonomously, but only inside `isolation.py` on a copy. The
 only via the Claude-builder/Codex-reviewer PR flow on the owner's exact
 phrase. This is the only posture consistent with
 `docs/jarvis-prime-operating-system.md` and the explicit contract in
-`self_update.py` ("MUSE does NOT silently rewrite his own runtime").
+`self_update.py` ("muse does NOT silently rewrite his own runtime").
 
 ---
 

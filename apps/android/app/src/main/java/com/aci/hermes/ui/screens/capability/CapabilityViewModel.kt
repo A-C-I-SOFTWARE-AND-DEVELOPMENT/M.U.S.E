@@ -123,7 +123,7 @@ class CapabilityViewModel(
         val capability = _state.value.selected ?: return
         val ok = HandoffLauncher.copyPrompt(
             context = getApplication(),
-            label = "MUSE capability prompt",
+            label = "muse capability prompt",
             text = preview.staged,
         )
         if (ok) {

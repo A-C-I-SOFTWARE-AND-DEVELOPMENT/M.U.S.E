@@ -1,7 +1,7 @@
 """Owner-gated autoresearch glue — the training engine in the SIA socket.
 
 Wires the autoresearch worker (autonomous ``train.py`` experiments in a
-disposable workspace) into MUSE's existing owner-gated improvement flow by
+disposable workspace) into muse's existing owner-gated improvement flow by
 **reusing** :func:`hermes_cli.jarvis_prime.sia_self_improve.run_self_improvement`
 — same benchmark gate, same RC4 proposal with ``NEEDS_OWNER_APPROVAL``, zero
 new orchestration. On top it adds what training runs need:

@@ -10,10 +10,10 @@
 ## Do-not-edit rule
 
 Everything under `vendor/` is **byte-identical upstream payload, committed as
-data**. It is never imported by MUSE code or tests, never linted/type-checked
+data**. It is never imported by muse code or tests, never linted/type-checked
 (ruff-excluded), and never edited in-repo — the autoresearch experiment loop
 mutates only *copies* inside disposable workspaces under
-`$HERMES_HOME/autoresearch/workspaces/<tag>/`. All MUSE adaptations (device
+`$HERMES_HOME/autoresearch/workspaces/<tag>/`. All muse adaptations (device
 shim, governance, cost ceilings) live in the sibling modules
 (`platform.py`, `engine.py`, `swarm.py`) and in
 `hermes_cli/workers/autoresearch.py` / `hermes_cli/jarvis_prime/autoresearch_improve.py`.

@@ -1,8 +1,8 @@
 {
-  "name": "MUSE",
+  "name": "muse",
   "full_name": "Multi-Use Synaptic Entity",
-  "display": "M.U.S.E.",
-  "short_name": "MUSE",
+  "display": "muse",
+  "short_name": "muse",
   "tagline": "One mind, many pathways.",
   "glyph": "A single luminous white core in the void, circled by one thin spectral ring (cyan→violet).",
   "palette": {
@@ -78,7 +78,7 @@
     "tts_engine": "piper",
     "sample_rate_hz": 22050,
     "offline_first": true,
-    "wake_phrase": "Muse",
+    "wake_phrase": "muse",
     "vad": true
   },
   "persona_spec": "docs/jarvis-prime-operating-system.md"

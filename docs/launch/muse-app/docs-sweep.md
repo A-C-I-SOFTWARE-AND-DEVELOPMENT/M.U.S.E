@@ -1,4 +1,4 @@
-# Docs sweep — `hermes`→`muse` / "Hermes Agent"→"M.U.S.E." (user-facing docs)
+# Docs sweep — `hermes`→`muse` / "Hermes Agent"→"muse" (user-facing docs)
 
 **Task:** Finish the rebrand in user-facing documentation only. No code, no
 PR, no merge.
@@ -27,9 +27,9 @@ PR, no merge.
    (converted per-file with judgment, ~30 hand-checked occurrences in
    getting-started / guides / user-guide / orchestration / README.zh-CN).
 
-2. **Product name** — `"Hermes Agent"` → `"M.U.S.E."` across the safe
+2. **Product name** — `"Hermes Agent"` → `"muse"` across the safe
    user-facing set (174 files), and standalone product `"Hermes"` →
-   `"M.U.S.E."` in clearly-product prose/headings via a **line-aware**
+   `"muse"` in clearly-product prose/headings via a **line-aware**
    replacer (412 files) that only fires on a prose boundary (never before
    `-` or `/`, so every `Hermes-foo` / `Hermes/foo` compound is left
    intact) and skips any line carrying a substrate/heritage/identifier
@@ -43,7 +43,7 @@ pre/post):
 - **Substrate / heritage (model + lab):** `Nous Hermes`, `Hermes-4`/`Hermes 4`
   (incl. `Hermes-4-70B` etc.), `Hermes-3`, `Hermes models`, `Hermes base`,
   `Hermes agent base`, `Hermes baseline`, "the lab behind Hermes, Nomos, and
-  Psyche", `Hermes/Grok` (uncensored-model note), `Nous Research`. MUSE is
+  Psyche", `Hermes/Grok` (uncensored-model note), `Nous Research`. muse is
   *built on* the Hermes base — that honesty framing stays.
 - **Filesystem / infra / env:** `~/.hermes`, `$HERMES_HOME`, `HERMES_*`
   (incl. `HERMES_TUI`, `HERMES_KANBAN_BOARD`), the `hermes` data dir
@@ -83,7 +83,7 @@ pre/post):
   snapshot was added there.
 - **`RELEASE_*.md`, `CHANGELOG`** — left entirely (historical).
 - **Audit / prompt-fidelity / skill-identifier files excluded from the
-  "Hermes Agent"→"M.U.S.E." prose pass** (they quote the *current* "Hermes
+  "Hermes Agent"→"muse" prose pass** (they quote the *current* "Hermes
   Agent" label as a finding, or are literal prompt strings, or are skill
   ids): `docs/jarvis-prime-app-*audit*`/`*gap*`/`*roadmap*`,
   `docs/audits/**`, `docs/audit/**`, `docs/aos-recovery/AOS_AGENT_*`,

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="muse — Multi-Use Synaptic Entity — One mind, many pathways.">
   <!--
-    M.U.S.E. banner — V2 "Cinematic synthesis", REFINED to production grade.
+    muse banner — V2 "Cinematic synthesis", REFINED to production grade.
     Refinements over the comp: (1) value ladder — wordmark near-white (#eef2f7) so
     the white core owns the single luminous peak; (2) tight high-emissive core
     "punch"; (3) optical micro-corrections — U-bowl overshoot + larger baseline
@@ -62,7 +62,7 @@
     <circle cx="70" cy="90" r="16" fill="url(#coreHot)"/>
     <circle cx="70" cy="90" r="12.5" fill="#ffffff"/>
 
-    <!-- wordmark M.U.S.E. — near-white (value ladder), weight 15, crisp matte -->
+    <!-- wordmark muse — near-white (value ladder), weight 15, crisp matte -->
     <g fill="none" stroke="#eef2f7" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
       <!-- M -->
       <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>

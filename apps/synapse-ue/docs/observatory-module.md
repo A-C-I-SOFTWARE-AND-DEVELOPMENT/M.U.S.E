@@ -1,7 +1,7 @@
 # SynapseObservatory — module documentation
 
 `SynapseObservatory` is the Neural Observatory map module (TDD §2.4,
-`docs/synapse/design/10-observatory-spec.md` in the M.U.S.E repo). This
+`docs/synapse/design/10-observatory-spec.md` in the muse repo). This
 drop ships the **data plane only**: the typed client for the additive,
 read-only `/v1/observatory/*` route family — USTRUCT wire types
 (`ObservatoryTypes.h`) plus a `UGameInstanceSubsystem`
@@ -25,12 +25,12 @@ SynapseUI → {SynapseObservatory, FoundryClient, Agents} → SynapseNet → Syn
 ```
 
 All gateway traffic still flows through `SynapseNet` (the only module
-that talks to a MUSE gateway): fetches are built by
-`UMuseGatewayClient::CreateAuthorizedGetRequest` (an additive public
+that talks to a muse gateway): fetches are built by
+`UmuseGatewayClient::CreateAuthorizedGetRequest` (an additive public
 wrapper over its existing private request factory — base URL, timeout,
 and bearer token handling live in exactly one place; the token is read
 fresh from the settings token file and is never stored or logged by this
-module), and the stream rides `UMuseSseClient`.
+module), and the stream rides `UmuseSseClient`.
 
 ## Routes implemented (greppable per TDD §2.2)
 
@@ -99,7 +99,7 @@ thread):
   via `AsyncTask(ENamedThreads::GameThread, …)` with a
   `TWeakObjectPtr` guard.
 - **All delegate broadcasts happen on the game thread.** No exceptions.
-- **Stream frames:** `UMuseSseClient` delivers frames already on the
+- **Stream frames:** `UmuseSseClient` delivers frames already on the
   game thread (its Prompt 0 contract), so the per-event payload parse
   runs there. This is a stated, bounded deviation: stream payloads are
   one-line deltas and `node.activate` is coalesced to ≤ 10/s
@@ -109,7 +109,7 @@ thread):
 
 ### Known gap (documented, not papered over): `Last-Event-ID` resume
 
-The Prompt 0 `UMuseSseClient` parses-and-ignores `id:` and does not send
+The Prompt 0 `UmuseSseClient` parses-and-ignores `id:` and does not send
 `Last-Event-ID` on reconnect (Phase 1 work, tracked in
 `docs/synapsenet.md`). Consequence: after a transport drop + backoff
 reconnect, events that occurred during the gap are **lost** rather than
@@ -117,7 +117,7 @@ replayed from the gateway's 1,000-event ring. Mitigations now: (a) the
 gateway emits `resync` when it knows a client is behind — handled; (b)
 renderers should treat any reconnect as suspect and refetch the snapshot
 (cheap, one call, spec §3.1 is designed for exactly this). The fix
-belongs in `UMuseSseClient`, not here — per the no-hacking rule this
+belongs in `UmuseSseClient`, not here — per the no-hacking rule this
 module does not reimplement or monkey-patch the SSE transport.
 
 ## LOD budget notes (spec §8 — what this data plane guarantees)
@@ -189,7 +189,7 @@ both `Source/*.Target.cs` files; UBT picks it up from
 
 ### 3. PIE against a live gateway
 
-Point `GatewayBaseUrl` (Project Settings → MUSE Gateway) at the real
+Point `GatewayBaseUrl` (Project Settings → muse Gateway) at the real
 gateway, pair (or copy a valid bearer token into
 `Saved\muse_token.txt`), and repeat step 2's binds. Notes:
 

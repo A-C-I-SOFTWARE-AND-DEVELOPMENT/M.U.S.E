@@ -1,14 +1,14 @@
 ---
 sidebar_position: 2
 title: "TUI"
-description: "Launch the modern terminal UI for M.U.S.E. — mouse-friendly, rich overlays, and non-blocking input."
+description: "Launch the modern terminal UI for muse — mouse-friendly, rich overlays, and non-blocking input."
 ---
 
 # TUI
 
-The TUI is the modern front-end for M.U.S.E. — a terminal UI backed by the same Python runtime as the [Classic CLI](cli.md). Same agent, same sessions, same slash commands; a cleaner, more responsive surface for interacting with them.
+The TUI is the modern front-end for muse — a terminal UI backed by the same Python runtime as the [Classic CLI](cli.md). Same agent, same sessions, same slash commands; a cleaner, more responsive surface for interacting with them.
 
-It's the recommended way to run M.U.S.E. interactively.
+It's the recommended way to run muse interactively.
 
 ## Launch
 
@@ -40,7 +40,7 @@ The classic CLI remains available as the default. Anything documented in [CLI In
 
 ## Why the TUI
 
-- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while M.U.S.E. is starting.
+- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while muse is starting.
 - **Non-blocking input** — type and queue messages before the session is ready. Your first prompt sends the moment the agent comes online.
 - **Rich overlays** — model picker, session picker, approval and clarification prompts all render as modal panels rather than inline flows.
 - **Live session panel** — tools and skills fill in progressively as they initialize.
@@ -68,11 +68,11 @@ Click anywhere on a section header (or its chevron) to toggle it. The Tools list
 - **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `muse doctor` verifies this.
 - **TTY** — like the classic CLI, piping stdin or running in non-interactive environments falls back to single-query mode.
 
-On first launch M.U.S.E. installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new M.U.S.E. version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
+On first launch muse installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new muse version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
 
 ### External prebuild
 
-Distributions that ship a prebuilt bundle (Nix, system packages) can point M.U.S.E. at it:
+Distributions that ship a prebuilt bundle (Nix, system packages) can point muse at it:
 
 ```bash
 export HERMES_TUI_DIR=/path/to/prebuilt/ui-tui
@@ -132,7 +132,7 @@ export HERMES_TUI_THEME=light
 
 ## Busy indicator styles
 
-The status-bar busy indicator is pluggable — the default rotates M.U.S.E.' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
+The status-bar busy indicator is pluggable — the default rotates muse' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
 
 ```yaml
 display:
@@ -177,7 +177,7 @@ The status line also shows:
 
 ## Configuration
 
-The TUI respects all standard M.U.S.E. config: `~/.hermes/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
+The TUI respects all standard muse config: `~/.hermes/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
 
 A handful of keys tune the TUI surface specifically:
 
@@ -254,7 +254,7 @@ This is the same channel the web dashboard's embedded TUI uses (see [Web Dashboa
 
 Launching `hermes` (without `--tui`) stays on the classic CLI. To make a machine prefer the TUI, set `HERMES_TUI=1` in your shell profile. To go back, unset it.
 
-If the TUI fails to launch (no Node, missing bundle, TTY issue), M.U.S.E. prints a diagnostic and falls back — rather than leaving you stuck.
+If the TUI fails to launch (no Node, missing bundle, TTY issue), muse prints a diagnostic and falls back — rather than leaving you stuck.
 
 ## See also
 

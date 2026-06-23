@@ -1,6 +1,6 @@
 """``graph_query`` tool — GraphRAG knowledge-graph retrieval for the agent.
 
-Lets the agent consult the MUSE knowledge graph (typed, source-backed
+Lets the agent consult the muse knowledge graph (typed, source-backed
 nodes/edges over repo code, docs, Research Vault, Memory Tree, and ledgers)
 *before* writing code, so coding tasks reuse existing implementations instead
 of duplicating them. It supplements — never replaces — the existing
@@ -61,7 +61,7 @@ def graph_query(question: str = "", mode: str = "coding", limit: int = 8) -> str
 GRAPH_QUERY_SCHEMA = {
     "name": "graph_query",
     "description": (
-        "Query the MUSE knowledge graph (code, docs, evidence, memory, "
+        "Query the muse knowledge graph (code, docs, evidence, memory, "
         "decisions) to find existing implementations, tests, and prior "
         "decisions BEFORE writing new code — so you reuse what exists instead "
         "of duplicating it. Modes: 'coding' (relevant files + tests + docs + "

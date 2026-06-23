@@ -561,7 +561,7 @@ class CopilotACPClient:
                     },
                     "clientInfo": {
                         "name": "hermes-agent",
-                        "title": "MUSE",
+                        "title": "muse",
                         "version": "0.0.0",
                     },
                 },

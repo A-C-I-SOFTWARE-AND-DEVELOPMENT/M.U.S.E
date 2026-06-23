@@ -1,6 +1,6 @@
-# M.U.S.E. visual design language
+# muse visual design language
 
-> The captured "ways" — the rubric every M.U.S.E. surface (banner, glyph,
+> The captured "ways" — the rubric every muse surface (banner, glyph,
 > favicons, cockpit, slides, social cards) is held to. It distills the design
 > craft of **Google Material 3**, **Microsoft Fluent 2**, and **AAA game /
 > Unreal Engine 5 (Lumen)** key-art into a small, enforceable set of rules,
@@ -57,7 +57,7 @@ left→right `#7AE0FF → #B388FF` linear gradient and **round** line caps.
 
 ## 3. The wordmark
 
-**"M.U.S.E."** is a **bespoke geometric monoline** — hand-drawn `<path>`
+**"muse"** is a **bespoke geometric monoline** — hand-drawn `<path>`
 letterforms, **not a font** (only generic fonts are installed in CI, so a font
 would render differently or box-out on other machines). Rules:
 
@@ -82,7 +82,7 @@ social card.
 - **Canvas** `viewBox 0 0 1145 232`; rendered **@4× → 4580×928**. README embeds
   it at `width="100%"`, so the ratio is the only thing that matters.
 - **Three tiers, optically centered** under the lockup:
-  1. wordmark **M.U.S.E.** (hero)
+  1. wordmark **muse** (hero)
   2. `MULTI-USE SYNAPTIC ENTITY` — the expansion, `#AAB2C4`, tracked uppercase
   3. `One mind, many pathways.` — the tagline/motto, `#8B93A6`, sentence case
 - **The value ladder (the rule that makes it read "premium"):** brightness
@@ -201,7 +201,7 @@ the decision (V2, refined, was chosen):
 
 ## Component catalog
 
-The **canonical UI components** every M.U.S.E. product surface (web cockpit,
+The **canonical UI components** every muse product surface (web cockpit,
 Android app) implements. This is the spec; the tokens live in
 [`design-system/tokens.json`](../../design-system/tokens.json) and are emitted
 to `design-system/dist/tokens.css` (web) and `design-system/dist/Tokens.kt`

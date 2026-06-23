@@ -1,4 +1,4 @@
-# MUSE / Hermes Runtime — Mass-PR Integration Audit
+# muse / Hermes Runtime — Mass-PR Integration Audit
 
 > **Stale baseline (2026-05-26).** This audit classifies the PR #131 wave
 > against `main` at `bc97e43`; `main` has since advanced ~211 commits and most
@@ -11,7 +11,7 @@
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Base SHA:** `bc97e43` (`origin/main` at audit time)
 **Plan:** see `/root/.claude/plans/mission-you-are-idempotent-bunny.md`
-**Scope (owner-confirmed):** all 53 in-scope open PRs (28 MUSE stack + 25 older Phase orchestration)
+**Scope (owner-confirmed):** all 53 in-scope open PRs (28 muse stack + 25 older Phase orchestration)
 
 > This audit is committed **before** any merge or cherry-pick so the
 > classification is reviewable. It is the source of truth for what gets
@@ -48,34 +48,34 @@ commit itself. After every orphan cherry-pick, run
 to restore anything the cherry-pick wrongly touched outside the feature's
 intended path.
 
-## MUSE stack (28 PRs)
+## muse stack (28 PRs)
 
 | PR | Title | Base | Verdict | Feature SHA(s) | Notes |
 |----|-------|------|---------|----------------|-------|
-| #129 | MUSE home screen as command center | `bc97e43` | `MERGE` | `36fc226` | Wins `HomeScreen.kt` vs #125/#126; aggregates HermesService + repos into JarvisHomeState |
+| #129 | muse home screen as command center | `bc97e43` | `MERGE` | `36fc226` | Wins `HomeScreen.kt` vs #125/#126; aggregates HermesService + repos into JarvisHomeState |
 | #128 | Close launch-readiness blockers (docs · backup · tests · CI) | `bc97e43` | `MERGE-LAST` | `516c04d` | Rewrites README, adds `unit-tests` CI job, fixes backup rules, drops stale `hermesGatewayUrl` |
-| #127 | Align Android app to MUSE Gateway Event Spine | ORPHAN | `DEFER` | `e2690a4` | 378-file orphan; overlaps with existing Hermes gateway plugin; owner Q5 |
-| #126 | MUSE mobile command center | ORPHAN | `SUPERSEDED-BY-#125` | — | Foundation contained in #125's full integration |
-| #125 | MUSE full app integration | ORPHAN | `MERGE-PARTIAL` | `fef396b` + `7c22b4e` | Cherry-pick uncontested files only; #129 wins HomeScreen |
-| #124 | MUSE capability UI | ORPHAN | `MERGE` | `ccbad67` | New route in #112's shell |
-| #123 | MUSE voice capture — Phase 1 | `bc97e43` | `DEFER` | (clean-base PR) | Likely adds `RECORD_AUDIO` permission; owner Q4 required |
-| #122 | MUSE memory transparency screen | `bc97e43` | `MERGE` | `637102f` | Clean-base merge |
-| #121 | MUSE cockpit launch-demo polish | ORPHAN | `MERGE` | `7d3a8d9` | Must land AFTER #113 design tokens |
-| #120 | MUSE emergency stop — visible, audited, app-wide | ORPHAN | `MERGE` | `621b07e` | Must land BEFORE #128 README rewrite |
-| #119 | MUSE interactive icon — in-app only | ORPHAN | `MERGE` | `f7782bb` | |
-| #118 | MUSE Audit & Proof History screen | ORPHAN | `MERGE` | TBD (branch tip `12f8b47`) | Resolve feature SHA at execution time |
-| #117 | MUSE chat screen | ORPHAN | `MERGE` | `af1331d` | Verify no conflict with #129 routes |
-| #116 | MUSE task and worker command cards | `bc97e43` | `MERGE` | `d558410` | Clean-base merge |
-| #115 | MUSE control and settings surfaces | `bc97e43` | `MERGE` | `8248cdb` | Clean-base merge |
-| #114 | MUSE Social Intelligence — Memory screen + privacy boundary | ORPHAN | `MERGE` | `4a9a051` | Verify privacy boundary code preserved |
-| #113 | MUSE visual identity + design system | ORPHAN | `MERGE-EARLY` | `8478240` | Foundation; design tokens that downstream PRs reference |
-| #112 | MUSE navigation shell (10 routes + emergency stop) | ORPHAN | `MERGE-EARLY` | `249f7f5` | Lands first; converts 5→10 routes |
-| #111 | MUSE APK launch readiness audit — verdict RED | `bc97e43` | `MERGE-DOCS` | `7919e56` | Reference artefact (1 file) |
-| #110 | Deep audit of Android app before MUSE rebrand | `bc97e43` | `MERGE-DOCS` | `82bf452` | Reference artefact (5 files) |
-| #109 | MUSE onboarding + Python logging redaction | ORPHAN | `MERGE-SPLIT` | `5bf1eb7` (Android), `bbfc6ed` (Python), `d687a8a` (CodeQL fix) | Python redaction is security-critical; lands in Phase 1 |
-| #108 | MUSE Android app product specification | `bc97e43` | `MERGE-DOCS` | `fbbfae4` | Reference artefact (5 files) |
-| #107 | MUSE approval system UI | `bc97e43` | `MERGE` | `b82b6e2` | Clean-base merge |
-| #106 | MUSE notifications command center | ORPHAN | `MERGE` | `abde9b9` | Verify `POST_NOTIFICATIONS` is runtime-requested |
+| #127 | Align Android app to muse Gateway Event Spine | ORPHAN | `DEFER` | `e2690a4` | 378-file orphan; overlaps with existing Hermes gateway plugin; owner Q5 |
+| #126 | muse mobile command center | ORPHAN | `SUPERSEDED-BY-#125` | — | Foundation contained in #125's full integration |
+| #125 | muse full app integration | ORPHAN | `MERGE-PARTIAL` | `fef396b` + `7c22b4e` | Cherry-pick uncontested files only; #129 wins HomeScreen |
+| #124 | muse capability UI | ORPHAN | `MERGE` | `ccbad67` | New route in #112's shell |
+| #123 | muse voice capture — Phase 1 | `bc97e43` | `DEFER` | (clean-base PR) | Likely adds `RECORD_AUDIO` permission; owner Q4 required |
+| #122 | muse memory transparency screen | `bc97e43` | `MERGE` | `637102f` | Clean-base merge |
+| #121 | muse cockpit launch-demo polish | ORPHAN | `MERGE` | `7d3a8d9` | Must land AFTER #113 design tokens |
+| #120 | muse emergency stop — visible, audited, app-wide | ORPHAN | `MERGE` | `621b07e` | Must land BEFORE #128 README rewrite |
+| #119 | muse interactive icon — in-app only | ORPHAN | `MERGE` | `f7782bb` | |
+| #118 | muse Audit & Proof History screen | ORPHAN | `MERGE` | TBD (branch tip `12f8b47`) | Resolve feature SHA at execution time |
+| #117 | muse chat screen | ORPHAN | `MERGE` | `af1331d` | Verify no conflict with #129 routes |
+| #116 | muse task and worker command cards | `bc97e43` | `MERGE` | `d558410` | Clean-base merge |
+| #115 | muse control and settings surfaces | `bc97e43` | `MERGE` | `8248cdb` | Clean-base merge |
+| #114 | muse Social Intelligence — Memory screen + privacy boundary | ORPHAN | `MERGE` | `4a9a051` | Verify privacy boundary code preserved |
+| #113 | muse visual identity + design system | ORPHAN | `MERGE-EARLY` | `8478240` | Foundation; design tokens that downstream PRs reference |
+| #112 | muse navigation shell (10 routes + emergency stop) | ORPHAN | `MERGE-EARLY` | `249f7f5` | Lands first; converts 5→10 routes |
+| #111 | muse APK launch readiness audit — verdict RED | `bc97e43` | `MERGE-DOCS` | `7919e56` | Reference artefact (1 file) |
+| #110 | Deep audit of Android app before muse rebrand | `bc97e43` | `MERGE-DOCS` | `82bf452` | Reference artefact (5 files) |
+| #109 | muse onboarding + Python logging redaction | ORPHAN | `MERGE-SPLIT` | `5bf1eb7` (Android), `bbfc6ed` (Python), `d687a8a` (CodeQL fix) | Python redaction is security-critical; lands in Phase 1 |
+| #108 | muse Android app product specification | `bc97e43` | `MERGE-DOCS` | `fbbfae4` | Reference artefact (5 files) |
+| #107 | muse approval system UI | `bc97e43` | `MERGE` | `b82b6e2` | Clean-base merge |
+| #106 | muse notifications command center | ORPHAN | `MERGE` | `abde9b9` | Verify `POST_NOTIFICATIONS` is runtime-requested |
 | #105 | Wire CLI proposals + handoff subcommands (Wave 1 CLI lane) | ORPHAN | `MERGE` | `52d5f1b` | 4-file feature delta; Phase 1 |
 | #104 | Add WorkPacket schema + canonical repo + wave plan | `bc97e43` | `MERGE-FIRST` | `e3e62ba` | Foundation; purely additive (5 files, +657 lines) |
 | #103 | Wave 0 foundation lock — canonical repo, wave plan, WorkPacket | `bc97e43` | `SUPERSEDED-BY-#104` | — | 11 files vs #104's curated 5; #104 is human-authored survivor |
@@ -101,7 +101,7 @@ be closed by this integration (safety rule).
 ## Older Phase orchestration PRs (25 PRs, default `DEFER-LATER-PASS`)
 
 All 25 PRs have orphan history vs current `main` (~775-1009 file diffs).
-MUSE runtime v1.0.0 (commit `45a11b0`, 18 modules + 159 tests) and
+muse runtime v1.0.0 (commit `45a11b0`, 18 modules + 159 tests) and
 decision-ledger fix (#92) already landed on main. Most of these older PRs
 were authored before those landings and are likely partly or fully
 superseded. Default verdict: **`DEFER-LATER-PASS`** — re-evaluated in
@@ -133,7 +133,7 @@ Phase 6 (after JARVIS Android stack lands and verifies).
 | #36 | Phase 18: APK cockpit spec, API contract, wireframes, Termux bridge | 906 | `DEFER-LATER-PASS` (likely already on main as `CockpitApi.kt` baseline) |
 | #32 | Executable runtime for branch/commit/PR plan (github-publisher) | 909 | `DEFER-LATER-PASS` |
 | #17 | Phase 7 job controller + worker adapter roadmap | 908 | `DEFER-LATER-PASS` |
-| #4 | Android real E2E direct API test, 3-card onboarding | 1009 | `DEFER-LATER-PASS` (predates MUSE; likely fully superseded) |
+| #4 | Android real E2E direct API test, 3-card onboarding | 1009 | `DEFER-LATER-PASS` (predates muse likely fully superseded) |
 
 ## Owner-gated decisions required during integration
 

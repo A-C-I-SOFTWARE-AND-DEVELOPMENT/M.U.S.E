@@ -1,11 +1,11 @@
-# MUSE Compliance Evidence Matrix
+# muse Compliance Evidence Matrix
 
 > Human-readable mirror of
 > [`hermes_cli/jarvis_prime/federation/compliance_matrix.py`](../../hermes_cli/jarvis_prime/federation/compliance_matrix.py)
 > (`CONTROL_MAPPINGS`). A test asserts every `control_id` below stays in sync
 > with the module — the same discipline as the Constitution sync test.
 
-MUSE supplies the **evidence**, not the certificate: the mappings show
+muse supplies the **evidence**, not the certificate: the mappings show
 structural alignment, but conformity assessment and certification require an
 external auditor (no harmonized EU AI Act standard had been published as of
 mid-2026 — see the Volume VI caveats).
@@ -23,7 +23,7 @@ the sovereignty index — all computed from the live ledger, then sealed with
 
 ## EU AI Act (high-risk obligations)
 
-| Control | Obligation | MUSE mechanism | Evidence kinds |
+| Control | Obligation | muse mechanism | Evidence kinds |
 |---|---|---|---|
 | **Art9** | Risk management system | Eight verification gates + capability wall (RC0–RC4) + behavioral self-audit | `gate_summary`, `capability_attestation`, `audit_result` |
 | **Art11** | Technical documentation (Annex IV) | Constitution + work packets + spec docs as living documentation that exists *before* market placement | `constitution_amendment_decision`, `work_packet` |
@@ -33,7 +33,7 @@ the sovereignty index — all computed from the live ledger, then sealed with
 
 ## SOC 2 (common criteria)
 
-| Control | Criterion | MUSE mechanism | Evidence kinds |
+| Control | Criterion | muse mechanism | Evidence kinds |
 |---|---|---|---|
 | **CC4.1** | Monitoring of controls | Constitution self-audit + sovereignty index + ledger kind histogram | `sovereignty_report`, `audit_result` |
 | **CC6.1** | Logical access controls | Owner-gated action set + contributor trust ladder (B0–B3) + quorum policies | `owner_authorization_grant`, `contributor_band_change` |
@@ -42,7 +42,7 @@ the sovereignty index — all computed from the live ledger, then sealed with
 
 ## ISO 27001 (Annex A)
 
-| Control | Control name | MUSE mechanism | Evidence kinds |
+| Control | Control name | muse mechanism | Evidence kinds |
 |---|---|---|---|
 | **A.5.35** | Independent review of information security | Cross-node attestation + Merkle-anchored leaderboards (trustless third-party verification) | `federation_peer_attestation`, `forge_leaderboard_anchor` |
 | **A.8.15** | Logging | `GuardrailLedger`: every gate decision, grant, duel, and amendment is appended | `ledger_chain_diagnostics` |

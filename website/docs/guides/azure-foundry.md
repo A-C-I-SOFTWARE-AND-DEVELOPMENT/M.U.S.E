@@ -1,12 +1,12 @@
 ---
 sidebar_position: 15
 title: "Microsoft Foundry"
-description: "Use M.U.S.E. with Microsoft Foundry — OpenAI-style and Anthropic-style endpoints, auto-detection of transport and deployed models"
+description: "Use muse with Microsoft Foundry — OpenAI-style and Anthropic-style endpoints, auto-detection of transport and deployed models"
 ---
 
 # Microsoft Foundry
 
-M.U.S.E.'s `azure-foundry` provider supports Microsoft Foundry (formerly Azure AI Foundry) and Azure OpenAI. A single Foundry resource can host models with two different wire formats:
+muse's `azure-foundry` provider supports Microsoft Foundry (formerly Azure AI Foundry) and Azure OpenAI. A single Foundry resource can host models with two different wire formats:
 
 - **OpenAI-style** — `POST /v1/chat/completions` on endpoints like `https://<resource>.openai.azure.com/openai/v1`. Used for GPT-4.x, GPT-5.x, Llama, Mistral, and most open-weight models.
 - **Anthropic-style** — `POST /v1/messages` on endpoints like `https://<resource>.services.ai.azure.com/anthropic`. Used when Microsoft Foundry serves Claude models via the Anthropic Messages API format.
@@ -28,24 +28,24 @@ muse model
 # → Choose Authentication:
 #     1. API key
 #     2. Microsoft Entra ID  (managed identity / workload identity / az login)
-# → (Entra) M.U.S.E. probes DefaultAzureCredential; on success it never asks for a key
+# → (Entra) muse probes DefaultAzureCredential; on success it never asks for a key
 # → (API key) Enter your API key
-# M.U.S.E. probes the endpoint and auto-detects transport + models
+# muse probes the endpoint and auto-detects transport + models
 # → Pick a model from the list (or type a deployment name manually)
 ```
 
 The wizard will:
 
 1. **Sniff the URL path** — URLs ending in `/anthropic` are recognised as Microsoft Foundry Claude routes.
-2. **Probe `GET <base>/models`** — if the endpoint returns an OpenAI-shaped model list, M.U.S.E. switches to `chat_completions` and prefills a picker with the returned deployment IDs.
+2. **Probe `GET <base>/models`** — if the endpoint returns an OpenAI-shaped model list, muse switches to `chat_completions` and prefills a picker with the returned deployment IDs.
 3. **Probe Anthropic Messages shape** — fallback for endpoints that do not expose `/models` but do accept the Anthropic Messages format.
 4. **Fall back to manual entry** — private/gated endpoints that reject every probe still work; you pick the API mode and type a deployment name by hand.
 
-Context length for the chosen model is resolved via M.U.S.E.' standard metadata chain (`models.dev`, provider metadata, and hardcoded family fallbacks) and stored in `config.yaml` so the model can size its own context window correctly.
+Context length for the chosen model is resolved via muse' standard metadata chain (`models.dev`, provider metadata, and hardcoded family fallbacks) and stored in `config.yaml` so the model can size its own context window correctly.
 
 ## Microsoft Entra ID (keyless, RBAC) — recommended
 
-Microsoft recommends [keyless authentication with Microsoft Entra ID](https://learn.microsoft.com/azure/ai-foundry/foundry-models/how-to/configure-entra-id) for production Foundry workloads. M.U.S.E. supports Entra ID for **both** API surfaces:
+Microsoft recommends [keyless authentication with Microsoft Entra ID](https://learn.microsoft.com/azure/ai-foundry/foundry-models/how-to/configure-entra-id) for production Foundry workloads. muse supports Entra ID for **both** API surfaces:
 
 - **OpenAI-style** (`api_mode: chat_completions` / `codex_responses`) — GPT-4/5, Llama, Mistral, DeepSeek, etc.
 - **Anthropic-style** (`api_mode: anthropic_messages`) — Claude models on Microsoft Foundry.
@@ -70,7 +70,7 @@ Foundry's RBAC is per-resource (`Azure AI User` grants both surfaces; some tenan
 3. Assign it to:
    - **Your user account** for local development with `az login`.
    - **A managed identity or workload identity** for Azure-hosted compute (recommended for production).
-   - **A Foundry Agent Service hosted agent's agent identity** when M.U.S.E. runs inside a hosted agent.
+   - **A Foundry Agent Service hosted agent's agent identity** when muse runs inside a hosted agent.
    - **A service principal** for CI/CD pipelines when workload identity is not available.
 4. Wait ~5 minutes for the role to propagate.
 
@@ -83,7 +83,7 @@ az role assignment create \
   --scope <foundry-resource-id>
 ```
 
-### One-time setup (M.U.S.E. side)
+### One-time setup (muse side)
 
 ```bash
 muse model
@@ -92,13 +92,13 @@ muse model
 # → Authentication: 2 (Microsoft Entra ID)
 # → (optional) user-assigned managed identity client ID
 # → (optional) Azure tenant ID
-# → M.U.S.E. probes DefaultAzureCredential() and reports which inner
+# → muse probes DefaultAzureCredential() and reports which inner
 #    credential succeeded (e.g. AzureCliCredential, ManagedIdentityCredential)
 ```
 
 The wizard runs a bounded preflight probe (10 s timeout). On failure it offers to "save anyway, validate later" — useful when configuring on a machine that doesn't yet have credentials but will at runtime (e.g. preparing config for a managed-identity deployment).
 
-`azure-identity` is installed automatically on first use via M.U.S.E.' lazy-install path. To pre-install:
+`azure-identity` is installed automatically on first use via muse' lazy-install path. To pre-install:
 
 ```bash
 pip install azure-identity
@@ -118,7 +118,7 @@ model:
     scope: https://ai.azure.com/.default        # only when overriding the default
 ```
 
-M.U.S.E. only manages one Entra-specific knob in `config.yaml`:
+muse only manages one Entra-specific knob in `config.yaml`:
 
 - **`scope`** — the OAuth resource scope. Defaults to Microsoft's documented inference scope (`https://ai.azure.com/.default`). Override only if your resource was provisioned against a non-standard audience.
 
@@ -139,7 +139,7 @@ No secrets land in `~/.hermes/.env` for Entra mode — `azure-identity` caches t
 7. **Azure PowerShell** — `Connect-AzAccount`.
 8. **Broker** (Windows / WSL only) — Web Account Manager.
 
-Interactive browser credential is excluded by default for unattended M.U.S.E. runs; use Azure CLI, Azure Developer CLI, managed identity, workload identity, or service principal credentials instead.
+Interactive browser credential is excluded by default for unattended muse runs; use Azure CLI, Azure Developer CLI, managed identity, workload identity, or service principal credentials instead.
 
 ### Deployment patterns
 
@@ -159,7 +159,7 @@ hermes         # uses your az login token
 - Set `AZURE_CLIENT_ID` to the user-assigned identity's client ID so `DefaultAzureCredential` picks the right one.
 
 **Foundry Agent Service hosted agent:**
-- Create the hosted agent and grant that agent's identity `Azure AI User` (or `Foundry User`) on the Foundry resource. M.U.S.E. uses `ManagedIdentityCredential` from inside the hosted agent; role assignment belongs on the agent identity, not just the parent project or your user.
+- Create the hosted agent and grant that agent's identity `Azure AI User` (or `Foundry User`) on the Foundry resource. muse uses `ManagedIdentityCredential` from inside the hosted agent; role assignment belongs on the agent identity, not just the parent project or your user.
 
 **AKS Workload Identity (replaces AAD Pod Identity):**
 - Annotate the pod's service account with the workload identity client ID.
@@ -188,9 +188,9 @@ azure-foundry (Microsoft Entra ID):
 
 ### Limitations
 
-- **Anthropic-style endpoints use an httpx event hook.** The Anthropic Python SDK does not accept a callable `auth_token` natively (≤ 0.86.0). M.U.S.E. installs a request event hook on a custom `httpx.Client` that mints a fresh JWT per outbound request and rewrites `Authorization: Bearer <jwt>`. This is functionally equivalent to the OpenAI SDK's native `Callable[[], str]` contract but adds one indirection layer. If the Anthropic SDK adds first-class callable-auth support in a future release, M.U.S.E. will switch to it transparently.
+- **Anthropic-style endpoints use an httpx event hook.** The Anthropic Python SDK does not accept a callable `auth_token` natively (≤ 0.86.0). muse installs a request event hook on a custom `httpx.Client` that mints a fresh JWT per outbound request and rewrites `Authorization: Bearer <jwt>`. This is functionally equivalent to the OpenAI SDK's native `Callable[[], str]` contract but adds one indirection layer. If the Anthropic SDK adds first-class callable-auth support in a future release, muse will switch to it transparently.
 - **Batch jobs and `multiprocessing.Pool`.** The Entra token provider is a closure that cannot be pickled across process boundaries. `batch_runner.py` automatically drops the callable from the worker config and lets each worker process rebuild its own provider from `config.yaml` — no user action required, but each worker pays one chain walk at startup.
-- **No bearer JWT persistence in `auth.json`.** M.U.S.E. does not duplicate `azure-identity`'s internal token cache; cold starts walk the credential chain on first inference.
+- **No bearer JWT persistence in `auth.json`.** muse does not duplicate `azure-identity`'s internal token cache; cold starts walk the credential chain on first inference.
 
 ## Configuration (written to `config.yaml`)
 
@@ -225,9 +225,9 @@ model:
 
 Important behaviour:
 
-- **GPT-5.x, codex, and o-series auto-route to the Responses API.** Microsoft Foundry deploys GPT-5 / codex / o1 / o3 / o4 models as Responses-API-only — calling `/chat/completions` against them returns `400 "The requested operation is unsupported."`. M.U.S.E. detects these model families by name and upgrades `api_mode` to `codex_responses` transparently, even when `config.yaml` still reads `api_mode: chat_completions`. GPT-4, GPT-4o, Llama, Mistral, and other deployments stay on `/chat/completions`.
-- **`max_completion_tokens` is used automatically.** Azure OpenAI (like direct OpenAI) requires `max_completion_tokens` for gpt-4o, o-series, and gpt-5.x models. M.U.S.E. sends the right parameter based on the endpoint.
-- **Pre-v1 endpoints that require `api-version`.** If you have a legacy base URL like `https://<resource>.openai.azure.com/openai?api-version=2025-04-01-preview`, M.U.S.E. extracts the query string and forwards it via `default_query` on every request (the OpenAI SDK otherwise drops it when joining paths).
+- **GPT-5.x, codex, and o-series auto-route to the Responses API.** Microsoft Foundry deploys GPT-5 / codex / o1 / o3 / o4 models as Responses-API-only — calling `/chat/completions` against them returns `400 "The requested operation is unsupported."`. muse detects these model families by name and upgrades `api_mode` to `codex_responses` transparently, even when `config.yaml` still reads `api_mode: chat_completions`. GPT-4, GPT-4o, Llama, Mistral, and other deployments stay on `/chat/completions`.
+- **`max_completion_tokens` is used automatically.** Azure OpenAI (like direct OpenAI) requires `max_completion_tokens` for gpt-4o, o-series, and gpt-5.x models. muse sends the right parameter based on the endpoint.
+- **Pre-v1 endpoints that require `api-version`.** If you have a legacy base URL like `https://<resource>.openai.azure.com/openai?api-version=2025-04-01-preview`, muse extracts the query string and forwards it via `default_query` on every request (the OpenAI SDK otherwise drops it when joining paths).
 
 ## Anthropic-style endpoints (Claude via Microsoft Foundry)
 
@@ -243,10 +243,10 @@ model:
 
 Important behaviour:
 
-- **`/v1` is stripped from the base URL.** The Anthropic SDK appends `/v1/messages` to every request URL — M.U.S.E. removes any trailing `/v1` before handing the URL to the SDK to avoid double-`/v1` paths.
-- **`api-version` is sent via `default_query`, not appended to the URL.** Azure Anthropic requires an `api-version` query string. Baking it into the base URL produces malformed paths like `/anthropic?api-version=.../v1/messages` and returns 404. M.U.S.E. passes `api-version=2025-04-15` via the Anthropic SDK's `default_query` instead.
-- **Bearer auth is used instead of `x-api-key`.** Azure's Anthropic-compatible route requires `Authorization: Bearer <key>` rather than Anthropic's native `x-api-key` header. M.U.S.E. detects `azure.com` in the base URL and routes the API key through the SDK's `auth_token` field so the right header reaches the upstream.
-- **1M context window beta header is kept.** Azure still gates the 1M-token Claude context (Opus 4.6/4.7, Sonnet 4.6) behind the `anthropic-beta: context-1m-2025-08-07` header. M.U.S.E. keeps that beta header on Azure paths (it's stripped from native Anthropic OAuth requests because some subscriptions reject it, but Azure requires it).
+- **`/v1` is stripped from the base URL.** The Anthropic SDK appends `/v1/messages` to every request URL — muse removes any trailing `/v1` before handing the URL to the SDK to avoid double-`/v1` paths.
+- **`api-version` is sent via `default_query`, not appended to the URL.** Azure Anthropic requires an `api-version` query string. Baking it into the base URL produces malformed paths like `/anthropic?api-version=.../v1/messages` and returns 404. muse passes `api-version=2025-04-15` via the Anthropic SDK's `default_query` instead.
+- **Bearer auth is used instead of `x-api-key`.** Azure's Anthropic-compatible route requires `Authorization: Bearer <key>` rather than Anthropic's native `x-api-key` header. muse detects `azure.com` in the base URL and routes the API key through the SDK's `auth_token` field so the right header reaches the upstream.
+- **1M context window beta header is kept.** Azure still gates the 1M-token Claude context (Opus 4.6/4.7, Sonnet 4.6) behind the `anthropic-beta: context-1m-2025-08-07` header. muse keeps that beta header on Azure paths (it's stripped from native Anthropic OAuth requests because some subscriptions reject it, but Azure requires it).
 - **OAuth token refresh is disabled.** Azure deployments use static API keys. The `~/.claude/.credentials.json` OAuth token refresh loop that applies to Anthropic Console is explicitly skipped for Azure endpoints to prevent the Claude Code OAuth token from overwriting your Azure key mid-session.
 
 ## Alternative: `provider: anthropic` + Azure base URL
@@ -261,7 +261,7 @@ model:
   default: claude-sonnet-4-6
 ```
 
-With `AZURE_ANTHROPIC_KEY` set in `~/.hermes/.env`. M.U.S.E. detects `azure.com` in the base URL and short-circuits around the Claude Code OAuth token chain so the Azure key is used directly with `x-api-key` auth.
+With `AZURE_ANTHROPIC_KEY` set in `~/.hermes/.env`. muse detects `azure.com` in the base URL and short-circuits around the Claude Code OAuth token chain so the Azure key is used directly with `x-api-key` auth.
 
 `key_env` is the canonical snake_case field name; `api_key_env` (and the camelCase `keyEnv` / `apiKeyEnv`) are accepted as aliases. If both `key_env` and `AZURE_ANTHROPIC_KEY`/`ANTHROPIC_API_KEY` are set, the `key_env`-named env var wins.
 
@@ -269,13 +269,13 @@ With `AZURE_ANTHROPIC_KEY` set in `~/.hermes/.env`. M.U.S.E. detects `azure.com`
 
 Azure does **not** expose a pure-API-key endpoint to list your *deployed* model deployments. Deployment enumeration requires Azure Resource Manager authentication (`az cognitiveservices account deployment list`) with an Azure AD principal, not the inference API key.
 
-What M.U.S.E. can do:
+What muse can do:
 
-- Azure OpenAI v1 endpoints (`<resource>.openai.azure.com/openai/v1`) expose `GET /models` with the resource's **available** model catalog. M.U.S.E. uses this list to prefill the model picker.
+- Azure OpenAI v1 endpoints (`<resource>.openai.azure.com/openai/v1`) expose `GET /models` with the resource's **available** model catalog. muse uses this list to prefill the model picker.
 - Microsoft Foundry `/anthropic` routes: detected via URL path, model name entered manually.
 - Private / firewalled endpoints: manual entry with a friendly "couldn't probe" message.
 
-You can always type a deployment name directly — M.U.S.E. does not validate against the returned list.
+You can always type a deployment name directly — muse does not validate against the returned list.
 
 ## Environment variables
 
@@ -292,18 +292,18 @@ You can always type a deployment name directly — M.U.S.E. does not validate ag
 | `AZURE_AUTHORITY_HOST` | Sovereign cloud authority host override |
 | `IDENTITY_ENDPOINT` / `MSI_ENDPOINT` | Managed Identity endpoint for App Service, Functions, and Container Apps; VMs usually use IMDS instead |
 
-The Azure SDK reads the `AZURE_*` env vars directly. M.U.S.E. never inspects them other than to report which sources are present in `muse doctor` output.
+The Azure SDK reads the `AZURE_*` env vars directly. muse never inspects them other than to report which sources are present in `muse doctor` output.
 
 ## Troubleshooting
 
 **401 Unauthorized on gpt-5.x deployments.**
-Azure serves gpt-5.x on `/chat/completions`, not `/responses`. M.U.S.E. handles this automatically when the URL contains `openai.azure.com`, but if you see a 401 with an `Invalid API key` body, check that `api_mode` in your `config.yaml` is `chat_completions`.
+Azure serves gpt-5.x on `/chat/completions`, not `/responses`. muse handles this automatically when the URL contains `openai.azure.com`, but if you see a 401 with an `Invalid API key` body, check that `api_mode` in your `config.yaml` is `chat_completions`.
 
 **404 on `/v1/messages?api-version=.../v1/messages`.**
-This is the malformed-URL bug from pre-fix Azure Anthropic setups. Upgrade M.U.S.E. — the `api-version` parameter is now passed via `default_query` rather than baked into the base URL, so the SDK can't corrupt it during URL joining.
+This is the malformed-URL bug from pre-fix Azure Anthropic setups. Upgrade muse — the `api-version` parameter is now passed via `default_query` rather than baked into the base URL, so the SDK can't corrupt it during URL joining.
 
 **Wizard says "Auto-detection incomplete."**
-The endpoint rejected both the `/models` probe and the Anthropic Messages probe. This is normal for private endpoints behind a firewall or with an IP allow-list. Fall back to manual API mode selection and type your deployment name — everything still works, M.U.S.E. just can't prefill the picker.
+The endpoint rejected both the `/models` probe and the Anthropic Messages probe. This is normal for private endpoints behind a firewall or with an IP allow-list. Fall back to manual API mode selection and type your deployment name — everything still works, muse just can't prefill the picker.
 
 **Wrong transport picked.**
 Run `muse model` again and the wizard will re-probe. If the probe still picks the wrong mode, you can edit `config.yaml` directly:

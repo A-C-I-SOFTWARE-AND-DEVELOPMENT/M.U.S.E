@@ -83,7 +83,7 @@ class ManifestPermissionsTest {
         val manifest = readXml("src/main/AndroidManifest.xml")
         val declared = permissionNames(manifest)
         assertEquals(
-            "Manifest permissions must match the MUSE launch allow-list",
+            "Manifest permissions must match the muse launch allow-list",
             allowedPermissions,
             declared,
         )
@@ -109,7 +109,7 @@ class ManifestPermissionsTest {
             manifest.contains("android:name=\".HermesApplication\""),
         )
         assertTrue(
-            "Application must use @string/app_name (MUSE is set in strings.xml)",
+            "Application must use @string/app_name (muse is set in strings.xml)",
             manifest.contains("android:label=\"@string/app_name\""),
         )
     }

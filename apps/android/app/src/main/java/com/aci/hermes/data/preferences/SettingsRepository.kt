@@ -35,7 +35,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * install with a legacy plaintext token is migrated once, on construction,
  * by [CockpitTokenMigration]; the plaintext copy is removed afterwards.
  *
- * Every MUSE control surface (Control screen, Home dashboard,
+ * Every muse control surface (Control screen, Home dashboard,
  * settings panel) reads through this repository. Defaults are chosen
  * so a fresh install matches the safety floor: lockdown off, approvals
  * required, safety gates on, local-only mode on, mock mode off.
@@ -62,7 +62,7 @@ class SettingsRepository(
         val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
         val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
 
-        // MUSE control surface — added during launch
+        // muse control surface — added during launch
         // stabilization to give the Control screen + Home dashboard
         // a backing store.
         val AUTONOMY_MODE = stringPreferencesKey("autonomy_mode")
@@ -89,6 +89,13 @@ class SettingsRepository(
         val DEVICE_CONSENTED_CAPS = stringSetPreferencesKey("device_consented_capabilities")
         val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
         val CAMERA_ATTENTION_ENABLED = booleanPreferencesKey("camera_attention_enabled")
+
+        // Android runtime consent (P1-05) — point-of-use prompts for
+        // expanded permissions. Defaults off; owner opts in at first use.
+        val MIC_CONSENT = booleanPreferencesKey("mic_consent")
+        val OVERLAY_CONSENT = booleanPreferencesKey("overlay_consent")
+        val ACCESSIBILITY_CONSENT = booleanPreferencesKey("accessibility_consent")
+        val PRIVACY_DISCLOSURE_ACK = booleanPreferencesKey("privacy_disclosure_ack")
 
         // Unified PWA-first shell (docs/mobile/NEXUS_UNIFIED_APP_PLAN.md).
         // Phase-1 opt-in: when on, the app renders the NEXUS PWA in
@@ -217,16 +224,6 @@ class SettingsRepository(
     val cameraAttentionEnabled: Flow<Boolean> = store.data.map {
         it[Keys.CAMERA_ATTENTION_ENABLED] ?: false
     }
-
-    /**
-     * Opt into the unified PWA-first shell (default off). When on, the app
-     * hosts the NEXUS PWA in [com.aci.hermes.ui.web.WebViewHostActivity]
-     * instead of the native Compose UI. Off keeps the shipped, native behavior
-     * unchanged — the flag is the Phase-1 seam for the owner-gated cutover.
-     */
-    val unifiedPwaShellEnabled: Flow<Boolean> = store.data.map {
-        it[Keys.UNIFIED_PWA_SHELL_ENABLED] ?: false
-    }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
      * names refer to the same persisted value; keeping both lets the
@@ -250,6 +247,22 @@ class SettingsRepository(
     /** The capability ids the owner has explicitly consented to. */
     val deviceConsentedCapabilities: Flow<Set<String>> = store.data.map {
         it[Keys.DEVICE_CONSENTED_CAPS] ?: emptySet()
+    }
+
+    // ── Android runtime consent (P1-05) ─────────────────────────────────
+    val micConsent: Flow<Boolean> = store.data.map { it[Keys.MIC_CONSENT] ?: false }
+    val overlayConsent: Flow<Boolean> = store.data.map { it[Keys.OVERLAY_CONSENT] ?: false }
+    val accessibilityConsent: Flow<Boolean> = store.data.map { it[Keys.ACCESSIBILITY_CONSENT] ?: false }
+    val privacyDisclosureAck: Flow<Boolean> = store.data.map { it[Keys.PRIVACY_DISCLOSURE_ACK] ?: false }
+
+    /**
+     * Opt into the unified PWA-first shell (default off). When on, the app
+     * hosts the NEXUS PWA in [com.aci.hermes.ui.web.WebViewHostActivity]
+     * instead of the native Compose UI. Off keeps the shipped, native behavior
+     * unchanged — the flag is the Phase-1 seam for the owner-gated cutover.
+     */
+    val unifiedPwaShellEnabled: Flow<Boolean> = store.data.map {
+        it[Keys.UNIFIED_PWA_SHELL_ENABLED] ?: false
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -389,6 +402,22 @@ class SettingsRepository(
 
     suspend fun setCameraAttentionEnabled(value: Boolean) {
         store.edit { it[Keys.CAMERA_ATTENTION_ENABLED] = value }
+    }
+
+    suspend fun setMicConsent(value: Boolean) {
+        store.edit { it[Keys.MIC_CONSENT] = value }
+    }
+
+    suspend fun setOverlayConsent(value: Boolean) {
+        store.edit { it[Keys.OVERLAY_CONSENT] = value }
+    }
+
+    suspend fun setAccessibilityConsent(value: Boolean) {
+        store.edit { it[Keys.ACCESSIBILITY_CONSENT] = value }
+    }
+
+    suspend fun setPrivacyDisclosureAck(value: Boolean) {
+        store.edit { it[Keys.PRIVACY_DISCLOSURE_ACK] = value }
     }
 
     suspend fun setUnifiedPwaShellEnabled(value: Boolean) {

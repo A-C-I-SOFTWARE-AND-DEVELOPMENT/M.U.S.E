@@ -21,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
  * Uses the 3-arg [CapabilityViewModel] (null cockpit client), so the live
  * "installed on gateway" section is a deterministic no-op that launches no
  * coroutines — the screen renders the curated catalog synchronously. Mirrors
- * PlaceholderScreenSmokeTest (no global Main-dispatcher override). The
+ * DiagnosticsScreenSmokeTest (no global Main-dispatcher override). The
  * installed-skills state branches are covered by [CapabilityViewModelTest].
  */
 @RunWith(RobolectricTestRunner::class)

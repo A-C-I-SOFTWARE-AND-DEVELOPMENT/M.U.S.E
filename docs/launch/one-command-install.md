@@ -5,7 +5,7 @@ the supported entry point for its platform; the sections after it cover
 what each install includes, the first-run flow (models → gateway → pair →
 Observatory), and the smoke-test evidence the installer prints.
 
-Repo: `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`. The CLI command installed
+Repo: `A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`. The CLI command installed
 everywhere is `muse`.
 
 ---
@@ -15,13 +15,13 @@ everywhere is `muse`.
 ### Linux / macOS / WSL
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh)
 ```
 
 With options (piped form):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash -s -- --skip-setup --bootstrap-models
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash -s -- --skip-setup --bootstrap-models
 ```
 
 Includes: uv-managed Python 3.11 + venv, the full `[all]` extras set
@@ -34,13 +34,13 @@ service install (systemd) when a messaging token is configured.
 ### Windows (PowerShell)
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1)
 ```
 
 To pass flags, download first:
 
 ```powershell
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1' -OutFile install.ps1
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.ps1' -OutFile install.ps1
 .\install.ps1 -SkipSetup -BootstrapModels
 ```
 
@@ -56,7 +56,7 @@ pip/venv path (installs the Android build toolchain, prebuilds the psutil
 shim, uses the `[termux-all]` profile):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh)
 ```
 
 Browser/WhatsApp tooling is not installed by default on Termux; matrix
@@ -73,7 +73,7 @@ guarded by its own promotion job). The supported run path is the repo's
 [`docker-compose.yml`](../../docker-compose.yml):
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git && cd M.U.S.E
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit && cd muse
 HERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose up -d
 ```
 
@@ -89,18 +89,18 @@ a rolling **`muse-desktop-latest`** prerelease refreshes on every push to
 `main` that touches `apps/desktop/`, and pushing a `muse-desktop-v*` tag
 (or running the workflow by hand) cuts a permanent versioned release.
 Download the installer for your OS from the repo's
-[GitHub Releases](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases)
+[GitHub Releases](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases)
 page. The desktop app's onboarding wizard drives `install.ps1`'s stage
 protocol under the hood on Windows.
 
-### Android APK (the MUSE cockpit app)
+### Android APK (the muse cockpit app)
 
 Built and published by
 [`.github/workflows/android-release.yml`](../../.github/workflows/android-release.yml):
 
 - Rolling: the **`android-latest`** prerelease keeps a stable asset name —
   `jarvis-prime-android.apk` — so the download URL never changes:
-  `https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk`
+  `https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases/download/android-latest/jarvis-prime-android.apk`
 - Versioned: `android-v*` tags (or the one-button workflow dispatch) cut
   permanent releases with `jarvis-prime-<version>.apk`.
 
@@ -154,7 +154,7 @@ the token (`--rotate` to rotate it). For messaging platforms
 
 ### 3. Pair your phone (or browser)
 
-In the MUSE Android app's pairing screen, enter the base URL
+In the muse Android app's pairing screen, enter the base URL
 (`http://<host>:8765`) and the token. Under the hood the app calls
 `POST /v1/cockpit/pair/start` and `POST /v1/cockpit/pair/confirm`
 (both unauthenticated bootstrap endpoints — confirm returns a fresh
@@ -178,7 +178,7 @@ honestly: per-turn routing decisions and knowledge-graph query
 activations, appended to local JSONL files under `~/.hermes/observatory/`
 (pruned to the newest 7 days) — nothing leaves your machine. Opt in via
 the installer prompt, `--enable-observatory` / `-EnableObservatory`, or
-simply `touch ~/.hermes/observatory/.enabled` (set `MUSE_OBSERVATORY=1`
+simply `touch ~/.hermes/observatory/.enabled` (set `muse_OBSERVATORY=1`
 for env-based enablement). Disable by deleting the marker.
 
 ---

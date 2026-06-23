@@ -26,7 +26,7 @@ Serverless GPU cloud platform for running ML workloads. Use when you need on-dem
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Modal Serverless GPU
@@ -351,8 +351,8 @@ if __name__ == "__main__":
 
 ## References
 
-- **[Advanced Usage](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - Multi-GPU, distributed training, cost optimization
-- **[Troubleshooting](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/optional-skills/mlops/modal/references/advanced-usage.md)** - Multi-GPU, distributed training, cost optimization
+- **[Troubleshooting](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/optional-skills/mlops/modal/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 

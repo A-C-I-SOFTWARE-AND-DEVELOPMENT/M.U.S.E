@@ -1,7 +1,7 @@
 # 13 — Audio Design Document
 ### The sound of the Substrate
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 ---
 
@@ -146,7 +146,7 @@ accordingly. The parley scenes carry the game, so the dollars go there.
   "voice-print": a per-agent granular chirp patch (source grain bank + pitch contour + formant
   filter derived from the personality card axes) — Animalese-class expressivity in the
   domain's material signature, infinitely reusable, $0 marginal cost.
-- **The Muse: 6 voice presets**, **synthesis-assisted, human-curated** takes — synthetic
+- **The muse 6 voice presets**, **synthesis-assisted, human-curated** takes — synthetic
   voice generation curated/edited take-by-take by the owner; **disclosure note:** these
   presets are listed in the Steam AI disclosure (pre-generated tier, "AI-assisted …
   human-curated/edited," master plan §8.4). Presets are selected in the character creator and
@@ -249,6 +249,6 @@ whole app speaks one language:
 - `01-game-design-document.md` — options menus, consent/accessibility UI homes.
 - `02-negotiation-system.md` — Disposition meter, verdict enum, 2.5 s latency law.
 - `03-combat-gas-design.md` — Integrity meter, pipeline combos, telegraph timing.
-- `09-foundry-spec.md` §9 — AI disclosure surface the Muse-voice note joins.
+- `09-foundry-spec.md` §9 — AI disclosure surface the muse-voice note joins.
 - `11-technical-design.md` — audio thread budget, settings persistence, owner-lane mixing.
 - Master plan §7 (the $800 + $500 lines), §6 (phase gates), §8.4 (disclosure tiers).

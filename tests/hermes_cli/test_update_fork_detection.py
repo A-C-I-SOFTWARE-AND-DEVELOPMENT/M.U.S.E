@@ -1,7 +1,7 @@
 """Regression tests for `muse update` fork detection + upstream wiring.
 
 The canonical upstream for this project is
-``A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`` (see ``scripts/install.sh``). A stale
+``A-C-I-SOFTWARE-AND-DEVELOPMENT/muse`` (see ``scripts/install.sh``). A stale
 ``NousResearch/hermes-agent`` constant previously made ``_is_fork()``
 misclassify the official repo and wired the ``upstream`` remote to an unrelated
 ancestral project — which broke ``muse update`` for forks. These tests pin the
@@ -20,7 +20,7 @@ from hermes_cli.main import (
     _is_fork,
 )
 
-_ACI = "A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E"
+_ACI = "A-C-I-SOFTWARE-AND-DEVELOPMENT/muse"
 
 
 def test_official_constants_point_at_aci_muse():
@@ -35,10 +35,10 @@ def test_official_constants_point_at_aci_muse():
 @pytest.mark.parametrize(
     "origin",
     [
-        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
-        "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
-        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
-        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/",
+        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
+        "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
+        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
+        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/",
     ],
 )
 def test_official_origin_is_not_a_fork(origin):
@@ -48,8 +48,8 @@ def test_official_origin_is_not_a_fork(origin):
 @pytest.mark.parametrize(
     "origin",
     [
-        "https://github.com/echerd27/M.U.S.E.git",
-        "git@github.com:echerd27/M.U.S.E.git",
+        "https://github.com/echerd27/musegit",
+        "git@github.com:echerd27/musegit",
         # The ancestral project is now correctly NOT treated as our upstream.
         "https://github.com/NousResearch/hermes-agent.git",
     ],
@@ -63,7 +63,7 @@ def test_none_origin_is_not_a_fork():
 
 
 def test_add_upstream_remote_uses_official_url():
-    """`upstream` must be wired to the A-C-I/M.U.S.E repo, not the old Nous one."""
+    """`upstream` must be wired to the A-C-I/muse repo, not the old Nous one."""
     captured = {}
 
     def fake_run(argv, **kwargs):

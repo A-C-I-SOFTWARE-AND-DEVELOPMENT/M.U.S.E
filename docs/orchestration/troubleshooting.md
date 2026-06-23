@@ -1,6 +1,6 @@
 # Troubleshooting
 
-M.U.S.E. Orchestration has a lot of moving parts, but failures cluster
+muse Orchestration has a lot of moving parts, but failures cluster
 into a small number of patterns. This is the field guide. Open a
 ticket only after you've checked the matching section here.
 
@@ -46,7 +46,7 @@ tenant. Check the ledger for the card's `tenant` field.
 
 **Cause #3: dispatcher not running.** Check `muse orchestrator
 status`. If it says `dispatcher: not running`, restart the daemon
-or restart M.U.S.E..
+or restart muse
 
 ## Stuck in `todo` (never promotes to `ready`)
 
@@ -144,7 +144,7 @@ state.
 **Symptom:** `muse profile list` doesn't show a profile you just
 added to `~/.hermes/config.yaml`.
 
-**Cause:** M.U.S.E. hasn't picked up the config change yet.
+**Cause:** muse hasn't picked up the config change yet.
 
 **Fix:**
 

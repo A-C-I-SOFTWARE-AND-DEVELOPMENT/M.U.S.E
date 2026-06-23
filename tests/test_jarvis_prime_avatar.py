@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.avatar — the canonical MUSE
+"""Tests for hermes_cli.jarvis_prime.avatar — the canonical muse
 avatar + locale-aware voice embodiment, and its CLI surface.
 
 Hermetic: stdlib only, no audio deps, no network.
@@ -25,10 +25,10 @@ _CANONICAL_JSON = (
 
 def test_default_identity() -> None:
     a = av.DEFAULT_AVATAR
-    assert a.name == "MUSE"
+    assert a.name == "muse"
     assert a.full_name == "Multi-Use Synaptic Entity"
-    assert a.display == "M.U.S.E."
-    assert a.short_name == "MUSE"
+    assert a.display == "muse"
+    assert a.short_name == "muse"
     assert a.tagline == "One mind, many pathways."
     assert "spectral ring" in a.glyph
     assert "core" in a.glyph
@@ -104,7 +104,7 @@ def test_local_voice_stack_defaults() -> None:
     assert lv.stt_engine == "faster-whisper"  # matches hermes_cli/voice.py
     assert lv.tts_engine == "piper"
     assert lv.offline_first is True
-    assert lv.wake_phrase == "Muse"
+    assert lv.wake_phrase == "muse"
 
 
 # ---------------------------------------------------------------------------
@@ -139,7 +139,7 @@ def test_cli_avatar_json() -> None:
         rc = main(["avatar", "--json"])
     assert rc == 0
     payload = json.loads(buf.getvalue())
-    assert payload["name"] == "MUSE"
+    assert payload["name"] == "muse"
     assert payload["full_name"] == "Multi-Use Synaptic Entity"
     assert payload["palette"]["gold"] == "#FFFFFF"
 
@@ -164,5 +164,5 @@ def test_cli_avatar_human_readable() -> None:
         rc = main(["avatar"])
     assert rc == 0
     out = buf.getvalue()
-    assert "MUSE" in out
+    assert "muse" in out
     assert "Local voice stack" in out

@@ -8,13 +8,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
+    "url": "git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues"
+    "url": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues"
   },
-  "homepage": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E#readme",
+  "homepage": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse#readme",
   "dependencies": {
     "agent-browser": "^0.26.0"
   },

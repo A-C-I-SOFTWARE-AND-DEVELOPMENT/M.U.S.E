@@ -92,7 +92,7 @@ def resolve_hermes_bin() -> Optional[str]:
     directly — CreateProcessW needs a real .exe, not a script associated
     with the Python launcher.  On Windows we therefore skip the argv[0]
     fast-path when it points at a .py file and fall through to either
-    ``muse.exe`` / ``hermes.exe`` on PATH or the ``sys.executable -m
+    ``museexe`` / ``hermes.exe`` on PATH or the ``sys.executable -m
     hermes_cli.main`` fallback.
     """
     argv0 = sys.argv[0]

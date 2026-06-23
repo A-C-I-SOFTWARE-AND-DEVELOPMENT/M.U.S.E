@@ -1,8 +1,8 @@
 ---
 name: autoresearch
-description: "Run Karpathy's autoresearch loop — autonomous 5-minute pretraining experiments on the vendored nanochat-style engine — inside a disposable workspace, governed by MUSE's cost ceiling, VRAM feasibility gate, and benchmark gate, with every experiment on the flywheel. The winning train.py surfaces as an owner-gated proposal; val_bpb LOWER is better; nothing is ever applied without the owner."
+description: "Run Karpathy's autoresearch loop — autonomous 5-minute pretraining experiments on the vendored nanochat-style engine — inside a disposable workspace, governed by muse's cost ceiling, VRAM feasibility gate, and benchmark gate, with every experiment on the flywheel. The winning train.py surfaces as an owner-gated proposal; val_bpb LOWER is better; nothing is ever applied without the owner."
 version: 1.0.0
-author: MUSE (engine: Andrej Karpathy, MIT)
+author: muse (engine: Andrej Karpathy, MIT)
 license: MIT
 platforms: [linux]
 metadata:
@@ -23,8 +23,8 @@ metadata:
 > is an autonomous research loop: an agent edits `train.py`, trains a small
 > GPT for a fixed 5-minute budget, reads **val_bpb (lower is better)**, keeps
 > the commit if it improved or `git reset`s if not — ~12 experiments/hour.
-> MUSE runs that loop **inside a disposable workspace** and treats the winner
-> as a *proposal*, not an applied change. **MUSE never silently adopts a
+> muse runs that loop **inside a disposable workspace** and treats the winner
+> as a *proposal*, not an applied change. **muse never silently adopts a
 > training recipe.**
 
 Load this skill when the owner asks to "train a better small model", "run
@@ -35,7 +35,7 @@ recipe".
 
 1. **Seed** — copy the vendored payload into
    `$HERMES_HOME/autoresearch/workspaces/<tag>/`, `git init`, branch
-   `autoresearch/<tag>` (the MUSE repo is never touched; vendored files stay
+   `autoresearch/<tag>` (the muse repo is never touched; vendored files stay
    byte-identical — experiments mutate only workspace copies).
 2. **Loop** (the vendored `program.md`, governed) — edit the workspace
    `train.py` → commit → `uv run train.py > run.log` → parse the summary →
@@ -44,7 +44,7 @@ recipe".
    every experiment is recorded to the flywheel
    (`autoresearch.experiment`; crash/killed/infeasible auto-queue an
    improvement). `results.tsv` is a local mirror only.
-3. **Stop** — MUSE's **cost ceiling supersedes program.md's NEVER STOP**:
+3. **Stop** — muse's **cost ceiling supersedes program.md's NEVER STOP**:
    the run halts at `max_experiments` / `max_wall_clock_seconds` /
    `max_cost_usd`, whichever hits first.
 4. **Gates** — constraints gate first (named "wins bpb but blew VRAM/cost"
@@ -99,7 +99,7 @@ default = plan-only report; live needs the approval token AND the spawn env).
 
 ## Guardrails (non-negotiable)
 
-- **Spawn gate:** nothing runs without `MUSE_AUTORESEARCH_ALLOW_SPAWN=1`.
+- **Spawn gate:** nothing runs without `muse_AUTORESEARCH_ALLOW_SPAWN=1`.
 - **Data prep on owner hardware only:** `uv run prepare.py` in a seeded
   workspace downloads from Hugging Face (blocked in CI containers).
 - **Cost ceiling supersedes NEVER STOP.** Modal spend requires an explicit

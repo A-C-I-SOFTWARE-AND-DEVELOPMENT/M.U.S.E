@@ -74,7 +74,7 @@ class TaskDetailViewModel(
     fun setStatus(value: TaskStatus) = updateTask { it.copy(status = value) }
     fun setTargetTool(value: TargetTool) = updateTask { it.copy(targetTool = value) }
 
-    // MUSE worker-card field setters.
+    // muse worker-card field setters.
     fun setRiskTier(value: ApprovalRiskTier) = updateTask { it.copy(riskTier = value) }
     fun setWorkerPhase(value: WorkerPhase) = updateTask { it.copy(workerPhase = value) }
     fun setApprovalState(value: ApprovalStatus?) = updateTask { it.copy(approvalState = value) }
@@ -106,7 +106,7 @@ class TaskDetailViewModel(
     fun copyPrompt() {
         val ok = HandoffLauncher.copyPrompt(
             getApplication(),
-            label = "Muse prompt",
+            label = "muse prompt",
             text = _state.value.promptPreview,
         )
         _state.update { it.copy(snackbar = if (ok) "Prompt copied to clipboard" else "Failed to access clipboard") }

@@ -1,8 +1,22 @@
 # Release Notes
 
+## muse runtime (v1.x)
+
+Post-rebrand release notes for the **muse runtime** (semver tracked
+separately from the PyPI package version in `pyproject.toml`). Newest
+first. Full notes live under [`docs/launch/`](../launch/).
+
+| Version | Date | Summary |
+|---|---|---|
+| [v1.2.0](../launch/RELEASE_NOTES_v1.2.0.md) | 2026-06-22 | LM Studio native v1 REST API — accurate context-window detection (local + remote), model lifecycle (load / unload / download) plus agent tools, and auto-unload on model switch. |
+| [v1.1.0](../launch/RELEASE_NOTES_v1.1.0.md) | 2026-05-29 | Free-First muse Launch — one-command launch, free-first model routing, local-runtime + Claude Code / Codex worker-lane detection. |
+| [v1.0.0](../launch/RELEASE_NOTES_v1.0.0.md) | 2026-05-26 | muse runtime launch — the local-first AI operating partner shipping inside `hermes_cli/jarvis_prime/`. |
+
+## Hermes Agent lineage (historical)
+
 Historical release notes for the Hermes Agent lineage this repository
 builds on (newest first). These are period-accurate records — they
-predate the M.U.S.E rebrand and keep their original "Hermes Agent"
+predate the muse rebrand and keep their original "Hermes Agent"
 naming.
 
 | Version | Date | Summary |

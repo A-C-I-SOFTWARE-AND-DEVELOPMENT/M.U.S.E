@@ -18,7 +18,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
 /**
  * Permission education card — shown before the system permission prompt.
  *
- * MUSE never asks for a sensitive permission without explaining
+ * muse never asks for a sensitive permission without explaining
  * why. Use the well-known [PermissionKind] enum to pick canned copy;
  * pass an [overrideBody] only if your screen needs a bespoke wording.
  */

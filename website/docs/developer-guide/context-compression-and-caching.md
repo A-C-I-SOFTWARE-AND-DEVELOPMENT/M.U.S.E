@@ -1,6 +1,6 @@
 # Context Compression and Caching
 
-M.U.S.E. uses a dual compression system and Anthropic prompt caching to
+muse uses a dual compression system and Anthropic prompt caching to
 manage context window usage efficiently across long conversations.
 
 Source files: `agent/context_engine.py` (ABC), `agent/context_compressor.py` (default engine),
@@ -36,7 +36,7 @@ For building a context engine plugin, see [Context Engine Plugins](/docs/develop
 
 ## Dual Compression System
 
-M.U.S.E. has two separate compression layers that operate independently:
+muse has two separate compression layers that operate independently:
 
 ```
                      ┌──────────────────────────┐
@@ -278,7 +278,7 @@ conversation prefix. Uses Anthropic's `cache_control` breakpoints.
 
 ### Strategy: system_and_3
 
-Anthropic allows a maximum of 4 `cache_control` breakpoints per request. M.U.S.E.
+Anthropic allows a maximum of 4 `cache_control` breakpoints per request. muse
 uses the "system_and_3" strategy:
 
 ```

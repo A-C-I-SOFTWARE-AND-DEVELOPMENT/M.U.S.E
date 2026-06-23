@@ -1,12 +1,12 @@
 ---
 sidebar_position: 10
 title: "Model Provider Plugins"
-description: "How to build a model provider (inference backend) plugin for M.U.S.E."
+description: "How to build a model provider (inference backend) plugin for muse"
 ---
 
 # Building a Model Provider Plugin
 
-Model provider plugins declare an inference backend — an OpenAI-compatible endpoint, an Anthropic Messages server, a Codex-style Responses API, or a Bedrock-native surface — that M.U.S.E. can route `AIAgent` calls through. Every built-in provider (OpenRouter, Anthropic, GMI, DeepSeek, Nvidia, …) ships as one of these plugins. Third parties can add their own by dropping a directory under `$HERMES_HOME/plugins/model-providers/` with zero changes to the repo.
+Model provider plugins declare an inference backend — an OpenAI-compatible endpoint, an Anthropic Messages server, a Codex-style Responses API, or a Bedrock-native surface — that muse can route `AIAgent` calls through. Every built-in provider (OpenRouter, Anthropic, GMI, DeepSeek, Nvidia, …) ships as one of these plugins. Third parties can add their own by dropping a directory under `$HERMES_HOME/plugins/model-providers/` with zero changes to the repo.
 
 :::tip
 Model provider plugins are the third kind of **provider plugin**. The others are [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin) (cross-session knowledge) and [Context Engine Plugins](/docs/developer-guide/context-engine-plugin) (context compression strategies). All three follow the same "drop a directory, declare a profile, no repo edits" pattern.
@@ -16,7 +16,7 @@ Model provider plugins are the third kind of **provider plugin**. The others are
 
 `providers/__init__.py._discover_providers()` runs lazily the first time any code calls `get_provider_profile()` or `list_providers()`. Discovery order:
 
-1. **Bundled plugins** — `<repo>/plugins/model-providers/<name>/` — ship with M.U.S.E.
+1. **Bundled plugins** — `<repo>/plugins/model-providers/<name>/` — ship with muse
 2. **User plugins** — `$HERMES_HOME/plugins/model-providers/<name>/` — drop in any directory; no restart required for subsequent sessions
 3. **Legacy single-file** — `<repo>/providers/<name>.py` — back-compat for out-of-tree editable installs
 
@@ -178,7 +178,7 @@ Next session, `get_provider_profile("gmi").base_url` returns the staging URL. No
 
 ## api_mode selection
 
-Four values are recognized. M.U.S.E. picks one based on:
+Four values are recognized. muse picks one based on:
 
 1. User explicit override (`config.yaml` `model.api_mode` when set)
 2. OpenCode's per-model dispatch (`opencode_model_api_mode` for Zen and Go)
@@ -199,7 +199,7 @@ Set `profile.api_mode` to match the default your provider ships — it acts as a
 | `aws_sdk` | AWS SDK credential chain (IAM role, profile, env) | `bedrock` plugin only |
 | `external_process` | Auth handled by a subprocess the agent spawns | `copilot-acp` plugin only |
 
-`auth_type` gates which codepaths treat your provider as a "simple api-key provider" — if it's not `api_key`, the PluginManager still records the manifest but M.U.S.E.' CLI-level automation (doctor checks, `--provider` flag, setup wizard delegation) may skip over it.
+`auth_type` gates which codepaths treat your provider as a "simple api-key provider" — if it's not `api_key`, the PluginManager still records the manifest but muse' CLI-level automation (doctor checks, `--provider` flag, setup wizard delegation) may skip over it.
 
 ## Discovery timing
 
@@ -247,7 +247,7 @@ The general `PluginManager` (the thing `muse plugins` operates on) **sees** mode
 
 ## Distribute via pip
 
-Like any M.U.S.E. plugin, model providers can ship as a pip package. Add an entry point to your `pyproject.toml`:
+Like any muse plugin, model providers can ship as a pip package. Add an entry point to your `pyproject.toml`:
 
 ```toml
 [project.entry-points."hermes.plugins"]
@@ -256,7 +256,7 @@ acme-inference = "acme_hermes_plugin:register"
 
 …where `acme_hermes_plugin:register` is a function that calls `register_provider(profile)`. The general PluginManager picks up entry-point plugins during `discover_and_load()`. For `kind: model-provider` pip plugins, you still need to declare the kind in your manifest (or rely on the source-text heuristic).
 
-See [Building a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin#distribute-via-pip) for the full entry-points setup.
+See [Building a muse Plugin](/docs/guides/build-a-hermes-plugin#distribute-via-pip) for the full entry-points setup.
 
 ## Related pages
 
@@ -264,4 +264,4 @@ See [Building a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin#distribute-v
 - [Adding Providers](/docs/developer-guide/adding-providers) — end-to-end checklist for new inference backends (covers both the fast plugin path and the full CLI/auth integration)
 - [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin)
 - [Context Engine Plugins](/docs/developer-guide/context-engine-plugin)
-- [Building a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin) — general plugin authoring
+- [Building a muse Plugin](/docs/guides/build-a-hermes-plugin) — general plugin authoring

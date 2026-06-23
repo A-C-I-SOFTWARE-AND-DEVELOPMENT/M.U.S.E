@@ -31,9 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
@@ -95,7 +95,7 @@ fun NewCodingTaskScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(CodingTestTags.NEW_PROMPT),
-                label = { Text("What should MUSE build, fix, or review?") },
+                label = { Text("What should muse build, fix, or review?") },
                 placeholder = { Text("e.g. Add a retry with backoff to the upload client and cover it with a test") },
                 minLines = 3,
             )
@@ -115,10 +115,10 @@ fun NewCodingTaskScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
             ) {
-                MuseButton(
+                museButton(
                     onClick = viewModel::previewClassification,
                     text = "Preview risk",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     enabled = !state.busy,
                     modifier = Modifier.weight(1f),
                 )
@@ -158,7 +158,7 @@ private fun ModeBanner(paired: Boolean, mock: Boolean) {
         paired -> "Backend paired" to "Classification + packet come from your gateway."
         else -> "Offline" to "No backend paired. Tasks queue locally; copy a prompt to hand off."
     }
-    MuseCard {
+    museCard {
         Column(Modifier.padding(JarvisTokens.SpaceMd)) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = JarvisSignal, fontWeight = FontWeight.SemiBold)
             Text(detail, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
@@ -168,7 +168,7 @@ private fun ModeBanner(paired: Boolean, mock: Boolean) {
 
 @Composable
 private fun AuditPreviewCard(audit: com.aci.hermes.data.cockpit.CodingAuditResult) {
-    MuseCard(
+    museCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(CodingTestTags.NEW_AUDIT_PREVIEW),

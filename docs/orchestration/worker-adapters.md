@@ -1,7 +1,7 @@
 # Worker adapters
 
 A worker is the thing that actually executes a Kanban card. In
-M.U.S.E., workers are **profiles** — named processes with their own
+muse workers are **profiles** — named processes with their own
 model, toolset, skill set, and execution environment. The
 orchestrator does nothing more interesting than picking which
 profile gets which card.
@@ -119,7 +119,7 @@ The override sticks for the lifetime of the job.
 ## Environments
 
 The worker process runs inside an **environment** — the terminal
-backend that owns its shell, filesystem, and network. M.U.S.E. ships
+backend that owns its shell, filesystem, and network. muse ships
 seven:
 
 | Environment | Best for | Notes |
@@ -276,7 +276,7 @@ object per line:
 
 `grep`, `jq`, and a normal text editor are the supported tools for
 analysis. The ledger format is intentionally stable — third-party
-tooling can read it without a M.U.S.E. runtime.
+tooling can read it without a muse runtime.
 
 ## See also
 

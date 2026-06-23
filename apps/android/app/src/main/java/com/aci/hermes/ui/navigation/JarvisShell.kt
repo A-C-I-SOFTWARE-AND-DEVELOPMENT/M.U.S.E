@@ -44,7 +44,7 @@ import com.aci.hermes.ui.screens.live.AvatarPose
 import com.aci.hermes.ui.screens.live.LivingAvatarHost
 
 /**
- * Outer chrome for the seven main destinations in the MUSE app
+ * Outer chrome for the seven main destinations in the muse app
  * (Home, Tasks, Chat, Approvals, Memory, Audit, Control).
  *
  * Provides:

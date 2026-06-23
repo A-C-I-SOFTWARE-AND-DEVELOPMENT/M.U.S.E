@@ -1,21 +1,21 @@
-# MUSE — System Overview
+# muse — System Overview
 
-MUSE is Jeremiah Echerd's local-first, owner-authorized,
+muse is Jeremiah Echerd's local-first, owner-authorized,
 memory-backed, model-routed AI operating partner running **inside
-Hermes**. Hermes is the canonical backend. MUSE plans, researches,
+Hermes**. Hermes is the canonical backend. muse plans, researches,
 codes, reviews, remembers, monitors, and briefs — while preserving
 provenance, owner authority, reversibility, and verification.
 
-> This document describes what MUSE **is**, what it **can** do today,
+> This document describes what muse **is**, what it **can** do today,
 > what it **cannot yet** do, and how to run it. It does not overclaim.
-> MUSE is **not** "fully autonomous" or "unrestricted." It is loyal to
+> muse is **not** "fully autonomous" or "unrestricted." It is loyal to
 > the owner's long-term mission and defers owner-gated actions.
 
 ## Three planes
 
-MUSE is organized into three planes (see `hermes_cli/jarvis_prime/`):
+muse is organized into three planes (see `hermes_cli/jarvis_prime/`):
 
-### 1. Control plane — Hermes / MUSE
+### 1. Control plane — Hermes / muse
 Owner gates, emergency stop, mode classification, routing, model
 selection, work-packet creation, verification gates, self-update
 proposals, approval inbox data, audit ledger, and the daily owner brief.
@@ -25,7 +25,7 @@ proposals, approval inbox data, audit ledger, and the daily owner brief.
 - `self_update.py` + `proposal_executor.py` — proposals → bounded plans
 - `monitors.py` + `owner_brief.py` — fail-visible monitors + daily brief
 
-### 2. Cognition plane — MUSE Memory OS
+### 2. Cognition plane — muse Memory OS
 Working / session / durable memory, the **Memory Tree**, Research Vault,
 contradiction handling, freshness, source trust, retrieval, and context
 packing (TokenJuice).
@@ -41,10 +41,10 @@ packing (TokenJuice).
 Workers execute **bounded** work only: Claude Code builder, an
 independent Codex/frontier reviewer, local tests, the GitHub PR publisher
 **after approval**, research fetchers, and the Termux/Android action
-broker **after permission and final confirmation**. MUSE never executes
+broker **after permission and final confirmation**. muse never executes
 owner-gated actions itself.
 
-## What MUSE can do today
+## What muse can do today
 
 - Turn a plain-English request into a bounded, gate-compatible work packet
   with risk class, owner gates, allowed/forbidden files, verification, and
@@ -59,7 +59,7 @@ owner-gated actions itself.
 - Run read-only monitors and produce a daily owner brief with a coverage
   attestation that surfaces blind spots.
 
-## What MUSE cannot yet do (honest gaps)
+## What muse cannot yet do (honest gaps)
 
 - It does **not** execute real Android accessibility gestures, external
   posts/messages, purchases, merges, deploys, credential changes, or

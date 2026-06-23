@@ -595,7 +595,7 @@ class TestThreadContext(unittest.TestCase):
             self.assertFalse(send_call["Subject"].startswith("Re: Re:"))
 
     def test_no_thread_context_uses_default_subject(self):
-        """Without thread context, subject should be 'Re: MUSE'."""
+        """Without thread context, subject should be 'Re: muse'."""
         adapter = self._make_adapter()
 
         with patch("smtplib.SMTP") as mock_smtp:
@@ -605,7 +605,7 @@ class TestThreadContext(unittest.TestCase):
             adapter._send_email("newuser@test.com", "Hello!", None)
 
             send_call = mock_server.send_message.call_args[0][0]
-            self.assertEqual(send_call["Subject"], "Re: MUSE")
+            self.assertEqual(send_call["Subject"], "Re: muse")
             self.assertIn("Date", send_call)
 
 
@@ -978,7 +978,7 @@ class TestSendEmailStandalone(unittest.TestCase):
             _, kwargs = mock_server.starttls.call_args
             self.assertIsInstance(kwargs["context"], ssl.SSLContext)
             send_call = mock_server.send_message.call_args[0][0]
-            self.assertEqual(send_call["Subject"], "MUSE")
+            self.assertEqual(send_call["Subject"], "muse")
             self.assertIn("Date", send_call)
             self.assertEqual(send_call["To"], "user@test.com")
             self.assertEqual(send_call["From"], "hermes@test.com")

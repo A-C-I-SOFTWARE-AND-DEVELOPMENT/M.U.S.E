@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   deploy-vercel:
-    if: github.event_name == 'release' && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    if: github.event_name == 'release' && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
     runs-on: ubuntu-latest
     steps:
       # Skips cleanly when no deploy hook is configured for this repo —
@@ -42,7 +42,7 @@ jobs:
           curl -X POST "$VERCEL_DEPLOY_HOOK"
 
   deploy-docs:
-    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -90,7 +90,7 @@ jobs:
           mkdir -p _site/docs
           cp -r website/build/* _site/docs/
           # llms.txt / llms-full.txt are also published at the site root
-          # (https://a-c-i-software-and-development.github.io/M.U.S.E/llms.txt) because some
+          # (https://a-c-i-software-and-development.github.io/muse/llms.txt) because some
           # agents and IDE plugins probe the classic root-level path rather
           # than /docs/llms.txt. Same file, two URLs, one source of truth.
           if [ -f website/build/llms.txt ]; then

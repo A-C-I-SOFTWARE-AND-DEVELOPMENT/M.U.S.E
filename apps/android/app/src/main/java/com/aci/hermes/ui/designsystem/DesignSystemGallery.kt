@@ -24,7 +24,7 @@ import com.aci.hermes.ui.theme.JarvisSignalMute
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * A living gallery of the MUSE design system — every component rendered on the
+ * A living gallery of the muse design system — every component rendered on the
  * void background, so a designer or reviewer can eyeball the whole language at
  * once (the "Read the rendered surface back and eyeball it" loop from the
  * brand doc). Also the canonical `@Preview` target.
@@ -45,9 +45,9 @@ fun DesignSystemGallery(modifier: Modifier = Modifier) {
         // --- The mark ---
         GallerySection("The mark") {
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXl)) {
-                MuseGlyph(size = 88.dp)
-                MuseGlyph(size = 48.dp)
-                MuseGlyph(size = 24.dp, showBloom = false)
+                museGlyph(size = 88.dp)
+                museGlyph(size = 48.dp)
+                museGlyph(size = 24.dp, showBloom = false)
             }
         }
 
@@ -55,30 +55,30 @@ fun DesignSystemGallery(modifier: Modifier = Modifier) {
         GallerySection("Buttons") {
             Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseButton(onClick = {}, text = "Primary", variant = MuseButtonVariant.Primary)
-                    MuseButton(onClick = {}, text = "Secondary", variant = MuseButtonVariant.Secondary)
+                    museButton(onClick = {}, text = "Primary", variant = museButtonVariant.Primary)
+                    museButton(onClick = {}, text = "Secondary", variant = museButtonVariant.Secondary)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseButton(onClick = {}, text = "Stop", variant = MuseButtonVariant.Danger)
-                    MuseButton(
+                    museButton(onClick = {}, text = "Stop", variant = museButtonVariant.Danger)
+                    museButton(
                         onClick = {},
                         text = "Approve",
-                        variant = MuseButtonVariant.Approve,
+                        variant = museButtonVariant.Approve,
                         leadingIcon = Icons.Filled.Bolt,
                     )
-                    MuseButton(onClick = {}, text = "Disabled", enabled = false)
+                    museButton(onClick = {}, text = "Disabled", enabled = false)
                 }
             }
         }
 
         // --- Card ---
         GallerySection("Card") {
-            MuseCard(modifier = Modifier.fillMaxWidth()) {
+            museCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(JarvisTokens.SpaceLg)) {
-                    MuseSectionHeader(
+                    museSectionHeader(
                         title = "Orchestrated job",
                         subtitle = "prompt-to-PR demo",
-                        trailing = { MuseStatusPill(status = MuseStatus.Live, label = "Live") },
+                        trailing = { museStatusPill(status = museStatus.Live, label = "Live") },
                     )
                     Text(
                         text = "A framed void-3 panel with an edge hairline.",
@@ -96,15 +96,15 @@ fun DesignSystemGallery(modifier: Modifier = Modifier) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
                 ) {
-                    MuseStatusDot(status = MuseStatus.Off)
-                    MuseStatusDot(status = MuseStatus.Ok)
-                    MuseStatusDot(status = MuseStatus.Live)
-                    MuseStatusDot(status = MuseStatus.Connecting)
+                    museStatusDot(status = museStatus.Off)
+                    museStatusDot(status = museStatus.Ok)
+                    museStatusDot(status = museStatus.Live)
+                    museStatusDot(status = museStatus.Connecting)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                    MuseStatusPill(status = MuseStatus.Off, label = "Offline")
-                    MuseStatusPill(status = MuseStatus.Ok, label = "Paired")
-                    MuseStatusPill(status = MuseStatus.Connecting, label = "Connecting")
+                    museStatusPill(status = museStatus.Off, label = "Offline")
+                    museStatusPill(status = museStatus.Ok, label = "Paired")
+                    museStatusPill(status = museStatus.Connecting, label = "Connecting")
                 }
             }
         }
@@ -112,27 +112,27 @@ fun DesignSystemGallery(modifier: Modifier = Modifier) {
         // --- Chips ---
         GallerySection("Chips") {
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseChip(label = "All")
-                MuseChip(label = "Building", selected = true)
-                MuseChip(label = "Merged", onClick = {})
+                museChip(label = "All")
+                museChip(label = "Building", selected = true)
+                museChip(label = "Merged", onClick = {})
             }
         }
 
         // --- Phase rail ---
         GallerySection("Phase rail") {
-            MusePhaseRail(
+            musePhaseRail(
                 phases = listOf(
-                    MusePhase("Plan", MusePhaseState.Done),
-                    MusePhase("Build", MusePhaseState.Current),
-                    MusePhase("Review", MusePhaseState.Pending),
-                    MusePhase("Ship", MusePhaseState.Pending),
+                    musePhase("Plan", musePhaseState.Done),
+                    musePhase("Build", musePhaseState.Current),
+                    musePhase("Review", musePhaseState.Pending),
+                    musePhase("Ship", musePhaseState.Pending),
                 ),
             )
         }
 
         // --- Empty state ---
         GallerySection("Empty state") {
-            MuseEmptyState(
+            museEmptyState(
                 title = "No active jobs",
                 body = "Start an orchestrated job and it will show up here with live phases.",
                 actionLabel = "Start a job",
@@ -143,17 +143,17 @@ fun DesignSystemGallery(modifier: Modifier = Modifier) {
         // --- Motion + EmptyState (navigation motion spec + shared shell empty) ---
         GallerySection("Motion + EmptyState") {
             Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd)) {
-                MuseCard(modifier = Modifier.fillMaxWidth()) {
+                museCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(JarvisTokens.SpaceLg)) {
-                        MuseSectionHeader(
+                        museSectionHeader(
                             title = "Navigation motion",
-                            subtitle = "MuseMotion tweens only — no springs",
+                            subtitle = "museMotion tweens only — no springs",
                         )
                         Text(
                             text = "Tab swaps fade through: in " +
-                                "${MuseMotion.DurationStandard}ms standard, out " +
-                                "${MuseMotion.DurationFast}ms fast. Detail pushes arrive " +
-                                "with intent: ${MuseMotion.DurationEmphasized}ms emphasized " +
+                                "${museMotion.DurationStandard}ms standard, out " +
+                                "${museMotion.DurationFast}ms fast. Detail pushes arrive " +
+                                "with intent: ${museMotion.DurationEmphasized}ms emphasized " +
                                 "fade + an upward settle of 1/24 the height; the pop is " +
                                 "the exact mirror. The core blazes, it does not wobble.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -188,7 +188,7 @@ private fun GallerySection(title: String, content: @Composable () -> Unit) {
 }
 
 @Preview(
-    name = "MUSE design system",
+    name = "muse design system",
     showBackground = true,
     backgroundColor = 0xFF050507,
     heightDp = 1400,

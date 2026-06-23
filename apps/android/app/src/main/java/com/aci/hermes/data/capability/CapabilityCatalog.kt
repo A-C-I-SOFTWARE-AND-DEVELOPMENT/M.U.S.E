@@ -6,7 +6,7 @@ import com.aci.hermes.data.model.CapabilityRoute
 import com.aci.hermes.data.model.RouteSurface
 
 /**
- * Curated catalog of MUSE capabilities surfaced on mobile.
+ * Curated catalog of muse capabilities surfaced on mobile.
  *
  * The full agent surface is hundreds of specialist agents, council
  * members, and worker lanes. Exposing all of them on a phone would
@@ -385,8 +385,8 @@ object CapabilityCatalog {
             id = "presence.voice",
             name = "Hands-free voice",
             category = CapabilityCategory.MOBILE,
-            summary = "Talk to Muse through your headset — say \"Hey Muse\" for any command.",
-            examplePrompt = "MUSE, start voice mode.",
+            summary = "Talk to muse through your headset — say \"Hey muse\" for any command.",
+            examplePrompt = "muse start voice mode.",
             route = CapabilityRoute(
                 surface = RouteSurface.LOCAL_HANDOFF,
                 lane = "voice: loop",

@@ -1,13 +1,13 @@
 ---
 title: Home Assistant
-description: Control your smart home with M.U.S.E. via Home Assistant integration.
+description: Control your smart home with muse via Home Assistant integration.
 sidebar_label: Home Assistant
 sidebar_position: 5
 ---
 
 # Home Assistant Integration
 
-M.U.S.E. integrates with [Home Assistant](https://www.home-assistant.io/) in two ways:
+muse integrates with [Home Assistant](https://www.home-assistant.io/) in two ways:
 
 1. **Gateway platform** — subscribes to real-time state changes via WebSocket and responds to events
 2. **Smart home tools** — four LLM-callable tools for querying and controlling devices via the REST API
@@ -19,7 +19,7 @@ M.U.S.E. integrates with [Home Assistant](https://www.home-assistant.io/) in two
 1. Open your Home Assistant instance
 2. Go to your **Profile** (click your name in the sidebar)
 3. Scroll to **Long-Lived Access Tokens**
-4. Click **Create Token**, give it a name like "M.U.S.E."
+4. Click **Create Token**, give it a name like "muse"
 5. Copy the token
 
 ### 2. Configure Environment Variables
@@ -48,7 +48,7 @@ Home Assistant will appear as a connected platform alongside any other messaging
 
 ## Available Tools
 
-M.U.S.E. registers four tools for smart home control:
+muse registers four tools for smart home control:
 
 ### `ha_list_entities`
 
@@ -178,7 +178,7 @@ State changes are formatted as human-readable messages based on domain:
 
 ### Agent Responses
 
-Outbound messages from the agent are delivered as **Home Assistant persistent notifications** (via `persistent_notification.create`). These appear in the HA notification panel with the title "M.U.S.E.".
+Outbound messages from the agent are delivered as **Home Assistant persistent notifications** (via `persistent_notification.create`). These appear in the HA notification panel with the title "muse".
 
 ### Connection Management
 

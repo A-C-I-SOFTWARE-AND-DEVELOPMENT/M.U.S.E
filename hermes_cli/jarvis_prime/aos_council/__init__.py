@@ -19,10 +19,14 @@ from __future__ import annotations
 from .dispatcher import (
     CouncilMember,
     CouncilSession,
+    DispatchPlan,
+    Task,
+    TaskQueue,
     dispatch,
     load_registry,
     registry_path,
     roster,
+    unified_dispatch,
 )
 from .executor import (
     CouncilDeliberation,
@@ -35,11 +39,15 @@ __all__ = [
     "CouncilDeliberation",
     "CouncilMember",
     "CouncilSession",
+    "DispatchPlan",
     "MemberResult",
+    "Task",
+    "TaskQueue",
     "default_runner",
     "dispatch",
     "execute",
     "load_registry",
     "registry_path",
     "roster",
+    "unified_dispatch",
 ]

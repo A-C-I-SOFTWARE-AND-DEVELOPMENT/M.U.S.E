@@ -1,9 +1,9 @@
-//! M.U.S.E. desktop shell (Tauri v2).
+//! muse desktop shell (Tauri v2).
 //!
 //! This is a thin native shell around the bundled Singularity UI (../ui/dist).
 //! It does **not** bundle the Python backend — the web UI talks to a
-//! locally-running MUSE gateway over HTTP (default http://127.0.0.1:8765,
-//! configurable in-app and via the `MUSE_GATEWAY_URL` build/runtime env). The
+//! locally-running muse gateway over HTTP (default http://127.0.0.1:8765,
+//! configurable in-app and via the `muse_GATEWAY_URL` build/runtime env). The
 //! shell's jobs are: load the UI, provide a native window + menu + system
 //! tray, enforce a single running instance, and (the one-installable story)
 //! keep the gateway alive — if `/v1/health` is down and autostart is enabled,
@@ -22,15 +22,152 @@ use tauri::{
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
+/// A simple HTTP proxy command for the webview — does an authenticated
+/// request to the gateway from Rust (bypassing WebView2's cross-origin
+/// fetch restriction) and returns {status, body} to the JS caller.
+/// Used by gateway.ts when running inside Tauri.
+#[derive(serde::Serialize)]
+struct ProxyResponse {
+    ok: bool,
+    status: u16,
+    body: String,
+}
+
+#[tauri::command]
+async fn gateway_proxy(
+    state: tauri::State<'_, UiGatewayHint>,
+    method: String,
+    path: String,
+    body: Option<String>,
+    auth_token: Option<String>,
+) -> Result<ProxyResponse, String> {
+    let base = {
+        let guard = state.0.lock();
+        guard
+            .ok()
+            .and_then(|s| s.clone())
+            .unwrap_or_else(gateway_url)
+    };
+    let url = format!("{}{}", base, path);
+
+    // Use a minimal blocking HTTP client (std::net::TcpStream) to avoid
+    // pulling reqwest/hyper into the desktop shell.
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        proxy_http_request(&url, &method, body.as_deref(), auth_token.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(result)
+}
+
+/// Minimal HTTP client over TcpStream — just enough for the gateway API.
+fn proxy_http_request(
+    url: &str,
+    method: &str,
+    body: Option<&str>,
+    auth_token: Option<&str>,
+) -> ProxyResponse {
+    let (host, port, path) = parse_url(url).unwrap_or(("127.0.0.1", 8765, "/"));
+    let addr = format!("{}:{}", host, port);
+
+    use std::io::{Read, Write};
+    use std::net::TcpStream;
+    use std::time::Duration;
+
+    let Ok(mut addrs) = addr.to_socket_addrs() else {
+        return ProxyResponse { ok: false, status: 0, body: "DNS resolution failed".into() };
+    };
+    let Some(socket_addr) = addrs.next() else {
+        return ProxyResponse { ok: false, status: 0, body: "No address found".into() };
+    };
+
+    let Ok(mut stream) = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(3)) else {
+        return ProxyResponse { ok: false, status: 0, body: "Connection refused".into() };
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(10)));
+
+    let body_bytes = body.unwrap_or("").as_bytes();
+    let mut req = format!(
+        "{} {} HTTP/1.1\r\nHost: {}:{}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n",
+        method, path, host, port, body_bytes.len()
+    );
+    if let Some(token) = auth_token {
+        if !token.is_empty() {
+            req.push_str(&format!("Authorization: Bearer {}\r\n", token));
+        }
+    }
+    req.push_str("\r\n");
+
+    if stream.write_all(req.as_bytes()).is_err() {
+        return ProxyResponse { ok: false, status: 0, body: "Write failed".into() };
+    }
+    if !body_bytes.is_empty() {
+        if stream.write_all(body_bytes).is_err() {
+            return ProxyResponse { ok: false, status: 0, body: "Body write failed".into() };
+        }
+    }
+
+    let mut response = Vec::new();
+    let _ = stream.read_to_end(&mut response);
+    let response_str = String::from_utf8_lossy(&response).to_string();
+
+    // Parse status line and split headers from body
+    let (status, body_text) = parse_http_response(&response_str);
+    ProxyResponse {
+        ok: status >= 200 && status < 300,
+        status,
+        body: body_text,
+    }
+}
+
+fn parse_url(url: &str) -> Option<(&str, u16, &str)> {
+    let rest = url.strip_prefix("http://").or_else(|| url.strip_prefix("https://"))?;
+    let (authority, path) = rest.split_once('/').unwrap_or((rest, ""));
+    let (host, port) = match authority.rsplit_once(':') {
+        Some((h, p)) => (h, p.parse().ok()?),
+        None => (authority, 80),
+    };
+    let path = if path.is_empty() { "/" } else { path };
+    // Re-borrow with lifetime — we need the path from the original string
+    let path_start = rest.len() - path.len();
+    Some((host, port, &rest[path_start..]))
+}
+
+fn parse_http_response(response: &str) -> (u16, String) {
+    // Find the first \r\n\r\n to split headers from body
+    let header_end = response.find("\r\n\r\n").or_else(|| response.find("\n\n"));
+    let (headers, body) = match header_end {
+        Some(idx) => {
+            let sep_len = if response[idx..].starts_with("\r\n\r\n") { 4 } else { 2 };
+            (&response[..idx], &response[idx + sep_len..])
+        }
+        None => (response, ""),
+    };
+
+    // Parse status from first line: "HTTP/1.1 200 OK"
+    let status = headers
+        .lines()
+        .next()
+        .and_then(|line| line.split_whitespace().nth(1))
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(0);
+
+    (status, body.to_string())
+}
+
+use std::net::ToSocketAddrs;
+
 /// Default gateway base URL. Mirrors the UI's `DEFAULT_GATEWAY_BASE`. The UI is
 /// the source of truth at runtime (it stores an override in localStorage); this
 /// constant only feeds the menu's informational item and any future native
 /// deep-link handling.
 const DEFAULT_GATEWAY_URL: &str = "http://127.0.0.1:8765";
 
-/// Resolve the configured gateway URL for display. Honors `MUSE_GATEWAY_URL`.
+/// Resolve the configured gateway URL for display. Honors `muse_GATEWAY_URL`.
 pub(crate) fn gateway_url() -> String {
-    std::env::var("MUSE_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
+    std::env::var("muse_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
 }
 
 /// The gateway base the UI is *actually* using. The Settings override lives in
@@ -80,18 +217,18 @@ fn focus_main(app: &tauri::AppHandle) {
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let about = PredefinedMenuItem::about(
         app,
-        Some("About M.U.S.E."),
+        Some("About muse"),
         Some(AboutMetadata {
-            name: Some("M.U.S.E.".into()),
+            name: Some("muse".into()),
             version: Some(app.package_info().version.to_string()),
             comments: Some("Multi-Use Synaptic Entity — One mind, many pathways.".into()),
             ..Default::default()
         }),
     )?;
-    let quit = PredefinedMenuItem::quit(app, Some("Quit M.U.S.E."))?;
+    let quit = PredefinedMenuItem::quit(app, Some("Quit muse"))?;
     let app_menu = Submenu::with_items(
         app,
-        "M.U.S.E.",
+        "muse",
         true,
         &[&about, &PredefinedMenuItem::separator(app)?, &quit],
     )?;
@@ -129,14 +266,14 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
 
 /// Build the system tray icon with a Show / Hide / Quit menu.
 fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "tray-show", "Show M.U.S.E.", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "tray-show", "Show muse", true, None::<&str>)?;
     let hide = MenuItem::with_id(app, "tray-hide", "Hide", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "tray-quit", "Quit", true, None::<&str>)?;
     let tray_menu = Menu::with_items(app, &[&show, &hide, &PredefinedMenuItem::separator(app)?, &quit])?;
 
     TrayIconBuilder::with_id("muse-tray")
         .icon(app.default_window_icon().cloned().expect("default window icon"))
-        .tooltip("M.U.S.E.")
+        .tooltip("muse")
         .menu(&tray_menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -195,6 +332,7 @@ pub fn run() {
             brain::autostart_get,
             brain::autostart_set,
             gateway_url_hint_set,
+            gateway_proxy,
         ])
         // Application menu actions (menu items declared in `build_menu`).
         // Clipboard write happens HERE, Rust-side — the webview holds no
@@ -248,7 +386,7 @@ pub fn run() {
 
     builder
         .build(context)
-        .expect("error while building M.U.S.E. desktop")
+        .expect("error while building muse desktop")
         .run(|app, event| {
             // Real exit (tray Quit / app menu Quit) — window close only hides.
             // This is the one place the managed gateway child is reaped.

@@ -1,6 +1,6 @@
-# M.U.S.E. APK ↔ Gateway — Cockpit API contract
+# muse APK ↔ Gateway — Cockpit API contract
 
-Wire format between the Android cockpit APK and a M.U.S.E. gateway. The
+Wire format between the Android cockpit APK and a muse gateway. The
 **cockpit namespace is now largely live** in `gateway/cockpit/` — chat,
 runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
 file), evidence, research, approvals, audit, coding, autonomy, graph,
@@ -92,7 +92,7 @@ aliases**. See
 The cockpit advertises two versions on every `GET /v1/health` (and
 `GET /v1/cockpit/capabilities`): `api_version` — the cockpit **contract**
 version (`COCKPIT_API_VERSION` in `gateway/cockpit/handlers.py`) — and
-`gateway_version`, the M.U.S.E. package version. The Android `HealthStatus`
+`gateway_version`, the muse package version. The Android `HealthStatus`
 negotiates on `api_version` and tolerates an unknown `gateway_version`.
 
 | `api_version` | Cockpit surface | Minimum client | Notes |
@@ -193,7 +193,7 @@ Lists the workers the gateway has detected on its host. The cockpit's
     },
     {
       "id": "hermes_batch",
-      "display_name": "M.U.S.E. batch runner",
+      "display_name": "muse batch runner",
       "kind": "internal",
       "available": true,
       "version": "0.14.0",
@@ -296,7 +296,7 @@ for orchestrator jobs).
 | `POST` | `…/validate` | Run the workspace's verification gates ("run verification"); returns the `ValidationSnapshot` shape. |
 
 > **Canonical status is a superset.** The wire `status` vocabulary is the
-> union of the MUSE-Prime queue's **execution** states
+> union of the muse-Prime queue's **execution** states
 > (`QUEUED`, `RUNNING`, `PAUSED`, `BLOCKED`, `DISCONNECTED`, `COMPLETED`,
 > `FAILED`, `CANCELLED`) and the cockpit's **workflow** states
 > (`DRAFT`, `WAITING_FOR_APPROVAL`, `APPROVED`, `PUBLISHING`, `PUBLISHED`).
@@ -714,7 +714,7 @@ green-light. The cockpit reads pending approvals from:
 
 ## 10d. Learning Queue — **canonical, implemented**
 
-The MUSE learning-dataset candidate queue: validated, source-backed
+The muse learning-dataset candidate queue: validated, source-backed
 traces awaiting owner approval before they are eligible for export
 (fine-tuning / preference / eval / skill candidates). Backed by
 `hermes_cli/jarvis_prime/learning_dataset.py`; secrets and raw
@@ -783,7 +783,7 @@ payload:
 
 The cockpit memory routes are **live** and emit the canonical schema
 below (server is the source of truth; the Android `MemoryItem` mirrors
-it field-for-field). Backed by the real MUSE-Prime `MemoryStore` via
+it field-for-field). Backed by the real muse-Prime `MemoryStore` via
 the adapter in `gateway/cockpit/contract.py` — no fabricated fields; a
 field with no source signal is an explicit `null` or the `UNCATEGORIZED`
 category, never a guess. Secrets are rejected at write time (→ `422`),
@@ -850,7 +850,7 @@ or `422` + `{ "stored": false, "reason": ... }` when the store rejects it
 ## 10b. Audit — **canonical, implemented** (list + proof)
 
 `GET /v1/cockpit/audit` and `GET /v1/cockpit/audit/{id}/proof` are **live**,
-projecting the MUSE-Prime **decision ledger** into the Android
+projecting the muse-Prime **decision ledger** into the Android
 `AuditRecord` / `ProofRecord` (adapter in `gateway/cockpit/contract.py`).
 
 The ledger's 15 prose sections map onto the audit model; enum fields are
@@ -937,7 +937,7 @@ owner gate is never bypassed.
 ## 10c. Approvals — **canonical, implemented** (cards + owner-phrase decide)
 
 The Android Approvals screen is one `ApprovalCard` queue. The server's one
-real owner-gated queue is the MUSE **self-update proposal** store, so:
+real owner-gated queue is the muse **self-update proposal** store, so:
 
 - `GET /v1/cockpit/approvals` → canonical `ApprovalCard`s projected from
   proposals (risk class `RC0–RC4` → `tier` `LOW/LOW/RISKY/SERIOUS/CRITICAL`
@@ -958,7 +958,7 @@ store is invented.
 
 ## 10d. Evidence Engine — **canonical, implemented** (RAG + cite + verify)
 
-The Android Evidence screen renders source-cited artifacts from the MUSE
+The Android Evidence screen renders source-cited artifacts from the muse
 **Research Vault** (`hermes_cli/jarvis_prime/research_vault.py`), ranked by
 the **Evidence Engine** (`hermes_cli/jarvis_prime/evidence_engine.py`).
 Adapters live in `gateway/cockpit/contract.py` (`evidence_card`,
@@ -1153,7 +1153,7 @@ sets a level again via `POST /v1/cockpit/autonomy`. Returns:
 ```
 ## 10d. Research Vault — **canonical, implemented** (recent evidence, read-only)
 
-`GET /v1/cockpit/research` is **live**, projecting the MUSE **Research
+`GET /v1/cockpit/research` is **live**, projecting the muse **Research
 Vault** (`hermes_cli/jarvis_prime/research_vault.py`) for the mobile home
 screen's evidence card and any research view.
 

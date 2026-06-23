@@ -125,7 +125,7 @@ class TestPolicyFromExtra:
         gp = policy_from_extra(extra, "group")
         assert dm.admin_user_ids == frozenset({"111"})
         assert gp.admin_user_ids == frozenset({"222"})
-        assert dm.user_allowed_commands == frozenset({"status"})
+        assert dmuser_allowed_commands == frozenset({"status"})
         # group's user_allowed_commands does not leak into DM's allowed list
         # except via the explicit fallback rule (only when DM list is unset).
         assert "help" in gp.user_allowed_commands
@@ -138,7 +138,7 @@ class TestPolicyFromExtra:
             "group_user_allowed_commands": ["status", "model"],
         }
         dm = policy_from_extra(extra, "dm")
-        assert dm.user_allowed_commands == frozenset({"status", "model"})
+        assert dmuser_allowed_commands == frozenset({"status", "model"})
 
     def test_dm_admin_does_not_imply_group_admin(self):
         # Admin lists are scope-specific. DM admin must not auto-promote in groups.

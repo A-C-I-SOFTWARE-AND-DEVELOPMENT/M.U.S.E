@@ -1,6 +1,6 @@
 # Private / local-only mode
 
-A M.U.S.E. Orchestration install that:
+A muse Orchestration install that:
 
 - never sends data to a cloud provider,
 - never opens an outbound connection beyond loopback (optional —
@@ -79,7 +79,7 @@ python -m vllm.entrypoints.openai.api_server \
 The orchestrator doesn't care which — they all speak the OpenAI
 chat-completions wire format.
 
-### 2. Point M.U.S.E. at the local server
+### 2. Point muse at the local server
 
 ```bash
 muse model add local-coder \
@@ -177,7 +177,7 @@ sudo nft add rule inet hermes-private output oif lo accept
 sudo nft add rule inet hermes-private output meta skuid != $(id -u) accept
 ```
 
-This blocks outbound from the user that runs M.U.S.E., except over
+This blocks outbound from the user that runs muse except over
 loopback. Adjust for your local model server's port if needed.
 
 On macOS, `pf` is the equivalent; on Termux, see the next section.
@@ -208,7 +208,7 @@ Same shape, slightly different ingredients:
 ```bash
 # in Termux
 pkg install -y python rust git openssl
-# install M.U.S.E. (see android-termux-demo.md)
+# install muse (see android-termux-demo.md)
 
 # llama.cpp builds inside Termux:
 pkg install -y cmake make clang
@@ -220,7 +220,7 @@ cd ~/llama.cpp && make -j
   --host 127.0.0.1 --port 8081 -c 8192 -t 4
 ```
 
-Then point M.U.S.E. at `http://127.0.0.1:8081/v1` the same way. The
+Then point muse at `http://127.0.0.1:8081/v1` the same way. The
 Android cockpit talks to Termux's `muse gateway` over loopback,
 which talks to llama.cpp over loopback. Nothing leaves the device.
 

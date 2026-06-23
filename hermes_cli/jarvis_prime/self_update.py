@@ -1,4 +1,4 @@
-"""Self-update proposals for MUSE.
+"""Self-update proposals for muse
 
 The user asked JARVIS to "update its own skills and agents to as
 well as itself". This module produces structured *proposals* —
@@ -152,7 +152,7 @@ class ProposalBook:
     def render_for_owner(self) -> str:
         pending = self.pending()
         if not pending:
-            return "No MUSE self-update proposals pending."
+            return "No muse self-update proposals pending."
         lines = ["JARVIS PRIME — PENDING SELF-UPDATE PROPOSALS"]
         for i, p in enumerate(pending, start=1):
             lines.append(

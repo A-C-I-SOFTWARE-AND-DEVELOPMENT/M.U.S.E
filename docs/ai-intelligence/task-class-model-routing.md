@@ -4,7 +4,7 @@
 > default** and reversible at runtime (see [Rollback](#rollback)). Promotion
 > still happens only through measured scorecards, never vendor benchmarks.
 
-Hermes/MUSE does **not** pick one "best model." It runs a *symbiotic,
+Hermes/muse does **not** pick one "best model." It runs a *symbiotic,
 task-lane portfolio*: each task class routes to the family that is best for that
 kind of work, free/local-first, with paid APIs explicit-opt-in only. Three
 layers compose the decision (see [`task_router.py`](../../hermes_cli/jarvis_prime/task_router.py)):

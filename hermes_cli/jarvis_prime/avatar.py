@@ -1,4 +1,4 @@
-"""MUSE — canonical avatar + locale-aware voice embodiment.
+"""muse — canonical avatar + locale-aware voice embodiment.
 
 Stdlib-only, JSON-serialisable single source of truth for *who JARVIS is*
 as an embodied presence: name, brand glyph, palette, tagline, and a
@@ -15,7 +15,7 @@ The brand identity is the canonical "Singularity" look — one luminous
 white core in the void, circled by a single thin spectral ring (cyan →
 violet). The reference palette is the browser cockpit's
 ``gateway/cockpit/static/tokens.css``; the Android theme and this module
-mirror it so there is **one** MUSE, not two:
+mirror it so there is **one** muse not two:
 
 * palette ← ``gateway/cockpit/static/tokens.css`` (Singularity tokens),
   mirrored into ``apps/android/.../ui/theme/Color.kt``
@@ -46,7 +46,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Brand palette — the canonical "Singularity" palette, lifted from the
 # browser cockpit's tokens (gateway/cockpit/static/tokens.css) so the
-# CLI/avatar, the cockpit, and the Android app render the same MUSE.
+# CLI/avatar, the cockpit, and the Android app render the same muse
 #
 # Field NAMES are kept for back-compat; their VALUES now carry Singularity
 # semantics: ``gold`` is the white core (primary accent), ``cyan`` is the
@@ -158,7 +158,7 @@ class LocalVoiceStack:
     tts_engine: str = "piper"
     sample_rate_hz: int = 22050
     offline_first: bool = True
-    wake_phrase: str = "Muse"
+    wake_phrase: str = "muse"
     vad: bool = True  # voice-activity-detection auto-stop
 
     def to_dict(self) -> dict[str, Any]:
@@ -195,17 +195,17 @@ class LocalVoiceStack:
 
 @dataclass(frozen=True)
 class JarvisAvatar:
-    """The embodied identity of MUSE — Multi-Use Synaptic Entity.
+    """The embodied identity of muse — Multi-Use Synaptic Entity.
 
-    One mind (MUSE) over a synaptic substrate (the gateway, routing, and
-    model pathways). ``name`` is the body form ("MUSE"); ``display`` is the
-    stylized acronym ("M.U.S.E."); ``full_name`` is the expansion.
+    One mind (muse) over a synaptic substrate (the gateway, routing, and
+    model pathways). ``name`` is the body form ("muse"); ``display`` is the
+    stylized acronym ("muse"); ``full_name`` is the expansion.
     """
 
-    name: str = "MUSE"
+    name: str = "muse"
     full_name: str = "Multi-Use Synaptic Entity"
-    display: str = "M.U.S.E."
-    short_name: str = "MUSE"
+    display: str = "muse"
+    short_name: str = "muse"
     tagline: str = "One mind, many pathways."
     glyph: str = (
         "A single luminous white core in the void, circled by one thin "
@@ -343,5 +343,5 @@ DEFAULT_AVATAR = JarvisAvatar(voices=_DEFAULT_VOICES)
 
 
 def default_avatar() -> JarvisAvatar:
-    """Return the canonical MUSE avatar."""
+    """Return the canonical muse avatar."""
     return DEFAULT_AVATAR

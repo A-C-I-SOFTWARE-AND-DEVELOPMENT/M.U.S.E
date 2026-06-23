@@ -1,6 +1,6 @@
 # GitHub history profile guide
 
-M.U.S.E. builds a **persistent profile** of how you work over time —
+muse builds a **persistent profile** of how you work over time —
 your repositories, your typical PR patterns, the projects you care
 about, your usual reviewers. The richest input to that profile is
 your GitHub history.
@@ -34,7 +34,7 @@ GitHub-derived facts at `~/.hermes/profile/github/`. It includes:
 
 | Field | Where it comes from |
 |-------|---------------------|
-| GitHub username | You tell M.U.S.E. once, or `github_assistant` derives it from your PAT. |
+| GitHub username | You tell muse once, or `github_assistant` derives it from your PAT. |
 | Repositories you own / collaborate on | `GET /user/repos` via `github_assistant`. |
 | Languages you write | Aggregated from repo `language` fields and the orchestrator's observations. |
 | Repos you've worked on recently | From `GET /users/{user}/events` + your job history. |
@@ -72,13 +72,13 @@ profile cache.
 
 ## How the profile gets built
 
-Three loops, all running quietly when you ask M.U.S.E. to do GitHub
+Three loops, all running quietly when you ask muse to do GitHub
 work.
 
 ### 1. Initial backfill
 
 The first time you run a GitHub-touching workflow (or explicitly
-`/profile sync github`), M.U.S.E.:
+`/profile sync github`), muse
 
 1. Lists your accessible repos.
 2. Pulls the most recent N (default 25) PRs and their reviewers,
@@ -130,7 +130,7 @@ trigger manually with `/profile sync github` or
 
 ---
 
-## What M.U.S.E. does with the profile
+## What muse does with the profile
 
 The profile is **input** to the orchestrator and the worker skills.
 Concretely:
@@ -149,7 +149,7 @@ Concretely:
   for "drafts only," the orchestrator routes those phases to a
   draft-only publishing config.
 
-If you'd rather M.U.S.E. ignore the profile and ask you every time,
+If you'd rather muse ignore the profile and ask you every time,
 disable it (see [Controls](#controls) below).
 
 ---
@@ -162,7 +162,7 @@ The profile pulls from GitHub via the `github_assistant` plugin.
 See [`../github-integration.md`](../github-integration.md) and
 [`../integrations/github-supabase-vercel-guide.md`](../integrations/github-supabase-vercel-guide.md)
 for the canonical setup. You need a fine-grained PAT scoped to the
-repositories you want M.U.S.E. to know about.
+repositories you want muse to know about.
 
 ```bash
 muse plugin enable github_assistant
@@ -210,12 +210,12 @@ muse profile wipe github --yes          # no confirm
 ```
 
 Deletes `~/.hermes/profile/github/` and removes GitHub-derived facts
-from memory. The next time you do GitHub work, M.U.S.E. will rebuild
+from memory. The next time you do GitHub work, muse will rebuild
 from scratch unless paused.
 
 ### Restrict scope
 
-By default M.U.S.E. pulls history only for repositories in
+By default muse pulls history only for repositories in
 `github.allowed_repositories`. To exclude specific ones:
 
 ```yaml
@@ -234,7 +234,7 @@ profile:
     enabled: false
 ```
 
-M.U.S.E. still uses `github_assistant` for live work (PRs, issues,
+muse still uses `github_assistant` for live work (PRs, issues,
 comments). It just won't aggregate history into the profile.
 
 ### Disable ambient updates only

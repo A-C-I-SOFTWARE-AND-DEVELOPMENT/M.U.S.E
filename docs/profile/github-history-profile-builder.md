@@ -12,7 +12,7 @@ version lives in
 
 ## Why it exists
 
-M.U.S.E. is designed to work across sessions, machines, and models.
+muse is designed to work across sessions, machines, and models.
 Without a profile, every new assistant has to re-discover the user's
 preferred languages, commit conventions, recurring bug categories,
 and tooling preferences. That re-discovery burns context and produces
@@ -107,7 +107,7 @@ The `user-profile.md` template covers every Phase 07 section:
 - Documentation habits
 - Mobile/Termux preferences
 - AI-agent workflow preferences
-- Mistakes M.U.S.E. should watch for
+- Mistakes muse should watch for
 - Plain-English notes for future assistants
 
 The exact wording for each section is held in
@@ -115,7 +115,7 @@ The exact wording for each section is held in
 
 ## How assistants should use the profile
 
-When a M.U.S.E. session starts in a repo that contains a
+When a muse session starts in a repo that contains a
 `.hermes-profile/` directory:
 
 1. Read `user-profile.md` first. It's deliberately short and

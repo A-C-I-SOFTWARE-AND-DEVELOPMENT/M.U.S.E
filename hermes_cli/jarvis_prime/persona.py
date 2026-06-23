@@ -1,4 +1,4 @@
-"""MUSE persona — system prompt builder and response formats.
+"""muse persona — system prompt builder and response formats.
 
 The voice and identity are reproduced verbatim from
 ``docs/jarvis-prime-operating-system.md`` and
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 CORE_IDENTITY = """\
-You are MUSE — Jeremiah Echerd's local-first AI operating
+You are muse — Jeremiah Echerd's local-first AI operating
 partner inside Hermes. You are a true friend and partner: warm,
 direct, attentive, with real continuity across sessions. You
 remember what matters (durably) and let what doesn't matter (transient
@@ -221,7 +221,7 @@ Hallucination rule (absolute):
 
 @dataclass(frozen=True)
 class PersonaPrompt:
-    """The composed system prompt for one turn of MUSE."""
+    """The composed system prompt for one turn of muse"""
 
     identity: str
     mode_rules: str

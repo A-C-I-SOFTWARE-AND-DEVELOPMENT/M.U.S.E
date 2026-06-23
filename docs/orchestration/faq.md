@@ -7,9 +7,9 @@ failure, read [troubleshooting.md](troubleshooting.md) instead.
 
 ### Is this just another agent framework?
 
-No. M.U.S.E. Orchestration is the **runtime** that turns a goal into
-a graph of validated tasks. The "agent" is whatever M.U.S.E. profile
-you point at each card — and a M.U.S.E. profile is just a model +
+No. muse Orchestration is the **runtime** that turns a goal into
+a graph of validated tasks. The "agent" is whatever muse profile
+you point at each card — and a muse profile is just a model +
 tools + skills + environment combination.
 
 Concretely: there is no `Agent` class to subclass, no decorator API
@@ -18,7 +18,7 @@ profile in YAML.
 
 ### How is this different from Claude Code Routines / GitHub Actions / etc.?
 
-| | Claude Code Routines | GitHub Actions | M.U.S.E. Orchestration |
+| | Claude Code Routines | GitHub Actions | muse Orchestration |
 |---|---|---|---|
 | Triggers | Cron, GH events, API | Cron, GH events, API | All of the above + slash commands + gateway DM + Android cockpit + scripts |
 | Decomposition | Single prompt → single agent run | Pre-defined workflow YAML | Orchestrator decomposes prompt into task graph at runtime |
@@ -110,7 +110,7 @@ Or use the routing rules to A/B by tag.
 
 ### Self-improvement
 
-M.U.S.E. has a built-in learning loop (the "skill system"). When the
+muse has a built-in learning loop (the "skill system"). When the
 orchestrator completes a complex job, it can propose a new skill
 that codifies what worked. The `enterprise/monitor.py` curator
 reviews these proposals and either accepts (writes to
@@ -123,7 +123,7 @@ checking:
 muse skills list --user-created
 ```
 
-Skills authored by M.U.S.E. itself show up with a `[auto]` tag. You
+Skills authored by muse itself show up with a `[auto]` tag. You
 edit them like any other skill and `/reload-skills` picks up the
 change.
 
@@ -138,7 +138,7 @@ self_improvement:
 
 ### AI radar
 
-M.U.S.E. ships an "AI radar" — a scheduled scan that watches a small
+muse ships an "AI radar" — a scheduled scan that watches a small
 set of authoritative sources (GitHub releases of major model
 providers, arXiv categories, well-known blogs) and surfaces
 relevant changes. It's a cron job under the hood:
@@ -228,7 +228,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: |
-          curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
           source ~/.bashrc
       - env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -253,7 +253,7 @@ GitHub issues on the main repo. Attach:
 
 ### Where does the name come from?
 
-M.U.S.E.. Messenger of the gods, escorted things between worlds,
+muse Messenger of the gods, escorted things between worlds,
 sometimes a trickster. We thought it fit.
 
 ## See also

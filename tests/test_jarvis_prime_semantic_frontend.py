@@ -1,4 +1,4 @@
-"""Tests for the MUSE semantic frontend (English -> IntentGraph).
+"""Tests for the muse semantic frontend (English -> IntentGraph).
 
 Covers deterministic parsing, node extraction for the canonical invoice
 example, ambiguity/clarification on vague input, delegation to route_request,

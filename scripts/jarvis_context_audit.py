@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the MUSE operating-layer files.
+"""Audit the muse operating-layer files.
 
 This script is intentionally local-only and stdlib-only so it can run safely in
 Termux and CI-like shells without network access or credentials.
@@ -27,7 +27,7 @@ STAGE_2_SKILLS = [
 ]
 
 DOC_REQUIRED_TERMS = [
-    "MUSE",
+    "muse",
     "AOS Council",
     "Claude Code",
     "Codex",
@@ -151,12 +151,12 @@ def audit() -> int:
     agents = ROOT / "AGENTS.md"
     if readme.exists():
         readme_text = readme.read_text(encoding="utf-8")
-        check("MUSE" in readme_text, "README.md JARVIS integration detected", failures, warnings, warn=True)
+        check("muse" in readme_text, "README.md JARVIS integration detected", failures, warnings, warn=True)
     else:
         check(False, "README.md exists", failures, warnings, warn=True)
     if agents.exists():
         agents_text = agents.read_text(encoding="utf-8")
-        check("MUSE Operating Layer" in agents_text, "AGENTS.md JARVIS integration detected", failures, warnings, warn=True)
+        check("muse Operating Layer" in agents_text, "AGENTS.md JARVIS integration detected", failures, warnings, warn=True)
     else:
         check(False, "AGENTS.md exists", failures, warnings, warn=True)
 

@@ -1,0 +1,90 @@
+# The M.U.S.E. agent fleet: one Deployment whose pods each host many concurrent
+# async agent sessions. KEDA (keda-scaledobject.yaml) sets the replica count
+# from Redis queue depth; the cluster autoscaler grows the Spot node pool to fit.
+#
+# Fill in BEFORE applying:
+#   <ACR>  - your Azure Container Registry login server (e.g. musefleetacr.azurecr.io)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: muse-worker
+  namespace: muse
+  labels:
+    app: muse-worker
+spec:
+  # KEDA owns the replica count at runtime; this is just the pre-KEDA default.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: muse-worker
+  template:
+    metadata:
+      labels:
+        app: muse-worker
+    spec:
+      # Schedule onto the Spot worker pool created in the guide.
+      nodeSelector:
+        workload: muse-agents
+      tolerations:
+        - key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+          effect: NoSchedule
+      containers:
+        - name: muse-worker
+          image: <ACR>/hermes-agent:latest
+          # Same container contract as docker-compose.yml: the entrypoint runs
+          # the `hermes` CLI. Replace with your queue-consuming worker command
+          # if you front the fleet with a dedicated worker subcommand.
+          command: ["gateway", "run"]
+          envFrom:
+            - configMapRef:
+                name: muse-worker-config
+          env:
+            # Secrets projected from Key Vault via the CSI SecretProviderClass.
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: muse-secrets
+                  key: REDIS_URL
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: muse-secrets
+                  key: DATABASE_URL
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: muse-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: muse-secrets
+                  key: OPENROUTER_API_KEY
+          # Size by memory/connections, not CPU — agents are I/O-bound. One pod
+          # holds many sessions (see SESSIONS_PER_WORKER in the ConfigMap).
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          volumeMounts:
+            # CSI mount that triggers Key Vault sync into the muse-secrets Secret.
+            - name: kv
+              mountPath: /mnt/secrets-store
+              readOnly: true
+            # Ephemeral scratch for HERMES_HOME (NOT durable on Spot nodes).
+            - name: scratch
+              mountPath: /opt/data
+      volumes:
+        - name: kv
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: muse-keyvault
+        - name: scratch
+          emptyDir: {}

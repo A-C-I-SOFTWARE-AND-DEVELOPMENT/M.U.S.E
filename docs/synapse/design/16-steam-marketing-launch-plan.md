@@ -1,6 +1,6 @@
 # 16 — SYNAPSE Steam Marketing & Launch Plan
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 This document executes master plan §8 (the Steam strategy) on the calendar fixed by 14-production-plan.md: **page live by 2027-01-08 (week 30, Sprint 15)**, demo live **2027-04-30 (S23)**, Steam Next Fest **June 2027 (S27)**, launch **Tuesday 2027-10-26, 10:00 AM Pacific (S36)** at **$24.99**. The wishlist math in §8.2 is locked; this plan spends it, it doesn't renegotiate it. Copy marked **FINAL** ships as written unless the owner issues a versioned errata.
 
@@ -100,9 +100,9 @@ Beats: accolade-style cold open using playtest/creator quotes → the verb (a *f
 
 ## 7. Demo plan
 
-- **Content:** The Stacks 45-minute slice — onboarding/Muse creator, 2 parley captures (one scripted-tutorial, one free), network screen, the Test Gauntlet, ending on a cliff-vista of the Foundry + wishlist CTA.
+- **Content:** The Stacks 45-minute slice — onboarding/muse creator, 2 parley captures (one scripted-tutorial, one free), network screen, the Test Gauntlet, ending on a cliff-vista of the Foundry + wishlist CTA.
 - **Timing:** live **2027-04-30 (S23)** — six weeks before Next Fest, *months* before launch, per §8.2's pre-fest predictor logic. The demo stays up through launch (delisting a working demo burns goodwill).
-- **Telemetry (opt-in, disclosed):** session length, drop-off point, parley completion rate, wheel-vs-text split, wishlist-click. **Gate: median session ≥25 min** (15-qa-test-plan.md §5.3). Saves do not carry to 1.0 (stated on the page) — but the Muse you create does (cosmetic import), which is the demo's retention hook.
+- **Telemetry (opt-in, disclosed):** session length, drop-off point, parley completion rate, wheel-vs-text split, wishlist-click. **Gate: median session ≥25 min** (15-qa-test-plan.md §5.3). Saves do not carry to 1.0 (stated on the page) — but the muse you create does (cosmetic import), which is the demo's retention hook.
 
 ## 8. Festival calendar
 

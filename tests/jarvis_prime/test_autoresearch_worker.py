@@ -139,7 +139,7 @@ def test_run_collect_score_end_to_end(monkeypatch, tmp_path: Path) -> None:
     worker = _worker(tmp_path, outputs, edits=["raise lr"])
     job = object()
     prompt = worker.prepare_prompt(type("J", (), {"objective": "go", "prompt": "go"})())
-    assert "MUSE governance addendum" in prompt.text
+    assert "muse governance addendum" in prompt.text
     assert "NEVER STOP" in prompt.text  # vendored program.md is included
 
     run = worker.run(job)

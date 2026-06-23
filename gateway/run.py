@@ -1213,12 +1213,12 @@ def _resolve_gateway_model(config: dict | None = None) -> str:
 
 
 def _resolve_hermes_bin() -> Optional[list[str]]:
-    """Resolve the MUSE update command as argv parts.
+    """Resolve the muse update command as argv parts.
 
     Tries in order:
     1. ``shutil.which("muse")`` — the canonical shim on PATH
     2. ``shutil.which("hermes")`` — the legacy back-compat alias
-    3. ``sys.executable -m hermes_cli.main`` — fallback when MUSE is running
+    3. ``sys.executable -m hermes_cli.main`` — fallback when muse is running
        from a venv/module invocation and neither shim is on PATH
 
     Returns argv parts ready for quoting/joining, or ``None`` if none work.
@@ -2002,18 +2002,18 @@ class GatewayRunner:
     def _telegram_topic_root_lobby_message(self) -> str:
         return (
             "This main chat is reserved for system commands.\n\n"
-            "To start a new MUSE chat, open the All Messages topic at the top "
+            "To start a new muse chat, open the All Messages topic at the top "
             "of this bot interface and send any message there. Telegram will "
             "create a new topic for that message; each topic works as an "
-            "independent MUSE session."
+            "independent muse session."
         )
 
     def _telegram_topic_root_new_message(self) -> str:
         return (
-            "To start a new parallel MUSE chat, open the All Messages topic "
+            "To start a new parallel muse chat, open the All Messages topic "
             "at the top of this bot interface and send any message there. "
             "Telegram will create a new topic for it.\n\n"
-            "Each topic is an independent MUSE session. Use /new inside an "
+            "Each topic is an independent muse session. Use /new inside an "
             "existing topic only if you want to replace that topic's current session."
         )
 
@@ -2021,7 +2021,7 @@ class GatewayRunner:
         if not self._is_telegram_topic_lane(source):
             return None
         return (
-            "Started a new MUSE session in this topic.\n\n"
+            "Started a new muse session in this topic.\n\n"
             "Tip: for parallel work, open All Messages and send a message there "
             "to create a separate topic instead of using /new here. /new replaces "
             "the session attached to the current topic."
@@ -3580,7 +3580,7 @@ class GatewayRunner:
         
         Returns True if at least one adapter connected successfully.
         """
-        logger.info("Starting MUSE Gateway...")
+        logger.info("Starting muse Gateway...")
         try:
             self._gateway_loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -4201,7 +4201,7 @@ class GatewayRunner:
         # (no permission, topics-mode off, parent is a DM, etc.). When
         # None we fall through to using the home channel directly — the
         # synthetic turn still lands; just without thread isolation.
-        thread_name = f"MUSE — {cli_title}"
+        thread_name = f"muse — {cli_title}"
         try:
             new_thread_id = await adapter.create_handoff_thread(
                 str(home.chat_id), thread_name,
@@ -7708,7 +7708,7 @@ class GatewayRunner:
                                 "🎤 I received your voice message but can't transcribe it — "
                                 "no speech-to-text provider is configured.\n\n"
                                 "To enable voice: install faster-whisper "
-                                "(`pip install faster-whisper` in the MUSE venv) "
+                                "(`pip install faster-whisper` in the muse venv) "
                                 "and set `stt.enabled: true` in config.yaml, "
                                 "then /restart the gateway."
                             )
@@ -8419,7 +8419,7 @@ class GatewayRunner:
                 )
                 notice = (
                     f"📬 No home channel is set for {platform_name.title()}. "
-                    f"A home channel is where MUSE delivers cron job results "
+                    f"A home channel is where muse delivers cron job results "
                     f"and cross-platform messages.\n\n"
                     f"Type {sethome_cmd} to make this chat your home channel, "
                     f"or ignore to skip."

@@ -1,6 +1,6 @@
 # SIA Self-Improvement Integration
 
-How Hermes/MUSE uses **Hexo Labs' SIA** (Self-Improving AI,
+How Hermes/muse uses **Hexo Labs' SIA** (Self-Improving AI,
 [github.com/hexo-ai/sia](https://github.com/hexo-ai/sia), MIT) to
 empirically improve its own skills, agents, and scaffolds — without
 ever letting an autonomous loop touch the live runtime.
@@ -12,8 +12,8 @@ ever letting an autonomous loop touch the live runtime.
 
 ## Why
 
-M.U.S.E. already has a self-improvement loop (`docs/orchestration/
-self-improvement-loop.md`) and MUSE already has an owner-gated
+muse already has a self-improvement loop (`docs/orchestration/
+self-improvement-loop.md`) and muse already has an owner-gated
 proposal path (`hermes_cli/jarvis_prime/self_update.py`). What was
 missing is a *closed, benchmark-evaluated* improver. SIA supplies
 exactly that: a meta → target → feedback loop that rewrites a target
@@ -52,10 +52,10 @@ gates we already trust.
 ## Install
 
 SIA is an **external CLI**, treated exactly like `goose` / `codex` /
-`aider` / `claude-code`: M.U.S.E. detects `sia` on `PATH` and shells out to
-it. It is deliberately **not** a M.U.S.E. dependency — its transitive pins
-conflict with M.U.S.E.' locked environment (e.g. the `openhands` extra pins
-`openai==2.8` vs M.U.S.E.' `openai==2.24.0`). Install it in its own
+`aider` / `claude-code`: muse detects `sia` on `PATH` and shells out to
+it. It is deliberately **not** a muse dependency — its transitive pins
+conflict with muse' locked environment (e.g. the `openhands` extra pins
+`openai==2.8` vs muse' `openai==2.24.0`). Install it in its own
 environment:
 
 ```bash
@@ -96,7 +96,7 @@ when `improved` is true, `outcome.proposal.status` is
 
 ## License
 
-SIA is MIT; M.U.S.E. is MIT. The runnable SIA code is consumed only via
+SIA is MIT; muse is MIT. The runnable SIA code is consumed only via
 the `sia-agent` dependency. The adapted task-dir format/design is
 attributed in `THIRD_PARTY_NOTICES.md`. No SIA source is copied verbatim.
 

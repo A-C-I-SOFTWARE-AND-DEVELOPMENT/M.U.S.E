@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Compose smoke tests for the canvas-drawn marks ([MuseGlyph], [MuseStatusDot])
+ * Compose smoke tests for the canvas-drawn marks ([museGlyph], [museStatusDot])
  * and the [DesignSystemGallery]. These components have no text, so the proof is
  * that they compose and lay out without throwing — the same compile-level +
  * render proof, asserted via a tagged wrapper. NATIVE graphics mode exercises
@@ -25,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33])
-class MuseGlyphSmokeTest {
+class museGlyphSmokeTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -36,8 +36,8 @@ class MuseGlyphSmokeTest {
             JarvisPrimeTheme {
                 Box(modifier = Modifier.testTag("glyph-host")) {
                     Column {
-                        MuseGlyph(showBloom = true)
-                        MuseGlyph(showBloom = false)
+                        museGlyph(showBloom = true)
+                        museGlyph(showBloom = false)
                     }
                 }
             }
@@ -52,11 +52,11 @@ class MuseGlyphSmokeTest {
             JarvisPrimeTheme {
                 Box(modifier = Modifier.testTag("dot-host")) {
                     Column {
-                        MuseStatusDot(status = MuseStatus.Off, animate = false)
-                        MuseStatusDot(status = MuseStatus.Ok, animate = false)
-                        MuseStatusDot(status = MuseStatus.Live, animate = false)
+                        museStatusDot(status = museStatus.Off, animate = false)
+                        museStatusDot(status = museStatus.Ok, animate = false)
+                        museStatusDot(status = museStatus.Live, animate = false)
                         // Frozen pulse so the test is deterministic (no infinite anim).
-                        MuseStatusDot(status = MuseStatus.Connecting, animate = false)
+                        museStatusDot(status = museStatus.Connecting, animate = false)
                     }
                 }
             }

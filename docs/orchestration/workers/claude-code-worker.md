@@ -5,7 +5,7 @@ official `claude` CLI. It lives at
 [`hermes_cli/workers/claude_code.py`](../../../hermes_cli/workers/claude_code.py)
 and is meant to be invoked by an orchestrator (the enterprise council,
 the kanban dispatcher, the Android orchestrator on a desktop bridge,
-or a one-off script) whenever M.U.S.E. wants Claude Code's opinion on
+or a one-off script) whenever muse wants Claude Code's opinion on
 architecture, complex refactor planning, code review, risk review, or
 a final pre-merge review.
 
@@ -132,14 +132,14 @@ prepared = claude_code.prepare_workspace(task, tmp_path, mode="execute")
 
 `handoff_required` (default):
 
-- Workspace is materialised, but M.U.S.E. will never invoke the CLI.
+- Workspace is materialised, but muse will never invoke the CLI.
 - `run_claude_cli(prepared)` refuses to do anything in this mode.
 - The user (or a separate operator workflow) drives `claude`
   themselves.
 
 `execute`:
 
-- Caller is opting into having M.U.S.E. shell out to the local CLI.
+- Caller is opting into having muse shell out to the local CLI.
 - `run_claude_cli(prepared, allow_execute=True)` is the **only**
   supported entrypoint. Both gates are required:
   - `prepared.mode == "execute"`, **and**

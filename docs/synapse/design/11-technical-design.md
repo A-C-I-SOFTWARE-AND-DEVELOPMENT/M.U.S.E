@@ -1,7 +1,7 @@
 # 11 — Technical Design Document
 ### The SYNAPSE UE 5.6 application — modules, budgets, platforms, pipeline
 
-**Project:** SYNAPSE — A M.U.S.E. Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
+**Project:** SYNAPSE — A muse Game · **Status:** DESIGN LOCKED v1.0 · **Date:** 2026-06-10 · **Owner:** Jeremiah Echerd, A-C-I Software & Development · **Design authority:** docs/plans/2026-06-10-project-synapse-master-plan.md
 
 ---
 
@@ -17,7 +17,7 @@
 └──────┬──────────────────────┬───────────────────────────────┬───────────────┘
        │ Tier 1 (always)      │ Tier 2 (optional)             │ Tier 3 (optional)
        ▼                      ▼                               ▼
-  Local GGUF brain       Hosted Brain service            Paired MUSE gateway
+  Local GGUF brain       Hosted Brain service            Paired muse gateway
   (Fab runtime-LLM       (Foundry, image-gen,            (HTTP/SSE per frozen
   plugin, in-process,    heavy reasoning;                cockpit-wire-contract.md,
   ~3–4B Q4 ≈2.5GB)       capped free tier)               96 routes + additive
@@ -26,7 +26,7 @@
 ```
 
 - The game is **fully complete offline on tier 1** (master plan Decision 4, §4.8). Tiers 2–3
-  only ever *add* (Foundry, Observatory live data, real-MUSE bridge).
+  only ever *add* (Foundry, Observatory live data, real-muse bridge).
 - **Coupling rule:** nothing from `hermes_cli/jarvis_prime/`, GraphRAG, the orchestrator,
   gates, or ledgers is ported to C++. The UE app is a wire-contract client, period. New
   capabilities are additive route families regenerated via
@@ -58,7 +58,7 @@ cross-talk via delegates and GameplayTags. All our modules compile with warnings
 
 ### 2.2 SynapseNet (Runtime, deps: Core, HTTP, Json)
 
-- **`UMuseGatewayClient` : UGameInstanceSubsystem.** The only code in the project that talks
+- **`UmuseGatewayClient` : UGameInstanceSubsystem.** The only code in the project that talks
   to a gateway.
   - **Auth:** bearer token loaded from a local **encrypted config**
     (`FPlatformMisc`-keyed AES via the platform keystore wrapper, §8; file
@@ -85,7 +85,7 @@ cross-talk via delegates and GameplayTags. All our modules compile with warnings
 
 ### 2.3 SynapseAgents (Runtime, deps: Core, GameplayAbilities, GameplayTags, GameplayTasks)
 
-- **`ASynapseAgentCharacter`** (base for all 24 roster agents + Foundry rares + the Muse):
+- **`ASynapseAgentCharacter`** (base for all 24 roster agents + Foundry rares + the muse):
   owns the `UAbilitySystemComponent` (`InitAbilityActorInfo` on Possess/spawn), the
   `USynapseAttributeSet`, a `UAgentPersonalityComponent` (the bounded-axes card consumed by
   parley/banter/combat-AI), and the modular-part assembly component (mesh merge from the part
@@ -186,7 +186,7 @@ public:
 - **Cloud:** Steam Auto-Cloud over the save directory (≤ 100 MB quota budgeted; a full save
   targets ≤ 4 MB); cloud conflict UI defers to Steam's.
 - **Save-data schema (top-level sections, each its own versioned struct):**
-  1. `Profile` — Architect identity, Muse persona/creator output, personality-question seeds.
+  1. `Profile` — Architect identity, muse persona/creator output, personality-question seeds.
   2. `World` — act, zone states, encounter/spawn tables consumed, Gauntlet clear flags (8).
   3. `Roster` — caught agents: id, level, attribute snapshot, granted abilities, personality
      card, part recipe (for Foundry rares — they are pure save data, `09-foundry-spec.md` §10).
@@ -252,7 +252,7 @@ public:
 
 ## 7. Build & CI
 
-- **Separate `SYNAPSE` repo + Git LFS** (UE binaries do not enter the M.U.S.E monorepo);
+- **Separate `SYNAPSE` repo + Git LFS** (UE binaries do not enter the muse monorepo);
   `.gitattributes` LFS-tracks `*.uasset *.umap *.png *.wav *.fbx` etc.
 - **CI (per push):** UBT builds **Win64 Development + Shipping**
   (`Build.bat SynapseEditor Win64 Development` / `BuildCookRun … -clientconfig=Shipping`);
@@ -265,7 +265,7 @@ public:
   build (boot-to-menu log assert).
 - **Wire-contract version pin checked in CI:** the repo commits
   `synapse/contract.lock` = `{contract_version, sha256 of cockpit-wire-contract.json}`; a CI
-  job fetches the pinned M.U.S.E ref and **fails if the live contract artifact's hash/version
+  job fetches the pinned muse ref and **fails if the live contract artifact's hash/version
   differs from the lock** — upgrading the gateway contract is always an explicit, reviewed
   lock bump, mirroring `tests/gateway/test_cockpit_contract_freeze.py` from the client side.
 

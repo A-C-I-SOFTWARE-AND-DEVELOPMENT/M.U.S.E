@@ -4,7 +4,7 @@ Swarm builder grain snapshot.
 
 ## Intent
 
-Add a self-contained GitHub Actions workflow that gates changes to the MUSE
+Add a self-contained GitHub Actions workflow that gates changes to the muse
 desktop app (`apps/desktop/`, a Tauri v2 shell + Vite/React client) on CI. The
 app previously had no CI. The workflow runs only when desktop sources — or the
 workflow file itself — change.

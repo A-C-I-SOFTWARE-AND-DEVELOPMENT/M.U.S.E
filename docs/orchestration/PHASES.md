@@ -1,6 +1,6 @@
-# M.U.S.E. orchestration — phase log
+# muse orchestration — phase log
 
-This file records the orchestration phases delivered against the M.U.S.E.
+This file records the orchestration phases delivered against the muse
 codebase. Each phase entry summarises what shipped, where to find it, and
 what was deliberately deferred.
 

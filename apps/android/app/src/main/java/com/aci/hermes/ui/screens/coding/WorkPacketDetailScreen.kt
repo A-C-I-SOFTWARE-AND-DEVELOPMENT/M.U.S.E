@@ -38,10 +38,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.cockpit.CodingPacket
 import com.aci.hermes.data.coding.SavedCodingTask
-import com.aci.hermes.ui.designsystem.MuseButton
-import com.aci.hermes.ui.designsystem.MuseButtonVariant
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.museButton
+import com.aci.hermes.ui.designsystem.museButtonVariant
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museChip
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisSignalDim
@@ -119,19 +119,19 @@ fun WorkPacketDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
             ) {
-                MuseButton(
+                museButton(
                     onClick = viewModel::copyPrompt,
                     text = "Copy Claude Code prompt",
-                    variant = MuseButtonVariant.Secondary,
+                    variant = museButtonVariant.Secondary,
                     modifier = Modifier
                         .weight(1f)
                         .testTag(CodingTestTags.PACKET_COPY),
                 )
 
-                MuseButton(
+                museButton(
                     onClick = { viewModel.sendToBackend(null) },
                     text = "Send to backend",
-                    variant = MuseButtonVariant.Primary,
+                    variant = museButtonVariant.Primary,
                     enabled = !state.busy && task.packet != null,
                     modifier = Modifier
                         .weight(1f)
@@ -163,15 +163,15 @@ fun WorkPacketDetailScreen(
 
 @Composable
 private fun HeaderCard(task: SavedCodingTask) {
-    MuseCard {
+    museCard {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(task.title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
             Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                MuseChip(label = task.state.label)
+                museChip(label = task.state.label)
                 task.packet?.riskClass?.takeIf { it.isNotBlank() }?.let { rc ->
-                    MuseChip(label = rc)
+                    museChip(label = rc)
                 }
-                if (task.demo) MuseChip(label = "demo")
+                if (task.demo) museChip(label = "demo")
             }
             task.note?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisCrimson)
@@ -182,7 +182,7 @@ private fun HeaderCard(task: SavedCodingTask) {
 
 @Composable
 private fun EmptyPacketCard(busy: Boolean, onRegenerate: () -> Unit) {
-    MuseCard {
+    museCard {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text("No packet yet", style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             Text(
@@ -192,7 +192,7 @@ private fun EmptyPacketCard(busy: Boolean, onRegenerate: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = JarvisSignalDim,
             )
-            MuseButton(onClick = onRegenerate, text = "Retry planning", variant = MuseButtonVariant.Secondary, enabled = !busy)
+            museButton(onClick = onRegenerate, text = "Retry planning", variant = museButtonVariant.Secondary, enabled = !busy)
         }
     }
 }
@@ -219,7 +219,7 @@ private fun PacketBody(packet: CodingPacket) {
 @Composable
 private fun Section(label: String, body: String) {
     if (body.isBlank()) return
-    MuseCard {
+    museCard {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
             Text(body, style = MaterialTheme.typography.bodyMedium, color = JarvisSignal, fontFamily = FontFamily.Monospace)
@@ -231,7 +231,7 @@ private fun Section(label: String, body: String) {
 private fun BulletSection(label: String, items: List<String>) {
     val clean = items.map { it.trim() }.filter { it.isNotEmpty() }
     if (clean.isEmpty()) return
-    MuseCard {
+    museCard {
         Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
             clean.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = JarvisSignal) }

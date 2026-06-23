@@ -1,5 +1,5 @@
 /**
- * The M.U.S.E. mark — one blazing white core in the void, encircled by a single
+ * The muse mark — one blazing white core in the void, encircled by a single
  * thin matte spectral ring with a gap, rotated -32° so the gap sits lower-right.
  *
  * This mirrors the cockpit header glyph (gateway/cockpit/static/index.html) and
@@ -30,7 +30,7 @@ export function Glyph({ size = 28, spin = true, className }: GlyphProps) {
       height={size}
       className={className}
       role="img"
-      aria-label="M.U.S.E."
+      aria-label="muse"
     >
       <defs>
         <linearGradient id={rid} x1="0" y1="0" x2="1" y2="0">

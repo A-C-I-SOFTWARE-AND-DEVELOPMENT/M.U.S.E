@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.6",
 	"Category": "Game",
-	"Description": "SYNAPSE — A M.U.S.E. Game. Staged scaffold: SynapseCore + SynapseNet (MUSE gateway client over the frozen cockpit wire contract) + SynapseObservatory (/v1/observatory/* typed client).",
+	"Description": "SYNAPSE — A muse Game. Staged scaffold: SynapseCore + SynapseNet (muse gateway client over the frozen cockpit wire contract) + SynapseObservatory (/v1/observatory/* typed client).",
 	"Modules": [
 		{
 			"Name": "SynapseCore",

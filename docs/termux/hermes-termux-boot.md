@@ -1,7 +1,7 @@
-# Autostarting M.U.S.E. with Termux:Boot
+# Autostarting muse with Termux:Boot
 
 `hermes-termux-service.sh` is designed to be invoked by [Termux:Boot](https://wiki.termux.com/wiki/Termux:Boot)
-so the M.U.S.E. runtime is up before you unlock the phone in the morning.
+so the muse runtime is up before you unlock the phone in the morning.
 This document covers the boot script location, the required wake lock,
 and how to optionally bring the gateway up at boot.
 
@@ -27,14 +27,14 @@ and how to optionally bring the gateway up at boot.
 
 Termux:Boot executes every executable file inside `~/.termux/boot/` in
 alphabetical order at device startup. Create that directory if it does
-not already exist, then drop in a thin wrapper that calls the M.U.S.E.
+not already exist, then drop in a thin wrapper that calls the muse
 service script:
 
 ```bash
 mkdir -p ~/.termux/boot
 cat > ~/.termux/boot/10-hermes <<'BOOT'
 #!/data/data/com.termux/files/usr/bin/sh
-# Wake the device long enough to bring M.U.S.E. up reliably.
+# Wake the device long enough to bring muse up reliably.
 termux-wake-lock
 
 # Adjust HERMES_REPO_DIR if your checkout lives elsewhere.
@@ -84,7 +84,7 @@ bash scripts/hermes-termux-service.sh doctor
 
 The local API is enough for most phone-first usage — it is the runtime
 that backs `hermes` commands invoked from another Termux session. The
-gateway is a separate, opt-in service that bridges M.U.S.E. to external
+gateway is a separate, opt-in service that bridges muse to external
 messaging platforms.
 
 To start the gateway at boot, set `HERMES_TERMUX_GATEWAY=1` in your
@@ -117,13 +117,13 @@ your vendor's battery optimizer, see
 
 ## Disabling autostart
 
-To stop M.U.S.E. from coming up at boot:
+To stop muse from coming up at boot:
 
 ```bash
 rm ~/.termux/boot/10-hermes
 ```
 
-The next reboot will skip M.U.S.E. entirely. The boot script is the only
+The next reboot will skip muse entirely. The boot script is the only
 thing you need to remove; the service script and its data are
 untouched.
 

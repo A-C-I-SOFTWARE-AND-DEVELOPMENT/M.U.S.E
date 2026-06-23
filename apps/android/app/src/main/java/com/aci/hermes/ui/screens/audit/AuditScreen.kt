@@ -41,9 +41,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.audit.AuditRecord
-import com.aci.hermes.ui.designsystem.MuseCard
-import com.aci.hermes.ui.designsystem.MuseEmptyState
-import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.designsystem.museCard
+import com.aci.hermes.ui.designsystem.museEmptyState
+import com.aci.hermes.ui.designsystem.museMotion
 import com.aci.hermes.ui.theme.JarvisTokens
 
 object AuditScreenTags {
@@ -99,9 +99,9 @@ fun AuditScreen(
                     .testTag(AuditScreenTags.EMPTY),
                 contentAlignment = Alignment.Center,
             ) {
-                MuseEmptyState(
+                museEmptyState(
                     title = stringResource(R.string.audit_empty),
-                    body = "Decisions and approvals will appear here once Muse acts.",
+                    body = "Decisions and approvals will appear here once muse acts.",
                 )
             }
         } else {
@@ -137,10 +137,10 @@ fun AuditCard(
     val appear = remember { MutableTransitionState(false).apply { targetState = true } }
     AnimatedVisibility(
         visibleState = appear,
-        enter = fadeIn(MuseMotion.standard()) +
-            slideInVertically(MuseMotion.standard()) { it / 6 },
+        enter = fadeIn(museMotion.standard()) +
+            slideInVertically(museMotion.standard()) { it / 6 },
     ) {
-        MuseCard(
+        museCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(AuditScreenTags.row(record.id))

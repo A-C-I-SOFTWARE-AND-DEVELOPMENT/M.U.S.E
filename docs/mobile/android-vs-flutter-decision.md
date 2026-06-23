@@ -1,4 +1,4 @@
-# M.U.S.E. mobile — Android-native vs Flutter (vs everything else)
+# muse mobile — Android-native vs Flutter (vs everything else)
 
 **Status:** decision recorded. Effective 2026-05-23.
 **Owner:** mobile track.
@@ -9,7 +9,7 @@
 - **Primary direction:** **Android-native, Kotlin + Jetpack Compose**, packaged
   as the existing module at [`apps/android/`](../../apps/android/). It is
   already in the tree, already builds, already has the right model (cockpit
-  over a M.U.S.E. gateway, Termux intent bridge, EncryptedSharedPreferences
+  over a muse gateway, Termux intent bridge, EncryptedSharedPreferences
   for the bearer token). Phase 02 ratifies that direction rather than
   rebuilding it.
 - **Fallback direction:** **Flutter**, but only if the project decides to
@@ -17,7 +17,7 @@
   parallel Swift codebase. We treat Flutter as a future migration option,
   not the default.
 - **Out of scope (rejected):** React Native, PWA-wrapping the existing
-  dashboard, a "minimal Android shell over local M.U.S.E." that re-embeds
+  dashboard, a "minimal Android shell over local muse" that re-embeds
   Python, and any hybrid that tries to keep two production UIs alive at
   the same time.
 
@@ -55,7 +55,7 @@ findings:
   [`docs/termux/hermes-phone-first-runtime.md`](../termux/hermes-phone-first-runtime.md)
   and is treated as the on-device backend the cockpit drives.
 
-The headline: **M.U.S.E. already chose Android-native** at the code level.
+The headline: **muse already chose Android-native** at the code level.
 Phase 02's job is to either confirm or reverse that, with reasons.
 
 ---
@@ -109,7 +109,7 @@ either way you write Kotlin for the actual service. PWAs can't.
 
 This is the criterion that **decisively favours Android-native**.
 
-The cockpit talks to a M.U.S.E. gateway over HTTP/SSE *and* fires
+The cockpit talks to a muse gateway over HTTP/SSE *and* fires
 `com.termux.RUN_COMMAND` intents to start/stop the gateway inside the
 Termux sandbox on the same device. Intents are an Android system API; the
 RUN_COMMAND envelope is a Termux-specific contract. Native Kotlin
@@ -187,7 +187,7 @@ without an iOS deliverable on the roadmap.
 
 ### 2.11 Future iOS possibility
 
-This is the **only** criterion that pushes toward Flutter. If M.U.S.E.
+This is the **only** criterion that pushes toward Flutter. If muse
 ever commits to an iOS client:
 
 - **Native path:** write a second app in Swift / SwiftUI. The cockpit
@@ -200,7 +200,7 @@ project's primary distribution channel for the cockpit is the F-Droid
 build). When and if iOS becomes a real deliverable, Phase N+1 should
 reopen this decision.
 
-### 2.12 Integration with existing M.U.S.E. dashboard / TUI / backend
+### 2.12 Integration with existing muse dashboard / TUI / backend
 
 The cockpit's API contract
 ([`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md))

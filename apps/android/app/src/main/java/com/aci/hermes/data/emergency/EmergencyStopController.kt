@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * MUSE emergency stop controller. Owns the transition state
+ * muse emergency stop controller. Owns the transition state
  * machine, action gating, and the audit log.
  *
  * Transition rules:

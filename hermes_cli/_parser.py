@@ -1,5 +1,5 @@
 """
-Top-level argparse construction for the M.U.S.E. CLI.
+Top-level argparse construction for the muse CLI.
 
 Lives in its own module so other modules (e.g. ``relaunch.py``) can
 introspect the parser to discover which flags exist without running the
@@ -88,7 +88,7 @@ def build_top_level_parser():
     """
     parser = argparse.ArgumentParser(
         prog="muse",
-        description="M.U.S.E. - AI assistant with tool-calling capabilities",
+        description="muse - AI assistant with tool-calling capabilities",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
     )

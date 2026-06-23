@@ -27,7 +27,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
  * Tier ladder for command-center cards.
  *
  * - INFO       (calm): default surface, no accent border
- * - ACTIVE     (gold): standard "Muse is on this"
+ * - ACTIVE     (gold): standard "muse is on this"
  * - LISTENING  (cyan): live capture, scanning, ambient
  * - APPROVAL   (gold + glow): user must approve
  * - SERIOUS    (amber): meaningful change, confirm intent

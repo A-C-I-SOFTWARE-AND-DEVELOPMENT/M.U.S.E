@@ -9,7 +9,7 @@
 ## Intent (one paragraph)
 
 Apple-quality polish on the Android cockpit, strictly inside the Singularity
-design language (`docs/brand/muse-design-language.md` §6; `MuseMotion.kt`
+design language (`docs/brand/muse-design-language.md` §6; `museMotion.kt`
 tokens; `design-system/tokens.json` consumed, never edited). Before: the
 NavHost used the default crossfade for every navigation; the M3
 `surfaceTint = JarvisGold` (pure white) washed elevated surfaces grey,
@@ -47,9 +47,9 @@ section documenting the motion spec and showing the new treatment.
 1. **NavHost motion** (`HermesNavGraph.kt`): `NavHost` now declares
    `enterTransition` / `exitTransition` / `popEnterTransition` /
    `popExitTransition`. Top-level routes (`Screen.shellRoutes` + Splash +
-   Onboarding + JarvisLive) fade through: `fadeIn(MuseMotion.standard())` in,
-   `fadeOut(MuseMotion.fast())` out. Everything else is a detail push:
-   `fadeIn(MuseMotion.emphasized()) + slideInVertically(emphasized) { it / 24 }`,
+   Onboarding + JarvisLive) fade through: `fadeIn(museMotion.standard())` in,
+   `fadeOut(museMotion.fast())` out. Everything else is a detail push:
+   `fadeIn(museMotion.emphasized()) + slideInVertically(emphasized) { it / 24 }`,
    popped with the mirror (`fadeOut(emphasized) + slideOutVertically(emphasized)
    { it / 24 }`). Tweens only — no springs.
 2. **Tonal-elevation fix** (`Theme.kt`): dark scheme `surfaceTint` JarvisGold
@@ -74,7 +74,7 @@ section documenting the motion spec and showing the new treatment.
    (canonical `tokens.json` display 40/600/-0.5/48). Weight and tracking were
    already correct; only that one style touched.
 7. **Gallery** (`DesignSystemGallery.kt`): new "Motion + EmptyState" section —
-   a `MuseCard` textual spec card quoting the `MuseMotion` durations, plus the
+   a `museCard` textual spec card quoting the `museMotion` durations, plus the
    shared `EmptyState` rendered with the new ring treatment.
 
 ## Deviations from the work order
@@ -100,9 +100,9 @@ careful reading plus CI:
   (NavHost transition params available since 2.7.0).
 - Referenced symbols grep-verified: `Screen.shellRoutes`,
   `rememberJarvisHaptics` / `tick()`, `JarvisInkAbyss` / `JarvisInkNight` /
-  `JarvisInkEdge` (Color.kt), `MuseMotion.fast/standard/emphasized` +
-  `Duration*` constants, `MuseCard(modifier, content)`,
-  `MuseSectionHeader(title, modifier, subtitle, trailing)`,
+  `JarvisInkEdge` (Color.kt), `museMotion.fast/standard/emphasized` +
+  `Duration*` constants, `museCard(modifier, content)`,
+  `museSectionHeader(title, modifier, subtitle, trailing)`,
   `TopAppBarDefaults.pinnedScrollBehavior` (file already
   `@OptIn(ExperimentalMaterial3Api::class)`).
 - No unit test references `displayLarge` or `surfaceTint` (grep over
@@ -115,11 +115,11 @@ careful reading plus CI:
 
 ## Residual / follow-on
 
-- Per-call-site reduced-motion handling (MuseMotion documents that policy
+- Per-call-site reduced-motion handling (museMotion documents that policy
   belongs at the call site); NavHost transitions currently don't read the
   system animator-scale preference (the platform scales Compose animations
   globally when animations are disabled, so this is acceptable).
-- `MuseEmptyState` (designsystem) keeps its own treatment; only the shared
+- `museEmptyState` (designsystem) keeps its own treatment; only the shared
   `ui/components/EmptyState.kt` gained the ring, per file ownership. Unifying
   the two empty-state components is a candidate follow-up.
 - The e-stop *confirm* action could use `haptics.reject()` (destructive

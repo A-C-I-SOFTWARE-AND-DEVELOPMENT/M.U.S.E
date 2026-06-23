@@ -1,4 +1,4 @@
-# MUSE — Mobile-Native Cockpit Re-Audit (2026-06-05)
+# muse — Mobile-Native Cockpit Re-Audit (2026-06-05)
 
 - **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
 - **Base branch audited:** `main` @ `313e21f` (#336), plus the two in-flight

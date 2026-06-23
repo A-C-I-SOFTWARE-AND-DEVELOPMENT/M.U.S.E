@@ -1,6 +1,6 @@
 # ChatGPT manual-handoff worker
 
-The ChatGPT handoff worker is the M.U.S.E. adapter for **manual** paste
+The ChatGPT handoff worker is the muse adapter for **manual** paste
 into a user's own ChatGPT session — web or mobile app, signed in with
 their own subscription. It ships as
 [`hermes_cli/workers/chatgpt_handoff.py`](../../../hermes_cli/workers/chatgpt_handoff.py)
@@ -188,7 +188,7 @@ clamped to ``[0.0, 1.0]`` and non-numeric values are coerced to
 
 ## Limits
 
-- The worker assumes the user can copy/paste between M.U.S.E. and
+- The worker assumes the user can copy/paste between muse and
   ChatGPT. Air-gapped or read-only contexts will not benefit from
   this worker.
 - We do not parse the response file ourselves. Downstream code is

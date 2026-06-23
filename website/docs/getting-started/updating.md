@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "Updating & Uninstalling"
-description: "How to update M.U.S.E. to the latest version or uninstall it"
+description: "How to update muse to the latest version or uninstall it"
 ---
 
 # Updating & Uninstalling
@@ -41,11 +41,11 @@ pip install --upgrade hermes-agent    # or: uv pip install --upgrade hermes-agen
 
 When you run `muse update`, the following steps occur:
 
-1. **Pairing-data snapshot** — a lightweight pre-update state snapshot is saved (covers `~/.hermes/pairing/`, Feishu comment rules, and other state files that get modified at runtime). Recoverable via the snapshot restore flow described under [Snapshots and rollback](../user-guide/checkpoints-and-rollback.md), or by extracting the most recent quick-snapshot zip M.U.S.E. wrote next to your `~/.hermes/` directory.
+1. **Pairing-data snapshot** — a lightweight pre-update state snapshot is saved (covers `~/.hermes/pairing/`, Feishu comment rules, and other state files that get modified at runtime). Recoverable via the snapshot restore flow described under [Snapshots and rollback](../user-guide/checkpoints-and-rollback.md), or by extracting the most recent quick-snapshot zip muse wrote next to your `~/.hermes/` directory.
 2. **Git pull** — pulls the latest code from the `main` branch and updates submodules
 3. **Dependency install** — runs `uv pip install -e ".[all]"` to pick up new or changed dependencies
 4. **Config migration** — detects new config options added since your version and prompts you to set them
-5. **Gateway auto-restart** — running gateways are refreshed after the update completes so the new code takes effect immediately. Service-managed gateways (systemd on Linux, launchd on macOS) are restarted through the service manager. Manual gateways are relaunched automatically when M.U.S.E. can map the running PID back to a profile.
+5. **Gateway auto-restart** — running gateways are refreshed after the update completes so the new code takes effect immediately. Service-managed gateways (systemd on Linux, launchd on macOS) are restarted through the service manager. Manual gateways are relaunched automatically when muse can map the running PID back to a profile.
 
 ### Preview-only: `muse update --check`
 
@@ -71,7 +71,7 @@ updates:
 
 ### Windows: another `hermes.exe` is running
 
-On Windows, `muse update` will refuse to run if it detects another `hermes.exe` process holding the venv's entry-point executable open — most commonly the M.U.S.E. Desktop app's spawned backend, an open `muse` REPL in another terminal, or a running gateway:
+On Windows, `muse update` will refuse to run if it detects another `hermes.exe` process holding the venv's entry-point executable open — most commonly the muse Desktop app's spawned backend, an open `muse` REPL in another terminal, or a running gateway:
 
 ```
 $ muse update
@@ -81,7 +81,7 @@ $ muse update
   Updating now would fail to overwrite ...\venv\Scripts\hermes.exe because
   Windows blocks REPLACE on a running executable.
 
-  Close M.U.S.E. Desktop, exit any open `muse` REPLs, and
+  Close muse Desktop, exit any open `muse` REPLs, and
   stop the gateway (`muse gateway stop`) before retrying.
   Override with `muse update --force` if you've already
   confirmed those processes will not write to the venv.
@@ -93,7 +93,7 @@ Expected output looks like:
 
 ```
 $ muse update
-Updating M.U.S.E....
+Updating muse
 📥 Pulling latest code...
 Already up to date.  (or: Updating abc1234..def5678)
 📦 Updating dependencies...
@@ -102,7 +102,7 @@ Already up to date.  (or: Updating abc1234..def5678)
 ✅ Config is up to date  (or: Found 2 new options — running migration...)
 🔄 Restarting gateways...
 ✅ Gateway restarted
-✅ M.U.S.E. updated successfully!
+✅ muse updated successfully!
 ```
 
 ### Recommended Post-Update Validation
@@ -140,7 +140,7 @@ You no longer need to wrap `muse update` in `screen` or `tmux` to survive a term
 muse version
 ```
 
-Compare against the latest release at the [GitHub releases page](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases).
+Compare against the latest release at the [GitHub releases page](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/releases).
 
 ### Updating from Messaging Platforms
 

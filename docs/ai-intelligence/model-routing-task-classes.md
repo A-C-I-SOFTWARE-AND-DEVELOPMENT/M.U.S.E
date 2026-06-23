@@ -1,6 +1,6 @@
 # Evidence-Backed Model Routing (Task Classes)
 
-MUSE chooses *which model runs a task* from measured outcomes, not
+muse chooses *which model runs a task* from measured outcomes, not
 vibes — and it can explain the choice, on the phone or the CLI. This page
 documents the task classes, the scorecard dimensions, the routing policy, and
 the mobile surface.

@@ -6,7 +6,7 @@ description: "Runtime behavior of the tool registry, toolsets, dispatch, and ter
 
 # Tools Runtime
 
-M.U.S.E. tools are self-registering functions grouped into toolsets and executed through a central registry/dispatch system.
+muse tools are self-registering functions grouped into toolsets and executed through a central registry/dispatch system.
 
 Primary files:
 
@@ -94,7 +94,7 @@ Key behaviors:
 
 ## Toolset resolution
 
-Toolsets are named bundles of tools. M.U.S.E. resolves them through:
+Toolsets are named bundles of tools. muse resolves them through:
 
 - explicit enabled/disabled toolset lists
 - platform presets (`hermes-cli`, `hermes-telegram`, etc.)

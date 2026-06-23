@@ -2,14 +2,14 @@
 sidebar_position: 12
 sidebar_label: "Built-in Plugins"
 title: "Built-in Plugins"
-description: "Plugins shipped with M.U.S.E. that run automatically via lifecycle hooks — disk-cleanup and friends"
+description: "Plugins shipped with muse that run automatically via lifecycle hooks — disk-cleanup and friends"
 ---
 
 # Built-in Plugins
 
-M.U.S.E. ships a small set of plugins bundled with the repository. They live under `<repo>/plugins/<name>/` and load automatically alongside user-installed plugins in `~/.hermes/plugins/`. They use the same plugin surface as third-party plugins — hooks, tools, slash commands — just maintained in-tree.
+muse ships a small set of plugins bundled with the repository. They live under `<repo>/plugins/<name>/` and load automatically alongside user-installed plugins in `~/.hermes/plugins/`. They use the same plugin surface as third-party plugins — hooks, tools, slash commands — just maintained in-tree.
 
-See the [Plugins](/docs/user-guide/features/plugins) page for the general plugin system, and [Build a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin) to write your own.
+See the [Plugins](/docs/user-guide/features/plugins) page for the general plugin system, and [Build a muse Plugin](/docs/guides/build-a-hermes-plugin) to write your own.
 
 ## How discovery works
 
@@ -40,7 +40,7 @@ plugins:
     - disk-cleanup
 ```
 
-This is the same mechanism user-installed plugins use. Bundled plugins are never auto-enabled — not on fresh install, not for existing users upgrading to a newer M.U.S.E.. You always opt in explicitly.
+This is the same mechanism user-installed plugins use. Bundled plugins are never auto-enabled — not on fresh install, not for existing users upgrading to a newer muse You always opt in explicitly.
 
 To turn a bundled plugin off again:
 
@@ -62,7 +62,7 @@ The repo ships these bundled plugins under `plugins/`. All are opt-in — enable
 | `image_gen/openai` | image backend | OpenAI `gpt-image-2` image generation backend (alternative to FAL) |
 | `image_gen/openai-codex` | image backend | OpenAI image generation via Codex OAuth |
 | `image_gen/xai` | image backend | xAI `grok-2-image` backend |
-| `hermes-achievements` | dashboard tab | Steam-style collectible badges generated from your real M.U.S.E. session history |
+| `hermes-achievements` | dashboard tab | Steam-style collectible badges generated from your real muse session history |
 | `kanban/dashboard` | dashboard tab | Kanban board UI for the multi-agent dispatcher — tasks, comments, fan-out, board switching. See [Kanban Multi-Agent](./kanban.md). |
 
 Memory providers (`plugins/memory/*`) and context engines (`plugins/context_engine/*`) are listed separately on [Memory Providers](./memory-providers.md) — they're managed through `muse memory` and `muse plugins` respectively. The full per-plugin detail for the two long-running hooks-based plugins follows.
@@ -117,7 +117,7 @@ Auto-tracks and removes ephemeral files created during sessions — test scripts
 
 ### observability/langfuse
 
-Traces M.U.S.E. turns, LLM calls, and tool invocations to [Langfuse](https://langfuse.com) — an open-source LLM observability platform. One span per turn, one generation per API call, one tool observation per tool call. Usage totals, per-type token counts, and cost estimates come out of M.U.S.E.' canonical `agent.usage_pricing` numbers, so the Langfuse dashboard sees the same breakdown (input / output / `cache_read_input_tokens` / `cache_creation_input_tokens` / `reasoning_tokens`) that appears in `muse logs`.
+Traces muse turns, LLM calls, and tool invocations to [Langfuse](https://langfuse.com) — an open-source LLM observability platform. One span per turn, one generation per API call, one tool observation per tool call. Usage totals, per-type token counts, and cost estimates come out of muse' canonical `agent.usage_pricing` numbers, so the Langfuse dashboard sees the same breakdown (input / output / `cache_read_input_tokens` / `cache_creation_input_tokens` / `reasoning_tokens`) that appears in `muse logs`.
 
 The plugin is fail-open: no SDK installed, no credentials, or a transient Langfuse error — all turn into a silent no-op in the hook. The agent loop is never impacted.
 
@@ -140,18 +140,18 @@ HERMES_LANGFUSE_BASE_URL=https://cloud.langfuse.com   # or your self-hosted URL
 
 | Hook | Behaviour |
 |---|---|
-| `pre_api_request` / `pre_llm_call` | Open (or reuse) a per-turn root span "M.U.S.E. turn". Start a `generation` child observation for this API call with serialized recent messages as input. |
+| `pre_api_request` / `pre_llm_call` | Open (or reuse) a per-turn root span "muse turn". Start a `generation` child observation for this API call with serialized recent messages as input. |
 | `post_api_request` / `post_llm_call` | Close the generation, attach `usage_details`, `cost_details`, `finish_reason`, assistant output + tool calls. If no tool calls and non-empty content, close the turn. |
 | `pre_tool_call` | Start a `tool` child observation with sanitized `args`. |
 | `post_tool_call` | Close the tool observation with sanitized `result`. `read_file` payloads get summarized (head + tail + omitted-line count) so a huge file read stays under `HERMES_LANGFUSE_MAX_CHARS`. |
 
-Session grouping keys off the M.U.S.E. session ID (or task ID for sub-agents) via `langfuse.propagate_attributes`, so everything in a single `muse chat` session lives under one Langfuse session.
+Session grouping keys off the muse session ID (or task ID for sub-agents) via `langfuse.propagate_attributes`, so everything in a single `muse chat` session lives under one Langfuse session.
 
 **Verify:**
 
 ```bash
 muse plugins list                 # observability/langfuse should show "enabled"
-muse chat -q "hello"              # check the Langfuse UI for a "M.U.S.E. turn" trace
+muse chat -q "hello"              # check the Langfuse UI for a "muse turn" trace
 ```
 
 **Optional tuning** (in `.env`):
@@ -202,7 +202,7 @@ The agent kicks off the meeting join, streams the transcription back into its co
 
 ### hermes-achievements
 
-Adds a **Steam-style achievements tab to the dashboard** — 60+ collectible, tiered badges generated from your real M.U.S.E. session history. Tool-chain feats, debugging patterns, vibe-coding streaks, skill/memory usage, model/provider variety, lifestyle quirks (weekend and night sessions). Originally authored by [@PCinkusz](https://github.com/PCinkusz) as an external plugin; brought in-tree so it stays in lockstep with M.U.S.E. feature changes.
+Adds a **Steam-style achievements tab to the dashboard** — 60+ collectible, tiered badges generated from your real muse session history. Tool-chain feats, debugging patterns, vibe-coding streaks, skill/memory usage, model/provider variety, lifestyle quirks (weekend and night sessions). Originally authored by [@PCinkusz](https://github.com/PCinkusz) as an external plugin; brought in-tree so it stays in lockstep with muse feature changes.
 
 **How it works:**
 
@@ -219,7 +219,7 @@ Adds a **Steam-style achievements tab to the dashboard** — 60+ collectible, ti
 |---|---|
 | Unlocked | At least one tier achieved |
 | Discovered | Known achievement, progress visible, not yet earned |
-| Secret | Hidden until M.U.S.E. detects the first related signal in your history |
+| Secret | Hidden until muse detects the first related signal in your history |
 
 **API** — routes mount under `/api/plugins/hermes-achievements/`:
 
@@ -236,7 +236,7 @@ Adds a **Steam-style achievements tab to the dashboard** — 60+ collectible, ti
 
 | File | Contents |
 |---|---|
-| `state.json` | Unlock history: which badges you've earned and when. Stable across M.U.S.E. updates. |
+| `state.json` | Unlock history: which badges you've earned and when. Stable across muse updates. |
 | `scan_snapshot.json` | Last completed scan payload (served immediately on dashboard load) |
 | `scan_checkpoint.json` | Per-session stats cache keyed by fingerprint (makes warm rescans fast) |
 
@@ -253,7 +253,7 @@ Adds a **Steam-style achievements tab to the dashboard** — 60+ collectible, ti
 
 ## Adding a bundled plugin
 
-Bundled plugins are written exactly like any other M.U.S.E. plugin — see [Build a M.U.S.E. Plugin](/docs/guides/build-a-hermes-plugin). The only differences are:
+Bundled plugins are written exactly like any other muse plugin — see [Build a muse Plugin](/docs/guides/build-a-hermes-plugin). The only differences are:
 
 - Directory lives at `<repo>/plugins/<name>/` instead of `~/.hermes/plugins/<name>/`
 - Manifest source is reported as `bundled` in `muse plugins list`

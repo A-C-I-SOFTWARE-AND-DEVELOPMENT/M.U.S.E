@@ -1,12 +1,12 @@
 ---
 sidebar_position: 14
 title: "AWS Bedrock"
-description: "Use M.U.S.E. with Amazon Bedrock — native Converse API, IAM authentication, Guardrails, and cross-region inference"
+description: "Use muse with Amazon Bedrock — native Converse API, IAM authentication, Guardrails, and cross-region inference"
 ---
 
 # AWS Bedrock
 
-M.U.S.E. supports Amazon Bedrock as a native provider using the **Converse API** — not the OpenAI-compatible endpoint. This gives you full access to the Bedrock ecosystem: IAM authentication, Guardrails, cross-region inference profiles, and all foundation models.
+muse supports Amazon Bedrock as a native provider using the **Converse API** — not the OpenAI-compatible endpoint. This gives you full access to the Bedrock ecosystem: IAM authentication, Guardrails, cross-region inference profiles, and all foundation models.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ M.U.S.E. supports Amazon Bedrock as a native provider using the **Converse API**
   - `bedrock:ListFoundationModels` and `bedrock:ListInferenceProfiles` (for model discovery)
 
 :::tip EC2 / ECS / Lambda
-On AWS compute, attach an IAM role with `AmazonBedrockFullAccess` and you're done. No API keys, no `.env` configuration — M.U.S.E. detects the instance role automatically.
+On AWS compute, attach an IAM role with `AmazonBedrockFullAccess` and you're done. No API keys, no `.env` configuration — muse detects the instance role automatically.
 :::
 
 ## Quick Start
@@ -78,7 +78,7 @@ bedrock:
 
 ### Model Discovery
 
-M.U.S.E. auto-discovers available models via the Bedrock control plane. You can customize discovery:
+muse auto-discovers available models via the Bedrock control plane. You can customize discovery:
 
 ```yaml
 bedrock:
@@ -130,7 +130,7 @@ The doctor checks:
 
 ## Gateway (Messaging Platforms)
 
-Bedrock works with all M.U.S.E. gateway platforms (Telegram, Discord, Slack, Feishu, etc.). Configure Bedrock as your provider, then start the gateway normally:
+Bedrock works with all muse gateway platforms (Telegram, Discord, Slack, Feishu, etc.). Configure Bedrock as your provider, then start the gateway normally:
 
 ```bash
 muse gateway setup
@@ -143,7 +143,7 @@ The gateway reads `config.yaml` and uses the same Bedrock provider configuration
 
 ### "No API key found" / "No AWS credentials"
 
-M.U.S.E. checks for credentials in this order:
+muse checks for credentials in this order:
 1. `AWS_BEARER_TOKEN_BEDROCK`
 2. `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`
 3. `AWS_PROFILE`
@@ -161,7 +161,7 @@ Use an **inference profile ID** (prefixed with `us.` or `global.`) instead of th
 
 ### "ThrottlingException"
 
-You've hit the Bedrock per-model rate limit. M.U.S.E. automatically retries with backoff. To increase limits, request a quota increase in the [AWS Service Quotas console](https://console.aws.amazon.com/servicequotas/).
+You've hit the Bedrock per-model rate limit. muse automatically retries with backoff. To increase limits, request a quota increase in the [AWS Service Quotas console](https://console.aws.amazon.com/servicequotas/).
 
 ## One-Click AWS Deployment
 

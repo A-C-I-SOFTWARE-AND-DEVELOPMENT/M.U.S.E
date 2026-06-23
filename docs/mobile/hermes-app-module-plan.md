@@ -1,4 +1,4 @@
-# M.U.S.E. Android app — module work plan
+# muse Android app — module work plan
 
 This is the **execution plan** for the Phase 02 decision recorded in
 [`android-vs-flutter-decision.md`](android-vs-flutter-decision.md). It

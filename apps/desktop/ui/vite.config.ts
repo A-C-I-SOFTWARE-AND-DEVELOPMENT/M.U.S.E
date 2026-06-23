@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { resolve } from "path";
 
-// M.U.S.E. desktop UI build.
+// muse desktop UI build.
 //
 // This single Vite project is consumed two ways:
 //   1. As a Progressive Web App (installable browser cockpit) — the VitePWA
@@ -19,6 +20,11 @@ export default defineConfig({
   // Relative base so the bundle works both from a web server root and from
   // Tauri's asset protocol.
   base: "./",
+  resolve: {
+    alias: {
+      "@muse/design-system": resolve(__dirname, "../../../design-system"),
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -27,8 +33,8 @@ export default defineConfig({
       // verbatim into the build.
       includeAssets: ["favicon.svg", "icons/*.png"],
       manifest: {
-        name: "M.U.S.E.",
-        short_name: "MUSE",
+        name: "muse",
+        short_name: "muse",
         description: "Multi-Use Synaptic Entity — your local-first AI operating partner.",
         // The void. The whole brand sits on it.
         theme_color: "#050507",

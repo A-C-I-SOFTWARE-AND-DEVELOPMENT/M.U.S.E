@@ -6,7 +6,7 @@ description: "Three protocols for driving hermes-agent from external programs: A
 
 # Programmatic Integration
 
-M.U.S.E. ships three protocols for driving the agent from external programs — IDE plugins, custom UIs, CI pipelines, embedded sub-agents. Pick the one that matches your transport and consumer.
+muse ships three protocols for driving the agent from external programs — IDE plugins, custom UIs, CI pipelines, embedded sub-agents. Pick the one that matches your transport and consumer.
 
 | Protocol | Transport | Best for | Defined by |
 |----------|-----------|----------|------------|
@@ -58,9 +58,9 @@ terminal.resize         clipboard.paste         image.attach
 
 ### Pi-style RPC mapping
 
-Every command in the Pi-mono RPC spec ([issue #360](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/360)) has a TUI-gateway equivalent:
+Every command in the Pi-mono RPC spec ([issue #360](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues/360)) has a TUI-gateway equivalent:
 
-| Pi command | M.U.S.E. equivalent |
+| Pi command | muse equivalent |
 |------------|-------------------|
 | `prompt` | `prompt.submit` (or ACP `session/prompt`) |
 | `steer` | `session.steer` |
@@ -102,7 +102,7 @@ Setup, headers (`X-Hermes-Session-Id`, `X-Hermes-Session-Key`), and frontend wir
 ## Which one should I use?
 
 - **You're writing an IDE plugin and the IDE already speaks ACP** → ACP. Zero protocol work on the IDE side.
-- **You're writing a custom desktop / web / TUI host and want every M.U.S.E. feature** (slash commands, approvals, clarify, multi-agent, session branching) → TUI gateway JSON-RPC.
+- **You're writing a custom desktop / web / TUI host and want every muse feature** (slash commands, approvals, clarify, multi-agent, session branching) → TUI gateway JSON-RPC.
 - **You want any OpenAI-compatible frontend, a language-agnostic HTTP client, or curl-driven automation** → API server.
 - **You want a Python in-process embed without a subprocess** → import `run_agent.AIAgent` directly. See [Agent Loop](./agent-loop).
 
@@ -123,4 +123,4 @@ Provider-aware resolution (the same model name picks the right format for whatev
 
 ## A note on `--mode rpc`
 
-M.U.S.E. does not have a `--mode rpc` flag. The three protocols above already cover the use cases — ACP for IDE-protocol clients, the TUI gateway for stdio JSON-RPC hosts, and the API server for HTTP. If you find a real gap that none of them fill, open an issue with the concrete consumer you're building.
+muse does not have a `--mode rpc` flag. The three protocols above already cover the use cases — ACP for IDE-protocol clients, the TUI gateway for stdio JSON-RPC hosts, and the API server for HTTP. If you find a real gap that none of them fill, open an issue with the concrete consumer you're building.

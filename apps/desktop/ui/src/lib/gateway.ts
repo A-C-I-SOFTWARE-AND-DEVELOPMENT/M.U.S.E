@@ -1,12 +1,12 @@
 /**
- * M.U.S.E. gateway client.
+ * muse gateway client.
  *
  * A small, dependency-free typed wrapper over the cockpit gateway API. It
  * mirrors the live browser cockpit (gateway/cockpit/static/index.html) so the
  * desktop app speaks exactly the same protocol:
  *
  *   - bearer token in the `Authorization` header (stored in localStorage under
- *     `muse.cockpit.token`);
+ *     `musecockpit.token`);
  *   - pairing via POST /v1/cockpit/pair/start → POST /v1/cockpit/pair/confirm;
  *   - the jobs stream over GET /v1/cockpit/jobs/stream as Server-Sent Events,
  *     consumed with fetch() + a ReadableStream reader (NOT EventSource, because
@@ -19,9 +19,33 @@
  * page origin so the cockpit's same-origin paths keep working.
  */
 
-export const TOKEN_KEY = "muse.cockpit.token";
-const BASE_KEY = "muse.gateway.base";
+export const TOKEN_KEY = "musecockpit.token";
+const BASE_KEY = "musegateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
+
+/**
+ * Tauri v2 IPC: use window.__TAURI_INTERNALS__.invoke directly.
+ * This is the lowest-level API, always available in the Tauri webview.
+ * The @tauri-apps/api package wraps this, but we go raw to avoid any
+ * import/resolution issues.
+ */
+function tauriInvoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
+  const internals = (
+    window as unknown as {
+      __TAURI_INTERNALS__?: {
+        invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+      };
+    }
+  ).__TAURI_INTERNALS__;
+  if (!internals?.invoke) {
+    return Promise.reject(new Error("Not in Tauri shell"));
+  }
+  return internals.invoke(cmd, args);
+}
+
+function isTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
 
 /** Resolve the configured gateway base URL (no trailing slash). */
 export function getGatewayBase(): string {
@@ -82,6 +106,27 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
 
 /** A single authenticated fetch against the gateway. */
 export async function api(path: string, opts?: RequestInit): Promise<Response> {
+  // When inside the Tauri shell, route through the Rust HTTP proxy to
+  // bypass WebView2's cross-origin fetch restriction.
+  if (isTauri()) {
+    try {
+      const method = (opts?.method as string) || "GET";
+      const body = opts?.body ? String(opts.body) : undefined;
+      const token = getToken();
+      const result = await tauriInvoke("gateway_proxy", {
+        method,
+        path,
+        body,
+        authToken: token || undefined,
+      }) as { ok: boolean; status: number; body: string };
+      return new Response(result.body, {
+        status: result.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch {
+      // invoke failed — fall through to fetch
+    }
+  }
   const o: RequestInit = { ...(opts || {}) };
   o.headers = authHeaders(o.headers as Record<string, string> | undefined);
   return fetch(getGatewayBase() + path, o);
@@ -91,6 +136,15 @@ export async function api(path: string, opts?: RequestInit): Promise<Response> {
 
 /** Ping GET /v1/health. Resolves true iff the gateway answers ok. */
 export async function pingHealth(): Promise<boolean> {
+  // When inside Tauri, use the native gateway_status command (raw TCP).
+  if (isTauri()) {
+    try {
+      const status = await tauriInvoke("gateway_status") as { reachable?: boolean };
+      return status?.reachable === true;
+    } catch {
+      return false;
+    }
+  }
   try {
     const r = await fetch(getGatewayBase() + "/v1/health");
     return r.ok;
@@ -114,7 +168,7 @@ export type PairStartResult = {
  */
 export async function pairStart(deviceName?: string): Promise<PairStartResult> {
   try {
-    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/start", {
+    const r = await api("/v1/cockpit/pair/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device_name: (deviceName || "").trim() }),
@@ -150,7 +204,7 @@ export async function pairConfirm(
   authorization: string,
 ): Promise<PairConfirmResult> {
   try {
-    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/confirm", {
+    const r = await api("/v1/cockpit/pair/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pairing_code: pairingCode, authorization }),

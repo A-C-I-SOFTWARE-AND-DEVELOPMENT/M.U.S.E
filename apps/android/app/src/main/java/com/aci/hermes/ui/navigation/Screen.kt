@@ -1,12 +1,12 @@
 package com.aci.hermes.ui.navigation
 
 /**
- * MUSE navigation routes.
+ * muse navigation routes.
  *
  * The Android module keeps the legacy `com.aci.hermes` package name and a few
  * internal class names (HermesService, AppContainer, HermesNavHost) where
  * technical compatibility requires it, but every route, screen title, and
- * user-facing label is MUSE.
+ * user-facing label is muse
  *
  * Splash and Onboarding are pre-shell destinations. The main destinations
  * (Home, Chat, Tasks, Approvals, Memory, Audit, Control) are rendered inside
