@@ -431,3 +431,96 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
   .nav-item.active::before { display: none; }
   .nav-item.active { box-shadow: inset 0 -2px 0 0 var(--ring-1); }
 }
+
+/* =====================================================================
+   GLOBAL 3D / AAA POLISH  — depth, glass, parallax-ready, tactile motion
+   (Intentionally overrides the flat tonal baseline above.)
+   ===================================================================== */
+body { perspective: 1800px; }
+.app { transform-style: preserve-3d; forced-color-adjust: none; }
+
+/* Kill native widget chrome so authored dark styling is honored everywhere */
+.app button, .app input, .btn, .nav-item, .field {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Floating glass header */
+.app-header {
+  background: linear-gradient(180deg, rgba(15,18,25,0.99) 0%, rgba(10,12,17,0.975) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 22px 48px -30px rgba(0,0,0,0.95);
+}
+
+/* Obsidian-glass cards with real depth */
+.card {
+  background: linear-gradient(162deg, rgba(21,25,34,0.90) 0%, rgba(13,16,22,0.84) 100%);
+  border: 1px solid rgba(255,255,255,0.055);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 2px 6px -3px rgba(0,0,0,0.55),
+    0 26px 50px -34px rgba(0,0,0,0.95);
+  transition: transform .45s cubic-bezier(.2,0,0,1),
+              box-shadow .45s cubic-bezier(.2,0,0,1),
+              border-color .3s var(--easing-standard);
+}
+.card.interactive { cursor: pointer; }
+.card.interactive:hover {
+  transform: translateY(-4px) scale(1.006);
+  border-color: rgba(122,224,255,0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 2px 6px -3px rgba(0,0,0,0.5),
+    0 36px 64px -34px rgba(0,0,0,0.95),
+    0 0 0 1px rgba(122,224,255,0.10),
+    0 0 46px -14px rgba(122,224,255,0.20);
+}
+
+/* Nav rail — depth + glide + spectral active wash */
+.nav-item { transition: color .15s, background-color .2s, transform .2s var(--easing-standard), box-shadow .25s; }
+.nav-item:hover { transform: translateX(3px); }
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(122,224,255,0.12) 0%, rgba(179,136,255,0.05) 60%, rgba(179,136,255,0) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 26px -20px rgba(122,224,255,0.55);
+}
+
+/* Tactile buttons */
+.btn { transition: transform .15s cubic-bezier(.2,0,0,1), box-shadow .22s, filter .2s, background-color .2s; }
+.btn:hover { transform: translateY(-1.5px); }
+.btn:active { transform: translateY(0) scale(.975); }
+.btn.primary {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 24px -12px rgba(255,255,255,0.30);
+}
+.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 16px 32px -12px rgba(255,255,255,0.42); }
+.btn.secondary:hover { box-shadow: 0 0 0 1px rgba(122,224,255,0.18), 0 12px 26px -16px rgba(122,224,255,0.3); }
+.btn.danger:hover { box-shadow: 0 0 26px -8px rgba(255,92,99,0.5); }
+
+/* Glassy pills + glow on accents */
+.pill { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.pill.accent { box-shadow: 0 0 20px -9px rgba(122,224,255,0.55); }
+.pill.ok { box-shadow: 0 0 20px -9px rgba(91,227,160,0.5); }
+
+/* Phase-rail bars glow with their state */
+.phaserail .bar { box-shadow: 0 0 12px -3px currentColor; }
+
+/* Inset, focus-glowing input */
+.field {
+  background: linear-gradient(180deg, rgba(8,9,13,0.92), rgba(13,16,22,0.82));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.45);
+  transition: box-shadow .22s, border-color .22s;
+}
+.field:focus {
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.45), 0 0 0 1px rgba(122,224,255,0.32), 0 0 24px -10px rgba(122,224,255,0.45);
+}
+
+/* Depth on titles + the glyph */
+.section-title { text-shadow: 0 2px 20px rgba(0,0,0,0.55); }
+.lockup .glyph { filter: drop-shadow(0 0 10px rgba(122,224,255,0.35)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card.interactive:hover, .nav-item:hover, .btn:hover, .btn:active { transform: none; }
+}
