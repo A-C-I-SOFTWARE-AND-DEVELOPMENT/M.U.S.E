@@ -6827,7 +6827,7 @@ def _update_via_zip(args):
 
     branch = "main"
     zip_url = (
-        f"https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/archive/refs/heads/{branch}.zip"
+        f"https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/{branch}.zip"
     )
 
     print("→ Downloading latest version...")
@@ -7153,13 +7153,19 @@ def _restore_stashed_changes(
 # Fork detection and upstream management for `muse update`
 # =========================================================================
 
+# The live GitHub repo is named ``M.U.S.E``; the ``muse``/``musegit`` slugs
+# 404 (see scripts/install.sh and PR #539). Recognize the working ``M.U.S.E``
+# origin as official so fresh clones aren't misclassified as forks, while
+# still accepting the legacy ``muse``/``musegit`` slugs that older clones use.
 OFFICIAL_REPO_URLS = {
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
     "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
     "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit",
     "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
     "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/muse",
 }
-OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
+OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -7307,7 +7313,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
             print("→ Adding upstream remote...")
             if _add_upstream_remote(git_cmd, cwd):
                 print(
-                    "  ✓ Added upstream: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit"
+                    "  ✓ Added upstream: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E"
                 )
                 has_upstream = True
             else:
@@ -7315,7 +7321,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
                 return
         else:
             print(
-                "  Skipped. Run 'git remote add upstream https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit' to add later."
+                "  Skipped. Run 'git remote add upstream https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E' to add later."
             )
             _mark_skip_upstream_prompt()
             return
