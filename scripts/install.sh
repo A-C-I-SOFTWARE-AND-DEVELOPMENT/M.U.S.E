@@ -2099,7 +2099,7 @@ resolve_hermes_cmd() {
         echo "$link_dir/muse"; return 0
     fi
     if command -v muse >/dev/null 2>&1; then
-        command -v muse return 0
+        command -v muse; return 0
     fi
     if [ -x "$INSTALL_DIR/venv/bin/muse" ]; then
         echo "$INSTALL_DIR/venv/bin/muse"; return 0

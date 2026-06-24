@@ -78,7 +78,7 @@ window at `http://127.0.0.1:1420` (see `build.devUrl` in `tauri.conf.json`).
 ### Pointing at a gateway
 
 The app defaults to `http://127.0.0.1:8765`. Override it at runtime in-app
-(stored in `localStorage` under `musegateway.base`), or at build time with the
+(stored in `localStorage` under `muse.gateway.base`), or at build time with the
 `VITE_GATEWAY_BASE` env var for the UI. The native menu's **Help → Gateway**
 item reflects `MUSE_GATEWAY_URL` if set.
 

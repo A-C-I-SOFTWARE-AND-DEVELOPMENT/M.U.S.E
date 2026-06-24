@@ -6,7 +6,7 @@
  * desktop app speaks exactly the same protocol:
  *
  *   - bearer token in the `Authorization` header (stored in localStorage under
- *     `musecockpit.token`);
+ *     `muse.cockpit.token`);
  *   - pairing via POST /v1/cockpit/pair/start → POST /v1/cockpit/pair/confirm;
  *   - the jobs stream over GET /v1/cockpit/jobs/stream as Server-Sent Events,
  *     consumed with fetch() + a ReadableStream reader (NOT EventSource, because
@@ -19,8 +19,8 @@
  * page origin so the cockpit's same-origin paths keep working.
  */
 
-export const TOKEN_KEY = "musecockpit.token";
-const BASE_KEY = "musegateway.base";
+export const TOKEN_KEY = "muse.cockpit.token";
+const BASE_KEY = "muse.gateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
 /**

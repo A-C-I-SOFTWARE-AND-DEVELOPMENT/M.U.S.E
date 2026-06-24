@@ -5,9 +5,9 @@
 // parsers, and the owner-phrase prompt/retry flow. View modules MUST go through
 // this module; they never call fetch() directly.
 
-export const TOKEN_KEY = "musecockpit.token";
+export const TOKEN_KEY = "muse.cockpit.token";
 
-// ---- Token (localStorage, key "musecockpit.token") -----------------------
+// ---- Token (localStorage, key "muse.cockpit.token") -----------------------
 export function getToken() {
   try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; }
 }

@@ -5,7 +5,7 @@
 // Consume from Compose, e.g. `Surface(color = museTokens.Color.void)`.
 @file:Suppress("unused", "ConstPropertyName", "MemberVisibilityCanBePrivate")
 
-package musedesignsystem
+package muse.designsystem
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight

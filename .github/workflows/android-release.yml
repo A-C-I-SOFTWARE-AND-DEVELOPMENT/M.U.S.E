@@ -40,6 +40,14 @@ on:
         description: 'Optional: hand-name the release tag (e.g. android-v1.0.0). Leave blank for an auto-versioned date.commits release.'
         required: false
         default: ''
+      channel:
+        description: 'rolling = refresh the android-latest download · versioned = cut a permanent android-v… release (default).'
+        required: false
+        type: choice
+        default: versioned
+        options:
+          - versioned
+          - rolling
 
 permissions:
   contents: write  # needed to create/upload the GitHub Release asset
@@ -99,6 +107,7 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
         run: |
           # Version is auto-derived from the repo's real history so it always
           # reflects the actual time + work done — never a hand-edited
@@ -124,6 +133,12 @@ jobs:
             VERSION="${INPUT_TAG#android-v}"; TAG="$INPUT_TAG"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
             ASSET="jarvis-prime-${VERSION}.apk"; TITLE="muse ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$INPUT_CHANNEL" = "rolling" ]; then
+            # Auto-sync engine dispatches this to refresh the rolling download
+            # (matches the behaviour of a path-relevant push to main).
+            VERSION="$AUTO_VERSION"; TAG="android-latest"
+            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
+            ASSET="jarvis-prime-android.apk"; TITLE="muse — latest Android build"
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             # THE ONE BUTTON: Actions → Android release → Run workflow with no
             # input cuts a permanent versioned release auto-stamped with the

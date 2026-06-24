@@ -9,6 +9,18 @@ name: "Hermes Agent CodeQL Config"
 # applied to them breaks vendor integrity. Keep CodeQL out of them.
 paths-ignore:
   - hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor
+  # The standalone cockpit "studio" page is a design-canvas (dc-runtime) build:
+  # `studio-support.js` is a GENERATED runtime bundle ("GENERATED from
+  # dc-runtime/src/*.ts — do not edit") and the studio/atlas HTML are
+  # design-canvas exports. Their `new Function`/`innerHTML`/`DOMParser` usage is
+  # inherent template-rendering machinery that only ever evaluates the page's own
+  # authored, static design — no untrusted input reaches those sinks — so the
+  # high-severity DOM-XSS/code-injection alerts are false positives. Like the
+  # vendored payloads above, these are DATA/generated artifacts, not first-party
+  # hand-written code; keep CodeQL out of them.
+  - gateway/cockpit/static/studio-support.js
+  - gateway/cockpit/static/studio.html
+  - gateway/cockpit/static/atlas
 
 # Query filters to exclude known false positives
 query-filters:

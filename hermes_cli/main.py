@@ -6115,7 +6115,7 @@ def cmd_import(args):
 
 def cmd_version(args):
     """Show version."""
-    print(f"muse v{__version__} ({__release_date__})")
+    print(f"muse (M.U.S.E.) v{__version__} ({__release_date__})")
     print(f"Project: {PROJECT_ROOT}")
 
     # Show Python version
