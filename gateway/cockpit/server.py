@@ -356,15 +356,27 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
 
         def _serve_static(self, path: str) -> bool:
             """Serve the bundled browser cockpit. Returns True if it handled the
-            request. Path-traversal-safe; falls back to index.html for unknown
-            sub-paths so the single-page app can route client-side."""
+            request. Path-traversal-safe; falls back to the section's entry
+            document for unknown sub-paths so the single-page app can route
+            client-side.
+
+            The default cockpit document is ``cockpit.dc.html`` (the imported
+            "Singularity" Claude Design). The prior modular shell stays reachable
+            at ``/cockpit/index.html``; ``/nexus`` is unaffected."""
             root = (Path(__file__).resolve().parent / "static").resolve()
-            if path in ("/", "/cockpit", "/cockpit/", "/nexus", "/nexus/"):
+            cockpit_doc = "cockpit.dc.html"
+            if path in ("/", "/cockpit", "/cockpit/"):
+                rel = cockpit_doc
+                default_doc = cockpit_doc
+            elif path in ("/nexus", "/nexus/"):
                 rel = "index.html"
+                default_doc = "index.html"
             elif path.startswith("/cockpit/"):
-                rel = path[len("/cockpit/"):].lstrip("/") or "index.html"
+                rel = path[len("/cockpit/"):].lstrip("/") or cockpit_doc
+                default_doc = cockpit_doc
             elif path.startswith("/nexus/"):
                 rel = path[len("/nexus/"):].lstrip("/") or "index.html"
+                default_doc = "index.html"
             else:
                 return False
             try:
@@ -383,7 +395,7 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             if suffix and suffix not in self._STATIC_TYPES:
                 return False  # disallowed file type -> 404
             if not target.is_file():
-                target = root / "index.html"  # SPA fallback (route or missing)
+                target = root / default_doc  # SPA fallback (route or missing)
                 if not target.is_file():
                     return False
             ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")

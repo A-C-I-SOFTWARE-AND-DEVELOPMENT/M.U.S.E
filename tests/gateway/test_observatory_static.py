@@ -108,18 +108,26 @@ def test_observatory_js_imports_vendored_three(server) -> None:
     assert b'from "./vendor/three.module.min.js"' in body
 
 
-def test_index_still_served_and_links_to_observatory(server) -> None:
+def test_cockpit_default_is_singularity_design(server) -> None:
+    # The default cockpit document is now the imported "Singularity" Claude
+    # Design (cockpit.dc.html): /cockpit/ serves it directly.
     status, ctype, body = _get_raw(server, "/cockpit/")
     assert status == 200
     assert ctype.startswith("text/html")
     text = body.decode("utf-8")
-    # The cinematic redesign replaced the static <a href> to the Observatory
-    # with a first-class SPA nav entry the app router resolves to the
-    # observatory view (js/views/observatory.js embeds /cockpit/observatory.html
-    # in a full-bleed iframe), so the flagship 3D page stays reachable.
-    assert 'data-nav="observatory"' in text
-    # And the existing shell is intact.
+    assert "<x-dc>" in text and 'src="vendor/dc-runtime.js"' in text
     assert "muse" in text
+
+
+def test_classic_shell_and_observatory_still_reachable(server) -> None:
+    # The prior modular shell stays reachable at its explicit path, still
+    # carrying the SPA nav entry the router resolves to the observatory view
+    # (js/views/observatory.js embeds /cockpit/observatory.html in an iframe).
+    _, _, classic = _get_raw(server, "/cockpit/index.html")
+    assert 'data-nav="observatory"' in classic.decode("utf-8")
+    # And the flagship 3D page itself is served regardless of the default.
+    status, ctype, _ = _get_raw(server, "/cockpit/observatory.html")
+    assert status == 200 and ctype.startswith("text/html")
 
 
 # ── self-containment: no remote executable/script/link references ───────────

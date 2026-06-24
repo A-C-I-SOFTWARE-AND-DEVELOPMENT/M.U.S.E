@@ -26,29 +26,43 @@ readable, reviewable, and **fully offline** — matching the repo's local-first
 rule and the Observatory's "no remote references" guarantee:
 
 - The page is the design's own **`<x-dc>` template** + its **`data-dc-script`**
-  logic + the inlined **dc-runtime** (the Claude Design renderer; parses the
+  logic, rendered by the **dc-runtime** (the Claude Design renderer; parses the
   `<x-dc>`/`sc-if`/`sc-for` template and renders it with React).
 - **React 18.3.1 UMD is vendored** at `gateway/cockpit/static/vendor/react*.js`
   (the same version the dc-runtime targets), loaded by plain `<script>` tags
   *before* the runtime — the runtime detects `window.React` and skips its own
   CDN loader. The runtime's CDN fallback constants (React, ReactDOM, Babel) are
-  neutralised, so the file has **zero remote references** (verified by
-  `tests/gateway/test_cockpit_dc_page.py`).
-- The 3D Systems Atlas iframe degrades gracefully: it points at
-  `window.__resources.atlas` when present, else a relative `atlas/…` path.
+  neutralised, so the page has **zero remote references**.
+- The **dc-runtime is loaded externally** as
+  `gateway/cockpit/static/vendor/dc-runtime.js`, *not* inlined. This is
+  load-bearing: `boot()` renders the template from the DOM first, then re-fetches
+  `location.href` and re-parses the raw HTML with a regex (`parseDcText`, for
+  live-edit). The runtime's source contains its own `/<x-dc…>/` regex literal, so
+  **inlining it would make that re-parse match the runtime's own source instead
+  of the real template, corrupting the render.** Externalising keeps the page
+  HTML free of stray `<x-dc` literals. (Caught by the live render check below.)
+- The **3D Systems Atlas** is vendored under `gateway/cockpit/static/atlas/`
+  (synced from `docs/3d-model/`), and `window.__resources.atlas` points the
+  design's atlas iframe at `atlas/index.html`. The atlas reuses the cockpit's
+  vendored three.js (its `app.js` imports `../vendor/three.module.min.js`), so
+  there is **no 712 KB three.js duplication**. It still degrades gracefully if
+  the resource is absent.
 
 ## Status
 
-- **Additive / non-destructive.** This page is served *alongside* the existing
-  cockpit (`/cockpit/`, the cinematic modular SPA from #551); it does **not**
-  replace it. Promoting it to the default cockpit shell is an owner decision.
-- **Verified:** `tests/gateway/test_cockpit_dc_page.py` (serving, content types,
-  vendored-React resolution, React-before-runtime order, no remote references,
-  packaging). JS syntax of the inlined runtime and `data-dc-script` checked with
-  `node --check`. A live browser render was not run in CI (no headless Chrome in
-  the container); the source design renders in Claude Design's own preview, and
-  this page is byte-faithful to that template + script + runtime with React
-  vendored locally.
+- **Default cockpit.** `/cockpit/` (and the gateway root `/`) now serve this
+  design; the prior cinematic modular SPA from #551 stays reachable at
+  `/cockpit/index.html`, and the flagship Observatory at
+  `/cockpit/observatory.html`. `/nexus` is unaffected. (Promotion routing lives
+  in `gateway/cockpit/server.py::_serve_static`.)
+- **Verified — live render.** Booted in headless Chrome against the cockpit
+  server: React + ReactDOM load locally, the `<x-dc>` template renders (app
+  shell + 27 nav items: Chat / Tasks / Agents / Studio / 3D Atlas / Approvals
+  …), and the 3D Atlas loads inside its panel. Plus
+  `tests/gateway/test_cockpit_dc_page.py` (serving, content types, vendored-React
+  resolution, React-before-runtime order, no remote references across page +
+  runtime + atlas, default-promotion routing, atlas wiring + three.js sharing,
+  packaging) and `node --check` on the runtime + `data-dc-script`.
 
 ## Provenance
 
