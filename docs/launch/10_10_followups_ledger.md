@@ -635,8 +635,8 @@ autoresearch, post-#455 muse final audit). Session branch
 | **#408 advanced CodeQL** | blocked on owner repo settings (CodeQL Default Setup). |
 | **Registry/namespace renames** (Docker Hub / PyPI / Cachix / homebrew) | owner-coordinated, publish-time. |
 | **G2 follow-on — promote "Release gate (strict tooling)" to required** | owner GitHub-settings click (several green cycles have elapsed since Wave D). |
-| **PR #453 — deep Hermes→muse rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `muse_RENAME_REPORT.md`/`muse_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
-| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/muse_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
+| **PR #453 — deep Hermes→muse rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `MUSE_RENAME_REPORT.md`/`MUSE_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
+| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/MUSE_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
 
 ## Decision log
 

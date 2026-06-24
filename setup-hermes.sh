@@ -341,14 +341,14 @@ fi
 
 echo -e "${CYAN}→${NC} Setting up muse command..."
 
-muse_BIN="$SCRIPT_DIR/venv/bin/muse"
+MUSE_BIN="$SCRIPT_DIR/venv/bin/muse"
 HERMES_BIN="$SCRIPT_DIR/venv/bin/hermes"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
 # `muse` is the canonical command; older venvs may only have the `hermes` shim.
-if [ -f "$muse_BIN" ]; then
-    ln -sf "$muse_BIN" "$COMMAND_LINK_DIR/muse"
+if [ -f "$MUSE_BIN" ]; then
+    ln -sf "$MUSE_BIN" "$COMMAND_LINK_DIR/muse"
 else
     ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/muse"
 fi
