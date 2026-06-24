@@ -23,18 +23,22 @@ used for the local ``__main__`` convenience runner below.
 
 from __future__ import annotations
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+# fastapi lives in the optional `web` extra (installed for the Vercel build via
+# requirements.txt), so the strict lint env that runs `ty` doesn't resolve it —
+# same as hermes_cli/web_server.py. Suppress the env-specific unresolved-import.
+from fastapi import FastAPI  # ty: ignore[unresolved-import]
+from fastapi.responses import HTMLResponse, JSONResponse  # ty: ignore[unresolved-import]
 
 # Single source of truth for the version. hermes_cli/__init__.py is stdlib-only
 # (just version constants + a Windows UTF-8 shim), so this import is cheap and
 # import-safe on Vercel. Fall back gracefully if the package path isn't on
-# sys.path for any reason — the cloud server must still boot.
+# sys.path for any reason — the cloud server must still boot. (ty narrows the
+# imported names to their literal values, so the str fallbacks need the ignore.)
 try:
     from hermes_cli import __version__, __release_date__
 except Exception:  # pragma: no cover - defensive: never let the deploy 500
-    __version__ = "unknown"
-    __release_date__ = "unknown"
+    __version__ = "unknown"  # ty: ignore[invalid-assignment]
+    __release_date__ = "unknown"  # ty: ignore[invalid-assignment]
 
 app = FastAPI(
     title="M.U.S.E — public cloud server",
@@ -112,6 +116,6 @@ async def _not_found(_request, _exc):  # type: ignore[no-untyped-def]
 
 
 if __name__ == "__main__":  # pragma: no cover - local convenience only
-    import uvicorn
+    import uvicorn  # ty: ignore[unresolved-import]
 
     uvicorn.run("vercel_app:app", host="127.0.0.1", port=8000, reload=True)
