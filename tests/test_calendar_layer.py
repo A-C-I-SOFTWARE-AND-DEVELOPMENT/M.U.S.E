@@ -137,7 +137,7 @@ def test_event_to_memory_event_is_trusted_not_owner():
     # Conservative: a local ICS entry is trusted, never owner — so it can't
     # auto-promote to durable memory.
     assert mem.trust_level == "trusted"
-    assert memuser_approval_state == "unreviewed"
+    assert mem.user_approval_state == "unreviewed"
     assert "Standup" in mem.content
     assert dict(mem.metadata)["uid"] == "evt-1"
 

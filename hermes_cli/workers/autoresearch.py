@@ -15,7 +15,7 @@ via :mod:`hermes_cli.jarvis_prime.autoresearch_improve`, which reuses the SIA
 ``run_self_improvement`` orchestration (benchmark gate → RC4 proposal →
 ``NEEDS_OWNER_APPROVAL``). This module only produces and scores candidates.
 
-Live spawning is opt-in via ``muse_AUTORESEARCH_ALLOW_SPAWN=1`` (the ue5.py
+Live spawning is opt-in via ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1`` (the ue5.py
 pattern); without it ``detect()`` reports unavailable and nothing runs. torch
 is never imported at module import time.
 """
@@ -39,7 +39,7 @@ from hermes_cli.workers.base import (
 from hermes_cli.workers.registry import register
 
 WORKER_NAME = "autoresearch"
-SPAWN_ENV = "muse_AUTORESEARCH_ALLOW_SPAWN"
+SPAWN_ENV = "MUSE_AUTORESEARCH_ALLOW_SPAWN"
 DATA_CACHE = Path("~/.cache/autoresearch").expanduser()  # prepare.py's CACHE_DIR
 
 

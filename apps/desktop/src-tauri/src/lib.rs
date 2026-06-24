@@ -3,7 +3,7 @@
 //! This is a thin native shell around the bundled Singularity UI (../ui/dist).
 //! It does **not** bundle the Python backend — the web UI talks to a
 //! locally-running muse gateway over HTTP (default http://127.0.0.1:8765,
-//! configurable in-app and via the `muse_GATEWAY_URL` build/runtime env). The
+//! configurable in-app and via the `MUSE_GATEWAY_URL` build/runtime env). The
 //! shell's jobs are: load the UI, provide a native window + menu + system
 //! tray, enforce a single running instance, and (the one-installable story)
 //! keep the gateway alive — if `/v1/health` is down and autostart is enabled,
@@ -165,9 +165,9 @@ use std::net::ToSocketAddrs;
 /// deep-link handling.
 const DEFAULT_GATEWAY_URL: &str = "http://127.0.0.1:8765";
 
-/// Resolve the configured gateway URL for display. Honors `muse_GATEWAY_URL`.
+/// Resolve the configured gateway URL for display. Honors `MUSE_GATEWAY_URL`.
 pub(crate) fn gateway_url() -> String {
-    std::env::var("muse_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
+    std::env::var("MUSE_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
 }
 
 /// The gateway base the UI is *actually* using. The Settings override lives in

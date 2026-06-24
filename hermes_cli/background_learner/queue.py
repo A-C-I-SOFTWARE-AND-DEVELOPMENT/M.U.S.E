@@ -41,7 +41,7 @@ ALLOWED_KINDS: frozenset[str] = frozenset(
         "propose_code_patch",
         "build_research_digest",
         # Autoresearch training runs: dry_run (default) is plan-only; a live
-        # run additionally requires muse_AUTORESEARCH_ALLOW_SPAWN=1 at handle
+        # run additionally requires MUSE_AUTORESEARCH_ALLOW_SPAWN=1 at handle
         # time (see runner._h_autoresearch_train) on top of the approval token.
         "autoresearch_train",
     }

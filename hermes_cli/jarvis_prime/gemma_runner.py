@@ -111,11 +111,11 @@ def build_gemma_runner(
     if tag is None:
         return None
     runner = (invoke_factory or _default_invoke_factory)(tag)
-    # muse_TEMPLATES fast path (off by default). With the flag off this is a
+    # MUSE_TEMPLATES fast path (off by default). With the flag off this is a
     # single env read and the SAME runner object is returned — byte-identical.
     # With the flag on, maybe_wrap_runner still returns the base runner
     # unchanged unless a healthy llama-server and template artifacts exist.
-    if os.environ.get("muse_TEMPLATES", "").strip().lower() in ("1", "true", "yes", "on"):
+    if os.environ.get("MUSE_TEMPLATES", "").strip().lower() in ("1", "true", "yes", "on"):
         try:
             from hermes_cli.jarvis_prime.template_fastpath import maybe_wrap_runner
 

@@ -21,9 +21,9 @@ from hermes_cli.jarvis_prime.axiom_bridge import (
 
 @pytest.fixture(autouse=True)
 def _fresh_bridge(monkeypatch: pytest.MonkeyPatch):
-    # CI exports muse_AXIOM_GATES=0 for hermeticity; these tests exercise
+    # CI exports MUSE_AXIOM_GATES=0 for hermeticity; these tests exercise
     # the live bridge against the per-test HERMES_HOME, so re-enable it.
-    monkeypatch.delenv("muse_AXIOM_GATES", raising=False)
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
     reset_bridge()
     yield
     reset_bridge()
@@ -63,7 +63,7 @@ def test_tamper_detected() -> None:
 
 
 def test_inert_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("muse_AXIOM_GATES", "0")
+    monkeypatch.setenv("MUSE_AXIOM_GATES", "0")
     bridge = get_bridge()
     assert bridge.inert is True
     assert bridge.record_event("test.event", {"n": 1}) is None
@@ -142,7 +142,7 @@ def test_release_gate_fails_on_bad_chain(monkeypatch: pytest.MonkeyPatch) -> Non
     assert tampered.outcome == GateOutcome.FAIL
     assert "chain" in tampered.reason
 
-    monkeypatch.setenv("muse_AXIOM_GATES", "0")
+    monkeypatch.setenv("MUSE_AXIOM_GATES", "0")
     assert release_gate(packet).outcome == GateOutcome.PASS
 
 

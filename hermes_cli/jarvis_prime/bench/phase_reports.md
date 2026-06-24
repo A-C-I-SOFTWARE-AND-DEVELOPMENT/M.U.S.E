@@ -1,7 +1,7 @@
 # Template Fast Path — Phase Reports
 
 Honest, measured results per phase for the Cluster-Based Token Template Fast Path
-(`muse_TEMPLATES`). Numbers are labeled **MEASURED** (run in the environment named)
+(`MUSE_TEMPLATES`). Numbers are labeled **MEASURED** (run in the environment named)
 or **DEFERRED** (cannot be measured in this environment; ready-to-run owner script
 listed). Expected numbers are never reported as measured.
 
@@ -161,7 +161,7 @@ met (cluster 4, hard mode, plus 4 soft templates). 9 unit tests green.
 
 ## Phase 3 — Fast-path integration (flag-guarded)
 
-**Flag-off byte-identity (MEASURED, container):** with `muse_TEMPLATES`
+**Flag-off byte-identity (MEASURED, container):** with `MUSE_TEMPLATES`
 unset/`""`/`"0"`/`"false"`/`"off"`/`"no"`, `build_gemma_runner` returns the
 **same runner object** the invoke factory produced (object identity asserted),
 never imports `template_fastpath`, and a fixed prompt set produces identical
@@ -170,9 +170,9 @@ output hashes. All 15 pre-existing gemma-runner tests pass unchanged.
 **Architecture (deviation noted in Phase 0):** the fast path wraps the Ollama
 runner and talks to llama-server's native `/completion` API via the new stdlib
 `llama_client.py` (`grammar` + `id_slot` + `cache_prompt`), activated only when
-`muse_TEMPLATES` is truthy AND `muse_TEMPLATES_SERVER` points at a healthy
+`MUSE_TEMPLATES` is truthy AND `MUSE_TEMPLATES_SERVER` points at a healthy
 server AND the cluster-model/template artifacts load. Anything missing →
-the unchanged base runner. Confidence gate τ=0.75 (`muse_TEMPLATES_TAU`),
+the unchanged base runner. Confidence gate τ=0.75 (`MUSE_TEMPLATES_TAU`),
 stable slot mapping `cluster_id % n_slots`, hard = single constrained pass,
 soft = two-stage reason-then-format (reasoning never grammar-forced), all
 errors → flywheel-logged fallback (repeated errors → one improvement-queue
@@ -204,7 +204,7 @@ baseline).
 **Done-when (adapted):** flag-off byte-identical — MET (test-enforced);
 mechanical fast path proven against stub + real server — MET; ≥20% latency
 gate — DEFERRED to the owner script (no real model reachable here; spec rule 7
-deviation). 28 new unit tests green. **Rollback:** `muse_TEMPLATES=0`
+deviation). 28 new unit tests green. **Rollback:** `MUSE_TEMPLATES=0`
 (instant) or revert the phase-3 commit (the only one touching an existing
 file: the flag guard at the tail of `build_gemma_runner`).
 
@@ -233,7 +233,7 @@ existing champion forces the composite margin (no free re-promotion).
 **REJECTED** (all domains 0.0 < 0.80 floor; win-rate 0.500 < 0.55 — exactly
 right for a stub) and queued improvement entry **`a6b08522b47e`**
 (`kind=templates.ratchet`) to `$HERMES_HOME/flywheel/improvement_queue.jsonl`.
-No champion was frozen; `muse_TEMPLATES` remains off. The **live verdict** on
+No champion was frozen; `MUSE_TEMPLATES` remains off. The **live verdict** on
 real Gemma is produced by `scripts/templates_fastpath/phase4_ratchet.sh`.
 
 **Outcome (one of the two allowed):** clean rejection/deferral with a queued
@@ -242,12 +242,12 @@ structured entry. No promotion was recorded — and none may be implied.
 ### OWNER-GATED PROPOSAL (prepared, NOT applied)
 
 > **Proposal:** after `phase4_ratchet.sh` produces a PASS verdict and a frozen
-> champion on the owner's hardware, flip the default of `muse_TEMPLATES` from
+> champion on the owner's hardware, flip the default of `MUSE_TEMPLATES` from
 > `0` to `1` (templates on by default for the Gemma curator lane).
 > **This changes default runtime behavior and is therefore owner-gated.** It
 > will be applied only after the owner replies exactly:
 > `Yes, with authorization.`
-> Rollback if approved and later regretted: set `muse_TEMPLATES=0` (instant)
+> Rollback if approved and later regretted: set `MUSE_TEMPLATES=0` (instant)
 > and/or `git revert` the flip commit; the frozen champion's
 > `rollback_handle` records the pre-promotion sha.
 
@@ -296,8 +296,8 @@ environment) → `scripts/templates_fastpath/phase6_termux.sh`, which on-device:
    llama.cpp runs).
 4. Reruns the Phase-3 bench (same gate: ≥20% latency win, parse rate ≥
    baseline) against a 1–3B Gemma Q4 GGUF, 2 slots, c=2048, with
-   `muse_TEMPLATES_DIR` honored for on-device template artifacts.
+   `MUSE_TEMPLATES_DIR` honored for on-device template artifacts.
 
 **Done-when (adapted):** on-device steps + budget-table tooling ready; the
 "runs within RAM budget with measured speedup" check is produced by the script
-on the phone. **Rollback:** `muse_TEMPLATES=0` on device (instant).
+on the phone. **Rollback:** `MUSE_TEMPLATES=0` on device (instant).

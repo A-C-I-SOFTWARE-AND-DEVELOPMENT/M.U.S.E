@@ -39,7 +39,7 @@ Malformed contracts still rejected; runtime postconditions still enforced
 **Bridge:** `status` → `available: true`; record → audit →
 `chain_valid: true`; one flipped payload byte →
 `chain_valid: false, first_bad_seq: 0`, CLI exit 1;
-`muse_AXIOM_GATES=0` → `chain_valid: null`, no file I/O.
+`MUSE_AXIOM_GATES=0` → `chain_valid: null`, no file I/O.
 
 **Regression:** `tests/test_jarvis_prime_gates.py tests/test_decision_ledger.py`
 → `73 passed`.
@@ -55,7 +55,7 @@ Malformed contracts still rejected; runtime postconditions still enforced
   (self-attested packet FAILs).
 - Tampered chain flips `release_gate` to FAIL:
   `axiom event chain failed verification (first_bad_seq=0)`; inert mode passes.
-- `muse_AXIOM_GATES: "0"` exported in `tests.yml`,
+- `MUSE_AXIOM_GATES: "0"` exported in `tests.yml`,
   `jarvis-prime-unit.yml`, `orchestration-tests.yml`.
 - Proof: `tests/test_job_risk_gating.py` (7 tests) + full suite (below).
 
@@ -80,7 +80,7 @@ registers the nightly digest+audit and weekly `.plans/` filing jobs.
 Buildable parts shipped: `research_fabric/ue5.py` (Remote Control client,
 owner-gated spawn, chain events; `ue5_bridge.py` → verbatim shim),
 `skills/creative/ue5-render/SKILL.md`, 9 tests (request shapes,
-gating — `Popen` unreachable without `muse_UE5_ALLOW_SPAWN=1`, spawn with
+gating — `Popen` unreachable without `MUSE_UE5_ALLOW_SPAWN=1`, spawn with
 grant, shim identity). **UNVERIFIED on this box:** the four live editor
 commands and a real offscreen render — no UE5 editor exists in this
 container. Queued as `5687fb9f8c1c` (owner-hardware).
@@ -118,7 +118,7 @@ container. Queued as `5687fb9f8c1c` (owner-hardware).
 ## Full-suite verdict
 
 ```
-$ muse_AXIOM_GATES=0 python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e
+$ MUSE_AXIOM_GATES=0 python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e
 14 failed, 29045 passed, 179 skipped in 0:12:52
 ```
 All 14 failures cluster in 3 files (`tests/gateway/test_google_chat.py`,

@@ -4,7 +4,7 @@
 ``checksums.json``) — data, never imported. The muse-side modules are exposed
 lazily (PEP 562) so importing this package is cheap and torch-free; torch is
 only ever imported inside functions, on owner GPU hardware, behind the
-``muse_AUTORESEARCH_ALLOW_SPAWN`` gate.
+``MUSE_AUTORESEARCH_ALLOW_SPAWN`` gate.
 
 NOTE: this package is intentionally NOT registered in
 ``research_fabric/__init__.py`` (which imports submodules eagerly) — import it

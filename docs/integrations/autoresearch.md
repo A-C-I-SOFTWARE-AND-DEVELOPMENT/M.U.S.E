@@ -40,7 +40,7 @@ cd ~/.hermes/autoresearch/workspaces/setup
 uv sync && uv run prepare.py      # data + tokenizer -> ~/.cache/autoresearch/
 
 # 2. Open the spawn gate (per shell, deliberate).
-export muse_AUTORESEARCH_ALLOW_SPAWN=1
+export MUSE_AUTORESEARCH_ALLOW_SPAWN=1
 ```
 
 The workspace runs against the **vendored `pyproject.toml`** (which carries
@@ -84,7 +84,7 @@ writes the HIGH-risk AXIOM classification + chain event.
 
 ## Owner-gated inventory
 
-1. Any live spawn: `muse_AUTORESEARCH_ALLOW_SPAWN=1`.
+1. Any live spawn: `MUSE_AUTORESEARCH_ALLOW_SPAWN=1`.
 2. Background live runs: approval token at enqueue AND the spawn env.
 3. Champion adoption: RC4 proposal → exact `Yes, with authorization.` → PR.
 4. Modal spend: explicit `max_cost_usd > 0` (+ `cost_per_hour_usd`).
