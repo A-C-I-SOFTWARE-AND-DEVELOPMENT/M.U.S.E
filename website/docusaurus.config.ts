@@ -1,6 +1,22 @@
 import {themes as prismThemes} from 'prism-react-renderer';
+import matter from 'gray-matter';
+import yaml from 'js-yaml';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+
+// Docusaurus parses front matter with gray-matter, whose default YAML engine
+// calls the removed `js-yaml` v3 `safeLoad`. The repo pins `js-yaml` to
+// `^4.2.0` (the only line without the GHSA-h67p-54hq-rp68 DoS advisory), and
+// v4 dropped `safeLoad` — so the default parser throws on every doc. Parse
+// with v4's `load()` instead, which is safe-by-default (no code execution),
+// keeping the build working without reintroducing a vulnerable js-yaml.
+const parseFrontMatter: NonNullable<Config['markdown']>['parseFrontMatter'] =
+  async ({fileContent}) => {
+    const {data, content} = matter(fileContent, {
+      engines: {yaml: (input: string) => yaml.load(input) as object},
+    });
+    return {frontMatter: structuredClone(data), content: content.trim()};
+  };
 
 const config: Config = {
   title: 'muse',
@@ -17,6 +33,7 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
+    parseFrontMatter,
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
