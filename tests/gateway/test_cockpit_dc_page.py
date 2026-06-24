@@ -46,6 +46,12 @@ NEW_SOURCES = [
     PAGE,
     STATIC / "vendor" / "react.production.min.js",
     STATIC / "vendor" / "react-dom.production.min.js",
+    STATIC / "vendor" / "dc-runtime.js",
+    # The 3D Atlas, vendored under /cockpit/atlas/ (synced from docs/3d-model/,
+    # sharing the cockpit's three.js) — must also stay offline.
+    STATIC / "atlas" / "index.html",
+    STATIC / "atlas" / "app.js",
+    STATIC / "atlas" / "architecture_data.js",
 ]
 
 
@@ -104,14 +110,21 @@ def test_vendored_react_served_with_js_content_type(server, path: str) -> None:
 def test_react_loads_before_dc_runtime(server) -> None:
     """The dc-runtime early-returns from its own React loader when
     ``window.React`` is already set, so the vendored React <script> tags must
-    appear *before* the inlined runtime — otherwise the runtime would fall back
-    to its (now-neutralised) loader."""
+    appear *before* the runtime script — otherwise the runtime would fall back
+    to its (now-neutralised) loader.
+
+    The runtime is loaded as an EXTERNAL ``vendor/dc-runtime.js`` (not inlined):
+    inlining puts the runtime's own ``/<x-dc…>/`` regex literal into the page
+    HTML, which its live-edit re-fetch (``parseDcText`` over ``location.href``)
+    then matches instead of the real template — corrupting the render."""
     _, _, body = _get_raw(server, "/cockpit/cockpit.dc.html")
     text = body.decode("utf-8")
     react_at = text.find('src="vendor/react.production.min.js"')
-    runtime_at = text.find("// GENERATED from dc-runtime")
+    runtime_at = text.find('src="vendor/dc-runtime.js"')
     assert react_at != -1 and runtime_at != -1
     assert react_at < runtime_at
+    # The runtime must NOT be inlined (would self-match the x-dc regex literal).
+    assert "// GENERATED from dc-runtime" not in text
 
 
 # ── self-containment: no remote executable/script/link references ───────────
@@ -150,6 +163,50 @@ def test_page_vendor_references_resolve_locally(server) -> None:
     for rel in refs:
         status, _, payload = _get_raw(server, f"/cockpit/{rel}")
         assert status == 200 and payload, f"vendored asset 404s: {rel}"
+
+
+# ── default promotion: /cockpit/ serves the Singularity design ───────────────
+
+
+def test_cockpit_is_the_default_at_root(server) -> None:
+    # /cockpit/ (and the bare "/" root) now serve the Singularity cockpit, while
+    # the prior modular shell stays reachable at its explicit /cockpit/index.html.
+    for root in ("/cockpit/", "/"):
+        status, ctype, body = _get_raw(server, root)
+        assert status == 200 and ctype.startswith("text/html")
+        text = body.decode("utf-8")
+        assert "<x-dc>" in text and 'src="vendor/dc-runtime.js"' in text, root
+
+
+def test_unknown_cockpit_route_falls_back_to_the_cockpit(server) -> None:
+    # A client-side route (no file suffix) falls back to the cockpit document,
+    # not a 404 — the design is its own single hash-routed page.
+    status, ctype, body = _get_raw(server, "/cockpit/jobs")
+    assert status == 200 and ctype.startswith("text/html")
+    assert "<x-dc>" in body.decode("utf-8")
+
+
+# ── 3D Atlas: vendored under /cockpit/atlas/, wired, three.js shared ─────────
+
+
+def test_atlas_served_and_wired(server) -> None:
+    # The cockpit points window.__resources.atlas at the served atlas, and the
+    # atlas entry document is actually served.
+    _, _, page = _get_raw(server, "/cockpit/cockpit.dc.html")
+    assert 'atlas: "atlas/index.html"' in page.decode("utf-8")
+    status, ctype, body = _get_raw(server, "/cockpit/atlas/index.html")
+    assert status == 200 and ctype.startswith("text/html")
+    assert b"3D" in body and b"Atlas" in body
+
+
+def test_atlas_shares_the_cockpit_vendored_three(server) -> None:
+    # The atlas reuses the cockpit's three.js (no 712K duplication): its app.js
+    # imports the shared sibling vendor build, which the server serves.
+    _, _, appjs = _get_raw(server, "/cockpit/atlas/app.js")
+    assert b'from "../vendor/three.module.min.js"' in appjs
+    assert not (STATIC / "atlas" / "vendor").exists()
+    status, _, three = _get_raw(server, "/cockpit/vendor/three.module.min.js")
+    assert status == 200 and three
 
 
 # ── packaging: the wheel ships the static tree ───────────────────────────────
