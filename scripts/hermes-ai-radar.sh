@@ -184,7 +184,7 @@ if [ -n "$HERMES_BIN" ]; then
 else
   printf 'note: `hermes` CLI was not found on PATH.\n'
   printf '      install with:\n'
-  printf '        curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash\n'
+  printf '        curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash\n'
   printf '      or run the skill from any Hermes-compatible agent that has loaded\n'
   printf '      skills/ai-improvement-radar/SKILL.md.\n\n'
 fi
