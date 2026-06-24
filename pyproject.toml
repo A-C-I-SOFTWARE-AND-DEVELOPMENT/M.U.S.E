@@ -252,6 +252,19 @@ hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 
+[tool.vercel]
+# Vercel's FastAPI builder scans the repo for a `FastAPI()` instance and, when
+# it finds more than one candidate (here: the localhost admin dashboard
+# `hermes_cli/web_server.py`, the SYNAPSE stub gateway, and a test module), it
+# refuses to guess and fails the build. Pin the entrypoint explicitly.
+#
+# We deliberately point at `vercel_app:app` — a dedicated, public-safe,
+# read-only cloud server (see vercel_app.py) — NOT `hermes_cli.web_server:app`.
+# That dashboard is a loopback-only ADMIN surface (config editing, env-var
+# reveal, ephemeral session tokens) and must never be served on a public URL.
+# Its deps come from `requirements.txt` (kept minimal on purpose).
+entrypoint = "vercel_app:app"
+
 [tool.uv]
 # Security override (GHSA-mrfv-m5wm-5w6w / CVE-2025-69277): pynacl < 1.6.2
 # bundles a libsodium with an incomplete disallowed-inputs list.
