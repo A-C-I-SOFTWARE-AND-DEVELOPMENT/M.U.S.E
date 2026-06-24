@@ -262,8 +262,24 @@ muse-acp = "acp_adapter.entry:main"
 # read-only cloud server (see vercel_app.py) — NOT `hermes_cli.web_server:app`.
 # That dashboard is a loopback-only ADMIN surface (config editing, env-var
 # reveal, ephemeral session tokens) and must never be served on a public URL.
-# Its deps come from `requirements.txt` (kept minimal on purpose).
 entrypoint = "vercel_app:app"
+
+[tool.vercel.scripts]
+# fastapi/starlette/uvicorn live ONLY in the optional `web` extra (lean-install
+# policy — see [project.optional-dependencies]). Vercel's FastAPI builder is
+# uv-based and runs a DEFAULT `uv sync`, which resolves the base deps + pydantic
+# but NOT the `web` extra — so `vercel_app.py` would import-fail at runtime with
+# `ModuleNotFoundError: fastapi` even though the build goes green (imports happen
+# at invocation, not build time). A root `requirements.txt` does not help: the
+# uv-based builder installs from pyproject/uv.lock, not requirements.txt.
+#
+# This `build` hook runs AFTER the default install and BEFORE deployment (per
+# Vercel's FastAPI docs), re-syncing the SAME builder venv WITH the `web` extra
+# so fastapi lands in the bundle. `--frozen` reuses the committed uv.lock as-is
+# (no re-lock / network) since we change no dependency versions here. This keeps
+# fastapi out of the lean core install while still making the public cloud
+# server actually runnable on Vercel.
+build = "uv sync --frozen --extra web"
 
 [tool.uv]
 # Security override (GHSA-mrfv-m5wm-5w6w / CVE-2025-69277): pynacl < 1.6.2

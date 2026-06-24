@@ -1,8 +1,11 @@
 # Vercel-only dependency manifest for the public cloud server (vercel_app.py).
 #
-# This file exists SOLELY so Vercel's Python/FastAPI builder has a minimal,
-# self-contained dependency set to install for the public entrypoint declared
-# in pyproject.toml ([tool.vercel] entrypoint = "vercel_app:app").
+# NOTE: this is a SECONDARY / fallback manifest. The PRIMARY mechanism that
+# makes fastapi available on Vercel is the `[tool.vercel.scripts] build` hook in
+# pyproject.toml (`uv sync --frozen --extra web`), because Vercel's FastAPI
+# builder is uv-based and installs from pyproject/uv.lock — it does NOT read
+# this requirements.txt. This file is kept only for the pip-based Python runtime
+# path (non-FastAPI-framework), where a root requirements.txt IS consulted.
 #
 # It is NOT the source of truth for local/dev/CI installs — those use
 # pyproject.toml + uv.lock (`uv sync`, `pip install -e '.[all,dev]'`). Do not
