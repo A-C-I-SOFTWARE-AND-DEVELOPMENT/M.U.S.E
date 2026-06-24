@@ -99,22 +99,22 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 # the hero; the ring is the only spectral accent (matte cyan→violet, never
 # glowed); the wordmark is near-white so the core owns the brightest pixel.
 #
-# muse_WORDMARK — crisp block-letter "muse" in a single near-white fill
+# MUSE_WORDMARK — crisp block-letter "muse" in a single near-white fill
 # (#EEF2F7), the same full-block style as HERMES_AGENT_LOGO. The wordmark is
 # uniform; the value ladder lives across tiers (core → wordmark → tagline),
 # not within the letters.
-muse_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+MUSE_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
 [bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
 [bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
 [bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
 [bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
 [bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
 
-# muse_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
+# MUSE_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
 # ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
 # left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
 # brand tiers: the acronym expansion (signal-dim) and the motto (dim).
-muse_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
       [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
      [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]

@@ -190,7 +190,7 @@ def test_champion_records_exactly_one_scorecard() -> None:
 
 
 def test_axiom_chain_record_when_gates_on(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("muse_AXIOM_GATES", "1")
+    monkeypatch.setenv("MUSE_AXIOM_GATES", "1")
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     outcome, _ = _run(FakeAutoresearchWorker(champion_bpb=0.95))
     chain = tmp_path / "axiom" / "chain.jsonl"
@@ -203,7 +203,7 @@ def test_axiom_chain_record_when_gates_on(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_axiom_inert_when_gates_off(monkeypatch) -> None:
-    monkeypatch.setenv("muse_AXIOM_GATES", "0")
+    monkeypatch.setenv("MUSE_AXIOM_GATES", "0")
     outcome, _ = _run(FakeAutoresearchWorker(champion_bpb=0.95))
     assert outcome.chain_hash is None
 
@@ -241,7 +241,7 @@ def test_unavailable_worker_skips_cleanly() -> None:
 
 
 def test_record_promotion_is_high_risk_with_owner_gate(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("muse_AXIOM_GATES", "1")
+    monkeypatch.setenv("MUSE_AXIOM_GATES", "1")
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     result = record_promotion(TARGET_PATH, commit="c000002", val_bpb=0.95, diff_loc=40)
     classification = result["classification"]

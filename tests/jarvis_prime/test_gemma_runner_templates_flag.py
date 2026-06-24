@@ -1,4 +1,4 @@
-"""Phase-3 regression gate: muse_TEMPLATES off => gemma_runner byte-identical.
+"""Phase-3 regression gate: MUSE_TEMPLATES off => gemma_runner byte-identical.
 
 The strongest possible guarantee is object identity — flag off, the exact
 runner object the invoke factory produced is returned, the fast-path module is
@@ -35,9 +35,9 @@ def test_flag_off_returns_identical_runner_object(
     monkeypatch: pytest.MonkeyPatch, flag_value: str | None
 ) -> None:
     if flag_value is None:
-        monkeypatch.delenv("muse_TEMPLATES", raising=False)
+        monkeypatch.delenv("MUSE_TEMPLATES", raising=False)
     else:
-        monkeypatch.setenv("muse_TEMPLATES", flag_value)
+        monkeypatch.setenv("MUSE_TEMPLATES", flag_value)
     monkeypatch.delitem(sys.modules, "hermes_cli.jarvis_prime.template_fastpath", raising=False)
 
     runner = _build(monkeypatch)
@@ -47,7 +47,7 @@ def test_flag_off_returns_identical_runner_object(
 
 
 def test_flag_off_outputs_byte_identical(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("muse_TEMPLATES", raising=False)
+    monkeypatch.delenv("MUSE_TEMPLATES", raising=False)
     runner = _build(monkeypatch)
     assert runner is not None
     report = measure_runner(runner, _PROMPTS, label="flag-off")
@@ -58,8 +58,8 @@ def test_flag_off_outputs_byte_identical(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_flag_on_without_server_still_returns_base_runner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("muse_TEMPLATES", "1")
-    monkeypatch.delenv("muse_TEMPLATES_SERVER", raising=False)
+    monkeypatch.setenv("MUSE_TEMPLATES", "1")
+    monkeypatch.delenv("MUSE_TEMPLATES_SERVER", raising=False)
     runner = _build(monkeypatch)
     assert runner is _sentinel_runner
 
@@ -67,9 +67,9 @@ def test_flag_on_without_server_still_returns_base_runner(
 def test_flag_on_with_unreachable_server_still_returns_base_runner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("muse_TEMPLATES", "1")
+    monkeypatch.setenv("MUSE_TEMPLATES", "1")
     # Port 9 (discard) — nothing listens; health() must fail closed fast.
-    monkeypatch.setenv("muse_TEMPLATES_SERVER", "http://127.0.0.1:9")
+    monkeypatch.setenv("MUSE_TEMPLATES_SERVER", "http://127.0.0.1:9")
     runner = _build(monkeypatch)
     assert runner is _sentinel_runner
 
@@ -77,5 +77,5 @@ def test_flag_on_with_unreachable_server_still_returns_base_runner(
 def test_flag_off_when_ollama_missing_still_returns_none(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("muse_TEMPLATES", raising=False)
+    monkeypatch.delenv("MUSE_TEMPLATES", raising=False)
     assert build_gemma_runner(which=lambda name: None) is None
