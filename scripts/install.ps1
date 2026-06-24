@@ -1230,7 +1230,7 @@ function Install-Dependencies {
         # UV_PROJECT_ENVIRONMENT pins the sync target to our venv\.
         # Without it, modern uv (>=0.5) ignores VIRTUAL_ENV for `sync`
         # and creates a sibling .venv\ inside the repo -- leaving venv\
-        # empty and producing the broken state where `museexe` exists
+        # empty and producing the broken state where `muse.exe` exists
         # in the wrong directory and imports fail with ModuleNotFoundError.
         # (Mirrors the same flag in scripts/install.sh::install_deps.)
         $env:UV_PROJECT_ENVIRONMENT = "$InstallDir\venv"
@@ -1326,7 +1326,7 @@ except Exception:
     # Baseline-import gate. Even if a tier reported success above, the
     # actual deps may have landed somewhere other than $InstallDir\venv\
     # (e.g. uv 0.5+ syncing into a sibling .venv\ when UV_PROJECT_ENVIRONMENT
-    # isn't set, leaving venv\ empty and museexe broken with
+    # isn't set, leaving venv\ empty and muse.exe broken with
     # `ModuleNotFoundError: No module named 'dotenv'` on first run).
     # We probe via the venv's own python so a misdirected sync is caught
     # here, not 30 seconds later when the user runs `muse`.
@@ -1404,7 +1404,7 @@ function Set-PathVariable {
     }
 
     # Add the venv Scripts dir to user PATH so muse is globally available
-    # On Windows, the museexe in venv\Scripts\ has the venv Python baked in
+    # On Windows, the muse.exe in venv\Scripts\ has the venv Python baked in
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     
     if ($currentPath -notlike "*$hermesBin*") {
@@ -1899,7 +1899,7 @@ function Start-GatewayIfConfigured {
 
     if (-not $hasMessaging) { return }
 
-    $hermesCmd = "$InstallDir\venv\Scripts\museexe"
+    $hermesCmd = "$InstallDir\venv\Scripts\muse.exe"
     if (-not (Test-Path $hermesCmd)) {
         $hermesCmd = "muse"
     }
@@ -2287,7 +2287,7 @@ function Invoke-PostInstallMode {
 }
 
 function Resolve-HermesCmd {
-    $candidate = "$InstallDir\venv\Scripts\museexe"
+    $candidate = "$InstallDir\venv\Scripts\muse.exe"
     if (Test-Path $candidate) { return $candidate }
     $onPath = Get-Command muse -ErrorAction SilentlyContinue
     if ($onPath) { return $onPath.Source }
@@ -2307,7 +2307,7 @@ function Invoke-JarvisLaunch {
     $hermesCmd = Resolve-HermesCmd
     if ($hermesCmd -eq "") {
         Write-Warn "muse command not found after install - skipping JARVIS launch"
-        Write-Info "Recovery: & '$InstallDir\venv\Scripts\museexe' models bootstrap --free-first --jarvis"
+        Write-Info "Recovery: & '$InstallDir\venv\Scripts\muse.exe' models bootstrap --free-first --jarvis"
         return
     }
 
@@ -2368,7 +2368,7 @@ function Invoke-ModelsBootstrap {
     $hermesCmd = Resolve-HermesCmd
     if ($hermesCmd -eq "") {
         Write-Warn "muse command not found - skipping model bootstrap"
-        Write-Info "Run later: & '$InstallDir\venv\Scripts\museexe' models bootstrap --free-first --jarvis"
+        Write-Info "Run later: & '$InstallDir\venv\Scripts\muse.exe' models bootstrap --free-first --jarvis"
         return
     }
 

@@ -35,6 +35,22 @@ with the same `gateway.cockpit.observatory_layout_engine` the live page uses —
 but the telemetry numbers are illustrative and frozen. Nothing is presented as
 live measurement.
 
+### Sacred-geometry layouts (in-browser)
+
+The HUD **layout** select re-arranges the galaxy onto closed-form lattices,
+computed client-side with the same golden angle + vertex math as the UE renderer
+(`MuseSacredGeometry`):
+
+- **Galaxy** (default) — the gateway-computed force / solar positions (unchanged).
+- **Flower** — Vogel phyllotaxis disk.
+- **Sphere** — spherical Fibonacci lattice.
+- **Icosahedron** — Platonic-solid anchors (cycled in shells).
+- **24-cell** — a projected, 4D-rotated regular 4-polytope.
+
+This works on the hosted demo page too, so visitors can switch lattices live
+with no backend. Only the geometry positions change; the honesty rules (null
+heat → cool-gray, dormant dressing, no fabricated data) are untouched.
+
 ### Regenerating the demo snapshot
 
 ```bash

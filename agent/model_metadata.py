@@ -648,15 +648,24 @@ def fetch_endpoint_model_metadata(
     base_url: str,
     api_key: str = "",
     force_refresh: bool = False,
+    provider: str = "",
 ) -> Dict[str, Dict[str, Any]]:
     """Fetch model metadata from an OpenAI-compatible ``/models`` endpoint.
 
     This is used for explicit custom endpoints where hardcoded global model-name
     defaults are unreliable. Results are cached in memory per base URL.
+
+    When ``provider`` is ``"lmstudio"`` the native ``/api/v1/models`` endpoint
+    is queried even for non-local hosts, so a *remote* LM Studio instance
+    (public IP / hostname, reached over the internet rather than a private
+    LAN or Tailscale mesh) reports its real context window instead of falling
+    back to a default (NousResearch/hermes-agent#47200).
     """
     normalized = _normalize_base_url(base_url)
     if not normalized or _is_openrouter_base_url(normalized):
         return {}
+
+    is_lmstudio_provider = (provider or "").strip().lower() == "lmstudio"
 
     if not force_refresh:
         cached = _endpoint_model_metadata_cache.get(normalized)
@@ -675,7 +684,7 @@ def fetch_endpoint_model_metadata(
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     last_error: Optional[Exception] = None
 
-    if is_local_endpoint(normalized):
+    if is_local_endpoint(normalized) or is_lmstudio_provider:
         try:
             if detect_local_server_type(normalized, api_key=api_key) == "lm-studio":
                 server_url = normalized[:-3].rstrip("/") if normalized.endswith("/v1") else normalized
@@ -705,6 +714,16 @@ def fetch_endpoint_model_metadata(
                         if isinstance(ctx, int) and ctx > 0:
                             context_length = ctx
                             break
+                    # Not currently loaded: fall back to the model's advertised
+                    # context window (loaded_context_length = last runtime
+                    # setting, max_context_length = training maximum) so unloaded
+                    # models still report a window (NousResearch/hermes-agent#47678).
+                    if context_length is None:
+                        for key in ("loaded_context_length", "max_context_length"):
+                            ctx = model.get(key)
+                            if isinstance(ctx, int) and ctx > 0:
+                                context_length = ctx
+                                break
                     if context_length is not None:
                         entry["context_length"] = context_length
 
@@ -792,9 +811,10 @@ def _resolve_endpoint_context_length(
     model: str,
     base_url: str,
     api_key: str = "",
+    provider: str = "",
 ) -> Optional[int]:
     """Resolve context length from an endpoint's live ``/models`` metadata."""
-    endpoint_metadata = fetch_endpoint_model_metadata(base_url, api_key=api_key)
+    endpoint_metadata = fetch_endpoint_model_metadata(base_url, api_key=api_key, provider=provider)
     matched = endpoint_metadata.get(model)
     if not matched:
         if len(endpoint_metadata) == 1:
@@ -1165,6 +1185,17 @@ def _query_local_context_length(model: str, base_url: str, api_key: str = "") ->
                             for inst in m.get("loaded_instances", []):
                                 cfg = inst.get("config", {})
                                 ctx = cfg.get("context_length")
+                                if ctx and isinstance(ctx, (int, float)):
+                                    return int(ctx)
+                            # Not currently loaded: fall back to the model's
+                            # advertised context window from the v1 API. The
+                            # top-level loaded_context_length reflects the last
+                            # runtime setting; max_context_length is the model's
+                            # training maximum. Without this fallback the probe
+                            # returns None whenever the model isn't loaded
+                            # (NousResearch/hermes-agent#47678).
+                            for key in ("loaded_context_length", "max_context_length"):
+                                ctx = m.get(key)
                                 if ctx and isinstance(ctx, (int, float)):
                                     return int(ctx)
                             break
@@ -1554,6 +1585,22 @@ def get_model_context_length(
         if ctx is not None:
             if base_url:
                 save_context_length(model, base_url, ctx)
+            return ctx
+
+    # 1c. Remote LM Studio — probe the native /api/v1/models endpoint explicitly.
+    # Local instances are handled by steps 2-3 below, but a *remote* instance
+    # (public IP / hostname) fails is_local_endpoint(), so it would never reach
+    # the native probe and would fall back to the 256K default even though the
+    # OpenAI-compat /models response omits the real window
+    # (NousResearch/hermes-agent#47200). Threading provider="lmstudio" lets
+    # fetch_endpoint_model_metadata() take the native path regardless of
+    # locality. Not persisted — LM Studio's loaded context is transient (see
+    # step 1's cache exclusion).
+    if provider == "lmstudio" and base_url and not is_local_endpoint(base_url):
+        ctx = _resolve_endpoint_context_length(model, base_url, api_key=api_key, provider=provider)
+        if ctx is None:
+            ctx = _query_local_context_length(model, base_url, api_key=api_key)
+        if ctx and ctx > 0:
             return ctx
 
     # 2. Active endpoint metadata for truly custom/unknown endpoints.

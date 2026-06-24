@@ -5,13 +5,13 @@
 **Base branch:** `claude/muse-cli-singularity-skin` (G2, cumulative).
 **Base commit:** `9b9db6f514b8e8c3947e04344ed77360a418bdae`
 **Owned files (only):**
-- `hermes_cli/banner.py` — ONLY the `muse_GLYPH` constant (ring + core art).
+- `hermes_cli/banner.py` — ONLY the `MUSE_GLYPH` constant (ring + core art).
 - `docs/launch/muse-app/g2b-glyph.md` — this snapshot.
 
-Nothing else touched. `muse_WORDMARK`, the skins, `cli.py`, the comment
+Nothing else touched. `MUSE_WORDMARK`, the skins, `cli.py`, the comment
 header, and the two text tiers below the glyph were left byte-for-byte
 unchanged. `git diff --stat` = `hermes_cli/banner.py | 22 +++----` (1 file,
-9 insertions / 13 deletions), confined to the `muse_GLYPH` string.
+9 insertions / 13 deletions), confined to the `MUSE_GLYPH` string.
 
 ## Intent
 
@@ -22,10 +22,10 @@ art with a clean, symmetric, concentric octagonal ring, core dead-center,
 and a single clean gap at the lower-right — keeping the same Rich-markup
 string format and the two brand text tiers underneath.
 
-## The new `muse_GLYPH` art (Rich markup)
+## The new `MUSE_GLYPH` art (Rich markup)
 
 ```
-muse_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
       [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
      [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
@@ -62,7 +62,7 @@ muse_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF
 ## Centering-check output (PASS)
 
 Throwaway check: strip Rich markup via
-`Text.from_markup(muse_GLYPH).plain`, isolate the ring region (everything
+`Text.from_markup(MUSE_GLYPH).plain`, isolate the ring region (everything
 above the first blank line), compute per-row + overall left/right extents,
 locate the `◉`/`●` core, and assert the core column is within ±1 of the
 horizontal center and its row within ±1 of the vertical center.
@@ -117,7 +117,7 @@ contains #B388FF (violet): True
 
 ## Rendered text (captured)
 
-`uv run python -c "from rich.console import Console; from hermes_cli import banner; Console().print(banner.muse_GLYPH)"`:
+`uv run python -c "from rich.console import Console; from hermes_cli import banner; Console().print(banner.MUSE_GLYPH)"`:
 
 ```
            ╭─────╮

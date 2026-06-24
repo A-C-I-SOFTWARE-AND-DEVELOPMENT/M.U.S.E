@@ -11,7 +11,7 @@ UNTOUCHED) — and acts on the verdict exactly once:
 - **FAIL** or ``mechanical_only``: enqueue one structured entry to the
   flywheel ``improvement_queue.jsonl`` and STOP. No retries, no lowered bars.
 
-CLI (owner laptop, with a live llama-server and ``muse_TEMPLATES=1``):
+CLI (owner laptop, with a live llama-server and ``MUSE_TEMPLATES=1``):
 
     python -m hermes_cli.jarvis_prime.bench.ratchet_run \
         --rollback-handle "$(git rev-parse HEAD)"
@@ -202,7 +202,7 @@ def run_ratchet(
             composite=verdict.composite_candidate,
             rollback_handle=rollback_handle,
             safety_counts=challenger.safety_counts,
-            note="template fastpath (muse_TEMPLATES challenger) promoted via ratchet",
+            note="template fastpath (MUSE_TEMPLATES challenger) promoted via ratchet",
         )
         champions.freeze(new_champion, reason="ratchet pass: template fastpath")
         # The freeze must be visible in BOTH stores before reporting success.
@@ -276,11 +276,11 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     import os
 
-    os.environ["muse_TEMPLATES"] = "1"
+    os.environ["MUSE_TEMPLATES"] = "1"
     from ..template_fastpath import maybe_wrap_runner
 
     candidate = maybe_wrap_runner(base_runner)
-    os.environ["muse_TEMPLATES"] = "0"
+    os.environ["MUSE_TEMPLATES"] = "0"
 
     db_path, ledger_path = _default_paths()
     result = run_ratchet(

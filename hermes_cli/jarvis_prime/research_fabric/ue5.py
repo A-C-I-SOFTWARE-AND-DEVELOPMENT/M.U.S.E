@@ -10,7 +10,7 @@ API (default ``127.0.0.1:30010``; enable the *Remote Control API* and
 - ``py(script)``  — PythonScriptLibrary.ExecutePythonCommand
 
 Process spawning is owner-gated: ``launch_offscreen_render(...)`` only
-calls ``UnrealEditor-Cmd`` when ``muse_UE5_ALLOW_SPAWN=1``; otherwise it
+calls ``UnrealEditor-Cmd`` when ``MUSE_UE5_ALLOW_SPAWN=1``; otherwise it
 returns the fully built command without touching the system. Network
 functions never raise — they return ``{"ok": False, "error": ...}``.
 
@@ -43,7 +43,7 @@ from typing import Any, Optional, Sequence
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 30010  # Remote Control HTTP
-SPAWN_ENV = "muse_UE5_ALLOW_SPAWN"
+SPAWN_ENV = "MUSE_UE5_ALLOW_SPAWN"
 
 _KISMET = "/Script/Engine.Default__KismetSystemLibrary"
 _PYLIB = "/Engine/PythonTypes.Default__PythonScriptLibrary"
@@ -254,7 +254,7 @@ def launch_offscreen_render(
     output_dir: Optional[str] = None,
     offscreen: bool = True,
 ) -> dict:
-    """Spawn the render only when muse_UE5_ALLOW_SPAWN=1 (owner-gated).
+    """Spawn the render only when MUSE_UE5_ALLOW_SPAWN=1 (owner-gated).
 
     Without the grant: returns the built command and ``spawned: False``
     so callers can show exactly what *would* run.

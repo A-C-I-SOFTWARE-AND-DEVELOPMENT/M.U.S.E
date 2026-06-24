@@ -65,7 +65,7 @@ fi
 # 4. Device baseline, then the same fast-path bench as the laptop (it starts
 #    and owns its llama-server; gate: >=20% latency win + parse rate >= base).
 "$BENCH" -m "$MODEL" -p 256 -n 64 -t "$(nproc)" | tee -a "$REPORT"
-export muse_TEMPLATES_DIR="${muse_TEMPLATES_DIR:-$PWD/hermes_cli/jarvis_prime/templates}"
+export MUSE_TEMPLATES_DIR="${MUSE_TEMPLATES_DIR:-$PWD/hermes_cli/jarvis_prime/templates}"
 PORT="${PORT:-8097}" bash scripts/templates_fastpath/phase3_bench.sh "$MODEL" ${USE_DRAFT:+"$USE_DRAFT"}
 
-echo "Done — device numbers appended to $REPORT. Rollback: muse_TEMPLATES=0 on device."
+echo "Done — device numbers appended to $REPORT. Rollback: MUSE_TEMPLATES=0 on device."

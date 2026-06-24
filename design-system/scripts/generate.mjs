@@ -142,7 +142,7 @@ function buildKotlin() {
   L.push("// Consume from Compose, e.g. `Surface(color = museTokens.Color.void)`.");
   L.push("@file:Suppress(\"unused\", \"ConstPropertyName\", \"MemberVisibilityCanBePrivate\")");
   L.push("");
-  L.push("package musedesignsystem");
+  L.push("package muse.designsystem");
   L.push("");
   L.push("import androidx.compose.ui.graphics.Color");
   L.push("import androidx.compose.ui.text.font.FontWeight");

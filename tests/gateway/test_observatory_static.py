@@ -113,8 +113,11 @@ def test_index_still_served_and_links_to_observatory(server) -> None:
     assert status == 200
     assert ctype.startswith("text/html")
     text = body.decode("utf-8")
-    # The one additive nav link to the Observatory page.
-    assert 'href="/cockpit/observatory.html"' in text
+    # The cinematic redesign replaced the static <a href> to the Observatory
+    # with a first-class SPA nav entry the app router resolves to the
+    # observatory view (js/views/observatory.js embeds /cockpit/observatory.html
+    # in a full-bleed iframe), so the flagship 3D page stays reachable.
+    assert 'data-nav="observatory"' in text
     # And the existing shell is intact.
     assert "muse" in text
 

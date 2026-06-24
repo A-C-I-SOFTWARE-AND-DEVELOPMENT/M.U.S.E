@@ -19,7 +19,7 @@ existing skins and tests are unaffected.
 | File | Change |
 |---|---|
 | `hermes_cli/skin_engine.py` | New `singularity` + `caduceus` built-in skins; runtime default flipped to `singularity` (module `_active_skin_name` + `init_skin_from_config` fallback). |
-| `hermes_cli/banner.py` | New `muse_WORDMARK` + `muse_GLYPH` Rich-markup art constants (muse block wordmark + ring/core glyph). |
+| `hermes_cli/banner.py` | New `MUSE_WORDMARK` + `MUSE_GLYPH` Rich-markup art constants (muse block wordmark + ring/core glyph). |
 | `cli.py` (branding strings only) | Welcome / help-header / goodbye fallbacks mirrored to muse the local `load_cli_config()` default `display.skin` → `singularity`. |
 | `hermes_cli/config.py` (1 line) | `DEFAULT_CONFIG["display"]["skin"]` → `singularity`. **Out of the originally declared owned set**, but the *actual* runtime-default control points live in `cli.py`/`config.py`, not skin_engine — without this the launch banner stays gold. Single-token, collision-free. See "Residual risks". |
 | `tests/hermes_cli/test_skin_engine.py` | Updated the 3 change-detector asserts that pinned the old default-skin *name* (no-skin / null / non-dict display → `singularity`); added positive coverage for `singularity`, `caduceus`, and `list_skins`. |

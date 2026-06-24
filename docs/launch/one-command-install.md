@@ -178,7 +178,7 @@ honestly: per-turn routing decisions and knowledge-graph query
 activations, appended to local JSONL files under `~/.hermes/observatory/`
 (pruned to the newest 7 days) — nothing leaves your machine. Opt in via
 the installer prompt, `--enable-observatory` / `-EnableObservatory`, or
-simply `touch ~/.hermes/observatory/.enabled` (set `muse_OBSERVATORY=1`
+simply `touch ~/.hermes/observatory/.enabled` (set `MUSE_OBSERVATORY=1`
 for env-based enablement). Disable by deleting the marker.
 
 ---

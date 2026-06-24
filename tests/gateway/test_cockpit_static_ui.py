@@ -43,11 +43,26 @@ def cockpit(tmp_path, monkeypatch):
 
 
 @pytest.fixture()
-def shell(cockpit) -> str:
-    """The served index.html as text (the canonical client surface)."""
-    status, body = _get(cockpit, "/cockpit/")
-    assert status == 200
-    return body.decode("utf-8")
+def shell() -> str:
+    """The full client bundle (index.html + tokens.css + cockpit.css + every
+    js module) as one string.
+
+    The cockpit is a modular, build-free ES-module app: the shell is just the
+    structure, and the backend wiring lives across ``js/core/*`` and
+    ``js/views/*`` (loaded via ``<script type=module>``). These "shell consumes
+    the depth backend" assertions check the *client surface* contract, so they
+    run against the whole served bundle, not just index.html.
+    """
+    from pathlib import Path
+
+    static = Path(srv.__file__).resolve().parent / "static"
+    parts = [
+        (static / "index.html").read_text(encoding="utf-8"),
+        (static / "tokens.css").read_text(encoding="utf-8"),
+        (static / "cockpit.css").read_text(encoding="utf-8"),
+    ]
+    parts += [p.read_text(encoding="utf-8") for p in sorted((static / "js").rglob("*.js"))]
+    return "\n".join(parts)
 
 
 def test_serves_cockpit_index_unauthenticated(cockpit):
@@ -131,22 +146,20 @@ def test_shell_has_phase_rail(shell):
 
 
 def test_shell_has_owner_gated_approve_deny(shell):
-    # Approve/Deny controls that POST the decision + authorization.
-    assert "data-approve" in shell
-    assert "data-deny" in shell
+    # Approve/Reject controls that POST the decision; approve is owner-gated.
     assert "/v1/cockpit/approvals/" in shell
-    assert "decideApproval" in shell
-    # The owner phrase is prompted at action time and a 403 re-prompts; it is
-    # never hardcoded/stored in the shell.
+    assert '"approve"' in shell and '"reject"' in shell
+    # The owner phrase is prompted at action time (ownerPost) and a 403
+    # re-prompts; it is never hardcoded/stored in the client.
+    assert "ownerPost" in shell
     assert "promptOwnerPhrase" in shell
     assert "Yes, with authorization." not in shell
 
 
 def test_shell_has_model_switcher(shell):
-    # Reads model-routes and POSTs an override.
+    # Reads model-routes and POSTs an override per task class.
     assert "/v1/cockpit/model-routes" in shell
     assert "/v1/cockpit/model-routes/override" in shell
-    assert "applyRouteOverride" in shell
     assert "task_class" in shell
 
 
@@ -158,9 +171,9 @@ def test_shell_has_pairing_entry_point(shell):
 
 
 def test_shell_has_autonomy_control(shell):
-    # Autonomy raise sends authorization and handles a 403.
+    # Autonomy raise is owner-gated: sends the authorization phrase, handles 403.
     assert "/v1/cockpit/autonomy" in shell
-    assert "applyAutonomy" in shell
+    assert "ownerPost" in shell
     assert "authorization" in shell
 
 
@@ -168,5 +181,5 @@ def test_shell_loads_without_token_then_uses_token(shell):
     # The shell must boot unauthenticated and only attach the bearer token to
     # its API calls (carried via the Authorization header, like the existing
     # fetch calls).
-    assert "musecockpit.token" in shell
+    assert "muse.cockpit.token" in shell
     assert "Bearer " in shell

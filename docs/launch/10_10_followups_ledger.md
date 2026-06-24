@@ -139,7 +139,7 @@ lacks pytest/plugins — this is also the root cause of FU-10).
 | **FU-19-gateways-surface** | B | Raise ONE weakest gateway to capability/health parity (exact file declared pre-start) | `gateway/<one_gateway>.py` + its test | additive | P2 | planned |
 | **FU-20-voice-graphrag-surface** | B | Raise ONE of voice/GraphRAG backend parity (exact module declared pre-start; not handlers/server/index) | `hermes_cli/jarvis_prime/<module>.py` + test | additive | P2 | planned |
 | **FU-21-council-router-proof** | B | Prove AOS routing resolves only registry members (registry read-only) | `tests/test_aos_council_routing.py` (new) | additive (test) | P2 | planned |
-| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/muse_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
+| **FU-22-selfplay-theory** | — | Append the deep-research falsifiable hypotheses + free/local experiments | `docs/jarvis_architecture/MUSE_SINGLE_IDENTITY_AND_SELFPLAY.md` | doc-only | P2 | planned |
 
 ## Wave plan (disjoint ⇒ truly parallel)
 
@@ -635,8 +635,8 @@ autoresearch, post-#455 muse final audit). Session branch
 | **#408 advanced CodeQL** | blocked on owner repo settings (CodeQL Default Setup). |
 | **Registry/namespace renames** (Docker Hub / PyPI / Cachix / homebrew) | owner-coordinated, publish-time. |
 | **G2 follow-on — promote "Release gate (strict tooling)" to required** | owner GitHub-settings click (several green cycles have elapsed since Wave D). |
-| **PR #453 — deep Hermes→muse rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `muse_RENAME_REPORT.md`/`muse_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
-| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/muse_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
+| **PR #453 — deep Hermes→muse rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `MUSE_RENAME_REPORT.md`/`MUSE_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
+| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/MUSE_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
 
 ## Decision log
 

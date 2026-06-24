@@ -4,13 +4,13 @@
  *
  * Four cards:
  *   1. Gateway — view/change the gateway base URL (persisted in localStorage
- *      `musegateway.base`); a live health ping confirms reachability.
+ *      `muse.gateway.base`); a live health ping confirms reachability.
  *   2. Brain (gateway process) — native-shell only: running/stopped status,
  *      the detected `muse` binary, autostart toggle, and start/stop buttons
  *      wired to the shell's brain commands (lib/brain → src-tauri/src/brain.rs).
  *   3. Device pairing — the scaffold's owner-gated pairing flow (pair/start →
  *      pair/confirm), plus paste-a-token and clear-token. The bearer token lives
- *      only in localStorage `musecockpit.token`; the owner phrase is entered to
+ *      only in localStorage `muse.cockpit.token`; the owner phrase is entered to
  *      confirm and never stored.
  *   4. Emergency stop — POST /v1/cockpit/emergency-stop (cancel all jobs, latch
  *      autonomy to read-only). Owner-gated and styled as a danger action; the

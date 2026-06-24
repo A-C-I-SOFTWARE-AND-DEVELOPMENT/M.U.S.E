@@ -125,9 +125,9 @@ def test_write_and_load_roundtrip_deterministic(mined, tmp_path: Path) -> None:
 
 
 def test_templates_dir_honors_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.delenv("muse_TEMPLATES_DIR", raising=False)
+    monkeypatch.delenv("MUSE_TEMPLATES_DIR", raising=False)
     assert templates_dir() == REPO_TEMPLATES
-    monkeypatch.setenv("muse_TEMPLATES_DIR", str(tmp_path / "live"))
+    monkeypatch.setenv("MUSE_TEMPLATES_DIR", str(tmp_path / "live"))
     assert templates_dir() == tmp_path / "live"
 
 

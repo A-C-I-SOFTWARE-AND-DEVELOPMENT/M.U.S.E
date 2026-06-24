@@ -1,0 +1,526 @@
+/* muse cockpit — "Cinematic synthesis" design system.
+ *
+ * Single source of styling: reset/base, the cinematic shell (one atmospheric
+ * depth pool, core-bloom glyph), sticky header, left nav rail, .view sections,
+ * and EVERY component from the catalog. White is the hero; the spectral ring is
+ * MATTE (never bloomed/glowed/neon). Elevation is TONAL — no drop shadows.
+ * Hierarchy by VALUE. Round line caps everywhere. Spectral color <= ~20%.
+ */
+
+/* ======================================================================== *
+ * Reset / base
+ * ======================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  /* The void is the full-bleed field. ONE broad atmospheric depth pool sits
+   * behind the lockup (top-centre) — a single faint cool wash, not a stack. */
+  background:
+    radial-gradient(1100px 560px at 50% -8%,
+      rgba(122, 224, 255, 0.05) 0%,
+      rgba(179, 136, 255, 0.035) 34%,
+      rgba(5, 5, 7, 0) 68%),
+    var(--void);
+  background-attachment: fixed;
+  color: var(--signal);
+  font-family: var(--sans);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--ring-1); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, .mono { font-family: var(--mono); font-size: 12px; }
+
+::selection { background: rgba(122, 224, 255, 0.22); color: var(--core); }
+
+:focus-visible { outline: 2px solid var(--ring-1); outline-offset: 2px; border-radius: 2px; }
+
+.grow { flex: 1 1 auto; }
+.muted { color: var(--signal-mute); }
+
+/* ======================================================================== *
+ * The brand glyph + cinematic core bloom
+ * --------------------------------------------------------------------------
+ * The WHITE CORE blazes via stacked cool-white radial halos (4 radii: tight
+ * bright center -> wide faint edge) + one tight high-emissive punch. The ring
+ * is MATTE — never touched by the bloom. Deterministic, no filters.
+ * ======================================================================== */
+.glyph { position: relative; display: inline-grid; place-items: center; line-height: 0; }
+
+/* The volumetric bloom lives BEHIND the svg, sized to the core only, so the
+ * matte ring is never glowed. Layered cool-white radial halos + a core punch. */
+.glyph::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 9%),
+    radial-gradient(circle at 50% 50%, rgba(242, 251, 255, 0.55) 0%, rgba(242, 251, 255, 0) 16%),
+    radial-gradient(circle at 50% 50%, rgba(224, 248, 255, 0.30) 0%, rgba(224, 248, 255, 0) 30%),
+    radial-gradient(circle at 50% 50%, rgba(212, 242, 255, 0.16) 0%, rgba(212, 242, 255, 0) 52%);
+}
+.glyph > svg { position: relative; z-index: 1; }
+
+/* The animated spin is allowed ONLY in the live cockpit header. */
+.glyph.spin > svg { transform-origin: 50% 50%; animation: glyph-spin 8.5s linear infinite; }
+@keyframes glyph-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .glyph.spin > svg { animation: none; } }
+
+/* ======================================================================== *
+ * App shell layout
+ * ======================================================================== */
+.app {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "nav    main";
+  min-height: 100vh;
+}
+
+/* ---- Header (sticky) --------------------------------------------------- */
+.app-header {
+  grid-area: header;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--edge);
+  background: rgba(5, 5, 7, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.lockup { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.lockup .wordmark {
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: 0.5px;
+  color: var(--core);
+}
+.lockup .expansion {
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-spacing);
+  color: var(--signal-mute);
+}
+
+.header-status { display: flex; align-items: center; gap: var(--space-2); }
+.header-status .status-text { font-size: var(--type-label-size); color: var(--signal-dim); }
+.header-actions { display: flex; align-items: center; gap: var(--space-2); }
+
+/* ---- Left nav rail ----------------------------------------------------- */
+.app-nav {
+  grid-area: nav;
+  position: sticky;
+  top: 57px; /* below the header */
+  align-self: start;
+  height: calc(100vh - 57px);
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-3);
+  border-right: 1px solid var(--edge);
+  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--signal-mute);
+  font: inherit;
+  font-size: var(--type-body-size);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--easing-standard),
+              background-color var(--duration-fast) var(--easing-standard);
+}
+.nav-item:hover { color: var(--signal); background: var(--void-2); }
+.nav-item.active { color: var(--signal); background: var(--void-2); }
+/* Active marker: a thin MATTE ring-grad accent bar (no glow). */
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--ring-grad);
+}
+.nav-item .nav-ext { margin-left: auto; color: var(--signal-mute); font-size: 11px; }
+
+/* ---- Main + view sections --------------------------------------------- */
+.app-main {
+  grid-area: main;
+  min-width: 0;
+  padding: var(--space-6);
+}
+
+.view { display: none; max-width: 980px; margin: 0 auto; }
+.view.active { display: block; }
+
+/* ======================================================================== *
+ * Component catalog
+ * ======================================================================== */
+
+/* ---- Button ------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--signal);
+  font-family: var(--sans);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-spacing);
+  line-height: var(--type-label-line);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--easing-standard),
+              border-color var(--duration-fast) var(--easing-standard),
+              color var(--duration-fast) var(--easing-standard),
+              transform var(--duration-fast) var(--easing-standard);
+}
+.btn:focus-visible { outline: 2px solid var(--ring-1); outline-offset: 2px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+
+/* Primary — core fill, void text (the single bright control). */
+.btn.primary { background: var(--core); color: var(--void); border-color: var(--core); }
+.btn.primary:hover:not(:disabled) { background: #f2fbff; border-color: #f2fbff; }
+
+/* Secondary — 1px edge + signal text, tonal fill on interaction. */
+.btn.secondary { border-color: var(--edge); color: var(--signal); }
+.btn.secondary:hover:not(:disabled) { background: var(--void-2); }
+.btn.secondary:active:not(:disabled) { background: var(--void-3); }
+
+/* Ghost — transparent + signal-dim, lifts on interaction. */
+.btn.ghost { color: var(--signal-dim); }
+.btn.ghost:hover:not(:disabled) { color: var(--signal); background: var(--void-2); }
+.btn.ghost:active:not(:disabled) { background: var(--void-3); }
+
+/* Danger — danger text + danger border, tinted fill on interaction. */
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.danger:hover:not(:disabled) { background: rgba(255, 92, 99, 0.12); }
+.btn.danger:active:not(:disabled) { background: rgba(255, 92, 99, 0.20); }
+
+/* ---- Card -------------------------------------------------------------- */
+.card {
+  background: var(--void-3);          /* elevation-card tonal overlay */
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.card + .card { margin-top: var(--space-3); }
+.card.interactive { transition: background-color var(--duration-fast) var(--easing-standard); }
+.card.interactive:hover { background: var(--void-2); }
+
+/* ---- Chip / StatusPill ------------------------------------------------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-spacing);
+  line-height: var(--type-label-line);
+  white-space: nowrap;
+}
+.pill.neutral { background: var(--void-2); border-color: var(--edge); color: var(--signal-dim); }
+.pill.ok      { background: rgba(91, 227, 160, 0.14); color: var(--ok); }
+.pill.warn    { background: rgba(245, 196, 81, 0.14); color: var(--warn); }
+.pill.danger  { background: rgba(255, 92, 99, 0.14); color: var(--danger); }
+.pill.accent  { background: rgba(122, 224, 255, 0.14); color: var(--ring-1); }
+/* Selected filter chip inverts to a Primary at pill radius. */
+.pill.selected { background: var(--core); color: var(--void); border-color: var(--core); }
+
+/* ---- StatusDot --------------------------------------------------------- */
+.dot {
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: 50%;
+  background: var(--signal-mute);   /* idle / disconnected default */
+  flex: none;
+}
+.dot.ok     { background: var(--ok); }
+.dot.warn   { background: var(--warn); }
+.dot.danger { background: var(--danger); }
+.dot.off    { background: var(--signal-mute); }
+.dot.live   { background: var(--ring-1); animation: dot-pulse var(--duration-slow) var(--easing-standard) infinite alternate; }
+@keyframes dot-pulse { from { opacity: 1; } to { opacity: 0.4; } }
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
+
+/* ---- PhaseRail --------------------------------------------------------- */
+.phaserail { display: flex; flex-direction: column; gap: var(--space-2); }
+.phaserail .segments { display: flex; align-items: stretch; gap: var(--space-2); }
+.phaserail .phase { flex: 1 1 0; display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.phaserail .bar {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--edge);            /* pending */
+}
+.phaserail .label {
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-spacing);
+  color: var(--signal-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phaserail .phase.done .bar    { background: var(--ring-1); }
+.phaserail .phase.active .bar  { background: var(--ring-grad); background-size: 200% 100%; animation: rail-shimmer 1.6s var(--easing-decelerate) infinite; }
+.phaserail .phase.failed .bar  { background: var(--danger); }
+.phaserail .phase.active .label,
+.phaserail .phase.done .label  { color: var(--signal); }
+@keyframes rail-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .phaserail .phase.active .bar { animation: none; } }
+
+/* ---- EmptyState -------------------------------------------------------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+  padding: var(--space-16) var(--space-6);
+}
+.empty .glyph { opacity: 0.5; }   /* dimmed glyph, no spin */
+.empty .empty-title {
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-spacing);
+  line-height: var(--type-title-line);
+  color: var(--signal);
+  margin: 0;
+}
+.empty .empty-body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--signal-dim);
+  margin: 0;
+  max-width: 42ch;
+}
+
+/* ---- SectionHeader ----------------------------------------------------- */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  margin: var(--space-4) 0 var(--space-4);
+  border-bottom: 1px solid var(--edge);
+}
+.section-header .heads { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.section-header .eyebrow {
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-spacing);
+  text-transform: uppercase;
+  color: var(--signal-mute);
+}
+.section-header .section-title {
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-spacing);
+  line-height: var(--type-title-line);
+  color: var(--signal);
+  margin: 0;
+}
+.section-header .trailing { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+
+/* ======================================================================== *
+ * Form controls (shared field styling for view modules)
+ * ======================================================================== */
+.field {
+  width: 100%;
+  font: inherit;
+  font-size: var(--type-body-size);
+  color: var(--signal);
+  background: var(--void-2);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+}
+.field::placeholder { color: var(--signal-mute); }
+.field:focus-visible { outline: none; border-color: var(--ring-1); }
+textarea.field { resize: vertical; }
+
+/* ======================================================================== *
+ * Dialogs + banners
+ * ======================================================================== */
+dialog {
+  background: var(--void-3);
+  color: var(--signal);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  max-width: 460px;
+  width: calc(100vw - var(--space-8));
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+dialog h3 { margin: 0 0 var(--space-3); font-size: var(--type-title-size); font-weight: var(--type-title-weight); }
+dialog label { display: block; font-size: var(--type-label-size); color: var(--signal-mute); margin-bottom: var(--space-1); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+.hint { color: var(--signal-mute); font-size: var(--type-label-size); margin-top: var(--space-2); }
+.row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+.banner {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-3) var(--space-6) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+}
+.banner.show { display: flex; }
+.banner.offline { background: rgba(255, 92, 99, 0.08); border: 1px solid var(--danger); color: #ffd7d9; }
+.banner.pair    { background: var(--void-2); border: 1px solid var(--edge); color: var(--signal); }
+
+/* ======================================================================== *
+ * Responsive — collapse the rail to a horizontal strip on narrow viewports
+ * ======================================================================== */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "nav"
+      "main";
+  }
+  .app-nav {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 0;
+    border-bottom: 1px solid var(--edge);
+  }
+  .nav-item { width: auto; }
+  .nav-item.active::before { display: none; }
+  .nav-item.active { box-shadow: inset 0 -2px 0 0 var(--ring-1); }
+}
+
+/* =====================================================================
+   GLOBAL 3D / AAA POLISH  — depth, glass, parallax-ready, tactile motion
+   (Intentionally overrides the flat tonal baseline above.)
+   ===================================================================== */
+body { perspective: 1800px; }
+.app { transform-style: preserve-3d; forced-color-adjust: none; }
+
+/* Kill native widget chrome so authored dark styling is honored everywhere */
+.app button, .app input, .btn, .nav-item, .field {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Floating glass header */
+.app-header {
+  background: linear-gradient(180deg, rgba(15,18,25,0.99) 0%, rgba(10,12,17,0.975) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 22px 48px -30px rgba(0,0,0,0.95);
+}
+
+/* Obsidian-glass cards with real depth */
+.card {
+  background: linear-gradient(162deg, rgba(21,25,34,0.90) 0%, rgba(13,16,22,0.84) 100%);
+  border: 1px solid rgba(255,255,255,0.055);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 2px 6px -3px rgba(0,0,0,0.55),
+    0 26px 50px -34px rgba(0,0,0,0.95);
+  transition: transform .45s cubic-bezier(.2,0,0,1),
+              box-shadow .45s cubic-bezier(.2,0,0,1),
+              border-color .3s var(--easing-standard);
+}
+.card.interactive { cursor: pointer; }
+.card.interactive:hover {
+  transform: translateY(-4px) scale(1.006);
+  border-color: rgba(122,224,255,0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 2px 6px -3px rgba(0,0,0,0.5),
+    0 36px 64px -34px rgba(0,0,0,0.95),
+    0 0 0 1px rgba(122,224,255,0.10),
+    0 0 46px -14px rgba(122,224,255,0.20);
+}
+
+/* Nav rail — depth + glide + spectral active wash */
+.nav-item { transition: color .15s, background-color .2s, transform .2s var(--easing-standard), box-shadow .25s; }
+.nav-item:hover { transform: translateX(3px); }
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(122,224,255,0.12) 0%, rgba(179,136,255,0.05) 60%, rgba(179,136,255,0) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 26px -20px rgba(122,224,255,0.55);
+}
+
+/* Tactile buttons */
+.btn { transition: transform .15s cubic-bezier(.2,0,0,1), box-shadow .22s, filter .2s, background-color .2s; }
+.btn:hover { transform: translateY(-1.5px); }
+.btn:active { transform: translateY(0) scale(.975); }
+.btn.primary {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 24px -12px rgba(255,255,255,0.30);
+}
+.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 16px 32px -12px rgba(255,255,255,0.42); }
+.btn.secondary:hover { box-shadow: 0 0 0 1px rgba(122,224,255,0.18), 0 12px 26px -16px rgba(122,224,255,0.3); }
+.btn.danger:hover { box-shadow: 0 0 26px -8px rgba(255,92,99,0.5); }
+
+/* Glassy pills + glow on accents */
+.pill { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.pill.accent { box-shadow: 0 0 20px -9px rgba(122,224,255,0.55); }
+.pill.ok { box-shadow: 0 0 20px -9px rgba(91,227,160,0.5); }
+
+/* Phase-rail bars glow with their state */
+.phaserail .bar { box-shadow: 0 0 12px -3px currentColor; }
+
+/* Inset, focus-glowing input */
+.field {
+  background: linear-gradient(180deg, rgba(8,9,13,0.92), rgba(13,16,22,0.82));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.45);
+  transition: box-shadow .22s, border-color .22s;
+}
+.field:focus {
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.45), 0 0 0 1px rgba(122,224,255,0.32), 0 0 24px -10px rgba(122,224,255,0.45);
+}
+
+/* Depth on titles + the glyph */
+.section-title { text-shadow: 0 2px 20px rgba(0,0,0,0.55); }
+.lockup .glyph { filter: drop-shadow(0 0 10px rgba(122,224,255,0.35)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card.interactive:hover, .nav-item:hover, .btn:hover, .btn:active { transform: none; }
+}

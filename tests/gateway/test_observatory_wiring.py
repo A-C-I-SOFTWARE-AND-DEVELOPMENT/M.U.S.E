@@ -1,4 +1,4 @@
-"""Observatory wiring seams — opt-in (``muse_OBSERVATORY`` / marker file).
+"""Observatory wiring seams — opt-in (``MUSE_OBSERVATORY`` / marker file).
 
 Covers :func:`gateway.cockpit.observatory_metrics.enabled`, the module-level
 seam helpers (``record_route_decision`` / ``record_query_activations``), the
@@ -23,7 +23,7 @@ from gateway.cockpit.agent import _record_route_decision
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.delenv("muse_OBSERVATORY", raising=False)
+    monkeypatch.delenv("MUSE_OBSERVATORY", raising=False)
     om.reset_collector()
     yield tmp_path
     om.reset_collector()
@@ -80,13 +80,13 @@ def test_disabled_graphrag_query_seam_writes_nothing(home: Path) -> None:
 
 @pytest.mark.parametrize("flag", ["1", "true", "TRUE", "yes", "Yes"])
 def test_enabled_via_env_values(home: Path, monkeypatch: pytest.MonkeyPatch, flag: str) -> None:
-    monkeypatch.setenv("muse_OBSERVATORY", flag)
+    monkeypatch.setenv("MUSE_OBSERVATORY", flag)
     assert om.enabled() is True
 
 
 @pytest.mark.parametrize("flag", ["", "0", "no", "false", "off"])
 def test_disabled_env_values(home: Path, monkeypatch: pytest.MonkeyPatch, flag: str) -> None:
-    monkeypatch.setenv("muse_OBSERVATORY", flag)
+    monkeypatch.setenv("MUSE_OBSERVATORY", flag)
     assert om.enabled() is False
 
 
@@ -106,7 +106,7 @@ def test_enabled_via_marker_file_no_restart_needed(home: Path) -> None:
 def test_route_decision_seam_records_and_ladder_reflects(
     home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("muse_OBSERVATORY", "1")
+    monkeypatch.setenv("MUSE_OBSERVATORY", "1")
     before = om.get_collector().latest_seq()
     _record_route_decision(
         {"kind": "reasoning", "escalate": True, "target": "aos_council"},
@@ -129,7 +129,7 @@ def test_route_decision_seam_records_and_ladder_reflects(
 def test_route_decision_fallback_is_recorded_as_local(
     home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("muse_OBSERVATORY", "1")
+    monkeypatch.setenv("MUSE_OBSERVATORY", "1")
     _record_route_decision(dict(HINT), "turn_summary_fallback", 7)
     tiers = om.get_collector().ladder_rollup("1h")
     assert tiers[0]["tier"] == "local"  # fallback replies are served in-process
@@ -209,7 +209,7 @@ def test_node_activate_overflow_weight_is_coalesced_not_lost(
 def test_seams_never_raise_when_collector_misconfigured(
     home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("muse_OBSERVATORY", "yes")
+    monkeypatch.setenv("MUSE_OBSERVATORY", "yes")
     # The observatory root is a *file*: every JSONL append must fail.
     (home / "observatory").write_text("not a directory", encoding="utf-8")
     om.reset_collector()

@@ -33,7 +33,7 @@ score.
 Wired vs pending seams
 ----------------------
 **Wired today (opt-in, default OFF):** two seams record events, and only
-when :func:`enabled` returns True (env ``muse_OBSERVATORY`` set to ``1`` /
+when :func:`enabled` returns True (env ``MUSE_OBSERVATORY`` set to ``1`` /
 ``true`` / ``yes``, case-insensitive, or the marker file
 ``${HERMES_HOME:-~/.hermes}/observatory/.enabled`` exists):
 
@@ -125,13 +125,13 @@ def cluster_id(label: str) -> str:
 def enabled() -> bool:
     """Whether the opt-in Observatory wiring seams are on (default OFF).
 
-    True iff env ``muse_OBSERVATORY`` is ``1`` / ``true`` / ``yes``
+    True iff env ``MUSE_OBSERVATORY`` is ``1`` / ``true`` / ``yes``
     (case-insensitive) or the marker file
     ``${HERMES_HOME:-~/.hermes}/observatory/.enabled`` exists. Cheap enough
     to call per event: one env read plus one stat — the marker is re-statted
     every call (never cached) so flipping it takes effect without a restart.
     """
-    flag = (os.environ.get("muse_OBSERVATORY") or "").strip().lower()
+    flag = (os.environ.get("MUSE_OBSERVATORY") or "").strip().lower()
     if flag in ("1", "true", "yes"):
         return True
     try:

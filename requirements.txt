@@ -1,0 +1,15 @@
+# Vercel-only dependency manifest for the public cloud server (vercel_app.py).
+#
+# This file exists SOLELY so Vercel's Python/FastAPI builder has a minimal,
+# self-contained dependency set to install for the public entrypoint declared
+# in pyproject.toml ([tool.vercel] entrypoint = "vercel_app:app").
+#
+# It is NOT the source of truth for local/dev/CI installs — those use
+# pyproject.toml + uv.lock (`uv sync`, `pip install -e '.[all,dev]'`). Do not
+# add general runtime deps here; keep it to exactly what the public cloud
+# server imports. Versions are pinned to match the `web` extra and the core
+# `pydantic` pin in pyproject.toml so the cloud server tracks the rest of the
+# project.
+fastapi==0.133.1
+starlette==1.3.1
+pydantic==2.12.5

@@ -44,6 +44,16 @@
     </select>
   </label>
 
+  <label class="winwrap">layout
+    <select id="layoutsel" title="Galaxy layout (sacred geometry)">
+      <option value="gateway" selected>Galaxy</option>
+      <option value="phyllotaxis">Flower</option>
+      <option value="fibonacci">Sphere</option>
+      <option value="platonic">Icosahedron</option>
+      <option value="polytope">24-cell</option>
+    </select>
+  </label>
+
   <span class="pill" id="telemetry" title="Telemetry collector state">telemetry: …</span>
   <span class="pill" id="conn" title="Live event stream state"><span class="dot" id="conndot"></span><span id="conntext">connecting…</span></span>
   <button id="tokenbtn" title="Set the cockpit pairing token">Token</button>
@@ -86,7 +96,7 @@
     <span class="glyph small"><span class="ring"></span><span class="core"></span></span>
     <div>
       <b>Telemetry dormant</b>
-      <p>Set <code>muse_OBSERVATORY=1</code> or create
+      <p>Set <code>MUSE_OBSERVATORY=1</code> or create
       <code>~/.hermes/observatory/.enabled</code>, then restart the gateway.
       The galaxy below is muse's real knowledge graph; live heat, pipelines and
       routing will light up once the collector records events.</p>
@@ -104,7 +114,7 @@
   never invents data.</p>
   <p>1 · Build the graph: <code>POST /v1/cockpit/graph/build</code> (or
   <code>jarvis_prime graph build</code>)<br/>
-  2 · Enable telemetry: set <code>muse_OBSERVATORY=1</code> or create
+  2 · Enable telemetry: set <code>MUSE_OBSERVATORY=1</code> or create
   <code>~/.hermes/observatory/.enabled</code>, then restart the gateway.</p>
   <p class="muted">Docs: <code>docs/synapse/design/10-observatory-spec.md</code></p>
   <button id="heroretry">Re-check</button>

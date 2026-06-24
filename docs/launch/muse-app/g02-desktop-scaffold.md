@@ -41,7 +41,7 @@ All under the two owned paths; nothing else touched.
 - `src/lib/gateway.ts` — typed gateway client: `pingHealth`, `pairStart` /
   `pairConfirm`, `subscribeJobs` (SSE via fetch + ReadableStream, reconnect with
   backoff, poll fallback), `chat` (NDJSON). Token in `localStorage`
-  `musecockpit.token`; base URL configurable (`musegateway.base` /
+  `muse.cockpit.token`; base URL configurable (`muse.gateway.base` /
   `VITE_GATEWAY_BASE`), default `http://127.0.0.1:8765`.
 - `src/routes.ts` — **append-only route registry** (`routes` array +
   `registerRoute` / `getRoutes` / `findRoute`); idempotent on `id`.

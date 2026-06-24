@@ -99,7 +99,7 @@ default = plan-only report; live needs the approval token AND the spawn env).
 
 ## Guardrails (non-negotiable)
 
-- **Spawn gate:** nothing runs without `muse_AUTORESEARCH_ALLOW_SPAWN=1`.
+- **Spawn gate:** nothing runs without `MUSE_AUTORESEARCH_ALLOW_SPAWN=1`.
 - **Data prep on owner hardware only:** `uv run prepare.py` in a seeded
   workspace downloads from Hugging Face (blocked in CI containers).
 - **Cost ceiling supersedes NEVER STOP.** Modal spend requires an explicit
