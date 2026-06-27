@@ -39,6 +39,7 @@ from agent.studio.types import (
 )
 # Force adapter registration on import:
 from agent.studio import adapters  # noqa: F401
+from agent.studio.adapters import ollama_local  # noqa: F401 — registers local adapters
 
 
 class StudioOrchestrator:
@@ -106,7 +107,7 @@ class StudioOrchestrator:
             f"({brief.runtime_min} min film at ~7 shots/min average)."
         )
         manifest.stages.append(
-            self._run("script", shotlist_prompt, wd, brief.quality, max_tokens=32000)
+            self._run("shot_list", shotlist_prompt, wd, brief.quality, max_tokens=8000)
         )
 
         # 3. Concept art (key frames per scene)
@@ -197,7 +198,7 @@ class StudioOrchestrator:
             f"Progression, Economy, Narrative Arc, Characters (5+), Levels (10+), "
             f"Enemies, UI, Audio Direction, Art Direction, Tech Stack, Risk Register."
         )
-        manifest.stages.append(self._run("script", gdd_prompt, wd, brief.quality, max_tokens=32000))
+        manifest.stages.append(self._run("gdd", gdd_prompt, wd, brief.quality, max_tokens=8000))
 
         # 2. Narrative beats + character bios
         narr_prompt = (
@@ -205,7 +206,26 @@ class StudioOrchestrator:
             f"sheet with ~25 beats, (b) 8 character bios with motivations and arcs, "
             f"(c) 12 level outlines with objectives, mood, hazards, rewards."
         )
-        manifest.stages.append(self._run("script", narr_prompt, wd, brief.quality, max_tokens=16000))
+        manifest.stages.append(self._run("world_bible", narr_prompt, wd, brief.quality, max_tokens=8000))
+
+        # 2b. Per-character dialogue
+        for ch in brief.extra.get("characters", ["Hero", "Rival", "Mentor", "Villain", "Companion"])[:3]:
+            manifest.stages.append(self._run(
+                "dialogue_text",
+                f"Generate 20 dialogue lines for {ch} in {brief.title}: "
+                f"mix of cinematic, branching, and combat barks.",
+                wd, brief.quality, max_tokens=3000,
+            ))
+
+        # 2c. Starter gameplay code module
+        engine_name_early = {Provider.UE5: "ue5", Provider.UNITY6: "unity",
+                              Provider.GODOT4: "godot"}.get(brief.engine, "ue5")
+        manifest.stages.append(self._run(
+            "gameplay_code",
+            f"Implement the core gameplay loop ({brief.core_loop}) for {brief.title}: "
+            f"player controller, primary verb, one enemy AI, one progression hook.",
+            wd, brief.quality, engine=engine_name_early, max_tokens=5000,
+        ))
 
         # 3. Character concept art + 3D meshes
         for ch in brief.extra.get("characters", ["Hero", "Rival", "Mentor", "Villain", "Companion"]):

@@ -68,6 +68,8 @@ class Provider(str, Enum):
     GODOT4 = "godot/4.3"
     # Stub fallback (always available)
     STUB = "axiom/stub"
+    # Local (Ollama on this device — free, runs on your GPU)
+    OLLAMA_LOCAL = "ollama/local"
 
 
 @dataclass
