@@ -32,8 +32,15 @@ OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 
 def _ollama_chat(model: str, system: str, user: str,
                  max_tokens: int = 4096, timeout: float = 300.0) -> str:
-    """Call Ollama's OpenAI-compat endpoint. Returns the text content."""
-    url = f"{OLLAMA_BASE_URL}/v1/chat/completions"
+    """Call Ollama's /api/chat. Returns text content.
+
+    - Pins num_ctx (default 4096) so reasoning models don't default to 131k.
+    - Forces num_gpu (default 999) so all layers offload to GPU when CUDA is present.
+    - Disables thinking-mode for reasoning models (qwen3.5, gpt-oss) so
+      output lands in `message.content` instead of `message.thinking`.
+    - Falls back to `thinking` field if `content` is empty (truncated reasoning).
+    """
+    url = f"{OLLAMA_BASE_URL}/api/chat"
     headers = {"Content-Type": "application/json"}
     payload = {
         "model": model,
@@ -41,14 +48,25 @@ def _ollama_chat(model: str, system: str, user: str,
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        "max_tokens": max_tokens,
         "stream": False,
+        "think": False,  # disable reasoning mode (Ollama 0.30+)
+        "options": {
+            "num_ctx": int(os.environ.get("AXIOM_NUM_CTX", "4096")),
+            "num_predict": max_tokens,
+            "num_gpu": int(os.environ.get("AXIOM_NUM_GPU", "999")),
+            "temperature": 0.7,
+        },
     }
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read())
-    return data["choices"][0]["message"]["content"]
+    msg = data.get("message", {})
+    content = msg.get("content", "").strip()
+    if not content:
+        # Reasoning model truncated before final answer — return raw thinking
+        content = msg.get("thinking", "").strip()
+    return content
 
 
 def _ollama_available() -> bool:

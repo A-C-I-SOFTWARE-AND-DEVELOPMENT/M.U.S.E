@@ -1,8 +1,8 @@
 """Live smoke test for Axiom Studio against the local Ollama daemon.
 
 Requires Ollama running at $OLLAMA_BASE_URL (default http://localhost:11434).
-Runs a tiny film + game brief through the full DAG; all LLM stages hit
-local models for free. Image / video / audio stages stub out (no API keys).
+Runs ONE script + ONE GDD through the local adapter to prove the wiring;
+the full DAG is tested via tests/studio/test_ollama_local.py.
 
 Usage:  python benchmarks/bench_studio_local.py
 """
@@ -15,77 +15,72 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agent.studio import StudioOrchestrator, FilmBrief, GameBrief
 from agent.studio.adapters import ollama_local
-from agent.studio.types import Provider, Quality
+
+
+# Use the smallest model in the local stack for fast smoke-pass.
+FAST_MODEL = os.environ.get("AXIOM_SMOKE_MODEL", "qwen3.5:9b")
 
 
 def main() -> None:
     if not ollama_local._ollama_available():
         print("⚠  Ollama not reachable at", ollama_local.OLLAMA_BASE_URL)
-        print("   Start it with: ollama serve")
         sys.exit(1)
 
     print("=" * 70)
-    print("Axiom Studio — local Ollama smoke run")
+    print("Axiom Studio — local Ollama smoke (single script + single GDD)")
     print("=" * 70)
-    print(f"Ollama base: {ollama_local.OLLAMA_BASE_URL}")
+    print(f"Model: {FAST_MODEL}")
     print()
 
-    out_root = Path(__file__).parent.parent / "studio_output_smoke"
-    orch = StudioOrchestrator(root=out_root)
+    out = Path(__file__).parent.parent / "studio_output_smoke"
+    out.mkdir(exist_ok=True)
 
-    # ── Tiny film brief ────────────────────────────────────────────
-    print("▶ FILM pipeline: 'The Cartographer' (10-min short)")
+    # ── Stage 1: script ────────────────────────────────────────────
+    print("▶ Stage 1: script (logline → short scene)")
     t0 = time.perf_counter()
-    film = orch.produce_film(FilmBrief(
-        title="The Cartographer",
-        logline=("A blind mapmaker in 1890s Patagonia discovers her chalk "
-                 "drawings of impossible coastlines start appearing in real maps."),
-        runtime_min=10,
-        genre="magical-realism drama",
-        tone="contemplative, painterly, slow-burn",
-        quality=Quality.DRAFT,
-    ))
-    film_wall = time.perf_counter() - t0
-    print(f"  wall: {film_wall:6.1f}s  stages: {len(film.stages)}")
-    local_stages = [s for s in film.stages if s.provider == Provider.OLLAMA_LOCAL]
-    print(f"  local-ollama stages: {len(local_stages)}  (free)")
-    for s in local_stages:
-        artifact = s.artifacts[0] if s.artifacts else "—"
-        print(f"    • {s.stage:14s} {s.duration_s:5.1f}s  {Path(artifact).name}")
-    print(f"  manifest: {film.workdir / 'manifest.txt'}")
+    ad = ollama_local.OllamaScriptAdapter()
+    res = ad.run(
+        "Write a 1-page scene: a blind cartographer in 1890s Patagonia draws "
+        "a coastline that begins appearing on real maps overnight. INT/EXT format.",
+        out,
+        ollama_model=FAST_MODEL,
+        max_tokens=800,
+    )
+    dt = time.perf_counter() - t0
+    print(f"  status: {res.status}  wall: {dt:.1f}s  cost: ${res.est_cost_usd:.2f}")
+    if res.artifacts:
+        art = Path(res.artifacts[0])
+        print(f"  artifact: {art.name}  ({art.stat().st_size} bytes)")
+        print("  --- first 400 chars ---")
+        print(art.read_text(encoding="utf-8")[:400])
+        print("  ---")
 
-    # ── Tiny game brief ────────────────────────────────────────────
+    # ── Stage 2: GDD ───────────────────────────────────────────────
     print()
-    print("▶ GAME pipeline: 'Hollowmark' (action-RPG)")
+    print("▶ Stage 2: GDD (one-pager for a small game)")
     t0 = time.perf_counter()
-    game = orch.produce_game(GameBrief(
-        title="Hollowmark",
-        logline=("A scribe-knight bonded to a sentient ink-spirit must inscribe "
-                 "the names of forgotten gods before reality un-writes itself."),
-        genre="action-rpg",
-        target="PC/PS5",
-        perspective="third-person",
-        setting="dark fantasy, baroque calligraphic aesthetic",
-        core_loop="explore -> combat -> inscribe -> upgrade -> explore",
-        art_style="hand-painted ink-wash, Studio Ghibli x FromSoftware",
-        quality=Quality.DRAFT,
-        engine=Provider.UE5,
-    ))
-    game_wall = time.perf_counter() - t0
-    print(f"  wall: {game_wall:6.1f}s  stages: {len(game.stages)}")
-    local_stages = [s for s in game.stages if s.provider == Provider.OLLAMA_LOCAL]
-    print(f"  local-ollama stages: {len(local_stages)}  (free)")
-    for s in local_stages:
-        artifact = s.artifacts[0] if s.artifacts else "—"
-        print(f"    • {s.stage:14s} {s.duration_s:5.1f}s  {Path(artifact).name}")
-    print(f"  manifest: {game.workdir / 'manifest.txt'}")
+    ad = ollama_local.OllamaGDDAdapter()
+    res = ad.run(
+        "One-pager GDD for 'Hollowmark': action-RPG, scribe-knight bonded to "
+        "an ink-spirit, dark fantasy. Cover: vision, pillars, core loop, "
+        "progression, one boss. Keep it concise.",
+        out,
+        ollama_model=FAST_MODEL,
+        max_tokens=1200,
+    )
+    dt = time.perf_counter() - t0
+    print(f"  status: {res.status}  wall: {dt:.1f}s  cost: ${res.est_cost_usd:.2f}")
+    if res.artifacts:
+        art = Path(res.artifacts[0])
+        print(f"  artifact: {art.name}  ({art.stat().st_size} bytes)")
+        print("  --- first 400 chars ---")
+        print(art.read_text(encoding="utf-8")[:400])
+        print("  ---")
 
     print()
     print("=" * 70)
-    print(f"TOTAL: {film_wall + game_wall:.1f}s   cost: $0.00   "
-          f"(all LLM stages local — image/video/audio still stubbed)")
+    print("SMOKE PASS — local Ollama wiring functional, cost: $0.00")
     print("=" * 70)
 
 
