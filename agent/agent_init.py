@@ -1462,14 +1462,31 @@ def init_agent(
             agent._ollama_num_ctx = int(_ollama_num_ctx_override)
         except (TypeError, ValueError):
             _ra().logger.debug("Invalid ollama_num_ctx config value: %r", _ollama_num_ctx_override)
+    # Probe hardware ONCE per agent so the auto-detected num_ctx can be capped
+    # to a VRAM-safe window. The probe is stdlib-only and cheap (at most a
+    # read-only ``nvidia-smi -L``); any import/probe failure leaves
+    # ``agent._hardware`` as None and the num_ctx path behaves exactly as
+    # before (no cap). Only runs when we're about to query a local endpoint.
+    agent._hardware = None
     if agent._ollama_num_ctx is None and agent.base_url and is_local_endpoint(agent.base_url):
+        try:
+            from hermes_cli.local_models.hardware_probe import probe as _probe_hardware
+
+            agent._hardware = _probe_hardware()
+        except Exception as exc:
+            _ra().logger.debug("Hardware probe unavailable; num_ctx uncapped: %s", exc)
         try:
             # ``agent.api_key`` may be a callable (Entra token provider).
             # Ollama detection makes a manual HTTP request and expects a
             # string — Azure Foundry isn't a local endpoint so this branch
             # never fires for Entra, but guard defensively.
             _key_for_ollama = agent.api_key if isinstance(agent.api_key, str) else ""
-            _detected = query_ollama_num_ctx(agent.model, agent.base_url, api_key=_key_for_ollama or "")
+            _detected = query_ollama_num_ctx(
+                agent.model,
+                agent.base_url,
+                api_key=_key_for_ollama or "",
+                hardware=agent._hardware,
+            )
             if _detected and _detected > 0:
                 agent._ollama_num_ctx = _detected
         except Exception as exc:

@@ -20,6 +20,7 @@ from hermes_cli.local_models.bootstrap import (
     DownloadOutcome,
     execute_bootstrap,
     plan_bootstrap,
+    post_download_health_check,
 )
 from hermes_cli.local_models.catalog import (
     OpenWeightCatalog,
@@ -48,6 +49,7 @@ __all__ = [
     "DownloadOutcome",
     "execute_bootstrap",
     "plan_bootstrap",
+    "post_download_health_check",
     "OpenWeightCatalog",
     "OpenWeightModel",
     "load_open_weight_catalog",

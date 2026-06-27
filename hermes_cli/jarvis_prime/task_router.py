@@ -395,6 +395,160 @@ def _names_from_local_defaults(policy: dict[str, Any], purpose: str) -> list[str
     return names
 
 
+# ---------------------------------------------------------------------------
+# Installed-model specialist routing (#9) — additive, opt-out via env.
+# ---------------------------------------------------------------------------
+#
+# Seeded from the VERIFIED installed-model capability matrix (``ollama show``).
+# Each entry maps a substring *name-pattern* (matched case-insensitively against
+# a local candidate tag, after stripping any ``provider/`` prefix) to the
+# specialist's verified capabilities and the task-router *lanes* it is the
+# preferred local pick for. Lanes are the ``local_purpose`` weights used across
+# this module (``local_coding`` / ``local_reasoning`` / ``local_fast``) plus a
+# couple of explicit purpose tags for non-chat roles:
+#
+#   * ``local_vision``    — multimodal lanes (vision-capable models only).
+#   * ``local_creative``  — companion / long-context creative lane.
+#   * ``embedding``       — embedding/RAG only (never a chat candidate).
+#
+# ``tools``/``vision``/``thinking`` are recorded straight from the matrix and
+# are advisory metadata only — routing keys off ``lanes``. This table is a
+# *preference hint*: when a candidate matching the detected lane is present in
+# the installed set it is led; otherwise the list is returned unchanged, so a
+# host without these exact models keeps today's behavior byte-for-byte.
+
+
+@dataclass(frozen=True)
+class ModelSpecialist:
+    """A verified installed model's capabilities + the lanes it specializes in."""
+
+    pattern: str  # case-insensitive substring matched against a local tag tail
+    lanes: tuple[str, ...]  # local_purpose weights this model is preferred for
+    tools: bool = False
+    vision: bool = False
+    thinking: bool = False
+    embedding: bool = False
+
+
+# Ordered most-specific first so a coding/reasoning specialist is preferred over
+# a generalist when a lane lists more than one. (qwen3-coder before qwen3.5 so a
+# bare "qwen3" tail still resolves to the generalist via its own entry.)
+MODEL_SPECIALISTS: tuple[ModelSpecialist, ...] = (
+    # coding workhorse — agentic edits / refactor / build / test-debug
+    ModelSpecialist(
+        "qwen3-coder",
+        lanes=("local_coding",),
+        tools=True,
+    ),
+    # reasoning / planning / critic (no vision)
+    ModelSpecialist(
+        "gpt-oss",
+        lanes=("local_reasoning",),
+        tools=True,
+        thinking=True,
+    ),
+    # alt reasoning lane
+    ModelSpecialist(
+        "ornith",
+        lanes=("local_reasoning",),
+        tools=True,
+        thinking=True,
+    ),
+    # creative / companion + long-context ("the muse")
+    ModelSpecialist(
+        "qwythos",
+        lanes=("local_creative",),
+        tools=True,
+        vision=True,
+        thinking=True,
+    ),
+    # vision + balanced general
+    ModelSpecialist(
+        "gemma4:12b",
+        lanes=("local_vision", "local_reasoning"),
+        tools=True,
+        vision=True,
+        thinking=True,
+    ),
+    # fast all-rounder / default daily
+    ModelSpecialist(
+        "qwen3.5:9b",
+        lanes=("local_fast", "local_vision"),
+        tools=True,
+        vision=True,
+        thinking=True,
+    ),
+    # embeddings / RAG / memory — never a chat candidate
+    ModelSpecialist(
+        "bge-m3",
+        lanes=("embedding",),
+        embedding=True,
+    ),
+)
+
+
+# Routing switch (default ON; owner-reversible at runtime). Set to a falsey
+# value (0/false/no/off) to restore the legacy pre-specialist local ordering.
+_SPECIALIST_ENV = "HERMES_JARVIS_SPECIALIST_ROUTING"
+
+
+def _specialist_routing_enabled(env: Optional[dict[str, str]] = None) -> bool:
+    """True unless the owner explicitly disabled installed-specialist routing."""
+    source = env if env is not None else dict(os.environ)
+    val = source.get(_SPECIALIST_ENV)
+    if val is None:
+        return True
+    return val.strip().lower() not in ("0", "false", "no", "off")
+
+
+def _specialist_for(name: str) -> Optional[ModelSpecialist]:
+    """The first specialist whose pattern matches ``name`` (tail, lower), if any."""
+    if not name:
+        return None
+    tail = name.rsplit("/", 1)[-1].lower()
+    for spec in MODEL_SPECIALISTS:
+        if spec.pattern in tail:
+            return spec
+    return None
+
+
+def _prefer_specialist(names: list[str], purpose: str) -> list[str]:
+    """Lead with installed specialists matching ``purpose``; keep the rest in order.
+
+    Stable partition: candidates whose model matches a specialist for this lane
+    are moved to the front (ordered by ``MODEL_SPECIALISTS`` priority, then by
+    their original position), and every other candidate keeps its place behind
+    them. ``embedding`` specialists are never chat candidates, so they are
+    excluded from the preferred group regardless of lane. When no installed
+    candidate matches the lane the list is returned unchanged — so the legacy
+    (post-Gemma-policy) order is preserved exactly on a host without these
+    models, or when disabled.
+    """
+    if not purpose or not _specialist_routing_enabled():
+        return names
+
+    def _rank(name: str) -> Optional[int]:
+        spec = _specialist_for(name)
+        if spec is None or spec.embedding:
+            return None
+        if purpose not in spec.lanes:
+            return None
+        return MODEL_SPECIALISTS.index(spec)
+
+    preferred: list[tuple[int, int, str]] = []
+    rest: list[str] = []
+    for seq, name in enumerate(names):
+        rank = _rank(name)
+        if rank is None:
+            rest.append(name)
+        else:
+            preferred.append((rank, seq, name))
+    if not preferred:
+        return names
+    preferred.sort()
+    return [name for _r, _s, name in preferred] + rest
+
+
 def _local_candidates(policy: dict[str, Any], profile: TaskProfile) -> list[str]:
     route = policy.get("routes", {}).get("local_oss", {})
     purpose = _purpose_for(profile)
@@ -403,7 +557,13 @@ def _local_candidates(policy: dict[str, Any], profile: TaskProfile) -> list[str]
         names = _names_from_local_defaults(policy, purpose)
     if not names and route.get("enabled"):
         names.append("local-model")
+    # Prefer an installed specialist for the detected lane BEFORE the Gemma
+    # policy decides the lead. We apply the legacy Gemma ordering first to get
+    # today's exact list, then float a matching installed specialist to the
+    # front — so a specialist wins over the Gemma default, and when none matches
+    # (or routing is disabled) the result is byte-for-byte the legacy order.
     names = _apply_gemma_policy(names, purpose)
+    names = _prefer_specialist(names, purpose)
     # de-dup, preserve order
     seen: set[str] = set()
     out: list[str] = []
@@ -783,6 +943,8 @@ __all__ = [
     "TaskClass",
     "TaskProfile",
     "TASK_PROFILES",
+    "ModelSpecialist",
+    "MODEL_SPECIALISTS",
     "ROUTE_TIERS",
     "ModelRouteDecision",
     "route_for_task",

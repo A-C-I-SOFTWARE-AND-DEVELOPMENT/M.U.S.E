@@ -3,6 +3,9 @@ from __future__ import annotations
 import textwrap
 
 from hermes_cli.timeouts import (
+    LOCAL_REQUEST_TIMEOUT_CPU,
+    LOCAL_REQUEST_TIMEOUT_GPU,
+    get_local_request_timeout,
     get_provider_request_timeout,
     get_provider_stale_timeout,
 )
@@ -306,3 +309,115 @@ def test_explicit_non_stream_stale_timeout_is_honored_for_local_endpoints(monkey
     )
 
     assert agent._compute_non_stream_stale_timeout([]) == 300.0
+
+
+def test_get_local_request_timeout_cpu_default(monkeypatch):
+    """No GPU signal → CPU tier (the longer, safer default)."""
+    monkeypatch.delenv("HERMES_LOCAL_GPU", raising=False)
+    assert get_local_request_timeout() == LOCAL_REQUEST_TIMEOUT_CPU == 3600.0
+
+
+def test_get_local_request_timeout_gpu_when_signalled(monkeypatch):
+    """HERMES_LOCAL_GPU truthy → shorter GPU tier."""
+    for raw in ("1", "true", "TRUE", "yes", "on"):
+        monkeypatch.setenv("HERMES_LOCAL_GPU", raw)
+        assert get_local_request_timeout() == LOCAL_REQUEST_TIMEOUT_GPU == 1200.0
+
+
+def test_get_local_request_timeout_falsey_signal_stays_cpu(monkeypatch):
+    """Unrecognized / falsey HERMES_LOCAL_GPU values keep the CPU tier."""
+    for raw in ("0", "false", "no", "", "maybe"):
+        monkeypatch.setenv("HERMES_LOCAL_GPU", raw)
+        assert get_local_request_timeout() == LOCAL_REQUEST_TIMEOUT_CPU
+
+
+def test_resolved_api_call_timeout_local_floors_at_cpu_tier(monkeypatch, tmp_path):
+    """A local endpoint with no config/env floors the timeout at the CPU tier."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    (tmp_path / ".env").write_text("", encoding="utf-8")
+    _write_config(tmp_path, "")
+    monkeypatch.delenv("HERMES_API_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_LOCAL_GPU", raising=False)
+
+    from run_agent import AIAgent
+    agent = AIAgent(
+        model="qwen3:32b",
+        provider="ollama-local",
+        api_key="sk-dummy",
+        base_url="http://127.0.0.1:11434/v1",
+        quiet_mode=True,
+        skip_context_files=True,
+        skip_memory=True,
+        platform="cli",
+    )
+    # 1800.0 generic default is floored up to the 3600.0 local CPU tier.
+    assert agent._resolved_api_call_timeout() == 3600.0
+
+
+def test_resolved_api_call_timeout_local_gpu_tier(monkeypatch, tmp_path):
+    """With HERMES_LOCAL_GPU set, the local floor is the shorter GPU tier."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    (tmp_path / ".env").write_text("", encoding="utf-8")
+    _write_config(tmp_path, "")
+    monkeypatch.delenv("HERMES_API_TIMEOUT", raising=False)
+    monkeypatch.setenv("HERMES_LOCAL_GPU", "1")
+
+    from run_agent import AIAgent
+    agent = AIAgent(
+        model="qwen3:32b",
+        provider="ollama-local",
+        api_key="sk-dummy",
+        base_url="http://127.0.0.1:11434/v1",
+        quiet_mode=True,
+        skip_context_files=True,
+        skip_memory=True,
+        platform="cli",
+    )
+    # 1800.0 generic default floored up to the 1200.0 GPU tier → still 1800.0
+    # (max never shrinks). The floor only matters when the base is below tier.
+    assert agent._resolved_api_call_timeout() == 1800.0
+
+
+def test_resolved_api_call_timeout_local_never_shrinks_explicit_value(monkeypatch, tmp_path):
+    """An explicit larger HERMES_API_TIMEOUT is preserved on local endpoints."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    (tmp_path / ".env").write_text("", encoding="utf-8")
+    _write_config(tmp_path, "")
+    monkeypatch.setenv("HERMES_API_TIMEOUT", "7200")
+    monkeypatch.delenv("HERMES_LOCAL_GPU", raising=False)
+
+    from run_agent import AIAgent
+    agent = AIAgent(
+        model="qwen3:32b",
+        provider="ollama-local",
+        api_key="sk-dummy",
+        base_url="http://127.0.0.1:11434/v1",
+        quiet_mode=True,
+        skip_context_files=True,
+        skip_memory=True,
+        platform="cli",
+    )
+    # 7200 explicit value exceeds the 3600 CPU tier → preserved, not shrunk.
+    assert agent._resolved_api_call_timeout() == 7200.0
+
+
+def test_resolved_api_call_timeout_remote_unchanged(monkeypatch, tmp_path):
+    """Non-local endpoints keep the legacy 1800.0 default (no local floor)."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    (tmp_path / ".env").write_text("", encoding="utf-8")
+    _write_config(tmp_path, "")
+    monkeypatch.delenv("HERMES_API_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_LOCAL_GPU", raising=False)
+
+    from run_agent import AIAgent
+    agent = AIAgent(
+        model="openai/gpt-4o-mini",
+        provider="openrouter",
+        api_key="sk-dummy",
+        base_url="https://openrouter.ai/api/v1",
+        quiet_mode=True,
+        skip_context_files=True,
+        skip_memory=True,
+        platform="cli",
+    )
+    assert agent._resolved_api_call_timeout() == 1800.0

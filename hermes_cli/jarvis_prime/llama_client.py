@@ -26,6 +26,56 @@ class LlamaServerError(RuntimeError):
     """The server was unreachable or returned a non-OK response."""
 
 
+# Per-task-class sampling presets (#10) — frontier-quality defaults seeded from
+# the verified PER-TASK SAMPLING matrix. Keyed by a coarse task *lane* (not the
+# fine-grained :class:`task_router.TaskClass`) so callers can map several task
+# classes onto one preset. Each preset carries only the keys the matrix
+# specifies for that lane (e.g. ``min_p`` only for the creative lane); unset keys
+# fall through to the server defaults. These are *opt-in*: ``completion()`` only
+# applies a preset when the caller passes ``sampling_params``; with no preset the
+# call is byte-for-byte the legacy ``temperature=0.0`` greedy decode.
+TASK_SAMPLING_PARAMS: dict[str, dict[str, float]] = {
+    # coding / build / test / debug — near-greedy, light repeat penalty
+    "coding": {"temperature": 0.1, "top_p": 0.9, "top_k": 40, "repeat_penalty": 1.05},
+    # reasoning / strategy / critic
+    "reasoning": {"temperature": 0.6, "top_p": 0.95, "top_k": 40},
+    # creative / companion ("the muse")
+    "creative": {
+        "temperature": 0.85,
+        "top_p": 0.95,
+        "top_k": 60,
+        "repeat_penalty": 1.08,
+        "min_p": 0.05,
+    },
+    # fast / general / operator
+    "fast": {"temperature": 0.4, "top_p": 0.9, "top_k": 40},
+    # vision / multimodal
+    "vision": {"temperature": 0.3, "top_p": 0.9},
+}
+
+# Sampling keys this client forwards onto the native ``/completion`` payload.
+_SAMPLING_KEYS: tuple[str, ...] = (
+    "temperature",
+    "top_p",
+    "top_k",
+    "repeat_penalty",
+    "min_p",
+)
+
+
+def get_sampling_params(task: Optional[str]) -> Optional[dict[str, float]]:
+    """The sampling preset for a task *lane*, or ``None`` when unknown/unset.
+
+    ``task`` is matched case-insensitively against :data:`TASK_SAMPLING_PARAMS`
+    keys. Returns a *copy* (so callers may mutate it freely) or ``None`` when the
+    lane has no preset — in which case ``completion()`` keeps its greedy default.
+    """
+    if not task:
+        return None
+    preset = TASK_SAMPLING_PARAMS.get(task.strip().lower())
+    return dict(preset) if preset is not None else None
+
+
 @dataclass(frozen=True)
 class CompletionResult:
     text: str
@@ -148,7 +198,16 @@ class LlamaServerClient:
         n_predict: int = 512,
         temperature: float = 0.0,
         seed: int = 0,
+        sampling_params: Optional[Mapping[str, Any]] = None,
     ) -> CompletionResult:
+        """Run a native ``/completion``.
+
+        ``sampling_params`` (e.g. from :func:`get_sampling_params`) overlays
+        recognized sampling keys (``temperature``/``top_p``/``top_k``/
+        ``repeat_penalty``/``min_p``) onto the payload. When it is ``None`` the
+        payload is byte-for-byte the legacy greedy decode: ``temperature`` (0.0
+        by default) and ``seed`` only, with no other sampling fields set.
+        """
         payload: dict[str, Any] = {
             "prompt": prompt,
             "n_predict": n_predict,
@@ -156,6 +215,10 @@ class LlamaServerClient:
             "temperature": temperature,
             "seed": seed,
         }
+        if sampling_params:
+            for key in _SAMPLING_KEYS:
+                if key in sampling_params:
+                    payload[key] = sampling_params[key]
         if grammar is not None:
             payload["grammar"] = grammar
         if id_slot is not None:
@@ -178,6 +241,8 @@ __all__ = [
     "LlamaServerError",
     "CompletionResult",
     "SpecDecodeConfig",
+    "TASK_SAMPLING_PARAMS",
+    "get_sampling_params",
     "build_launch_command",
     "LlamaServerClient",
 ]

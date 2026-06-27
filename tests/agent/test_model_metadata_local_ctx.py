@@ -652,6 +652,189 @@ class TestQueryLocalContextLengthNetworkError:
 
 
 # ---------------------------------------------------------------------------
+# _parse_param_size_billions / _estimate_model_size_gb — pure helpers
+# ---------------------------------------------------------------------------
+
+class TestModelSizeEstimation:
+    def test_parse_param_size_billions(self):
+        from agent.model_metadata import _parse_param_size_billions
+
+        assert _parse_param_size_billions("30.5B") == pytest.approx(30.5)
+        assert _parse_param_size_billions("8.95B") == pytest.approx(8.95)
+        assert _parse_param_size_billions("570M") == pytest.approx(0.57)
+        assert _parse_param_size_billions("12b") == pytest.approx(12.0)
+
+    def test_parse_param_size_invalid_returns_none(self):
+        from agent.model_metadata import _parse_param_size_billions
+
+        assert _parse_param_size_billions(None) is None
+        assert _parse_param_size_billions("") is None
+        assert _parse_param_size_billions("unknown") is None
+        assert _parse_param_size_billions(12) is None
+
+    def test_estimate_model_size_gb_q4(self):
+        from agent.model_metadata import _estimate_model_size_gb
+
+        # 30.5B @ Q4_K_M (~4.8 bits/weight) ≈ 18.3 GB
+        size = _estimate_model_size_gb("30.5B", "Q4_K_M")
+        assert size is not None
+        assert 16.0 < size < 20.0
+
+    def test_estimate_model_size_gb_unknown_quant_falls_back(self):
+        from agent.model_metadata import _estimate_model_size_gb
+
+        size = _estimate_model_size_gb("9B", "Q9_WEIRD")
+        assert size is not None
+        # Default reference is the Q4_K_M band.
+        assert 4.0 < size < 7.0
+
+    def test_estimate_model_size_gb_missing_params_returns_none(self):
+        from agent.model_metadata import _estimate_model_size_gb
+
+        assert _estimate_model_size_gb(None, "Q4_K_M") is None
+
+
+# ---------------------------------------------------------------------------
+# query_ollama_num_ctx — VRAM-aware capping
+# ---------------------------------------------------------------------------
+
+class _FakeHardware:
+    """Stand-in for HardwareProfile.vram_safe_context_limit."""
+
+    def __init__(self, limit):
+        self._limit = limit
+        self.calls = []
+
+    def vram_safe_context_limit(self, model_size_gb, quant="q4_k_m", kv_quant="q8_0"):
+        self.calls.append((model_size_gb, quant, kv_quant))
+        return self._limit
+
+
+class TestQueryOllamaNumCtxVramCap:
+    """query_ollama_num_ctx caps the resolved num_ctx to the VRAM-safe limit."""
+
+    def _make_resp(self, status_code, body):
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.json.return_value = body
+        return resp
+
+    def _client(self, body):
+        show_resp = self._make_resp(200, body)
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.post.return_value = show_resp
+        return client_mock
+
+    def test_no_hardware_returns_uncapped(self):
+        """Default (hardware=None) is byte-for-byte the old behaviour."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        body = {
+            "model_info": {"qwen3.context_length": 262144},
+            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx("qwen3-coder:30b", "http://localhost:11434/v1")
+
+        assert result == 262144
+
+    def test_caps_training_max_to_vram_limit(self):
+        """A 262K GGUF max on an 8GB box is capped to the VRAM-safe limit."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        hw = _FakeHardware(limit=8192)  # ~30B safe window on 8GB
+        body = {
+            "model_info": {"qwen3.context_length": 262144},
+            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx(
+                "qwen3-coder:30b", "http://localhost:11434/v1", hardware=hw
+            )
+
+        assert result == 8192
+        # The limit was queried with an estimated model size and the quant.
+        assert hw.calls, "vram_safe_context_limit was never called"
+        size_gb, quant, _kv = hw.calls[0]
+        assert 16.0 < size_gb < 20.0
+        assert quant == "Q4_K_M"
+
+    def test_does_not_raise_when_limit_above_resolved(self):
+        """When the safe limit exceeds num_ctx, the resolved value is kept."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        hw = _FakeHardware(limit=32768)
+        body = {
+            "model_info": {"qwen3.context_length": 16384},
+            "details": {"parameter_size": "9B", "quantization_level": "Q4_K_M"},
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx(
+                "qwen3.5:9b", "http://localhost:11434/v1", hardware=hw
+            )
+
+        assert result == 16384
+
+    def test_num_ctx_override_also_capped(self):
+        """An explicit Modelfile num_ctx is also subject to the VRAM cap."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        hw = _FakeHardware(limit=8192)
+        body = {
+            "parameters": "num_ctx                        131072\ntemperature 0.6\n",
+            "details": {"parameter_size": "20.9B", "quantization_level": "MXFP4"},
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx(
+                "gpt-oss:20b", "http://localhost:11434/v1", hardware=hw
+            )
+
+        assert result == 8192
+
+    def test_unestimatable_size_skips_cap(self):
+        """When details lack a parsable parameter_size, no cap is applied."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        hw = _FakeHardware(limit=8192)
+        body = {
+            "model_info": {"qwen3.context_length": 262144},
+            "details": {},  # no parameter_size
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx(
+                "mystery:latest", "http://localhost:11434/v1", hardware=hw
+            )
+
+        assert result == 262144
+        assert not hw.calls, "size could not be estimated, limit must not be queried"
+
+    def test_hardware_without_method_is_ignored(self):
+        """A hardware object lacking vram_safe_context_limit leaves ctx intact."""
+        from agent.model_metadata import query_ollama_num_ctx
+
+        body = {
+            "model_info": {"qwen3.context_length": 262144},
+            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
+        }
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
+             patch("httpx.Client", return_value=self._client(body)):
+            result = query_ollama_num_ctx(
+                "qwen3-coder:30b",
+                "http://localhost:11434/v1",
+                hardware=object(),
+            )
+
+        assert result == 262144
+
+
+# ---------------------------------------------------------------------------
 # get_model_context_length — integration-style tests with mocked helpers
 # ---------------------------------------------------------------------------
 

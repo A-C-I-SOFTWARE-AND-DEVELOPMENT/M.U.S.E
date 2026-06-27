@@ -95,6 +95,10 @@ class DownloadOutcome:
     ok: bool
     detail: str = ""
     command: tuple[str, ...] = ()
+    # Post-download health: did the pulled tag appear in ``ollama list``?
+    # ``None`` ⇒ not checked (non-Ollama runtime, or check unavailable).
+    health_verified: Optional[bool] = None
+    health_detail: str = ""
 
 
 def plan_bootstrap(
@@ -152,11 +156,19 @@ def execute_bootstrap(
     *,
     accept_downloads: bool = False,
     runner=None,
+    verify_health: bool = False,
+    ollama_list_runner=None,
 ) -> list[DownloadOutcome]:
     """Execute the download steps in ``plan`` — only if downloads are accepted.
 
     ``runner`` is injectable for tests (defaults to ``subprocess.run``). Without
     ``accept_downloads`` this is a guaranteed no-op that reports the refusal.
+
+    When ``verify_health`` is set, each successful Ollama pull is confirmed with
+    a post-download health check (``ollama list`` must show the pulled tag); the
+    verdict is appended to the outcome's ``health_verified`` / ``health_detail``
+    fields. The check is best-effort and never flips ``ok`` — it is advisory.
+    ``ollama_list_runner`` is injectable so this stays hermetic in tests.
     """
 
     outcomes: list[DownloadOutcome] = []
@@ -198,12 +210,99 @@ def execute_bootstrap(
             )
             continue
         ok, detail = run(cmd)
-        outcomes.append(
-            DownloadOutcome(
-                model=item.model.name, attempted=True, ok=ok, detail=detail, command=cmd
-            )
+        outcome = DownloadOutcome(
+            model=item.model.name, attempted=True, ok=ok, detail=detail, command=cmd
         )
+        # Post-download health: confirm the pulled tag actually landed.
+        if verify_health and ok and item.runtime == "ollama":
+            tag = _pull_tag(cmd)
+            if tag:
+                post_download_health_check(
+                    outcome, tag, ollama_list_runner=ollama_list_runner
+                )
+        outcomes.append(outcome)
     return outcomes
+
+
+def _pull_tag(pull_command: tuple[str, ...]) -> Optional[str]:
+    """Extract the model tag from an ``ollama pull <tag>`` command, if present."""
+    if len(pull_command) >= 3 and pull_command[:2] == ("ollama", "pull"):
+        return pull_command[2]
+    return pull_command[-1] if pull_command else None
+
+
+def post_download_health_check(
+    outcome: DownloadOutcome,
+    tag: str,
+    *,
+    ollama_list_runner=None,
+) -> DownloadOutcome:
+    """Confirm a freshly pulled Ollama ``tag`` appears in ``ollama list``.
+
+    Mutates and returns ``outcome`` with its ``health_verified`` /
+    ``health_detail`` fields set. Best-effort and advisory: a missing/unreadable
+    ``ollama list`` leaves ``health_verified=None`` (not checked) rather than
+    marking a successful download as failed. ``ollama_list_runner`` is injectable
+    (returns ``ollama list`` stdout) so tests never shell out.
+    """
+    run = ollama_list_runner or _default_ollama_list_runner
+    try:
+        listing = run() or ""
+    except Exception as exc:  # pragma: no cover - defensive
+        outcome.health_verified = None
+        outcome.health_detail = f"health check unavailable: {exc}"
+        return outcome
+    if not listing.strip():
+        outcome.health_verified = None
+        outcome.health_detail = "ollama list returned nothing — health not verified"
+        return outcome
+    if _tag_in_listing(tag, listing):
+        outcome.health_verified = True
+        outcome.health_detail = f"{tag} present in `ollama list`"
+    else:
+        outcome.health_verified = False
+        outcome.health_detail = (
+            f"{tag} pulled but NOT shown by `ollama list` — verify with: ollama list"
+        )
+    return outcome
+
+
+def _tag_in_listing(tag: str, listing: str) -> bool:
+    """True if ``tag`` matches a model name in ``ollama list`` output.
+
+    Ollama defaults a bare ``name`` to ``name:latest`` in its listing, so a
+    pull of ``gemma4`` is matched against ``gemma4:latest`` too. Matching is on
+    the NAME column (first whitespace-delimited token of each row).
+    """
+    candidates = {tag.strip()}
+    if ":" not in tag:
+        candidates.add(f"{tag.strip()}:latest")
+    listed: set[str] = set()
+    for line in listing.splitlines():
+        line = line.strip()
+        if not line or line.upper().startswith("NAME"):
+            continue
+        first = line.split()[0] if line.split() else ""
+        if first:
+            listed.add(first)
+    return bool(candidates & listed)
+
+
+def _default_ollama_list_runner() -> str:  # pragma: no cover - real shell-out
+    """Run ``ollama list`` once (read-only) and return stdout, or ``""``."""
+    import shutil
+
+    if shutil.which("ollama") is None:
+        return ""
+    try:
+        proc = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, timeout=6.0
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout or ""
 
 
 def _default_runner(

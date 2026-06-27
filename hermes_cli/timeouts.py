@@ -1,5 +1,43 @@
 from __future__ import annotations
 
+import os
+
+# Local-endpoint request-timeout tiers (seconds). Local llama.cpp/Ollama
+# servers running large models on CPU can take many minutes per turn, so the
+# generic remote-provider default is far too aggressive. These tiers are only
+# applied for local endpoints and are never allowed to *shrink* an explicit
+# user-set ``HERMES_API_TIMEOUT``.
+LOCAL_REQUEST_TIMEOUT_CPU = 3600.0
+LOCAL_REQUEST_TIMEOUT_GPU = 1200.0
+
+
+def _local_gpu_available() -> bool:
+    """Best-effort detection of whether the local endpoint is GPU-accelerated.
+
+    There is no hardware probe wired in here (and we must not depend on one),
+    so this is an opt-in signal: set ``HERMES_LOCAL_GPU=1`` (or ``true``/``yes``/
+    ``on``) when the local server offloads to a GPU. Absent the signal we assume
+    CPU-only, which yields the more generous (longer) timeout — the safe default
+    that avoids killing a slow-but-progressing CPU generation.
+    """
+    raw = os.getenv("HERMES_LOCAL_GPU")
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def get_local_request_timeout() -> float:
+    """Return the request timeout (seconds) to use for a local endpoint.
+
+    GPU-accelerated local servers get the shorter tier; CPU-only (the assumed
+    default) gets the longer tier. The caller is responsible for taking the
+    ``max`` with any explicit user-set timeout so this never shrinks an
+    intentional override.
+    """
+    if _local_gpu_available():
+        return LOCAL_REQUEST_TIMEOUT_GPU
+    return LOCAL_REQUEST_TIMEOUT_CPU
+
 
 def _coerce_timeout(raw: object) -> float | None:
     try:

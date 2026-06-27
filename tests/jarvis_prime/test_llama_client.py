@@ -10,10 +10,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 
 from hermes_cli.jarvis_prime.llama_client import (
+    TASK_SAMPLING_PARAMS,
     LlamaServerClient,
     LlamaServerError,
     SpecDecodeConfig,
     build_launch_command,
+    get_sampling_params,
 )
 
 
@@ -158,3 +160,68 @@ def test_real_http_roundtrip_and_slot_cache_growth(stub_server: str) -> None:
 
 def test_health_false_when_unreachable() -> None:
     assert LlamaServerClient("http://127.0.0.1:9", timeout=2).health() is False
+
+
+# ---------------------------------------------------------------------------
+# Per-task sampling presets (#10) — opt-in; greedy default preserved.
+# ---------------------------------------------------------------------------
+
+
+def test_default_completion_is_greedy_and_sets_no_extra_sampling_keys() -> None:
+    """With no sampling_params the payload is the legacy greedy decode."""
+    captured: dict = {}
+
+    def fake_post(url: str, payload: Mapping[str, Any], timeout: float) -> dict[str, Any]:
+        captured["payload"] = dict(payload)
+        return {"content": "x"}
+
+    LlamaServerClient("http://x:1", post=fake_post).completion("p")
+    payload = captured["payload"]
+    assert payload["temperature"] == 0.0
+    assert payload["seed"] == 0
+    # No extra sampling fields leak when no preset is supplied.
+    for key in ("top_p", "top_k", "repeat_penalty", "min_p"):
+        assert key not in payload
+
+
+def test_sampling_params_overlay_recognized_keys() -> None:
+    """A preset overlays temperature/top_p/top_k/repeat_penalty/min_p; junk drops."""
+    captured: dict = {}
+
+    def fake_post(url: str, payload: Mapping[str, Any], timeout: float) -> dict[str, Any]:
+        captured["payload"] = dict(payload)
+        return {"content": "x"}
+
+    params = dict(get_sampling_params("creative"))
+    params["frequency_penalty"] = 9.9  # not a recognized key → must be dropped
+    LlamaServerClient("http://x:1", post=fake_post).completion("p", sampling_params=params)
+    payload = captured["payload"]
+    assert payload["temperature"] == 0.85
+    assert payload["top_p"] == 0.95
+    assert payload["top_k"] == 60
+    assert payload["repeat_penalty"] == 1.08
+    assert payload["min_p"] == 0.05
+    assert "frequency_penalty" not in payload
+
+
+def test_get_sampling_params_matrix_values_and_copy() -> None:
+    """Presets match the verified matrix and are returned as a mutable copy."""
+    assert get_sampling_params("coding") == {
+        "temperature": 0.1,
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.05,
+    }
+    assert get_sampling_params("reasoning")["temperature"] == 0.6
+    assert get_sampling_params("fast")["temperature"] == 0.4
+    assert get_sampling_params("vision") == {"temperature": 0.3, "top_p": 0.9}
+    # Case-insensitive, and a copy (mutating the result must not poison the map).
+    got = get_sampling_params("CODING")
+    got["temperature"] = 1.0
+    assert TASK_SAMPLING_PARAMS["coding"]["temperature"] == 0.1
+
+
+def test_get_sampling_params_unknown_lane_is_none() -> None:
+    assert get_sampling_params(None) is None
+    assert get_sampling_params("") is None
+    assert get_sampling_params("no-such-lane") is None

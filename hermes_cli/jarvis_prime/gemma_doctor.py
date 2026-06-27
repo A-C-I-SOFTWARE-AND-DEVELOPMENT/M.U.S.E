@@ -27,6 +27,12 @@ from hermes_cli.jarvis_prime.launch_doctor import (
     WARN,
     LaunchCheck,
     LaunchReport,
+    OllamaPsRunner,
+    OllamaServeProbe,
+    _check_gpu_driver_advisory,
+    _check_ollama_env_hygiene,
+    _check_ollama_processor,
+    _check_ollama_server,
 )
 
 # A callable that runs e.g. ``ollama list`` and returns its stdout. Injectable so
@@ -234,12 +240,25 @@ def _check_promotion_evidence_gated() -> LaunchCheck:
         )
 
 
-def run_gemma_doctor(*, ollama_list_runner: Optional[OllamaListRunner] = None) -> LaunchReport:
+def run_gemma_doctor(
+    *,
+    ollama_list_runner: Optional[OllamaListRunner] = None,
+    ollama_ps_runner: Optional[OllamaPsRunner] = None,
+    ollama_serve_probe: Optional[OllamaServeProbe] = None,
+    env: Optional[dict[str, str]] = None,
+) -> LaunchReport:
     """Run every Gemma wiring + safety check and return a structured report.
 
     ``ollama_list_runner`` is injectable; when ``None`` the installed-variant
     probe is skipped (no network/shell). Missing Gemma never flips ``ok``;
     only a broken safety invariant does.
+
+    The GPU / Ollama runtime health probes (``ollama_ps_runner``,
+    ``ollama_serve_probe``, ``env``) are also injectable and otherwise
+    defensive + timeout-guarded. They surface advisory WARNs only — GPU driver
+    down, a model running on CPU/partial GPU, an unrecognized ``OLLAMA_NUM_CTX``
+    env var, or an installed-but-unreachable Ollama server — and can never flip
+    ``ok``.
     """
     checks: list[LaunchCheck] = [
         _check_provider_catalog(),
@@ -247,6 +266,11 @@ def run_gemma_doctor(*, ollama_list_runner: Optional[OllamaListRunner] = None) -
         _check_oss_brain(),
         _check_local_runtime(),
         _check_installed_variants(ollama_list_runner),
+        # --- shared hardware / runtime health advisories (WARN-only) ---
+        _check_gpu_driver_advisory(),
+        _check_ollama_processor(ollama_ps_runner),
+        _check_ollama_env_hygiene(env),
+        _check_ollama_server(ollama_serve_probe),
         _check_thought_sanitizer(),
         _check_memory_proposed_only(),
         _check_promotion_evidence_gated(),

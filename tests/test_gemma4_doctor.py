@@ -82,7 +82,9 @@ def test_status_json_lists_configured_and_candidates() -> None:
         rc = gemma_cli.dispatch(argparse.Namespace(gemma_command="status", json=True))
     assert rc == 0
     payload = json.loads(buf.getvalue())
-    assert len(payload["configured"]) == 4
+    # Reconciled catalog: gemma family configured = e2b, e4b, 12b (the phantom
+    # gemma4-26b / gemma4-31b were removed; installed gemma4-12b added).
+    assert len(payload["configured"]) == 3
     assert len(payload["open_weight_candidates"]) == 4
     assert payload["installed"] is None  # not probed (opt-in)
 
@@ -146,3 +148,192 @@ def test_promote_dry_run_does_not_write(tmp_path, monkeypatch) -> None:
     rc = gemma_cli.dispatch(args)
     assert rc == 1
     assert not (tmp_path / "jarvis_prime" / "proposals.jsonl").is_file()
+
+
+# ---------------------------------------------------------------------------
+# GPU / Ollama runtime-health advisories (WARN-only, injectable, never block)
+# ---------------------------------------------------------------------------
+
+
+def _names(report):
+    return {c.name: c for c in report.checks}
+
+
+def test_runtime_health_advisories_present_and_never_block() -> None:
+    # Inject a clean, all-good runtime: server up, model fully on GPU, no bad env.
+    report = run_gemma_doctor(
+        ollama_ps_runner=lambda: (
+            "NAME            ID    SIZE   PROCESSOR    UNTIL\n"
+            "gemma4:e4b      abc   4.0 GB 100% GPU     4 minutes from now\n"
+        ),
+        ollama_serve_probe=lambda: True,
+        env={},
+    )
+    names = _names(report)
+    # All four advisory checks are wired into the gemma doctor.
+    for name in (
+        "gpu_driver",
+        "ollama_processor",
+        "ollama_env_hygiene",
+        "ollama_server",
+    ):
+        assert name in names, name
+        assert names[name].hard is False
+    assert names["ollama_processor"].status == PASS
+    assert names["ollama_env_hygiene"].status == PASS
+    assert names["ollama_server"].status == PASS
+    # Advisories are WARN-level: a clean wiring report is still ok.
+    assert report.ok is True
+
+
+def test_ollama_processor_warns_on_cpu_loaded_model() -> None:
+    report = run_gemma_doctor(
+        ollama_ps_runner=lambda: (
+            "NAME            ID    SIZE   PROCESSOR        UNTIL\n"
+            "qwen3-coder:30b abc   18 GB  48%/52% CPU/GPU  4 minutes from now\n"
+        ),
+        ollama_serve_probe=lambda: True,
+        env={},
+    )
+    c = _names(report)["ollama_processor"]
+    assert c.status == WARN
+    assert c.hard is False
+    assert "qwen3-coder:30b" in c.detail
+    # WARN must not flip the overall verdict.
+    assert report.ok is True
+
+
+def test_ollama_env_hygiene_warns_on_num_ctx() -> None:
+    report = run_gemma_doctor(env={"OLLAMA_NUM_CTX": "32768"})
+    c = _names(report)["ollama_env_hygiene"]
+    assert c.status == WARN
+    assert "OLLAMA_CONTEXT_LENGTH" in c.detail
+    assert "OLLAMA_NUM_CTX" in c.detail
+    assert report.ok is True
+
+
+def test_ollama_server_warns_when_installed_but_down() -> None:
+    report = run_gemma_doctor(ollama_serve_probe=lambda: False, env={})
+    c = _names(report)["ollama_server"]
+    assert c.status == WARN
+    assert "ollama serve" in c.detail
+    assert report.ok is True
+
+
+def test_ollama_server_quiet_when_not_installed() -> None:
+    # Inconclusive probe (no ollama binary) → quiet PASS, no false alarm.
+    report = run_gemma_doctor(ollama_serve_probe=lambda: None, env={})
+    c = _names(report)["ollama_server"]
+    assert c.status == PASS
+    assert report.ok is True
+
+
+# ---------------------------------------------------------------------------
+# Action #11 — post-download health check (ollama list confirms the tag)
+# ---------------------------------------------------------------------------
+
+
+def test_post_download_health_check_verifies_present_tag() -> None:
+    from hermes_cli.local_models.bootstrap import (
+        DownloadOutcome,
+        post_download_health_check,
+    )
+
+    out = DownloadOutcome(model="gemma4-e4b", attempted=True, ok=True)
+    listing = "NAME        ID    SIZE   MODIFIED\ngemma4:e4b  abc   4.0 GB 1 minute ago\n"
+    post_download_health_check(out, "gemma4:e4b", ollama_list_runner=lambda: listing)
+    assert out.health_verified is True
+    assert "gemma4:e4b" in out.health_detail
+
+
+def test_post_download_health_check_flags_missing_tag() -> None:
+    from hermes_cli.local_models.bootstrap import (
+        DownloadOutcome,
+        post_download_health_check,
+    )
+
+    out = DownloadOutcome(model="gemma4-e4b", attempted=True, ok=True)
+    listing = "NAME        ID    SIZE   MODIFIED\nqwen3.5:9b  abc   6.0 GB 1 minute ago\n"
+    post_download_health_check(out, "gemma4:e4b", ollama_list_runner=lambda: listing)
+    assert out.health_verified is False
+    assert "ollama list" in out.health_detail
+
+
+def test_post_download_health_check_inconclusive_when_list_empty() -> None:
+    # Empty/unreadable ``ollama list`` must NOT mark a good download as failed.
+    from hermes_cli.local_models.bootstrap import (
+        DownloadOutcome,
+        post_download_health_check,
+    )
+
+    out = DownloadOutcome(model="gemma4-e4b", attempted=True, ok=True)
+    post_download_health_check(out, "gemma4:e4b", ollama_list_runner=lambda: "")
+    assert out.health_verified is None
+
+
+def test_bare_tag_matches_latest_in_listing() -> None:
+    # ``ollama pull gemma4`` lands as ``gemma4:latest`` in the listing.
+    from hermes_cli.local_models.bootstrap import (
+        DownloadOutcome,
+        post_download_health_check,
+    )
+
+    out = DownloadOutcome(model="gemma4", attempted=True, ok=True)
+    listing = "NAME           ID    SIZE   MODIFIED\ngemma4:latest  abc   4.0 GB 1 minute ago\n"
+    post_download_health_check(out, "gemma4", ollama_list_runner=lambda: listing)
+    assert out.health_verified is True
+
+
+def test_execute_bootstrap_verify_health_appends_to_outcome() -> None:
+    from hermes_cli.local_models.bootstrap import execute_bootstrap, plan_bootstrap
+    from hermes_cli.local_models.hardware_probe import HardwareProfile
+
+    laptop = HardwareProfile("Linux", "x86_64", 8, 16.0, 0.0, 200.0)
+    plan = plan_bootstrap("laptop", hardware=laptop)
+    # Only the ollama items that report installed will attempt a pull; health
+    # verification only runs on those successful ollama pulls. The injected list
+    # runner reports every pulled tag as present, so any attempted ollama pull
+    # gets health_verified=True; non-attempted items stay None.
+    pulled: list[tuple[str, ...]] = []
+
+    def fake_pull(cmd):
+        pulled.append(tuple(cmd))
+        return True, "ok"
+
+    def fake_list():
+        # Echo back every tag that was pulled as a NAME line.
+        lines = ["NAME ID SIZE MODIFIED"]
+        for cmd in pulled:
+            if len(cmd) >= 3 and cmd[0] == "ollama" and cmd[1] == "pull":
+                lines.append(f"{cmd[2]} abc 4.0 GB now")
+        return "\n".join(lines) + "\n"
+
+    outcomes = execute_bootstrap(
+        plan,
+        accept_downloads=True,
+        runner=fake_pull,
+        verify_health=True,
+        ollama_list_runner=fake_list,
+    )
+    assert outcomes
+    attempted_ollama = [
+        o for o in outcomes if o.attempted and o.ok and o.command[:2] == ("ollama", "pull")
+    ]
+    # Every attempted ollama pull was health-verified against the listing.
+    for o in attempted_ollama:
+        assert o.health_verified is True
+        assert "ollama list" in o.health_detail
+
+
+def test_execute_bootstrap_health_default_off_is_unchanged() -> None:
+    # Default path: verify_health off ⇒ health fields stay None (byte-for-byte
+    # behavior preserved for existing callers).
+    from hermes_cli.local_models.bootstrap import execute_bootstrap, plan_bootstrap
+    from hermes_cli.local_models.hardware_probe import HardwareProfile
+
+    laptop = HardwareProfile("Linux", "x86_64", 8, 16.0, 0.0, 200.0)
+    plan = plan_bootstrap("laptop", hardware=laptop)
+    outcomes = execute_bootstrap(
+        plan, accept_downloads=True, runner=lambda cmd: (True, "ok")
+    )
+    assert all(o.health_verified is None for o in outcomes)

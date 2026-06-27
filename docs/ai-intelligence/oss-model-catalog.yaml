@@ -209,7 +209,12 @@ families:
     best_for: [coding, code_edit, agentic_coding, local_coding]
     benchmarks:
       swe_bench_verified: 71.3
+    # Confirmed installed locally 2026-06-27 (`ollama show qwen3-coder:30b`):
+    # arch qwen3moe, 30.5B, native ctx 262144 (Q4_K_M); caps completion, tools.
+    # The local `ollama` ref (qwen3-coder:30b) is the on-box coding workhorse;
+    # at 8GB VRAM it runs with partial offload at a conservative ~6–8K window.
     providers:
+      - {provider: ollama, model: qwen3-coder:30b}
       - {provider: qwen-oauth, model: qwen3-coder}
       - {provider: openrouter, model: qwen/qwen3-coder}
       - {provider: novita, model: qwen/qwen3-coder}
@@ -366,7 +371,11 @@ families:
     local_runner: ollama
     best_for: [local_reasoning, local_coding, reasoning]
     benchmarks: {}
+    # Confirmed installed locally 2026-06-27 (`ollama show gpt-oss:20b`):
+    # arch gptoss, 20.9B, native ctx 131072 (MXFP4); caps completion, tools,
+    # thinking. The local `ollama` provider ref below is the on-box install.
     providers:
+      - {provider: ollama, model: gpt-oss:20b}
       - {provider: ollama-cloud, model: gpt-oss:20b}
       - {provider: huggingface, model: openai/gpt-oss-20b}
       - {provider: openrouter, model: openai/gpt-oss-20b}
@@ -380,9 +389,15 @@ families:
     license_spdx: Apache-2.0
     open_weights: true
     tier: strong
-    current_variant: gemma4-31b
+    # Reconciled 2026-06-27: only e2b/e4b have CONFIRMED downloadable Ollama tags,
+    # so current_variant points at gemma4-e4b (was gemma4-31b). 12B/26B/31B remain
+    # model-card variants without a verified Ollama tag — do not advertise them as
+    # one-tap pulls. (On this 8GB box gemma4:12b IS installed locally and appears
+    # in config/model-catalog.yaml's ollama-local block, but it is not a confirmed
+    # public Ollama tag for general bootstrap.)
+    current_variant: gemma4-e4b
     context_window: 256000
-    params: "E2B/E4B effective + 12B/26B/31B variants (MatFormer); 12B is model-card only (no confirmed Ollama tag)"
+    params: "E2B/E4B effective + 12B/26B/31B variants (MatFormer); only e2b/e4b have confirmed Ollama tags — 12B/26B/31B are model-card only"
     local: true
     local_runner: ollama
     best_for:

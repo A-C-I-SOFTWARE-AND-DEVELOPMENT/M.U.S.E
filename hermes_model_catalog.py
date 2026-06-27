@@ -15,6 +15,21 @@ doctor`` actually ask:
 It deliberately does **no** network I/O and never reads secret *values*
 — only whether a key is set — so it is safe to import anywhere and easy
 to unit-test.
+
+Installed-vs-catalog reconciliation (2026-06-27)
+------------------------------------------------
+The ``ollama-local`` provider block in ``config/model-catalog.yaml`` was
+reconciled against ``ollama show`` on the reference box (RTX 5070 Laptop,
+8GB VRAM): the phantom ``gemma4-26b`` / ``gemma4-31b`` / ``llama3.2``
+entries were removed, and the six models actually installed there
+(``qwen3-coder-30b``, ``gpt-oss-20b``, ``gemma4-12b``, ``qwen3_5-9b``,
+``qwythos-mythos-9b``, ``ornith-9b``) were added with a CONSERVATIVE
+32768-token context floor — the native 256K–1M windows are unreachable at
+8GB. ``defaults.fast`` / ``defaults.local`` were repointed at the
+installed-first ordering (the removed ``llama3.2`` ref no longer dangles).
+``gemma4-e2b`` / ``gemma4-e4b`` stay listed as downloadable-on-other-machines
+candidates but are not installed here. This module's behavior is unchanged;
+only the data it loads was reconciled.
 """
 
 from __future__ import annotations

@@ -15,16 +15,29 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shutil
 import stat
+import subprocess
 import tempfile
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 PASS = "pass"
 WARN = "warn"
 FAIL = "fail"
+
+# Injectable probes for the GPU / Ollama health WARN checks. ``None`` ⇒ the
+# real (defensive, timeout-guarded) probe is used. Tests pass a stub so the
+# doctor never shells out or hits the network.
+OllamaPsRunner = Callable[[], str]
+OllamaListRunner = Callable[[], str]
+OllamaServeProbe = Callable[[], bool]
+
+# The default loopback Ollama endpoint. Probed read-only (a bare GET) with a
+# short timeout so a down server is surfaced as an actionable WARN, never a hang.
+_OLLAMA_DEFAULT_URL = "http://127.0.0.1:11434"
 
 
 def _repo_root() -> Path:
@@ -88,8 +101,258 @@ def _check(fn) -> LaunchCheck:
         return LaunchCheck(getattr(fn, "_name", fn.__name__), FAIL, f"raised {exc!r}")
 
 
-def run_launch_doctor() -> LaunchReport:
-    """Run every launch-readiness check and return a structured report."""
+# ---------------------------------------------------------------------------
+# Shared GPU / Ollama health probes (advisory — WARN-level, never blocking)
+#
+# These back the doctor's hardware/runtime advisories. Every one is defensive
+# and injectable: the real probe is timeout-guarded and degrades to a neutral
+# result, and tests pass a stub so the doctor never shells out or hits the
+# network. None of these can flip a PASS report to FAIL — they only add WARNs.
+# ---------------------------------------------------------------------------
+
+
+def _default_ollama_ps_runner() -> str:
+    """Run ``ollama ps`` once (read-only) and return stdout, or ``""``.
+
+    Defensive: missing binary, non-zero exit, or any error ⇒ ``""`` so the
+    caller simply reports "not probed". Never raises.
+    """
+    if shutil.which("ollama") is None:
+        return ""
+    try:
+        proc = subprocess.run(
+            ["ollama", "ps"], capture_output=True, text=True, timeout=4.0
+        )
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - defensive
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout or ""
+
+
+def _default_ollama_list_runner() -> str:
+    """Run ``ollama list`` once (read-only) and return stdout, or ``""``."""
+    if shutil.which("ollama") is None:
+        return ""
+    try:
+        proc = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, timeout=6.0
+        )
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - defensive
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout or ""
+
+
+def _default_ollama_serve_probe() -> Optional[bool]:
+    """Probe whether ``ollama serve`` answers on the loopback endpoint.
+
+    Returns ``True`` if the daemon responds, ``False`` if a connection is
+    refused, and ``None`` when the probe is inconclusive (no ollama binary
+    installed, or an unexpected error) so the doctor can stay silent rather
+    than emit a misleading WARN. Read-only: a bare GET with a short timeout.
+    """
+    if shutil.which("ollama") is None:
+        return None
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(_OLLAMA_DEFAULT_URL, timeout=2.0) as resp:
+            resp.read(64)
+        return True
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", exc)
+        # A refused/unreachable connection means the server is down. An HTTP
+        # error code (HTTPError) still means *something* answered → reachable.
+        if isinstance(exc, urllib.error.HTTPError):
+            return True
+        if isinstance(reason, (ConnectionError, OSError)):
+            return False
+        return False
+    except (OSError, ValueError):  # pragma: no cover - defensive
+        return None
+    except Exception:  # pragma: no cover - defensive
+        return None
+
+
+def _parse_ollama_ps_cpu_models(ps_output: str) -> list[str]:
+    """Parse ``ollama ps`` output and return model names on CPU / partial GPU.
+
+    ``ollama ps`` prints a ``PROCESSOR`` column whose value is e.g. ``100% GPU``,
+    ``100% CPU``, or ``48%/52% CPU/GPU``. Any value that mentions CPU indicates a
+    model not running fully on the GPU (CPU-only or partial offload) — that is
+    the advisory signal. The model NAME is the first token of each row; the
+    PROCESSOR value is reconstructed from the ``NN%`` token(s) plus the trailing
+    ``CPU``/``GPU`` label, so detection is robust to column spacing.
+    """
+    lines = [ln for ln in (ps_output or "").splitlines() if ln.strip()]
+    if len(lines) < 2:
+        return []
+    if "PROCESSOR" not in lines[0].upper() or "NAME" not in lines[0].upper():
+        return []
+    flagged: list[str] = []
+    for row in lines[1:]:
+        tokens = row.split()
+        if not tokens:
+            continue
+        name = tokens[0]
+        # The processor cell is the ``NN%`` (or ``NN%/MM%``) token followed by a
+        # CPU/GPU label token (e.g. ``CPU`` or ``CPU/GPU``). Find it by scanning.
+        processor = ""
+        for i, tok in enumerate(tokens):
+            if "%" in tok:
+                label = tokens[i + 1] if i + 1 < len(tokens) else ""
+                processor = f"{tok} {label}".strip()
+                break
+        if processor and "cpu" in processor.lower():
+            flagged.append(f"{name} ({processor})")
+    return flagged
+
+
+def _check_gpu_driver_advisory() -> LaunchCheck:
+    """WARN when the box looks GPU-capable but no working NVIDIA stack is up.
+
+    Advisory only: ``gpu_available`` is ``False`` whenever ``nvidia-smi`` is
+    absent OR present-but-erroring. We only WARN in the case that actually
+    hurts — an ``nvidia-smi`` binary exists (so this is plausibly an NVIDIA
+    box) yet the driver/CLI is not responding, meaning inference silently
+    falls back to CPU. A box with no NVIDIA tooling at all is a normal CPU box
+    and gets a quiet PASS.
+    """
+    try:
+        from hermes_cli.local_models.hardware_probe import probe
+
+        hw = probe()
+    except Exception as exc:  # pragma: no cover - defensive (stripped install)
+        return LaunchCheck(
+            "gpu_driver", WARN, f"hardware probe unavailable: {exc}", hard=False
+        )
+
+    if getattr(hw, "gpu_available", False):
+        name = getattr(hw, "gpu_name", None) or "GPU"
+        return LaunchCheck(
+            "gpu_driver", PASS, f"NVIDIA stack responding ({name})", hard=False
+        )
+    nvidia_present = shutil.which("nvidia-smi") is not None
+    if nvidia_present:
+        return LaunchCheck(
+            "gpu_driver",
+            WARN,
+            "NVIDIA GPU detected but kernel driver not loaded — inference will "
+            "be CPU-only and 10-50x slower; run nvidia-smi to diagnose.",
+            hard=False,
+        )
+    return LaunchCheck(
+        "gpu_driver",
+        PASS,
+        "no NVIDIA GPU detected — CPU inference (no driver issue to report)",
+        hard=False,
+    )
+
+
+def _check_ollama_processor(runner: Optional[OllamaPsRunner]) -> LaunchCheck:
+    """WARN when a loaded Ollama model is running on CPU / partial GPU.
+
+    Parses one ``ollama ps`` and flags any model whose PROCESSOR column mentions
+    CPU. ``runner`` is injectable; ``None`` uses the defensive default. No loaded
+    models (or no ollama) ⇒ a quiet PASS — there is nothing to advise about.
+    """
+    run = runner or _default_ollama_ps_runner
+    try:
+        out = run() or ""
+    except Exception as exc:  # pragma: no cover - defensive
+        return LaunchCheck("ollama_processor", WARN, f"probe failed: {exc}", hard=False)
+    flagged = _parse_ollama_ps_cpu_models(out)
+    if flagged:
+        return LaunchCheck(
+            "ollama_processor",
+            WARN,
+            "Ollama model(s) not fully on GPU: "
+            + ", ".join(flagged)
+            + " — expect slow inference; check VRAM headroom / driver.",
+            hard=False,
+        )
+    return LaunchCheck(
+        "ollama_processor",
+        PASS,
+        "no CPU/partial-offload Ollama models loaded (or none running)",
+        hard=False,
+    )
+
+
+def _check_ollama_env_hygiene(env: Optional[dict[str, str]] = None) -> LaunchCheck:
+    """WARN when the deprecated/unrecognized ``OLLAMA_NUM_CTX`` env var is set.
+
+    Ollama does **not** recognize ``OLLAMA_NUM_CTX``; the correct variable is
+    ``OLLAMA_CONTEXT_LENGTH``. Setting the former silently has no effect, so the
+    user thinks they raised context when they did not. Advisory only.
+    """
+    env = env if env is not None else dict(os.environ)
+    if env.get("OLLAMA_NUM_CTX", "").strip():
+        recommend = ""
+        if not env.get("OLLAMA_CONTEXT_LENGTH", "").strip():
+            recommend = " (none set; export OLLAMA_CONTEXT_LENGTH instead)"
+        return LaunchCheck(
+            "ollama_env_hygiene",
+            WARN,
+            "OLLAMA_NUM_CTX is an UNRECOGNIZED Ollama variable and has no effect "
+            "— use OLLAMA_CONTEXT_LENGTH" + recommend + ".",
+            hard=False,
+        )
+    return LaunchCheck(
+        "ollama_env_hygiene",
+        PASS,
+        "no unrecognized Ollama context env var set",
+        hard=False,
+    )
+
+
+def _check_ollama_server(probe: Optional[OllamaServeProbe] = None) -> LaunchCheck:
+    """WARN when Ollama is installed but the server is not reachable.
+
+    Probes the loopback endpoint read-only. ``probe`` is injectable; ``None``
+    uses the defensive default (which returns ``None`` — inconclusive — when no
+    ollama binary is installed, yielding a quiet PASS). Only an *installed but
+    unreachable* server produces the actionable WARN.
+    """
+    run = probe or _default_ollama_serve_probe
+    try:
+        reachable = run()
+    except Exception as exc:  # pragma: no cover - defensive
+        return LaunchCheck("ollama_server", WARN, f"probe failed: {exc}", hard=False)
+    if reachable is True:
+        return LaunchCheck(
+            "ollama_server", PASS, f"ollama serve reachable at {_OLLAMA_DEFAULT_URL}", hard=False
+        )
+    if reachable is False:
+        return LaunchCheck(
+            "ollama_server",
+            WARN,
+            "ollama installed but server not running — start: ollama serve",
+            hard=False,
+        )
+    return LaunchCheck(
+        "ollama_server",
+        PASS,
+        "ollama not installed — server probe skipped",
+        hard=False,
+    )
+
+
+def run_launch_doctor(
+    *,
+    ollama_ps_runner: Optional[OllamaPsRunner] = None,
+    ollama_serve_probe: Optional[OllamaServeProbe] = None,
+    env: Optional[dict[str, str]] = None,
+) -> LaunchReport:
+    """Run every launch-readiness check and return a structured report.
+
+    The GPU / Ollama health probes are injectable (and otherwise defensive +
+    timeout-guarded); ``None`` uses the real probes. They are all WARN-level —
+    none can flip ``ok``, preserving the pass/fail semantics of the report.
+    """
     checks: list[LaunchCheck] = [
         _check_package_import(),
         _check_cli_entrypoint(),
@@ -107,6 +370,11 @@ def run_launch_doctor() -> LaunchReport:
         _check_no_paid_dependency(),
         _check_install_script(),
         _check_termux_compat(),
+        # --- hardware / runtime health advisories (WARN-only) ---
+        _check_gpu_driver_advisory(),
+        _check_ollama_processor(ollama_ps_runner),
+        _check_ollama_env_hygiene(env),
+        _check_ollama_server(ollama_serve_probe),
         # --- verifiable guardrail subsystem ---
         _check_guardrail_ledger_writable(),
         _check_guardrail_ledger_verifies(),
@@ -620,5 +888,8 @@ __all__ = [
     "WARN",
     "LaunchCheck",
     "LaunchReport",
+    "OllamaListRunner",
+    "OllamaPsRunner",
+    "OllamaServeProbe",
     "run_launch_doctor",
 ]

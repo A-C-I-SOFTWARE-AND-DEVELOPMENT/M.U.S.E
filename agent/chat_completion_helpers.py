@@ -75,6 +75,359 @@ def _ra():
     return run_agent
 
 
+# ── Native Ollama /api/chat transport (ACTION #6) ───────────────────────
+#
+# Ollama exposes two HTTP surfaces:
+#   - /v1/chat/completions  (OpenAI-compatible shim) — SILENTLY IGNORES the
+#     ``options`` object, so options.num_ctx / keep_alive never take effect
+#     and the server stays pinned at its 4096 default context window.
+#   - /api/chat  (native)   — HONORS ``options`` {num_ctx, keep_alive,
+#     num_predict, top_k, repeat_penalty, min_p, …}.
+#
+# Native /api/chat is used for local Ollama endpoints (loopback / :11434):
+# chat requests route there, preserving streaming, tool-call parsing, and
+# finish_reason mapping, so context/keep_alive/sampling actually take
+# effect. Non-Ollama endpoints (llama.cpp, vLLM, LM Studio, cloud) are
+# untouched and stay on the OpenAI-SDK /v1 path. No flag — purely a function
+# of whether the endpoint is a local Ollama server.
+
+_OLLAMA_OPTION_KEYS = frozenset({
+    "num_ctx", "keep_alive", "num_predict", "top_k", "top_p",
+    "repeat_penalty", "min_p", "temperature", "seed", "stop",
+    "presence_penalty", "frequency_penalty", "num_keep", "typical_p",
+    "tfs_z", "mirostat", "mirostat_tau", "mirostat_eta",
+})
+
+
+def _is_local_ollama_base_url(base_url: str) -> bool:
+    """Return True for an Ollama endpoint, keyed on its default port 11434.
+
+    Ollama listens on :11434 by default; that port is the reliable signal
+    that an OpenAI-compatible base_url is actually an Ollama server (local
+    or remote). Matching on the port — NOT merely on a loopback host — keeps
+    other local OpenAI-compatible servers on the unchanged /v1 path:
+    LM Studio (:1234), llama.cpp (:8080), vLLM (:8000) all share loopback
+    but are not Ollama and must not be diverted to /api/chat.
+    """
+    if not base_url:
+        return False
+    try:
+        port = str(
+            urlparse(base_url if "://" in base_url else f"//{base_url}").port or ""
+        )
+    except Exception:
+        return False
+    return port == "11434"
+
+
+def _should_route_native_ollama(agent) -> bool:
+    """Gate: route this chat request to Ollama's native /api/chat.
+
+    Native /api/chat is used for any local Ollama endpoint — it is the only
+    surface that honors the ``options`` object (num_ctx, keep_alive,
+    num_predict, top_k, repeat_penalty, min_p, …), which the /v1 OpenAI shim
+    silently drops. Routes native when BOTH hold:
+      - api_mode is chat_completions (Ollama's native chat surface), AND
+      - the resolved base_url is a local Ollama endpoint (loopback / :11434).
+    Non-Ollama endpoints (llama.cpp, vLLM, LM Studio, cloud) and any error
+    → False → the unchanged /v1 OpenAI-SDK path runs.
+    """
+    try:
+        if getattr(agent, "api_mode", None) != "chat_completions":
+            return False
+        return _is_local_ollama_base_url(getattr(agent, "base_url", "") or "")
+    except Exception:
+        return False
+
+
+def _ollama_native_url(base_url: str) -> str:
+    """Map an Ollama base_url (with or without /v1) to its /api/chat URL."""
+    root = (base_url or "").strip().rstrip("/")
+    root = re.sub(r"/v1$", "", root)
+    return root + "/api/chat"
+
+
+def _build_ollama_native_payload(api_kwargs: dict) -> dict:
+    """Translate OpenAI chat.completions kwargs into an /api/chat payload.
+
+    Lifts ``extra_body.options`` (where the custom profile already packed
+    ``num_ctx``) and the OpenAI top-level sampling knobs into Ollama's
+    ``options`` object — which the native surface honors, unlike /v1.
+    """
+    payload: dict[str, Any] = {
+        "model": api_kwargs.get("model"),
+        "messages": api_kwargs.get("messages", []),
+    }
+    tools = api_kwargs.get("tools")
+    if tools:
+        payload["tools"] = tools
+
+    options: dict[str, Any] = {}
+    extra_body = api_kwargs.get("extra_body")
+    if isinstance(extra_body, dict):
+        eb_options = extra_body.get("options")
+        if isinstance(eb_options, dict):
+            options.update(eb_options)
+        # Ollama honors think at the top level of /api/chat.
+        if "think" in extra_body:
+            payload["think"] = extra_body["think"]
+
+    # Promote recognized OpenAI top-level sampling params into options.
+    for key in _OLLAMA_OPTION_KEYS:
+        if key in api_kwargs and key not in options:
+            options[key] = api_kwargs[key]
+    # num_predict mirrors max_tokens when the caller set it OpenAI-style.
+    if "num_predict" not in options:
+        for mt_key in ("max_tokens", "max_completion_tokens"):
+            if api_kwargs.get(mt_key) is not None:
+                options["num_predict"] = api_kwargs[mt_key]
+                break
+    # keep_alive is a top-level /api/chat field, not an option.
+    keep_alive = options.pop("keep_alive", None)
+    if keep_alive is not None:
+        payload["keep_alive"] = keep_alive
+    if options:
+        payload["options"] = options
+    return payload
+
+
+def _ollama_finish_reason(done_reason: Any, had_tool_calls: bool) -> str:
+    """Map Ollama's done_reason to an OpenAI finish_reason."""
+    dr = str(done_reason or "").strip().lower()
+    if had_tool_calls:
+        return "tool_calls"
+    if dr == "length":
+        return "length"
+    return "stop"
+
+
+def _ollama_message_to_namespace(message: dict, finish_reason: str):
+    """Build an OpenAI-shaped response SimpleNamespace from an Ollama message."""
+    content = message.get("content") or ""
+    reasoning_content = message.get("thinking") or None
+    tool_calls_ns = None
+    raw_tcs = message.get("tool_calls")
+    if isinstance(raw_tcs, list) and raw_tcs:
+        tool_calls_ns = []
+        for idx, tc in enumerate(raw_tcs):
+            fn = (tc or {}).get("function", {}) if isinstance(tc, dict) else {}
+            name = fn.get("name", "")
+            args = fn.get("arguments", {})
+            if not isinstance(args, str):
+                try:
+                    args = json.dumps(args)
+                except Exception:
+                    args = "{}"
+            tc_id = (tc or {}).get("id") or f"call_{idx}"
+            tool_calls_ns.append(SimpleNamespace(
+                id=tc_id,
+                type="function",
+                function=SimpleNamespace(name=name, arguments=args),
+            ))
+    msg_ns = SimpleNamespace(
+        role=message.get("role", "assistant"),
+        content=content,
+        tool_calls=tool_calls_ns,
+        reasoning_content=reasoning_content,
+        reasoning=None,
+    )
+    return SimpleNamespace(index=0, message=msg_ns, finish_reason=finish_reason)
+
+
+def _ollama_usage_namespace(data: dict):
+    """Build an OpenAI-shaped usage namespace from Ollama counts."""
+    prompt = int(data.get("prompt_eval_count") or 0)
+    completion = int(data.get("eval_count") or 0)
+    if not (prompt or completion):
+        return None
+    return SimpleNamespace(
+        prompt_tokens=prompt,
+        completion_tokens=completion,
+        total_tokens=prompt + completion,
+    )
+
+
+def _ollama_native_chat(agent, api_kwargs: dict, *, stream: bool = False):
+    """Non-streaming POST /api/chat → OpenAI-shaped response namespace."""
+    import httpx as _httpx
+
+    base_url = getattr(agent, "base_url", "") or ""
+    url = _ollama_native_url(base_url)
+    payload = _build_ollama_native_payload(api_kwargs)
+    payload["stream"] = False
+
+    headers = {"Content-Type": "application/json"}
+    api_key = getattr(agent, "api_key", "")
+    if isinstance(api_key, str) and api_key and api_key != "no-key-required":
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    timeout = api_kwargs.get("timeout")
+    if timeout is None:
+        timeout = agent._resolved_api_call_timeout() if hasattr(agent, "_resolved_api_call_timeout") else 1800.0
+
+    with _httpx.Client(timeout=timeout) as client:
+        resp = client.post(url, json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+
+    message = data.get("message", {}) if isinstance(data, dict) else {}
+    had_tool_calls = bool(message.get("tool_calls"))
+    finish_reason = _ollama_finish_reason(data.get("done_reason"), had_tool_calls)
+    choice = _ollama_message_to_namespace(message, finish_reason)
+    return SimpleNamespace(
+        id=data.get("created_at", "ollama-native"),
+        model=data.get("model", api_kwargs.get("model", "unknown")),
+        choices=[choice],
+        usage=_ollama_usage_namespace(data if isinstance(data, dict) else {}),
+    )
+
+
+def _ollama_native_streaming_chat(agent, api_kwargs: dict, *, on_first_delta=None):
+    """Streaming POST /api/chat → OpenAI-shaped response namespace.
+
+    Streams newline-delimited JSON objects (Ollama's native stream format),
+    firing the agent's stream-delta / reasoning-delta / first-delta callbacks
+    as content arrives, then returns a single OpenAI-shaped response that the
+    rest of the agent loop normalizes exactly as it would the /v1 path.
+    """
+    import httpx as _httpx
+
+    if agent._interrupt_requested:
+        raise InterruptedError("Agent interrupted before streaming API call")
+
+    base_url = getattr(agent, "base_url", "") or ""
+    url = _ollama_native_url(base_url)
+    payload = _build_ollama_native_payload(api_kwargs)
+    payload["stream"] = True
+
+    headers = {"Content-Type": "application/json"}
+    api_key = getattr(agent, "api_key", "")
+    if isinstance(api_key, str) and api_key and api_key != "no-key-required":
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    _provider_timeout_cfg = get_provider_request_timeout(agent.provider, agent.model)
+    _base_timeout = (
+        _provider_timeout_cfg
+        if _provider_timeout_cfg is not None
+        else float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
+    )
+    _conn_cap = min(_base_timeout, 60.0)
+    timeout = _httpx.Timeout(
+        connect=_conn_cap, read=_base_timeout, write=_base_timeout, pool=_conn_cap
+    )
+
+    content_parts: list = []
+    reasoning_parts: list = []
+    tool_calls_raw: list = []
+    finish_done_reason = None
+    model_name = api_kwargs.get("model", "unknown")
+    usage_data: dict = {}
+    first_fired = {"done": False}
+
+    def _fire_first():
+        if not first_fired["done"] and on_first_delta:
+            first_fired["done"] = True
+            try:
+                on_first_delta()
+            except Exception:
+                pass
+
+    with _httpx.Client(timeout=timeout) as client:
+        with client.stream("POST", url, json=payload, headers=headers) as resp:
+            resp.raise_for_status()
+            # _capture_rate_limits expects an object exposing .headers
+            # (the httpx Response itself), mirroring the /v1 path which passes
+            # the SDK Stream's .response.
+            agent._capture_rate_limits(resp)
+            for line in resp.iter_lines():
+                if agent._interrupt_requested:
+                    raise InterruptedError("Agent interrupted during streaming API call")
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except (json.JSONDecodeError, TypeError):
+                    continue
+                agent._touch_activity("receiving stream response")
+                msg = chunk.get("message", {}) if isinstance(chunk, dict) else {}
+                if chunk.get("model"):
+                    model_name = chunk["model"]
+                _thinking = msg.get("thinking")
+                if _thinking:
+                    reasoning_parts.append(_thinking)
+                    _fire_first()
+                    agent._fire_reasoning_delta(_thinking)
+                _content = msg.get("content")
+                _tcs = msg.get("tool_calls")
+                if _tcs:
+                    tool_calls_raw.extend(_tcs)
+                if _content:
+                    content_parts.append(_content)
+                    # Suppress text streaming on tool-call turns (mirrors the
+                    # /v1 path: avoids chatty preamble alongside tool calls).
+                    if not tool_calls_raw:
+                        _fire_first()
+                        agent._fire_stream_delta(_content)
+                if chunk.get("done"):
+                    finish_done_reason = chunk.get("done_reason")
+                    for k in ("prompt_eval_count", "eval_count"):
+                        if k in chunk:
+                            usage_data[k] = chunk[k]
+
+    final_message: dict[str, Any] = {
+        "role": "assistant",
+        "content": "".join(content_parts),
+    }
+    if reasoning_parts:
+        final_message["thinking"] = "".join(reasoning_parts)
+    if tool_calls_raw:
+        final_message["tool_calls"] = tool_calls_raw
+    finish_reason = _ollama_finish_reason(finish_done_reason, bool(tool_calls_raw))
+    choice = _ollama_message_to_namespace(final_message, finish_reason)
+    return SimpleNamespace(
+        id="ollama-native-stream",
+        model=model_name,
+        choices=[choice],
+        usage=_ollama_usage_namespace(usage_data),
+    )
+
+
+# ── Opt-in fallback-on-timeout (ACTION #8) ──────────────────────────────
+
+
+def fallback_on_timeout_enabled(provider_id: str) -> bool:
+    """Return True unless ``providers.<id>.enable_fallback_on_timeout`` is
+    explicitly set to false.
+
+    On by default: a ``FailoverReason.timeout`` escalates to the configured
+    fallback chain (so a slow local primary hands off to a cloud fallback)
+    instead of being treated as a non-escalating transport retry. Set
+    ``providers.<id>.enable_fallback_on_timeout: false`` to opt out. Mirrors
+    the ``providers.<id>`` config lookup used by
+    ``hermes_cli.timeouts.get_provider_request_timeout``. (Escalation still
+    only happens when a fallback chain is actually configured.)
+    """
+    try:
+        from hermes_cli.config import load_config_readonly
+
+        config = load_config_readonly()
+    except Exception:
+        return True
+    providers = config.get("providers", {}) if isinstance(config, dict) else {}
+    provider_config = (
+        providers.get(provider_id, {})
+        if isinstance(providers, dict) and provider_id
+        else {}
+    )
+    if not isinstance(provider_config, dict):
+        return True
+    val = provider_config.get("enable_fallback_on_timeout")
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() not in {"0", "false", "no", "off"}
+    return True
+
 
 def interruptible_api_call(agent, api_kwargs: dict):
     """
@@ -130,6 +483,12 @@ def interruptible_api_call(agent, api_kwargs: dict):
                         invalidate_runtime_client(region)
                     raise
                 result["response"] = normalize_converse_response(raw_response)
+            elif _should_route_native_ollama(agent):
+                # Default for local Ollama: route to the native POST /api/chat
+                # where the `options` object (num_ctx, keep_alive, …) IS
+                # honored. The /v1 shim silently drops it. Returns an
+                # OpenAI-shaped response so the rest of the loop is unchanged.
+                result["response"] = _ollama_native_chat(agent, api_kwargs, stream=False)
             else:
                 request_client_holder["client"] = agent._create_request_openai_client(
                     reason="chat_completion_request",
@@ -681,7 +1040,27 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
     Uses the centralized provider router (resolve_provider_client) for
     auth resolution and client construction — no duplicated provider→key
     mappings.
+
+    ACTION #8: when called with ``reason=FailoverReason.timeout``, escalation
+    is on by default and only suppressed when
+    ``providers.<id>.enable_fallback_on_timeout`` is explicitly set to false.
+    A timeout reason is only ever passed by an *eager* caller; the
+    post-retry-exhaustion path passes ``reason=None``. Escalation still only
+    happens when a fallback chain is configured, so with no fallbacks this is
+    inert.
     """
+    if reason is FailoverReason.timeout:
+        current_provider = (getattr(agent, "provider", "") or "").strip().lower()
+        primary_provider = (
+            (getattr(agent, "_primary_runtime", None) or {}).get("provider") or ""
+        ).strip().lower()
+        provider_for_flag = primary_provider or current_provider
+        if not fallback_on_timeout_enabled(provider_for_flag):
+            # Explicitly opted out (enable_fallback_on_timeout: false): do not
+            # escalate on timeout — keep retrying the slow primary rather than
+            # handing off to a cloud fallback.
+            return False
+
     if reason in {FailoverReason.rate_limit, FailoverReason.billing}:
         # Only start cooldown when leaving the primary provider.  If we're
         # already on a fallback and chain-switching, the primary wasn't the
@@ -900,6 +1279,13 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             "Fallback activated: %s → %s (%s)",
             old_model, fb_model, fb_provider,
         )
+        # ACTION #8: reason-tagged INFO line for the opt-in timeout-escalation
+        # path, so operators can confirm a slow local primary handed off.
+        if reason is FailoverReason.timeout:
+            logging.info(
+                "Fallback activated: %s -> %s (%s)",
+                old_model, fb_model, reason.value,
+            )
         return True
     except Exception as e:
         logging.error("Failed to activate fallback %s: %s", fb_model, e)
@@ -1254,6 +1640,15 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
         if result["error"] is not None:
             raise result["error"]
         return result["response"]
+
+    # Native Ollama transport — default for local Ollama endpoints. Streams
+    # POST /api/chat where `options` (num_ctx, keep_alive, …) is honored,
+    # firing the same stream/first-delta callbacks as the OpenAI-SDK path.
+    # Non-Ollama endpoints fall through to the unchanged /v1 path below.
+    if _should_route_native_ollama(agent):
+        return _ollama_native_streaming_chat(
+            agent, api_kwargs, on_first_delta=on_first_delta
+        )
 
     result: Dict[str, Any] = {"response": None, "error": None, "partial_tool_names": []}
     request_client_holder = {"client": None, "diag": None}
@@ -2075,4 +2470,5 @@ __all__ = [
     "handle_max_iterations",
     "cleanup_task_resources",
     "interruptible_streaming_api_call",
+    "fallback_on_timeout_enabled",
 ]

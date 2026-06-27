@@ -4749,6 +4749,25 @@ class HermesCLI:
                     "[dim]   Fix: Set model.context_length in config.yaml, or increase your server's context setting[/]"
                 )
 
+        # For LOCAL endpoints, the agentic floor is higher than the generic
+        # 8192 threshold above: tool schemas + system prompt alone consume
+        # ~4–8K, and a CPU-hosted tool agent realistically needs ~24–32K of
+        # context to make progress. Surface a local-specific note whenever the
+        # window is under 12K so the user knows to raise it (and which knob).
+        if ctx_len and ctx_len < 12288:
+            base_url = getattr(self, "base_url", "") or ""
+            try:
+                from agent.model_metadata import is_local_endpoint
+                local = bool(base_url) and is_local_endpoint(base_url)
+            except Exception:
+                local = False
+            if local:
+                self._console_print(
+                    "[dim]   Local tool agents need ~24–32K; tool schemas + system "
+                    "prompt alone consume 4–8K — raise OLLAMA_CONTEXT_LENGTH "
+                    "(NOT OLLAMA_NUM_CTX) and restart ollama.[/]"
+                )
+
         # Warn if the configured model is a Nous Hermes LLM (not agentic)
         from hermes_cli.model_switch import is_nous_hermes_non_agentic
 

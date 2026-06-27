@@ -88,6 +88,7 @@ from hermes_cli.env_loader import load_hermes_dotenv
 from hermes_cli.timeouts import (
     get_provider_request_timeout,
     get_provider_stale_timeout,
+    get_local_request_timeout,
 )
 
 _hermes_home = get_hermes_home()
@@ -931,11 +932,26 @@ class AIAgent:
         helper, the hardcoded ``HERMES_API_TIMEOUT`` fallback would always be
         passed as a per-call ``timeout=`` kwarg, overriding the client-level
         timeout the AIAgent.__init__ path configured.
+
+        LOCAL endpoints get a dedicated, generous tier on top of the priority
+        chain above: CPU-only local servers running large models can take many
+        minutes per turn, so the generic remote default would kill a still-
+        progressing generation.  For a local endpoint we floor the resolved
+        timeout at the local tier (``get_local_request_timeout()``) — taking
+        the ``max`` with any explicit config / env value so an intentional
+        longer override is never shrunk.  Non-local behavior is unchanged.
         """
         cfg = get_provider_request_timeout(self.provider, self.model)
         if cfg is not None:
-            return cfg
-        return float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
+            base = cfg
+        else:
+            base = float(os.getenv("HERMES_API_TIMEOUT", 1800.0))
+
+        base_url = getattr(self, "_base_url", None) or self.base_url or ""
+        if base_url and is_local_endpoint(base_url):
+            # Floor at the local tier; never shrink an explicit/larger value.
+            return max(base, get_local_request_timeout())
+        return base
 
     def _resolved_api_call_stale_timeout_base(self) -> tuple[float, bool]:
         """Resolve the base non-stream stale timeout and whether it is implicit.

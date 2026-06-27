@@ -107,6 +107,23 @@ All variables go in `~/.hermes/.env`. You can also set them with `muse config se
 | `HERMES_KANBAN_WORKSPACES_ROOT` | Pin the kanban workspaces root directly (highest precedence for workspaces; beats `HERMES_KANBAN_HOME`). The dispatcher injects this into worker subprocess env |
 | `HERMES_KANBAN_DISPATCH_IN_GATEWAY` | Runtime override for `kanban.dispatch_in_gateway`. Set to `0`, `false`, `no`, or `off` to keep the gateway from starting the embedded Kanban dispatcher; any other non-empty value enables it. Useful when a separate dispatcher process owns the board. |
 
+### Ollama Server (Local Serving)
+
+These are read by the **Ollama server itself** (`ollama serve`), not by M.U.S.E. — they tune how a local Ollama instance loads and runs models. Set them in Ollama's environment (e.g. an `/etc/systemd/system/ollama.service.d/override.conf` drop-in, or exported before `ollama serve`), then restart Ollama. M.U.S.E. talks to that server over the OpenAI-compatible endpoint via `OPENAI_BASE_URL` (`http://localhost:11434/v1`). See the [Local Ollama setup guide](../guides/local-ollama-setup.md#8-gb-vram--cpu-only-tuning) for the 8 GB VRAM / CPU-only tuning recipe. These are distinct from `OLLAMA_API_KEY` / `OLLAMA_BASE_URL`, which point M.U.S.E. at **Ollama Cloud** (a managed catalog), not a local server.
+
+| Variable | Description |
+|----------|-------------|
+| `OLLAMA_CONTEXT_LENGTH` | Default context window (in tokens) the server applies to loaded models (Ollama 0.30.11 default: `4096`; older releases defaulted to `2048`). Raise it for agentic work, e.g. `16384`. **There is no `OLLAMA_NUM_CTX` env var** — that name is invalid and silently ignored; `num_ctx` exists only as a per-request option or Modelfile `PARAMETER`. |
+| `OLLAMA_FLASH_ATTENTION` | Set to `1` to enable flash attention, which lowers KV-cache memory. Recommended on constrained VRAM (8 GB) so larger contexts fit. |
+| `OLLAMA_KV_CACHE_TYPE` | KV-cache quantization: `f16` (default), `q8_0`, or `q4_0`. `q8_0` roughly halves KV-cache memory versus `f16` with negligible quality loss — pair with `OLLAMA_FLASH_ATTENTION=1` to reach usable contexts at 8 GB. |
+| `OLLAMA_NUM_PARALLEL` | Max concurrent requests served per model (default: auto). Set to `1` on scarce VRAM so the whole KV budget goes to one request instead of being split. |
+| `OLLAMA_MAX_LOADED_MODELS` | Max distinct models kept resident in memory at once (default: depends on VRAM). Set to `1` on an 8 GB GPU to avoid evicting/splitting VRAM across models. |
+| `OLLAMA_KEEP_ALIVE` | How long an idle model stays loaded before unloading (default: `5m`). Use e.g. `30m` for a persistent gateway bot, or `-1` to keep it loaded indefinitely. |
+
+:::note GPU layer control is not an env var
+There is **no** `OLLAMA_NUM_GPU_LAYERS` environment variable. To control how many model layers Ollama offloads to the GPU, use the per-request `num_gpu` option or a Modelfile `PARAMETER num_gpu <n>` — not an environment variable.
+:::
+
 ## Provider Auth (OAuth)
 
 For native Anthropic auth, muse prefers Claude Code's own credential files when they exist because those credentials can refresh automatically. **OAuth against Anthropic requires a Claude Max plan with purchased extra usage credits** — muse routes as Claude Code, which only draws from the Max plan's extra/overage credits, not the base Max allowance, and does not work on Claude Pro. Without Max + extra credits, use an API key instead. Environment variables such as `ANTHROPIC_TOKEN` remain useful as manual overrides, but they are no longer the preferred path for Claude Max login.

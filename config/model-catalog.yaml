@@ -22,14 +22,13 @@ defaults:
     - novita/llama-3.3-70b
     - nvidia/llama-3.1-nemotron-70b
   fast:
+    - ollama-local/qwen3_5-9b
+    - ollama-local/gemma4-12b
     - openrouter/llama-3.1-8b
-    - novita/qwen-2.5-7b
-    - ollama-local/gemma4-e2b
-    - ollama-local/llama3.2
   local:
-    - ollama-local/gemma4-e4b
-    - ollama-local/llama3.2
-    - llamacpp-local/qwen2.5-7b
+    - ollama-local/qwen3_5-9b
+    - ollama-local/gemma4-12b
+    - ollama-local/qwen3-coder-30b
 
 providers:
 
@@ -224,24 +223,51 @@ providers:
         params_b: 4
         context: 131072
         tags: [oss, local, offline, gemma, reasoning, memory, voice, mobile, multimodal, doc]
-      - id: gemma4-26b
-        model: gemma4:26b
+      # ---- Installed-here models (reconciled 2026-06-27 against `ollama show`) ----
+      # The six entries below are the models actually pulled on this machine
+      # (RTX 5070 Laptop, 8GB VRAM). `context` is a CONSERVATIVE runtime floor
+      # of 32768 — the native windows (256K–1M) are UNREACHABLE at 8GB even
+      # with q8_0 KV + flash attention, so the catalog advertises what the box
+      # can actually serve, not the model card maximum. Every chat model here
+      # supports tools; vision/thinking tags follow the verified capability
+      # matrix. gemma4-e2b/e4b above stay listed as downloadable-on-other-machines
+      # candidates but are NOT installed here.
+      - id: qwen3-coder-30b
+        model: qwen3-coder:30b
+        family: qwen
+        params_b: 30
+        context: 32768
+        tags: [oss, local, offline, coding, code-edit, tools]
+      - id: gpt-oss-20b
+        model: gpt-oss:20b
+        family: openai-oss
+        params_b: 20
+        context: 32768
+        tags: [oss, local, offline, reasoning, agentic, tools, thinking]
+      - id: gemma4-12b
+        model: gemma4:12b
         family: gemma
-        params_b: 26
-        context: 131072
-        tags: [oss, local, offline, gemma, reasoning, memory, coding-fallback, doc, ocr]
-      - id: gemma4-31b
-        model: gemma4:31b
-        family: gemma
-        params_b: 31
-        context: 131072
-        tags: [oss, local, offline, gemma, reasoning, memory, coding-fallback, doc, ocr, multimodal]
-      - id: llama3.2
-        model: llama3.2:3b
-        family: llama
-        params_b: 3
-        context: 131072
-        tags: [oss, local, fast, offline]
+        params_b: 12
+        context: 32768
+        tags: [oss, local, offline, general, vision, tools, thinking]
+      - id: qwen3_5-9b
+        model: qwen3.5:9b
+        family: qwen
+        params_b: 9
+        context: 32768
+        tags: [oss, local, offline, fast, general, vision, tools, thinking]
+      - id: qwythos-mythos-9b
+        model: hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q5_K_M
+        family: qwen
+        params_b: 9
+        context: 32768
+        tags: [oss, local, offline, creative, companion, long-context, tools, thinking, vision]
+      - id: ornith-9b
+        model: hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M
+        family: qwen
+        params_b: 9
+        context: 32768
+        tags: [oss, local, offline, reasoning, tools, thinking]
       - id: qwen2.5-7b
         model: qwen2.5:7b
         family: qwen

@@ -993,7 +993,79 @@ def _model_id_matches(candidate_id: str, lookup_model: str) -> bool:
     return False
 
 
-def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Optional[int]:
+def _parse_param_size_billions(parameter_size: Any) -> Optional[float]:
+    """Parse an Ollama ``details.parameter_size`` string (e.g. ``"30.5B"``,
+    ``"8.95B"``, ``"570M"``) into a billions-of-parameters float.
+
+    Returns ``None`` when the value is missing or unparseable. Stdlib-only.
+    """
+    if not isinstance(parameter_size, str):
+        return None
+    text = parameter_size.strip().upper()
+    match = re.match(r"([0-9]*\.?[0-9]+)\s*([BMK]?)", text)
+    if not match:
+        return None
+    try:
+        value = float(match.group(1))
+    except ValueError:
+        return None
+    suffix = match.group(2)
+    if suffix == "M":
+        value /= 1000.0
+    elif suffix == "K":
+        value /= 1_000_000.0
+    return value
+
+
+# Approximate bits-per-weight for common GGUF quantization levels, used to turn
+# a parameter count into an on-disk size estimate. Unknown quants fall back to
+# the 4-bit ``Q4_K_M`` reference (the most common local quant).
+_QUANT_BITS_PER_WEIGHT: Dict[str, float] = {
+    "F32": 32.0,
+    "F16": 16.0,
+    "BF16": 16.0,
+    "Q8_0": 8.5,
+    "Q6_K": 6.6,
+    "Q5_K_M": 5.5,
+    "Q5_K_S": 5.5,
+    "Q5_1": 6.0,
+    "Q5_0": 5.5,
+    "Q4_K_M": 4.8,
+    "Q4_K_S": 4.6,
+    "Q4_1": 5.0,
+    "Q4_0": 4.5,
+    "Q3_K_M": 3.9,
+    "Q2_K": 3.1,
+    "MXFP4": 4.5,
+}
+_DEFAULT_QUANT_BITS = 4.8  # Q4_K_M reference
+
+
+def _estimate_model_size_gb(
+    parameter_size: Any, quantization_level: Any
+) -> Optional[float]:
+    """Estimate a model's on-disk size in GB from Ollama ``details`` fields.
+
+    ``parameter_size`` is a string like ``"30.5B"``; ``quantization_level`` is
+    a string like ``"Q4_K_M"``. Size ≈ params * bits_per_weight / 8. Returns
+    ``None`` when the parameter count can't be parsed (the caller then skips
+    the VRAM cap rather than guessing). Stdlib-only.
+    """
+    params_b = _parse_param_size_billions(parameter_size)
+    if params_b is None or params_b <= 0:
+        return None
+    quant_key = quantization_level.strip().upper() if isinstance(quantization_level, str) else ""
+    bits = _QUANT_BITS_PER_WEIGHT.get(quant_key, _DEFAULT_QUANT_BITS)
+    # params_b is in billions; bytes = params * bits / 8; GB = bytes / 1e9.
+    return params_b * 1e9 * bits / 8.0 / 1e9
+
+
+def query_ollama_num_ctx(
+    model: str,
+    base_url: str,
+    api_key: str = "",
+    hardware: Any = None,
+) -> Optional[int]:
     """Query an Ollama server for the model's context length.
 
     Returns the model's maximum context from GGUF metadata via ``/api/show``,
@@ -1002,6 +1074,16 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
 
     This is the value that should be passed as ``num_ctx`` in Ollama chat
     requests to override the default 2048.
+
+    When ``hardware`` is supplied (a ``HardwareProfile`` from
+    ``hermes_cli.local_models.hardware_probe``) and the resolved ``num_ctx``
+    exceeds what the box can safely allocate, the value is capped to
+    ``hardware.vram_safe_context_limit(model_size_gb, quant)``. This prevents a
+    GGUF training-max of 131K/262K/1M from instructing Ollama to reserve far
+    more KV-cache VRAM than an 8GB card has. The model size and quant are
+    estimated from the ``/api/show`` ``details`` block. When ``hardware`` is
+    ``None`` (the default) or the limit can't be computed, the behaviour is
+    exactly as before — no cap is applied.
     """
     import httpx
 
@@ -1019,12 +1101,16 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
 
     headers = _auth_headers(api_key)
 
+    resolved: Optional[int] = None
+    details: Dict[str, Any] = {}
     try:
         with httpx.Client(timeout=3.0, headers=headers) as client:
             resp = client.post(f"{server_url}/api/show", json={"name": bare_model})
             if resp.status_code != 200:
                 return None
             data = resp.json()
+            if isinstance(data.get("details"), dict):
+                details = data["details"]
 
             # Prefer explicit num_ctx from Modelfile parameters (user override)
             params = data.get("parameters", "")
@@ -1034,18 +1120,78 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
                         parts = line.strip().split()
                         if len(parts) >= 2:
                             try:
-                                return int(parts[-1])
+                                resolved = int(parts[-1])
                             except ValueError:
                                 pass
+                            break
 
             # Fall back to GGUF model_info context_length (training max)
-            model_info = data.get("model_info", {})
-            for key, value in model_info.items():
-                if "context_length" in key and isinstance(value, (int, float)):
-                    return int(value)
+            if resolved is None:
+                model_info = data.get("model_info", {})
+                for key, value in model_info.items():
+                    if "context_length" in key and isinstance(value, (int, float)):
+                        resolved = int(value)
+                        break
     except Exception:
-        pass
-    return None
+        return None
+
+    if resolved is None:
+        return None
+
+    return _apply_vram_ctx_cap(resolved, details, hardware, model=bare_model)
+
+
+def _apply_vram_ctx_cap(
+    num_ctx: int,
+    details: Dict[str, Any],
+    hardware: Any,
+    *,
+    model: str = "",
+) -> int:
+    """Cap ``num_ctx`` to the VRAM-safe limit derived from ``hardware``.
+
+    Returns ``num_ctx`` unchanged when ``hardware`` is ``None``, lacks the
+    ``vram_safe_context_limit`` method, the model size can't be estimated, or
+    the safe limit is not below ``num_ctx``. Fully backward-compatible: any
+    failure path leaves the original value intact.
+    """
+    if hardware is None:
+        return num_ctx
+    limit_fn = getattr(hardware, "vram_safe_context_limit", None)
+    if not callable(limit_fn):
+        return num_ctx
+
+    parameter_size = details.get("parameter_size") if isinstance(details, dict) else None
+    quantization_level = (
+        details.get("quantization_level") if isinstance(details, dict) else None
+    )
+    model_size_gb = _estimate_model_size_gb(parameter_size, quantization_level)
+    if model_size_gb is None or model_size_gb <= 0:
+        # Can't size the model → don't guess; leave num_ctx as resolved.
+        return num_ctx
+
+    try:
+        quant = (
+            quantization_level.strip()
+            if isinstance(quantization_level, str) and quantization_level.strip()
+            else "q4_k_m"
+        )
+        safe_limit = int(limit_fn(model_size_gb, quant))
+    except Exception:
+        return num_ctx
+
+    if safe_limit > 0 and safe_limit < num_ctx:
+        logger.debug(
+            "VRAM-aware num_ctx cap for %s: %d -> %d "
+            "(model_size_gb≈%.2f, quant=%s)",
+            model or "model",
+            num_ctx,
+            safe_limit,
+            model_size_gb,
+            quant,
+        )
+        return safe_limit
+    return num_ctx
 
 
 def _query_ollama_api_show(model: str, base_url: str, api_key: str = "") -> Optional[int]:
