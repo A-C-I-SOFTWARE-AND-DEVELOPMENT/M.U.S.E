@@ -328,3 +328,81 @@ def test_hosted_expansion_dedups_provider_casing(tmp_path):
     chosen = d.chosen
     assert chosen is not None
     assert chosen.startswith("openrouter/")
+
+
+# ---------------------------------------------------------------------------
+# Declarative output constraints (MUSE verifiable-arena findings, 2026-06-27)
+# ---------------------------------------------------------------------------
+
+
+def _route_simple(tc, tmp_path):
+    return route_for_task(
+        tc,
+        policy=_policy(local_models=("qwen3-coder", "gpt-oss:20b", "qwen3.5:9b")),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+
+
+def test_arena_flagged_lanes_declare_output_constraints(tmp_path):
+    """The arena routing_aligned=false lanes declare post-gen constraints.
+
+    ``algorithms`` and the creative ``companion`` reply now have their OWN task
+    classes; the complexity-bar also lives on the coding lanes that absorb
+    algorithm work.
+    """
+    for tc in (TaskClass.SUMMARIZATION, TaskClass.RESEARCH, TaskClass.COMPANION,
+               TaskClass.ALGORITHMS, TaskClass.CODING_PLAN, TaskClass.CODING_BUILD):
+        d = _route_simple(tc, tmp_path)
+        assert d.output_constraints, f"{tc.value} should declare output constraints"
+        # to_dict serializes each constraint to a {kind, detail, params} dict.
+        serialized = d.to_dict()["output_constraints"]
+        assert serialized == [c.to_dict() for c in d.output_constraints]
+        assert all({"kind", "detail", "params"} <= set(s) for s in serialized)
+        # Human-readable detail is surfaced in explain().
+        for c in d.output_constraints:
+            assert c.detail in explain(d)
+
+
+def test_summarization_declares_150_word_cap(tmp_path):
+    d = _route_simple(TaskClass.SUMMARIZATION, tmp_path)
+    assert any(c.kind == "max_words" and c.param("limit") == 150
+               for c in d.output_constraints)
+
+
+def test_companion_routes_creative_specialist_and_caps_words(tmp_path):
+    """The new companion lane wires the local_creative / qwythos specialist and
+    declares the 30-55 word envelope + banned-phrase floor."""
+    d = route_for_task(
+        TaskClass.COMPANION,
+        policy=_policy(local_models=("qwen3.5:9b", "qwythos-mythos-9b", "qwen3-coder")),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "qwythos-mythos-9b"  # creative specialist leads its lane
+    kinds = {c.kind for c in d.output_constraints}
+    assert {"min_words", "max_words", "banned_phrases"} <= kinds
+
+
+def test_lanes_without_constraints_stay_empty(tmp_path):
+    """Lanes the arena did not flag declare none — routing/decisions unchanged.
+
+    MOBILE_CHAT is back to NO constraints (the creative caps moved to COMPANION).
+    """
+    for tc in (TaskClass.MOBILE_CHAT, TaskClass.CODING_REVIEW, TaskClass.TEST_DEBUG,
+               TaskClass.VOICE_REPLY, TaskClass.MEMORY_CURATOR,
+               TaskClass.CITATION_VERIFICATION):
+        d = _route_simple(tc, tmp_path)
+        assert d.output_constraints == []
+        assert d.to_dict()["output_constraints"] == []
+
+
+def test_all_routes_carry_constraints_field(tmp_path):
+    """Every decision exposes the field (default empty list), never missing."""
+    for d in all_routes(
+        policy=_policy(local_models=("qwen3-coder",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    ):
+        assert isinstance(d.output_constraints, list)
+        assert "output_constraints" in d.to_dict()

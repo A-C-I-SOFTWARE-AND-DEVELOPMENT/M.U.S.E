@@ -18,8 +18,8 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Optional
+from dataclasses import dataclass, replace
+from typing import Any, Callable, Mapping, Optional, Tuple
 
 
 class LlamaServerError(RuntimeError):
@@ -235,6 +235,46 @@ class LlamaServerClient:
             predict_ms=float(timings.get("predicted_ms") or 0.0),
             raw=raw,
         )
+
+    def completion_with_constraints(
+        self,
+        prompt: str,
+        task_class: Any,
+        *,
+        regenerate: bool = True,
+        **kwargs: Any,
+    ) -> Tuple[CompletionResult, Any]:
+        """Run :meth:`completion`, then enforce the task class's output constraints.
+
+        This is the live enforcement seam for the MUSE verifiable-arena output
+        gates (commissioner rec #8): deterministic over-limit output (word /
+        sentence caps) is trimmed in place; a violation that cannot be safely
+        auto-fixed (``min_words`` / ``banned_phrases``) triggers ONE regenerate
+        with a fresh seed (when ``regenerate``), keeping the retry only if it
+        actually passes. Advisory constraints (``verify_pass`` / ``complexity_bar``
+        / ``preserve_fidelity``) are surfaced on the report's ``required_actions``
+        for the caller to honor — never silently passed.
+
+        Returns ``(result, report)`` where ``result.text`` is the validated
+        (possibly trimmed) text and ``report`` is an
+        :class:`output_validator.EnforcementResult`. The validator import is lazy
+        so callers that never use constraints keep this module import-light.
+        ``**kwargs`` are forwarded verbatim to :meth:`completion`.
+        """
+        from hermes_cli.jarvis_prime.output_validator import enforce
+
+        result = self.completion(prompt, **kwargs)
+        report = enforce(task_class, result.text)
+        if report.regenerate_recommended and regenerate:
+            retry_kwargs = dict(kwargs)
+            retry_kwargs["seed"] = int(kwargs.get("seed", 0)) + 1
+            result2 = self.completion(prompt, **retry_kwargs)
+            report2 = enforce(task_class, result2.text)
+            if report2.ok and not report.ok:
+                result, report = result2, report2
+        if report.text != result.text:  # apply the deterministic trim
+            result = replace(result, text=report.text)
+        return result, report
 
 
 __all__ = [

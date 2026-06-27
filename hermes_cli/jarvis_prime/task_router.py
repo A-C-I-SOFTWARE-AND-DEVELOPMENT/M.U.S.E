@@ -62,11 +62,13 @@ class TaskClass(Enum):
     """The mobile-first task classes JARVIS routes models for."""
 
     MOBILE_CHAT = "mobile_chat"
+    COMPANION = "companion"
     RESEARCH = "research"
     CITATION_VERIFICATION = "citation_verification"
     CODING_PLAN = "coding_plan"
     CODING_BUILD = "coding_build"
     CODING_REVIEW = "coding_review"
+    ALGORITHMS = "algorithms"
     TEST_DEBUG = "test_debug"
     SUMMARIZATION = "summarization"
     MEMORY_CURATOR = "memory_curator"
@@ -93,6 +95,44 @@ ROUTE_TIERS: tuple[str, ...] = (
 
 
 @dataclass(frozen=True)
+class OutputConstraint:
+    """A declarative post-generation constraint a task class requires.
+
+    ``kind`` selects the check the validator runs; ``params`` carry its arguments
+    (as hashable pairs so this stays a frozen, set-safe value); ``detail`` is the
+    human-readable rationale surfaced in the route explanation. The router only
+    DECLARES these — :mod:`hermes_cli.jarvis_prime.output_validator` enforces the
+    deterministic kinds (``DETERMINISTIC_CONSTRAINT_KINDS``) and reports the
+    model-pass kinds (``verify_pass`` / ``complexity_bar`` / ``preserve_fidelity``)
+    back to the caller as required actions.
+    """
+
+    kind: str
+    detail: str
+    params: tuple[tuple[str, Any], ...] = ()
+
+    def param(self, key: str, default: Any = None) -> Any:
+        for k, v in self.params:
+            if k == key:
+                return v
+        return default
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "detail": self.detail,
+            "params": {k: (list(v) if isinstance(v, tuple) else v) for k, v in self.params},
+        }
+
+
+# Constraint kinds the validator enforces deterministically (no model call). Any
+# other kind is advisory and surfaces to the caller as a required action.
+DETERMINISTIC_CONSTRAINT_KINDS: frozenset[str] = frozenset(
+    {"max_words", "min_words", "max_sentences", "banned_phrases"}
+)
+
+
+@dataclass(frozen=True)
 class TaskProfile:
     risk_class: str
     catalog_task: str  # maps to oss_model_brain known tasks (advisory)
@@ -107,6 +147,20 @@ class TaskProfile:
     #   "local_coding"    → E4B  (coding / planning / test-debug)
     # Empty falls back to a catalog_task-derived purpose (back-compat).
     local_purpose: str = ""
+    # Declarative deterministic OUTPUT constraints this task class requires the
+    # generation/surface layer to enforce *after* a model is chosen (a truncate-
+    # or-regenerate / verify-pass loop): a hard word/sentence cap, a banned-
+    # phrase floor, a verification pass with the target model, or a complexity-
+    # bar escalation. The router only DECLARES these — it stays a pure model-
+    # route decision layer and never runs the validator; enforcement is the
+    # separate hard-constraint validator middleware. This is NOT the owner-gate
+    # "guardrails" (authorization / verification-ledger) system in
+    # ``hermes_cli.guardrails_cli``. Seeded from the MUSE verifiable-arena
+    # findings (2026-06-27): the lanes whose champion cleared the capability bar
+    # but missed a mechanical / format / verification floor (routing_aligned=
+    # false). Default ``()`` ⇒ routing and decisions are byte-for-byte unchanged
+    # for every lane that declares none.
+    output_constraints: tuple["OutputConstraint", ...] = ()
 
 
 # Cloud/server-first tier order for heavy *research* lanes: large autonomous
@@ -130,12 +184,72 @@ _RESEARCH_TIERS: tuple[str, ...] = (
 # job weight (fast→E2B, reasoning/coding→E4B).
 TASK_PROFILES: dict[TaskClass, TaskProfile] = {
     TaskClass.MOBILE_CHAT: TaskProfile("RC1", "mobile_chat", True, False, local_purpose="local_fast"),
+    # Creative/companion lane — wires the previously dormant local_creative /
+    # qwythos specialist (no task class routed to it before). Arena field
+    # "mobile_chat_creative": cleared the warmth bar but the strongest reframe
+    # still blew the 55-word ceiling, so the word envelope + banned-phrase floor
+    # are hard, machine-enforced gates HERE (not on general MOBILE_CHAT).
+    TaskClass.COMPANION: TaskProfile(
+        "RC1", "mobile_chat", True, False, local_purpose="local_creative",
+        output_constraints=(
+            OutputConstraint(
+                "min_words", "Companion replies must be at least 30 words.",
+                (("limit", 30),),
+            ),
+            OutputConstraint(
+                "max_words", "Hold a 30-55 word envelope as a hard gate.",
+                (("limit", 55),),
+            ),
+            OutputConstraint(
+                "banned_phrases",
+                "Ban therapy-speak and emotional follow-up question-closers; "
+                "convey reassurance through implication and one concrete sensory "
+                "detail, not a stated claim.",
+                (("classes", ("therapy_speak", "question_closer")),),
+            ),
+        ),
+    ),
     TaskClass.VOICE_REPLY: TaskProfile("RC1", "voice_reply", True, False, local_purpose="local_fast"),
-    TaskClass.SUMMARIZATION: TaskProfile("RC1", "summarization", True, False, local_purpose="local_fast"),
+    TaskClass.SUMMARIZATION: TaskProfile(
+        "RC1", "summarization", True, False, local_purpose="local_fast",
+        # Arena: champion cleared content fidelity but every contender overran
+        # the 150-word cap by 30-40% and flattened hedges (routing_aligned=false
+        # on the format axis). Keep the fast local pick; gate the OUTPUT.
+        output_constraints=(
+            OutputConstraint(
+                "max_words",
+                "Hard 150-word cap; truncate-or-regenerate to fit.",
+                (("limit", 150),),
+            ),
+            OutputConstraint(
+                "preserve_fidelity",
+                "Preserve epistemic hedges (attributed != causal) and every "
+                "comparison direction / scope qualifier; never invent or conflate "
+                "numbers across tiers.",
+            ),
+        ),
+    ),
     TaskClass.MEMORY_CURATOR: TaskProfile("RC1", "memory_curator", True, False, local_purpose="local_fast"),
     TaskClass.RESEARCH: TaskProfile(
         "RC2", "deep_research", False, True,
         preferred_tiers=_RESEARCH_TIERS, local_purpose="local_reasoning",
+        # Arena: tractable for strong reasoning, but a 20B local model is exactly
+        # where causal-estimand discipline, CI reading and bias-naming slip
+        # (routing_aligned=false). Routing already sinks local to the last tier;
+        # this gates trusting a small-model answer on an explicit verification.
+        output_constraints=(
+            OutputConstraint(
+                "verify_pass",
+                "Run a verification pass with the target model before trusting a "
+                "small-model research answer.",
+            ),
+            OutputConstraint(
+                "preserve_fidelity",
+                "Gate on a calibrated (not over-claimed) verdict and the correct "
+                "study hierarchy (ITT / cluster-RCT over per-protocol / opt-in "
+                "cohort evidence).",
+            ),
+        ),
     ),
     TaskClass.CITATION_VERIFICATION: TaskProfile(
         "RC2", "citation_verification", False, True,
@@ -147,6 +261,21 @@ TASK_PROFILES: dict[TaskClass, TaskProfile] = {
                          "hosted_free_or_user_configured_oss", "codex_worker",
                          "paid_api_explicit_only"),
         local_purpose="local_coding",
+        # Arena field "algorithms" (no task class of its own — it routes through
+        # the local_coding lane): qwen3-coder reliably nails correctness/edges
+        # but tops out at an exact O(n*K) DP and only *describes* the required
+        # sub-quadratic bound (routing_aligned=false). Worker escalation already
+        # leads this lane's tiers; this makes the escalation trigger explicit.
+        output_constraints=(
+            OutputConstraint(
+                "complexity_bar",
+                "Algorithmic tasks that demand a provable complexity bound (e.g. "
+                "O(n log n) via non-obvious convexity / Lagrangian structure): "
+                "escalate to a stronger reasoning/worker tier rather than "
+                "accepting a correct-but-slower DP as final, and independently "
+                "verify any claimed bound or premise.",
+            ),
+        ),
     ),
     TaskClass.CODING_BUILD: TaskProfile(
         "RC3", "agentic_coding", False, True,
@@ -154,6 +283,38 @@ TASK_PROFILES: dict[TaskClass, TaskProfile] = {
                          "hosted_free_or_user_configured_oss",
                          "paid_api_explicit_only"),
         local_purpose="local_coding",
+        # See CODING_PLAN: the arena "algorithms" lane ships a correct-but-slower
+        # DP and only describes the aggressive bound. When the deliverable is an
+        # implementation that must HIT a provable complexity target, escalate and
+        # verify rather than shipping the local coder's first solution as final.
+        output_constraints=(
+            OutputConstraint(
+                "complexity_bar",
+                "If the build must hit a provable complexity bound, run/benchmark "
+                "the implementation against that bound and escalate to a stronger "
+                "reasoning/worker tier before treating the local coder's solution "
+                "as final.",
+            ),
+        ),
+    ),
+    # Arena field "algorithms" — its own lane now (it routed implicitly through
+    # the coding lanes before). qwen3-coder nails correctness/edges but tops out
+    # at an exact O(n*K) DP and only *describes* the sub-quadratic bound, so this
+    # lane leads worker/reasoning escalation and declares the complexity_bar gate.
+    TaskClass.ALGORITHMS: TaskProfile(
+        "RC2", "reasoning", False, True,
+        preferred_tiers=("claude_code_worker", "codex_worker", "local_oss",
+                         "hosted_free_or_user_configured_oss",
+                         "paid_api_explicit_only"),
+        local_purpose="local_coding",
+        output_constraints=(
+            OutputConstraint(
+                "complexity_bar",
+                "When a provable complexity bound is required, escalate to a "
+                "stronger reasoning/worker tier and verify the bound (numerically "
+                "if needed) rather than shipping a correct-but-slower DP as final.",
+            ),
+        ),
     ),
     TaskClass.CODING_REVIEW: TaskProfile(
         "RC2", "coding_review", False, True,
@@ -713,6 +874,10 @@ class ModelRouteDecision:
     paid_allowed: bool
     paid_enabled: bool
     owner_override: Optional[str] = None
+    # Declarative post-generation OUTPUT constraints for this task class (from
+    # ``TaskProfile.output_constraints``). The route layer surfaces them; the
+    # ``output_validator`` middleware enforces them. Empty for lanes with none.
+    output_constraints: list["OutputConstraint"] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -727,6 +892,7 @@ class ModelRouteDecision:
             "paid_allowed": self.paid_allowed,
             "paid_enabled": self.paid_enabled,
             "owner_override": self.owner_override,
+            "output_constraints": [c.to_dict() for c in self.output_constraints],
         }
 
 
@@ -842,6 +1008,7 @@ def route_for_task(
             paid_allowed=profile.paid_allowed,
             paid_enabled=paid_enabled,
             owner_override=owner_override,
+            output_constraints=list(profile.output_constraints),
         )
 
     if not candidates:
@@ -862,6 +1029,7 @@ def route_for_task(
             paid_allowed=profile.paid_allowed,
             paid_enabled=paid_enabled,
             owner_override=None,
+            output_constraints=list(profile.output_constraints),
         )
 
     top = candidates[0]
@@ -894,6 +1062,7 @@ def route_for_task(
         paid_allowed=profile.paid_allowed,
         paid_enabled=paid_enabled,
         owner_override=None,
+        output_constraints=list(profile.output_constraints),
     )
 
 
@@ -935,6 +1104,10 @@ def explain(decision: ModelRouteDecision) -> str:
         head += "\n  evidence:"
         for e in decision.evidence:
             head += f"\n    - {e['model']}: score={e['score']:.2f} (n={e['samples']})"
+    if decision.output_constraints:
+        head += "\n  output constraints (enforce post-generation):"
+        for c in decision.output_constraints:
+            head += f"\n    - [{c.kind}] {c.detail}"
     return head
 
 
@@ -943,6 +1116,8 @@ __all__ = [
     "TaskClass",
     "TaskProfile",
     "TASK_PROFILES",
+    "OutputConstraint",
+    "DETERMINISTIC_CONSTRAINT_KINDS",
     "ModelSpecialist",
     "MODEL_SPECIALISTS",
     "ROUTE_TIERS",

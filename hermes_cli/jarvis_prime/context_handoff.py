@@ -233,6 +233,14 @@ def build_context_handoff(
 
         decision = tr.route_for_task(task_class)
         handoff.model_lane = decision.to_dict()
+        if decision.output_constraints:
+            # Surface the per-task-class output gates so the caller enforces them
+            # (deterministically) via output_validator.enforce / the
+            # llama_client.completion_with_constraints seam before returning text.
+            handoff.notes.append(
+                "output constraints — enforce post-generation: "
+                + "; ".join(f"[{c.kind}] {c.detail}" for c in decision.output_constraints)
+            )
     except ValueError:
         handoff.notes.append(f"unknown task class {task_class!r}; lane recommendation skipped")
     except Exception as exc:  # pragma: no cover - defensive
