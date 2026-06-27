@@ -12,12 +12,13 @@ stub manifests when API keys are missing, so the full DAG executes end-to-end
 without spending money — then graduates to real generation as keys are wired.
 """
 from agent.studio.orchestrator import StudioOrchestrator
+from agent.studio.bundle import make_bundle, make_bundle_dir, build_index
 from agent.studio.types import (
-    FilmBrief, GameBrief, StageResult, ProjectManifest,
-    Quality, Provider,
+    FilmBrief, GameBrief, StageResult, ProjectManifest, Quality, Provider,
 )
 
 __all__ = [
     "StudioOrchestrator", "FilmBrief", "GameBrief",
     "StageResult", "ProjectManifest", "Quality", "Provider",
+    "make_bundle", "make_bundle_dir", "build_index",
 ]
