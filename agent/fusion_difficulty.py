@@ -222,14 +222,27 @@ def _signal_response_length(response: str) -> float:
     return _clamp(1.0 - 200.0 / (200.0 + n))
 
 
+# Precompiled hot-path regexes for _signal_question_complexity
+_SENTENCE_SPLIT_RE = re.compile(r"[.!?]+")
+_COMPARISON_RE = re.compile(
+    r"\b(vs|versus|compared? to|better than|worse than|instead of)\b",
+    re.IGNORECASE,
+)
+_CONDITIONAL_RE = re.compile(
+    r"\b(if|unless|assuming|suppose|given that|in case)\b",
+    re.IGNORECASE,
+)
+
+
 def _signal_question_complexity(prompt: str) -> float:
     """Classify question structure: simple lookup vs multi-step reasoning.
 
     Simple patterns ("what is X", "hi", "thanks") → low complexity.
     Multi-clause questions, comparative structures → high complexity.
     """
+    stripped = prompt.strip()
     # Check for simple patterns first
-    if _SIMPLE_PATTERNS.search(prompt.strip()):
+    if _SIMPLE_PATTERNS.search(stripped):
         return 0.1
 
     # Count question marks — multiple questions = higher complexity
@@ -237,16 +250,12 @@ def _signal_question_complexity(prompt: str) -> float:
     multi_q = _clamp((q_marks - 1) / 3.0)
 
     # Sentence count as a proxy for multi-part questions
-    sentences = max(len(re.split(r"[.!?]+", prompt)) - 1, 1)
+    sentences = max(len(_SENTENCE_SPLIT_RE.split(prompt)) - 1, 1)
     multi_part = _clamp((sentences - 1) / 4.0)
 
     # Check for comparative/connective structures
-    has_comparison = bool(
-        re.search(r"\b(vs|versus|compared? to|better than|worse than|instead of)\b",
-                  prompt, re.IGNORECASE))
-    has_conditionals = bool(
-        re.search(r"\b(if|unless|assuming|suppose|given that|in case)\b",
-                  prompt, re.IGNORECASE))
+    has_comparison = bool(_COMPARISON_RE.search(prompt))
+    has_conditionals = bool(_CONDITIONAL_RE.search(prompt))
 
     score = 0.3 + 0.25 * multi_q + 0.25 * multi_part
     if has_comparison:

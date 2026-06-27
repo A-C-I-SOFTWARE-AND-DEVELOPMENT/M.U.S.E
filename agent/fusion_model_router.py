@@ -30,6 +30,7 @@ KEY INNOVATION (from DeepSeek-V3):
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -233,6 +234,51 @@ class MoEModelRouter:
             for model in available_models
         }
 
+    # Precompiled at class scope: hoisted out of classify_query() hot path.
+    # Original code recompiled all 7 patterns on every call (4-7x slowdown).
+    _CODE_RE = re.compile(
+        r"(```|def |class |import |function |const |let |var |"
+        r"async |await |return |=>|->|::|lambda|compile|debug|"
+        r"refactor|implement|api|endpoint|deploy|docker|kubernetes|"
+        r"git |commit|merge|pull request|stack trace|error|exception)",
+        re.IGNORECASE,
+    )
+    _MATH_RE = re.compile(
+        r"(\bintegrate\b|\bderivative\b|\bequation\b|\bmatrix\b|"
+        r"\bvector\b|\bproof\b|\btheorem\b|\balgorithm\b|"
+        r"\bprobability\b|\bstatistic\b|\boptimi[sz]\b|"
+        r"\blinear algebra\b|\bcalculus\b|\bgeometry\b|"
+        r"\d+\s*[+\-*/^]\s*\d+|\bmod\b|\bmodulo\b)",
+        re.IGNORECASE,
+    )
+    _CREATIVE_RE = re.compile(
+        r"(\bwrite a story\b|\bpoem\b|\bcreative\b|\bbrainstorm\b|"
+        r"\bfiction\b|\bnarrative\b|\bcharacter\b|\bplot\b|"
+        r"\bscreenplay\b|\bsong\b|\bscript\b|\bdialogue\b|"
+        r"\bimagine\b|\bdream\b|\bmetaphor\b)",
+        re.IGNORECASE,
+    )
+    _MULTILINGUAL_RE = re.compile(
+        r"(\btranslate\b|\bin (spanish|french|german|chinese|japanese|"
+        r"korean|russian|arabic|hindi|portuguese|italian)\b|"
+        r"\bmultilingual\b|\bi18n\b|\bl10n\b|"
+        r"[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af"
+        r"\u0400-\u04ff\u0600-\u06ff\u0900-\u097f])",
+        re.IGNORECASE,
+    )
+    _ANALYTICAL_RE = re.compile(
+        r"(\banalyz\b|\bcompar\b|\bcontrast\b|\bevaluat\b|"
+        r"\bassess\b|\binvestigat\b|\bresearch\b|\btrade.?off\b|"
+        r"\bpros and cons\b|\bwhy does\b|\bhow does\b|"
+        r"\bwhat if\b|\bsynthesi[sz]\b)",
+        re.IGNORECASE,
+    )
+    _FACTUAL_RE = re.compile(
+        r"^(\bwhat is\b|\bwho is\b|\bwhen is\b|\bwhere is\b|"
+        r"\bdefine\b|\btell me about\b|\bwhat does\b)",
+        re.IGNORECASE,
+    )
+
     def classify_query(self, prompt: str, response: str = "") -> QueryType:
         """Classify the query type — like the router network in MoE.
 
@@ -246,69 +292,14 @@ class MoEModelRouter:
         Returns:
             QueryType enum value
         """
-        import re
-
         combined = f"{prompt} {response}".lower()
 
-        # Code indicators
-        code_patterns = re.compile(
-            r"(```|def |class |import |function |const |let |var |"
-            r"async |await |return |=>|->|::|lambda|compile|debug|"
-            r"refactor|implement|api|endpoint|deploy|docker|kubernetes|"
-            r"git |commit|merge|pull request|stack trace|error|exception)",
-            re.IGNORECASE,
-        )
-        code_score = len(code_patterns.findall(combined))
-
-        # Math indicators
-        math_patterns = re.compile(
-            r"(\bintegrate\b|\bderivative\b|\bequation\b|\bmatrix\b|"
-            r"\bvector\b|\bproof\b|\btheorem\b|\balgorithm\b|"
-            r"\bprobability\b|\bstatistic\b|\boptimi[sz]\b|"
-            r"\blinear algebra\b|\bcalculus\b|\bgeometry\b|"
-            r"\d+\s*[+\-*/^]\s*\d+|\bmod\b|\bmodulo\b)",
-            re.IGNORECASE,
-        )
-        math_score = len(math_patterns.findall(combined))
-
-        # Creative indicators
-        creative_patterns = re.compile(
-            r"(\bwrite a story\b|\bpoem\b|\bcreative\b|\bbrainstorm\b|"
-            r"\bfiction\b|\bnarrative\b|\bcharacter\b|\bplot\b|"
-            r"\bscreenplay\b|\bsong\b|\bscript\b|\bdialogue\b|"
-            r"\bimagine\b|\bdream\b|\bmetaphor\b)",
-            re.IGNORECASE,
-        )
-        creative_score = len(creative_patterns.findall(combined))
-
-        # Multilingual indicators
-        multilingual_patterns = re.compile(
-            r"(\btranslate\b|\bin (spanish|french|german|chinese|japanese|"
-            r"korean|russian|arabic|hindi|portuguese|italian)\b|"
-            r"\bmultilingual\b|\bi18n\b|\bl10n\b|"
-            r"[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af"
-            r"\u0400-\u04ff\u0600-\u06ff\u0900-\u097f])",
-            re.IGNORECASE,
-        )
-        multilingual_score = len(multilingual_patterns.findall(combined))
-
-        # Analytical indicators
-        analytical_patterns = re.compile(
-            r"(\banalyz\b|\bcompar\b|\bcontrast\b|\bevaluat\b|"
-            r"\bassess\b|\binvestigat\b|\bresearch\b|\btrade.?off\b|"
-            r"\bpros and cons\b|\bwhy does\b|\bhow does\b|"
-            r"\bwhat if\b|\bsynthesi[sz]\b)",
-            re.IGNORECASE,
-        )
-        analytical_score = len(analytical_patterns.findall(combined))
-
-        # Factual indicators
-        factual_patterns = re.compile(
-            r"^(\bwhat is\b|\bwho is\b|\bwhen is\b|\bwhere is\b|"
-            r"\bdefine\b|\btell me about\b|\bwhat does\b)",
-            re.IGNORECASE,
-        )
-        factual_score = 1 if factual_patterns.search(prompt.strip()) else 0
+        code_score = len(self._CODE_RE.findall(combined))
+        math_score = len(self._MATH_RE.findall(combined))
+        creative_score = len(self._CREATIVE_RE.findall(combined))
+        multilingual_score = len(self._MULTILINGUAL_RE.findall(combined))
+        analytical_score = len(self._ANALYTICAL_RE.findall(combined))
+        factual_score = 1 if self._FACTUAL_RE.search(prompt.strip()) else 0
 
         # Select the dominant type
         scores = {
