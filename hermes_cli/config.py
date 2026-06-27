@@ -527,6 +527,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "aggregator_model": "anthropic/claude-opus-4.6",
         "rounds": 1,          # Iterative refinement rounds (1-5)
         "strategy": "parallel",
+        # ACT-inspired adaptive difficulty routing (Mythos ACT halting analog).
+        "difficulty_aware": True,
+        # MoE-inspired model routing (Mythos/DeepSeek-V3 MoE analog).
+        "moe_routing": True,
+        # LTI-stable iterative fusion (Mythos LTI injection analog).
+        "lti_stable": True,
+        # Per-round specialization (Mythos LoRA adapter analog).
+        "round_specialization": True,
     },
     "agent": {
         "max_turns": 90,

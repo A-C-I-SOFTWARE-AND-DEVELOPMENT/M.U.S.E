@@ -4125,6 +4125,13 @@ def run_conversation(
     # When fusion mode is active (the default in Axiom), route the
     # final_response through the MoA pipeline so the user gets a
     # consensus-synthesized answer instead of a single-model output.
+    #
+    # ACT-inspired difficulty routing: the number of tool iterations
+    # this turn is passed as a difficulty signal. Easy turns (0-1 tool
+    # calls, short response) may skip fusion entirely; complex turns
+    # (many tool calls, long technical response) get the full MoA
+    # council. This mirrors Mythos's ACT halting: easy tokens halt
+    # early, hard tokens run all loop iterations.
     if final_response and not interrupted:
         try:
             from agent.fusion_router import should_use_fusion, fuse_response_sync
@@ -4133,6 +4140,7 @@ def run_conversation(
                 fused = fuse_response_sync(
                     user_prompt=original_user_message,
                     original_response=final_response,
+                    tool_iterations=api_call_count,
                 )
                 if fused and fused != final_response:
                     final_response = fused

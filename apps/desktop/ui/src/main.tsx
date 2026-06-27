@@ -15,9 +15,13 @@ import "@muse/design-system/dist/tokens.css";
 import "./styles/tokens.css";
 import { App } from "./App";
 
-// Register the PWA service worker (autoUpdate). No-op in the Tauri shell and in shell and in
-// dev (devOptions.enabled = false), so this is safe everywhere.
-registerSW({ immediate: true });
+// Register the PWA service worker (autoUpdate) — ONLY in a plain browser.
+// Inside the Tauri WebView2 shell the service worker intercepts fetches to
+// the gateway (http://127.0.0.1:8765) and causes "refused to connect"
+// errors, so we skip registration entirely when __TAURI_INTERNALS__ is present.
+if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+  registerSW({ immediate: true });
+}
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("missing #root element");
