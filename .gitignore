@@ -116,3 +116,4 @@ docs/_build/
 
 # devcontainer / Codespaces local dev home (HERMES_HOME=.hermes-dev) — may hold .env secrets
 .hermes-dev/
+studio_output/
