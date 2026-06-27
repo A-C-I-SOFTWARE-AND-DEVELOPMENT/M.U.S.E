@@ -116,6 +116,134 @@ class StageResult:
     meta: Dict[str, Any] = field(default_factory=dict)
 
 
+# ── AAA studio domain types ─────────────────────────────────────────
+
+
+class Phase(str, Enum):
+    """Canonical AAA production milestone gates."""
+    CONCEPT = "concept"            # pitch / GDD draft / scope
+    PROTOTYPE = "prototype"        # playable core loop
+    VERTICAL_SLICE = "vertical_slice"  # 15-30 min AAA-quality slice
+    ALPHA = "alpha"                # feature-complete, full content pipeline running
+    BETA = "beta"                  # content-complete, bug-fixing + polish
+    GOLD = "gold"                  # release candidate submitted to platform holder
+    LAUNCH = "launch"              # live, marketing ramp, day-1 patch pipeline active
+    POST_LIVE = "post_live"        # DLC / live-ops / live-service content
+
+
+class PhaseStatus(str, Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    PASSED = "passed"              # gate cleared by QA
+    WAIVED = "waived"              # executive override
+
+
+class TeamRole(str, Enum):
+    EXECUTIVE_PRODUCER = "executive_producer"
+    CREATIVE_DIRECTOR = "creative_director"
+    GAME_DIRECTOR = "game_director"
+    NARRATIVE_DIRECTOR = "narrative_director"
+    ART_DIRECTOR = "art_director"
+    TECHNICAL_DIRECTOR = "technical_director"
+    LEAD_ENGINEER = "lead_engineer"
+    AUDIO_DIRECTOR = "audio_director"
+    QA_LEAD = "qa_lead"
+    MARKETING_LEAD = "marketing_lead"
+
+
+@dataclass
+class TeamMember:
+    """A studio role, backed by a local Ollama model."""
+    role: TeamRole
+    name: str = ""                # display name (defaults to role title)
+    ollama_model: str = "gemma4:12b"
+    specialization: str = ""       # system-prompt specialization for the role
+    deliverables: List[str] = field(default_factory=list)  # artifacts this role owns
+
+    def __post_init__(self) -> None:
+        if not self.name:
+            self.name = self.role.value.replace("_", " ").title()
+
+
+@dataclass
+class Milestone:
+    """One gate in the AAA production pipeline."""
+    phase: Phase
+    status: PhaseStatus = PhaseStatus.NOT_STARTED
+    started_at: Optional[float] = None   # epoch
+    completed_at: Optional[float] = None
+    qa_score: float = 0.0               # 0-100, must clear threshold to pass gate
+    qa_threshold: float = 70.0           # studio default; override per-project
+    notes: str = ""
+    artifacts: List[str] = field(default_factory=list)
+    review_notes: str = ""               # filled by QA Lead pass
+
+    def can_pass(self) -> bool:
+        return self.status in (PhaseStatus.IN_PROGRESS, PhaseStatus.BLOCKED) \
+            and self.qa_score >= self.qa_threshold
+
+
+@dataclass
+class BudgetLine:
+    """One line item in the project budget (USD)."""
+    category: str              # "team", "render_farm", "marketing", "engine_license", "mocap", etc.
+    description: str
+    est_cost_usd: float
+    actual_cost_usd: float = 0.0
+    notes: str = ""
+
+
+@dataclass
+class Project:
+    """One AAA game (or film) in the studio portfolio."""
+    id: str
+    kind: str = "game"         # "game" | "film"
+    title: str = ""
+    brief: Optional[Any] = None  # GameBrief | FilmBrief
+    team: List[TeamMember] = field(default_factory=list)
+    milestones: Dict[Phase, Milestone] = field(default_factory=dict)
+    budget: List[BudgetLine] = field(default_factory=list)
+    target_release_q: str = ""   # e.g. "2027Q3"
+    workdir: Optional[Path] = None
+    manifest: Optional[ProjectManifest] = None
+    risk_register: List[Dict[str, str]] = field(default_factory=list)
+    post_live_plan: List[str] = field(default_factory=list)
+
+
+@dataclass
+class Portfolio:
+    """The studio's slate of projects."""
+    name: str = "Axiom Studios"
+    projects: List[Project] = field(default_factory=list)
+    studio_budget_total_usd: float = 0.0
+    fiscal_year: str = ""
+
+    def active_projects(self) -> List[Project]:
+        """Projects that are in-progress (have at least one incomplete milestone)."""
+        result = []
+        for p in self.projects:
+            if not p.milestones:
+                continue
+            # Active = not all milestones passed/waived yet
+            has_incomplete = any(
+                m.status not in (PhaseStatus.PASSED, PhaseStatus.WAIVED)
+                for m in p.milestones.values()
+            )
+            has_passed = any(
+                m.status in (PhaseStatus.PASSED, PhaseStatus.WAIVED)
+                for m in p.milestones.values()
+            )
+            if has_incomplete or not has_passed:
+                result.append(p)
+        return result
+
+    def released_projects(self) -> List[Project]:
+        return [p for p in self.projects
+                if p.milestones.get(Phase.LAUNCH) and
+                p.milestones[Phase.LAUNCH].status == PhaseStatus.PASSED]
+
+
 @dataclass
 class ProjectManifest:
     kind: str            # "film" | "game"
