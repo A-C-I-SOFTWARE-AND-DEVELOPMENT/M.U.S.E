@@ -40,6 +40,7 @@ from agent.studio.types import (
 # Force adapter registration on import:
 from agent.studio import adapters  # noqa: F401
 from agent.studio.adapters import ollama_local  # noqa: F401 — registers local adapters
+from agent.studio.adapters import free_providers  # noqa: F401 — pollinations + edge-tts
 
 
 class StudioOrchestrator:

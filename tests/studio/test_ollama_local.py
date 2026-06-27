@@ -115,9 +115,12 @@ def test_dialogue_adapter_writes_jsonl(tmp_path: Path):
 def test_orchestrator_film_pipeline_uses_local_when_available(tmp_path: Path):
     """End-to-end: film pipeline routes shot_list through local adapter."""
     from agent.studio import StudioOrchestrator, FilmBrief
+    from agent.studio.adapters import free_providers
     with patch.object(ollama_local, "_ollama_available", return_value=True), \
          patch.object(ollama_local, "_ollama_chat",
-                      return_value="stub-text-for-test"):
+                      return_value="stub-text-for-test"), \
+         patch.object(free_providers, "_pollinations_available", return_value=False), \
+         patch.object(free_providers, "_edge_tts_available", return_value=False):
         orch = StudioOrchestrator(root=tmp_path)
         manifest = orch.produce_film(FilmBrief(
             title="Test Film", logline="A test.", runtime_min=20,
@@ -131,8 +134,11 @@ def test_orchestrator_film_pipeline_uses_local_when_available(tmp_path: Path):
 def test_orchestrator_game_pipeline_routes_to_local_capabilities(tmp_path: Path):
     """Game pipeline must invoke gdd, world_bible, dialogue_text, gameplay_code."""
     from agent.studio import StudioOrchestrator, GameBrief
+    from agent.studio.adapters import free_providers
     with patch.object(ollama_local, "_ollama_available", return_value=True), \
-         patch.object(ollama_local, "_ollama_chat", return_value="stub"):
+         patch.object(ollama_local, "_ollama_chat", return_value="stub"), \
+         patch.object(free_providers, "_pollinations_available", return_value=False), \
+         patch.object(free_providers, "_edge_tts_available", return_value=False):
         orch = StudioOrchestrator(root=tmp_path)
         manifest = orch.produce_game(GameBrief(
             title="Test Game", genre="action-rpg", target="PC",
