@@ -31,7 +31,10 @@ class FleetRegistry:
         self.tactical = TacticalVesselNode()
         self.intelligence = IntelligenceFleetNode()
         self._ships: dict[str, FleetShip] = {}
-        self._lock = threading.Lock()
+        # Re-entrant: composite methods (record_job_stage) hold the lock and
+        # call register_ship / release_ship, which re-acquire it on the same
+        # thread. A plain Lock would self-deadlock there.
+        self._lock = threading.RLock()
 
     def _command_nodes(self) -> tuple[AdmiraltyNode, FlagshipNode, TacticalVesselNode, IntelligenceFleetNode]:
         return self.admiralty, self.flagship, self.tactical, self.intelligence
@@ -135,7 +138,7 @@ class FleetRegistry:
         with self._lock:
             self.tactical.touch(status=NodeStatus.ACTIVE, last_tool=tool_name)
 
-    def _node_by_id(self, node_id: str) -> Any:
+    def _node_by_id(self, node_id: Optional[str]) -> Any:
         for node in self._command_nodes():
             if node.id == node_id:
                 return node

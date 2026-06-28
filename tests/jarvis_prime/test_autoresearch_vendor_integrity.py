@@ -66,14 +66,28 @@ def test_vendor_contract_anchors_present() -> None:
 
 
 def test_importing_muse_autoresearch_packages_stays_torch_free() -> None:
-    for mod in list(sys.modules):
-        if "research_fabric.autoresearch" in mod:
-            del sys.modules[mod]
-    import importlib
+    # Check the invariant in a PRISTINE interpreter. The package is lazy
+    # (PEP 562) and torch-free, but an in-process check is flaky under xdist:
+    # a sibling test that imports torch or a vendor module leaves it in this
+    # worker's ``sys.modules``. A fresh subprocess isolates the import so the
+    # assertion is about THIS package, not the worker's history.
+    import subprocess
 
-    importlib.import_module("hermes_cli.jarvis_prime.research_fabric.autoresearch")
-    assert "torch" not in sys.modules
-    assert not any(
-        m.startswith("hermes_cli.jarvis_prime.research_fabric.autoresearch.vendor")
-        for m in sys.modules
+    script = (
+        "import importlib, sys\n"
+        "importlib.import_module("
+        "'hermes_cli.jarvis_prime.research_fabric.autoresearch')\n"
+        "assert 'torch' not in sys.modules, 'import pulled in torch'\n"
+        "bad = [m for m in sys.modules if m.startswith("
+        "'hermes_cli.jarvis_prime.research_fabric.autoresearch.vendor')]\n"
+        "assert not bad, f'import pulled in vendor modules: {bad}'\n"
+        "print('TORCH_FREE_OK')\n"
     )
+    proc = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        cwd=str(Path(__file__).resolve().parents[2]),
+    )
+    assert proc.returncode == 0, f"stdout={proc.stdout!r} stderr={proc.stderr!r}"
+    assert "TORCH_FREE_OK" in proc.stdout

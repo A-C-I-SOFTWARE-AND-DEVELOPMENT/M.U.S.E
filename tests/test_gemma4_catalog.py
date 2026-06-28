@@ -14,12 +14,13 @@ from hermes_cli import oss_model_brain as ob
 def test_provider_catalog_has_gemma_and_keeps_llama_fallback() -> None:
     catalog = load_catalog()
     gemma = {m.id for m in catalog.models if m.family == "gemma"}
-    assert {"gemma4-e2b", "gemma4-e4b", "gemma4-26b", "gemma4-31b"} <= gemma
-    # Local default now leads with Gemma but llama3.2 stays as a fallback.
-    assert catalog.defaults["local"][0] == "ollama-local/gemma4-e4b"
-    assert "ollama-local/llama3.2" in catalog.defaults["local"]
-    assert "ollama-local/gemma4-e2b" in catalog.defaults["fast"]
-    assert "ollama-local/llama3.2" in catalog.defaults["fast"]
+    assert {"gemma4-e2b", "gemma4-e4b", "gemma4-12b"} <= gemma
+    # Local/fast defaults lead with the qwen3.5 fast generalist (see
+    # MODEL_SPECIALISTS), include Gemma, and keep a llama as a fallback.
+    assert catalog.defaults["local"][0] == "ollama-local/qwen3_5-9b"
+    assert "ollama-local/gemma4-12b" in catalog.defaults["local"]
+    assert "ollama-local/gemma4-12b" in catalog.defaults["fast"]
+    assert any("llama" in ref for ref in catalog.defaults["fast"])
     # Every default still resolves (loader invariant).
     for refs in catalog.defaults.values():
         for ref in refs:
