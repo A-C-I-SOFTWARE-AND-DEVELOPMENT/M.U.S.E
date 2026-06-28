@@ -207,7 +207,11 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   grid-template-areas:
     "header header"
     "nav    main";
-  min-height: 100vh;
+  /* Lock the shell to the viewport so the page itself never scrolls — the
+     content area (.app-main) scrolls internally and the chat composer stays
+     pinned to a fixed bottom. Mobile (<=760px) restores normal page scroll. */
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ---- Header (sticky) --------------------------------------------------- */
@@ -297,6 +301,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .app-main {
   grid-area: main;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--space-6);
 }
 
@@ -553,7 +559,10 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
       "header"
       "nav"
       "main";
+    height: auto;
+    overflow: visible;
   }
+  .app-main { overflow: visible; }
   .app-nav {
     position: static;
     height: auto;
@@ -681,10 +690,12 @@ body { perspective: 1800px; }
 </helmet>
 
 <!-- ===== Ambient atmosphere (fixed, tonal, behind the cockpit) ===== -->
+<div style="position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; transform:translateZ(0);">
 <canvas data-bg="cockpit-bg" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08); transition:transform .4s ease-out; will-change:transform;"></canvas>
 <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.45) 100%);"></div>
 <div style="position:fixed; inset:-40% 0; z-index:1; pointer-events:none; opacity:0.045; mix-blend-mode:screen; background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22&gt;&lt;filter id=%22n%22&gt;&lt;feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/&gt;&lt;/filter&gt;&lt;rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/&gt;&lt;/svg&gt;'); background-size:200px 200px; animation:cockpitGrain 7s steps(6) infinite;"></div>
 <div style="position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.025; background:repeating-linear-gradient(0deg, rgba(255,255,255,0.7) 0, rgba(255,255,255,0.7) 1px, transparent 1px, transparent 3px); height:200%; animation:cockpitScan 9s linear infinite;"></div>
+</div>
 
 <!-- ===== Ignition / boot sequence ===== -->
 <sc-if value="{{ bootActive }}" hint-placeholder-val="{{ true }}">
@@ -996,6 +1007,12 @@ body { perspective: 1800px; }
                 <span class="mono" style="flex:none; width:54px; text-align:right; font-size:11px; color:var(--signal-mute);">{{ job.elapsed }}</span>
               </div>
             </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noJobs }}" hint-placeholder-val="{{ false }}">
+          <div class="card" style="margin-top:12px; text-align:center; padding:36px 24px;">
+            <div style="color:var(--signal-dim); font-size:var(--type-body-size);">No tasks running.</div>
+            <div style="color:var(--signal-mute); font-size:var(--type-label-size); margin-top:6px;">Ask muse in chat to start one, or <b style="color:var(--signal);">Connect</b> a gateway to see live jobs here.</div>
           </div>
         </sc-if>
       </section>
@@ -1962,29 +1979,21 @@ class Component extends DCLogic {
     composer: '',
     museThinking: false,
     tick: 0,
-    seconds: 7 * 3600 + 42 * 60 + 11,
+    seconds: 0,
     // Chat starts clean — real exchanges only (no seeded demo conversation).
     // A single honest greeting explains how replies are produced; messages you
     // send stream back live from /api/chat (or a paired gateway).
     chat: [
       { who: 'muse', isMuse: true, text: 'Hi — I\u2019m muse. Ask me anything and I\u2019ll answer right here. On this deployment I reply through the app\u2019s own server (it needs a provider key to be enabled); you can also pair your own gateway with Connect.' },
     ],
-    jobsRaw: [
-      { id: 'job-7c1f', title: 'Add login and usernames', sub: 'Task 1 · sign-in', phase: 2, live: true, secs: 184 },
-      { id: 'job-3a90', title: 'Make sure payments never clash', sub: 'Task 2 · payments', phase: 5, live: false, review: true, secs: 1320 },
-      { id: 'job-5d18', title: 'Fix the slow checkout page', sub: 'Task 3 · quick fix', phase: 3, live: true, secs: 96 },
-      { id: 'job-9b22', title: 'Organize the help-article search', sub: 'Task 4 · search', phase: 0, live: false, queued: true, secs: 0 },
-    ],
-    approvalsRaw: [
-      { id: 'ap1', gate: 'Go live', title: 'Put the new version live for everyone', detail: 'Updates 12 things · includes a payments change', risk: 'Big change', riskCls: 'pill danger', meta: 'asked by the login task · 2m ago' },
-      { id: 'ap2', gate: 'Spending', title: 'Rent extra computers to run tests', detail: 'About $186 over 6 hours · 41% of this month\u2019s budget used', risk: 'Medium', riskCls: 'pill warn', meta: 'asked by Learning · 5m ago' },
-      { id: 'ap3', gate: 'Publish', title: 'Post the \u201Cwhat\u2019s new\u201D notes publicly', detail: 'Public · version 2.14 · 3 updates', risk: 'Small', riskCls: 'pill neutral', meta: 'asked by you · 11m ago' },
-    ],
-    metricVals: { latency: 312, tps: 1840, tokens: 4.2, cost: 18.40 },
+    // No fabricated activity — real jobs arrive from a paired gateway.
+    jobsRaw: [],
+    approvalsRaw: [],
+    metricVals: { latency: 0, tps: 0, tokens: 0, cost: 0 },
     logLines: [],
     autonomyLevel: 'Supervised',
     guardrails: { spend: true, deploy: true, export: false, selfmod: false },
-    github: { connected: true, repo: 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', branch: 'main', sync: 'in sync · 2m ago' },
+    github: { connected: false, repo: '', branch: '', sync: 'not connected' },
     mcps: [
       { id: 'fs', name: 'Filesystem', desc: 'Read & write project files', on: true },
       { id: 'git', name: 'Git', desc: 'Branches, commits & history', on: true },
@@ -2037,12 +2046,7 @@ class Component extends DCLogic {
     channelOn: { cli: true, telegram: true, discord: true, slack: false, whatsapp: false, signal: false, email: true },
     scheduleOn: { report: true, backup: true, audit: true, radar: false },
     toolsetOn: { files: true, shell: true, web: true, code: true, memory: true, research: true, media: true, comms: true },
-    consoleLines: [
-      { id: 'c1', t: '07:41:58', tag: 'READY', tagCls: 'pill ok', msg: 'ready on http://localhost:3000' },
-      { id: 'c2', t: '07:41:58', tag: 'GET', tagCls: 'pill neutral', msg: '/login  200  ·  18ms' },
-      { id: 'c3', t: '07:41:57', tag: 'BUILD', tagCls: 'pill accent', msg: 'compiled successfully in 312ms' },
-      { id: 'c4', t: '07:41:57', tag: 'HMR', tagCls: 'pill neutral', msg: 'hot reload connected' },
-    ],
+    consoleLines: [],
   };
 
   sandboxDoc = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}body{background:radial-gradient(120% 90% at 50% 0%,#10121c,#0a0b12);color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}.card{width:100%;max-width:320px;background:#12151d;border:1px solid #1c2030;border-radius:16px;padding:30px 26px;box-shadow:0 30px 60px -30px #000}.logo{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#fff,#b388ff 70%);margin:0 auto 18px;box-shadow:0 0 22px rgba(122,224,255,.55)}h1{font-size:20px;text-align:center;margin-bottom:4px;letter-spacing:-.3px}p{font-size:13px;color:#aab2c4;text-align:center;margin-bottom:22px}label{font-size:10px;color:#6b7388;text-transform:uppercase;letter-spacing:.6px}input{width:100%;margin:6px 0 14px;padding:11px 12px;background:#0a0b12;border:1px solid #1c2030;border-radius:8px;color:#e8ecf4;font-size:14px}input:focus{outline:0;border-color:#7ae0ff}button{width:100%;padding:12px;border:0;border-radius:8px;background:linear-gradient(90deg,#7ae0ff,#b388ff);color:#050507;font-weight:600;font-size:14px;cursor:pointer}.alt{text-align:center;font-size:12px;color:#6b7388;margin-top:16px}.alt b{color:#7ae0ff;font-weight:500}</style></head><body><div class="card"><div class="logo"></div><h1>Welcome back</h1><p>Sign in to muse</p><label>Username</label><input value="" placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button>Sign in</button><div class="alt">New here? <b>Create an account</b></div></div></body></html>`;
@@ -2195,17 +2199,19 @@ class Component extends DCLogic {
     { label: 'Autonomous agents', count: 10 }, { label: 'MCP', count: 13 },
   ];
 
+  // The agent roster (names + roles) is real; their live activity (state /
+  // now / task counts) only appears when paired to a gateway — idle otherwise.
   agentsData = [
-    { name: 'Planner', role: 'Breaks goals into a clear plan', state: 'working', now: 'Mapping out the login work', tasks: 8 },
-    { name: 'Architect', role: 'Designs the structure & approach', state: 'working', now: 'Shaping the sign-in flow', tasks: 5 },
-    { name: 'Builder', role: 'Writes & implements the work', state: 'working', now: 'Building the sign-in screen', tasks: 23 },
-    { name: 'Reviewer', role: 'Checks work before it ships', state: 'idle', now: 'Waiting for the build to finish', tasks: 12 },
-    { name: 'Model Router', role: 'Picks the right AI for each task', state: 'working', now: 'Routing code work to muse-coder', tasks: 418 },
-    { name: 'Research Validator', role: 'Fact-checks claims before they are used', state: 'idle', now: 'Nothing to verify right now', tasks: 9 },
-    { name: 'Quality Gate', role: 'Approves decisions before they ship', state: 'working', now: 'Reviewing the deploy decision', tasks: 14 },
-    { name: 'Curator', role: 'Keeps skills tidy, archives stale ones', state: 'idle', now: 'Next sweep in 2 hours', tasks: 3 },
-    { name: 'GitHub Publisher', role: 'Turns approved work into branches & PRs', state: 'idle', now: 'Waiting for approval to publish', tasks: 6 },
-    { name: 'Self-Improvement', role: 'Proposes upgrades to muse itself', state: 'working', now: 'Scanning for better approaches', tasks: 4 },
+    { name: 'Planner', role: 'Breaks goals into a clear plan', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Architect', role: 'Designs the structure & approach', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Builder', role: 'Writes & implements the work', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Reviewer', role: 'Checks work before it ships', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Model Router', role: 'Picks the right AI for each task', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Research Validator', role: 'Fact-checks claims before they are used', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Quality Gate', role: 'Approves decisions before they ship', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Curator', role: 'Keeps skills tidy, archives stale ones', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'GitHub Publisher', role: 'Turns approved work into branches & PRs', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Self-Improvement', role: 'Proposes upgrades to muse itself', state: 'idle', now: 'Idle · not connected', tasks: 0 },
   ];
 
   // Destinations grouped into segregated nav sections (the rail renders a
@@ -2438,27 +2444,9 @@ class Component extends DCLogic {
   }
 
   _sim() {
-    if (this.state.halted) return;
-    this._pushSeries();
-    const m = { ...this.state.metricVals };
-    const s = this.series;
-    m.latency = Math.round(s.latency[s.latency.length - 1]);
-    m.tps = Math.round(s.tps[s.tps.length - 1]);
-    m.tokens = +(s.tokens[s.tokens.length - 1]).toFixed(1);
-    m.cost = +(this.state.metricVals.cost + s.cost[s.cost.length - 1] * 0.05).toFixed(2);
-
-    const jobs = this.state.jobsRaw.map(j => {
-      const nj = { ...j };
-      if (nj.live && nj.phase < 5) { nj.secs += 1; if ((this.state.tick % 4) === 0) { nj.phase += 1; if (nj.phase >= 5) { nj.live = false; nj.review = true; } } }
-      else if (nj.live) nj.secs += 1;
-      else if (nj.review) nj.secs += 1;
-      return nj;
-    });
-
-    let log = this.state.logLines;
-    if ((this.state.tick % 2) === 0) log = [this._mkLog(0), ...this.state.logLines].slice(0, 9);
-
-    this.setState({ tick: this.state.tick + 1, seconds: this.state.seconds + 1, metricVals: m, jobsRaw: jobs, logLines: log });
+    // Ambient visuals only. The cockpit never fabricates live metrics, jobs, or
+    // logs — real numbers arrive from a paired gateway via pullAll(). Offline it
+    // shows honest empty/zero state instead of a simulated running system.
     try { this._drawSparks(); this._drawGraph(); } catch (e) { if (window.console) console.error('draw', e); }
   }
 
@@ -3473,14 +3461,16 @@ class Component extends DCLogic {
         s.connState === 'live' ? { dotCls: 'dot live', label: 'connected · live' }
         : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connecting…' }
         : s.connState === 'error' ? { dotCls: 'dot danger', label: 'gateway offline' }
-        : { dotCls: 'dot off', label: 'demo data' }),
+        : { dotCls: 'dot off', label: 'offline · not connected' }),
       connClass: s.connState,
-      connBadge: (s.connState === 'live') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'DEMO' },
+      connBadge: (s.connState === 'live') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'OFFLINE' },
       conn2: this._connVals(s),
       stopBtnCls: halted ? 'btn secondary' : 'btn danger',
       stopLabel: halted ? 'Resume' : 'Emergency stop',
       stopBtn: null,
-      telemetry: { uptime: this._clock(s.seconds), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() },
+      telemetry: (s.connState === 'live')
+        ? { uptime: this._clock(s.seconds), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
+        : { uptime: '—', latency: '—', tps: '—' },
       onToken: this.onToken, onEmergency: this.onEmergency,
       // chat
       chat: s.chat.map(m => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
@@ -3490,7 +3480,7 @@ class Component extends DCLogic {
       museThinking: s.museThinking, composer: s.composer,
       onComposer: this.onComposer, onComposerKey: this.onComposerKey, onSend: this.onSend,
       // jobs
-      jobs, jobsCards: s.jobsLayout === 'cards', jobsStream: s.jobsLayout === 'stream',
+      jobs, hasJobs: jobs.length > 0, noJobs: jobs.length === 0, jobsCards: s.jobsLayout === 'cards' && jobs.length > 0, jobsStream: s.jobsLayout === 'stream' && jobs.length > 0,
       runningLabel: runningCount + ' running', onNewJob: this.onNewJob,
       onLayoutCards: this.onLayoutCards, onLayoutStream: this.onLayoutStream,
       layoutCardsStyle: this._segStyle(s.jobsLayout === 'cards'),
