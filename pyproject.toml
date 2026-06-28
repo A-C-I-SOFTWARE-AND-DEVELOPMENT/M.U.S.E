@@ -252,34 +252,48 @@ hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 
-[tool.vercel]
-# Vercel's FastAPI builder scans the repo for a `FastAPI()` instance and, when
-# it finds more than one candidate (here: the localhost admin dashboard
-# `hermes_cli/web_server.py`, the SYNAPSE stub gateway, and a test module), it
-# refuses to guess and fails the build. Pin the entrypoint explicitly.
+# ── Vercel: the public deployment now serves the muse Cockpit, not FastAPI ──
+# The root `vercel.json` drives a single, unambiguous Vite build of the
+# commercial cockpit app (`apps/nexus` → the Singularity cockpit shell) and
+# serves `apps/nexus/dist`, with the Edge API functions under the repo-root
+# `api/`. That is the commercial face of the product, so the FastAPI builder
+# below is intentionally DISABLED: a live `[tool.vercel]` entry makes Vercel
+# prefer its Python/FastAPI builder and serve `vercel_app.py`'s health-landing
+# page at `/` instead of the cockpit (the exact symptom we are fixing).
 #
-# We deliberately point at `vercel_app:app` — a dedicated, public-safe,
-# read-only cloud server (see vercel_app.py) — NOT `hermes_cli.web_server:app`.
-# That dashboard is a loopback-only ADMIN surface (config editing, env-var
-# reveal, ephemeral session tokens) and must never be served on a public URL.
-entrypoint = "vercel_app:app"
-
-[tool.vercel.scripts]
-# fastapi/starlette/uvicorn live ONLY in the optional `web` extra (lean-install
-# policy — see [project.optional-dependencies]). Vercel's FastAPI builder is
-# uv-based and runs a DEFAULT `uv sync`, which resolves the base deps + pydantic
-# but NOT the `web` extra — so `vercel_app.py` would import-fail at runtime with
-# `ModuleNotFoundError: fastapi` even though the build goes green (imports happen
-# at invocation, not build time). A root `requirements.txt` does not help: the
-# uv-based builder installs from pyproject/uv.lock, not requirements.txt.
+# `vercel_app.py` is preserved (read-only, public-safe cloud health server) so
+# this is fully reversible — to restore the FastAPI deployment, uncomment the
+# two sections below and remove the `buildCommand`/`outputDirectory` from the
+# root `vercel.json`.
 #
-# This `build` hook runs AFTER the default install and BEFORE deployment (per
-# Vercel's FastAPI docs), re-syncing the SAME builder venv WITH the `web` extra
-# so fastapi lands in the bundle. `--frozen` reuses the committed uv.lock as-is
-# (no re-lock / network) since we change no dependency versions here. This keeps
-# fastapi out of the lean core install while still making the public cloud
-# server actually runnable on Vercel.
-build = "uv sync --frozen --extra web"
+# [tool.vercel]
+# # Vercel's FastAPI builder scans the repo for a `FastAPI()` instance and, when
+# # it finds more than one candidate (here: the localhost admin dashboard
+# # `hermes_cli/web_server.py`, the SYNAPSE stub gateway, and a test module), it
+# # refuses to guess and fails the build. Pin the entrypoint explicitly.
+# #
+# # We deliberately point at `vercel_app:app` — a dedicated, public-safe,
+# # read-only cloud server (see vercel_app.py) — NOT `hermes_cli.web_server:app`.
+# # That dashboard is a loopback-only ADMIN surface (config editing, env-var
+# # reveal, ephemeral session tokens) and must never be served on a public URL.
+# entrypoint = "vercel_app:app"
+#
+# [tool.vercel.scripts]
+# # fastapi/starlette/uvicorn live ONLY in the optional `web` extra (lean-install
+# # policy — see [project.optional-dependencies]). Vercel's FastAPI builder is
+# # uv-based and runs a DEFAULT `uv sync`, which resolves the base deps + pydantic
+# # but NOT the `web` extra — so `vercel_app.py` would import-fail at runtime with
+# # `ModuleNotFoundError: fastapi` even though the build goes green (imports happen
+# # at invocation, not build time). A root `requirements.txt` does not help: the
+# # uv-based builder installs from pyproject/uv.lock, not requirements.txt.
+# #
+# # This `build` hook runs AFTER the default install and BEFORE deployment (per
+# # Vercel's FastAPI docs), re-syncing the SAME builder venv WITH the `web` extra
+# # so fastapi lands in the bundle. `--frozen` reuses the committed uv.lock as-is
+# # (no re-lock / network) since we change no dependency versions here. This keeps
+# # fastapi out of the lean core install while still making the public cloud
+# # server actually runnable on Vercel.
+# build = "uv sync --frozen --extra web"
 
 [tool.uv]
 # Security override (GHSA-mrfv-m5wm-5w6w / CVE-2025-69277): pynacl < 1.6.2
