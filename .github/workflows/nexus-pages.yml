@@ -11,7 +11,9 @@
 #
 # It also bundles the static MUSE 3D Systems Atlas (docs/3d-model/) into the same
 # deploy under /atlas/, regenerating its data from the shared architecture model
-# first so the published 3D model reflects the current architecture.
+# first so the published 3D model reflects the current architecture; the Neural
+# Observatory web viewer under /observatory/; and the muse Cockpit (the imported
+# "Singularity" Claude Design, demo mode) under /cockpit/.
 name: Deploy NEXUS to Pages
 
 on:
@@ -22,6 +24,8 @@ on:
       - 'docs/3d-model/**'
       - 'scripts/diagrams/**'
       - 'gateway/cockpit/static/observatory*'
+      - 'gateway/cockpit/static/cockpit.dc.html'
+      - 'gateway/cockpit/static/atlas/**'
       - 'gateway/cockpit/static/tokens.css'
       - 'gateway/cockpit/static/vendor/**'
       - '.github/workflows/nexus-pages.yml'
@@ -78,6 +82,24 @@ jobs:
           cp gateway/cockpit/static/vendor/three.core.min.js "$OBS/vendor/"
           cp gateway/cockpit/static/observatory-demo.html "$OBS/index.html"
           cp gateway/cockpit/static/observatory.html "$OBS/observatory.html"
+      - name: Bundle the muse Cockpit (served at /cockpit/)
+        run: |
+          # The imported "Singularity" Claude Design — plain HTML + vendored
+          # React/dc-runtime + the 3D Atlas, no build step. On Pages there is no
+          # gateway, so it runs in its self-contained demo mode (pair it to a
+          # gateway for live data). See docs/cockpit-singularity.md.
+          CKPT=apps/nexus/dist/cockpit
+          mkdir -p "$CKPT/vendor" "$CKPT/atlas"
+          cp gateway/cockpit/static/cockpit.dc.html "$CKPT/index.html"
+          cp gateway/cockpit/static/vendor/react.production.min.js "$CKPT/vendor/"
+          cp gateway/cockpit/static/vendor/react-dom.production.min.js "$CKPT/vendor/"
+          cp gateway/cockpit/static/vendor/dc-runtime.js "$CKPT/vendor/"
+          cp gateway/cockpit/static/vendor/three.module.min.js "$CKPT/vendor/"
+          cp gateway/cockpit/static/vendor/three.core.min.js "$CKPT/vendor/"
+          cp gateway/cockpit/static/atlas/index.html "$CKPT/atlas/"
+          cp gateway/cockpit/static/atlas/style.css "$CKPT/atlas/"
+          cp gateway/cockpit/static/atlas/app.js "$CKPT/atlas/"
+          cp gateway/cockpit/static/atlas/architecture_data.js "$CKPT/atlas/"
       - name: Publish to gh-pages
         working-directory: apps/nexus/dist
         env:
