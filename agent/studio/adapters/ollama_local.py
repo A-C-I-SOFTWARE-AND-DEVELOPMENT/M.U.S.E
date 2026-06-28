@@ -70,7 +70,16 @@ def _ollama_chat(model: str, system: str, user: str,
 
 
 def _ollama_available() -> bool:
-    """Probe /api/tags. Cached for 60s to avoid hammering the daemon."""
+    """Probe /api/tags. Cached for 60s to avoid hammering the daemon.
+
+    Pinned-offline (``AXIOM_STUDIO_OFFLINE``) short-circuits to False so the
+    hermetic pipeline tests stub these key-less local LLM stages instead of
+    hitting a dev's running Ollama daemon. Production/unit tests leave it unset.
+    """
+    if os.environ.get("AXIOM_STUDIO_OFFLINE", "").strip().lower() in (
+        "1", "true", "yes", "on"
+    ):
+        return False
     cache = getattr(_ollama_available, "_cache", None)
     now = time.time()
     if cache and now - cache[0] < 60:

@@ -16,6 +16,16 @@ from agent.studio import StudioOrchestrator, FilmBrief, GameBrief, Quality, Prov
 from agent.studio.adapters.base import default_registry
 
 
+@pytest.fixture(autouse=True)
+def _studio_offline(monkeypatch):
+    """Pin the studio to stub-only so these full-pipeline DAG tests never touch
+    the network. The key-less free (Pollinations / edge-tts) and local-Ollama
+    adapters activate on mere reachability — without this they fire real calls
+    and flake (HTTP 429 / 30s timeout) on CI. monkeypatch keeps it scoped to
+    this module so the adapter-unit tests still exercise the online path."""
+    monkeypatch.setenv("AXIOM_STUDIO_OFFLINE", "1")
+
+
 @pytest.fixture
 def studio(tmp_path):
     return StudioOrchestrator(root=tmp_path / "studio_out")

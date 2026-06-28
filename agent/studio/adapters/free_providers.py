@@ -28,6 +28,30 @@ from agent.studio.adapters.base import Adapter, default_registry
 from agent.studio.types import Provider
 
 
+# ── Offline / stub-only gate ────────────────────────────────────────
+#
+# These adapters are key-LESS: they activate on mere network/daemon
+# reachability, so blanking API keys does NOT stop them — they fire real
+# HTTP calls and get rate-limited (HTTP 429) on CI, turning stub-mode
+# pipeline tests red. The full-pipeline DAG tests set ``AXIOM_STUDIO_OFFLINE``
+# to pin every key-less network adapter to its stub fallback so the DAG
+# dry-runs hermetically. Production (and the adapter-unit tests that
+# exercise the real/online path with mocked probes) leave it unset →
+# behaviour is unchanged.
+
+_OFFLINE_VALUES = ("1", "true", "yes", "on")
+
+
+def studio_offline() -> bool:
+    """True when the studio is pinned to stub-only mode (AXIOM_STUDIO_OFFLINE)."""
+    return os.environ.get("AXIOM_STUDIO_OFFLINE", "").strip().lower() in _OFFLINE_VALUES
+
+
+def _free_network_allowed() -> bool:
+    """False when pinned offline, so key-less free network adapters stub."""
+    return not studio_offline()
+
+
 # ── Pollinations free image adapter ─────────────────────────────────
 
 POLLINATIONS_BASE = os.environ.get(
@@ -63,7 +87,7 @@ class PollinationsImageAdapter(Adapter):
     est_unit_cost_usd = 0.0
 
     def available(self) -> bool:
-        return _pollinations_available()
+        return _free_network_allowed() and _pollinations_available()
 
     def _real(self, prompt: str, workdir: Path, **kwargs):
         workdir.mkdir(parents=True, exist_ok=True)
@@ -136,7 +160,7 @@ class EdgeTTSVoiceAdapter(Adapter):
     est_unit_cost_usd = 0.0
 
     def available(self) -> bool:
-        return _edge_tts_available()
+        return _free_network_allowed() and _edge_tts_available()
 
     def _real(self, prompt: str, workdir: Path, **kwargs):
         import edge_tts

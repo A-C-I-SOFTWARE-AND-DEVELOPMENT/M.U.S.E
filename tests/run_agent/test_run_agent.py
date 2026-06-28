@@ -3288,6 +3288,14 @@ class TestRunConversation:
         ]
 
         with (
+            # base_url :11434 would otherwise route to the native /api/chat
+            # transport (real httpx) and bypass the mocked OpenAI client; force
+            # the client path so the GLM stop->truncation workaround processes
+            # the mocked responses hermetically (no live Ollama needed).
+            patch(
+                "agent.chat_completion_helpers._should_route_native_ollama",
+                return_value=False,
+            ),
             patch("run_agent.handle_function_call", return_value="search result"),
             patch.object(agent, "_persist_session"),
             patch.object(agent, "_save_trajectory"),
@@ -3325,6 +3333,13 @@ class TestRunConversation:
         agent.client.chat.completions.create.side_effect = [tool_turn, complete_stop]
 
         with (
+            # See sibling test: force the OpenAI client path so :11434 doesn't
+            # divert to the native /api/chat transport (real httpx) and the
+            # workaround is exercised hermetically.
+            patch(
+                "agent.chat_completion_helpers._should_route_native_ollama",
+                return_value=False,
+            ),
             patch("run_agent.handle_function_call", return_value="search result"),
             patch.object(agent, "_persist_session"),
             patch.object(agent, "_save_trajectory"),
