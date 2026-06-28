@@ -1025,10 +1025,25 @@ body { perspective: 1800px; }
                   <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:4px;">{{ ap.detail }}</div>
                   <div class="mono" style="font-size:11px; color:var(--signal-mute);">{{ ap.meta }}</div>
                 </div>
-                <div style="flex:none; display:flex; gap:8px; align-self:center;">
-                  <button type="button" class="btn danger" onclick="{{ ap.onDeny }}">Deny</button>
-                  <button type="button" class="btn primary" onclick="{{ ap.onApprove }}">Approve</button>
-                </div>
+                <sc-if value="{{ ap.notConfirming }}" hint-placeholder-val="{{ true }}">
+                  <div style="flex:none; display:flex; gap:8px; align-self:center;">
+                    <button type="button" class="btn danger" onclick="{{ ap.onDeny }}">Deny</button>
+                    <button type="button" class="btn primary" onclick="{{ ap.onApprove }}">Approve</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ ap.confirming }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:none; display:flex; flex-direction:column; gap:6px; align-self:center; min-width:248px;">
+                    <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Owner authorization required</div>
+                    <input class="field" placeholder="{{ ownerPhrase }}" value="{{ approvePhrase }}" oninput="{{ onApprovePhrase }}">
+                    <sc-if value="{{ approveError }}" hint-placeholder-val="">
+                      <div class="mono" style="font-size:11px; color:var(--danger);">{{ approveError }}</div>
+                    </sc-if>
+                    <div style="display:flex; gap:8px;">
+                      <button type="button" class="btn secondary" onclick="{{ onCancelApprove }}" style="flex:1;">Cancel</button>
+                      <button type="button" class="btn primary" onclick="{{ onConfirmApprove }}" style="flex:1;">Confirm</button>
+                    </div>
+                  </div>
+                </sc-if>
               </div>
             </sc-for>
           </div>
@@ -1931,6 +1946,8 @@ class Component extends DCLogic {
     connState: 'demo',
     connStep: 'idle',
     gatewayUrl: '',
+    // Approvals: owner-phrase confirm state for the live gateway decision route.
+    approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
     gatewayInfo: null,
     deviceName: '',
     pairCode: '',
@@ -2651,7 +2668,12 @@ class Component extends DCLogic {
   pullApprovals = async () => {
     const r = await this._api('/v1/cockpit/approvals');
     if (!r.ok || !r.data) return;
-    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.approvals || []);
+    const all = Array.isArray(r.data) ? r.data : (r.data.items || r.data.approvals || []);
+    // The gateway returns the whole proposal queue, including already-decided
+    // cards (status APPROVED/REJECTED/EXPIRED). Show only what still needs an OK,
+    // else a card decided this session would re-appear on the next 4s poll.
+    const decided = ['approved', 'rejected', 'expired', 'denied', 'done', 'cancelled', 'completed'];
+    const items = all.filter(a => !decided.includes(String(a.status || a.state || '').toLowerCase()));
     const approvalsRaw = items.map((a, i) => ({
       id: a.id || ('ap' + i),
       gate: a.gate || a.kind || 'Approval',
@@ -3067,8 +3089,46 @@ class Component extends DCLogic {
     const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' · new', phase: 0, live: true, secs: 0 };
     this.setState({ jobsRaw: [job, ...this.state.jobsRaw] });
   };
-  approve = (id) => () => this.setState({ approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) });
-  deny = (id) => () => this.setState({ approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) });
+  // Approvals decisions. Unpaired (no gateway token) -> demo shell: the button
+  // just clears the card. Paired -> drive the real owner-gated decision route
+  // POST /v1/cockpit/approvals/{id}. Approve is owner-gated: it requires the
+  // exact authorization phrase, collected inline before the decision is sent;
+  // Deny maps to the server's 'reject' decision (no phrase needed).
+  approve = (id) => () => {
+    if (!this._tok()) { this.setState({ approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) }); return; }
+    this.setState({ approveTarget: id, approvePhrase: '', approveError: '' });
+  };
+  deny = (id) => () => {
+    if (!this._tok()) { this.setState({ approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) }); return; }
+    this._decide(id, 'reject', '');
+  };
+  onApprovePhrase = (e) => this.setState({ approvePhrase: e.target.value });
+  cancelApprove = () => this.setState({ approveTarget: null, approvePhrase: '', approveError: '' });
+  confirmApprove = () => {
+    const id = this.state.approveTarget;
+    if (!id) return;
+    if ((this.state.approvePhrase || '').trim() !== this.OWNER_PHRASE) {
+      this.setState({ approveError: 'Type the owner phrase exactly: "' + this.OWNER_PHRASE + '"' });
+      return;
+    }
+    this._decide(id, 'approve', this.state.approvePhrase.trim());
+  };
+  _decide = async (id, decision, authorization) => {
+    this.setState({ approveBusy: true, approveError: '' });
+    try {
+      const r = await this._api('/v1/cockpit/approvals/' + encodeURIComponent(id), { method: 'POST', body: { decision, authorization } });
+      if (r.ok) {
+        this.setState({ approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
+          approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) });
+        this.pullApprovals();
+        return;
+      }
+      const msg = (r.data && (r.data.hint || r.data.error)) || ('the gateway rejected the decision (' + r.status + ')');
+      this.setState({ approveBusy: false, approveError: msg });
+    } catch (e) {
+      this.setState({ approveBusy: false, approveError: 'Could not reach the gateway: ' + ((e && e.message) || e) });
+    }
+  };
 
   // ---- canvas ----
   setCanvas = (el) => { if (el && el.dataset.key) this.canvases[el.dataset.key] = el; };
@@ -3268,7 +3328,7 @@ class Component extends DCLogic {
         rowStyle: 'display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--edge);' };
     });
 
-    const approvals = s.approvalsRaw.map(a => ({ ...a, onApprove: this.approve(a.id), onDeny: this.deny(a.id) }));
+    const approvals = s.approvalsRaw.map(a => ({ ...a, onApprove: this.approve(a.id), onDeny: this.deny(a.id), confirming: s.approveTarget === a.id, notConfirming: s.approveTarget !== a.id }));
 
     const fmtDelta = (v, good) => ({ delta: (v >= 0 ? '+' : '') + v + '%', deltaCls: 'pill ' + (good ? 'ok' : 'warn') });
     const metricCards = [
@@ -3437,6 +3497,8 @@ class Component extends DCLogic {
       layoutStreamStyle: this._segStyle(s.jobsLayout === 'stream'),
       // approvals
       approvals, hasApprovals: approvals.length > 0, noApprovals: approvals.length === 0,
+      approvePhrase: s.approvePhrase, approveError: s.approveError, approveBusy: s.approveBusy, ownerPhrase: this.OWNER_PHRASE,
+      onApprovePhrase: this.onApprovePhrase, onConfirmApprove: this.confirmApprove, onCancelApprove: this.cancelApprove,
       approvalsCountLabel: approvals.length ? approvals.length + ' pending' : 'clear',
       approvalsCountCls: approvals.length ? 'pill warn' : 'pill ok',
       // observatory
