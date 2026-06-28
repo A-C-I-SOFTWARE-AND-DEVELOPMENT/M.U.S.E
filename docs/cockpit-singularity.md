@@ -55,6 +55,19 @@ rule and the Observatory's "no remote references" guarantee:
   `/cockpit/index.html`, and the flagship Observatory at
   `/cockpit/observatory.html`. `/nexus` is unaffected. (Promotion routing lives
   in `gateway/cockpit/server.py::_serve_static`.)
+- **Public face (Vercel).** The public deployment serves this cockpit at the
+  site root — `scripts/deploy/build_cockpit_vercel.sh` assembles it (page +
+  vendored runtime + atlas) and the root `vercel.json` points at the output.
+- **Segregated nav.** The left rail groups its destinations into sections —
+  **Command / Build / Intelligence / Govern / System** — rendered from
+  `navMeta` (each entry carries a `group`; the rail emits a `.nav-section`
+  heading whenever the group changes).
+- **Live chat, honest fallback.** The chat composer is wired to the repo-root
+  Edge function `/api/chat`: on the public deployment it streams a real reply
+  from the server-held provider key; paired to a gateway it dispatches a real
+  job; on a static host with no `/api` it shows an honest "pair a gateway"
+  message and never fabricates a reply. Chat opens to a single greeting (no
+  seeded demo conversation); the other panels keep their designed demo shell.
 - **Verified — live render.** Booted in headless Chrome against the cockpit
   server: React + ReactDOM load locally, the `<x-dc>` template renders (app
   shell + 27 nav items: Chat / Tasks / Agents / Studio / 3D Atlas / Approvals

@@ -118,3 +118,6 @@ docs/_build/
 .hermes-dev/
 studio_output/
 studio_output*/
+
+# Vercel cockpit build output (assembled by scripts/deploy/build_cockpit_vercel.sh)
+cockpit-dist/

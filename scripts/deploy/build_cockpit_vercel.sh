@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Assemble the muse Cockpit into a static output directory for Vercel.
+#
+# The public Vercel deployment serves the cockpit (the imported "Singularity"
+# Claude Design — gateway/cockpit/static/cockpit.dc.html) wearing its segregated
+# nav, with its chat composer wired to the repo-root Edge function /api/chat
+# (a real assistant when a provider key is set on the server; an honest
+# "pair a gateway" message when no /api is present). The dc-runtime + vendored
+# React render the design offline; the 3D Atlas and three.js are vendored too.
+#
+# Output layout (served from the Vercel project root):
+#   <out>/index.html         <- the cockpit page (cockpit.dc.html)
+#   <out>/vendor/*           <- React UMD, dc-runtime, three.js (shared w/ atlas)
+#   <out>/atlas/*            <- the 3D Systems Atlas (uses ../vendor/three)
+#
+# The Edge API functions live at the repo-root /api and are discovered by Vercel
+# independently of this output directory.
+set -euo pipefail
+
+OUT="${1:-cockpit-dist}"
+SRC="gateway/cockpit/static"
+
+rm -rf "$OUT"
+mkdir -p "$OUT/vendor" "$OUT/atlas"
+
+# The cockpit page itself.
+cp "$SRC/cockpit.dc.html" "$OUT/index.html"
+
+# Vendored runtime: React (UMD) + dc-runtime, plus three.js shared with the atlas.
+cp "$SRC/vendor/react.production.min.js"      "$OUT/vendor/"
+cp "$SRC/vendor/react-dom.production.min.js"  "$OUT/vendor/"
+cp "$SRC/vendor/dc-runtime.js"                "$OUT/vendor/"
+cp "$SRC/vendor/three.module.min.js"          "$OUT/vendor/"
+cp "$SRC/vendor/three.core.min.js"            "$OUT/vendor/"
+
+# The 3D Systems Atlas (imports ../vendor/three.module.min.js — no duplication).
+cp "$SRC/atlas/index.html"            "$OUT/atlas/"
+cp "$SRC/atlas/style.css"             "$OUT/atlas/"
+cp "$SRC/atlas/app.js"                "$OUT/atlas/"
+cp "$SRC/atlas/architecture_data.js"  "$OUT/atlas/"
+
+echo "muse Cockpit assembled into $OUT/"
+ls -R "$OUT"
