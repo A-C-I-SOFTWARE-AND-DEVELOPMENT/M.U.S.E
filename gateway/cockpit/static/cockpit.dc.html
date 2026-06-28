@@ -2384,7 +2384,6 @@ class Component extends DCLogic {
 
   componentDidMount() {
     for (let i = 0; i < 40; i++) this._pushSeries(true);
-    this._seedLog();
     this.setState({ work: this._seedWork() });
     this._bootTimer = setTimeout(() => { if (this.state.bootActive) this.setState({ bootActive: false }); }, 2600);
     this._timer = setInterval(() => this._sim(), 1000);
@@ -2454,6 +2453,19 @@ class Component extends DCLogic {
     const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
     const p = n => String(n).padStart(2, '0');
     return `${p(h)}:${p(m)}:${p(s)}`;
+  }
+
+  _liveUptime(s) {
+    // Real uptime from the gateway runtime payload (gateway.started_at, ISO).
+    // The sim clock is gone, so a paired session derives uptime from the wall
+    // clock; offline this branch isn't used (telemetry shows "—").
+    const rt = s.liveRuntime || {};
+    const started = rt.gateway && rt.gateway.started_at;
+    if (started) {
+      const ms = Date.parse(started);
+      if (!isNaN(ms)) return this._clock(Math.max(0, Math.floor((Date.now() - ms) / 1000)));
+    }
+    return '—';
   }
 
   // ---- handlers ----
@@ -3469,7 +3481,7 @@ class Component extends DCLogic {
       stopLabel: halted ? 'Resume' : 'Emergency stop',
       stopBtn: null,
       telemetry: (s.connState === 'live')
-        ? { uptime: this._clock(s.seconds), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
+        ? { uptime: this._liveUptime(s), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
         : { uptime: '—', latency: '—', tps: '—' },
       onToken: this.onToken, onEmergency: this.onEmergency,
       // chat
