@@ -29,6 +29,7 @@ written and the DAG completes without spending money.
 """
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -177,6 +178,97 @@ class StudioOrchestrator:
         manifest.total_cost_usd = sum(s.est_cost_usd for s in manifest.stages)
         manifest.total_duration_s = time.perf_counter() - t_start
         (wd / "manifest.txt").write_text(manifest.summary())
+        return manifest
+
+    # ── OPEN-WORLD RPG pipeline (Skyrim-class) ─────────────────────
+
+    def produce_open_world_rpg(self, brief: GameBrief, blueprint=None) -> ProjectManifest:
+        """Scaffold + plan a Skyrim-CLASS open-world RPG from the capability blueprint.
+
+        This *builds* (it does not merely describe): it scaffolds the engine
+        project, materializes the machine-readable build plan (phases / domains /
+        critical path / dependency graph as JSON the team can query), and runs the
+        foundational P0 production stages. Network/key-less adapters stub when the
+        studio is pinned offline (``AXIOM_STUDIO_OFFLINE``) so the whole plan
+        materializes without spend. The blueprint defaults to the shipped one
+        (``data/open_world_rpg_blueprint.json``); pass one to override.
+        """
+        from agent.studio.blueprints import load_open_world_rpg_blueprint
+
+        bp = blueprint or load_open_world_rpg_blueprint()
+        wd = brief.workdir or self._workdir("open_world_rpg", brief.title)
+        manifest = ProjectManifest(
+            kind="game", title=brief.title, workdir=wd, quality=brief.quality
+        )
+        t_start = time.perf_counter()
+
+        # 1. Engine project scaffold — the blueprint recommends UE5 unless the
+        #    brief explicitly pins another engine.
+        engine_name = {Provider.UE5: "ue5", Provider.UNITY6: "unity6", Provider.GODOT4: "godot"}.get(
+            brief.engine, "ue5"
+        )
+        manifest.stages.append(self._run(
+            "engine_project",
+            f"{brief.title} — {brief.genre} — open-world RPG ({bp.engine_recommended} recommended)",
+            wd, brief.quality, engine=engine_name, title=brief.title,
+        ))
+
+        # 2. Materialize the build plan as queryable data (NOT prose docs):
+        #    phases, domains, critical path, dependency graph, engine decision.
+        plan_dir = wd / "build_plan"
+        plan_dir.mkdir(parents=True, exist_ok=True)
+        plan = bp.as_plan()
+        written: List[str] = []
+        for fname, payload in (
+            ("blueprint.json", plan),
+            ("phases.json", plan["phases"]),
+            ("domains.json", plan["domains"]),
+            ("critical_path.json", plan["critical_path"]),
+            ("dependency_graph.json", plan["dependency_edges"]),
+            ("engine.json", plan["engine"]),
+        ):
+            p = plan_dir / fname
+            p.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            written.append(str(p))
+        manifest.stages.append(StageResult(
+            stage="build_plan", provider=Provider.STUB, status="ok",
+            artifacts=written,
+            notes=(f"{len(bp.domains)} domains, {len(bp.phases)} phases, "
+                   f"{len(bp.dependency_edges)} dep-edges; engine={bp.engine_recommended}"),
+        ))
+
+        # 3. Foundational production stages drawn from the P0 / critical-path
+        #    domains (real adapters; stub when offline).
+        p0_keys = ", ".join(d.key for d in bp.p0_domains) or "core systems"
+        manifest.stages.append(self._run(
+            "gdd",
+            f"Write the Game Design Document for the open-world RPG '{brief.title}'.\n"
+            f"Genre: {brief.genre}\nSetting: {brief.setting}\nCore loop: {brief.core_loop}\n"
+            f"Build the GDD around these foundational (P0) capability domains: {p0_keys}.",
+            wd, brief.quality, max_tokens=8000,
+        ))
+        manifest.stages.append(self._run(
+            "world_bible",
+            f"Original world bible for '{brief.title}' — {brief.setting}. "
+            f"Cosmology, geography, factions, cultures, the central theme, and "
+            f"hook locations. Original IP only; no existing-franchise content.",
+            wd, brief.quality, max_tokens=8000,
+        ))
+        manifest.stages.append(self._run(
+            "gameplay_code",
+            f"Implement the Phase-0 substrate keystones for '{brief.title}' on "
+            f"{engine_name}: deterministic fixed-timestep tick + seeded RNG, the "
+            f"World/Object registry with stable persistent IDs, a versioned save "
+            f"serializer, and the save-bound scripting/quest VM seam.",
+            wd, brief.quality, engine=engine_name, max_tokens=6000,
+        ))
+
+        # tally
+        manifest.total_cost_usd = sum(s.est_cost_usd for s in manifest.stages)
+        manifest.total_duration_s = time.perf_counter() - t_start
+        # encoding="utf-8": the summary contains ✓/→ glyphs that would crash on a
+        # non-UTF-8 default (e.g. Windows cp1252).
+        (wd / "manifest.txt").write_text(manifest.summary(), encoding="utf-8")
         return manifest
 
     # ── GAME pipeline ──────────────────────────────────────────────

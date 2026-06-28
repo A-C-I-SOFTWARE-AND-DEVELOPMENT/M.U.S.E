@@ -23,6 +23,10 @@ from agent.studio.types import (
     Phase, PhaseStatus, Milestone, Project, Portfolio, TeamMember, TeamRole,
     BudgetLine,
 )
+from agent.studio.blueprints import (
+    OpenWorldRpgBlueprint, CapabilityDomain, RoadmapPhase, DependencyEdge,
+    load_open_world_rpg_blueprint,
+)
 
 __all__ = [
     "StudioOrchestrator", "FilmBrief", "GameBrief",
@@ -33,4 +37,6 @@ __all__ = [
     "estimate", "compare_tiers", "BudgetScenario",
     "Phase", "PhaseStatus", "Milestone", "Project", "Portfolio",
     "TeamMember", "TeamRole", "BudgetLine",
+    "OpenWorldRpgBlueprint", "CapabilityDomain", "RoadmapPhase", "DependencyEdge",
+    "load_open_world_rpg_blueprint",
 ]

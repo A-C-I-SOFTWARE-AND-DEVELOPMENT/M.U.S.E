@@ -1,0 +1,1261 @@
+{
+    "name":  "Skyrim-class open-world RPG",
+    "ip_rule":  "Original-IP: genre techniques and reusable systems only. No Bethesda assets, names, world, or lore.",
+    "generated":  "2026-06-27 (muse verifiable-arena capability map; 27 reviewed domains)",
+    "engine":  {
+                   "recommended":  "UE5",
+                   "rationale":  "ADOPT Unreal Engine 5 as the production engine; keep the C:/Users/Echer/HogwartsLivingCastle D3D11 renderer as a separate, non-blocking R\u0026D tech track. Decisive tradeoffs: (1) Substrate gap — the digest shows the custom engine is a static-scene renderer with NO entity model, save/serialization, UI/text/input-for-menus, audio, skeletal animation, physics/collision, navmesh, scripting VM, or streaming-with-persistence; at least 9 of 27 domains name one of these as their #1 missing item (\u0027no entity model exists\u0027, \u0027no UI/text substrate exists\u0027, \u0027D3D11 provides none of this\u0027). Building all of it bespoke is 60-120+ engineer-months before the first quest. (2) Build-vs-buy — on UE5, World Partition (streaming), Chaos (physics) + CMC/Mover (controller), NavMesh/Recast (navigation), GAS (stats/effects), CommonUI (UI), Sky/Cloud/Fog + Lumen + Nanite + Water plugin (graphics), MetaSounds/audio, and..."
+               },
+    "effort_summary":  "Honest accounting: this is a multi-year, content-and-tooling-dominated program even on UE5, and a small team\u0027s realistic ship is ONE vertically-excellent region (~5-15 sq km, full core loop, multi-hour main quest, systems depth, ship polish) — NOT a continent. Reading the bands across 27 domains: on a CUSTOM engine the substrate alone (streaming XL, terrain XL/9-15mo, anim XL/9-15mo, lighting XL/9-14mo, persistence+scripting XL, asset-pipeline+editor 12-24mo) sums to well over 60-120 engineer-months before gameplay — which is why UE5 is mandatory. On UE5 the SYSTEMS effort roughly halves (physics 4-7mo, navigation 2-4 person-mo, water 2-4mo, weather 4-5mo, progression M/1-2mo, inventory L/3-6mo, quest L/3-6mo, dialogue L/3-6mo, NPC AI still XL for full breadth, scripting VM 9-14mo, build/infra 6-9mo, telemetry 6-10mo, platform 7-11 engineer-mo, legal 4-7 person-YEARS but front-loaded ext...",
+    "critical_path":  [
+                          "Phase 0: Lock UE5 engine decision (gates build-vs-buy for all infra and unblocks every domain)",
+                          "Phase 0: Deterministic fixed-timestep sim + single seeded PRNG (keystone for QA bots, replay, save, persistence)",
+                          "Phase 0: World Database (Form/Object Registry) with stable persistent IDs",
+                          "Phase 0: Diff-based versioned save serializer with schema migration + golden-save CI gate",
+                          "Phase 0: Save-bound scripting/quest VM (state-machine, no coroutine snapshots) + event bus + scoped fact DB",
+                          "Phase 1: Physics/collision (capsule controller + sweep-query service) as the source-of-truth geometry",
+                          "Phase 1: Navmesh baked from the SAME collision geometry, agreeing with controller + foot-IK heights",
+                          "Phase 1: World streaming + persistence boundary with origin rebasing over one region",
+                          "Phase 1: Skeletal animation/skinning + locomotion + player_controller_camera (the playable layer)",
+                          "Phase 2: Combat \u003c-\u003e stat graph \u003c-\u003e inventory modifier pipeline (where balance and coupling break first)",
+                          "Phase 2: Quest system + dialogue bound to the fact DB through the VM, projected to journal/UI",
+                          "Phase 3: Creation-Kit-equivalent editor + cook (content+tooling, the true schedule-dominating long pole)",
+                          "Phase 4: Soft-lock hardening + cert + save-safe hotfix proof (the genre\u0027s signature ship-blocker eliminated)"
+                      ],
+    "dependency_edges":  [
+                             {
+                                 "from":  "deterministic_sim_seeded_rng",
+                                 "to":  "qa_test_automation",
+                                 "why":  "Bots, regression replay, and save round-trip fuzzing all collapse without a fixed-timestep loop and single seeded PRNG — named the keystone dependency."
+                             },
+                             {
+                                 "from":  "deterministic_sim_seeded_rng",
+                                 "to":  "world_persistence",
+                                 "why":  "Deterministic snapshot/restore of in-flight scripts, physics sleep states, and offline catch-up requires a tick-boundary-consistent simulation."
+                             },
+                             {
+                                 "from":  "persistent_stable_ids",
+                                 "to":  "quest_system",
+                                 "why":  "Alias/casting (binding abstract roles to concrete world objects) and save serialization are hard-blocked on IDs that survive cell streaming, save/load, and reordering."
+                             },
+                             {
+                                 "from":  "versioned_save_serializer",
+                                 "to":  "telemetry_liveops",
+                                 "why":  "Save-compatible hotfixes and DLC/mod compatibility checks share the save custom-version scheme; 80-hour saves must survive content churn."
+                             },
+                             {
+                                 "from":  "physics_collision",
+                                 "to":  "navigation_pathfinding",
+                                 "why":  "Navmesh bakes from the SAME collision triangle-soup; navmesh is only as good as collision and the character controller must agree with both."
+                             },
+                             {
+                                 "from":  "physics_collision",
+                                 "to":  "npc_ai",
+                                 "why":  "Occlusion rays, cover raycasts, and navmesh source geometry all need a collision layer distinct from render meshes — D3D11 provides none."
+                             },
+                             {
+                                 "from":  "navigation_pathfinding",
+                                 "to":  "quest_system",
+                                 "why":  "Radiant generation needs reachability validation; journal compass/markers and \u0027nearest reachable\u0027 alias scoring need pathing."
+                             },
+                             {
+                                 "from":  "characters_anim",
+                                 "to":  "npc_ai",
+                                 "why":  "NPC AI lists animation as a dependency but the custom engine has zero skeletal/skinned-mesh support; locomotion, IK, smart-object and off-mesh traversal need it."
+                             },
+                             {
+                                 "from":  "event_bus_fact_db",
+                                 "to":  "dialogue_narrative",
+                                 "why":  "Dialogue reads and writes quest/global flags via the shared blackboard; tight bidirectional coupling through the global fact store."
+                             },
+                             {
+                                 "from":  "scripting_quest_vm",
+                                 "to":  "quest_system",
+                                 "why":  "Quest/dialogue runtime binds to the event bus + fact DB through the save-bound state-machine VM (no coroutine snapshots)."
+                             },
+                             {
+                                 "from":  "world_streaming",
+                                 "to":  "world_persistence",
+                                 "why":  "Cell hot/warm/cold residency defines the persistence boundary; persistent object state must reconcile with streamed static content deterministically across save/load and fast travel."
+                             },
+                             {
+                                 "from":  "rpg_progression",
+                                 "to":  "combat_magic",
+                                 "why":  "The stat graph emits derived stats (damage, armor, crit, resistances) consumed by the damage formula — combat is the stat graph\u0027s #1 client and where balance breaks first."
+                             },
+                             {
+                                 "from":  "engine_decision_locked",
+                                 "to":  "build_ci_devops",
+                                 "why":  "UE5-vs-custom determines build-vs-buy for the entire infra flywheel; on UE5 four of five infra capabilities become integration/config rather than net-new systems."
+                             },
+                             {
+                                 "from":  "asset_pipeline_mod",
+                                 "to":  "world_streaming",
+                                 "why":  "The deterministic cook produces the spatial partition the streamer consumes; world_streaming is only as good as the bake step feeding it."
+                             },
+                             {
+                                 "from":  "consent_privacy_gate",
+                                 "to":  "telemetry_liveops",
+                                 "why":  "GDPR/CCPA consent is a hard prerequisite for crash collection, analytics, and remote-config — must be built before any upload path."
+                             },
+                             {
+                                 "from":  "data_driven_quest_graph",
+                                 "to":  "qa_test_automation",
+                                 "why":  "The soft-lock reachability analyzer and planner bots require a machine-readable quest model with declarative gate predicates, not imperative script."
+                             },
+                             {
+                                 "from":  "ui_text_substrate",
+                                 "to":  "dialogue_narrative",
+                                 "why":  "Response wheel/list, subtitles, and skill-gate icons need a 2D overlay pass and SDF/Unicode text rendering that does not exist in the renderer."
+                             },
+                             {
+                                 "from":  "save_load_system",
+                                 "to":  "platform_online_services",
+                                 "why":  "The sandboxed async cloud-save service wraps/extends the core versioned save serializer and must expose async hooks."
+                             },
+                             {
+                                 "from":  "input_action_mapping",
+                                 "to":  "player_controller_camera",
+                                 "why":  "The input-\u003elocomotion state machine needs a unified KBM+gamepad action-mapping/rebinding layer the custom engine lacks (KBM-only)."
+                             },
+                             {
+                                 "from":  "ip_clearance_gate",
+                                 "to":  "asset_pipeline_mod",
+                                 "why":  "Build/CI must fail the cook on uncleared/untagged assets; the originality gate hangs off per-asset content-DB metadata to keep the slate free of third-party IP."
+                             }
+                         ],
+    "top_unknowns":  [
+                         "Engine fork (the decisive one): UE5 vs Unity-DOTS vs Recast/Detour+Jolt+custom — recommendation is UE5, but it must be formally locked in Phase 0 because it determines build-vs-buy for all 27 domains.",
+                         "Multiplayer/co-op in scope or not — combat hit-detection, ragdoll/IK determinism, controller prediction, and replication all change fundamentally if MP is ever added; multiple domains say \u0027decide the boundary early even if MP is out of scop...",
+                         "Console + cert in scope, and when — drives long-lead dev-kit procurement, NDAs, TRC/XR/lotcheck, and the platform-abstraction effort (7-11 engineer-mo, console-dominated); PC-only is dramatically cheaper.",
+                         "Hosted UGC/mod store vs local-only mods — hosted UGC triggers statutory CSAM-reporting duty and PhotoDNA/NCMEC access problems for small platforms; local-only mods sidestep most moderation ops.",
+                         "Scripting language/VM choice and its determinism enforcement — Luau is named but its table-iteration determinism and sandbox-escape surface are unproven for save-bound use; the VM is on the critical path.",
+                         "Off-screen AI simulation-bubble + dynamic-state streaming design — hand-waved across three domains; it determines both \u0027living world\u0027 fidelity and save correctness and has no concrete capability yet.",
+                         "Target region size and content-velocity budget — 5 vs 15 sq km and quests-per-week determine whether the realistic ship is achievable; needs an early measured content-loop, not an estimate.",
+                         "DX/render-feature tier and scalability floor (min-spec, HDR, upscaler set) — affects vfx/lighting/water effort and the DX11-vs-DX12 decision gate flagged in vfx and water domains (moot if UE5, but real on the D3D11 track)."
+                     ],
+    "phases":  [
+                   {
+                       "phase":  "Phase 0 — Engine Decision + Substrate Gate",
+                       "goal":  "Lock the engine (adopt UE5; archive D3D11 as a parallel tech track) and stand up the deterministic substrate keystones that every dependent domain needs, proving them with the hardest cross-cutting test: deterministic save/load round-trip on a headless tick.",
+                       "domains":  [
+                                       "build_ci_devops",
+                                       "world_persistence",
+                                       "scripting_quest_vm",
+                                       "asset_pipeline_mod",
+                                       "qa_test_automation",
+                                       "platform_online_services",
+                                       "production_legal_cert"
+                                   ],
+                       "vertical_slice":  "A headless, fixed-timestep UE5 build with a single seeded PRNG runs an empty-but-real World Database (Form/Object Registry with stable persistent IDs), saves and reloads it bit-identically, advances a trivial scripted quest stage via the save-bound state-machine VM, and passes a golden-save CI gate. Perforce-class VCS + incremental cook + golden-image WARP/null-RHI CI online. Consent/privacy gate...",
+                       "exit_criteria":  "Deterministic save round-trip is bit-stable across 100 randomized headless runs; schema-migration path proven on a deliberately versioned record; CI runs cook+build+golden-save+golden-image on every commit; engine decision signed and documented with the D3D11 track scoped as non-blocking R\u0026D."
+                   },
+                   {
+                       "phase":  "Phase 1 — Traversable World",
+                       "goal":  "Make a single region physically traversable: streamed terrain you can walk, swim, and climb across with collision, navmesh, camera, and a controllable character — the \u0027walk around an empty but real place\u0027 milestone.",
+                       "domains":  [
+                                       "world_streaming",
+                                       "terrain",
+                                       "physics_collision",
+                                       "navigation_pathfinding",
+                                       "player_controller_camera",
+                                       "characters_anim",
+                                       "lighting_shadows",
+                                       "atmosphere_weather",
+                                       "ui_ux"
+                                   ],
+                       "vertical_slice":  "One ~5-15 sq km region (original biome art) streams seamlessly with no load screens; a kinematic capsule character with dual 1st/3rd-person camera walks/sprints/jumps/swims/climbs over terrain with correct collision; navmesh bakes from the SAME collision geometry and a debug NPC paths across it; day/night + basic weather + lighting/GI stay continuous across tile seams; a minimal HUD and pause menu...",
+                       "exit_criteria":  "Player traverses the full region edge-to-edge with stable VRAM/RAM and no seam pops or lighting pop; navmesh-vs-collision-vs-foot-IK heights agree within tolerance; origin rebasing moves physics with rendering; save/reload restores exact player transform and locomotion super-state; soak rig drives a bot across the region for 1 hour without a streaming hitch or leak."
+                   },
+                   {
+                       "phase":  "Phase 2 — Core Loop",
+                       "goal":  "Close the minimal RPG core loop — fight, loot, progress, talk, take a quest, save — so the region becomes playable, not just traversable.",
+                       "domains":  [
+                                       "combat_magic",
+                                       "rpg_progression",
+                                       "inventory_economy",
+                                       "dialogue_narrative",
+                                       "quest_system",
+                                       "npc_ai",
+                                       "audio_systems",
+                                       "ui_ux",
+                                       "vfx_postfx"
+                                   ],
+                       "vertical_slice":  "Player melee/ranged/one-spell combat against an NPC with combat AI (blocks/dodges, reacts to stagger); kills drop loot into a working inventory/equipment system whose gear modifiers feed the stat graph which feeds the damage formula; talking to a hand-authored NPC opens menu-style dialogue that advances a single authored quest through the journal/compass; level-up and a perk grant; adaptive music...",
+                       "exit_criteria":  "A first-time player can independently complete one authored quest from accept to reward including a fight, a conversation, a loot/equip cycle, and a level-up; quest state, in-flight dialogue, inventory, and effect durations all survive save/load; soft-lock analyzer proves the quest graph reachable; traversal bot completes the quest headlessly end-to-end."
+                   },
+                   {
+                       "phase":  "Phase 3 — Systems Depth",
+                       "goal":  "Deepen each system to genre-credible breadth and turn the region into a \u0027living world\u0027 with schedules, radiant content, full magic/combat depth, crafting, and the modding/scripting surface — the phase where content+tooling effort dominates.",
+                       "domains":  [
+                                       "npc_ai",
+                                       "quest_system",
+                                       "combat_magic",
+                                       "inventory_economy",
+                                       "scripting_quest_vm",
+                                       "asset_pipeline_mod",
+                                       "dialogue_narrative",
+                                       "rpg_progression",
+                                       "audio_systems",
+                                       "atmosphere_weather",
+                                       "water"
+                                   ],
+                       "vertical_slice":  "A small town of NPCs runs daily schedules + needs + smart objects; full three-family combat (melee/ranged/composable magic) with status effects, stagger/poise, blocking/parry/dodge; crafting (smithing/alchemy/enchanting analogues), vendor economy with ownership/theft/crime; radiant/template quests fill the region atop a multi-hour authored main quest; the Creation-Kit-equivalent editor + sandboxed...",
+                       "exit_criteria":  "NPCs visibly live a day/night cycle without soft-locks; a designer authors and ships a complete radiant-quest template and a hand-authored quest entirely in the editor+VM without programmer help; crime/ownership/economy round-trips through save; mod-script sandbox passes its escape-attempt suite; QA bots run a 24-hour soak across the populated region with world-state invariants holding."
+                   },
+                   {
+                       "phase":  "Phase 4 — Polish / Ship",
+                       "goal":  "Take the one excellent region to ship quality: performance/scalability tiers, full accessibility, platform cert, live-ops backend, legal/rating, and the long tail of bug-fixing and soft-lock hardening.",
+                       "domains":  [
+                                       "vfx_postfx",
+                                       "lighting_shadows",
+                                       "audio_systems",
+                                       "ui_ux",
+                                       "telemetry_liveops",
+                                       "platform_online_services",
+                                       "production_legal_cert",
+                                       "qa_test_automation",
+                                       "build_ci_devops"
+                                   ],
+                       "vertical_slice":  "The region ships as a complete, vertically-excellent experience: scalability tiers (low-\u003eultra) with TAA/upscaling, full HUD/map/journal/inventory/dialogue UX with accessibility (remap, subtitles/captions, colorblind, scaling, TTS), platform abstraction with achievements + cloud save + DRM passing a cert dry-run, crash/funnel telemetry behind the consent gate with a proven save-safe hotfix, age-ra...",
+                       "exit_criteria":  "Zero known soft-locks on the canonical playthrough (regression replay green); save round-trip and golden-image gates green on every build; cert harness (TRC/XR/lotcheck dry-run) passes; a save-safe hotfix is shipped and verified not to invalidate an 80-hour save; age rating obtained and IP-clearance gate clean; performance holds the frame budget at target tier across a full soak."
+                   }
+               ],
+    "domains":  [
+                    {
+                        "key":  "world_streaming",
+                        "lane":  "graphics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "This domain delivers a \"seamless\" continent-scale world: the player roams thousands of square kilometers (terrain, props, foliage, settlements, interiors) with no visible load screens and a stable VRAM/RAM budget. The genre\u0027s defining trick is decoupling what is *simulated* from what is *resident in memory* from what is *drawn this frame*, via three concentric loops: (1) a spatial database of static world content split into streamable units (cells/chunks) loaded/unloaded predictively around the...",
+                        "capabilities":  [
+                                             "Spatial world database \u0026 cell/chunk partitioning",
+                                             "Predictive async streaming \u0026 residency manager",
+                                             "Terrain LOD \u0026 continuous horizon (geometry clipmaps / quadtree CDLOD)",
+                                             "Mesh/object LOD, virtualized geometry \u0026 impostors",
+                                             "Streaming / sparse virtual texturing (SVT) with GPU feedback",
+                                             "GPU-driven visibility: frustum + two-phase HZB occlusion culling",
+                                             "Memory \u0026 I/O budget governor",
+                                             "Seam hiding, origin rebasing \u0026 transition blending"
+                                         ],
+                        "dependencies":  [
+                                             "asset_pipeline / cooker: offline baking of tiles, meshlet hierarchies, HLODs, impostors, virtual-texture page archives, compressed (GDeflate/Zstd/BCn) blobs — world_streaming is only as good as the bake step that feeds it.",
+                                             "rendering_core: the GPU-driven culling, indirect draw, HZB, and virtual-texture sampling live inside the main render pipeline; tight coupling to the renderer\u0027s frame graph and PSO management.",
+                                             "lighting/GI: probe grids, shadow cascades, and any baked GI must stream and stay continuous across tile seams (no lighting pop).",
+                                             "physics/collision: collision meshes and navmesh stream as their own near-radius layer; origin rebasing must move physics with rendering.",
+                                             "AI/navigation: navmesh tiles must be resident wherever NPCs are simulated, which can exceed the visual stream radius (off-screen simulation bubble).",
+                                             "gameplay/persistence \u0026 save system: persistent object state must reconcile with streamed static content deterministically across save/load and fast travel.",
+                                             "audio: streamed ambient emitters and reverb zones per tile; audio simulation radius differs from visual radius.",
+                                             "platform/hardware abstraction: storage (NVMe vs SATA vs HDD), VRAM detection, DirectStorage availability, and per-tier scalability config.",
+                                             "world-building/editor tools: authoring tools that place content into tiles and run the deterministic cooker."
+                                         ],
+                        "effort_band":  "XL (6 mo+) for a production-grade seamless streamer on a custom C++/D3D11(+D3D12 streaming path) engine with a small studio (roughly 9–15 engineer-months across 2–3 specialists incl. the bake pipeline...",
+                        "milestones":  [
+                                           "M0 — Tile foundation: TileID scheme, offline cooker producing a baked world archive with TOC, and a coarse quadtree spatial index. Load/unload a hand-made multi-tile world synchronously with a debug HUD. (First proof the partition works.)",
+                                           "M1 — Async predictive streaming: residency manager with distance+velocity priority, background I/O (DirectStorage or thread-pool fallback), staging-buffer ring, hysteresis, and pinning. Walk across many tiles with no load screen and no main-thread stalls.",
+                                           "M2 — Terrain LOD horizon: CDLOD/clipmap terrain with geomorphing + far-LOD shell + fog. Stand on a peak and see a stable, pop-free horizon to the map edge.",
+                                           "M3 — Object LOD + GPU culling: discrete mesh LODs, GPU frustum + two-phase HZB occlusion culling feeding indirect draws, plus HLOD proxies and octahedral impostors for far object groups and foliage. A dense settlement renders from afar at low cost with no visible pop.",
+                                           "M4 — Streaming virtual texturing: SVT page pool + indirection + GPU feedback + page archive, applied to terrain blend and high-uniqueness surfaces. Texture memory stays bounded while surface variety is high.",
+                                           "M5 — Budget governor + seam/precision hardening: central memory/I-O budget controller with degradation ladder and per-tier configs; origin rebasing / camera-relative rendering; dithered LOD/stream-in cross-fades; interior↔exterior portal transitions; lighting-probe continuity. Long play session on min-spec with stable memory and no jitter/seams.",
+                                           "M6 — Ship-quality polish: PSO pre-warming to kill stream-in hitches, save/fast-travel reconciliation, telemetry/automated soak tests (drive a path, assert no hitch \u003e N ms, no budget overrun), and content-scale stress test across the full world. Certification-ready seamless world."
+                                       ]
+                    },
+                    {
+                        "key":  "terrain",
+                        "lane":  "graphics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "Terrain is the visual backbone of a Skyrim-class open world: a seamless, paged heightfield landscape (think continent-scale tundra, pine forest, alpine, marsh, volcanic ash biomes — all original art) that renders from underfoot blades of grass to mountains on the horizon with no seams, no LOD popping, and a stable frame budget. The modern recipe is a heightmap-fed continuous-LOD mesh (CDLOD or GPU-driven cluster mesh / Nanite-style) plus a runtime virtual texture (RVT/SVT) that bakes splat-blend...",
+                        "capabilities":  [
+                                             "Heightmap representation, paging \u0026 streaming (continent-scale heightfield)",
+                                             "Continuous LOD geometry \u0026 seamless transitions",
+                                             "Virtual/clipmap texturing of terrain materials (the decoupling layer)",
+                                             "Material layer blending \u0026 compositing (the surface look)",
+                                             "Large-scale detail: grass, rocks \u0026 foliage scatter",
+                                             "Terrain shadowing, AO \u0026 lighting integration",
+                                             "Water, rivers, coastlines \u0026 terrain-water interaction",
+                                             "Authoring, editing \u0026 procedural generation tooling"
+                                         ],
+                        "dependencies":  [
+                                             "Streaming/IO \u0026 world partition system (tile residency, DirectStorage/async loaders, fast-travel prefetch) — terrain is the largest streaming consumer",
+                                             "Lighting \u0026 shadows domain (CSM, Virtual Shadow Maps, GI/Lumen/DDGI/SDFGI, sky/atmosphere) — terrain both casts and receives",
+                                             "Atmosphere/sky \u0026 weather (aerial perspective/fog fades distant terrain; dynamic snow/wetness invalidates VT composites)",
+                                             "Water domain (shared coordinate space, shoreline blending, river carving)",
+                                             "Vegetation/foliage \u0026 scatter domain (shares terrain height/normal/material as single source of truth)",
+                                             "Memory \u0026 VRAM budget management (hard residency caps for height pool + VT physical atlas)",
+                                             "Asset pipeline \u0026 DCC integration (World Machine/Gaea/Houdini imports, BC compression, texture array packing)",
+                                             "Physics/navmesh (collision heightfield + AI navigation must use the same height data; navmesh bakes off terrain)",
+                                             "GPU compute infrastructure (scatter generation, VT page composite, indirect draw) — pushes toward D3D12/mesh shaders for the most advanced paths",
+                                             "Decals \u0026 roads (sample/write into the terrain virtual texture)"
+                                         ],
+                        "effort_band":  "Custom C++/D3D11 from scratch: XL (6mo+; realistically 9-15 months to ship-quality for the full stack incl. VT + editor with 2-3 graphics engineers). On a mature engine (Unreal/Unity/Godot): M (1-2 mo...",
+                        "milestones":  [
+                                           "M0 Flat-pixel: render a single static heightmap tile with a debug grid material and a flycam — proves height sampling + camera.",
+                                           "M1 LOD that doesn\u0027t pop: CDLOD (or clipmap) quadtree with vertex morphing + skirts; smooth approach to a mountain with no cracks, stable triangle budget.",
+                                           "M2 Paged world: quadtree streaming of many tiles with a residency manager and always-resident coarse mip; walk a multi-km world with no stalls and a fixed VRAM cap.",
+                                           "M3 Materials that read as ground: 4-8 layer splat with height-blend + triplanar + slope/altitude auto-materials + anti-tiling; looks like real terrain up close and far.",
+                                           "M4 Decoupled texturing: runtime virtual texture (or terrain texture clipmap) compositing the material into a page cache; dozens of layers at O(1) per-pixel cost, no blurry-page artifacts under fast motion.",
+                                           "M5 Living surface: GPU-driven grass/rock/foliage scatter from density maps with wind, ground-tint cohesion, distance fade, and GPU culling — no floating props, no popping.",
+                                           "M6 Lit \u0026 shadowed: CSM near + horizon-map far shadows, baked AO in the VT, sky/ambient + GI hookup, time-of-day correct macro self-shadowing.",
+                                           "M7 Water \u0026 shores: sea level + rivers (flowmap splines) + FFT/Gerstner ocean + depth-based shoreline wetness/foam blended against terrain height.",
+                                           "M8 Authoring pipeline: World Machine/Gaea/Houdini import + bake step producing all runtime pyramids, plus in-engine sculpt/paint/road brushes with undo — a small team can build a region end-to-end.",
+                                           "M9 Ship polish: budget pass (VRAM/frame), platform LOD bias, anti-tiling and silhouette polish on landmark vistas, streaming stress test (fast travel), and biome-wide art coherence."
+                                       ]
+                    },
+                    {
+                        "key":  "vegetation",
+                        "lane":  "graphics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "Vegetation is the single largest visual-and-performance lever in a Skyrim-class open world: dense ground cover (grass, ferns, flowers), scattered shrubs/bushes, and forests of trees, all rendered to the horizon with believable wind motion and a stable LOD horizon free of popping. The domain is fundamentally a GPU-driven instancing + LOD + animation problem layered on top of a procedural scatter/placement system. Modern best practice is to make the GPU own the whole pipeline: hierarchical terrain...",
+                        "capabilities":  [
+                                             "GPU-instanced ground cover (grass, ferns, flowers, small clutter)",
+                                             "Tree \u0026 large-shrub instancing with discrete LOD chain",
+                                             "Distant impostors / billboard far-field",
+                                             "Procedural wind \u0026 vegetation animation",
+                                             "Procedural scatter, density \u0026 gameplay-aware placement",
+                                             "Streaming, density management \u0026 frame-budget LOD governor",
+                                             "Vegetation lighting, shadows, GI \u0026 subsurface integration"
+                                         ],
+                        "dependencies":  [
+                                             "Terrain system (heightfield, slope/curvature, splat/biome masks, the shared quadtree/clipmap LOD that vegetation streaming hangs off of)",
+                                             "Renderer core (GPU-driven indirect draw / ExecuteIndirect or DrawIndexedInstancedIndirect, Hi-Z depth pyramid for occlusion culling, compute pipeline, AppendStructuredBuffer/CopyStructureCount)",
+                                             "Lighting \u0026 shadows (cascaded shadow maps, two-sided/translucent shading model, global illumination — Lumen/voxel-GI/probes — for ambient bounce)",
+                                             "Global wind/weather system (wind direction \u0026 strength field, gust timing, storms that ramp amplitude; shared with cloth, particles, water)",
+                                             "World streaming \u0026 save system (tile streaming, async upload, persistence overlay for player-caused vegetation changes)",
+                                             "Gameplay/world data (navmesh, road/river/settlement footprints, collision, quest exclusion zones feeding the placement exclusion masks)",
+                                             "TAA/anti-aliasing \u0026 post (alpha-test/dither edges and screen-door crossfades depend on TAA resolve; MSAA path conflicts must be resolved)",
+                                             "Asset pipeline / DCC import (SpeedTree/Blender/Houdini import, LOD chains, vertex-color wind masks, impostor atlas baking, BC7/BC5 texture compression)",
+                                             "Physics/interaction (optional trample/flow render-target driven by player/NPC/physics positions)"
+                                         ],
+                        "effort_band":  "L (3-6 mo) on a mature engine (Unreal/Unity/Godot) for a polished, shipping-quality vegetation tier — most effort is original asset authoring, scatter rule tuning, and budget profiling, not engine cod...",
+                        "milestones":  [
+                                           "M0 Spike: single species, CPU-placed instanced grass patch rendered with one DrawIndexedInstancedIndirect, basic per-instance wind sway — proves the indirect + vertex-wind path.",
+                                           "M1 GPU scatter + cull: compute-shader scatter from a density mask with frustum culling and AppendStructuredBuffer-\u003eindirect args; grass follows the camera in a ring, fades at distance band, runs on GPU with no CPU placement.",
+                                           "M2 LOD + impostors for trees: discrete tree LOD chain with screen-radius selection and dithered crossfade; offline octahedral impostor baker; far forest renders as instanced impostors with smooth mesh-\u003eimpostor transition (no pop).",
+                                           "M3 Hierarchical wind + interaction: full layered wind (gust field + per-instance phase + trunk/branch/leaf masks) consistent across LODs; optional trample RT pushing grass around the player; gusts visibly roll across the valley.",
+                                           "M4 Procedural placement + gameplay masks: rule-based scatter (slope/biome/moisture) with road/water/settlement/navmesh exclusion; deterministic, streaming-stable; designer paint/override + grove clustering.",
+                                           "M5 Streaming + budget governor: tile-streamed tree buffers tied to terrain quadtree, async upload, adaptive density/distance governor holding frame budget on the hilltop-overlook worst case; persistence overlay for player edits.",
+                                           "M6 Lighting/shadow polish: two-sided translucency/backlight, cheap shadow LODs/shadow impostors, GI/ambient integration, grounding AO/tint; day-night cycle correctness on impostors. Ship-quality pass across all biomes.",
+                                           "M7 Scale \u0026 QA: full species library across all biomes, platform scaling tiers, profiling on worst-case vistas, popping/shimmer audit, and asset-provenance verification."
+                                       ]
+                    },
+                    {
+                        "key":  "lighting_shadows",
+                        "lane":  "graphics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "Lighting and shadows for a Skyrim-class open-world RPG: a physically-based, energy-conserving lighting pipeline with a clustered-forward or deferred shading backbone, cascaded (and optionally virtualized) sun shadow maps, a scalable many-light solution for towns/dungeons/torchlight, day-night sky and atmosphere, and a tiered global-illumination + ambient-occlusion stack that degrades gracefully from baked-irradiance-only up to dynamic GI on capable hardware. The defining constraints of this clas...",
+                        "capabilities":  [
+                                             "PBR material and BRDF core (energy-conserving shading model)",
+                                             "Shading architecture: clustered-forward+ vs deferred GBuffer",
+                                             "Cascaded sun/moon shadow maps (directional light shadows)",
+                                             "Local/many-light shadows (points, spots, torches, interiors)",
+                                             "Dynamic global illumination that survives the day-night cycle",
+                                             "Ambient occlusion and contact shadows",
+                                             "Sky, atmosphere, sun/moon, and volumetrics (the light sources themselves)",
+                                             "Interior/cell lighting and exterior-interior transitions",
+                                             "Scalability tiers, TAA/upscaling integration, and the lighting quality ladder"
+                                         ],
+                        "dependencies":  [
+                                             "world_streaming / level-of-detail: cells, occlusion zones/portals, and async streaming of per-interior light sets and probe/GI volumes; GI and shadow caches must invalidate on stream events",
+                                             "scene_representation / geometry pipeline: a maintained SDF clipmap or voxelization of the world that software DDGI, distance-field soft shadows, and far-field terrain shadows all trace against",
+                                             "renderer_core / GPU-driven culling: depth-prepass, instanced shadow-caster culling, and (for any VSM tier) GPU-driven mesh culling and a visibility/Nanite-class geometry pipeline",
+                                             "art_pipeline / materials: PBR (metal-rough) texture authoring with packed ORM, baked micro-AO, and consistent texel density; lighting look depends entirely on calibrated original PBR assets",
+                                             "weather_and_time_of_day systems: the single time-of-day + weather state that drives sun direction/color, sky LUTs, ambient SH, fog density, and GI updates",
+                                             "post_processing: auto-exposure/eye-adaptation, bloom, tonemapping (ACES/AgX), TAA, and temporal upscaling (FSR/XeSS/DLSS) — lighting output is meaningless without correct exposure and tonemap",
+                                             "vfx / particles: emissive particles, magic lights, and fire must inject into the clustered light grid and ideally the volumetric fog and GI",
+                                             "audio/gameplay are independent except that interior/exterior transitions are gameplay-cell-driven"
+                                         ],
+                        "effort_band":  "\"XL (6mo+) for a small studio on a custom C++/D3D11 engine — realistically 9-14 months of one to two dedicated graphics engineers to reach ship quality across all capabilities (DDGI alone is multi-mon...",
+                        "milestones":  [
+                                           "M0 — Lit cube on a plane: PBR BRDF core + single directional light + furnace test passing; validates the shading model and material layout before anything else.",
+                                           "M1 — Outdoor first light: clustered forward+ (or thin GBuffer) with one sun + stabilized 4-cascade CSM (PCF), depth-prepass, and a basic ACES tonemap + auto-exposure. First believable outdoor scene; no shimmer is the acceptance bar.",
+                                           "M2 — Sky and time-of-day spine: Hillaire sky atmosphere driving sun color/intensity + ambient SH/IBL from a runtime-captured prefiltered sky cubemap; a single time-of-day state fans out to sun, ambient, and fog. Dawn-to-dusk looks coherent.",
+                                           "M3 — Contact + AO layer: XeGTAO (visibility-bitmask) with bent normals + screen-space contact shadows + specular occlusion, half-res with temporal accumulation under TAA. Objects are grounded; thin features are not over-occluded.",
+                                           "M4 — Many lights and interiors: clustered point/spot lights with a budgeted shadow atlas + importance scorer + static-light tile caching; portal/zone interior lighting with sun disabled inside and a per-interior probe set; first lit dungeon with torch pools and no sky leaking.",
+                                           "M5 — Dynamic GI: software DDGI probe volumes (exterior coarse + camera-cascaded + per-interior) with depth-visibility leak prevention and sun-tracking updates; SSGI as near-field detail. Indirect light updates with the day-night cycle without leaking.",
+                                           "M6 — Volumetrics and weather: froxel volumetric fog reusing cluster light lists (height fog, god rays through windows/canopy), weather density blends, and far-field terrain self-shadowing. Atmosphere and god rays complete the mood.",
+                                           "M7 — Scalability and upscaling: define LOW/MEDIUM/HIGH/ULTRA tiers, integrate FSR2 (and XeSS/DLSS on supported HW), wire blue-noise + temporal accumulation across all stochastic effects, and stand up a headless WARP/offline PNG image-regression harness across the tier x time-of-day x interior/exterior matrix.",
+                                           "M8 — (Optional ULTRA / future backend) D3D12/Vulkan RT tier: hardware ray-traced GI (ReSTIR-GI class) + RT reflections + RT shadows and, if pursued, a virtual-shadow-map path with GPU-driven culling. Reserved for high-end hardware and a later backend."
+                                       ]
+                    },
+                    {
+                        "key":  "characters_anim",
+                        "lane":  "graphics",
+                        "priority":  "P0",
+                        "confidence":  72,
+                        "summary":  "Character animation for a Skyrim-class open-world RPG is dominated by a few hard constraints: hundreds of authored animation clips per humanoid actor, dozens-to-hundreds of simultaneously animating skinned characters in towns, full-body procedural adjustment (foot IK on uneven terrain, look-at, weapon/hand placement), in-game dialogue with believable facial animation and lip-sync across a large VO corpus, and reactive transitions (combat, hit reactions, ragdoll-to-getup). The modern, buildable a...",
+                        "capabilities":  [
+                                             "Skeleton format, rig template \u0026 skinning (LBS/DQS) on GPU",
+                                             "Animation clip runtime: sampling, compression \u0026 blending core",
+                                             "Animation state graph (HSM) \u0026 blend trees / locomotion",
+                                             "Procedural full-body IK (foot, look-at, hand/weapon placement)",
+                                             "Facial animation rig (blendshape + joint hybrid) \u0026 emotion",
+                                             "Lip-sync from VO (phoneme-\u003eviseme, coarticulation)",
+                                             "Ragdoll, hit reactions \u0026 physics-driven secondary motion",
+                                             "Crowd \u0026 NPC-scale animation (instancing, LOD, GPU skinning)",
+                                             "Retargeting \u0026 animation authoring/import pipeline"
+                                         ],
+                        "dependencies":  [
+                                             "physics (ragdoll, foot-IK raycasts, secondary cloth/hair, capsule movement) — Jolt/PhysX/Chaos",
+                                             "rendering/GPU (skinning compute shaders, morph-target accumulation, instancing/indirect draw, impostors, VAT sampling)",
+                                             "audio/VO (forced alignment source audio + scripts, sample-locked playback for lip-sync, footstep/hit event hookup)",
+                                             "AI/behavior (NPC behavior tree/GOAP sets animation-graph blackboard params: locomotion intent, combat stance, gestures, look-at targets)",
+                                             "asset pipeline / DCC tooling (rig template, clip import, retargeting, blendshape authoring, compression bake)",
+                                             "core engine job system / ECS (data-oriented pose jobs, animation update scheduler, time-slicing across frames)",
+                                             "streaming/memory (clip + blendshape + VAT residency by LOD and proximity)",
+                                             "gameplay/combat (hit-frame events, motion-warping to align attacks/finishers to targets)"
+                                         ],
+                        "effort_band":  "XL (6mo+) for a custom-engine v1 vertical slice of this domain alone (likely 9-15 months to ship-quality with a 2-4 person anim/tech-anim team); M-L if building on a mature engine (Unreal/Unity) where...",
+                        "milestones":  [
+                                           "M0 First pixel: import one original skeleton + one idle clip; GPU LBS skinning renders an animating mesh on screen (custom: ozz sampling + skinning compute shader; engine: import + play).",
+                                           "M1 Locomotion slice: 1D/2D blendspace walk/run/turn driven by a controller; root motion or analytic capsule movement; foot sliding acceptable but visible — proves the sampling+blending core.",
+                                           "M2 State graph + transitions: data-driven HSM with idle/locomotion/jump/combat states; ADD INERTIALIZATION here (biggest quality jump); additive aim/lean layers.",
+                                           "M3 Procedural IK pass: two-bone foot IK with terrain raycasts + foot-locking + pelvis drop; look-at/aim IK across spine/neck/head with limits — eliminates foot float and gives \u0027grounded\u0027 feel.",
+                                           "M4 Ragdoll \u0026 reactions: Jolt ragdoll on death, blend-out get-up; additive hit-flinches; basic active-ragdoll hit reaction; secondary jiggle/hair bone chains.",
+                                           "M5 Facial + lip-sync: hybrid blendshape/joint face rig; offline MFA pipeline bakes viseme curves from VO; additive emotion + blinks + saccades + look-at — a believable talking head.",
+                                           "M6 Retarget \u0026 content scale: retarget the clip library onto 2-3 body proportions; clip event/notify tagging (footsteps, hit frames); deterministic compressed-clip build pipeline.",
+                                           "M7 Crowd scale: animation LOD tiers + update scheduler/time-slicing; VAT-baked instanced background crowd; imposters at distance — a populated town at frame budget.",
+                                           "M8 (v2) Motion matching upgrade for hero-quality locomotion + motion warping for combat alignment; neural audio-to-face for facial automation at content scale."
+                                       ]
+                    },
+                    {
+                        "key":  "vfx_postfx",
+                        "lane":  "graphics",
+                        "priority":  "P1",
+                        "confidence":  62,
+                        "summary":  "Covers the two coupled real-time graphics subsystems that give a Skyrim-class open-world RPG its \"feel\": (1) a data-driven VFX/particle stack (GPU-simulated emitters, soft depth-aware sprites, ribbons/trails, decals, volumetric atmospherics, distance-field/SDF collision, weather and environmental FX), and (2) a deferred-friendly HDR post-process chain executed as an ordered compute/PS graph: motion-vector generation, temporal AA + upscaling (TAA/DLAA with optional DLSS/FSR3/XeSS), HDR bloom, exp...",
+                        "capabilities":  [
+                                             "Post-FX frame graph + HDR color-management backbone",
+                                             "Motion vectors + camera jitter (temporal prerequisite)",
+                                             "Temporal AA + resolution upscaling (TAA/DLAA + DLSS/FSR3/XeSS)",
+                                             "GPU particle simulation core (emit/update/sort/render)",
+                                             "Soft, lit, depth-aware particles \u0026 sprite atlases",
+                                             "Ribbons, trails, beams \u0026 GPU decals",
+                                             "Bloom (HDR energy-conserving)",
+                                             "Auto-exposure / eye adaptation",
+                                             "Ambient occlusion (SSAO/GTAO + composite)",
+                                             "Depth of field",
+                                             "Motion blur (per-object + camera)",
+                                             "Tonemap + filmic display transform",
+                                             "Color grading via 3D LUTs + per-region/time-of-day grades",
+                                             "Volumetric atmospherics (fog, light shafts, weather VFX)",
+                                             "Screen-space reflections + temporal denoise (optional, atmosphere)"
+                                         ],
+                        "dependencies":  [
+                                             "rendering_core / lighting: defines scene-color HDR format, shadowmaps, light grid/clustered lights (particles+volumetrics sample these), and whether a GBuffer/thin-GBuffer exists (AO, SSR, deferred decals depend on it)",
+                                             "camera_controller: must apply per-frame Halton jitter and expose prev-frame matrices for motion vectors",
+                                             "animation/skinning + foliage/vegetation: must output previous-frame positions so skinned/vertex-animated meshes produce correct velocity (TAA/motion blur)",
+                                             "weather/time-of-day \u0026 world-region systems: drive grading-volume blends, auto-exposure expectations, volumetric fog density, and weather particle spawning",
+                                             "terrain/water: water needs velocity output + soft-particle depth; waterfalls/spray are VFX",
+                                             "gameplay/combat \u0026 magic systems: trigger spell/impact VFX, decals (scorch/blood), and reactive masks; need a deterministic FX path for save/replay",
+                                             "audio: weather/impact VFX should be synced to audio cues (cross-domain feel)",
+                                             "asset pipeline/tools: sprite-atlas/flipbook baking, LUT authoring/import, VFX emitter asset format, BC7 compression",
+                                             "platform/HDR output + settings/options UI: SDR/HDR10 output, upscaler selection (DLSS/FSR/XeSS/off), motion-blur/DoF toggles, quality tiers",
+                                             "performance/profiling: GPU timing per post pass, VRAM budgeting for transient targets and atlases"
+                                         ],
+                        "effort_band":  "L (3-6 mo) for a credible vertical slice on a mature engine; XL (6mo+) for the full feature set as CUSTOM C++/D3D11 (where TAA/upscaling, GTAO, froxel volumetrics, GPU particle sim, and a DX12 path fo...",
+                        "milestones":  [
+                                           "M0 — Color-management backbone: lock working color space, refactor existing tonemap to separate exposure/vignette out, add AgX option + sRGB/HDR10 output, prove no double-gamma against a reference chart. (De-risks the whole look.)",
+                                           "M1 — Energy-conserving bloom + auto-exposure: upgrade bloom.hlsl to a Karis dual-filter mip pyramid; add luminance-histogram auto-exposure feeding bloom+tonemap. First clear visual uplift, low risk.",
+                                           "M2 — Temporal prerequisites: add Halton jitter + RG16F velocity buffer across mesh/instanced/water/foliage/particle shaders + prev-frame matrices. Invisible but unlocks everything temporal.",
+                                           "M3 — TAA/DLAA resolve (own HLSL): neighborhood-clamp temporal AA stabilizing foliage/shadows; add RCAS sharpen. Add FSR1 spatial upscale (DX11) and the upscaler abstraction; integrate FSR3/DLSS/XeSS if/when a DX12 path exists.",
+                                           "M4 — Thin-GBuffer + GTAO: depth-prepass outputting view-space normals; half-res GTAO with temporal denoise composited onto ambient only. Grounds the world.",
+                                           "M5 — GPU particle core: port CPU ParticleBatch to compute emit/update (curl-noise) + indirect draw; add soft depth-fade + sun/shadow lighting to particle.hlsl; sub-UV flipbooks. Tens of thousands of ambient particles at ~free CPU.",
+                                           "M6 — Cinematic post: tile-based motion blur (reusing velocity) + bokeh DoF + lens artifacts (flare/chromatic/grain). Enables photo-mode/cutscene quality.",
+                                           "M7 — Grading volumes + ribbons/decals: per-region/time-of-day 3D LUT blending; ribbon/trail VFX and projected decals (mesh-decal path for forward). Biomes feel distinct; combat/magic FX land.",
+                                           "M8 — Volumetric atmospherics: froxel fog + light shafts + weather VFX system integration. Signature atmosphere.",
+                                           "M9 — Optional SSR + quality tiers + perf pass: stochastic SSR for wetness; per-pass GPU timing, VRAM budgeting, min-spec/quality presets, motion-blur/DoF toggles, upscaler selection UI. Ship-quality polish."
+                                       ]
+                    },
+                    {
+                        "key":  "rpg_progression",
+                        "lane":  "mechanics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "Defines the data-driven character growth system for a Skyrim-class open-world RPG: derived attributes, use-based and XP-based skill advancement, branching perk trees with prerequisite DAGs, leveling/XP curves, multiclass \"builds,\" and respec. The core architecture is a deterministic, data-driven STAT GRAPH: authored base stats feed a directed acyclic graph of modifiers (from skills, perks, equipment, status effects, difficulty) that resolve every frame or on-dirty into \"derived attributes\" consu...",
+                        "capabilities":  [
+                                             "Attribute \u0026 Derived-Stat Model (core stat graph)",
+                                             "Skill Advancement (use-based + hybrid XP)",
+                                             "Perk Trees (prerequisite DAG, ranked nodes)",
+                                             "Leveling Curve \u0026 Level-Up Economy",
+                                             "Builds, Multiclass \u0026 Synergy (emergent archetypes)",
+                                             "Respec, Prestige \u0026 Reset (reversibility)",
+                                             "Authoring Tooling \u0026 Data Pipeline (designer-facing)"
+                                         ],
+                        "dependencies":  [
+                                             "combat_system — consumes derived stats (damage, armor, crit, resistances) and emits SkillUseEvents; the stat graph\u0027s #1 client and the place balance breaks first.",
+                                             "magic_system — spell magnitude/duration/cost scale off skill levels and perks; shares the modifier/effect pipeline (perks and spell effects are both GameplayEffects).",
+                                             "stealth_system — detection/sneak-damage multipliers are derived stats; key source of cross-skill synergies (stealth+archery/magic).",
+                                             "difficulty_scaling / encounter_director — reads character level to scale enemies and gate content; tightly coupled to the leveling curve (must be tuned together).",
+                                             "economy_crafting — crafting/enchanting/alchemy are skills feeding the same advancement system; enchant/potion bonuses are modifier sources in the stat graph.",
+                                             "equipment_inventory — gear contributes modifier sources (armor, enchantments, set bonuses) into the same aggregation pipeline; carry-weight is a derived stat.",
+                                             "save_load_serialization — must persist base stats + investment sets (never derived ground truth) deterministically; central to respec and migration.",
+                                             "ui_hud — perk constellation UI, level-up flow, skill/stat sheets, respec UI; reads the stat graph and perk DAG.",
+                                             "input_system — bindings for the progression/menu screens and (optionally) hotbar of perk-granted abilities.",
+                                             "modding_runtime — exposes the data schema + stable IDs; depends on the authoring pipeline\u0027s ID/versioning scheme.",
+                                             "audio_vfx — level-up / perk-unlock / skill-increase feedback cues (juice that makes progression feel rewarding)."
+                                         ],
+                        "effort_band":  "L (3-6 mo) for a robust, data-driven, moddable core with tooling on a custom engine; M (1-2 mo) on a mature engine using GAS/ScriptableObjects. Add content authoring of ~18 skills + ~250 perks as a pa...",
+                        "milestones":  [
+                                           "M0 (1-2 wk) — Stat graph spine: attribute struct, modifier stack with specified aggregation order (Override\u003eMult\u003eAddPct\u003eAddFlat), dirty-flag recompute, unit tests proving determinism. One hardcoded skill + one perk prove end-to-end (perk -\u003e modifier -\u003e derived stat changes).",
+                                           "M1 (2-3 wk) — Data-driven definitions: load skills/attributes/curves/perks from schema-validated JSON; XP curve + inverse; level-up event with data reward table. Replace hardcoded content with data. Debug console (setlevel, addperk, addxp).",
+                                           "M2 (3-4 wk) — Skill advancement: SkillUseEvent bus wired to a stub combat/action source; per-action XP weighting + anti-grind falloff; skills feed character level. Per-skill and character XP persist (fixed-point).",
+                                           "M3 (3-4 wk) — Perk DAG + UI: full prereq/rank/exclusion-group evaluator; perk-point economy; first playable perk constellation UI (original visual metaphor) with unlock/preview; perks grant real modifiers and one conditional \u0027synergy\u0027 perk works.",
+                                           "M4 (2-3 wk) — Respec \u0026 prestige: investment-set-as-source-of-truth refactor (derived = pure function), perk respec UI + cost gating, skill prestige/legendary reset with refund and economy audit. Save/load round-trips a complex build losslessly.",
+                                           "M5 (3-4 wk) — Authoring tooling: perk-graph node editor + curve editor + live character simulator; bake-to-binary pipeline; CI data validation. Designers author real content without programmer involvement.",
+                                           "M6 (2-3 wk) — Balance \u0026 juice: headless balance-sweep harness flags dominant/trap builds across encounter set; tag-predicate linter; level-up/perk/skill feedback cues (sound, VFX, camera). Telemetry hooks for live tuning.",
+                                           "M7 (ongoing) — Modding surface + content: ship/stabilize data schema and stable IDs, save-version migration table, and author the full ~18-skill / ~250-perk content set against the now-frozen pipeline."
+                                       ]
+                    },
+                    {
+                        "key":  "quest_system",
+                        "lane":  "mechanics",
+                        "priority":  "P1",
+                        "confidence":  55,
+                        "summary":  "The quest system is the spine that converts world state and player action into structured, trackable, rewardable goals. For a Skyrim-class open-world RPG it must support three tiers of content: (1) authored/hand-scripted quests (branching, voiced, story-critical), (2) template-driven \"radiant\" quests that fill authored shells with runtime-selected actors/locations/items (the genre\u0027s signature for near-infinite filler content), and (3) fully emergent/dynamic quests synthesized from simulation eve...",
+                        "capabilities":  [
+                                             "Quest state machine \u0026 lifecycle runtime",
+                                             "Objective \u0026 condition model (declarative predicates over world facts)",
+                                             "Alias / casting layer (bind abstract roles to concrete world objects)",
+                                             "Radiant / template-driven quest generation",
+                                             "Emergent / simulation-driven \u0026 planner-based quests (stretch tier)",
+                                             "Quest-variable store \u0026 global flags (cross-quest world state)",
+                                             "Journal / quest-log UI integration (read-model projection)",
+                                             "Save/load serialization \u0026 determinism of quest state",
+                                             "Authoring tooling, validation \u0026 content pipeline"
+                                         ],
+                        "dependencies":  [
+                                             "persistence_streaming: stable persistent object identity (IDs that survive cell streaming, save/load, and reordering) is a HARD prerequisite for aliasing and save serialization — build this first",
+                                             "event_bus / messaging core: quests are event-driven; need a global, ordered, deterministic event/message system (ON_DEATH, ON_ITEM_ACQUIRED, ON_CELL_ENTER, ON_DIALOGUE_FLAG)",
+                                             "dialogue_system: dialogue both reads quest/global flags (gating lines, branches) and writes them (advancing stages, setting variables); tight bidirectional coupling via the global fact store",
+                                             "navigation_pathfinding: radiant generation needs reachability validation; the journal compass/markers need pathing to the target; alias \u0027nearest reachable\u0027 scoring",
+                                             "ai_behavior / scheduling: quest targets are NPCs whose schedules, factions, and aliveness gate alias fills and objective completion (escort/follow/kill objectives)",
+                                             "inventory_items: \u0027fetch/deliver N of item\u0027 objectives and reward granting read/write inventory",
+                                             "faction_reputation: quest triggers, template selection weights, and conditions depend on faction standing and reputation",
+                                             "economy: reward affordability, bounty/contract boards, and economy-shortage-driven emergent quests",
+                                             "world_state / time: schedules, cooldowns, day/night and calendar gating of quest availability",
+                                             "localization: all journal text, objective text, and radiant flavor-text must route through string tables with slot substitution",
+                                             "ui_hud: journal screen, quest tracker, compass/world markers are the presentation layer over the quest read-model",
+                                             "save_system: shared serialization framework, versioning, and migration infrastructure"
+                                         ],
+                        "effort_band":  "L (3-6 mo) for a deterministic, save-safe runtime + radiant tier + journal/UI + a basic linter and debugger, for a small team (1-2 systems engineers + 1 tools engineer + design support), ASSUMING the...",
+                        "milestones":  [
+                                           "M0 — Deterministic core (first pixel): hardcoded single quest as a data-defined HSM; stages advance via event-bus messages; status enum Running/Completed/Failed; print to console. Proves the runtime loop.",
+                                           "M1 — Objectives \u0026 conditions: declarative condition expression-tree over a world-fact interface; objectives show/complete/fail from events; manual-set escape hatch. A \u0027go here, kill that, return\u0027 quest works end-to-end against placeholder world.",
+                                           "M2 — Journal read-model + tracker UI: per-stage log entries (string-table localized), objective checklist, active-objective HUD, and a world marker resolved from the target\u0027s live position. Pure projection over quest state.",
+                                           "M3 — Save/load + determinism: full round-trip of stages, objectives, variables, and a seeded serializable RNG; CI fuzz test save-\u003eload-\u003esave diff is clean; save-versioning + one migration stub in place.",
+                                           "M4 — Alias/casting + broker: alias slots with type/condition filters, reservation table, lazy/late binding, anti-repetition recency, and recovery policy for missing targets on load. Depends on stable persistent IDs.",
+                                           "M5 — Radiant generation: template pool, weighted selection with cooldowns, alias fill via broker, mandatory validation/reachability pass, concurrency caps, and a designer force-generate console. Notice-board pickup UI with original art.",
+                                           "M6 — Tooling \u0026 linter: schema-shared quest graph editor (or in-engine debugger via Dear ImGui), static validator catching unreachable stages / dead-end objectives / dangling aliases / missing loc keys, runnable in CI and editor.",
+                                           "M7 (stretch) — Emergent tier: world-tension detection + HTN/GOAP or grammar-based quest synthesis emitting standard QuestDefs into the same pipeline, gated behind a drama manager. Post-launch R\u0026D."
+                                       ]
+                    },
+                    {
+                        "key":  "dialogue_narrative",
+                        "lane":  "mechanics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "Dialogue and branching-narrative system for a Skyrim-class open-world RPG: a data-driven conversation graph runtime that evaluates conditions against a global story state (flags/variables/quest stages), drives speaker animation/lipsync/VO playback, supports player choice (radial or list), and is fully localization- and VO-pipeline-ready from day one. The architecture separates three layers that must NOT be entangled: (1) the authored content graph (topics, branches, lines), (2) the condition/eff...",
+                        "capabilities":  [
+                                             "Dialogue graph data model + authoring schema",
+                                             "Condition \u0026 effect evaluation VM (story-state blackboard)",
+                                             "Branching scene \u0026 camera/staging runtime (cinematic vs menu dialogue)",
+                                             "Voice-over (VO) hookup, audio streaming \u0026 lipsync",
+                                             "Localization-ready string tables \u0026 player choice UI",
+                                             "Narrative orchestration: quest-stage coupling, scene flow \u0026 gating"
+                                         ],
+                        "dependencies":  [
+                                             "save_load_serialization (the dialogue blackboard, in-flight conversation state, and quest stages must serialize into the same save format / namespace)",
+                                             "quest_journal_system (shares the blackboard; dialogue effects advance stages and trigger journal entries; quest stage drives topic availability)",
+                                             "ui_hud_menus (response wheel/list, subtitles, tone/skill-gate icons, journal popups — needs a 2D overlay pass and DirectWrite/Unicode text)",
+                                             "audio_engine (streaming VO voice bus, dialogue ducking of music/ambience, 3D positioned voice, XAudio2/Wwise/FMOD)",
+                                             "animation_skinning (additive gesture layers, head/eye look-at IK, blendshape/jaw visemes in the skinned-mesh path)",
+                                             "camera_system (spring-damped virtual dialogue camera, framing presets, occlusion-aware shot selection)",
+                                             "npc_ai_actors (actor refs/relationship matrix, schedules that gate availability, who is alive/present to talk)",
+                                             "input_system (radial-wheel + list navigation, gamepad + KBM, accessibility/hold-to-skip)",
+                                             "localization_build_pipeline (XLIFF/PO export-import, per-locale fonts, pseudo-loc, VO-per-language drops)",
+                                             "asset_cooker_build_system (offline graph compiler, baked lipsync, string-table packing, blob versioning/migration)"
+                                         ],
+                        "effort_band":  "L (3-6 mo) for a robust, localization- and VO-ready conversation + narrative-gating backbone with menu-style dialogue, the condition/effect VM, string tables, and the cooker — assuming the save/quest...",
+                        "milestones":  [
+                                           "M0 Identity invariants frozen: define stable 64-bit line-IDs, the string-table key scheme, the audio-key/lipsync-key derivation rule, and blob versioning — written down and locked before any content authoring (cheap now, catastrophic later).",
+                                           "M1 Headless dialogue VM: stack-based condition/effect bytecode over a variant blackboard, driven by a hand-authored JSON graph, validated by golden-transcript unit tests (input state -\u003e available responses) with NO renderer — proves the brain in isolation.",
+                                           "M2 Cooker + loader: offline compiler turns JSON graph + string tables into a versioned packed blob the engine loads like its other assets; pseudo-localization pass included from the start.",
+                                           "M3 Playable menu-style dialogue slice: 2D response list/wheel overlay on the live 3D frame via DirectWrite, subtitles, text-timer no-VO mode, blackboard persisted into the save file — a real conversation you can have in-game, fully localizable, zero VO.",
+                                           "M4 VO + baseline lipsync: XAudio2 streaming voice + ducking, mechanically-mapped audio per line-ID, amplitude-driven jaw fallback, audio-complete node advance, with placeholder/TTS VO for pre-recording QA.",
+                                           "M5 Narrative gating online: dialogue effects advance quest stages and set flags in the shared blackboard; topic priority/aggregation assembles greetings; choice-reactivity proven across a two-quest arc; headless reachability/dead-branch linter wired into CI.",
+                                           "M6 Cinematic staging layer: spring-damped dialogue camera + framing presets, two-bone head/eye look-at IK, additive gesture layers, an authored timeline track for hero scenes — with graceful procedural fallback for unstaged lines.",
+                                           "M7 Scale + ship-readiness: baked offline visemes (Rhubarb/MFA) for all lines, ICU/Fluent plural-gender-pronoun formatting, full XLIFF/PO translator round-trip, per-locale font fallback (incl. CJK/RTL) and VO-per-language drop validated, plus the in-game story-debugger for QA."
+                                       ]
+                    },
+                    {
+                        "key":  "npc_ai",
+                        "lane":  "mechanics",
+                        "priority":  "P1",
+                        "confidence":  55,
+                        "summary":  "NPC AI for a Skyrim-class open-world RPG decomposes into six load-bearing systems: (1) a hybrid decision layer (Behavior Trees as the executor, Utility AI as the prioritizer, optional GOAP for emergent goal chaining), (2) a daily schedule + needs + smart-object system that gives the \"living world\" feel, (3) a perception/senses model (sight cones with occlusion, hearing via noise events, last-known-position memory) feeding an alertness state machine (Idle -\u003e Suspicious -\u003e Investigate -\u003e Alert -\u003e...",
+                        "capabilities":  [
+                                             "Hybrid decision architecture (Behavior Tree executor + Utility AI selector + optional GOAP)",
+                                             "Daily schedules + needs + smart objects (the \u0027living world\u0027 system)",
+                                             "Perception \u0026 senses (sight, hearing, memory) + alertness state machine",
+                                             "Navigation: navmesh pathfinding + local avoidance + off-mesh links",
+                                             "Combat AI: tactical positioning, cover, target selection, group coordination",
+                                             "AI scalability spine: LOD tiers, time-slicing, simulation bubble, off-screen fast-forward"
+                                         ],
+                        "dependencies":  [
+                                             "world_streaming / level-of-detail system (AI LOD bands must align with world/render streaming; navmesh tiles stream with the world)",
+                                             "physics_collision (occlusion rays, cover raycasts, and navmesh bake all need a collision/nav-source geometry layer distinct from render meshes)",
+                                             "animation system (locomotion, blendspaces, IK for foot placement, root-motion or scripted traversal for off-mesh links and smart-object interactions; attack/peek/cover stances for combat)",
+                                             "audio system (hearing depends on a noise-event bus; combat/alert barks; footstep emitters)",
+                                             "dialogue / quest system (NPCs must be drivable by quests, schedule overrides for quests, faction/relationship state shared with AI; barks tie to alertness states)",
+                                             "faction / relationship / crime system (perception of crimes, aggro propagation, who-is-hostile-to-whom feeds target selection and alert sharing)",
+                                             "save/load + persistence (NPC AI state: current activity, needs, LKP, faction, schedule cursor must serialize; dormant fast-forward must be deterministic across save/load)",
+                                             "time / world-clock system (schedules, needs decay, and off-screen fast-forward all key off an authoritative scalable game clock)",
+                                             "ECS / core engine data layout (data-oriented storage is what makes LOD\u0027d time-sliced AI affordable)",
+                                             "spatial acceleration structures (BVH/grid/hash shared by rendering, perception broad-phase, smart-object queries, EQS, influence maps)",
+                                             "job/threading system (perception rays, path queries, EQS, influence-map updates should be jobified)"
+                                         ],
+                        "effort_band":  "XL (6mo+) for a small studio to reach Skyrim-class breadth and polish across all six capabilities. Rough internal split: a credible vertical slice (one town, schedules+smart objects, perception+alertn...",
+                        "milestones":  [
+                                           "M0 — Scalability spine first (de-risk): AIDirector with LOD tiers + budgeted time-sliced scheduler + authoritative game clock + minimal persisted NPC state. Prove 1000+ dormant NPCs cost ~nothing and dozens of L0 agents tick within budget. (Do this BEFORE behaviors.)",
+                                           "M1 — Navigation slice: integrate recastnavigation; bake navmesh from collision geometry; Detour path request -\u003e path corridor -\u003e steering -\u003e locomotion; one NPC walks point-to-point reliably with debug path draw.",
+                                           "M2 — Brain slice: BT VM + blackboard + Utility reasoner with response curves; one NPC chooses among \u0027patrol / idle / flee\u0027 via utility and executes via BTs; in-game utility-score debug overlay.",
+                                           "M3 — Living-world slice: schedule timelines + needs vector + smart-object database with reservations; an original town where NPCs go home/work/eat on schedule, deviating for needs; off-screen fast-forward so they\u0027re in the right place on approach.",
+                                           "M4 — Perception slice: sight cones + occlusion rays (broad-phased, time-sliced) + hearing noise-bus + last-known-position memory + alertness FSM (Unaware-\u003eSuspicious-\u003eInvestigate-\u003eAlert-\u003eSearch-\u003eGive-up) wired as a utility consideration; perception debug overlay; original barks per state.",
+                                           "M5 — Combat slice: target selection (utility) + EQS-lite positioning + baked cover points + DetourCrowd avoidance + group attack-token coordination + influence map for flank/retreat; combat behaviors as high-utility subtrees; cheap abstract resolver for off-screen fights.",
+                                           "M6 — Traversal \u0026 polish: off-mesh links (doors/ladders/jumps) with traversal anims + IK; smart-object interaction anims; crowd avoidance tuning at market density; navmesh tile streaming with the world.",
+                                           "M7 — Scale \u0026 seamless LOD: full L0-L3 promotion/demotion with no pop, per-tier CPU budgets, deterministic fast-forward across save/load + time-scale; stress test target NPC count; profile and jobify hot paths.",
+                                           "M8 — Tuning \u0026 content tooling: smart-object/cover/schedule authoring tools for designers; telemetry on detection/aggro/combat balance; iterate curves and group tactics to taste; harden reservation/path-fail self-healing fallbacks."
+                                       ]
+                    },
+                    {
+                        "key":  "combat_magic",
+                        "lane":  "mechanics",
+                        "priority":  "P0",
+                        "confidence":  82,
+                        "summary":  "Combat for a Skyrim-class first/third-person open-world RPG spans three loosely-coupled weapon families (melee, ranged, magic) sharing one resolution pipeline: an input/intent layer (windup -\u003e active -\u003e recovery state machine), a hit-detection layer (sweep/shape queries against skeletal hitboxes), a damage/effects layer (data-driven damage formula + status/buff system on a magnitude-duration model), and a reaction layer (stagger/poise, hit-reacts, knockback). The defining feel of this class of g...",
+                        "capabilities":  [
+                                             "Attack state machine \u0026 input/intent layer (windup/active/recovery, combos, charge)",
+                                             "Melee hit detection (sweep queries, multi-hitbox, hit confirmation)",
+                                             "Ranged combat (bows/crossbows, projectile sim, gravity/lead, charge \u0026 sway)",
+                                             "Composable spell system (effect = magnitude x duration x area x delivery x school)",
+                                             "Spell delivery \u0026 casting (charge/dual-cast, concentration beams vs fire-and-forget, channels, mana/stamina)",
+                                             "Damage resolution \u0026 formula (mitigation, resistances, locational, crits, armor)",
+                                             "Status effects \u0026 buff/debuff system (DoTs, CC, stacking, immunities, dispel)",
+                                             "Stagger, poise \u0026 hit reactions (interrupts, knockback, directional reacts, ragdoll)",
+                                             "Defense: blocking, parry/timed-block, dodge/i-frames, wards/shields",
+                                             "Balance tuning via deterministic combat simulation"
+                                         ],
+                        "dependencies":  [
+                                             "animation (animation_locomotion): hit windows, i-frames, parry frames, cancel windows, and hit-reactions are all driven by animation notify/event tracks — combat feel is co-owned with the animation domain",
+                                             "ai_behavior: enemies must react to stagger, use blocking/dodge, choose attacks, respect threat — the AI consumes the same combat verbs the player uses",
+                                             "character_stats_progression: skills, perks, level scaling, magicka/stamina/health pools, and resistances feed the damage formula and resource costs",
+                                             "physics: swept-shape collision broadphase, projectile collision, ragdoll/powered-animation for knockdowns, telekinesis grabbing, ground-target placement",
+                                             "vfx_rendering: charge/beam/impact/elemental VFX and material overlays for status tells — the largest art/perf cost in combat",
+                                             "audio: impact/whoosh/cast/parry SFX are ~half of perceived game-feel; hit confirmation is audio-led",
+                                             "ui_hud: health/magicka/stamina bars, status icons, cast/charge indicators, crit/block feedback, damage numbers (optional)",
+                                             "inventory_equipment: weapons, ammo, armor, enchantments, potions/poisons supply DamageSpecs/StatusSpecs and modifier stacks",
+                                             "save_load: in-flight effect durations, periodic timers, projectile/summon state must serialize deterministically",
+                                             "networking (only if MP ever added): hit detection and damage must become server-authoritative / lag-compensated — decide the boundary early even if MP is out of scope"
+                                         ],
+                        "effort_band":  "\"XL (6mo+) for a credible vertical slice of all three weapon families + composable magic + status/stagger/defense + tuning sim with a small studio; the pure-mechanics core (FSM, hit-detection, damage...",
+                        "milestones":  [
+                                           "M0 Greybox melee loop: fixed-tick combat core + attack FSM (windup/active/recovery) + single-capsule sweep hit detection + pure ResolveDamage on a dummy with a health bar and a hit-stop + screen shake. Proves the feel with zero art polish.",
+                                           "M1 Reactions \u0026 defense: stagger/poise accumulator + directional flinch/stagger reacts + block, timed-parry, and dodge i-frames + stamina economy. Now there\u0027s a real attack/defend rhythm.",
+                                           "M2 Composable effect system: ActiveEffect container + handler registry + stacking/immunity policy + 3-4 effects (direct damage, DoT, restore, fortify). Wire potions/enchants through the SAME system to prove reuse.",
+                                           "M3 Magic delivery: casting FSM + projectile delivery (reusing a shared Projectile) + concentration beam (per-tick) + self/ward + magicka pool + dual-cast. Ship 5-6 original spells across your invented schools.",
+                                           "M4 Ranged: charged bow + simulated arrow (gravity/lead) + aim sway + stick-to-target, reusing the projectile and damage core.",
+                                           "M5 Locational damage, crits, sneak/backstab multipliers, armor \u0026 resist curves with caps; route every damage source through ResolveDamage.",
+                                           "M6 Headless balance simulator: extract/confirm the engine-decoupled core into a CLI, run Monte Carlo build-vs-encounter sweeps, add a degenerate-combo CI gate, fit the armor/resist/scaling curves.",
+                                           "M7 Powered ragdoll / physical-animation hit-reacts + knockback/force spells + summons \u0026 telekinesis (pulls in physics/AI/navmesh) — the polish and scope-expansion pass.",
+                                           "M8 Content \u0026 feel pass: full original VFX/SFX/animation coverage for all weapon types and status states, controller rumble/hit-stop tuning, and a designer-facing hot-reload tuning table for ship-quality balance."
+                                       ]
+                    },
+                    {
+                        "key":  "inventory_economy",
+                        "lane":  "mechanics",
+                        "priority":  "P1",
+                        "confidence":  62,
+                        "summary":  "The inventory/economy domain is the connective tissue between combat, progression, world simulation, and UI in a Skyrim-class open-world RPG. It is fundamentally a data-and-rules domain, not a rendering domain: the core is a typed item database, a per-actor container model, an equipment/slot resolver that feeds the equip pipeline, a procedural loot system, a crafting/recipe graph, and a vendor/economy layer that prices, restocks, and barters. The defining genre constraint is that the SAME item s...",
+                        "capabilities":  [
+                                             "Item template database (flyweight base items + data schema)",
+                                             "Container \u0026 instance model (player, NPC, world containers, corpses)",
+                                             "Equipment slots \u0026 equip pipeline",
+                                             "Leveled lists \u0026 procedural loot tables",
+                                             "Crafting \u0026 recipe graph (smithing/alchemy/enchanting analogues)",
+                                             "Vendor economy, pricing, barter \u0026 restock",
+                                             "Encumbrance, weight \u0026 carry-capacity rules",
+                                             "Persistence, ownership, theft \u0026 save/load of item state",
+                                             "Inventory UI/UX, sorting, filtering \u0026 item comparison"
+                                         ],
+                        "dependencies":  [
+                                             "combat/stats (item modifiers feed the attribute/derived-stats system; weapon/armor numbers are consumed by damage and mitigation)",
+                                             "ability/effect system (on-equip enchantments, potion effects, overencumbered status all route through the same buff/effect framework used by spells/abilities)",
+                                             "character_progression/skills_perks (crafting skill gates, barter/haggle skill, carry-capacity perks, smithing/alchemy/enchanting trees)",
+                                             "world_streaming/cells (containers dehydrate/rehydrate at the streaming boundary; world-item cleanup timers)",
+                                             "save_load/persistence (item instances are the largest and most reference-heavy save payload)",
+                                             "crime/AI_faction (ownership, theft, witnesses, fences, vendor disposition depend on faction/crime state)",
+                                             "rendering/animation (equipment mesh swaps, modular armor on a shared skeleton, item world models and icons)",
+                                             "audio (tactile inventory/equip/coin/craft SFX that sell the look-and-feel)",
+                                             "ui_framework (the inventory/barter/loot screens depend on the engine or custom UI layer)",
+                                             "content_pipeline/tooling (item DB authoring, leveled-list simulator, recipe editor, balance/economy telemetry)",
+                                             "quests (quest-item flags, hand-placed static rewards bypassing leveled lists, quest-reward grants)",
+                                             "input (controller + KBM navigation of inventory and barter)"
+                                         ],
+                        "effort_band":  "\"L (3-6 mo) on a mature engine for a solid, shippable vertical slice of the whole domain with a small team (1-2 systems engineers + 1 designer + part-time UI/UX + part-time tech artist); XL (6mo+) on...",
+                        "milestones":  [
+                                           "M0 (1-2 wk) Item template DB + schema + content pipeline: 20-30 authored items load from data into a hash-indexed table; cook-time validation of ids/asset-refs; basic Dear ImGui (or engine) item viewer.",
+                                           "M1 (1-2 wk) Container + instance model: player inventory with add/remove/stack/split/transfer as atomic transactions; instance pool with generational handles; incremental carried-weight; drop/pickup from a world container.",
+                                           "M2 (1-2 wk) Equipment \u0026 equip pipeline: slot mask + multi-slot resolver; shared derived-stats layer (recompute-from-equipped); mesh swap on a test skeleton; on-equip effect through the effect system.",
+                                           "M3 (2-3 wk) Leveled lists \u0026 loot: nestable weighted level-gated tables; deterministic seeded resolution; the statistical simulator tool; chests/corpses populate from lists; static/quest placement path separated.",
+                                           "M4 (2-3 wk) Crafting: deterministic recipe graph (forge/temper) + combinatorial alchemy (effect-tag intersection) + enchanting (effect onto instance); reverse-index \u0027highlight craftable\u0027 UI; per-save known-recipe/discovery state.",
+                                           "M5 (2-3 wk) Vendor economy: vendor container + gold cap + buy/sell spread + haggle/disposition price formula + leveled-list restock on game-time; ownership/stolen tags + fence routing; faucet/sink ledger grapher.",
+                                           "M6 (2-3 wk) Encumbrance + status integration: capacity from stat layer, overencumbered status gating movement/travel, weightless tags; favorites/quick-access.",
+                                           "M7 (3-4 wk) Inventory UI/UX: virtualized categorized list, sort/filter incl. value-per-weight, compare-vs-equipped tooltips, dual-pane barter/loot, controller+KBM parity, accessibility (colorblind rarity, text scale).",
+                                           "M8 (3-5 wk) Persistence at scale \u0026 hardening: versioned delta saves with dirty-set, container dehydrate/rehydrate across streaming, migration shims, fuzz/dup-exploit testing, economy telemetry-driven balance pass.",
+                                           "M9 (ongoing) Content + balance: scale to full item set, tune leveled-list curves and gold faucet/sink with playtest telemetry, polish audio/motion and the style guide."
+                                       ]
+                    },
+                    {
+                        "key":  "world_persistence",
+                        "lane":  "mechanics",
+                        "priority":  "P0",
+                        "confidence":  62,
+                        "summary":  "world_persistence is the spine that makes a Skyrim-class open world feel continuous and reactive: a single authoritative simulation database of every entity and its mutable state, a deterministic save/load that snapshots that database (including in-flight scripts and physics), a layered model that separates immutable authored content from per-playthrough deltas, and a sandboxed scripting/quest VM that drives world reactivity. The defining genre technique (used by Bethesda\u0027s Creation Engine, but...",
+                        "capabilities":  [
+                                             "Authoritative World Database (Form/Object Registry)",
+                                             "Diff-Based Save/Load (Change Records over Immutable Masters)",
+                                             "Save Schema Versioning \u0026 Migration",
+                                             "Cell/Zone Streaming \u0026 Persistence Boundary",
+                                             "Offline/Coarse Simulation of Unloaded World",
+                                             "Persistent Scripting VM with Save/Restore",
+                                             "Quest \u0026 World-State Tracking (Stages, Flags, Global Variables)",
+                                             "Object Lifecycle, Respawn \u0026 Cleanup (Persistent vs Temporary)",
+                                             "Deterministic Simulation \u0026 Event/Command Log",
+                                             "Crash Safety, Autosave \u0026 Save Integrity",
+                                             "Content/Mod Layering \u0026 Load Order (Master Files + Overrides)"
+                                         ],
+                        "dependencies":  [
+                                             "entity_simulation / AI (NPC schedules, factions, combat state are what the world DB persists; offline catch-up advances AI routines)",
+                                             "spatial_streaming / level_of_detail (cell hot/warm/cold residency drives the persistence boundary; renderer must be decoupled from the world DB)",
+                                             "physics (rigid-body transforms and sleep states must be snapshotted/restored deterministically; havok-class sims need determinism care)",
+                                             "inventory_economy (containers, loot, shop restock are major sources of change-records and offline catch-up)",
+                                             "dialogue_narrative (reads the fact DB / quest stages; quest aliases bind to persistent IDs)",
+                                             "input/UI (save/load menu, autosave triggers, save-slot management)",
+                                             "core_engine / job-system \u0026 memory (async streaming, async save, fixed-timestep loop, allocator for snapshotting)",
+                                             "build/content_pipeline (authored masters, content hashing, load-order/layer definitions, golden-save CI)",
+                                             "audio + localization (minor — scheduled/ambient state may persist; text keys for facts/quests, not state itself)"
+                                         ],
+                        "effort_band":  "XL (6mo+) for a robust, ship-quality persistence + scripting layer with a small studio; a credible vertical slice (single-cell save/load + basic quest/fact system + embedded scripting) is reachable at...",
+                        "milestones":  [
+                                           "M0 — Headless world DB skeleton: EnTT-based world with persistent 64-bit ID registry, definition vs state component split, in-memory only. Verify by spawning/mutating/querying entities in a headless test (fits WARP/headless CI). (S)",
+                                           "M1 — Round-trip save/load of one cell: diff-based serialization (FlatBuffers/Cereal), atomic temp+rename writes, zstd+xxHash. Golden-save round-trip unit test: save -\u003e reload -\u003e state-identical. (S-M)",
+                                           "M2 — Game clock + fixed-timestep sim + event bus + seeded RNG persisted in save; deterministic replay test. (S-M)",
+                                           "M3 — Cell streaming with hot/warm/cold states and persistence boundary; async hydration via job system; mutations survive crossing cell boundaries. (M)",
+                                           "M4 — Embedded scripting VM (Luau/sol2) with state-machine scripts; per-entity persisted property bags; script budget + watchdog; orphaned-script GC on load. (M)",
+                                           "M5 — Quest/Fact system: typed FactDB (optionally SQLite-backed), quest stages + aliases bound to persistent IDs, data-driven condition DSL consumed by a stub dialogue/spawn system. (M)",
+                                           "M6 — Save schema versioning + migration registry + golden-save corpus from prior versions in CI; content manifest reconciliation for missing/changed records. (M)",
+                                           "M7 — Offline/coarse catch-up: timestamp-based restock/respawn/schedule advancement; global low-frequency tick for economy/world clock; long-absence clamping tested. (M)",
+                                           "M8 — Object lifecycle policies (Persistent/Resettable/Transient), cell-reset timers, loose-object caps, player-ownership detection to avoid wiping stored loot. (S-M)",
+                                           "M9 — Content layering \u0026 load-order: ordered ID-addressable content layers with last-writer-wins override, save manifest by content hash, graceful handling of removed/reordered layers. (M)",
+                                           "M10 — Hardening: async snapshot+save off main thread, crash-mid-write recovery test, soak test (run sim at max speed headless for hours, assert no save bloat / no leaks), profiling for script lag and save hitches. (M-L)"
+                                       ]
+                    },
+                    {
+                        "key":  "asset_pipeline_mod",
+                        "lane":  "crosscutting",
+                        "priority":  "P0",
+                        "confidence":  52,
+                        "summary":  "This domain is the connective tissue that turns raw authored content (meshes, textures, animation, audio, dialogue, quests, world layout) into runtime-ready, streamable game data, AND exposes the same data formats and tooling to end-users so they can mod the game — a defining genre signature of Skyrim-class RPGs. It splits into three pillars: (1) an OFFLINE asset cook/bake pipeline (DCC import -\u003e validation -\u003e optimization -\u003e platform-specific cooked archives) driven by deterministic, hash-cache...",
+                        "capabilities":  [
+                                             "DCC import \u0026 interchange (mesh/skeleton/anim/material)",
+                                             "Deterministic incremental asset cook / bake pipeline",
+                                             "Cooked asset archive / virtual filesystem (BSA/BA2-equivalent)",
+                                             "Data-driven record/form system with stable persistent IDs",
+                                             "Load order, masters/dependencies \u0026 override conflict resolution",
+                                             "Mod-facing editor / Creation-Kit-equivalent (the genre signature)",
+                                             "Sandboxed gameplay scripting VM + binding/compile pipeline",
+                                             "Streaming, LOD \u0026 world-partition cook for open world",
+                                             "Mod distribution: manifest, packaging, dependency \u0026 integrity",
+                                             "Authoring CI: validation, diff/merge \u0026 golden-asset regression"
+                                         ],
+                        "dependencies":  [
+                                             "rendering/RHI (D3D11/D3D12 or engine RHI): cooked vertex/texture formats, BCn/ASTC, meshlets, impostor capture must match the renderer\u0027s input layouts",
+                                             "world/streaming \u0026 spatial systems: the cook produces the spatial partition the streamer consumes; mod overrides must localize to chunks",
+                                             "save/load \u0026 persistence: persistent record IDs and script VM state must serialize into saves and survive load-order changes",
+                                             "gameplay systems (quests, dialogue, AI/navmesh, leveled lists, factions): these define the record types the data layer and editor must support",
+                                             "scripting/gameplay-event system: the host API the sandboxed mod VM binds against",
+                                             "animation system: skeleton/retarget formats from DCC import feed the runtime anim graph",
+                                             "audio pipeline: audio cook (Opus/Vorbis, loudness) and event/banks are part of the same archive/VFS",
+                                             "localization/text system: string tables and key-coverage validation in authoring CI",
+                                             "build/dev-infra \u0026 CI: the content CI, remote cache, and golden-image tests need the same infrastructure as code CI",
+                                             "security/anti-cheat \u0026 sandboxing: mod script sandbox, mod signing/integrity, and base-game protection"
+                                         ],
+                        "effort_band":  "XL (6mo+) for a credible, mod-capable pipeline on a custom C++/D3D11 engine (realistically 12-24 months of a small team to reach Skyrim-class breadth incl. editor); M-L (1-2 mo to 3-6 mo) if built on...",
+                        "milestones":  [
+                                           "M0 (first pixel): glTF import -\u003e internal mesh/texture schema -\u003e deterministic cook -\u003e one original asset renders in-engine from a cooked blob. Establishes import/cook/runtime spine.",
+                                           "M1 (archive + VFS): original content-addressed pack format + layered virtual filesystem with loose-file override; same asset served from an archive and overridden by a loose file. Proves the asset-replacement mod path.",
+                                           "M2 (record system): typed record/form schema with stable persistent IDs + JSON/TOML authoring projection + load-time reference resolution; author a few original items/NPCs as data, not code.",
+                                           "M3 (plugin overrides + load order): two \u0027plugins\u0027 that ADD and OVERRIDE records; dependency/master declaration; last-writer-wins resolution + a CLI conflict viewer. The genre\u0027s keystone now works end-to-end.",
+                                           "M4 (incremental cook + content CI): hash-cached incremental cook with shared cache; PR-gated validators (schema, dangling refs, asset existence) + headless WARP golden-image regression. Content is now treated as code.",
+                                           "M5 (scripting): sandboxed VM (Wasmtime or Lua+sol2) with a stable versioned host API + event bindings; a mod script reacts to a gameplay event; execution metered; script state serializes into saves.",
+                                           "M6 (streaming + mod-aware partition): world cooked into spatial chunks with HLOD/impostors; async streamer; editing one cell re-cooks only that chunk. Open-world scale without killing mod iteration.",
+                                           "M7 (mod kit + distribution): public schema/SDK + ImGui (or mature-engine) editor that round-trips the authoring format; signed mod manifest + semver dependency solver + virtual (pristine-base) install + a reference mod manager. Field-level merge to minimize compatibility patches.",
+                                           "M8 (hardening): schema migration for old mods across a game patch; save-stability across load-order changes; supply-chain integrity (hash + optional signing) on shared cache and mod packages; perf budgets and eviction tuning."
+                                       ]
+                    },
+                    {
+                        "key":  "audio_systems",
+                        "lane":  "crosscutting",
+                        "priority":  "P1",
+                        "confidence":  62,
+                        "summary":  "Audio for a Skyrim-class open-world RPG is a crosscutting runtime that ties together four subsystems on top of a single low-level mixer: (1) reactive/adaptive music that follows combat, exploration, location, and discovery state via horizontal re-sequencing plus vertical layering; (2) procedural ambient beds (wind, weather, fauna, water, interior tone) driven by world/biome/time-of-day data; (3) 3D spatial audio with HRTF binaural rendering, occlusion/obstruction, and reverb zones; (4) a large b...",
+                        "capabilities":  [
+                                             "Low-level mixer, voice management \u0026 streaming decode (the audio core)",
+                                             "Reactive / adaptive music system",
+                                             "Procedural ambient beds \u0026 soundscape",
+                                             "3D spatial audio: panning, distance, HRTF binaural, Doppler",
+                                             "Occlusion, obstruction, reverb zones \u0026 environmental acoustics",
+                                             "VO / dialogue system: barks, conversations, lip-sync, localization",
+                                             "Mixing, ducking, snapshots \u0026 dynamic range (the bus mix)",
+                                             "Audio data pipeline, tooling \u0026 runtime debugging"
+                                         ],
+                        "dependencies":  [
+                                             "world_streaming / level_streaming: drives bank load/unload per region and zone-profile crossfades for ambience; region transitions must prefetch audio banks to avoid hitches.",
+                                             "gameplay_state / combat_system: provides the blackboard signals (combat engaged, threat/intensity, enemy count, player health, stealth) that the music director and mix snapshots consume.",
+                                             "quest_system / narrative: supplies quest-stage flags and \u0027first-time discovery\u0027 events for music stingers, bark conditions, and conversation gating.",
+                                             "weather_and_time_of_day: drives ambient bed layer gains (rain, wind, dawn chorus vs night) and environmental EQ; needs a clean shared parameter contract.",
+                                             "physics / collision (Jolt or PhysX): required for raycast occlusion/obstruction and for geometry used by baked acoustics (Steam Audio) — D3D11 provides none of this.",
+                                             "animation / facial rig: consumes viseme/lip-sync curves from VO clips (audio-to-face); skeletal events trigger footstep/foley sounds.",
+                                             "camera / player controller: defines the audio LISTENER position/orientation/velocity (first vs third person listener rule).",
+                                             "localization / text system: shared string + asset tables keyed by line ID for multi-language VO and subtitles.",
+                                             "save/load: persists bark cooldowns, conversation state, and discovered-location flags that affect audio selection.",
+                                             "settings/UI: exposes player mix sliders, subtitle options, output-device/spatializer selection, and accessibility (mono, reduced dynamic range).",
+                                             "platform layer: WASAPI/XAudio2 (Windows) or middleware backend selection, device hot-swap handling, and loudness/cert targets."
+                                         ],
+                        "effort_band":  "XL (6mo+) for full-featured parity on a custom C++/D3D11 engine with a small team; reduces to L (3-6 mo) of integration+content work if you adopt Wwise/FMOD + Steam Audio instead of building the core...",
+                        "milestones":  [
+                                           "M0 — Audio core online: XAudio2 (or middleware) initialized; play a one-shot and a streamed loop; float mix at 48 kHz; basic bus graph (Master/SFX/Music). First pixel = first audible sound, verifiable headless by rendering N seconds to a WAV and checking RMS/peak.",
+                                           "M1 — 3D + listener: positional emitters with distance attenuation + distance LPF + panning; listener tied to camera/player; a moving emitter demo. Add Steam Audio HRTF for headphone binaural and cap binaural voice count.",
+                                           "M2 — Ambient soundscape: data-driven zone profiles with continuous layers + randomized one-shot scatterer; weather/time-of-day params drive layer gains; smooth zone crossfades hooked to world streaming.",
+                                           "M3 — Reactive music v1: music director state machine (Explore/Combat/Discovery/Town) with vertical layer crossfades and beat-synced horizontal transitions + stingers; combat hysteresis and exit tails.",
+                                           "M4 — Mix \u0026 ducking: full bus DSP (EQ/comp/limiter), side-chain ducking (VO/stinger ducks music/ambience), snapshot system (combat/dialogue/underwater/pause) with priority stack and LUFS-targeted master limiter; player mix sliders.",
+                                           "M5 — Acoustics: reverb zones (algorithmic or Steam Audio baked) crossfaded by listener position; raycast occlusion/obstruction for dynamic occluders with temporal smoothing and ray budgeting.",
+                                           "M6 — VO/dialogue: dialogue DB + condition selector with cooldowns/anti-repeat; conversation runner with player choices; VO ducking + area speaker arbitration; lip-sync viseme baking (Rhubarb/Oculus) feeding facial anim; subtitles + localization tables.",
+                                           "M7 — Pipeline \u0026 tooling: offline bank build (encode + LUFS normalize + validate + region/quest banks), data-driven event/cue definitions, and an ImGui runtime debug overlay (voice list, meters, bus solo/mute, force music state/snapshot).",
+                                           "M8 — Hardening: voice-virtualization stress test at budget edges (no thrash/pops), streaming hitch elimination across region transitions, CPU/memory budget pass, device hot-swap, and platform loudness/cert compliance."
+                                       ]
+                    },
+                    {
+                        "key":  "ui_ux",
+                        "lane":  "crosscutting",
+                        "priority":  "P1",
+                        "confidence":  72,
+                        "summary":  "UI/UX for a Skyrim-class open-world RPG is a crosscutting presentation + input layer, not a feature silo. It must render thousands of data-driven widgets at frame budget on top of the existing HDR forward renderer (custom C++/D3D11 here, with ACES tonemap and a constant-buffer/shader pipeline already present), bind to gameplay data (inventory, quests, stats, map markers) without coupling UI code to simulation, and handle dual input paradigms (mouse pointer + gamepad spatial focus) plus full acce...",
+                        "capabilities":  [
+                                             "UI core architecture \u0026 rendering layer (retained/immediate hybrid, batched 2D renderer)",
+                                             "Input abstraction: unified KBM + gamepad with action mapping \u0026 focus navigation",
+                                             "HUD: compass, health/stamina/magicka, crosshair/reticle, status effects, notifications",
+                                             "World map \u0026 local map: streaming map, markers, fast travel, fog-of-war",
+                                             "Journal / quest log driven by the quest \u0026 objective state machine",
+                                             "Inventory \u0026 equipment UI: grid/list, categories, sort/filter, comparison tooltips, equip preview",
+                                             "Dialogue \u0026 menu screens: conversation UI, pause/system menu, settings, save/load",
+                                             "Text, localization \u0026 font pipeline (SDF atlas, RTL/CJK, dynamic strings)",
+                                             "Accessibility: remapping, subtitles/captions, colorblind, scaling, screen reader/TTS, difficulty aids"
+                                         ],
+                        "dependencies":  [
+                                             "rendering/graphics (composites UI after tonemap; provides scene SRV for menu blur and render-targets for paper-doll/map bake; this project\u0027s Renderer exposes sceneSRV/resize/shadowSize)",
+                                             "input/platform layer (raw + gamepad input, WM_CHAR text entry, device detection; this project\u0027s Window/Input is KBM-only and needs gamepad + text)",
+                                             "inventory/items system (item model, slots, weight/value, equip state) feeding inventory UI",
+                                             "quest/dialogue system (quest state machine, objectives, dialogue graph, tracked quest) feeding journal/dialogue UI",
+                                             "save/load system (slot metadata, screenshots, map discovery/fog state, settings persistence)",
+                                             "world streaming \u0026 fast travel (teleport requests, cell/region data, map bake source geometry/terrain)",
+                                             "character/stats/progression system (stat sheet, level-up, status effects for HUD)",
+                                             "audio system (UI SFX, subtitle/caption timing, TTS/screen-reader output)",
+                                             "localization/build pipeline (string tables, font/atlas baking, per-locale builds)",
+                                             "settings/config system (graphics/audio/controls/accessibility options with live apply)"
+                                         ],
+                        "effort_band":  "\"Mature engine (Unreal CommonUI / Unity UI Toolkit / Godot): L (3-6 mo) for a full, polished, accessible RPG UI suite with one programmer + one UI artist/designer, because the framework provides rende...",
+                        "milestones":  [
+                                           "M0 Spine (vertical slice of the framework): UI core renderer (batched quads + clip stack) drawing after tonemap; SDF text rendering one original font; input layer with KBM + gamepad action mapping + a working FocusManager; a single test screen navigable by both mouse and pad. (In a mature engine: stand up CommonUI/UI Toolkit screen stack + input routing.) Externalize strings to a localization table from this first screen.",
+                                           "M1 HUD + screen stack: compass with projected markers, resource bars, reticle/activate prompt, notification queue; ScreenStack/Router with modal push/pop, background blur, and a pause menu hub. Device-aware button-prompt glyphs.",
+                                           "M2 Journal + Settings + Save/Load: virtualized quest log bound to the quest state machine with quest tracking surfaced to HUD; settings menu (graphics/audio/controls/accessibility) with live apply + apply/revert; save/load with slot metadata + screenshot thumbnails.",
+                                           "M3 Inventory + Dialogue: categorized, sorted, filterable, searchable virtualized inventory grid/list; slot-aware comparison tooltips with signed deltas; equip/use/drop via gameplay commands; optional paper-doll render-target; branching dialogue UI bound to the dialogue/quest system; barter/loot split-pane.",
+                                           "M4 World map: offline map-bake pipeline (top-down tiles + zoom LODs), tile streamer, marker layers with clustering + filters, discovery/fog-of-war mask, fast travel coordinated with save/streaming; local/dungeon map.",
+                                           "M5 Accessibility + localization + polish: accessibility tree + TTS/screen-reader narration of focus, full remapping with toggle/hold, subtitles/captions with presentation options, colorblind-safe palette + redundant shape encoding, UI scaling, reduced-motion/flashing limits; complete localization pass (CJK/RTL fonts + shaping); animation/juice pass, controller cert checklist, performance pass (batch counts, virtualization, atlas memory)."
+                                       ]
+                    },
+                    {
+                        "key":  "atmosphere_weather",
+                        "lane":  "graphics",
+                        "priority":  "P1",
+                        "confidence":  0.82,
+                        "summary":  "A unified atmosphere stack driving a global \"sky/weather state\" that everything samples from: a physically-based scattering sky for day/night and twilight, a region+season weather director with smooth blends and transitions, volumetric fog/cloud/godray rendering, and weather-as-gameplay hooks (wet surfaces, lightning, audio/AI/stealth/economy modifiers). One authoritative `AtmosphereState` (sun/moon dir, turbidity, fog params, precip intensity, wind, wetness) is updated on CPU each frame and con...",
+                        "capabilities":  [
+                                             "Physically-Based Sky \u0026 Atmospheric Scattering",
+                                             "Dynamic Time-of-Day \u0026 Celestial Cycle",
+                                             "Region/Season Weather Director \u0026 Blending",
+                                             "Volumetric Fog, Clouds \u0026 God Rays",
+                                             "Weather-as-Gameplay Hooks"
+                                         ],
+                        "dependencies":  [
+                                             "Deferred/clustered renderer with HDR pipeline, exposure/eye-adaptation, and tonemapping (scattering \u0026 volumetrics need linear HDR)",
+                                             "Cascaded shadow maps tied to the sun direction (god rays, cloud shadows, fog light injection depend on shadowed lights)",
+                                             "Authoritative game clock / time-of-day simulation tick (drives celestial + director)",
+                                             "Image-based lighting / sky probe capture + prefiltered specular for ambient relighting",
+                                             "Compute shader support (LUT bakes, froxel volume, cloud raymarch); TAA/temporal reprojection for cheap volumetrics",
+                                             "World streaming + climate/region metadata (volumes or world-partition tags) for the weather director",
+                                             "Material system with global parameter buffer/collection for wetness/snow",
+                                             "Particle system (rain/snow) and adaptive audio middleware (Wwise/FMOD or MetaSounds)",
+                                             "Event/message bus for weather events into AI perception, quests, and economy/NPC schedules"
+                                         ],
+                        "effort_band":  "Small studio (1 graphics programmer + shared tech-art/audio): ~4-7 months for a polished vertical slice. UE5 path ~4-5 months (engine provides sky/cloud/fog; effort is the weather director, ToD, gamep...",
+                        "milestones":  [
+                                           "M1 — Authoritative state + sky: AtmosphereState struct, game clock, PBS scattering sky with moving sun/night sky; ambient relights with ToD.",
+                                           "M2 — Time-of-day polish: designer gradient/curve assets, CSM follows sun, smooth fast-forward (sleep/wait) without popping.",
+                                           "M3 — Weather director: data-driven weather types, region/season transition table, seamless cross-fade blending, save/load determinism.",
+                                           "M4 — Volumetrics: froxel volumetric fog + height fog + god rays; raymarched volumetric clouds with wind and cloud shadows, half-res + temporal, on perf budget.",
+                                           "M5 — Gameplay hooks: surface wetness/snow accumulation material, AI perception/stealth modifiers, lightning + weather events on the bus, adaptive audio beds.",
+                                           "M6 — Integration \u0026 perf pass: min-spec frame-time budget met, color-grading/exposure tuning, edge-case QA (region borders, scripted quest weather, fast travel), vertical-slice sign-off."
+                                       ]
+                    },
+                    {
+                        "key":  "water",
+                        "lane":  "graphics",
+                        "priority":  "P2",
+                        "confidence":  0.82,
+                        "summary":  "Skyrim-class open-world water needs a single, scalable water system spanning oceans/lakes/rivers with believable surface motion, view-dependent reflection/refraction, flowing rivers, and soft shorelines — all rendered on a moving camera over huge streamed terrain. The proven genre recipe is a screen-space/clipmap water grid (projected or CDLOD-tiled) driven by a sum-of-sines + FFT (Tessendorf) ocean spectrum for large bodies, plus per-river flow-mapped scrolling normals for directional currents....",
+                        "capabilities":  [
+                                             "Ocean/lake surface simulation (spectral + Gerstner)",
+                                             "Reflection (SSR + probe/planar fallback)",
+                                             "Refraction, depth color \u0026 underwater scattering",
+                                             "River flow \u0026 flow maps",
+                                             "Shorelines, foam \u0026 soft intersections",
+                                             "Water LOD, streaming \u0026 buoyancy integration"
+                                         ],
+                        "dependencies":  [
+                                             "Terrain/heightfield + streaming system (water bodies are placed and streamed with land cells; shoreline depth needs terrain depth)",
+                                             "Deferred or forward+ renderer with accessible depth buffer and a pre-water opaque scene-color copy (required for refraction, soft edges, SSR)",
+                                             "Reflection infrastructure: SSR pass and/or reflection probes/cubemaps + planar reflection support",
+                                             "Lighting/sky system (sun direction, sky cubemap) for reflections, Fresnel, and caustic direction",
+                                             "Post-process stack (underwater fog/color grade, distortion) with camera-submerged state",
+                                             "Physics engine hooks for buoyancy/swim volumes consuming a shared wave-height function",
+                                             "Compute shader support (SM5+/D3D11 CS) for the FFT ocean sim",
+                                             "Asset/spline tooling to author rivers, flow maps, and water-body placement"
+                                         ],
+                        "effort_band":  "Small studio (2-4 graphics/tech-artist FTE): UE5 path ~2-4 months to a shippable, tuned water system leaning on Single Layer Water + Water plugin (most effort in art direction, flow authoring, buoyanc...",
+                        "milestones":  [
+                                           "M1 — Flat shaded plane: single water plane with Fresnel, sky reflection (probe/cubemap), refraction from scene-color copy, depth-based color. Proves the render-order/depth pipeline.",
+                                           "M2 — Surface motion: Gerstner sum-of-sines displacement on a projected/CDLOD grid + animated normals; tunable wave presets (lake vs sea).",
+                                           "M3 — Reflections upgraded: SSR primary with probe/planar fallback, Fresnel-clamped, roughness/distance blur; verify no leaks via oblique clip.",
+                                           "M4 — Shorelines \u0026 foam: depth-difference soft edges, shallow-water foam band, object-intersection foam, scrolling shore waves, terrain wetness mask.",
+                                           "M5 — Rivers \u0026 flow: spline-driven river meshes + baked flow maps, two-phase flow normal scrolling, junction handling, foam coupled to speed.",
+                                           "M6 — Ocean FFT (quality tier): cascaded Tessendorf FFT compute sim feeding displacement/normal/foam for large bodies; blend to Gerstner on low quality.",
+                                           "M7 — Underwater \u0026 buoyancy: submerged post stack (fog/color/caustics), camera-crossing transition, shared CPU wave-height function driving buoyancy/swim for boats, player, floating loot.",
+                                           "M8 — LOD, streaming \u0026 optimization: water tile streaming with terrain cells, distance LOD/normal-mip management, quality dial (low-\u003eultra), perf pass and aliasing/temporal cleanup."
+                                       ]
+                    },
+                    {
+                        "key":  "physics_collision",
+                        "lane":  "runtime",
+                        "priority":  "P0",
+                        "confidence":  0.82,
+                        "summary":  "Runtime physics/collision layer for a Skyrim-class open-world RPG: a kinematic capsule character controller (walk/step/slope/swim/fall), a broadphase+sweep query service driving melee/projectile hits, simulated rigid-body props and clutter, ragdoll on death/knockdown with active blending, buoyancy/water interaction, and constraints (doors, hinges, chains, traps). Modern best practice is a hybrid: a deterministic-feel KINEMATIC controller (not solver-driven) sitting on top of a single shared phys...",
+                        "capabilities":  [
+                                             "Kinematic Capsule Character Controller",
+                                             "Broadphase + Shape-Sweep Query Service for Combat",
+                                             "Rigid-Body Props, Clutter \u0026 Havok-style Object Interaction",
+                                             "Ragdoll with Active Blending (Death, Knockdown, Hit Reactions)",
+                                             "Buoyancy, Water Volumes \u0026 Constraints (Doors/Traps/Mechanisms)"
+                                         ],
+                        "dependencies":  [
+                                             "animation (skeleton/pose source for active ragdoll + anim-\u003ephysics blend; root motion vs controller reconciliation)",
+                                             "world_streaming (async load/unload of per-cell collision tiles; physics active-set tied to cell streaming)",
+                                             "asset_pipeline / cook (offline collision-proxy generation: convex decomposition, triangle-mesh cook, physics-asset/ragdoll authoring)",
+                                             "combat / gameplay (consumes the sweep-query service; defines damage from hit material + bone)",
+                                             "vfx/audio (surface/material tags from queries route impact decals, particles, and footstep/hit sounds)",
+                                             "save system (persist disturbed-prop transforms, door/mechanism states, corpse positions)",
+                                             "ai_navigation (navmesh must agree with character-controller collision; AI uses the same controller)",
+                                             "networking (if MP: query/replication of physics state, controller prediction — Mover 2.0 / custom rollback)"
+                                         ],
+                        "effort_band":  "Small studio (3-6 engineers): UE5-integration path ~4-7 months to a tuned vertical slice (Chaos + CMC/Mover do most heavy lifting; effort is customization, combat query service, active-ragdoll tuning,...",
+                        "milestones":  [
+                                           "M0 Foundation: integrate solver (Chaos or Jolt), debug-draw layer, fixed-tick sim + render interpolation, single static collision world loads and renders",
+                                           "M1 Controller: kinematic capsule walks/slides/steps/slopes on authored collision; fall damage; basic swim volume; navmesh agreement check",
+                                           "M2 Query Service: unified ray/sweep/overlap API with channels + material tags; async dispatch; melee swept-sweep and projectile cast hooked to placeholder combat; per-frame query budget",
+                                           "M3 Rigid Props: dynamic clutter with convex hulls, sleeping, active-set culling, grab/telekinesis; save/restore of disturbed transforms",
+                                           "M4 Ragdoll: physics assets + anim-\u003eragdoll death blend; active/powered ragdoll hit reactions; multi-ragdoll cost controls (bone reduction, iteration caps, sleeping)",
+                                           "M5 Buoyancy + Constraints: sample-point buoyancy on water volumes; hinge/slider/point constraints for doors, portcullises, chains, traps with motors + break thresholds; controller\u003c-\u003emechanism interaction",
+                                           "M6 Streaming + Hardening: async collision-tile cook/stream tied to world streaming; tunneling/CCD pass; budget profiling under crowd + projectile load; tuning pass with tech-artist; soak/stability tests"
+                                       ]
+                    },
+                    {
+                        "key":  "player_controller_camera",
+                        "lane":  "gamefeel",
+                        "priority":  "P0",
+                        "confidence":  0.82,
+                        "summary":  "The playable \"game feel\" layer for a Skyrim-class open-world RPG: dual first/third-person camera with collision and shoulder-swap, a data-driven input-\u003elocomotion state machine, and the traversal verbs (sprint/stamina, jump/fall, swim, climb, mount). The spine is a single authoritative Character Movement layer feeding a separate camera rig, with a clean seam so combat/AI/UI read movement state without owning it. UE5 path leans on Enhanced Input + a CMC/Mover-based locomotion core + Spring Arm/Ca...",
+                        "capabilities":  [
+                                             "Dual-perspective camera rig (1st/3rd-person, collision, framing, shoulder-swap)",
+                                             "Input-\u003elocomotion state machine (walk/jog/sprint, orientation, root motion vs in-place)",
+                                             "Stamina-gated traversal: sprint, jump, fall damage",
+                                             "Swimming and water-volume locomotion",
+                                             "Climbing, ledge-grab, and mantling traversal",
+                                             "Mounted locomotion and mount/dismount transitions"
+                                         ],
+                        "dependencies":  [
+                                             "Physics/collision system (capsule sweeps, sphere-casts for camera, water/trigger volumes) — UE5 Chaos or custom Jolt/PhysX in the bespoke engine",
+                                             "Animation system + retargeted humanoid skeleton (locomotion blendspaces, mantle/mount montages, motion warping)",
+                                             "Generic stats/attribute component (stamina, oxygen, health) shared with combat — the gamefeel layer must NOT own these in isolation",
+                                             "Input layer (UE5 Enhanced Input or a custom action-mapping/rebinding system with gamepad+KBM)",
+                                             "World streaming / navmesh-adjacent terrain data so slopes, water bodies, and climbable surfaces are queryable",
+                                             "Combat \u0026 camera-aim seam: aim-assist/lock-on hooks must read camera+movement state without owning the rig",
+                                             "Save/load for player transform, mount state, and current locomotion super-state"
+                                         ],
+                        "effort_band":  "Small studio (4-8 devs): ~6-9 months to a polished vertical slice of the full gamefeel layer. Breakdown: camera rig + ground locomotion state machine + stamina/jump/fall = ~2-3 months (the must-have c...",
+                        "milestones":  [
+                                           "M0 — Walking skeleton: Enhanced Input (or custom input) wired to a capsule that moves on flat ground with a basic third-person spring-arm camera; FP/TP toggle. (proves the controller\u003c-\u003ecamera seam)",
+                                           "M1 — Ground locomotion feel: full input-\u003elocomotion state machine (idle/walk/jog/sprint, orient vs strafe, accel/decel curves), camera collision pull-in + shoulder-swap, all feel params exposed as designer-tunable data.",
+                                           "M2 — Stamina traversal: shared stamina/attribute component, sprint drain + FOV kick, jump with coyote-time/buffer + variable height, fall damage curve with landing i-frames.",
+                                           "M3 — Water: swim super-state, wade/swim + surface/submerge transitions, buoyancy damping, oxygen meter, underwater camera + post FX.",
+                                           "M4 — Mounts: mount pawn with heavy movement profile + own stamina/gallop, mount/dismount with clearance placement, mount camera rig blend, rider attach.",
+                                           "M5 — Vertical traversal: auto-step + mantle/vault via motion warping, then ledge-hang/shimmy and (stretch) free-climb; harden all cross-state interrupt seams (climb\u003c-\u003efall\u003c-\u003eswim\u003c-\u003ejump).",
+                                           "M6 — Polish \u0026 hardening: jitter/pop elimination on camera collision, transition-seam QA across all super-states, 120Hz frame-stability + determinism pass, designer tuning sweep on every curve."
+                                       ]
+                    },
+                    {
+                        "key":  "scripting_quest_vm",
+                        "lane":  "tooling",
+                        "priority":  "P0",
+                        "confidence":  0.82,
+                        "summary":  "A save-bound gameplay scripting layer for a Skyrim-CLASS open-world RPG: a sandboxed mod/quest VM with capability-gated host bindings, deterministic state-machine execution (NO suspended-coroutine persistence — all script \"waits\" are reified as serializable states/timers/event subscriptions), hot-reload, an attach debugger, and tight binding to the engine event bus and fact DB. The hard architectural commitment is that nothing in flight lives only on a native call stack: every quest, dialogue br...",
+                        "capabilities":  [
+                                             "Sandboxed mod script VM with capability-gated host API",
+                                             "Save-bound execution via persistable state machines (no coroutine snapshots)",
+                                             "Quest/dialogue runtime bound to event bus + fact DB",
+                                             "Hot-reload of scripts and quest data",
+                                             "Attach debugger + profiler for script authors"
+                                         ],
+                        "dependencies":  [
+                                             "Engine event bus / message router (pub/sub) — quest \u0026 dialogue runtime subscribes to it",
+                                             "Transactional fact/variable DB with scopes (global/region/actor/quest) and a save journal",
+                                             "Save/load subsystem with a stable, versioned binary format (the state-machine records persist here)",
+                                             "Main-thread command queue / task graph to marshal script-issued world mutations safely",
+                                             "Asset \u0026 content pipeline for quest graphs, dialogue trees, and fact schemas (data-driven, engine-portable)",
+                                             "GAS/effects + spawn/actor systems (UE5) or bespoke ECS (custom) behind the IScriptHost interface",
+                                             "Mod packaging + load-order + capability-manifest system (defines what each mod is allowed to call)",
+                                             "Deterministic time/RNG service (per-instance seeded) so reload reproduces behavior"
+                                         ],
+                        "effort_band":  "Small studio (3-5 engineers): ~9-14 months to a production-grade, save-stable, moddable scripting layer with debugger and hot-reload across one primary engine path; +2-3 months to harden the second en...",
+                        "milestones":  [
+                                           "M1 (wk 1-6): Embed Luau behind IScriptHost; sandbox hardened (no io/os, memory + instruction budgets, watchdog kill). Hello-world script mutates world via 3 capability-gated host calls on both UE5 and custom paths.",
+                                           "M2 (wk 6-14): State-machine runtime — async-DSL/codegen that compiles script \u0027await/wait\u0027 into serializable state transitions + timers/event subscriptions. No coroutine persistence anywhere. Round-trip a script across save/load with state intact.",
+                                           "M3 (wk 12-20): Event bus + transactional fact DB binding; declarative quest-stage graphs with fact-predicate guards; dialogue conditions on the shared expression engine. Author a sample multi-stage quest end-to-end (original content).",
+                                           "M4 (wk 18-24): Hot-reload (function-table swap preserving state vars; schema-change migration prompt); precompiled+signed bytecode for shipping.",
+                                           "M5 (wk 22-30): DAP debugger attach (breakpoints/step/inspect) + sampling profiler + in-game state/timer/subscription overlay; budget tracer names offending scripts.",
+                                           "M6 (wk 28-38): Save-versioning/migration framework + soak tests (load-order churn, mod updates mid-save, fuzzed state blobs); second engine path hardened; SDK docs + original sample-script standard library.",
+                                           "M7 (wk 36-42): Modder beta — capability-manifest packaging, load-order resolution, signed-bytecode shipping pipeline; performance pass (per-frame script budget under target)."
+                                       ]
+                    },
+                    {
+                        "key":  "navigation_pathfinding",
+                        "lane":  "runtime",
+                        "priority":  "P0",
+                        "confidence":  0.86,
+                        "summary":  "Runtime navigation subsystem for a Skyrim-class open world: tiled async navmesh baked from collision geometry at cook time and patched at runtime, dynamic obstacle carving, off-mesh links (doors/ladders/jumps/teleports), hierarchical path planning, and local crowd avoidance. This is a cook-and-runtime system that gates every NPC and creature — if it stalls or returns bad paths, AI visibly breaks. Design target: thousands of static nav tiles streamed with the world, 50-150 active agents near the...",
+                        "capabilities":  [
+                                             "Tiled async navmesh bake from collision geometry",
+                                             "Runtime dynamic obstacle carving (temporal navmesh)",
+                                             "Off-mesh links (doors, ladders, jumps, teleports)",
+                                             "Hierarchical async path queries (A* + string-pulling)",
+                                             "Local crowd avoidance \u0026 steering (RVO/ORCA)"
+                                         ],
+                        "dependencies":  [
+                                             "physics_collision (provides the triangle soup / collision geometry the navmesh bakes from — navmesh is only as good as collision)",
+                                             "world_streaming (nav tiles must load/unload keyed to the same cells as terrain/object streaming)",
+                                             "job_system / task_graph (tile builds, async path queries, and tile-cache rebuilds all need a thread pool that never blocks the game thread)",
+                                             "ai_behavior (behavior trees / utility AI / GOAP are the consumers — they request paths and react to path-invalid/blocked results)",
+                                             "animation_locomotion (off-mesh link traversal and root-motion movement consume nav corridor output; foot placement must agree with navmesh height)",
+                                             "serialization / asset cook pipeline (baked Detour tiles and off-mesh links are cooked assets that ship with the world data)",
+                                             "spatial_partition / scene query (shared broadphase for neighbor lookups in crowd avoidance and obstacle queries)"
+                                         ],
+                        "effort_band":  "Medium-large for a small studio (roughly 2-4 engineer-quarters / ~6-9 person-months on the custom path, ~2-4 person-months on the UE5 path). UE5 gets you tiled navmesh, dynamic obstacles, nav links, a...",
+                        "milestones":  [
+                                           "M0 — Spike: vendor RecastNavigation (or stand up UE5 RecastNavMesh), bake a single static navmesh from one test level\u0027s collision, query a point-to-point path, and draw the poly overlay. Proves the geometry pipeline.",
+                                           "M1 — Tiled + streamed: partition into tiles keyed to world-streaming cells, async tile builds on the job system, tiles load/unload with terrain. Cook tiles to disk and stream them at load. Multiple agent radii.",
+                                           "M2 — Async queries + corridors: worker-thread query pool with priorities and sliced queries, per-agent path corridor with incremental repair, area-cost filters (water/danger). 50+ agents pathing without game-thread hitches.",
+                                           "M3 — Off-mesh links: bake + runtime door/ladder/jump/drop links, traversal state machine coupled to anim notifies, link enable/disable tracking game state (locked doors), link reservation to prevent deadlock.",
+                                           "M4 — Dynamic obstacles: DetourTileCache (or UE5 dynamic mode) with rate-limited async tile rebuilds on physics/destructible events, atomic tile swap, path-invalidation + replan callbacks. No hitch when a structure collapses.",
+                                           "M5 — Crowd avoidance + LOD: DetourCrowd/RVO local avoidance with per-archetype tuning, choke-point queue behaviors, and avoidance LOD (full RVO near player, corridor-follow far). Stress test 100-150 agents through a town/market.",
+                                           "M6 — Tooling + hardening: in-engine nav debug views, auto-tuning of CellSize/agent params, deterministic cook validation, soak tests for tile-swap races and link deadlocks, profiling pass to hit the per-frame budget."
+                                       ]
+                    },
+                    {
+                        "key":  "build_ci_devops",
+                        "lane":  "infra",
+                        "priority":  "P1",
+                        "confidence":  0.78,
+                        "summary":  "Iteration time is the schedule for a Skyrim-class open-world RPG: thousands of meshes/textures/audio, a streamed worldgrid, quest/dialogue data, and a save format that must survive months of content churn. The infra spine is five things working as one: (1) a binary-aware version-control + asset pipeline (Perforce-class) that treats DDC/derived data as first-class, (2) a distributed + incremental content cook that gets a designer from edit to in-game under a minute, (3) a build farm with remote c...",
+                        "capabilities":  [
+                                             "Binary-aware VCS + asset pipeline (Perforce-class)",
+                                             "Distributed + incremental content cook (sub-minute designer loop)",
+                                             "Build farm: remote code + shader/data compilation with caching",
+                                             "Golden-save + golden-image CI gates",
+                                             "Soak / streaming-stability rigs"
+                                         ],
+                        "dependencies":  [
+                                             "Engine decision locked first (UE5 vs custom D3D11) — it determines build-vs-buy; on UE5 four of five capabilities are integration/config, on custom they are net-new systems",
+                                             "Deterministic, content-addressed asset hashing underpins everything: DDC, incremental cook, build cache, and golden CI all key off stable source+params hashes",
+                                             "Headless/offscreen render path (WARP-class) is a prerequisite for golden-image CI and soak rigs",
+                                             "Save serialization + object-versioning scheme must exist before golden-save gates can assert backward-compat",
+                                             "Worldgrid streaming system and an automatable AI/scripted pawn must exist before soak/streaming rigs can drive coverage",
+                                             "Shared storage + network capacity (DDC blob store, depot, farm) provisioned before the farm pays off",
+                                             "Stable CI orchestrator (Horde or equivalent) as the spine that runs cook, build, and gates"
+                                         ],
+                        "effort_band":  "Small studio (2-3 dedicated build/infra engineers): UE5 path ~6-9 months to a mature flywheel (mostly integration/config of UBA + Horde + Zen + Gauntlet, plus building the golden-save corpus and soak...",
+                        "milestones":  [
+                                           "M0 (wks 1-4): Engine decision locked; depot + content-addressed DDC stood up; deterministic asset hashing proven; basic CI orchestrator running a clean build",
+                                           "M1 (wks 5-10): Distributed code + shader build farm online with shared cache; cold-build-rare, warm-build-fast verified; artist partial-sync working",
+                                           "M2 (wks 8-16): Incremental + distributed content cook delivering sub-minute designer edit-to-game loop; iteration-cook vs shipping-cook split in place; cook-on-the-fly live iteration for designers",
+                                           "M3 (wks 14-22): Golden-save CI gate (headless load + version-upgrade asserts) and golden-image perceptual-diff gate blocking merges; auto-bless workflow for intentional updates",
+                                           "M4 (wks 20-30): Nightly soak/streaming rigs on min-spec + WARP with leak/hitch/streaming-invariant detection and triage artifact bundles",
+                                           "M5 (wks 28-40+): Hardening — cache hit-rate tuning, flaky-gate elimination, golden-corpus coverage expansion, capacity scaling; flywheel is the default daily workflow"
+                                       ]
+                    },
+                    {
+                        "key":  "telemetry_liveops",
+                        "lane":  "infra",
+                        "priority":  "P1",
+                        "confidence":  0.78,
+                        "summary":  "Backend + client SDK layer that keeps a content-heavy, save-driven single-player/co-op RPG alive after ship: catch crashes from the wild, measure where players churn in long quest funnels, push day-one and save-safe hotfixes without invalidating 80-hour saves, distribute DLC and player mods, and do all of it under GDPR/console-cert privacy rules. None of this touches game content — it is pure plumbing that any original RPG can run. The five capabilities below are deliberately decoupled (crash, a...",
+                        "capabilities":  [
+                                             "Crash \u0026 Hang Dump Collection",
+                                             "Gameplay \u0026 Funnel Analytics Pipeline",
+                                             "Save-Compatible Hotfix \u0026 Live-Tuning Delivery",
+                                             "DLC \u0026 Mod-Store Content Delivery",
+                                             "Consent, Privacy \u0026 Data-Governance Gate"
+                                         ],
+                        "dependencies":  [
+                                             "Consent/Privacy gate is a hard prerequisite for Crash, Analytics, and Remote-Config — build it first",
+                                             "Crash \u0026 Analytics both depend on a per-build symbol/version registry (build GUID -\u003e PDB/dSYM + content version) so dumps and events are attributable",
+                                             "Save-Compatible Hotfix depends on a data-driven content design (quests/items/perks as versioned data records, not hardcode) and on a robust versioned save serializer",
+                                             "DLC/Mod delivery depends on the same content-versioning + save custom-version scheme used by hotfixes (compatibility checks share it)",
+                                             "Remote-config/live-tuning depends on a signing/anti-tamper key infrastructure shared with content delivery",
+                                             "All upload paths depend on a common transport layer: durable offline queue + HTTPS-with-backoff + gzip",
+                                             "Server side depends on a CDN (content), a columnar warehouse (analytics), and a symbolication+bucketing service (crash) — three distinct backends behind one ingest gateway"
+                                         ],
+                        "effort_band":  "Small studio (4-8 engineers incl. 1 backend/infra lead): roughly 6-10 months to a shippable v1 on UE5 (leverages CRC, IAnalyticsProvider, mod.io, IoStore — mostly integration + schema/dashboard work)....",
+                        "milestones":  [
+                                           "M0 (weeks 1-4): Consent/Privacy gate + pseudonymous install ID + common transport (offline queue, HTTPS/backoff/gzip). Nothing else uploads until this exists.",
+                                           "M1 (weeks 4-10): Crash \u0026 hang collection end-to-end — out-of-process dumps (CRC or Crashpad), per-build symbol registry, server symbolication + top-crasher dashboard.",
+                                           "M2 (weeks 8-16): Analytics pipeline — typed/versioned event schema + registry, durable client queue, ingest service -\u003e warehouse, first funnel/retention/economy dashboards.",
+                                           "M3 (weeks 14-26): Save-compatible serializer (FCustomVersion / custom version chain) + migration test corpus + remote-config live-tuning channel with staged rollout and kill switch.",
+                                           "M4 (weeks 22-40): DLC on-demand delivery (IoStore/pak chunks or custom VFS + CDN downloader) and mod store integration (mod.io) with load-order/dependency resolution and a sandboxed mod-script runtime.",
+                                           "M5 (launch hardening): right-to-erasure/export cascade across all backends, console-cert privacy + crash-path compliance per platform, rollout/kill-switch drills, and a documented hotfix-turnaround runbook for liveops."
+                                       ]
+                    },
+                    {
+                        "key":  "platform_online_services",
+                        "lane":  "infra",
+                        "priority":  "P1",
+                        "confidence":  0.78,
+                        "summary":  "A platform-abstraction service that brokers achievements/trophies, cloud saves, DRM/entitlements, rich presence, controller-glyph swapping, and sandboxed async save I/O across Steam, Epic, and console (PlayStation/Xbox/Switch) SDKs, with a certification (TRC/XR/lotcheck) compliance harness. The core design principle is ONE engine-facing interface (IPlatformServices) with per-SDK backends behind a build-time/DLL boundary, so gameplay code never touches a vendor SDK directly. This is pure infrastr...",
+                        "capabilities":  [
+                                             "Unified Platform Abstraction Layer (IPlatformServices)",
+                                             "Achievements / Trophies Sync Engine",
+                                             "Sandboxed Async Cloud Save + Storage Service",
+                                             "DRM, Entitlements \u0026 Ownership Verification",
+                                             "Rich Presence + Controller-Glyph \u0026 Input-Origin Service",
+                                             "Certification Compliance \u0026 Lifecycle Harness (TRC/XR/lotcheck)"
+                                         ],
+                        "dependencies":  [
+                                             "save_load_system (engine) — the cloud-save service wraps/extends the core serialization + versioned save format; must expose async hooks",
+                                             "input_system / controller_abstraction — glyph swap and lifecycle (controller-disconnect) depend on a device-aware input layer with action-origin queries",
+                                             "ui_hud_menus — needs achievement toasts, save-slot/conflict UI, \u0027not entitled\u0027 and native-dialog routing, glyph prompts",
+                                             "content_packaging / asset_streaming (pak/IoStore or custom VFS) — DLC entitlement gating mounts content chunks",
+                                             "gameplay_event_bus / quest_progression — emits logical events that drive achievements and rich presence",
+                                             "localization — presence tokens, achievement names, store metadata",
+                                             "build_pipeline / CI — per-platform SDK toolchains, NDA dev programs, dev-kit deployment, manifest generation"
+                                         ],
+                        "effort_band":  "Large for a small studio — roughly 7-11 engineer-months of focused infra work, dominated by console. PC-only (Steam + Epic: abstraction, achievements, cloud, entitlements, presence, glyphs) is ~2.5-4...",
+                        "milestones":  [
+                                           "M1 — Abstraction + offline backend: define IPlatformServices, the async command queue, the NULL/offline backend, and the single source-of-truth data table (achievement/entitlement/presence IDs). Game runs end-to-end with no real SDK.",
+                                           "M2 — Steam vertical slice: Steamworks backend live with achievements, ISteamRemoteStorage cloud saves, ownership/entitlement check, rich presence, and Steam Input glyphs on PC + Steam Deck.",
+                                           "M3 — Epic/crossplay + DLC gating: EOS backend (entitlements/achievements/presence), DLC content-pak mounting gated on entitlement, and the versioned/atomic save + cloud-conflict resolution hardened.",
+                                           "M4 — Async-save \u0026 lifecycle hardening: dedicated I/O-thread SaveService with atomic commit, storage-full/corruption handling, and the PlatformLifecycle manager (suspend/resume, controller-disconnect, sign-out, network-loss) wired to gameplay — all cert-shaped before touching a console.",
+                                           "M5 — First console bring-up: NDA SDK backend, native SaveData sandbox, trophy/achievement manifest generation, native system dialogs, and a full internal TRC/XR/lotcheck dry-run.",
+                                           "M6 — Certification submission \u0026 resubmit buffer: run the compliance test matrix on dev kits, fix findings, submit to first-party cert, and reserve schedule for at least one resubmit cycle; then repeat M5-M6 per additional console."
+                                       ]
+                    },
+                    {
+                        "key":  "production_legal_cert",
+                        "lane":  "production",
+                        "priority":  "P1",
+                        "confidence":  0.78,
+                        "summary":  "Legal/certification spine for an original Skyrim-class open-world RPG: age-rating submission, EULA/ToS, UGC/mod moderation, GDPR/CCPA telemetry consent, music/SFX licensing chain-of-title, an originality/IP-clearance gate that keeps the slate free of Bethesda (or any third-party) IP, and CVAA/EAA accessibility compliance. These are largely process + tooling capabilities, not gameplay code, but several (consent SDK, UGC pipeline, accessibility runtime hooks) are buildable engine systems. Treated...",
+                        "capabilities":  [
+                                             "Age-Rating Submission Pipeline (ESRB/PEGI/IARC + platform cert)",
+                                             "EULA / Terms-of-Service + UGC License Framework",
+                                             "UGC / Mod Content Moderation Pipeline",
+                                             "Privacy \u0026 Telemetry Consent (GDPR/CCPA/COPPA)",
+                                             "Originality / IP-Clearance Review Gate",
+                                             "Accessibility Compliance (CVAA / EAA / platform a11y)"
+                                         ],
+                        "dependencies":  [
+                                             "Content authoring pipeline / content DB with per-asset metadata (the clearance gate, rating tags, and UGC scanning all hang off asset metadata)",
+                                             "Backend services: consent ledger, telemetry intake, moderation queue + scanners, DSAR/erasure endpoints, provenance ledger",
+                                             "Account/identity system (consent records, age-gate, UGC author trust tiers, erasure key)",
+                                             "Mod/UGC runtime: sandboxed script VM + signed package format + capability manifest (moderation + EULA enforcement depend on it)",
+                                             "Engine settings/save framework (accessibility, consent, and EULA-acceptance state must persist per profile)",
+                                             "Build/CI system able to fail the cook on uncleared or untagged assets (gating for IP-clearance and age-rating)",
+                                             "External: IP/games counsel, IARC/ESRB/PEGI accounts, platform cert programs (Steamworks/EGS/console), DPA-signed analytics \u0026 crash vendors, CSAM-detection provider (e.g., PhotoDNA)"
+                                         ],
+                        "effort_band":  "High for a small studio — roughly 4-7 person-years of effort, but front-loaded with external/legal cost and recurring operational burden rather than pure engineering. Engineering-only slice (consent g...",
+                        "milestones":  [
+                                           "M1 - Legal foundation: fresh EULA/ToS/UGC license/privacy policy drafted by counsel; versioned-doc + consent-ledger service; first-run acceptance gate in engine (UE5 + custom paths)",
+                                           "M2 - Privacy compliance baseline: granular telemetry consent (default-off non-essential in EU), region-aware policy, pseudonymized telemetry SDK with a hard consent gate, DSAR/erasure endpoints, signed DPAs with vendors",
+                                           "M3 - IP-clearance gate live: content-DB clearance_status + provenance ledger; denylist + semantic/name similarity matcher; trademark + reverse-image + audio-fingerprint clearance workflow; CI fails the cook on uncleared/untagged assets",
+                                           "M4 - Accessibility settings-first: captions/subtitles with speaker labels, full input remap, UI scaling + colorblind/high-contrast, menu narration (Slate a11y / UIA); WCAG 2.1 AA pass on any store/chat surface for EAA",
+                                           "M5 - Age-rating + platform cert: data-derived IARC questionnaire from content tags + content-extremes capture; ESRB/PEGI submission; Steam/Epic/console cert (TRC/XR/Lotcheck) cycles; re-rating trigger on DLC descriptor changes",
+                                           "M6 - UGC moderation (deferrable post-launch): signed mod package format + sandboxed script VM + capability manifest; moderation queue with PhotoDNA/text/image scanners, perceptual hashing, author trust tiers, and DSA notice-and-takedown/appeal flow"
+                                       ]
+                    },
+                    {
+                        "key":  "qa_test_automation",
+                        "lane":  "qa",
+                        "priority":  "P1",
+                        "confidence":  0.78,
+                        "summary":  "QA automation for a Skyrim-class open-world RPG centers on one existential threat: the soft-lock — a quest that becomes uncompletable, the genre\u0027s signature ship-blocker (cf. infamous \"broken main-quest\" save states). The system models the entire quest/world as a directed state graph and continuously attacks it: bots traverse every quest stage, save/load fuzzing corrupts and restores state to find serialization holes, regression replays canonical playthroughs after every build, and a reachabilit...",
+                        "capabilities":  [
+                                             "Quest-Graph Reachability \u0026 Soft-Lock Analyzer",
+                                             "Automated Quest-Traversal Bots (Headless Playthrough)",
+                                             "Save/Load Serialization Fuzzing \u0026 Round-Trip Verification",
+                                             "Quest-Stage Regression Suite (Canonical Playthrough Replay)",
+                                             "World-State Invariant \u0026 Liveness Monitor",
+                                             "Human Playtest Telemetry \u0026 Triage Pipeline"
+                                         ],
+                        "dependencies":  [
+                                             "Deterministic, fixed-timestep simulation with a single seeded PRNG (no wall-clock/unseeded rand in gameplay) — the keystone dependency; bots, replay, and save round-trip all collapse without it",
+                                             "Headless/server tick mode decoupled from rendering and present() (UE: -nullrhi/-unattended; custom: renderless game-loop)",
+                                             "Data-driven, machine-readable quest model (graph asset with declarative gate predicates) rather than imperative script — required by the reachability analyzer and planner bots",
+                                             "Canonical/deterministic serializer with stable IDs and a reflection/schema layer for state snapshot-diffing (shared by save-fuzzing, regression, invariants, bug reporter)",
+                                             "Stable semantic interaction API (move-to/talk/choose/use intents) shared by player UI and bots, so UI changes don\u0027t break automation",
+                                             "Navmesh/pathfinding (Recast/Detour or UE NavMesh) for traversal bots",
+                                             "CI with self-hosted runners capable of running the headless game build (GPU optional for WARP/null RHI), artifact storage for golden snapshots and save corpora",
+                                             "An input record/replay + RNG-seed capture layer (shared by regression replay and bug reporter)"
+                                         ],
+                        "effort_band":  "Small studio (2-4 engineers incl. one tools/QA-automation specialist) — ~6-9 months to a solid v1 IF the deterministic headless core and data-driven quest model are built in from the start. Roughly: 1...",
+                        "milestones":  [
+                                           "M0 Determinism foundation: fixed-timestep sim, single seeded PRNG, headless tick (UE -nullrhi / custom renderless loop); prove a 10-minute session replays bit-identically",
+                                           "M1 Quest graph + reachability: machine-readable quest assets, JSON export, Z3-backed static reachability proof in CI flagging any unreachable required stage / point-of-no-return",
+                                           "M2 Save round-trip + fuzzing: canonical serializer, save-\u003eload-\u003esave semantic-equality test, libFuzzer target on the save parser under ASan, save-bloat regression metric",
+                                           "M3 Traversal bots v1: goal-directed planner driving the critical-path main quest end-to-end headless at high time-scale, asserting expected stage transitions",
+                                           "M4 Regression replay suite: golden input-trace + world-snapshot replay; smoke (main quest) per-commit, nightly full; auto-bisect on failure",
+                                           "M5 Invariant \u0026 liveness monitor: data-driven invariant registry (essential-actor alive, item counts, stuck-quest liveness) running in all sessions with one-click repro snapshots",
+                                           "M6 Human playtest pipeline: instrumented build, quest-funnel telemetry + heatmaps, one-button bug reporter auto-attaching save/trace/clip, repro promotion back into M1/M4 suites"
+                                       ]
+                    }
+                ]
+}
