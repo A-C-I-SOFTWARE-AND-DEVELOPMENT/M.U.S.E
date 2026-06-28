@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, HashRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import { AuthProvider } from './auth/AuthProvider';
 import { startHealthMonitor } from './lib/health';
 import { registerUpdater, markNeedRefresh, markOfflineReady } from './lib/appUpdate';
 import { autoSyncOnLaunch } from './lib/autoSync';
@@ -32,7 +33,9 @@ const Router = import.meta.env.BASE_URL !== '/' ? HashRouter : BrowserRouter;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Router>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </Router>
   </React.StrictMode>,
 );

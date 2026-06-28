@@ -130,7 +130,11 @@ export default function ObservatoryPage() {
         <div>
           <div className="text-[13px] font-semibold">Neural Observatory</div>
           <div className="mono text-[10px] text-[var(--ink-dim)]">
-            live system mirror · {snapshot?.graph.node_count?.toLocaleString() ?? 0} nodes
+            {demo
+              ? `sample topology · ${snapshot?.graph.node_count?.toLocaleString() ?? 0} nodes (not live)`
+              : dormant
+                ? 'live system mirror · no live graph'
+                : `live system mirror · ${snapshot?.graph.node_count?.toLocaleString() ?? 0} nodes`}
           </div>
         </div>
         <span className="mono rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: `${statusColor}22`, color: statusColor }}>

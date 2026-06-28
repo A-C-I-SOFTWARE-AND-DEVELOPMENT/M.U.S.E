@@ -8,10 +8,17 @@ import { museBase } from '@/lib/config';
 export default function FederationPage() {
   const navigate = useNavigate();
   const [st, setSt] = useState<FederationStatus | null>(null);
+  const [loading, setLoading] = useState(false);
   const connected = !!museBase();
 
   useEffect(() => {
-    if (connected) fetchFederationStatus().then(setSt);
+    if (!connected) return;
+    let alive = true;
+    setLoading(true);
+    fetchFederationStatus()
+      .then((s) => { if (alive) setSt(s); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, [connected]);
 
   return (
@@ -34,6 +41,8 @@ export default function FederationPage() {
             Open Settings
           </button>
         </div>
+      ) : loading && !st ? (
+        <div className="glass px-4 py-8 text-center text-[12px] text-[var(--ink-dim)]">Reading federation status…</div>
       ) : st?.error ? (
         <div className="glass mono px-3 py-3 text-[11px] text-[var(--state-error)]">{st.error}</div>
       ) : (

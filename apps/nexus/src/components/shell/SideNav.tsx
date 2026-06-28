@@ -21,8 +21,8 @@ const GROUPS: Group[] = [
   {
     heading: 'Command',
     items: [
-      { to: '/', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
-      { to: '/chat', label: 'Chat', icon: I(<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />) },
+      { to: '/', label: 'Chat', icon: I(<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />) },
+      { to: '/console', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
       { to: '/fusion', label: 'Fusion', icon: I(<><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2.4" /><path d="M7 6.5l10 4.5M7 17.5l10-4.5" /></>) },
       { to: '/axiom', label: 'Axiom Gate', icon: I(<><path d="M12 3l8 5v8l-8 5-8-5V8z" /><path d="M12 8l4 2.5v0L12 13l-4-2.5z" /></>) },
       { to: '/steer', label: 'Steer', icon: I(<><polygon points="12,2 19,6 19,14 12,18 5,14 5,6" /><circle cx="12" cy="10" r="2.4" /></>) },
@@ -58,9 +58,19 @@ const GROUPS: Group[] = [
   },
 ];
 
+// Tonal hover for nav items: lift the void tone on hover/focus (never a glow).
+// The active wash + ring-grad marker are rendered inline per item below; this
+// only covers the non-active hover lift so the whole rail reads as one system.
+const NAV_CSS = `
+.nexus-nav-item:hover { background: var(--void-2); }
+.nexus-nav-item:hover .nexus-nav-icon { color: var(--signal); }
+@media (prefers-reduced-motion: reduce) { .nexus-nav-item { transition: none; } }
+`;
+
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-col gap-4 px-2 py-4">
+      <style>{NAV_CSS}</style>
       {GROUPS.map((g) => (
         <div key={g.heading} className="flex flex-col gap-0.5">
           <div className="hud-label px-3 pb-1 text-[10px]" style={{ color: 'var(--ink-faint)' }}>
@@ -72,19 +82,35 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
               to={d.to}
               end={d.to === '/'}
               onClick={onNavigate}
-              className="group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]"
+              className="nexus-nav-item group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px]"
             >
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <motion.span
-                      layoutId="rail-active"
-                      className="absolute inset-0 -z-0 rounded-lg"
-                      style={{ background: 'color-mix(in oklab, var(--octa-glow) 14%, transparent)' }}
-                      transition={{ type: 'spring', stiffness: 480, damping: 36 }}
-                    />
+                    <>
+                      {/* Active spectral WASH — a matte cyan→violet gradient that
+                          fades to nothing (never a glow), exactly the cockpit's
+                          active nav fill. Animated between items via layoutId. */}
+                      <motion.span
+                        layoutId="rail-active-wash"
+                        className="absolute inset-0 -z-0 rounded-lg"
+                        style={{
+                          background:
+                            'linear-gradient(90deg, rgba(122,224,255,0.12) 0%, rgba(179,136,255,0.05) 60%, rgba(179,136,255,0) 100%)',
+                        }}
+                        transition={{ type: 'spring', stiffness: 480, damping: 36 }}
+                      />
+                      {/* Thin ring-grad accent MARKER — a 3px cyan→violet bar pinned
+                          to the left edge. Matte: no glow, round caps. */}
+                      <motion.span
+                        layoutId="rail-active-marker"
+                        className="absolute left-0 top-1/2 -z-0 -translate-y-1/2 rounded-full"
+                        style={{ width: 3, height: 18, background: 'var(--ring-grad)' }}
+                        transition={{ type: 'spring', stiffness: 480, damping: 36 }}
+                      />
+                    </>
                   )}
-                  <span className="z-10 shrink-0" style={{ color: isActive ? 'var(--octa-glow)' : 'var(--ink-faint)' }}>
+                  <span className="nexus-nav-icon z-10 shrink-0" style={{ color: isActive ? 'var(--signal)' : 'var(--ink-faint)' }}>
                     {d.icon}
                   </span>
                   <span className="z-10 font-medium" style={{ color: isActive ? 'var(--ink)' : 'var(--ink-dim)' }}>
