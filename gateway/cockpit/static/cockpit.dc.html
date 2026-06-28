@@ -1,8 +1,24 @@
 <!DOCTYPE html>
 <html><head>
-<title>muse — Cockpit</title>
+<title>muse — your AI operating partner</title>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050507">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237ae0ff%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23b388ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2210%22%20fill%3D%22%23050507%22/%3E%3Cg%20transform%3D%22rotate%28-32%2024%2024%29%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%222.4%22%20stroke-dasharray%3D%2262%2026%22%20stroke-linecap%3D%22round%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%223.2%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237ae0ff%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23b388ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2210%22%20fill%3D%22%23050507%22/%3E%3Cg%20transform%3D%22rotate%28-32%2024%2024%29%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%222.4%22%20stroke-dasharray%3D%2262%2026%22%20stroke-linecap%3D%22round%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%223.2%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="muse">
+<!-- Social share cards (no remote image — text-only summary keeps the page self-contained). -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="muse">
+<meta property="og:title" content="muse — your AI operating partner">
+<meta property="og:description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="muse — your AI operating partner">
+<meta name="twitter:description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
 
 <!-- Cockpit-served resources. The 3D Systems Atlas is vendored under
      /cockpit/atlas/ (synced from docs/3d-model/, sharing the cockpit's three.js);
@@ -438,6 +454,19 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   max-width: 42ch;
 }
 
+/* ---- Nav section heading (segregated rail) ----------------------------- */
+.nav-section {
+  font-size: var(--type-label-size, 10px);
+  font-weight: var(--type-label-weight, 600);
+  letter-spacing: var(--type-label-spacing, 0.08em);
+  text-transform: uppercase;
+  color: var(--signal-mute);
+  padding: 0 var(--space-3);
+  margin: var(--space-4) 0 var(--space-1);
+  user-select: none;
+}
+.app-nav > .nav-section:first-child { margin-top: var(--space-1); }
+
 /* ---- SectionHeader ----------------------------------------------------- */
 .section-header {
   display: flex;
@@ -840,12 +869,17 @@ body { perspective: 1800px; }
   <!-- Nav rail -->
   <nav class="app-nav" aria-label="Cockpit destinations">
     <sc-for list="{{ nav }}" as="item" hint-placeholder-count="11">
-      <button type="button" class="{{ item.cls }}" onclick="{{ item.onClick }}">
-        <span>{{ item.label }}</span>
-        <sc-if value="{{ item.ext }}" hint-placeholder-val="">
-          <span class="nav-ext">{{ item.ext }}</span>
-        </sc-if>
-      </button>
+      <sc-if value="{{ item.isSection }}" hint-placeholder-val="{{ false }}">
+        <div class="nav-section">{{ item.label }}</div>
+      </sc-if>
+      <sc-if value="{{ item.isLink }}" hint-placeholder-val="{{ false }}">
+        <button type="button" class="{{ item.cls }}" onclick="{{ item.onClick }}">
+          <span>{{ item.label }}</span>
+          <sc-if value="{{ item.ext }}" hint-placeholder-val="">
+            <span class="nav-ext">{{ item.ext }}</span>
+          </sc-if>
+        </button>
+      </sc-if>
     </sc-for>
   </nav>
 
@@ -1905,18 +1939,18 @@ class Component extends DCLogic {
     deviceId: '',
     connError: '',
     liveRuntime: null,
-    activeView: 'jobs',
+    activeView: 'chat', // chat-first: open to the assistant, not the demo Tasks view
     jobsLayout: 'cards',
     halted: false,
     composer: '',
     museThinking: false,
     tick: 0,
     seconds: 7 * 3600 + 42 * 60 + 11,
+    // Chat starts clean — real exchanges only (no seeded demo conversation).
+    // A single honest greeting explains how replies are produced; messages you
+    // send stream back live from /api/chat (or a paired gateway).
     chat: [
-      { who: 'You', isMuse: false, text: 'How is the login feature coming along?' },
-      { who: 'muse', isMuse: true, text: 'Working on it now — the setup is done and I am building the sign-in screen. I kept the change small and safe, so nothing else is affected. Testing and launch are lined up next.' },
-      { who: 'You', isMuse: false, text: 'Good. Hold the payments update until I take a look.' },
-      { who: 'muse', isMuse: true, text: 'Got it. The payments update is finished and waiting for you — it will not go live until you approve it. I have put it under Approvals.' },
+      { who: 'muse', isMuse: true, text: 'Hi — I\u2019m muse. Ask me anything and I\u2019ll answer right here. On this deployment I reply through the app\u2019s own server (it needs a provider key to be enabled); you can also pair your own gateway with Connect.' },
     ],
     jobsRaw: [
       { id: 'job-7c1f', title: 'Add login and usernames', sub: 'Task 1 · sign-in', phase: 2, live: true, secs: 184 },
@@ -2157,34 +2191,37 @@ class Component extends DCLogic {
     { name: 'Self-Improvement', role: 'Proposes upgrades to muse itself', state: 'working', now: 'Scanning for better approaches', tasks: 4 },
   ];
 
+  // Destinations grouped into segregated nav sections (the rail renders a
+  // section header whenever the group changes). Order within a group is the
+  // display order; the group label is the segregation heading.
   navMeta = [
-    { id: 'chat', label: 'Chat' },
-    { id: 'jobs', label: 'Tasks' },
-    { id: 'agents', label: 'Agents' },
-    { id: 'studio', label: 'Studio' },
-    { id: 'releases', label: 'Releases' },
-    { id: 'skills', label: 'Skills' },
-    { id: 'fusion', label: 'Fusion' },
-    { id: 'atlas', label: '3D Atlas' },
-    { id: 'approvals', label: 'Approvals' },
-    { id: 'routes', label: 'Models' },
-    { id: 'autonomy', label: 'Permissions' },
-    { id: 'observatory', label: 'Live stats' },
-    { id: 'memory', label: 'Memory' },
-    { id: 'evidence', label: 'History' },
-    { id: 'graph', label: 'Map' },
-    { id: 'learning', label: 'Learning' },
-    { id: 'modes', label: 'Modes' },
-    { id: 'gates', label: 'Checks' },
-    { id: 'constitution', label: 'Rules' },
-    { id: 'ledger', label: 'Decisions' },
-    { id: 'council', label: 'Council' },
-    { id: 'tools', label: 'Tools' },
-    { id: 'channels', label: 'Channels' },
-    { id: 'schedules', label: 'Schedules' },
-    { id: 'research', label: 'Research' },
-    { id: 'runtimes', label: 'Runtimes' },
-    { id: 'runtime', label: 'System' },
+    { id: 'chat', label: 'Chat', group: 'Command' },
+    { id: 'jobs', label: 'Tasks', group: 'Command' },
+    { id: 'approvals', label: 'Approvals', group: 'Command' },
+    { id: 'routes', label: 'Models', group: 'Command' },
+    { id: 'autonomy', label: 'Permissions', group: 'Command' },
+    { id: 'studio', label: 'Studio', group: 'Build' },
+    { id: 'releases', label: 'Releases', group: 'Build' },
+    { id: 'skills', label: 'Skills', group: 'Build' },
+    { id: 'fusion', label: 'Fusion', group: 'Build' },
+    { id: 'agents', label: 'Agents', group: 'Build' },
+    { id: 'council', label: 'Council', group: 'Build' },
+    { id: 'atlas', label: '3D Atlas', group: 'Intelligence' },
+    { id: 'observatory', label: 'Live stats', group: 'Intelligence' },
+    { id: 'memory', label: 'Memory', group: 'Intelligence' },
+    { id: 'evidence', label: 'History', group: 'Intelligence' },
+    { id: 'graph', label: 'Map', group: 'Intelligence' },
+    { id: 'learning', label: 'Learning', group: 'Intelligence' },
+    { id: 'research', label: 'Research', group: 'Intelligence' },
+    { id: 'modes', label: 'Modes', group: 'Govern' },
+    { id: 'gates', label: 'Checks', group: 'Govern' },
+    { id: 'constitution', label: 'Rules', group: 'Govern' },
+    { id: 'ledger', label: 'Decisions', group: 'Govern' },
+    { id: 'tools', label: 'Tools', group: 'System' },
+    { id: 'channels', label: 'Channels', group: 'System' },
+    { id: 'schedules', label: 'Schedules', group: 'System' },
+    { id: 'runtimes', label: 'Runtimes', group: 'System' },
+    { id: 'runtime', label: 'System', group: 'System' },
   ];
 
   opModes = [
@@ -2340,6 +2377,9 @@ class Component extends DCLogic {
       if (el) el.style.transform = `translate3d(${(-dx * 22).toFixed(1)}px, ${(-dy * 22).toFixed(1)}px, 0) scale(1.08)`;
     };
     window.addEventListener('mousemove', this._onMove, { passive: true });
+    // Live data wiring: if we have a token, immediately try gateway and start polling
+    this._kickLive();
+
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
       payments: this._appDoc('Send a payment', 'One charge at a time', '<div class="big">$1,240.00</div><div class="row"><span class="muted">To</span><span>Ada Lovelace</span></div><div class="row"><span class="muted">When</span><span>Today</span></div><div class="row"><span class="muted">Fee</span><span>$0.00</span></div><button class="cta" style="margin-top:18px">Send payment</button>'),
@@ -2349,7 +2389,7 @@ class Component extends DCLogic {
     this._loop();
   }
   componentWillUnmount() {
-    clearInterval(this._timer); clearInterval(this._drawTimer); clearTimeout(this._bootTimer); clearTimeout(this._reply); clearTimeout(this._buildT);
+    clearInterval(this._timer); clearInterval(this._drawTimer); clearInterval(this._liveTimer); clearTimeout(this._bootTimer); clearTimeout(this._reply); clearTimeout(this._buildT);
     if (this._onMove) window.removeEventListener('mousemove', this._onMove);
     if (this._raf) cancelAnimationFrame(this._raf);
   }
@@ -2487,22 +2527,286 @@ class Component extends DCLogic {
     const chat = [...this.state.chat, { who: 'You', isMuse: false, text }];
     this.setState({ chat, composer: '', museThinking: true });
     clearTimeout(this._reply);
-    this._reply = setTimeout(() => {
-      if (this.state.chatFusion) {
-        const routing = this._buildRouting(text);
-        const msg = { who: 'muse', isMuse: true,
-          text: 'Fusion run complete. I pulled together ' + routing.length + ' models for this, sent each part to the one best suited for it, ran them in parallel, and merged the results. Even a 10-million-word prompt gets split this way — faster, and sharper.',
-          routing, routingTitle: 'How muse split this task' };
-        this.setState({ museThinking: false, chat: [...this.state.chat, msg] });
-      } else {
-        const replies = [
-          'On it. I will start a task and check with you under Approvals before anything goes live.',
-          'Got it. I will open a task and keep you posted on each step — copy, set up, build, check, launch.',
-          'Done thinking. The quickest safe option is a small fix; I will not put anything live without your OK.',
-        ];
-        this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: replies[Math.floor(Math.random() * replies.length)] }] });
+    // If paired with a live gateway, dispatch a real job and poll for completion
+    if (this._tok()) {
+      this._dispatchLiveJob(text);
+      return;
+    }
+    // No gateway token: use the app's own /api/chat (hosted server chat). On
+    // the public deployment this streams a real reply from the server-held
+    // provider key; on a static host with no /api it falls back to an honest
+    // "not configured / pair a gateway" message (never a fabricated answer).
+    this._dispatchApiChat(text);
+  };
+
+  _dispatchApiChat = async (text) => {
+    void text;
+    const history = this.state.chat
+      .filter(m => m && typeof m.text === 'string' && (m.isMuse || m.who === 'You'))
+      .map(m => ({ role: m.isMuse ? 'assistant' : 'user', content: m.text }));
+    const base = [...this.state.chat, { who: 'muse', isMuse: true, text: '' }];
+    const museIdx = base.length - 1;
+    let acc = '';
+    const render = () => this.setState({ chat: base.map((m, i) => i === museIdx ? { ...m, text: acc } : m) });
+    this.setState({ chat: base });
+    try {
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'auto', messages: history }),
+      });
+      if (!r.ok || !r.body) {
+        let hint = 'needs a provider key';
+        try { const d = await r.json(); hint = (d && (d.error || d.hint)) || hint; } catch (e) { /* non-JSON */ }
+        acc = 'Live chat is not configured on the server yet — ' + hint + '. Add a provider key (OPENROUTER_API_KEY) in the deployment env to enable replies, or pair a gateway with Connect.';
+        this.setState({ museThinking: false }); render(); return;
       }
-    }, 1400);
+      this.setState({ museThinking: false });
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') return;
+          try {
+            const j = JSON.parse(payload);
+            const d = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+            if (d) { acc += d; render(); }
+          } catch (e) { /* keepalive / partial frame */ }
+        }
+      }
+    } catch (e) {
+      acc = acc || ('Could not reach the chat service (' + ((e && e.message) || e) + '). On a static host without /api, pair a gateway with Connect.');
+      this.setState({ museThinking: false }); render();
+    }
+  };
+
+  _dispatchLiveJob = async (text) => {
+    try {
+      const body = { title: text.slice(0, 80), prompt: text, type: this.state.chatFusion ? 'fusion-chat' : 'chat' };
+      const r = await this._api('/v1/cockpit/jobs', { method: 'POST', body });
+      if (!r.ok || !r.data || !r.data.id) {
+        this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: 'The gateway rejected the job (' + r.status + '). ' + ((r.data && (r.data.error || r.data.hint)) || '') }] });
+        return;
+      }
+      const jobId = r.data.id;
+      // Poll the job until it completes or times out
+      let tries = 0;
+      const poll = async () => {
+        tries++;
+        try {
+          const s = await this._api('/v1/cockpit/jobs/' + jobId);
+          if (s.ok && s.data) {
+            const j = s.data;
+            const done = j.status === 'completed' || j.status === 'done' || j.status === 'failed' || j.status === 'error' || j.status === 'cancelled';
+            if (done) {
+              const out = j.output || j.result || j.response || j.text || (j.messages && j.messages.length ? j.messages[j.messages.length - 1].text : '') || ('Job ' + jobId + ' finished with status: ' + j.status);
+              const msg = { who: 'muse', isMuse: true, text: typeof out === 'string' ? out : JSON.stringify(out, null, 2) };
+              if (this.state.chatFusion && j.routing) { msg.routing = j.routing; msg.routingTitle = 'How muse split this task'; }
+              this.setState({ museThinking: false, chat: [...this.state.chat, msg] });
+              this.pullAll();
+              return;
+            }
+          }
+        } catch (e) { /* keep polling */ }
+        if (tries < 120) this._reply = setTimeout(poll, 1500);
+        else this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: 'Job ' + jobId + ' is still running. Check the Tasks view for live progress.' }] });
+      };
+      this._reply = setTimeout(poll, 1000);
+      // Refresh the Tasks view immediately so the new job appears
+      this.pullJobs();
+    } catch (e) {
+      this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: this._reach(e) }] });
+    }
+  };
+
+  // ===== Live data pulls — overwrite the seeded mock arrays with real gateway data =====
+  _setIf = (patch) => { try { this.setState(patch); } catch (e) {} };
+
+  pullJobs = async () => {
+    const r = await this._api('/v1/cockpit/jobs');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.jobs || []);
+    const phaseMap = { queued: 0, copying: 1, setup: 2, building: 3, checking: 4, launching: 5, done: 5, completed: 5, failed: 5, error: 5 };
+    const jobsRaw = items.map(j => ({
+      id: j.id || j.job_id || ('job-' + Math.random().toString(16).slice(2, 6)),
+      title: j.title || j.prompt || j.name || '(untitled job)',
+      sub: j.type ? ('Task · ' + j.type) : (j.kind || 'Task'),
+      phase: typeof j.phase === 'number' ? j.phase : (phaseMap[String(j.status || '').toLowerCase()] || 0),
+      live: !!(j.status === 'running' || j.status === 'in_progress' || j.live),
+      review: !!(j.status === 'review' || j.review),
+      queued: j.status === 'queued',
+      secs: j.elapsed_seconds || j.elapsed || 0,
+    }));
+    this._setIf({ jobsRaw });
+  };
+
+  pullApprovals = async () => {
+    const r = await this._api('/v1/cockpit/approvals');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.approvals || []);
+    const approvalsRaw = items.map((a, i) => ({
+      id: a.id || ('ap' + i),
+      gate: a.gate || a.kind || 'Approval',
+      title: a.title || a.summary || a.action || '(approval)',
+      detail: a.detail || a.description || '',
+      risk: a.risk || a.severity || 'Medium',
+      riskCls: 'pill ' + ({ low: 'neutral', small: 'neutral', medium: 'warn', high: 'danger', big: 'danger' }[String(a.risk || a.severity || 'medium').toLowerCase()] || 'warn'),
+      meta: a.requested_by ? ('asked by ' + a.requested_by + (a.requested_at ? ' · ' + a.requested_at : '')) : (a.meta || ''),
+    }));
+    this._setIf({ approvalsRaw });
+  };
+
+  pullMemory = async () => {
+    const r = await this._api('/v1/cockpit/memory');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.entries || []);
+    this.memoryData = items.slice(0, 40).map(m => ({
+      type: m.type || m.kind || 'Note',
+      typeCls: 'pill ' + (m.type === 'Fact' ? 'accent' : 'neutral'),
+      text: m.text || m.content || m.summary || '',
+      meta: m.meta || (m.source ? ('from ' + m.source) : '') + (m.used ? (' · used ' + m.used + '×') : '') + (m.updated_at ? (' · ' + m.updated_at) : ''),
+      strength: typeof m.strength === 'number' ? m.strength : (typeof m.score === 'number' ? Math.round(m.score * 100) : 60),
+    }));
+    this.forceUpdate();
+  };
+
+  pullEvidence = async () => {
+    const r = await this._api('/v1/cockpit/evidence');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.entries || []);
+    this.evidenceData = items.slice(0, 40).map(e => ({
+      time: e.time || e.timestamp || '',
+      actor: e.actor || e.source || e.by || 'System',
+      action: e.action || e.event || e.summary || '',
+      hash: e.hash ? ('ref #' + String(e.hash).slice(0, 6)) : (e.id ? ('ref #' + String(e.id).slice(0, 6)) : ''),
+      verdict: e.verdict || e.status || 'Logged',
+      verdictCls: 'pill ' + ({ logged: 'ok', ok: 'ok', blocked: 'danger', denied: 'danger', approved: 'ok' }[String(e.verdict || e.status || 'logged').toLowerCase()] || 'neutral'),
+    }));
+    this.forceUpdate();
+  };
+
+  pullLearning = async () => {
+    const r = await this._api('/v1/cockpit/learning');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.runs || []);
+    this.learningData = items.slice(0, 20).map(l => ({
+      name: l.name || l.title || 'Learning run',
+      sub: l.sub || l.kind || '',
+      metric: l.metric != null ? String(l.metric) : (l.score != null ? String(l.score) : '—'),
+      metricLabel: l.metric_label || 'score',
+      delta: l.delta || '',
+      deltaCls: 'pill ' + (String(l.delta || '').startsWith('-') ? 'warn' : 'ok'),
+      state: l.state || l.status || 'Running',
+      stateCls: 'pill accent',
+      pct: typeof l.pct === 'number' ? l.pct : (typeof l.progress === 'number' ? Math.round(l.progress * 100) : 0),
+      barColor: 'var(--ring-grad)',
+      progress: l.progress_label || '',
+    }));
+    this.forceUpdate();
+  };
+
+  pullLedger = async () => {
+    const r = await this._api('/v1/cockpit/ledger');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.entries || []);
+    if (this.state.work && items.length) {
+      const ledger = items.slice(0, 40).map(e => ({
+        when: e.when || e.timestamp || '',
+        what: e.what || e.title || e.summary || '',
+        who: e.who || e.actor || '',
+        outcome: e.outcome || e.verdict || '',
+      }));
+      this.setState(s => ({ work: { ...(s.work || {}), ledger } }));
+    }
+  };
+
+  pullSkills = async () => {
+    const r = await this._api('/v1/cockpit/skills');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.skills || []);
+    this.skillsData = items.slice(0, 60).map(s => ({ name: s.name || s.id || 'Skill', desc: s.description || s.desc || s.summary || '' }));
+    this.forceUpdate();
+  };
+
+  pullModels = async () => {
+    const r = await this._api('/v1/cockpit/models');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.models || []);
+    if (!items.length) return;
+    const providers = new Map();
+    const models = items.slice(0, 40).map((m, i) => {
+      const pid = m.provider || m.prov || 'local';
+      if (!providers.has(pid)) providers.set(pid, { id: pid, name: pid.charAt(0).toUpperCase() + pid.slice(1), kind: m.family || '', connected: m.connected !== false });
+      return {
+        id: m.id || ('m' + i),
+        prov: pid,
+        name: m.name || m.id || ('Model ' + i),
+        ctx: typeof m.context === 'number' ? Math.round(m.context / 1000) : (m.ctx || 128),
+        strengths: m.strengths || m.tags || ['General'],
+        cost: m.cost != null ? m.cost : 1,
+        on: m.enabled !== false,
+        fuse: !!m.fuse,
+        weight: m.weight || 10,
+      };
+    });
+    this.setState({ providers: Array.from(providers.values()), models });
+  };
+
+  pullSessions = async () => {
+    const r = await this._api('/v1/cockpit/sessions');
+    if (!r.ok || !r.data) return;
+    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.sessions || []);
+    // Populate the log lines view from recent session events
+    const lines = items.slice(0, 12).map((s, i) => ({
+      id: 's' + (s.id || i),
+      t: (s.updated_at || s.created_at || '').toString().slice(11, 19) || this._clock(this.state.seconds).slice(0, 8),
+      tag: (s.kind || 'SESS').toUpperCase().slice(0, 6),
+      tagCls: 'pill ' + (s.status === 'completed' ? 'ok' : s.status === 'failed' ? 'danger' : 'accent'),
+      msg: s.title || s.goal || s.id || '',
+    }));
+    if (lines.length) this._setIf({ logLines: lines });
+  };
+
+  pullDiagnostics = async () => {
+    const r = await this._api('/v1/cockpit/diagnostics');
+    if (!r.ok || !r.data) return;
+    const d = r.data;
+    if (d.metrics) {
+      const m = d.metrics;
+      const mv = { ...this.state.metricVals };
+      if (typeof m.latency_ms === 'number') mv.latency = Math.round(m.latency_ms);
+      if (typeof m.tokens_per_second === 'number') mv.tps = Math.round(m.tokens_per_second);
+      if (typeof m.tokens_per_response_k === 'number') mv.tokens = +m.tokens_per_response_k.toFixed(1);
+      if (typeof m.cost_usd === 'number') mv.cost = +m.cost_usd.toFixed(2);
+      this._setIf({ metricVals: mv });
+    }
+  };
+
+  pullAutonomy = async () => {
+    const r = await this._api('/v1/cockpit/autonomy');
+    if (!r.ok || !r.data) return;
+    const a = r.data;
+    if (a.level) this._setIf({ autonomyLevel: a.level });
+    if (a.guardrails) this._setIf({ guardrails: { ...this.state.guardrails, ...a.guardrails } });
+  };
+
+  pullAll = async () => {
+    if (!this._tok()) return;
+    // Fire all in parallel; each method is fault-tolerant
+    Promise.allSettled([
+      this.pullRuntime(), this.pullJobs(), this.pullApprovals(),
+      this.pullMemory(), this.pullEvidence(), this.pullLearning(),
+      this.pullLedger(), this.pullSkills(), this.pullModels(),
+      this.pullSessions(), this.pullDiagnostics(), this.pullAutonomy(),
+    ]);
   };
   onToggleFusionMode = () => this.setState({ chatFusion: !this.state.chatFusion });
   onEmergency = () => this.setState({ halted: !this.state.halted });
@@ -2512,7 +2816,16 @@ class Component extends DCLogic {
   OWNER_PHRASE = 'Yes, with authorization.';
 
   _gw() {
-    return (this.state.gatewayUrl || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
+    // Resolve the gateway base URL. The paired URL is persisted in
+    // localStorage, but state.gatewayUrl is only hydrated when the Connect
+    // dialog opens — so on a reload-after-pairing, fall back to the saved URL
+    // before the localhost default. Without this, boot-time live polling (when
+    // a token is present) would hit http://127.0.0.1:8765 from the public HTTPS
+    // cockpit — a mixed-content request to localhost. (chat uses /api/chat, not
+    // this path, so it is unaffected.)
+    let u = this.state.gatewayUrl;
+    if (!u) { try { u = localStorage.getItem('muse.gateway.url') || ''; } catch (e) { u = ''; } }
+    return (u || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
   }
   _tok() { try { return localStorage.getItem('muse.gateway.token') || ''; } catch (e) { return ''; } }
 
@@ -2591,6 +2904,7 @@ class Component extends DCLogic {
         } catch (e) {}
         this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
         this.pullRuntime();
+        this._kickLive();
       } else if (r.status === 403) {
         this.setState({ connError: 'Owner authorization phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' });
       } else if (r.status === 401) {
@@ -2604,9 +2918,21 @@ class Component extends DCLogic {
   pullRuntime = async () => {
     try {
       const r = await this._api('/v1/cockpit/runtime/status');
-      if (r.ok && r.data) this.setState({ liveRuntime: r.data, connState: 'live' });
+      if (r.ok && r.data) {
+        this.setState({ liveRuntime: r.data, connState: 'live' });
+        // Update GitHub status from runtime if present
+        if (r.data.github) this._setIf({ github: { ...this.state.github, ...r.data.github } });
+      }
       else if (r.status === 401) this.setState({ connState: 'error', connStep: 'idle', connError: 'This device token was rejected (401). Pair again.' });
     } catch (e) { /* keep last known */ }
+  };
+
+  _kickLive = () => {
+    if (!this._tok()) return;
+    // Immediately pull everything, then poll on a 4s loop
+    this.pullAll();
+    clearInterval(this._liveTimer);
+    this._liveTimer = setInterval(() => this.pullAll(), 4000);
   };
 
   _connVals(s) {
@@ -2907,12 +3233,18 @@ class Component extends DCLogic {
       };
     });
 
-    const nav = this.navMeta.map(n => {
+    const nav = [];
+    let _navGroup = null;
+    this.navMeta.forEach(n => {
+      if (n.group && n.group !== _navGroup) {
+        nav.push({ isSection: true, isLink: false, label: n.group });
+        _navGroup = n.group;
+      }
       let ext = '';
       if (n.id === 'jobs' && runningCount) ext = String(runningCount);
       if (n.id === 'agents' && workingAgents) ext = String(workingAgents);
       if (n.id === 'approvals' && s.approvalsRaw.length) ext = String(s.approvalsRaw.length);
-      return { ...n, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), onClick: this.select(n.id), ext };
+      nav.push({ ...n, isSection: false, isLink: true, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), onClick: this.select(n.id), ext });
     });
 
     const show = {};
