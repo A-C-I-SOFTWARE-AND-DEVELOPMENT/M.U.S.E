@@ -29,7 +29,8 @@ def _save(workdir: Path, name: str, data: bytes | str) -> str:
     workdir.mkdir(parents=True, exist_ok=True)
     p = workdir / name
     mode = "wb" if isinstance(data, (bytes, bytearray)) else "w"
-    with open(p, mode) as f:
+    encoding = None if "b" in mode else "utf-8"
+    with open(p, mode, encoding=encoding) as f:
         f.write(data)
     return str(p)
 
