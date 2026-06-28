@@ -1034,7 +1034,7 @@ body { perspective: 1800px; }
                 <sc-if value="{{ ap.confirming }}" hint-placeholder-val="{{ false }}">
                   <div style="flex:none; display:flex; flex-direction:column; gap:6px; align-self:center; min-width:248px;">
                     <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Owner authorization required</div>
-                    <input class="field" placeholder="{{ ownerPhrase }}" value="{{ approvePhrase }}" oninput="{{ onApprovePhrase }}" onkeydown="{{ onApprovePhrase }}">
+                    <input class="field" placeholder="{{ ownerPhrase }}" value="{{ approvePhrase }}" oninput="{{ onApprovePhrase }}">
                     <sc-if value="{{ approveError }}" hint-placeholder-val="">
                       <div class="mono" style="font-size:11px; color:var(--danger);">{{ approveError }}</div>
                     </sc-if>
