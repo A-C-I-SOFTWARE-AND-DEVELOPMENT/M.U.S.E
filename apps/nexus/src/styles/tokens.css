@@ -1,52 +1,119 @@
 /* ===========================================================================
-   NEXUS design tokens — dark HUD / sci-fi. Everything themeable via CSS vars.
-   The octagon's live glow color is driven by --octa-glow (animated ~400ms).
+   NEXUS design tokens — re-skinned to the cockpit's "Singularity" system.
+   Canonical source: gateway/cockpit/static/cockpit.dc.html <helmet> tokens.
+   One white core in the void; a single thin spectral ring. White is the hero;
+   spectral color (cyan→violet ring) is a SPARING matte accent (<= ~20%).
+   Elevation is TONAL (lift the void tone), NEVER a drop shadow. Hierarchy by
+   VALUE. The legacy NEXUS token NAMES are kept (42 components depend on them)
+   and only their VALUES are remapped onto the Singularity palette; the raw
+   Singularity tokens (--void, --core, --ring-1, …) are ADDED below for new use.
+   The octagon's live glow color is still driven by --octa-glow.
    =========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* No remote web-font fetch (local-first / offline; matches the cockpit, which
+   uses system fonts). Inter / JetBrains Mono are honored when installed; every
+   font-family below falls back through a robust system stack otherwise. */
 
 :root {
+  /* ---- Singularity palette (canonical, ADDED for new usage) ------------- */
+  --void: #050507; /* background — the dark field, full-bleed always */
+  --void-2: #0b0d12; /* raised surface (tonal elevation, not a shadow) */
+  --void-3: #12151d; /* cards (tonal elevation, not a shadow) */
+  --edge: #1c2030; /* hairline borders */
+  --core: #ffffff; /* the single point of light — primary accent / hero */
+  --signal: #e8ecf4; /* primary text */
+  --signal-dim: #aab2c4; /* secondary text */
+  --signal-mute: #6b7388; /* tertiary text / metadata */
+  --ring-1: #7ae0ff; /* spectral ring — cyan start stop */
+  --ring-2: #b388ff; /* spectral ring — violet end stop */
+  --ring-grad: linear-gradient(90deg, var(--ring-1), var(--ring-2));
+  --ok: #5be3a0; /* success / online (UI status — never brand art) */
+  --warn: #f5c451; /* attention (UI status — never brand art) */
+  --danger: #ff5c63; /* destructive / emergency stop (UI status only) */
+
+  /* Tonal elevation aliases (higher = lighter void tone, never a shadow) */
+  --elevation-flat: var(--void);
+  --elevation-raised: var(--void-2);
+  --elevation-card: var(--void-3);
+
+  /* ---- Legacy NEXUS names → Singularity VALUES (do NOT rename) ---------- */
   /* Backgrounds */
-  --bg-base: #0a0e14;
-  --bg-elev: #0e141d;
-  --panel: rgba(18, 24, 33, 0.72);
-  --panel-solid: #121821;
-  --hairline: rgba(120, 150, 180, 0.16);
-  --hairline-strong: rgba(120, 150, 180, 0.32);
+  --bg-base: var(--void); /* #050507 */
+  --bg-elev: var(--void-2); /* #0b0d12 */
+  --panel: rgba(18, 21, 29, 0.72); /* glassy --void-3 tone */
+  --panel-solid: var(--void-3); /* #12151d */
+  --hairline: var(--edge); /* #1c2030 */
+  --hairline-strong: #2a3044; /* a lifted --edge for stronger seams */
 
   /* Text */
-  --ink: #e6edf3;
-  --ink-dim: #8499ad;
-  --ink-faint: #4a5a6a;
+  --ink: var(--signal); /* #e8ecf4 */
+  --ink-dim: var(--signal-dim); /* #aab2c4 */
+  --ink-faint: var(--signal-mute); /* #6b7388 */
 
-  /* Signal palette = the 8 vertex accents */
-  --acc-reasoning: #ffb020;
-  --acc-creativity: #c264fe;
-  --acc-logic: #4fc3f7;
-  --acc-contemplation: #7c9eff;
-  --acc-coding: #34e5c8;
-  --acc-synthesis: #3dd68c;
-  --acc-empathy: #ff6b8a;
-  --acc-factuality: #5ee6eb;
+  /* Signal palette = the 8 vertex accents, redrawn from the spectral ring.
+     Cyan (--ring-1) ↔ violet (--ring-2) is the canon; the intermediate hues
+     are restrained spectral stops so the octagon's 8 vertices stay legible
+     without ever blooming the matte ring. */
+  --acc-reasoning: #8fb4ff; /* cyan→violet, cool blue */
+  --acc-creativity: var(--ring-2); /* violet end stop */
+  --acc-logic: var(--ring-1); /* cyan start stop */
+  --acc-contemplation: #9d8cff; /* violet-leaning */
+  --acc-coding: #7ae0ff; /* cyan (ring-1) */
+  --acc-synthesis: #8ad9e8; /* cyan-teal */
+  --acc-empathy: #c79bff; /* soft violet */
+  --acc-factuality: #6ad2ff; /* bright cyan */
 
-  /* Live octagon glow (mutated at runtime) */
-  --octa-glow: #3dd68c;
+  /* Live octagon glow (mutated at runtime) — cyan ring start by default. */
+  --octa-glow: var(--ring-1);
 
-  /* State dots */
-  --state-idle: #5a6b7d;
-  --state-running: #34e5c8;
-  --state-error: #ff5470;
-  --state-auth: #ffb020;
+  /* State dots — UI status hues (never brand art). */
+  --state-idle: var(--signal-mute); /* #6b7388 disconnected/idle */
+  --state-running: var(--ring-1); /* cyan ring — live */
+  --state-error: var(--danger); /* #ff5c63 */
+  --state-auth: var(--warn); /* #f5c451 */
 
-  --radius: 16px;
-  --radius-sm: 10px;
+  /* ---- Radius (Singularity canonical 12px default) --------------------- */
+  --radius-md: 12px; /* canonical default */
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --radius: 12px; /* legacy alias → md is the default */
+  --radius-sm: 8px;
   --tab-h: 64px;
 
-  /* Apple/Google-grade motion + elevation tokens */
-  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.55);
+  /* ---- Spacing: 4/8 grid (ADDED) --------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Type scale (ADDED, from the Singularity token source) ----------- */
+  --type-display-size: 40px;
+  --type-display-line: 48px;
+  --type-title-size: 22px;
+  --type-title-line: 28px;
+  --type-body-size: 15px;
+  --type-body-line: 22px;
+  --type-label-size: 12px;
+  --type-label-line: 16px;
+
+  /* ---- Motion: Material 3 ---------------------------------------------- */
+  /* Legacy ease names kept (components reference them); Singularity-aligned. */
+  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-standard: 250ms;
+  --duration-slow: 350ms;
+
+  /* Elevation tokens — TONAL only. The old shadow tokens are remapped to
+     near-zero, mostly-tonal lifts so legacy `box-shadow: var(--shadow-N)`
+     usages read as a lighter void edge, not a dropped shadow. */
+  --shadow-1: 0 0 0 1px var(--edge);
+  --shadow-2: 0 0 0 1px var(--edge), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --shadow-3: 0 0 0 1px var(--edge), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 * {
@@ -67,7 +134,7 @@ body,
    html base is also the dark fallback for surfaces that omit the backdrop (e.g.
    full-bleed wallpaper mode). */
 html {
-  background-color: var(--bg-base);
+  background-color: var(--void);
 }
 
 body {
@@ -75,8 +142,16 @@ body {
   background: transparent;
   color: var(--ink);
   font-family: Inter, system-ui, sans-serif;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(122, 224, 255, 0.22);
+  color: var(--core);
 }
 
 .mono {
@@ -84,22 +159,19 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Glass panel primitive — layered hairline + soft elevation for depth. */
+/* Glass panel primitive — TONAL elevation (a lighter void tone), never a drop
+   shadow. A single faint specular top edge keeps it reading as lit glass; the
+   spectral ring is never used here (white-on-void hierarchy by VALUE). */
 .glass {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
     var(--panel);
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
-  /* Layered elevation + a crisp specular top edge so panels read as lit glass
-     rather than flat fills — part of the cinematic commercial finish. */
-  box-shadow:
-    var(--shadow-2),
-    0 0 0 1px rgba(255, 255, 255, 0.015),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 /* Tactile press feedback for any interactive surface. */
@@ -113,11 +185,12 @@ button:active,
   transform: scale(0.97);
 }
 
-/* Visible, on-brand focus ring for keyboard users (accessibility). */
+/* Visible, on-brand focus ring for keyboard users (accessibility). The cyan
+   ring start is the canonical Singularity focus colour. */
 :focus-visible {
-  outline: 2px solid var(--octa-glow);
+  outline: 2px solid var(--ring-1);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .hud-label {
@@ -199,45 +272,49 @@ button {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  /* A deep, graded base so the aurora reads against true cinematic black. */
+  /* The void is the full-bleed field. ONE broad atmospheric depth pool sits
+     top-centre — a single faint cool wash (cyan→violet ring stops), not a
+     stack — exactly as the cockpit shell does it. */
   background:
-    radial-gradient(1400px 1000px at 50% -15%, rgba(52, 229, 200, 0.05), transparent 62%),
-    radial-gradient(1100px 900px at 110% 115%, rgba(194, 100, 254, 0.05), transparent 60%),
-    linear-gradient(180deg, #070a0f 0%, var(--bg-base) 45%, #060910 100%);
+    radial-gradient(1100px 560px at 50% -8%,
+      rgba(122, 224, 255, 0.05) 0%,
+      rgba(179, 136, 255, 0.035) 34%,
+      rgba(5, 5, 7, 0) 68%),
+    var(--void);
 }
 
-/* Each aurora is a soft, oversized radial bloom that drifts on its own clock,
-   blending additively for volumetric, lens-like light. */
+/* The drifting auroras are kept for subtle motion but pulled WAY back: matte,
+   low-opacity, no screen-blend bloom — spectral colour stays sparing and the
+   ring is never glowed. They read as faint depth, not neon. */
 .cb-aurora {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.5;
-  mix-blend-mode: screen;
+  filter: blur(110px);
+  opacity: 0.16;
   will-change: transform;
 }
 .cb-aurora-1 {
   width: 58vmax;
   height: 58vmax;
-  top: -22vmax;
-  left: -12vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(52, 229, 200, 0.5), transparent 68%);
+  top: -26vmax;
+  left: -14vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(122, 224, 255, 0.35), transparent 70%);
   animation: cb-drift-1 34s var(--ease-standard) infinite alternate;
 }
 .cb-aurora-2 {
   width: 52vmax;
   height: 52vmax;
-  bottom: -20vmax;
-  right: -14vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(124, 158, 255, 0.42), transparent 68%);
+  bottom: -22vmax;
+  right: -16vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(179, 136, 255, 0.28), transparent 70%);
   animation: cb-drift-2 42s var(--ease-standard) infinite alternate;
 }
 .cb-aurora-3 {
   width: 40vmax;
   height: 40vmax;
-  top: 28%;
-  left: 36%;
-  background: radial-gradient(circle at 50% 50%, rgba(194, 100, 254, 0.3), transparent 70%);
+  top: 30%;
+  left: 38%;
+  background: radial-gradient(circle at 50% 50%, rgba(122, 224, 255, 0.18), transparent 72%);
   animation: cb-drift-3 50s var(--ease-standard) infinite alternate;
 }
 
@@ -254,11 +331,12 @@ button {
   to { transform: translate3d(6vmax, -7vmax, 0) scale(1.12); }
 }
 
-/* Cinematic depth: darken the frame edges so the eye lands on content. */
+/* Cinematic depth: darken the frame edges so the eye lands on content.
+   Matched to the cockpit's edge-darkening pool. */
 .cb-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 90% at 50% 38%, transparent 52%, rgba(2, 4, 8, 0.55) 100%);
+  background: radial-gradient(120% 80% at 50% 50%, transparent 52%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 /* Fine film grain (self-contained SVG fractal noise) for an analog, shot-on-
@@ -271,21 +349,19 @@ button {
   mix-blend-mode: overlay;
 }
 
-/* Elevated glass for hero/primary surfaces: a brighter specular top edge, a
-   faint accent inner ring, and deeper elevation than the base .glass. */
+/* Elevated glass for hero/primary surfaces. Elevation is TONAL — a lighter
+   void tone (--void-3) plus a slightly brighter specular top edge — never a
+   drop shadow. Stronger hairline marks it as the lifted card. */
 .glass-elev {
   position: relative;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    var(--panel);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
+    var(--void-3);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
-  box-shadow:
-    var(--shadow-3),
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
 
 /* Crisp, cinematic display type — tight tracking + subtle depth shadow so

@@ -1,16 +1,31 @@
 import { useEffect, useState } from 'react';
 import { StatusDot } from '@/components/shell/StatusDot';
 import { surfaces } from '@/adapters';
+import { museBase } from '@/lib/config';
 import type { AgentSummary } from '@/lib/types';
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState<AgentSummary[]>([]);
+  const [loading, setLoading] = useState(true);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const museConnected = !!museBase();
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true);
     Promise.all(surfaces.map((s) => s.listAgents().catch(() => [])))
-      .then((lists) => setAgents(lists.flat()))
-      .catch(() => setAgents([]));
+      .then((lists) => {
+        if (alive) setAgents(lists.flat());
+      })
+      .catch(() => {
+        if (alive) setAgents([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const byKind = {
@@ -51,15 +66,23 @@ export default function AgentsPage() {
         )}
       </div>
 
-      <AgentGroup title="M.U.S.E. agents" items={byKind.muse} controllable />
+      <AgentGroup
+        title="M.U.S.E. agents"
+        items={byKind.muse}
+        controllable
+        loading={loading}
+        emptyLabel={museConnected ? 'No agents reported by the gateway' : 'Requires gateway — connect M.U.S.E. to list agents'}
+      />
       <AgentGroup
         title="Antigravity"
         items={byKind.antigravity}
+        loading={loading}
         onOpen={() => surfaces[1].openExternal?.('antigravity-preview')}
       />
       <AgentGroup
         title="AI Studio"
         items={byKind.aistudio}
+        loading={loading}
         onOpen={() => surfaces[2].openExternal?.('aistudio-chat')}
       />
     </div>
@@ -70,19 +93,27 @@ function AgentGroup({
   title,
   items,
   controllable,
+  loading,
+  emptyLabel,
   onOpen,
 }: {
   title: string;
   items: AgentSummary[];
   controllable?: boolean;
+  loading?: boolean;
+  emptyLabel?: string;
   onOpen?: () => void;
 }) {
   return (
     <>
       <div className="hud-label mb-2 mt-4">{title}</div>
-      {items.length === 0 ? (
+      {loading && items.length === 0 ? (
         <div className="glass px-4 py-4 text-center text-[11px] text-[var(--ink-dim)]">
-          None connected
+          Loading…
+        </div>
+      ) : items.length === 0 ? (
+        <div className="glass px-4 py-4 text-center text-[11px] text-[var(--ink-dim)]">
+          {emptyLabel ?? 'None connected'}
         </div>
       ) : (
         <div className="flex flex-col gap-2">

@@ -8,10 +8,15 @@ import { museBase } from '@/lib/config';
 export default function ChampionshipPage() {
   const navigate = useNavigate();
   const [lb, setLb] = useState<ForgeLeaderboard | null>(null);
+  const [loading, setLoading] = useState(false);
   const connected = !!museBase();
 
   useEffect(() => {
-    if (connected) fetchForgeLeaderboard().then(setLb);
+    if (!connected) return;
+    setLoading(true);
+    fetchForgeLeaderboard()
+      .then(setLb)
+      .finally(() => setLoading(false));
   }, [connected]);
 
   const stat = (label: string, value: string | number) => (
@@ -41,16 +46,20 @@ export default function ChampionshipPage() {
             Open Settings
           </button>
         </div>
+      ) : !lb && loading ? (
+        <div className="glass mono px-3 py-6 text-center text-[11px] text-[var(--ink-dim)]">Loading standings…</div>
       ) : lb?.error ? (
         <div className="glass mono px-3 py-3 text-[11px] text-[var(--state-error)]">{lb.error}</div>
+      ) : !lb ? (
+        <div className="glass mono px-3 py-6 text-center text-[11px] text-[var(--ink-dim)]">No standings available.</div>
       ) : (
         <>
           <div className="mb-3 flex gap-2">
-            {stat('candidates', lb?.candidates ?? 0)}
-            {stat('coverage', lb ? `${Math.round(lb.coverage * 100)}%` : '—')}
-            {stat('QD score', lb ? lb.qdScore.toFixed(2) : '—')}
+            {stat('candidates', lb.candidates)}
+            {stat('coverage', `${Math.round(lb.coverage * 100)}%`)}
+            {stat('QD score', lb.qdScore.toFixed(2))}
           </div>
-          {lb && lb.standings.length > 0 ? (
+          {lb.standings.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {lb.standings.map((s, i) => (
                 <div key={i} className="glass flex items-center justify-between px-3 py-2">

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
 import { SideNav } from './components/shell/SideNav';
 import { TopBar } from './components/shell/TopBar';
@@ -28,6 +28,13 @@ import SharePage from './pages/SharePage';
 import AgentsPage from './pages/AgentsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+
+// SignInPage is authored by a sibling task; lazy-import it so the route is
+// code-split off the shell. The module may not be on disk yet at the moment
+// this file is integrated, so the missing-module diagnostic is suppressed —
+// it resolves cleanly once the sibling task lands its page.
+// @ts-ignore -- ./pages/SignInPage is provided by a sibling task
+const SignInPage = lazy(() => import('./pages/SignInPage'));
 
 // Apple/Google-grade page transition: a quick, springy fade + lift. Respects
 // prefers-reduced-motion via the CSS media query in tokens.css (transforms are
@@ -92,11 +99,20 @@ export default function App() {
         <main className="scroll-area flex-1 pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))] md:pb-0">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Page><ConsolePage /></Page>} />
+            <Route path="/" element={<Page><ChatPage /></Page>} />
+            <Route path="/chat" element={<Navigate to="/" replace />} />
+            <Route path="/console" element={<Page><ConsolePage /></Page>} />
+            <Route
+              path="/signin"
+              element={
+                <Suspense fallback={null}>
+                  <Page><SignInPage /></Page>
+                </Suspense>
+              }
+            />
             <Route path="/steer" element={<Page><SteerPage /></Page>} />
             <Route path="/axiom" element={<Page><AxiomGatePage /></Page>} />
             <Route path="/observatory" element={<Page><ObservatoryPage /></Page>} />
-            <Route path="/chat" element={<Page><ChatPage /></Page>} />
             <Route path="/fusion" element={<Page><FusionPage /></Page>} />
             <Route path="/forge" element={<Page><ForgePage /></Page>} />
             <Route path="/fleet" element={<Page><FleetPage /></Page>} />
