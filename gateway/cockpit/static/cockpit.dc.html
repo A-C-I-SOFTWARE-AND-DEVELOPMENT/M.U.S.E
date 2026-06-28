@@ -2816,7 +2816,16 @@ class Component extends DCLogic {
   OWNER_PHRASE = 'Yes, with authorization.';
 
   _gw() {
-    return (this.state.gatewayUrl || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
+    // Resolve the gateway base URL. The paired URL is persisted in
+    // localStorage, but state.gatewayUrl is only hydrated when the Connect
+    // dialog opens — so on a reload-after-pairing, fall back to the saved URL
+    // before the localhost default. Without this, boot-time live polling (when
+    // a token is present) would hit http://127.0.0.1:8765 from the public HTTPS
+    // cockpit — a mixed-content request to localhost. (chat uses /api/chat, not
+    // this path, so it is unaffected.)
+    let u = this.state.gatewayUrl;
+    if (!u) { try { u = localStorage.getItem('muse.gateway.url') || ''; } catch (e) { u = ''; } }
+    return (u || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
   }
   _tok() { try { return localStorage.getItem('muse.gateway.token') || ''; } catch (e) { return ''; } }
 
