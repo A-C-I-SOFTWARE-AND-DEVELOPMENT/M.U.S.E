@@ -24,7 +24,10 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const transport = effectiveTransport(cfg);
-  const ready = transport === 'direct' ? hasDirectKey() : !!providers;
+  // 'server' routes to the app's own /api/chat — we can always attempt it; the
+  // edge function answers an honest 501 ('server chat not configured') if the
+  // server holds no key, which surfaces as an error/disconnected state on send.
+  const ready = transport === 'server' ? true : transport === 'direct' ? hasDirectKey() : !!providers;
   // Honest, granular label for the selected model's actual route. The old code
   // hardcoded "direct · OpenRouter", which mislabels Anthropic/Gemini/Groq/etc.
   // direct routes now that the multi-provider transport layer exists.
@@ -110,7 +113,15 @@ export default function ChatPage() {
         </button>
         <span
           className="h-2 w-2 rounded-full"
-          title={ready ? transportLabel : transport === 'direct' ? 'add a provider or OpenRouter key in Settings' : 'gateway offline'}
+          title={
+            ready
+              ? transport === 'server'
+                ? 'hosted server chat · keys held on the server'
+                : transportLabel
+              : transport === 'direct'
+                ? 'add a provider or OpenRouter key in Settings'
+                : 'gateway offline'
+          }
           style={{ background: ready ? 'var(--state-running)' : 'var(--ink-faint)' }}
         />
       </div>
@@ -121,18 +132,34 @@ export default function ChatPage() {
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
               <div className="text-[13px] font-semibold">Unified provider chat</div>
-              {transport === 'direct' ? (
+              {/* Three honest paths, no main provider, no fabricated output:
+                  1. hosted server (this app's /api/chat, keys held server-side)
+                  2. bring-your-own key (browser-direct via your own key/OpenRouter)
+                  3. your gateway (the optional local MUSE provider gateway). */}
+              {transport === 'server' ? (
                 <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
-                  Direct from this app — <b className="text-[var(--ink)]">any of 300+ models across every provider</b>,
-                  no main provider, through your own keys or OpenRouter.{' '}
-                  <b className="text-[var(--ink)]">No server, no terminal.</b>
-                  {' '}
+                  <b className="text-[var(--ink)]">Hosted server chat</b> — runs through this app's own server,
+                  with provider keys held on the server (never in your browser). Or{' '}
+                  <b className="text-[var(--ink)]">bring your own key</b> in Settings → Credentials to chat
+                  browser-direct, or point chat at <b className="text-[var(--ink)]">your gateway</b> below.{' '}
+                  <button onClick={() => navigate('/models')} className="underline" style={{ color: 'var(--octa-glow)' }}>Browse all models →</button>
+                </div>
+              ) : transport === 'direct' ? (
+                <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
+                  <b className="text-[var(--ink)]">Bring your own key</b> — direct from this app,{' '}
+                  <b className="text-[var(--ink)]">any of 300+ models across every provider</b>, no main provider,
+                  through your own keys or OpenRouter. <b className="text-[var(--ink)]">No server, no terminal.</b>{' '}
+                  The other honest paths are <b className="text-[var(--ink)]">hosted server chat</b> and{' '}
+                  <b className="text-[var(--ink)]">your gateway</b>.{' '}
                   <button onClick={() => navigate('/models')} className="underline" style={{ color: 'var(--octa-glow)' }}>Browse all models →</button>
                 </div>
               ) : (
                 <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
-                  Using the local gateway. Tip: paste an <b className="text-[var(--ink)]">OpenRouter key</b> in
-                  Settings → Credentials and chat works instantly with no gateway at all.
+                  Using <b className="text-[var(--ink)]">your gateway</b> (the local MUSE provider gateway). The
+                  other honest paths: <b className="text-[var(--ink)]">hosted server chat</b>, or{' '}
+                  <b className="text-[var(--ink)]">bring your own key</b> — paste an{' '}
+                  <b className="text-[var(--ink)]">OpenRouter key</b> in Settings → Credentials and chat works
+                  instantly with no gateway at all.
                 </div>
               )}
               {!ready && (

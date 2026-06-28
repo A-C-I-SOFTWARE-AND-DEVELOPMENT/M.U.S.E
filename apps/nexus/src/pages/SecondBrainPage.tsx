@@ -11,6 +11,7 @@ import { museBase } from '@/lib/config';
 export default function SecondBrainPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<SecondBrainStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SecondBrainResult | null>(null);
@@ -18,7 +19,13 @@ export default function SecondBrainPage() {
   const connected = !!museBase();
 
   useEffect(() => {
-    if (connected) fetchSecondBrainStatus().then(setStatus);
+    if (!connected) return;
+    let alive = true;
+    setStatusLoading(true);
+    fetchSecondBrainStatus()
+      .then((s) => { if (alive) setStatus(s); })
+      .finally(() => { if (alive) setStatusLoading(false); });
+    return () => { alive = false; };
   }, [connected]);
 
   const run = async () => {
@@ -60,25 +67,31 @@ export default function SecondBrainPage() {
       ) : (
         <>
           {/* Status banner */}
-          <div className="glass mb-3 flex items-center gap-3 px-3 py-2">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ background: dot(!!status?.enabled) }} />
-              <span className="mono text-[10px] text-[var(--ink-dim)]">
-                {status?.enabled ? 'enabled' : 'disabled'}
+          {statusLoading && !status ? (
+            <div className="glass mb-3 px-3 py-2 mono text-[10px] text-[var(--ink-dim)]">Reading Second Brain status…</div>
+          ) : status?.error ? (
+            <div className="glass mono mb-3 px-3 py-2 text-[10px] text-[var(--state-error)]">{status.error}</div>
+          ) : (
+            <div className="glass mb-3 flex items-center gap-3 px-3 py-2">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: dot(!!status?.enabled) }} />
+                <span className="mono text-[10px] text-[var(--ink-dim)]">
+                  {status?.enabled ? 'enabled' : 'disabled'}
+                </span>
               </span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ background: dot(!!status?.available) }} />
-              <span className="mono text-[10px] text-[var(--ink-dim)]">
-                {status?.available ? 'module ready' : 'unavailable'}
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: dot(!!status?.available) }} />
+                <span className="mono text-[10px] text-[var(--ink-dim)]">
+                  {status?.available ? 'module ready' : 'unavailable'}
+                </span>
               </span>
-            </span>
-            {status?.backend && (
-              <span className="mono text-[10px] text-[var(--ink-faint)]">backend: {status.backend}</span>
-            )}
-          </div>
+              {status?.backend && (
+                <span className="mono text-[10px] text-[var(--ink-faint)]">backend: {status.backend}</span>
+              )}
+            </div>
+          )}
 
-          {status && !status.enabled && (
+          {status && !status.error && !status.enabled && (
             <div className="mono mb-3 rounded-md px-3 py-2 text-[10px] text-[var(--state-auth)]" style={{ border: '1px solid var(--hairline)' }}>
               Disabled on the gateway. Set <b className="text-[var(--ink)]">MUSE_SECOND_BRAIN=1</b> to enable retrieval.
             </div>

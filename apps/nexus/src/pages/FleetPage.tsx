@@ -10,11 +10,16 @@ export default function FleetPage() {
   const [capUsd, setCapUsd] = useState(5);
   const [mode, setMode] = useState<'local' | 'cloud' | 'hybrid'>('hybrid');
   const [jobs, setJobs] = useState<CockpitJob[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [msg, setMsg] = useState('');
+  const connected = cockpitConfigured();
 
   const refresh = () =>
-    cockpit.jobs().then((r: any) => setJobs(Array.isArray(r) ? r : r?.jobs ?? []));
+    cockpit
+      .jobs()
+      .then((r: any) => setJobs(Array.isArray(r) ? r : r?.jobs ?? []))
+      .finally(() => setLoaded(true));
   useEffect(() => {
     refresh();
     const id = window.setInterval(refresh, 5000);
@@ -102,10 +107,14 @@ export default function FleetPage() {
         <div className="hud-label">In-flight · {jobs.length}</div>
         <button onClick={() => navigate('/observatory')} className="mono text-[10px] text-[var(--octa-glow)]">live galaxy →</button>
       </div>
-      {jobs.length === 0 ? (
+      {!loaded && connected ? (
         <div className="glass px-4 py-6 text-center">
-          <div className="text-[12px] text-[var(--ink-dim)]">No jobs in flight</div>
-          <div className="mt-1 text-[10px] text-[var(--ink-faint)]">{cockpitConfigured() ? 'Launch a fan-out above.' : 'Requires gateway to mirror live jobs.'}</div>
+          <div className="text-[12px] text-[var(--ink-dim)]">Mirroring live jobs…</div>
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className="glass px-4 py-6 text-center">
+          <div className="text-[12px] text-[var(--ink-dim)]">{connected ? 'No jobs in flight' : 'Not connected'}</div>
+          <div className="mt-1 text-[10px] text-[var(--ink-faint)]">{connected ? 'Launch a fan-out above.' : 'Requires gateway to mirror live jobs.'}</div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

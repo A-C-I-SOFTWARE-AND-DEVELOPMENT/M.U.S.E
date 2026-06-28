@@ -29,7 +29,6 @@ export function ConnectWizard({ open, onClose }: Props) {
   const [withPush, setWithPush] = useState(true);
   const [orKey, setOrKey] = useState(getSecret('OPENROUTER_API_KEY'));
   const [orSaved, setOrSaved] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [steps, setSteps] = useState<ConnectStep[]>([]);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
@@ -182,11 +181,15 @@ export function ConnectWizard({ open, onClose }: Props) {
               </div>
             </div>
 
-            {/* Advanced: MUSE gateway pairing (optional) */}
-            <button onClick={() => setShowAdvanced((v) => !v)} className="mono mt-3 text-[10px] text-[var(--ink-dim)] underline">
-              {showAdvanced ? 'Hide' : 'Advanced:'} connect a MUSE gateway (orchestration · memory · fleet)
-            </button>
-            {showAdvanced && (
+            {/* Connect your M.U.S.E. — gateway URL + owner-phrase pairing,
+                promoted to a top-level card (orchestration · memory · fleet). */}
+            <div className="glass mt-4 px-3 py-3" style={{ borderColor: 'var(--hairline)' }}>
+              <label className="hud-label">Connect your M.U.S.E. — orchestration · memory · fleet</label>
+              <p className="mt-1 text-[10px] leading-relaxed text-[var(--ink-dim)]">
+                Pair this device with your own MUSE gateway to unlock the cockpit: jobs, owner
+                approvals, the Memory Tree, GraphRAG and the fleet. Optional — chat &amp; fusion
+                already work above without it.
+              </p>
               <div className="mt-2 flex flex-col gap-2.5">
                 <label className="hud-label">Gateway URL (blank = auto-discover)</label>
                 <input
@@ -208,7 +211,17 @@ export function ConnectWizard({ open, onClose }: Props) {
                   Enable push notifications during connect
                 </label>
               </div>
-            )}
+              {/* Mixed-content / HTTPS-tunnel guidance: a hosted https page can't
+                  reach a http://localhost gateway. Surfaced here so the card is
+                  self-explanatory wherever it renders. */}
+              <p className="mono mt-2 border-t border-[var(--hairline)] pt-2 text-[9px] leading-relaxed text-[var(--ink-faint)]">
+                Hosted over HTTPS? A <span className="text-[var(--ink-dim)]">http://localhost</span> gateway is
+                blocked by mixed-content. Either run NEXUS same-origin from the gateway (Termux,
+                <span className="text-[var(--ink-dim)]"> localhost:8765/nexus/</span>) or expose the gateway over
+                HTTPS (a tunnel) and paste that <span className="text-[var(--ink-dim)]">https://</span> URL above —
+                the per-account bearer then stays server-side via the relay.
+              </p>
+            </div>
 
             {/* Progress */}
             {steps.length > 0 && (

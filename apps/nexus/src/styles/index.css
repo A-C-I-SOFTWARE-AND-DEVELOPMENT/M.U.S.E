@@ -3,3 +3,110 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===========================================================================
+   NEXUS base layer — the cockpit's "Singularity" shell.
+   Full-bleed void with ONE broad cool atmospheric depth pool (top-centre),
+   Singularity body type, ::selection, focus-visible ring, and glassy/tonal
+   surfaces. White is the hero; spectral colour is sparing; elevation is TONAL.
+   These rules live in @layer base so component/utility classes win, and so
+   tokens.css (imported above) remains the single source of token VALUES.
+   =========================================================================== */
+@layer base {
+  /* The canvas carries the full-bleed void + the single atmospheric pool. The
+     pool is the same faint cool wash (cyan→violet ring stops) the cockpit
+     paints behind its lockup — NOT a stack of glows. Fixed so it never scrolls.
+     body stays transparent (the CinematicBackdrop is a negative-z layer that
+     must not be occluded by a body fill — see tokens.css). */
+  html {
+    min-height: 100%;
+    background-color: var(--void);
+    background-image: radial-gradient(
+      1100px 560px at 50% -8%,
+      rgba(122, 224, 255, 0.05) 0%,
+      rgba(179, 136, 255, 0.035) 34%,
+      rgba(5, 5, 7, 0) 68%
+    );
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  body {
+    color: var(--signal);
+    font-family: Inter, var(--sans, system-ui), sans-serif;
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Singularity type rhythm for raw headings (component classes still win). */
+  h1 {
+    font-size: var(--type-display-size);
+    line-height: var(--type-display-line);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  h2,
+  h3 {
+    font-size: var(--type-title-size);
+    line-height: var(--type-title-line);
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  /* Cyan ring start is the canonical selection + focus colour. */
+  ::selection {
+    background: rgba(122, 224, 255, 0.22);
+    color: var(--core);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring-1);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Links default to the cyan ring stop (sparing spectral accent). */
+  a {
+    color: var(--ring-1);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Glassy / tonal surface helpers (opt-in component classes). Elevation is
+   TONAL — a lighter void tone, never a drop shadow. White-on-void hierarchy;
+   the spectral ring is never used as a surface fill.
+   --------------------------------------------------------------------------- */
+@layer components {
+  /* Flat / raised / card map straight onto the tonal elevation ladder. */
+  .surface-flat {
+    background: var(--void);
+    border: 1px solid var(--edge);
+    border-radius: var(--radius);
+  }
+  .surface-raised {
+    background: var(--void-2);
+    border: 1px solid var(--edge);
+    border-radius: var(--radius);
+  }
+  .surface-card {
+    background: var(--void-3);
+    border: 1px solid var(--edge);
+    border-radius: var(--radius);
+  }
+
+  /* A spectral hairline rule (used sparingly): the matte cyan→violet ring as
+     a 1px gradient line, never a glow. */
+  .ring-rule {
+    height: 1px;
+    border: 0;
+    background: var(--ring-grad);
+    opacity: 0.7;
+  }
+}
