@@ -207,7 +207,11 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   grid-template-areas:
     "header header"
     "nav    main";
-  min-height: 100vh;
+  /* Lock the shell to the viewport so the page itself never scrolls — the
+     content area (.app-main) scrolls internally and the chat composer stays
+     pinned to a fixed bottom. Mobile (<=760px) restores normal page scroll. */
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ---- Header (sticky) --------------------------------------------------- */
@@ -297,6 +301,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .app-main {
   grid-area: main;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--space-6);
 }
 
@@ -553,7 +559,10 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
       "header"
       "nav"
       "main";
+    height: auto;
+    overflow: visible;
   }
+  .app-main { overflow: visible; }
   .app-nav {
     position: static;
     height: auto;
@@ -681,10 +690,12 @@ body { perspective: 1800px; }
 </helmet>
 
 <!-- ===== Ambient atmosphere (fixed, tonal, behind the cockpit) ===== -->
+<div style="position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; transform:translateZ(0);">
 <canvas data-bg="cockpit-bg" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08); transition:transform .4s ease-out; will-change:transform;"></canvas>
 <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.45) 100%);"></div>
 <div style="position:fixed; inset:-40% 0; z-index:1; pointer-events:none; opacity:0.045; mix-blend-mode:screen; background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22&gt;&lt;filter id=%22n%22&gt;&lt;feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/&gt;&lt;/filter&gt;&lt;rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/&gt;&lt;/svg&gt;'); background-size:200px 200px; animation:cockpitGrain 7s steps(6) infinite;"></div>
 <div style="position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.025; background:repeating-linear-gradient(0deg, rgba(255,255,255,0.7) 0, rgba(255,255,255,0.7) 1px, transparent 1px, transparent 3px); height:200%; animation:cockpitScan 9s linear infinite;"></div>
+</div>
 
 <!-- ===== Ignition / boot sequence ===== -->
 <sc-if value="{{ bootActive }}" hint-placeholder-val="{{ true }}">
