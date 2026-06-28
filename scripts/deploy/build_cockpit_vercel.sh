@@ -39,5 +39,8 @@ cp "$SRC/atlas/style.css"             "$OUT/atlas/"
 cp "$SRC/atlas/app.js"                "$OUT/atlas/"
 cp "$SRC/atlas/architecture_data.js"  "$OUT/atlas/"
 
+# Allow indexing of the public site (commercial SEO baseline).
+printf 'User-agent: *\nAllow: /\n' > "$OUT/robots.txt"
+
 echo "muse Cockpit assembled into $OUT/"
 ls -R "$OUT"
