@@ -2668,7 +2668,12 @@ class Component extends DCLogic {
   pullApprovals = async () => {
     const r = await this._api('/v1/cockpit/approvals');
     if (!r.ok || !r.data) return;
-    const items = Array.isArray(r.data) ? r.data : (r.data.items || r.data.approvals || []);
+    const all = Array.isArray(r.data) ? r.data : (r.data.items || r.data.approvals || []);
+    // The gateway returns the whole proposal queue, including already-decided
+    // cards (status APPROVED/REJECTED/EXPIRED). Show only what still needs an OK,
+    // else a card decided this session would re-appear on the next 4s poll.
+    const decided = ['approved', 'rejected', 'expired', 'denied', 'done', 'cancelled', 'completed'];
+    const items = all.filter(a => !decided.includes(String(a.status || a.state || '').toLowerCase()));
     const approvalsRaw = items.map((a, i) => ({
       id: a.id || ('ap' + i),
       gate: a.gate || a.kind || 'Approval',
