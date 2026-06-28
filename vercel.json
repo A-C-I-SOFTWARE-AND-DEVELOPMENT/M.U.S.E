@@ -1,16 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "github": {
-    "enabled": true,
-    "autoAlias": true,
-    "silent": false
-  },
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  }
+  "buildCommand": "bash scripts/deploy/build_cockpit_vercel.sh cockpit-dist",
+  "outputDirectory": "cockpit-dist",
+  "framework": null,
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
 }
