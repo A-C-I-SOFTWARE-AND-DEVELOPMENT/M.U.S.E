@@ -14,12 +14,31 @@
  * / reconnecting" indicator reflects the stream's liveness.
  */
 import { useEffect, useMemo, useState } from "react";
-import { PhaseRail } from "../components/PhaseRail";
+import { PhaseRail, type PhaseState } from "../components/PhaseRail";
 import {
   getToken,
   subscribeJobs,
   type CockpitJob,
 } from "../lib/gateway";
+
+const JOB_PHASES = [
+  "queued",
+  "running",
+  "approval",
+  "approved",
+  "publishing",
+  "published",
+] as const;
+
+function jobStatusToPhases(status: string): Array<{ id: string; label: string; state: PhaseState }> {
+  const idx = JOB_PHASES.indexOf(status as (typeof JOB_PHASES)[number]);
+  if (idx < 0) return JOB_PHASES.map((id, i) => ({ id, label: id, state: i === 0 ? "current" as PhaseState : "pending" as PhaseState }));
+  return JOB_PHASES.map((id, i) => ({
+    id,
+    label: id,
+    state: i < idx ? ("done" as PhaseState) : i === idx ? ("current" as PhaseState) : ("pending" as PhaseState),
+  }));
+}
 
 export function Jobs() {
   // jobs keyed by id; a monotonically-bumped tick forces re-render on mutation.
@@ -96,7 +115,7 @@ export function Jobs() {
               <span className="grow" />
               {j.status && <span className="pill">{j.status}</span>}
             </div>
-            <PhaseRail status={j.status} />
+            <PhaseRail phases={jobStatusToPhases(j.status || "")} />
             {(j.worker_id || j.branch) && (
               <div className="muted mono job-meta">
                 {j.worker_id || ""}

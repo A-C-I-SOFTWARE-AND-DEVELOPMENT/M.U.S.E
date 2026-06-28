@@ -1,0 +1,27 @@
+/* SectionHeader — Singularity section header pattern. */
+
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 4px 2px 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--signal-mute);
+}
+
+.section-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.trailing {
+  display: flex;
+  gap: 8px;
+}

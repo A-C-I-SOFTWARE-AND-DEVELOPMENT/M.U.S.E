@@ -1,0 +1,84 @@
+/* PhaseRail — Singularity milestone tracker. */
+
+.phaserail {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 12px 0 2px;
+  flex-wrap: wrap;
+}
+
+.phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--void);
+  border: 1px solid var(--edge);
+  transition:
+    background var(--dur-fast) var(--ease-emphasized),
+    border-color var(--dur-fast) var(--ease-emphasized);
+}
+
+.phase-bar {
+  width: 26px;
+  height: 1px;
+  background: var(--edge);
+  margin: 0 2px;
+}
+
+/* Done = spectral ring; current = the incandescent core; failed = danger.
+   The ring stays matte — these are flat tonal fills, no neon/glow. */
+.phase.done .phase-node {
+  background: var(--ring-1);
+  border-color: var(--ring-1);
+}
+
+.phase.current .phase-node {
+  background: var(--core);
+  border-color: var(--core);
+}
+
+.phase.failed .phase-node {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.phase.done .phase-bar {
+  background: var(--ring-grad);
+  background-size: 200% 100%;
+  animation: rail-shimmer 1.6s var(--ease-decelerate) infinite;
+}
+
+@keyframes rail-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.phase-label {
+  font-size: 11px;
+  color: var(--signal-mute);
+}
+
+.phase.done .phase-label {
+  color: var(--signal-dim);
+}
+
+.phase.current .phase-label {
+  color: var(--signal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase.done .phase-bar {
+    animation: none;
+  }
+}

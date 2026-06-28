@@ -2,7 +2,7 @@
  * The muse mark — one blazing white core in the void, encircled by a single
  * thin matte spectral ring with a gap, rotated -32° so the gap sits lower-right.
  *
- * This mirrors the cockpit header glyph (gateway/cockpit/static/index.html) and
+ * This mirrors the cockpit header glyph (gateway/cockpit/index.html) and
  * the canonical favicon (website/static/img/favicon.svg), with the favicon's
  * stacked cool-white bloom halos so the core reads incandescent. Per the design
  * language: bloom the core ONLY; keep the ring matte (no glow/neon); no lens
@@ -54,6 +54,17 @@ export function Glyph({ size = 28, spin = true, className }: GlyphProps) {
         </radialGradient>
       </defs>
       <g className={spin ? "glyph-spin" : undefined}>
+        {/* Soft glow behind the whole glyph (matches cockpit header). */}
+        <span
+          style={{
+            position: "absolute",
+            inset: -14,
+            borderRadius: "50%",
+            pointerEvents: "none" as const,
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(122,224,255,0.10) 0%, rgba(122,224,255,0) 70%)",
+          }}
+        />
         {/* Matte spectral ring (gap via dasharray), rotated -32°. */}
         <circle
           cx="24"

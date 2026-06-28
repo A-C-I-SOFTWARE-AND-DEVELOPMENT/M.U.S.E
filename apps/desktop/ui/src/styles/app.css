@@ -1,28 +1,83 @@
-/* muse desktop app shell styles.
+/* muse desktop app — Singularity design system.
  *
- * Honors docs/brand/muse-design-language.md:
- *   - white core is the hero; spectral color is a sparing accent (the ring).
- *   - value/tonal elevation for hierarchy — NO drop-shadows on surfaces.
- *   - the ring is matte — NO glow/neon on it.
- *   - ≤3 color roles in any composition (white + the two ring stops).
- *   - emphasized-easing motion, 250–350ms.
+ * One white core in the void; a single thin spectral ring.
+ * White is the hero; spectral color is a sparing accent (the matte ring).
+ * ).
+ * Elevation is TONAL (lift the void tone), never a drop shadow.
+ * Hierarchy by VALUE, not effects. Round line caps everywhere.
+ * Spectral color ≤ ~20% of any composition.
+ * Source of truth: gateway/cockpit/index.html + design-system/tokens.json
  */
 
-* {
-  box-sizing: border-box;
-}
+/* ======================================================================== */
+/* Reset / base                                                             */
+/* ======================================================================== */
 
-html,
-body,
-#root {
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
   margin: 0;
   height: 100%;
 }
 
+:root {
+  /* ---- Color: the Singularity palette ---------------------------------- */
+  --void:        #050507; /* background — the dark field, full-bleed always */
+  --void-2:      #0b0d12; /* raised surface (tonal elevation, not a shadow) */
+  --void-3:      #12151d; /* cards (tonal elevation, not a shadow) */
+  --edge:        #1c2030; /* hairline borders */
+  --core:        #ffffff; /* the single point of light — primary accent / hero */
+  --sig-1:       #7ae0ff; /* spectral ring — cool cyan (first stop) */
+  --sig-2:       #b388ff; /* spectral ring — violet (second stop) */
+  --sig-3:       #5b8cff; /* spectral ring — deep blue (third stop) */
+
+  /* Semantic aliases used by components */
+  --signal:        var(--core);
+  --signal-dim:    #aab2c4;
+  --signal-mute:   #6b7388;
+  --ring-1:        var(--sig-1);
+  --ring-2:        var(--sig-2);
+  --ring-3:        var(--sig-3);
+  --ring-grad:     linear-gradient(90deg, var(--sig-1), var(--sig-2), var(--sig-3));
+  --danger:        #ff5a5a;
+  --ok:            #22c55e;
+  --warn:          #fbbf24;
+
+  /* Typography scale */
+  --sans:       ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:       ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                "Liberation Mono", monospace;
+  --type-label-size: 11px;
+
+  /* Motion */
+  --dur-fast:       180ms;
+  --dur-standard:   250ms;
+  --dur-slow:       350ms;
+  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+
+  /* Spacing / sizing */
+  --radius:      12px;
+  --radius-md:   8px;
+  --radius-sm:   6px;
+  --radius-lg:   16px;
+}
+
+/* ======================================================================== */
+/* Base                                                                     */
+/* ======================================================================== */
+
 body {
-  /* One broad atmospheric depth pool behind the lockup; the rest is pure void. */
+  /* The void is the full-bleed field. ONE broad atmospheric depth pool sits
+   * behind the lockup (top-centre) — a single faint cool wash, not a stack. */
   background:
-    radial-gradient(1200px 600px at 50% -10%, #0a0e1a 0%, var(--void) 60%);
+    radial-gradient(1100px 560px at 50% -8%,
+      rgba(122, 224, 255, 0.06) 0%,
+      rgba(179, 136, 255, 0.04) 40%,
+      transparent 70%),
+    var(--void);
   color: var(--signal);
   font-family: var(--sans);
   font-size: 14px;
@@ -31,35 +86,78 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-a {
-  color: var(--ring-1);
-}
+a { color: var(--ring-1); }
+
+/* ======================================================================== */
+/* App shell: cinematic grid — sticky header, left nav rail, .view sections */
+/* ======================================================================== */
 
 .app {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "nav    main";
   height: 100%;
+  position: relative;
+  z-index: 2;
 }
 
-/* ---- header / lockup ----------------------------------------------------- */
+/* Depth pool canvas sits behind the app shell, fixed viewport */
+.sacred-geometry {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ======================================================================== */
+/* Header / lockup (top bar)                                                */
+/* ======================================================================== */
+
 .app-header {
+  grid-area: header;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
+  gap: 14px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--edge);
-  background: rgba(5, 5, 7, 0.85);
+  background: rgba(5, 5, 7, 0.9);
   backdrop-filter: blur(8px);
-  /* Reserve room for native window controls on macOS when the title bar is
-     overlaid; harmless elsewhere. */
   -webkit-user-select: none;
   user-select: none;
+  position: relative;
+  z-index: 10;
 }
 
-.brand {
+.lockup {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.lockup .glyph {
+  position: relative;
+}
+
+.lockup .glyph.spin > svg {
+  transform-origin: 50% 50%;
+  animation: glyph-spin 8.5s linear infinite;
+}
+
+.lockup .glyph::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(122, 224, 255, 0.10) 0%,
+    rgba(122, 224, 255, 0) 70%);
+  opacity: 0.8;
 }
 
 .wordmark {
@@ -78,11 +176,9 @@ a {
   text-transform: uppercase;
 }
 
-.grow {
-  flex: 1;
-}
+.grow { flex: 1; }
 
-/* status dot — uses the status palette (never brand art). */
+/* Status dot — uses the status palette (never brand art). */
 .status {
   display: flex;
   align-items: center;
@@ -100,59 +196,99 @@ a {
   transition: background var(--dur-fast) var(--ease-emphasized);
 }
 
-.dot.ok {
-  background: var(--ok);
+.dot.ok      { background: var(--ok); }
+.dot.off     { background: var(--danger); }
+.dot.live    { background: var(--ring-1); animation: dot-pulse var(--dur-slow) var(--ease-standard) infinite alternate; }
+
+@keyframes dot-pulse {
+  from { opacity: 0.5; }
+  to   { opacity: 1; }
 }
 
-.dot.off {
-  background: var(--danger);
+@media (prefers-reduced-motion: reduce) {
+  .lockup .glyph.spin > svg { animation: none; }
+  .dot.live { animation: none; }
 }
 
-.dot.live {
-  background: var(--ring-1);
+@keyframes glyph-spin {
+  to { transform: rotate(360deg); }
 }
 
-/* ---- nav (route registry) ------------------------------------------------ */
+/* ======================================================================== */
+/* Left nav rail                                                            */
+/* ======================================================================== */
+
 .app-nav {
+  grid-area: nav;
   display: flex;
+  flex-direction: column;
   gap: 4px;
-  padding: 10px 18px 0;
-  border-bottom: 1px solid var(--edge);
-  flex-wrap: wrap;
+  padding: 14px 12px 0;
+  border-right: 1px solid var(--edge);
+  background: rgba(5, 5, 7, 0.6);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 57px); /* header height */
 }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font: inherit;
-  padding: 8px 14px;
+  padding: 10px 12px;
   border: none;
   background: transparent;
   color: var(--signal-mute);
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-emphasized);
+  transition: color var(--dur-fast) var(--ease-emphasized),
+              background var(--dur-fast) var(--ease-emphasized);
 }
 
 .nav-item:hover {
-  color: var(--signal-dim);
+  color: var(--signal);
+  background: var(--void-2);
 }
 
 .nav-item.active {
   color: var(--signal);
-  border-bottom-color: var(--ring-1);
+  background: var(--void-2);
 }
 
-/* ---- main / cards -------------------------------------------------------- */
+.nav-item .nav-ext {
+  margin-left: auto;
+  color: var(--signal-mute);
+  font-size: 11px;
+}
+
+/* ======================================================================== */
+/* Main / views                                                             */
+/* ======================================================================== */
+
 .app-main {
-  flex: 1;
+  grid-area: main;
   overflow-y: auto;
-  padding: 18px;
+  padding: 18px 24px;
+  background: transparent;
 }
 
 .view {
   max-width: 940px;
   margin: 0 auto;
+  animation: cockpitViewEnter 320ms var(--ease-emphasized) both;
 }
+
+@keyframes cockpitViewEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ======================================================================== */
+/* Cards / components                                                       */
+/* ======================================================================== */
 
 .card {
   background: var(--void-3);
@@ -162,17 +298,52 @@ a {
   margin-bottom: 12px;
 }
 
-.muted {
-  color: var(--signal-mute);
-}
+.muted { color: var(--signal-mute); }
 
+/* Pill — the only pattern allowed for inline tags. */
 .pill {
-  font-size: 11px;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--type-label-size);
+  padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid var(--edge);
   color: var(--signal-dim);
 }
+
+.pill.accent {
+  border-color: var(--ring-1);
+  color: var(--ring-1);
+}
+
+/* Section header — eyebrow + title + trailing pills */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 4px 2px 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--signal-mute);
+}
+
+.section-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.trailing { display: flex; gap: 8px; }
+
+/* ======================================================================== */
+/* Row / form helpers                                                       */
+/* ======================================================================== */
 
 .row {
   display: flex;
@@ -186,31 +357,24 @@ a {
   font-size: 12px;
 }
 
-.empty {
-  color: var(--signal-mute);
-  padding: 28px;
-  text-align: center;
-}
+/* ======================================================================== */
+/* Buttons                                                                  */
+/* ======================================================================== */
 
 button {
   font: inherit;
   color: var(--signal);
   background: var(--void-3);
   border: 1px solid var(--edge);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 7px 12px;
   cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-emphasized);
+  transition: border-color var(--dur-fast) var(--ease-emphasized),
+              background var(--dur-fast) var(--ease-emphasized);
 }
 
-button:hover {
-  border-color: var(--ring-1);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+button:hover { border-color: var(--ring-1); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 button.primary {
   background: var(--core);
@@ -230,24 +394,33 @@ button.danger:hover {
   color: #fff;
 }
 
+/* ======================================================================== */
+/* Inputs                                                                   */
+/* ======================================================================== */
+
 input[type="text"],
 input[type="password"],
-textarea {
+textarea,
+select {
   font: inherit;
   color: var(--signal);
   background: var(--void-2);
   border: 1px solid var(--edge);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px;
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: var(--ring-1);
 }
 
-/* ---- chat ---------------------------------------------------------------- */
+/* ======================================================================== */
+/* Chat                                                                     */
+/* ======================================================================== */
+
 .chatlog {
   min-height: 220px;
   max-height: 52vh;
@@ -291,189 +464,27 @@ textarea:focus {
   resize: vertical;
 }
 
-/* ---- glyph --------------------------------------------------------------- */
+/* ======================================================================== */
+/* Glyph spin                                                               */
+/* ======================================================================== */
+
 .glyph-spin {
   transform-origin: center;
   animation: glyph-rot 9s linear infinite;
 }
 
 @keyframes glyph-rot {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .glyph-spin {
-    animation: none;
-  }
+  .glyph-spin { animation: none; }
 }
 
-/* ---- select (matches the scaffold's input styling) ----------------------- */
-select {
-  font: inherit;
-  color: var(--signal);
-  background: var(--void-2);
-  border: 1px solid var(--edge);
-  border-radius: 8px;
-  padding: 9px 10px;
-  cursor: pointer;
-}
+/* ======================================================================== */
+/* Phase rail (design-language PhaseRail; mirrors the cockpit)              */
+/* ======================================================================== */
 
-select:focus {
-  outline: none;
-  border-color: var(--ring-1);
-}
-
-/* The Approve action borrows the cockpit's OK-toned outline button. */
-button.approve {
-  background: transparent;
-  color: var(--ok);
-  border-color: var(--ok);
-}
-
-button.approve:hover {
-  background: var(--ok);
-  color: #04060c;
-  border-color: var(--ok);
-}
-
-/* Focus-visible ring on every control — never removed (design language §Button). */
-a:focus-visible,
-button:focus-visible,
-.nav-item:focus-visible,
-select:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--ring-1);
-  outline-offset: 1px;
-}
-
-/* Reduced motion: zero out transitions/animations everywhere (the glyph spin
-   has its own guard above; this covers every other animated property). */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ---- small utility classes (avoid inline styles in views) ---------------- */
-.flex-1 {
-  flex: 1;
-}
-
-.gap-top {
-  margin-top: 12px;
-}
-
-.divider {
-  height: 1px;
-  background: var(--edge);
-  margin: 14px 0;
-}
-
-/* ---- section header (design-language SectionHeader) ---------------------- */
-.section-header {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin: 4px 2px 14px;
-}
-
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--signal-mute);
-}
-
-.section-title {
-  margin: 2px 0 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--signal);
-}
-
-/* ---- notices ------------------------------------------------------------- */
-.notice {
-  border-color: var(--ring-1);
-  color: var(--signal);
-}
-
-.danger-notice {
-  border-color: var(--danger);
-  color: #ffd7d9;
-  background: #1a0e10;
-}
-
-/* ---- offline banner ------------------------------------------------------ */
-.offline-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: #1a0e10;
-  border: 1px solid var(--danger);
-  color: #ffd7d9;
-  padding: 10px 14px;
-  border-radius: 10px;
-  margin: 14px 18px 0;
-}
-
-.offline-banner > span {
-  flex: 1;
-  min-width: 220px;
-}
-
-.offline-banner .retry {
-  background: transparent;
-  color: #ffd7d9;
-  border-color: var(--danger);
-  padding: 5px 12px;
-}
-
-/* ---- stream / health mini indicator -------------------------------------- */
-.streamdot {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--signal-mute);
-}
-
-.dot-mini {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--signal-mute);
-  transition: background var(--dur-fast) var(--ease-emphasized);
-}
-
-.streamdot.live {
-  color: var(--signal-dim);
-}
-
-.streamdot.live .dot-mini {
-  background: var(--ring-1);
-}
-
-/* ---- chat ---------------------------------------------------------------- */
-.chat-card .chatlog {
-  min-height: 320px;
-  max-height: 62vh;
-}
-
-/* ---- jobs ---------------------------------------------------------------- */
-.job-meta {
-  margin-top: 8px;
-}
-
-/* ---- phase rail (design-language PhaseRail; mirrors the cockpit) ---------- */
 .phaserail {
   display: flex;
   align-items: center;
@@ -499,6 +510,13 @@ textarea:focus-visible {
     border-color var(--dur-fast) var(--ease-emphasized);
 }
 
+.phase-bar {
+  width: 26px;
+  height: 1px;
+  background: var(--edge);
+  margin: 0 2px;
+}
+
 /* Done = spectral ring; current = the incandescent core; failed = danger.
    The ring stays matte — these are flat tonal fills, no neon/glow. */
 .phase.done .phase-node {
@@ -516,31 +534,33 @@ textarea:focus-visible {
   border-color: var(--danger);
 }
 
+.phase.done .phase-bar {
+  background: var(--ring-1);
+  background-size: 200% 100%;
+  animation: rail-shimmer 1.6s var(--ease-decelerate) infinite;
+}
+
+@keyframes rail-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
 .phase-label {
   font-size: 11px;
   color: var(--signal-mute);
 }
 
-.phase.done .phase-label {
-  color: var(--signal-dim);
+.phase.done .phase-label   { color: var(--signal-dim); }
+.phase.current .phase-label { color: var(--signal); }
+
+@media (prefers-reduced-motion: reduce) {
+  .phase.done .phase-bar { animation: none; }
 }
 
-.phase.current .phase-label {
-  color: var(--signal);
-}
+/* ======================================================================== */
+/* Approvals / autonomy / danger                                            */
+/* ======================================================================== */
 
-.phase-bar {
-  width: 26px;
-  height: 1px;
-  background: var(--edge);
-  margin: 0 2px;
-}
-
-.phase.done .phase-bar {
-  background: var(--ring-1);
-}
-
-/* ---- approvals ----------------------------------------------------------- */
 .proposed {
   margin-top: 8px;
   color: var(--signal-dim);
@@ -548,45 +568,17 @@ textarea:focus-visible {
   word-wrap: break-word;
 }
 
-.approval-actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-}
+.approval-actions { margin-top: 12px; display: flex; gap: 8px; }
 
-.hint {
-  color: var(--signal-mute);
-  font-size: 12px;
-  margin-top: 10px;
-}
+.hint { color: var(--signal-mute); font-size: 12px; margin-top: 10px; }
+.k { color: var(--signal-mute); }
 
-.k {
-  color: var(--signal-mute);
-}
+.danger-card { border-color: var(--danger); }
 
-/* ---- autonomy ------------------------------------------------------------ */
-.autonomy-controls {
-  margin-top: 14px;
-}
+/* ======================================================================== */
+/* Observatory (3D embedded)                                                */
+/* ======================================================================== */
 
-.ws-input {
-  flex: 1;
-  min-width: 220px;
-}
-
-.caps {
-  margin-top: 14px;
-  line-height: 1.7;
-}
-
-/* ---- emergency stop card ------------------------------------------------- */
-.danger-card {
-  border-color: var(--danger);
-}
-
-/* ---- observatory ----------------------------------------------------------
-   The embedded 3D cockpit wants the whole main area: drop the .view max-width
-   and stretch the frame to fill the column. */
 .view.observatory {
   max-width: none;
   height: 100%;
@@ -603,13 +595,12 @@ textarea:focus-visible {
   background: var(--void);
 }
 
-/* Fallback / loading panels take the same full-bleed slot as the frame. */
-.observatory-fill {
-  flex: 1;
-  min-height: 220px;
-}
+.observatory-fill { flex: 1; min-height: 220px; }
 
-/* ---- loading shimmer (tonal sweep — no neon, per the design language) ----- */
+/* ======================================================================== */
+/* Loading shimmer (tonal sweep — no neon, per the design language)         */
+/* ======================================================================== */
+
 .shimmer {
   position: relative;
   overflow: hidden;
@@ -629,36 +620,30 @@ textarea:focus-visible {
 }
 
 @keyframes shimmer-slide {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(100%);
-  }
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shimmer::after {
-    animation: none;
-  }
+  .shimmer::after { animation: none; }
 }
 
-/* ---- floating dock -------------------------------------------------------
-   A movable chat overlay available on every surface. Tonal elevation (a raised
-   void fill + backdrop blur) and a hairline border separate it from content —
-   NO drop-shadow, per the design language. The ring appears once, as a thin
-   top accent. It reuses .msg / .empty / .primary / textarea from above. */
+/* ======================================================================== */
+/* Floating dock                                                            */
+/* ======================================================================== */
+
 .dock {
   position: fixed;
   z-index: 50;
   display: flex;
   flex-direction: column;
   min-width: 300px;
-  background: rgba(11, 13, 18, 0.96); /* ≈ var(--void-2), near-opaque */
+  background: rgba(11, 13, 18, 0.96);
   border: 1px solid var(--edge);
   border-radius: var(--radius);
   backdrop-filter: blur(10px);
   overflow: hidden;
+  animation: dock-in var(--dur-slow) var(--ease-emphasized);
 }
 
 /* The single sparing accent: a thin matte spectral ring along the top edge. */
@@ -670,9 +655,7 @@ textarea:focus-visible {
   background: var(--ring-grad);
 }
 
-.dock.minimized {
-  height: auto;
-}
+.dock.minimized { height: auto; }
 
 .dock-bar {
   display: flex;
@@ -685,9 +668,7 @@ textarea:focus-visible {
   user-select: none;
 }
 
-.dock.minimized .dock-bar {
-  border-bottom: none;
-}
+.dock.minimized .dock-bar { border-bottom: none; }
 
 .dock-title {
   display: flex;
@@ -699,9 +680,7 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
-.dock-spacer {
-  flex: 1;
-}
+.dock-spacer { flex: 1; }
 
 .dock-btn {
   padding: 2px 8px;
@@ -713,10 +692,7 @@ textarea:focus-visible {
   color: var(--signal-mute);
 }
 
-.dock-btn:hover {
-  color: var(--signal);
-  border-color: var(--edge);
-}
+.dock-btn:hover { color: var(--signal); border-color: var(--edge); }
 
 .dock-notice {
   margin: 8px 10px 0;
@@ -737,10 +713,7 @@ textarea:focus-visible {
   padding: 10px;
 }
 
-.dock-log .msg {
-  font-size: 13px;
-  max-width: 92%;
-}
+.dock-log .msg { font-size: 13px; max-width: 92%; }
 
 .dock-composer {
   display: flex;
@@ -749,68 +722,30 @@ textarea:focus-visible {
   border-top: 1px solid var(--edge);
 }
 
-.dock-composer textarea {
-  flex: 1;
-  resize: none;
-  font-size: 13px;
-}
+.dock-composer textarea { flex: 1; resize: none; font-size: 13px; }
 
 .dock-resize {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 14px;
-  height: 14px;
+  right: 2px; bottom: 2px;
+  width: 14px; height: 14px;
   cursor: nwse-resize;
-  background: linear-gradient(
-    135deg,
-    transparent 0 50%,
-    var(--signal-mute) 50% 60%,
-    transparent 60%
-  );
+  background: linear-gradient(135deg, transparent 0 50%, var(--signal-mute) 50% 60%, transparent 60%);
   opacity: 0.6;
 }
 
-/* ---- dock launcher (collapsed state) ------------------------------------- */
+/* Dock launcher (collapsed state) */
 .dock-launcher {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  right: 16px; bottom: 16px;
   z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex; align-items: center; gap: 8px;
   padding: 9px 14px;
   border-radius: 999px;
   background: rgba(11, 13, 18, 0.96);
   border: 1px solid var(--edge);
   color: var(--signal-dim);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13px; font-weight: 600;
   backdrop-filter: blur(10px);
-}
-
-.dock-launcher:hover {
-  border-color: var(--ring-1);
-  color: var(--signal);
-}
-
-.dock-launcher-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--core); /* the white core */
-}
-
-/* Premium-minimal motion: ONE calm, purposeful entrance (≤350ms, emphasized
-   easing) and light hover micro-interactions — no theatrics, matching both the
-   design language and current minimal-UI guidance (motion should clarify/guide/
-   confirm, 200–500ms). The global reduced-motion guard above neutralizes these. */
-.dock {
-  animation: dock-in var(--dur-slow) var(--ease-emphasized);
-}
-
-.dock-launcher {
   animation: dock-in var(--dur-fast) var(--ease-emphasized);
   transition:
     border-color var(--dur-fast) var(--ease-emphasized),
@@ -818,24 +753,106 @@ textarea:focus-visible {
     transform var(--dur-fast) var(--ease-emphasized);
 }
 
-/* Tonal lift only — no drop-shadow, per the design language. */
 .dock-launcher:hover {
+  border-color: var(--ring-1);
+  color: var(--signal);
   transform: translateY(-1px);
 }
 
-.dock-btn {
+.dock-launcher-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--core); /* the white core */
+}
+
+/* Motion */
+.dock-launcher {
   transition:
+    border-color var(--dur-fast) var(--ease-emphasized),
     color var(--dur-fast) var(--ease-emphasized),
-    border-color var(--dur-fast) var(--ease-emphasized);
+    transform var(--dur-fast) var(--ease-emphasized);
 }
 
 @keyframes dock-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ======================================================================== */
+/* Offline banner                                                           */
+/* ======================================================================== */
+
+.offline-banner {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+  background: #1a0e10;
+  border: 1px solid var(--danger);
+  color: #ffd7d9;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 14px 18px 0;
+}
+
+.offline-banner > span { flex: 1; min-width: 220px; }
+.offline-banner .retry {
+  background: transparent; color: #ffd7d9; border-color: var(--danger);
+  padding: 5px 12px;
+}
+
+/* ======================================================================== */
+/* Stream / health mini indicator                                           */
+/* ======================================================================== */
+
+.streamdot {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--signal-mute);
+}
+
+.dot-mini {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--signal-mute);
+  transition: background var(--dur-fast) var(--ease-emphasized);
+}
+
+.streamdot.live { color: var(--signal-dim); }
+.streamdot.live .dot-mini { background: var(--ring-1); }
+
+/* ======================================================================== */
+/* Reduced motion: zero out transitions/animations                          */
+/* ======================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .lockup .glyph.spin > svg { animation: none; }
+  .dot.live { animation: none; }
+  .phase.done .phase-bar { animation: none; }
+  .shimmer::after { animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
+
+/* ======================================================================== */
+/* Focus-visible ring on every control                                      */
+/* ======================================================================== */
+
+a:focus-visible,
+button:focus-visible,
+.nav-item:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ring-1);
+  outline-offset: 1px;
+}
+
+/* ======================================================================== */
+/* Small utilities                                                          */
+/* ======================================================================== */
+
+.flex-1 { flex: 1; }
+.gap-top { margin-top: 12px; }
+.divider { height: 1px; background: var(--edge); margin: 14px 0; }

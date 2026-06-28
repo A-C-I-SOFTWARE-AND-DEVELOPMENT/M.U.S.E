@@ -1,13 +1,12 @@
 /**
- * Home — the single placeholder route this scaffold ships.
+ * Home — the Singularity landing surface.
  *
- * It is deliberately lean but *live*: it exercises the gateway client end to
- * end (health, pairing, NDJSON chat) so the desktop shell is a working
- * Singularity client from day one. Feature grains add their own routes via the
- * append-only registry (src/routes.ts) rather than expanding this view.
+ * Mirrors the cockpit's Home view: pairing card, welcome card, chat card,
+ * and a phase rail showing the studio pipeline.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Glyph } from "../components/Glyph";
+import { PhaseRail } from "../components/PhaseRail";
+import { SectionHeader } from "../components/SectionHeader";
 import {
   chat,
   getToken,
@@ -22,6 +21,7 @@ export function Home() {
     <div className="view">
       {!paired && <PairCard onPaired={() => setPaired(true)} />}
       <WelcomeCard />
+      <PhaseRailCard />
       <ChatCard paired={paired} onNeedsPairing={() => setPaired(false)} />
     </div>
   );
@@ -30,21 +30,32 @@ export function Home() {
 function WelcomeCard() {
   return (
     <div className="card">
-      <div className="row">
-        <Glyph size={40} />
-        <div>
-          <div style={{ fontWeight: 600, color: "#eef2f7" }}>
-            Welcome to muse
-          </div>
-          <div className="muted">
-            Your local-first AI operating partner, on the desktop.
-          </div>
-        </div>
-      </div>
+      <SectionHeader
+        eyebrow="Welcome to muse"
+        title="Your local-first AI operating partner"
+      />
       <p className="muted" style={{ marginBottom: 0 }}>
-        This is the desktop scaffold's Home route. Talk to the local agent below;
+        This is the desktop Singularity client. Talk to the local agent below;
         jobs, approvals, autonomy and other surfaces arrive as additive routes.
       </p>
+    </div>
+  );
+}
+
+function PhaseRailCard() {
+  const phases = [
+    { id: "concept", label: "Concept", state: "done" as const },
+    { id: "prototype", label: "Prototype", state: "current" as const },
+    { id: "vertical", label: "Vertical Slice", state: "pending" as const },
+    { id: "alpha", label: "Alpha", state: "pending" as const },
+    { id: "beta", label: "Beta", state: "pending" as const },
+    { id: "gold", label: "Gold", state: "pending" as const },
+    { id: "launch", label: "Launch", state: "pending" as const },
+  ];
+  return (
+    <div className="card">
+      <SectionHeader eyebrow="Studio pipeline" title="AAA milestone gates" />
+      <PhaseRail phases={phases} />
     </div>
   );
 }
@@ -97,11 +108,11 @@ function PairCard({ onPaired }: { onPaired: () => void }) {
 
   return (
     <div className="card" style={{ borderColor: "var(--ring-1)" }}>
-      <div className="row">
-        <b>Pair this device</b>
-        <span className="grow" />
-        <span className="pill">owner-gated</span>
-      </div>
+      <SectionHeader
+        eyebrow="Pair this device"
+        title="Owner-gated pairing"
+        trailing={<span className="pill">owner-gated</span>}
+      />
       <p className="muted">
         Generate a short-lived pairing code, then confirm it with the owner
         phrase. A per-device token is minted once and stored only on this device.
@@ -129,7 +140,7 @@ function PairCard({ onPaired }: { onPaired: () => void }) {
             style={{ flex: 1 }}
           />
           <button className="primary" onClick={confirm} disabled={busy}>
-            Confirm &amp; pair
+            Confirm & pair
           </button>
         </div>
       )}
@@ -194,7 +205,16 @@ function ChatCard({
   }, [draft, sending, messages, onNeedsPairing]);
 
   return (
-    <div className="card">
+    <div className="card chat-card">
+      <SectionHeader
+        eyebrow="Talk to muse"
+        title="Chat with muse"
+        trailing={
+          <span className="pill accent">
+            <span className="dot live"></span> online
+          </span>
+        }
+      />
       <div className="chatlog" ref={logRef}>
         {messages.length === 0 ? (
           <div className="empty">

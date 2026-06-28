@@ -1,13 +1,23 @@
 /**
- * App shell.
+ * App shell — Singularity design.
  *
- * The lean Singularity client: an app on the void with a header lockup (animated
- * glyph + "muse" wordmark + a connection status dot), a nav driven by the
- * append-only route registry, and a minimal hash router that renders the active
- * route. Adding a route is purely additive — register it in src/routes.ts and it
- * shows up here automatically; this file never needs to change to add surfaces.
+ * Layout:
+ *   ┌─────────────────────────────────────────────────────┐
+ *   │ header (lockup + status)                            │
+ *   ├──────────────┬──────────────────────────────────────┤
+ *   │ nav rail     │ main (view)                           │
+ *   │              │                                        │
+ *   │              │                                        │
+ *   └──────────────┴──────────────────────────────────────┘
+ *
+ * SacredGeometry canvas sits fixed behind the app shell (z-index: 0).
+ * The app shell is z-index: 2 with semi-transparent header/nav for depth.
+ *
+ * Adding a route is purely additive — register it in routes.register.ts
+ * and it appears in the nav automatically. This file never changes.
  */
 import { useEffect, useState } from "react";
+import { SacredGeometry } from "./components/SacredGeometry";
 import { Glyph } from "./components/Glyph";
 import { Dock } from "./components/Dock";
 import { getRoutes, type RouteDef } from "./routes";
@@ -82,82 +92,101 @@ export function App() {
     setHealthNonce((n) => n + 1);
   };
 
-  // Keyboard nav — Cmd/Ctrl+1..n selects the nth registered route. The route
-  // registry is append-only, so digit → index is stable across releases.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
-      const n = Number(e.key);
-      if (!Number.isInteger(n) || n < 1) return;
-      const route = getRoutes()[n - 1];
-      if (!route) return;
-      e.preventDefault();
-      window.location.hash = "#/" + route.id;
-      setActiveId(route.id);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const active: RouteDef | undefined =
-    routeList.find((r) => r.id === activeId) ?? routeList[0];
-
   const select = (id: string) => {
     window.location.hash = "#/" + id;
     setActiveId(id);
   };
 
+  const active: RouteDef | undefined =
+    routeList.find((r) => r.id === activeId) ?? routeList[0];
+
   return (
-    <div className="app">
-      <header className="app-header">
-        <span className="brand">
-          <Glyph size={28} />
-          <span className="wordmark">
-            muse
-            <span className="full">Multi-Use Synaptic Entity</span>
+    <>
+      {/* Depth pool canvas — fixed behind the app shell, full viewport. */}
+      <SacredGeometry width={520} height={480} className="sacred-geometry" />
+
+      <div className="app">
+        {/* Header / lockup */}
+        <header className="app-header">
+          <span className="brand">
+            <span className="glyph">
+              <span
+                style={{
+                  position: "absolute",
+                  inset: "-14px",
+                  borderRadius: "50%",
+                  pointerEvents: "none",
+                  background:
+                    "radial-gradient(circle at 50% 50%, rgba(122,224,255,0.10) 0%, rgba(122,224,255,0) 70%)",
+                }}
+              />
+              <Glyph size={30} spin={true} />
+            </span>
+            <span className="wordmark">
+              muse
+              <span className="full">Multi-Use Synaptic Entity</span>
+            </span>
           </span>
-        </span>
-        <span className="grow" />
-        <span className="status">
-          <span
-            className={"dot " + (health === "online" ? "ok" : health === "offline" ? "off" : "")}
-          />
-          <span>
-            {health === "online" ? "online" : health === "offline" ? "offline" : "connecting…"}
+
+          <span className="grow" />
+
+          <span className="status">
+            <span
+              className={
+                "dot " +
+                (health === "online"
+                  ? "ok"
+                  : health === "offline"
+                  ? "off"
+                  : "")
+              }
+            />
+            <span>
+              {health === "online"
+                ? "online"
+                : health === "offline"
+                ? "offline"
+                : "connecting…"}
+            </span>
           </span>
-        </span>
-      </header>
+        </header>
 
-      <nav className="app-nav">
-        {routeList.map((r) => (
-          <button
-            key={r.id}
-            className={"nav-item" + (r.id === active?.id ? " active" : "")}
-            onClick={() => select(r.id)}
-          >
-            {r.label}
-          </button>
-        ))}
-      </nav>
+        {/* Left nav rail — driven by the append-only route registry. */}
+        <nav className="app-nav" aria-label="muse destinations">
+          {routeList.map((r) => (
+            <button
+              key={r.id}
+              className={"nav-item" + (r.id === active?.id ? " active" : "")}
+              onClick={() => select(r.id)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </nav>
 
-      {health === "offline" && (
-        <div className="offline-banner" role="status">
-          <span>
-            Offline — can’t reach the gateway. Is{" "}
-            <span className="mono">hermes cockpit serve</span> running? Check
-            the gateway URL in Settings.
-          </span>
-          <button className="retry" onClick={retryHealth}>
-            Retry
-          </button>
-        </div>
-      )}
+        {/* Main view */}
+        <main className="app-main">
+          {health === "offline" && (
+            <div className="offline-banner" role="status">
+              <span>
+                Offline — can't reach the gateway. Is{" "}
+                <span className="mono">hermes cockpit serve</span> running? Check
+                the gateway URL in Settings.
+              </span>
+              <button className="retry" onClick={retryHealth}>
+                Retry
+              </button>
+            </div>
+          )}
 
-      <main className="app-main">{active ? active.render() : null}</main>
+          <section className="view">{active ? active.render() : null}</section>
+        </main>
 
-      {/* Global overlay: the movable MUSE dock floats above every surface.
-          Not a route — mounted once here so it persists across navigation. */}
-      <Dock />
-    </div>
+        {/* Global overlay: the movable MUSE dock floats above every surface. */}
+        <Dock />
+      </div>
+    </>
   );
 }
+
+export default App;
