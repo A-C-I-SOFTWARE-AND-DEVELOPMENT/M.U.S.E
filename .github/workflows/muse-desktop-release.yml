@@ -251,19 +251,30 @@ jobs:
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
-            # OpenSSL 3 needs -legacy for .p12 files using the old RC2/3DES
-            # encryption that Apple's Keychain Access exports by default.
-            if openssl pkcs12 -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1 \
-               || openssl pkcs12 -legacy -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1; then
+            # Authoritative test: import the .p12 into a THROWAWAY keychain —
+            # exactly what Tauri's bundler does at codesign time. `openssl
+            # pkcs12` validity is NOT the same as `security import` validity: a
+            # cert can pass openssl yet still fail `security import`
+            # ("SecKeychainItemImport ... not valid"), which previously failed
+            # the whole macOS leg at bundle time. Probing the real import here
+            # means a cert that can't be imported falls back to UNSIGNED instead
+            # of hard-failing the release.
+            kc="${RUNNER_TEMP:-/tmp}/applecert-probe-$$.keychain-db"
+            kcpass="probe-$$"
+            security create-keychain -p "$kcpass" "$kc" >/dev/null 2>&1 || true
+            security unlock-keychain -p "$kcpass" "$kc" >/dev/null 2>&1 || true
+            if security import "$cert" -k "$kc" -P "${APPLE_CERTIFICATE_PASSWORD}" \
+                 -T /usr/bin/codesign >/dev/null 2>&1; then
               ok=true
             fi
+            security delete-keychain "$kc" >/dev/null 2>&1 || true
           fi
           rm -f "$cert"
           if [ "$ok" = true ]; then
-            echo "APPLE_CERTIFICATE decodes and opens; signing enabled."
+            echo "APPLE_CERTIFICATE imports into a keychain; signing enabled."
             echo "sign=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::APPLE_CERTIFICATE is set but is not a valid base64-encoded .p12 (or the password is wrong) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
+            echo "::warning::APPLE_CERTIFICATE is set but failed to import into a keychain (malformed .p12 or wrong password) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
