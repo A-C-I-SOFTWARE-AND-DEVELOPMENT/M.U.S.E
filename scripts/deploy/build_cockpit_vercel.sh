@@ -47,8 +47,12 @@ cp "$SRC/atlas/style.css"             "$OUT/atlas/"
 cp "$SRC/atlas/app.js"                "$OUT/atlas/"
 cp "$SRC/atlas/architecture_data.js"  "$OUT/atlas/"
 
-# Allow indexing of the public site (commercial SEO baseline).
-printf 'User-agent: *\nAllow: /\n' > "$OUT/robots.txt"
+# Allow indexing of the public site (commercial SEO baseline) + sitemap.
+printf 'User-agent: *\nAllow: /\nSitemap: https://musehq.io/sitemap.xml\n' > "$OUT/robots.txt"
+
+# Static SEO / social assets, copied if present (sitemap + Open Graph image).
+if [ -f "$SRC/sitemap.xml" ]; then cp "$SRC/sitemap.xml" "$OUT/sitemap.xml"; fi
+if [ -f "$SRC/og.png" ]; then cp "$SRC/og.png" "$OUT/og.png"; fi
 
 echo "muse Cockpit assembled into $OUT/"
 ls -R "$OUT"
