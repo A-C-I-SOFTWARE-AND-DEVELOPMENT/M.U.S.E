@@ -11,6 +11,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="muse">
+<!-- Installable PWA: manifest + a minimal service worker make the cockpit
+     installable to the device home screen (the in-app "Install app" button
+     drives the browser's install flow). The SW is registered same-origin and
+     no-ops gracefully when unsupported. -->
+<link rel="manifest" href="manifest.webmanifest">
+<script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }</script>
 <!-- Social share cards (no remote image — text-only summary keeps the page self-contained). -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="muse">
@@ -759,6 +765,7 @@ body { perspective: 1800px; }
       <span class="status-text">{{ conn.label }}</span>
     </span>
     <span class="header-actions">
+      <sc-if value="{{ canInstall }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary" onclick="{{ onInstall }}" title="Install muse as an app on this device">{{ installLabel }}</button></sc-if>
       <button type="button" class="btn secondary" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
       <button type="button" class="btn secondary" onclick="{{ onResetAll }}" title="Undo all your changes across the cockpit">Reset</button>
       <button type="button" class="btn secondary" onclick="{{ onToken }}" title="Connect a device">Connect</button>
@@ -868,6 +875,11 @@ body { perspective: 1800px; }
         <div style="margin-top:16px; font-size:11px; color:var(--signal-mute); line-height:1.55; border-top:1px solid var(--edge); padding-top:12px;">Endpoints follow the real cockpit API — <span style="font-family:var(--mono);">/v1/health</span>, <span style="font-family:var(--mono);">/v1/cockpit/pair/start</span>, <span style="font-family:var(--mono);">/pair/confirm</span>, then bearer-token calls to <span style="font-family:var(--mono);">/v1/cockpit/*</span>. Your device token is stored only on this device.</div>
       </div>
     </div>
+  </sc-if>
+
+  <!-- Install hint (iOS / fallback) -->
+  <sc-if value="{{ installHint }}" hint-placeholder-val="{{ false }}">
+    <div onclick="{{ onDismissInstallHint }}" title="Dismiss" style="position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:60; max-width:340px; background:var(--void-3); border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:11px 14px; color:var(--signal-dim); font-size:12px; line-height:1.5; cursor:pointer; box-shadow:0 8px 30px rgba(0,0,0,0.5);">{{ installHint }}</div>
   </sc-if>
 
   <!-- Halt banner -->
@@ -1968,6 +1980,12 @@ class Component extends DCLogic {
     serverChat: 'unknown', // public /api/chat readiness: 'ready' | 'needs-key' | 'none'
     connStep: 'idle',
     gatewayUrl: '',
+    // PWA install (Add to device). canInstall flips true once the browser fires
+    // beforeinstallprompt (or on iOS Safari, where we show a gesture hint).
+    canInstall: false,
+    installLabel: 'Install app',
+    iosInstall: false,
+    installHint: '',
     // Approvals: owner-phrase confirm state for the live gateway decision route.
     approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
     gatewayInfo: null,
@@ -2506,8 +2524,13 @@ class Component extends DCLogic {
       if (el) el.style.transform = `translate3d(${(-dx * 22).toFixed(1)}px, ${(-dy * 22).toFixed(1)}px, 0) scale(1.08)`;
     };
     window.addEventListener('mousemove', this._onMove, { passive: true });
+    // Hands-off connect from the URL hash (#gateway=&token=) before we kick live,
+    // so a one-click link lands straight in a live session (token then scrubbed).
+    this._autoConnectFromUrl();
     // Live data wiring: if we have a token, immediately try gateway and start polling
     this._kickLive();
+    // PWA install: capture the browser's install prompt so our button can fire it.
+    this._initInstallPrompt();
     // Public chat readiness: /api/chat is served by THIS deployment (no gateway,
     // no login). Probe it so the header shows an honest "online" when ready.
     this._probeServerChat();
@@ -3068,6 +3091,83 @@ class Component extends DCLogic {
     clearInterval(this._liveTimer);
     this._liveTimer = setInterval(() => this.pullAll(), 4000);
   };
+
+  _autoConnectFromUrl = () => {
+    // Hands-off connect via the URL hash: #gateway=<url>&token=<t> (optional
+    // &device=<id>) wires a live gateway session with zero clicks. The hash is
+    // never sent to a server; we persist the values, then immediately SCRUB the
+    // hash from the URL so the token does not linger in the address bar or
+    // browser history. Returns true when it connected. A bare #gateway with no
+    // token only pre-fills (pairing still happens), so a shared link carries no
+    // credential unless the sharer included a token on purpose.
+    try {
+      const raw = (typeof location !== 'undefined' && location.hash || '').replace(/^#/, '');
+      if (!raw) return false;
+      const q = new URLSearchParams(raw);
+      const gw = (q.get('gateway') || q.get('gw') || '').trim().replace(/\/+$/, '');
+      const tok = (q.get('token') || q.get('tok') || '').trim();
+      const dev = (q.get('device') || '').trim();
+      if (gw && !/^https?:\/\//i.test(gw)) return false; // only http(s) gateways
+      if (!gw && !tok) return false;
+      try {
+        if (gw) localStorage.setItem('muse.gateway.url', gw);
+        if (tok) localStorage.setItem('muse.gateway.token', tok);
+        if (dev) localStorage.setItem('muse.gateway.device', dev);
+      } catch (e) {}
+      // Scrub the hash (drop the token from the URL + this history entry).
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      const url = gw || this._gw();
+      if (tok) {
+        // Live immediately; _kickLive() (called next in mount) sees the token.
+        this.setState({ gatewayUrl: url, deviceId: dev, connState: 'live', connStep: 'connected', connError: '' });
+        return true;
+      }
+      // Gateway-only: pre-fill + open Connect so the user can pair in one click.
+      this.setState({ gatewayUrl: url, connOpen: true, connStep: 'idle' });
+      return false;
+    } catch (e) { return false; }
+  };
+
+  _initInstallPrompt = () => {
+    // Wire the "Install app" button to the browser's install flow. Chromium
+    // (desktop + Android) fires beforeinstallprompt when the PWA is installable
+    // (manifest + service worker + https); we stash it and reveal the button.
+    // iOS Safari has no such event, so we show an Add-to-Home-Screen gesture
+    // hint instead. Already-installed (standalone) hides the button.
+    if (typeof window === 'undefined') return;
+    try {
+      const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+      if (standalone) return;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        this._installEvt = e;
+        this.setState({ canInstall: true, iosInstall: false, installLabel: 'Install app' });
+      });
+      window.addEventListener('appinstalled', () => {
+        this._installEvt = null;
+        this.setState({ canInstall: false, installHint: '' });
+      });
+      const ua = window.navigator.userAgent || '';
+      const isIOS = /iphone|ipad|ipod/i.test(ua) || (/(macintosh)/i.test(ua) && 'ontouchend' in document);
+      const isSafari = /^((?!chrome|crios|fxios|android).)*safari/i.test(ua);
+      if (isIOS && isSafari) this.setState({ canInstall: true, iosInstall: true, installLabel: 'Add to device' });
+    } catch (e) { /* install prompt is best-effort */ }
+  };
+
+  installApp = async () => {
+    if (this.state.iosInstall) {
+      this.setState({ installHint: 'To install muse: tap the Share button, then “Add to Home Screen”.' });
+      return;
+    }
+    const evt = this._installEvt;
+    if (!evt) { this.setState({ installHint: 'Open the browser menu and choose “Install app” / “Add to Home screen”.' }); return; }
+    this._installEvt = null;
+    this.setState({ canInstall: false });
+    try { evt.prompt(); await evt.userChoice; } catch (e) { /* user dismissed */ }
+  };
+
+  dismissInstallHint = () => this.setState({ installHint: '' });
 
   _probeServerChat = async () => {
     // Is public server chat ready? /api/chat holds the provider key on the
@@ -3660,6 +3760,8 @@ class Component extends DCLogic {
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
       release, releasesCountLabel: rel.platforms.length + ' platforms · one release', historyCountLabel: (rel.history || []).length + ' versions',
       audioOn: s.audioOn, onToggleAudio: this.toggleAudio, audioLabel: s.audioOn ? 'Sound on' : 'Muted',
+      canInstall: s.canInstall, installLabel: s.installLabel, onInstall: this.installApp,
+      installHint: s.installHint, onDismissInstallHint: this.dismissInstallHint,
       modelList, providerList, modelsOnlineLabel,
       onAddProvider: this.addProvider, onOpenAddModel: this.openAddModel, addModelOpen: s.addModelOpen,
       newModelName: s.newModel.name, newModelProv: s.newModel.prov, newModelCtx: s.newModel.ctx, newModelStrength: s.newModel.strength,

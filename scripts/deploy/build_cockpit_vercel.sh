@@ -26,6 +26,14 @@ mkdir -p "$OUT/vendor" "$OUT/atlas"
 # The cockpit page itself.
 cp "$SRC/cockpit.dc.html" "$OUT/index.html"
 
+# Installable-PWA assets: web app manifest, app icon, and the service worker, so
+# the in-app "Install app" button can add the cockpit to the device home screen
+# (a manifest + a same-origin service worker are the browser install criteria).
+# The SW only caches the static shell — never /api or gateway calls.
+cp "$SRC/manifest.webmanifest" "$OUT/manifest.webmanifest"
+cp "$SRC/icon.svg"             "$OUT/icon.svg"
+cp "$SRC/sw.js"                "$OUT/sw.js"
+
 # Vendored runtime: React (UMD) + dc-runtime, plus three.js shared with the atlas.
 cp "$SRC/vendor/react.production.min.js"      "$OUT/vendor/"
 cp "$SRC/vendor/react-dom.production.min.js"  "$OUT/vendor/"
