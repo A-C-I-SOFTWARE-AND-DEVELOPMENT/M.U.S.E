@@ -1472,7 +1472,7 @@ body { perspective: 1800px; }
           <sc-for list="{{ providerList }}" as="p" hint-placeholder-count="6">
             <div class="card" style="padding:14px; display:flex; align-items:center; gap:12px;">
               <div style="min-width:0;">
-                <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:14px; font-weight:600; color:var(--signal);">{{ p.name }}</span><sc-if value="{{ p.omni }}" hint-placeholder-val="{{ false }}"><span class="pill accent" style="font-size:9px;">OMNI</span></sc-if></div>
+                <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:14px; font-weight:600; color:var(--signal);">{{ p.name }}</span><sc-if value="{{ p.omni }}" hint-placeholder-val="{{ false }}"><span class="pill accent" style="font-size:9px;">OMNI</span></sc-if><sc-if value="{{ p.free }}" hint-placeholder-val="{{ false }}"><span class="pill" style="font-size:9px; color:var(--ring-1); border-color:var(--ring-1);">FREE</span></sc-if></div>
                 <div style="font-size:11px; color:var(--signal-mute);">{{ p.kindLabel }}</div>
               </div>
               <button type="button" onclick="{{ p.onToggle }}" style="{{ p.trackStyle }}; margin-left:auto;"><span style="{{ p.knobStyle }}"></span></button>
@@ -2058,30 +2058,31 @@ class Component extends DCLogic {
 
   _defaultProviders() {
     // muse's full provider catalog (mirrors apps/nexus/src/lib/providers.ts).
-    // 'connected' reflects the public deployment: OpenRouter is the server route
-    // (when OPENROUTER_API_KEY is set); the rest are available — bring a key.
+    // 'connected' reflects the public deployment: any one server-side provider
+    // key lights chat up — OpenRouter is NOT required. 'free' marks providers
+    // with a genuine $0 tier (the server prefers these so the chat can run free).
     return [
-      { id: 'openrouter', name: 'OpenRouter', kind: '300+ models · universal fallback', connected: true, omni: true },
+      { id: 'openrouter', name: 'OpenRouter', kind: '300+ models · free models + universal fallback', connected: true, omni: true },
+      { id: 'groq', name: 'Groq', kind: 'Fast LPU inference · free tier', connected: false, free: true },
+      { id: 'google', name: 'Google AI', kind: 'Gemini family · free tier', connected: false, free: true },
+      { id: 'cerebras', name: 'Cerebras', kind: 'Wafer-scale inference · free tier', connected: false, free: true },
+      { id: 'nim', name: 'NVIDIA NIM', kind: 'NVIDIA inference · free tier', connected: false, free: true },
+      { id: 'huggingface', name: 'Hugging Face', kind: 'Router over open models · free tier', connected: false, free: true },
+      { id: 'github-models', name: 'GitHub Models', kind: 'GH-hosted models · free tier', connected: false, free: true },
+      { id: 'zhipu', name: 'Z.AI / GLM', kind: 'GLM family (Zhipu) · GLM-4-Flash free', connected: false, free: true },
       { id: 'anthropic', name: 'Anthropic', kind: 'Claude family', connected: false },
       { id: 'openai', name: 'OpenAI', kind: 'GPT / o-series', connected: false },
-      { id: 'google', name: 'Google AI', kind: 'Gemini family', connected: false },
-      { id: 'groq', name: 'Groq', kind: 'Fast LPU inference', connected: false },
       { id: 'mistral', name: 'Mistral', kind: 'Mistral / Codestral', connected: false },
       { id: 'deepseek', name: 'DeepSeek', kind: 'DeepSeek V3 / R1', connected: false },
       { id: 'xai', name: 'xAI', kind: 'Grok family', connected: false },
       { id: 'together', name: 'Together AI', kind: 'Open models, hosted', connected: false },
       { id: 'novita', name: 'NovitaAI', kind: 'Open models, hosted', connected: false },
-      { id: 'nim', name: 'NVIDIA NIM', kind: 'NVIDIA inference', connected: false },
       { id: 'dashscope', name: 'Qwen / DashScope', kind: 'Qwen family', connected: false },
       { id: 'moonshot', name: 'Kimi / Moonshot', kind: 'Kimi long-context', connected: false },
-      { id: 'zhipu', name: 'Z.AI / GLM', kind: 'GLM family (Zhipu)', connected: false },
       { id: 'stepfun', name: 'StepFun', kind: 'Step family', connected: false },
       { id: 'minimax', name: 'MiniMax', kind: 'abab family', connected: false },
-      { id: 'huggingface', name: 'Hugging Face', kind: 'Router over open models', connected: false },
-      { id: 'github-models', name: 'GitHub Models', kind: 'GH-hosted models', connected: false },
       { id: 'nous', name: 'Nous Portal', kind: 'Hermes family', connected: false },
       { id: 'arcee', name: 'Arcee AI', kind: 'Auto-routed', connected: false },
-      { id: 'cerebras', name: 'Cerebras', kind: 'Wafer-scale inference', connected: false },
       { id: 'perplexity', name: 'Perplexity', kind: 'Sonar (web-grounded)', connected: false },
       { id: 'fireworks', name: 'Fireworks', kind: 'Open models, fast', connected: false },
       { id: 'azure', name: 'Azure OpenAI', kind: 'Enterprise OpenAI', connected: false },
@@ -2112,6 +2113,9 @@ class Component extends DCLogic {
       { id: 'm4', prov: 'openrouter', name: 'gemini-2.0-flash-001', model: 'google/gemini-2.0-flash-001', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
       { id: 'm5', prov: 'openrouter', name: 'llama-3.3-70b-instruct', model: 'meta-llama/llama-3.3-70b-instruct', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
       { id: 'm6', prov: 'openrouter', name: 'deepseek-chat', model: 'deepseek/deepseek-chat', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm6a', prov: 'openrouter', name: 'deepseek-v3 (free)', model: 'deepseek/deepseek-chat-v3-0324:free', ctx: 128, strengths: ['Reasoning','Code'], cost: 0, on: true, fuse: true, weight: 10 },
+      { id: 'm6b', prov: 'openrouter', name: 'llama-3.3-70b (free)', model: 'meta-llama/llama-3.3-70b-instruct:free', ctx: 128, strengths: ['Code','Fast'], cost: 0, on: true, fuse: true, weight: 10 },
+      { id: 'm6c', prov: 'openrouter', name: 'qwen-2.5-72b (free)', model: 'qwen/qwen-2.5-72b-instruct:free', ctx: 128, strengths: ['Reasoning','Code'], cost: 0, on: true, fuse: true, weight: 10 },
       { id: 'm7', prov: 'anthropic', name: 'claude-3-7-sonnet-latest', model: 'claude-3-7-sonnet-latest', ctx: 200, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
       { id: 'm8', prov: 'anthropic', name: 'claude-3-5-haiku-latest', model: 'claude-3-5-haiku-latest', ctx: 200, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
       { id: 'm9', prov: 'openai', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
@@ -2680,7 +2684,7 @@ class Component extends DCLogic {
       if (!r.ok || !r.body) {
         let hint = 'needs a provider key';
         try { const d = await r.json(); hint = (d && (d.error || d.hint)) || hint; } catch (e) { /* non-JSON */ }
-        acc = 'Live chat is not configured on the server yet — ' + hint + '. Add a provider key (OPENROUTER_API_KEY) in the deployment env to enable replies, or pair a gateway with Connect.';
+        acc = 'Live chat is not configured on the server yet — ' + hint + '. Add ANY one provider key in the deployment env to enable replies — a free key works (GROQ_API_KEY, GEMINI_API_KEY, CEREBRAS_API_KEY, NIM_API_KEY) as does OPENROUTER_API_KEY or any other — or pair a gateway with Connect.';
         this.setState({ museThinking: false }); render(); return;
       }
       this.setState({ museThinking: false });
@@ -3502,8 +3506,11 @@ class Component extends DCLogic {
       ? 'padding:6px 12px;border:1px solid var(--ring-1);border-radius:9999px;background:rgba(122,224,255,0.14);color:var(--ring-1);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;'
       : 'padding:6px 12px;border:1px solid var(--edge);border-radius:9999px;background:var(--void-2);color:var(--signal-dim);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;';
     const providerList = s.providers.map(p => ({ ...p, kindLabel: p.kind, onToggle: this.toggleProvider(p.id), ...sw(p.connected) }));
+    // Free-tier providers ($0): their models render as "free" so the catalog
+    // shows every no-cost option at a glance (any one flips the public chat live).
+    const freeProv = new Set(s.providers.filter(p => p.free).map(p => p.id));
     const modelList = s.models.map(m => ({ ...m, provName: provName(m.prov), ctxLabel: fmtCtx(m.ctx),
-      costLabel: m.cost === 0 ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' · '),
+      costLabel: m.cost === 0 || freeProv.has(m.prov) ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' · '),
       onToggleOn: this.toggleModelOn(m.id), onToggleFuse: this.toggleModelFuse(m.id), onRemove: this.removeModel(m.id),
       ...sw(m.on), fuseLabel: m.fuse ? '✓ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
       rowOpacity: m.on ? '1' : '0.45' }));
