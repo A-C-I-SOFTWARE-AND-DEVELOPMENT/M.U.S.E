@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#050507">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
+<meta name="description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237ae0ff%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23b388ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2210%22%20fill%3D%22%23050507%22/%3E%3Cg%20transform%3D%22rotate%28-32%2024%2024%29%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%222.4%22%20stroke-dasharray%3D%2262%2026%22%20stroke-linecap%3D%22round%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%223.2%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237ae0ff%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23b388ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2210%22%20fill%3D%22%23050507%22/%3E%3Cg%20transform%3D%22rotate%28-32%2024%2024%29%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%222.4%22%20stroke-dasharray%3D%2262%2026%22%20stroke-linecap%3D%22round%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%223.2%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,10 +15,10 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="muse">
 <meta property="og:title" content="muse — your AI operating partner">
-<meta property="og:description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
+<meta property="og:description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="muse — your AI operating partner">
-<meta name="twitter:description" content="muse — a local-first AI operating partner. One white core in the void: chat with muse, route work across the best models, and keep every action owner-gated.">
+<meta name="twitter:description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 
 <!-- Cockpit-served resources. The 3D Systems Atlas is vendored under
      /cockpit/atlas/ (synced from docs/3d-model/, sharing the cockpit's three.js);
@@ -1965,6 +1965,7 @@ class Component extends DCLogic {
     bootClass: '',
     connOpen: false,
     connState: 'demo',
+    serverChat: 'unknown', // public /api/chat readiness: 'ready' | 'needs-key' | 'none'
     connStep: 'idle',
     gatewayUrl: '',
     // Approvals: owner-phrase confirm state for the live gateway decision route.
@@ -1988,7 +1989,7 @@ class Component extends DCLogic {
     // A single honest greeting explains how replies are produced; messages you
     // send stream back live from /api/chat (or a paired gateway).
     chat: [
-      { who: 'muse', isMuse: true, text: 'Hi — I\u2019m muse. Ask me anything and I\u2019ll answer right here. On this deployment I reply through the app\u2019s own server (it needs a provider key to be enabled); you can also pair your own gateway with Connect.' },
+      { who: 'muse', isMuse: true, text: 'Hi — I\u2019m muse. Ask me anything and I\u2019ll answer right here — no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
     ],
     // No fabricated activity — real jobs arrive from a paired gateway.
     jobsRaw: [],
@@ -2033,7 +2034,7 @@ class Component extends DCLogic {
     models: this._defaultModels(),
     chatFusion: true,
     addModelOpen: false,
-    newModel: { name: '', prov: 'omni', ctx: 128, strength: 'Reasoning' },
+    newModel: { name: '', prov: 'openrouter', ctx: 128, strength: 'Reasoning' },
     sandboxDevice: 'responsive',
     sandboxTab: 'preview',
     sandboxApp: 'login',
@@ -2056,28 +2057,125 @@ class Component extends DCLogic {
   sandboxDoc = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif}body{background:radial-gradient(120% 90% at 50% 0%,#10121c,#0a0b12);color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}.card{width:100%;max-width:320px;background:#12151d;border:1px solid #1c2030;border-radius:16px;padding:30px 26px;box-shadow:0 30px 60px -30px #000}.logo{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#fff,#b388ff 70%);margin:0 auto 18px;box-shadow:0 0 22px rgba(122,224,255,.55)}h1{font-size:20px;text-align:center;margin-bottom:4px;letter-spacing:-.3px}p{font-size:13px;color:#aab2c4;text-align:center;margin-bottom:22px}label{font-size:10px;color:#6b7388;text-transform:uppercase;letter-spacing:.6px}input{width:100%;margin:6px 0 14px;padding:11px 12px;background:#0a0b12;border:1px solid #1c2030;border-radius:8px;color:#e8ecf4;font-size:14px}input:focus{outline:0;border-color:#7ae0ff}button{width:100%;padding:12px;border:0;border-radius:8px;background:linear-gradient(90deg,#7ae0ff,#b388ff);color:#050507;font-weight:600;font-size:14px;cursor:pointer}.alt{text-align:center;font-size:12px;color:#6b7388;margin-top:16px}.alt b{color:#7ae0ff;font-weight:500}</style></head><body><div class="card"><div class="logo"></div><h1>Welcome back</h1><p>Sign in to muse</p><label>Username</label><input value="" placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button>Sign in</button><div class="alt">New here? <b>Create an account</b></div></div></body></html>`;
 
   _defaultProviders() {
+    // muse's full provider catalog (mirrors apps/nexus/src/lib/providers.ts).
+    // 'connected' reflects the public deployment: OpenRouter is the server route
+    // (when OPENROUTER_API_KEY is set); the rest are available — bring a key.
     return [
-      { id: 'omni', name: 'Omni Gateway', kind: 'Every provider, one key', connected: true, omni: true },
-      { id: 'anthropic', name: 'Anthropic', kind: 'Claude family', connected: true },
-      { id: 'openai', name: 'OpenAI', kind: 'GPT family', connected: true },
-      { id: 'google', name: 'Google', kind: 'Gemini family', connected: true },
-      { id: 'meta', name: 'Meta', kind: 'Llama family', connected: true },
+      { id: 'openrouter', name: 'OpenRouter', kind: '300+ models · universal fallback', connected: true, omni: true },
+      { id: 'anthropic', name: 'Anthropic', kind: 'Claude family', connected: false },
+      { id: 'openai', name: 'OpenAI', kind: 'GPT / o-series', connected: false },
+      { id: 'google', name: 'Google AI', kind: 'Gemini family', connected: false },
+      { id: 'groq', name: 'Groq', kind: 'Fast LPU inference', connected: false },
+      { id: 'mistral', name: 'Mistral', kind: 'Mistral / Codestral', connected: false },
+      { id: 'deepseek', name: 'DeepSeek', kind: 'DeepSeek V3 / R1', connected: false },
       { id: 'xai', name: 'xAI', kind: 'Grok family', connected: false },
-      { id: 'deepseek', name: 'DeepSeek', kind: 'DeepSeek family', connected: true },
-      { id: 'mistral', name: 'Mistral', kind: 'Mistral family', connected: false },
-      { id: 'local', name: 'Local', kind: 'Runs on your machine', connected: true },
+      { id: 'together', name: 'Together AI', kind: 'Open models, hosted', connected: false },
+      { id: 'novita', name: 'NovitaAI', kind: 'Open models, hosted', connected: false },
+      { id: 'nim', name: 'NVIDIA NIM', kind: 'NVIDIA inference', connected: false },
+      { id: 'dashscope', name: 'Qwen / DashScope', kind: 'Qwen family', connected: false },
+      { id: 'moonshot', name: 'Kimi / Moonshot', kind: 'Kimi long-context', connected: false },
+      { id: 'zhipu', name: 'Z.AI / GLM', kind: 'GLM family (Zhipu)', connected: false },
+      { id: 'stepfun', name: 'StepFun', kind: 'Step family', connected: false },
+      { id: 'minimax', name: 'MiniMax', kind: 'abab family', connected: false },
+      { id: 'huggingface', name: 'Hugging Face', kind: 'Router over open models', connected: false },
+      { id: 'github-models', name: 'GitHub Models', kind: 'GH-hosted models', connected: false },
+      { id: 'nous', name: 'Nous Portal', kind: 'Hermes family', connected: false },
+      { id: 'arcee', name: 'Arcee AI', kind: 'Auto-routed', connected: false },
+      { id: 'cerebras', name: 'Cerebras', kind: 'Wafer-scale inference', connected: false },
+      { id: 'perplexity', name: 'Perplexity', kind: 'Sonar (web-grounded)', connected: false },
+      { id: 'fireworks', name: 'Fireworks', kind: 'Open models, fast', connected: false },
+      { id: 'azure', name: 'Azure OpenAI', kind: 'Enterprise OpenAI', connected: false },
+      { id: 'bedrock', name: 'AWS Bedrock', kind: 'IAM-signed (gateway)', connected: false },
+      { id: 'vercel', name: 'Vercel AI Gateway', kind: 'Routed gateway', connected: false },
+      { id: 'lmstudio', name: 'LM Studio', kind: 'Local server', connected: false, local: true },
+      { id: 'ollama', name: 'Ollama', kind: 'Local models', connected: false, local: true },
+      { id: 'ollama-cloud', name: 'Ollama Cloud', kind: 'Hosted Ollama', connected: false },
+      { id: 'alibaba-coding-plan', name: 'Alibaba Coding Plan', kind: 'Qwen coding', connected: false },
+      { id: 'gmi', name: 'GMI Cloud', kind: 'Open models, hosted', connected: false },
+      { id: 'kilocode', name: 'Kilo Code', kind: 'Coding router', connected: false },
+      { id: 'opencode-zen', name: 'OpenCode Zen', kind: 'Coding router', connected: false },
+      { id: 'xiaomi', name: 'Xiaomi MiMo', kind: 'MiMo family', connected: false },
+      { id: 'azure-foundry', name: 'Azure AI Foundry', kind: 'Enterprise (gateway)', connected: false },
+      { id: 'copilot', name: 'GitHub Copilot', kind: 'GH token (gateway)', connected: false },
+      { id: 'openai-codex', name: 'OpenAI Codex', kind: 'OAuth (gateway)', connected: false },
+      { id: 'qwen-oauth', name: 'Qwen (OAuth)', kind: 'Device sign-in (gateway)', connected: false },
+      { id: 'copilot-acp', name: 'Copilot ACP', kind: 'Autonomous coding (gateway)', connected: false },
+      { id: 'custom', name: 'Custom', kind: 'Any OpenAI-compatible', connected: false },
     ];
   }
   _defaultModels() {
+    // Curated models across every provider (the headline set; OpenRouter exposes 300+).
     return [
-      { id: 'm1', prov: 'anthropic', name: 'Claude Opus', ctx: 200, strengths: ['Reasoning', 'Writing'], cost: 15, on: true, fuse: true, weight: 32 },
-      { id: 'm2', prov: 'anthropic', name: 'Claude Sonnet', ctx: 200, strengths: ['Code', 'Fast'], cost: 3, on: true, fuse: true, weight: 24 },
-      { id: 'm3', prov: 'openai', name: 'GPT Pro', ctx: 128, strengths: ['Reasoning', 'Math'], cost: 10, on: true, fuse: true, weight: 22 },
-      { id: 'm4', prov: 'google', name: 'Gemini Ultra', ctx: 1000, strengths: ['Long context', 'Vision'], cost: 7, on: true, fuse: true, weight: 22 },
-      { id: 'm5', prov: 'openai', name: 'GPT Mini', ctx: 128, strengths: ['Fast', 'Cheap'], cost: 1, on: true, fuse: false, weight: 10 },
-      { id: 'm6', prov: 'meta', name: 'Llama Maverick', ctx: 256, strengths: ['Cheap', 'Code'], cost: 1, on: true, fuse: false, weight: 10 },
-      { id: 'm7', prov: 'deepseek', name: 'DeepSeek Reason', ctx: 64, strengths: ['Reasoning', 'Math'], cost: 1, on: true, fuse: false, weight: 10 },
-      { id: 'm8', prov: 'local', name: 'Local 70B', ctx: 32, strengths: ['Cheap', 'Fast'], cost: 0, on: false, fuse: false, weight: 10 },
+      { id: 'm1', prov: 'openrouter', name: 'auto', model: 'openrouter/auto', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm2', prov: 'openrouter', name: 'claude-3.7-sonnet', model: 'anthropic/claude-3.7-sonnet', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm3', prov: 'openrouter', name: 'gpt-4o', model: 'openai/gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm4', prov: 'openrouter', name: 'gemini-2.0-flash-001', model: 'google/gemini-2.0-flash-001', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm5', prov: 'openrouter', name: 'llama-3.3-70b-instruct', model: 'meta-llama/llama-3.3-70b-instruct', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm6', prov: 'openrouter', name: 'deepseek-chat', model: 'deepseek/deepseek-chat', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm7', prov: 'anthropic', name: 'claude-3-7-sonnet-latest', model: 'claude-3-7-sonnet-latest', ctx: 200, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm8', prov: 'anthropic', name: 'claude-3-5-haiku-latest', model: 'claude-3-5-haiku-latest', ctx: 200, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm9', prov: 'openai', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm10', prov: 'openai', name: 'gpt-4o-mini', model: 'gpt-4o-mini', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm11', prov: 'openai', name: 'o3-mini', model: 'o3-mini', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm12', prov: 'google', name: 'gemini-2.0-flash', model: 'gemini-2.0-flash', ctx: 1000, strengths: ['Long context','Vision'], cost: 1, on: true, fuse: true, weight: 10 },
+      { id: 'm13', prov: 'google', name: 'gemini-1.5-pro', model: 'gemini-1.5-pro', ctx: 1000, strengths: ['Long context','Vision'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm14', prov: 'groq', name: 'llama-3.3-70b-versatile', model: 'llama-3.3-70b-versatile', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm15', prov: 'groq', name: 'llama-3.1-8b-instant', model: 'llama-3.1-8b-instant', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm16', prov: 'groq', name: 'qwen-2.5-coder-32b', model: 'qwen-2.5-coder-32b', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm17', prov: 'mistral', name: 'mistral-large-latest', model: 'mistral-large-latest', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm18', prov: 'mistral', name: 'codestral-latest', model: 'codestral-latest', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm19', prov: 'deepseek', name: 'deepseek-chat', model: 'deepseek-chat', ctx: 128, strengths: ['Reasoning','Code'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm20', prov: 'deepseek', name: 'deepseek-reasoner', model: 'deepseek-reasoner', ctx: 128, strengths: ['Reasoning','Code'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm21', prov: 'xai', name: 'grok-2-latest', model: 'grok-2-latest', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm22', prov: 'xai', name: 'grok-beta', model: 'grok-beta', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm23', prov: 'together', name: 'Llama-3.3-70B-Instruct-Turbo', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm24', prov: 'together', name: 'Qwen2.5-Coder-32B-Instruct', model: 'Qwen/Qwen2.5-Coder-32B-Instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm25', prov: 'novita', name: 'llama-3.3-70b-instruct', model: 'meta-llama/llama-3.3-70b-instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm26', prov: 'nim', name: 'llama-3.3-70b-instruct', model: 'meta/llama-3.3-70b-instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm27', prov: 'nim', name: 'nemotron-4-340b-instruct', model: 'nvidia/nemotron-4-340b-instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm28', prov: 'dashscope', name: 'qwen-max', model: 'qwen-max', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm29', prov: 'dashscope', name: 'qwen2.5-coder-32b-instruct', model: 'qwen2.5-coder-32b-instruct', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm30', prov: 'moonshot', name: 'moonshot-v1-128k', model: 'moonshot-v1-128k', ctx: 128, strengths: ['Long context','Vision'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm31', prov: 'moonshot', name: 'kimi-latest', model: 'kimi-latest', ctx: 128, strengths: ['Long context','Vision'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm32', prov: 'zhipu', name: 'glm-4-plus', model: 'glm-4-plus', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm33', prov: 'zhipu', name: 'glm-4-flash', model: 'glm-4-flash', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm34', prov: 'stepfun', name: 'step-2-16k', model: 'step-2-16k', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm35', prov: 'minimax', name: 'abab6.5s-chat', model: 'abab6.5s-chat', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm36', prov: 'huggingface', name: 'Llama-3.3-70B-Instruct', model: 'meta-llama/Llama-3.3-70B-Instruct', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm37', prov: 'github-models', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm38', prov: 'github-models', name: 'Llama-3.3-70B-Instruct', model: 'Llama-3.3-70B-Instruct', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm39', prov: 'nous', name: 'Hermes-3-Llama-3.1-70B', model: 'Hermes-3-Llama-3.1-70B', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm40', prov: 'arcee', name: 'auto', model: 'auto', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm41', prov: 'cerebras', name: 'llama-3.3-70b', model: 'llama-3.3-70b', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm42', prov: 'perplexity', name: 'sonar', model: 'sonar', ctx: 128, strengths: ['Web','Research'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm43', prov: 'perplexity', name: 'sonar-pro', model: 'sonar-pro', ctx: 128, strengths: ['Web','Research'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm44', prov: 'fireworks', name: 'llama-v3p3-70b-instruct', model: 'accounts/fireworks/models/llama-v3p3-70b-instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm45', prov: 'azure', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm46', prov: 'bedrock', name: 'anthropic.claude-3-5-sonnet', model: 'anthropic.claude-3-5-sonnet', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm47', prov: 'vercel', name: 'claude-3.7-sonnet', model: 'anthropic/claude-3.7-sonnet', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm48', prov: 'vercel', name: 'gpt-4o', model: 'openai/gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm49', prov: 'lmstudio', name: 'local-model', model: 'local-model', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm50', prov: 'ollama', name: 'llama3.2', model: 'llama3.2', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm51', prov: 'ollama', name: 'qwen2.5-coder', model: 'qwen2.5-coder', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm52', prov: 'ollama-cloud', name: 'gpt-oss:120b', model: 'gpt-oss:120b', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm53', prov: 'ollama-cloud', name: 'qwen3-coder:480b', model: 'qwen3-coder:480b', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm54', prov: 'ollama-cloud', name: 'deepseek-v3.1:671b', model: 'deepseek-v3.1:671b', ctx: 128, strengths: ['Private','Local'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm55', prov: 'alibaba-coding-plan', name: 'qwen3-coder-plus', model: 'qwen3-coder-plus', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm56', prov: 'alibaba-coding-plan', name: 'qwen-max', model: 'qwen-max', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm57', prov: 'gmi', name: 'DeepSeek-V3', model: 'deepseek-ai/DeepSeek-V3', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm58', prov: 'gmi', name: 'Qwen2.5-72B-Instruct', model: 'Qwen/Qwen2.5-72B-Instruct', ctx: 128, strengths: ['Code','Fast'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm59', prov: 'kilocode', name: 'auto', model: 'auto', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm60', prov: 'opencode-zen', name: 'claude-sonnet-4', model: 'claude-sonnet-4', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm61', prov: 'opencode-zen', name: 'grok-code', model: 'grok-code', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm62', prov: 'opencode-zen', name: 'qwen3-coder', model: 'qwen3-coder', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm63', prov: 'xiaomi', name: 'mimo-v2-pro', model: 'mimo-v2-pro', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm64', prov: 'azure-foundry', name: 'phi-4', model: 'phi-4', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm65', prov: 'copilot', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm66', prov: 'copilot', name: 'claude-3.7-sonnet', model: 'claude-3.7-sonnet', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm67', prov: 'openai-codex', name: 'gpt-5-codex', model: 'gpt-5-codex', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm68', prov: 'qwen-oauth', name: 'qwen3-coder-plus', model: 'qwen3-coder-plus', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm69', prov: 'copilot-acp', name: 'gpt-4o', model: 'gpt-4o', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
+      { id: 'm70', prov: 'custom', name: 'custom-model', model: 'custom-model', ctx: 128, strengths: ['Reasoning','Writing'], cost: 1, on: true, fuse: false, weight: 10 },
     ];
   }
   _renderPentagram(ens, addable) {
@@ -2405,6 +2503,9 @@ class Component extends DCLogic {
     window.addEventListener('mousemove', this._onMove, { passive: true });
     // Live data wiring: if we have a token, immediately try gateway and start polling
     this._kickLive();
+    // Public chat readiness: /api/chat is served by THIS deployment (no gateway,
+    // no login). Probe it so the header shows an honest "online" when ready.
+    this._probeServerChat();
 
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
@@ -2961,6 +3062,18 @@ class Component extends DCLogic {
     this._liveTimer = setInterval(() => this.pullAll(), 4000);
   };
 
+  _probeServerChat = async () => {
+    // Is public server chat ready? /api/chat holds the provider key on the
+    // deployment (set once by the owner); visitors need no login or pairing.
+    // An empty POST returns 501 when no key is configured, 400 when it is.
+    try {
+      const r = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [] }) });
+      if (r.status === 501) this.setState({ serverChat: 'needs-key' });
+      else if (r.ok || r.status === 400) this.setState({ serverChat: 'ready' });
+      else this.setState({ serverChat: 'none' });
+    } catch (e) { this.setState({ serverChat: 'none' }); }
+  };
+
   _connVals(s) {
     const gi = s.gatewayInfo || {};
     const rt = s.liveRuntime || {};
@@ -3394,7 +3507,7 @@ class Component extends DCLogic {
       onToggleOn: this.toggleModelOn(m.id), onToggleFuse: this.toggleModelFuse(m.id), onRemove: this.removeModel(m.id),
       ...sw(m.on), fuseLabel: m.fuse ? '✓ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
       rowOpacity: m.on ? '1' : '0.45' }));
-    const modelsOnlineLabel = s.models.filter(m => m.on).length + ' models · ' + s.providers.filter(p => p.connected).length + ' providers';
+    const modelsOnlineLabel = s.models.length + ' models · ' + s.providers.length + ' providers';
     const addable = s.models.filter(m => m.on && !m.fuse).map(m => ({ ...m, provName: provName(m.prov), onAdd: this.toggleModelFuse(m.id) }));
     const ens = s.models.filter(m => m.fuse && m.on);
     const fusionActive = ens;
@@ -3478,9 +3591,11 @@ class Component extends DCLogic {
         s.connState === 'live' ? { dotCls: 'dot live', label: 'connected · live' }
         : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connecting…' }
         : s.connState === 'error' ? { dotCls: 'dot danger', label: 'gateway offline' }
-        : { dotCls: 'dot off', label: 'offline · not connected' }),
+        : s.serverChat === 'ready' ? { dotCls: 'dot live', label: 'online' }
+        : s.serverChat === 'needs-key' ? { dotCls: 'dot warn', label: 'set a provider key' }
+        : { dotCls: 'dot off', label: 'offline' }),
       connClass: s.connState,
-      connBadge: (s.connState === 'live') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'OFFLINE' },
+      connBadge: (s.connState === 'live' || s.serverChat === 'ready') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'OFFLINE' },
       conn2: this._connVals(s),
       stopBtnCls: halted ? 'btn secondary' : 'btn danger',
       stopLabel: halted ? 'Resume' : 'Emergency stop',

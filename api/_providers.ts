@@ -59,6 +59,37 @@ const SERVER_PROVIDERS: ServerProvider[] = [
 const BY_ID = Object.fromEntries(SERVER_PROVIDERS.map((p) => [p.id, p]));
 const OPENROUTER = BY_ID.openrouter;
 
+// Omni fallback chain. When the omni/auto route is used, the request threads
+// through this ordered set of broadly-available models so a single model or
+// provider outage never stops the chat — OpenRouter tries the next candidate
+// automatically. 'openrouter/auto' is the primary (a meta-router over 300+
+// models); this is the explicit, fast, cross-vendor safety net beneath it.
+const OMNI_FALLBACKS = [
+  'openai/gpt-4o-mini',
+  'anthropic/claude-3.5-haiku',
+  'google/gemini-2.0-flash-001',
+  'meta-llama/llama-3.3-70b-instruct',
+  'deepseek/deepseek-chat',
+  'mistralai/mistral-small',
+  'qwen/qwen-2.5-72b-instruct',
+];
+
+/**
+ * OpenRouter request extras that make the omni/auto route resilient: an ordered
+ * fallback chain plus provider-level fallbacks sorted by throughput, so a single
+ * model/provider outage transparently threads to the next candidate — the chat
+ * "never stops" and can fuse across every model. Applied ONLY to the omni (auto)
+ * route; an explicit model pick is left untouched so the user gets exactly the
+ * model they chose.
+ */
+function omniRouting(): Record<string, unknown> {
+  return {
+    models: OMNI_FALLBACKS,
+    route: 'fallback',
+    provider: { allow_fallbacks: true, sort: 'throughput' },
+  };
+}
+
 /** Resolve which server provider a model id belongs to (mirrors providerForModel). */
 function providerForModel(model: string): ServerProvider {
   if (model.includes('/')) {
@@ -117,7 +148,10 @@ export function buildUpstream(model: string, messages: ChatMessage[]): ResolveRe
     if (p.shape === 'anthropic') {
       return { ok: true, plan: buildAnthropic(p, directKey, model, messages) };
     }
-    return { ok: true, plan: buildOpenAIShape(p, directKey, stripProviderPrefix(p.id, model), messages) };
+    const m = stripProviderPrefix(p.id, model);
+    // Omni resilience when the user holds the OpenRouter key directly.
+    const extra = p.id === 'openrouter' && m === 'auto' ? omniRouting() : undefined;
+    return { ok: true, plan: buildOpenAIShape(p, directKey, m, messages, extra) };
   }
 
   // Fallback: OpenRouter, if a key exists and the model has an OR vendor slug.
@@ -126,7 +160,9 @@ export function buildUpstream(model: string, messages: ChatMessage[]): ResolveRe
     const orModel = p.id === 'openrouter'
       ? model.replace(/^openrouter\//, '')
       : `${p.openrouterPrefix}/${model.split('/').pop()}`;
-    return { ok: true, plan: buildOpenAIShape(OPENROUTER, orKey, orModel, messages) };
+    // Thread through every model on the omni/auto route; never stop on one outage.
+    const extra = orModel === 'auto' ? omniRouting() : undefined;
+    return { ok: true, plan: buildOpenAIShape(OPENROUTER, orKey, orModel, messages, extra) };
   }
 
   return { ok: false, reason: 'server chat not configured' };
@@ -156,7 +192,13 @@ function stripProviderPrefix(id: string, model: string): string {
 
 // ---- request builders ---------------------------------------------------------
 
-function buildOpenAIShape(p: ServerProvider, key: string, model: string, messages: ChatMessage[]): UpstreamPlan {
+function buildOpenAIShape(
+  p: ServerProvider,
+  key: string,
+  model: string,
+  messages: ChatMessage[],
+  extra?: Record<string, unknown>,
+): UpstreamPlan {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${key}`,
@@ -170,7 +212,7 @@ function buildOpenAIShape(p: ServerProvider, key: string, model: string, message
     init: {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages, stream: true, ...(extra || {}) }),
     },
     shape: 'openai',
   };
