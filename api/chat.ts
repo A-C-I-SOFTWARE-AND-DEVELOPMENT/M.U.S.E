@@ -57,9 +57,15 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
-  // No server key at all -> honest "not configured" so the UI disconnects
-  // rather than inventing a response.
-  if (!hasServerKey()) {
+  // BYOK: a visitor can supply their own provider key from the page (stored only
+  // in their browser, sent per-request over HTTPS, never persisted or logged
+  // here). When present it satisfies "configured" without a server key.
+  const clientKey = req.headers.get('x-provider-key') || '';
+  const clientProvider = req.headers.get('x-provider-id') || '';
+
+  // No server key AND no client key -> honest "not configured" so the UI shows
+  // a disconnected state rather than inventing a response.
+  if (!hasServerKey() && !clientKey) {
     return json({ error: 'server chat not configured' }, 501);
   }
 
@@ -76,7 +82,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const model = typeof payload.model === 'string' ? payload.model : 'auto';
 
-  const resolved = buildUpstream(model, messages);
+  const resolved = buildUpstream(model, messages, { clientKey, clientProvider });
   if (!resolved.ok) {
     // No key for this model and no OpenRouter fallback configured.
     return json({ error: 'server chat not configured' }, 501);

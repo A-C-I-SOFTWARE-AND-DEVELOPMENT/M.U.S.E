@@ -149,6 +149,13 @@ export type ResolveResult =
   | { ok: true; plan: UpstreamPlan }
   | { ok: false; reason: string };
 
+export interface UpstreamOpts {
+  /** Client-supplied (BYOK) provider key — used per-request, never stored. */
+  clientKey?: string;
+  /** Explicit provider id for the client key; inferred from the model if absent. */
+  clientProvider?: string;
+}
+
 /**
  * Build the upstream streaming request for a model using only process.env keys.
  *
@@ -157,7 +164,24 @@ export type ResolveResult =
  * OpenRouter. If neither key exists, returns { ok:false } so the caller can
  * answer HTTP 501 (honest "server chat not configured" — never fabricated).
  */
-export function buildUpstream(model: string, messages: ChatMessage[]): ResolveResult {
+export function buildUpstream(
+  model: string,
+  messages: ChatMessage[],
+  opts: UpstreamOpts = {},
+): ResolveResult {
+  // BYOK (bring-your-own-key): a client-supplied key routes through the user's
+  // OWN key, never consulting env. The provider is the explicit clientProvider
+  // (when known) else inferred from the model. Used per-request, never stored or
+  // logged. This is how a visitor turns chat on from the public page.
+  const clientKey = (opts.clientKey || '').trim();
+  if (clientKey) {
+    const p =
+      opts.clientProvider && BY_ID[opts.clientProvider]
+        ? BY_ID[opts.clientProvider]
+        : providerForModel(model);
+    return { ok: true, plan: buildForProvider(p, clientKey, model, messages) };
+  }
+
   if (!model || model === 'auto') {
     // No vendor-privileged default. Server picks the first provider it has a key
     // for, free-tier first (so the public chat can run at $0); else honest
@@ -233,6 +257,25 @@ function pickServerModel(): string {
 
 function stripProviderPrefix(id: string, model: string): string {
   return model.replace(new RegExp(`^${id}/`), '');
+}
+
+/**
+ * Build an upstream plan for a provider using a specific key (BYOK or env). 'auto'
+ * resolves to the provider's real default model (OpenRouter's omni router, or each
+ * provider's defaultModel), and the OpenRouter omni route gets its fallback chain.
+ */
+function buildForProvider(
+  p: ServerProvider,
+  key: string,
+  model: string,
+  messages: ChatMessage[],
+): UpstreamPlan {
+  let m = model;
+  if (!m || m === 'auto') m = p.id === 'openrouter' ? 'openrouter/auto' : p.defaultModel;
+  if (p.shape === 'anthropic') return buildAnthropic(p, key, m, messages);
+  const mm = p.id === 'openrouter' ? openrouterModelId(m) : stripProviderPrefix(p.id, m);
+  const extra = p.id === 'openrouter' && mm === 'openrouter/auto' ? omniRouting() : undefined;
+  return buildOpenAIShape(p, key, mm, messages, extra);
 }
 
 /**

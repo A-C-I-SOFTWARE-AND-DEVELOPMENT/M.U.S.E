@@ -786,6 +786,20 @@ body { perspective: 1800px; }
           <button type="button" onclick="{{ conn2.onClose }}" class="btn secondary" style="flex:none; padding:5px 10px;">Close</button>
         </div>
 
+        <!-- BYOK: chat instantly with your own key, no gateway -->
+        <div style="margin-top:18px; border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(122,224,255,0.06), rgba(122,224,255,0));">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><span style="font-size:13px; font-weight:600; color:var(--signal);">Use your own key — chat now</span><sc-if value="{{ conn2.byokSaved }}" hint-placeholder-val="{{ false }}"><span class="pill ok" style="font-size:9px; margin-left:auto;">SAVED</span></sc-if></div>
+          <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:10px;">No gateway, no deployment setup. Pick a provider, paste an API key, and send. The key is stored only in this browser and sent over https per message — it is never saved on our server. (Free keys work: Groq, Gemini, Cerebras, NVIDIA NIM.)</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <select value="{{ conn2.byokProv }}" onchange="{{ conn2.onByokProv }}" style="flex:none; width:200px; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;">
+              <sc-for list="{{ conn2.byokProviders }}" as="bp" hint-placeholder-count="5"><option value="{{ bp.id }}">{{ bp.name }}</option></sc-for>
+            </select>
+            <input type="password" value="{{ conn2.byokKey }}" oninput="{{ conn2.onByokKey }}" placeholder="Paste API key" autocomplete="off" spellcheck="false" style="flex:1 1 160px; font-family:var(--mono); font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;" style-focus="border-color:var(--ring-1);">
+            <button type="button" onclick="{{ conn2.onSaveByok }}" class="btn primary" style="flex:none;">Save</button>
+            <sc-if value="{{ conn2.byokSaved }}" hint-placeholder-val="{{ false }}"><button type="button" onclick="{{ conn2.onClearByok }}" class="btn secondary" style="flex:none;">Clear</button></sc-if>
+          </div>
+        </div>
+
         <!-- Gateway address -->
         <div style="margin-top:18px;">
           <div style="font-size:10px; letter-spacing:0.09em; text-transform:uppercase; color:var(--signal-mute); margin-bottom:7px;">Gateway address</div>
@@ -1993,6 +2007,11 @@ class Component extends DCLogic {
     installLabel: 'Install app',
     iosInstall: false,
     installHint: '',
+    // BYOK: paste-your-own-key chat. byokSaved reflects a key in this browser;
+    // byokKey is the input buffer (never pre-filled with the stored secret).
+    byokKey: '',
+    byokProv: 'openrouter',
+    byokSaved: false,
     // Approvals: owner-phrase confirm state for the live gateway decision route.
     approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
     gatewayInfo: null,
@@ -2717,15 +2736,18 @@ class Component extends DCLogic {
     const render = () => this.setState({ chat: base.map((m, i) => i === museIdx ? { ...m, text: acc } : m) });
     this.setState({ chat: base });
     try {
+      const byok = this._byok();
+      const headers = { 'Content-Type': 'application/json' };
+      if (byok.key) { headers['x-provider-key'] = byok.key; headers['x-provider-id'] = byok.prov; }
       const r = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ model: 'auto', messages: history }),
       });
       if (!r.ok || !r.body) {
         let hint = 'needs a provider key';
         try { const d = await r.json(); hint = (d && (d.error || d.hint)) || hint; } catch (e) { /* non-JSON */ }
-        acc = 'Live chat is not configured on the server yet — ' + hint + '. Add ANY one provider key in the deployment env to enable replies — a free key works (GROQ_API_KEY, GEMINI_API_KEY, CEREBRAS_API_KEY, NIM_API_KEY) as does OPENROUTER_API_KEY or any other — or pair a gateway with Connect.';
+        acc = 'Live chat is not configured on the server yet — ' + hint + '. Quickest fix: click Connect → "Use your own key", paste any provider key (a free Groq/Gemini key works), and chat instantly. Or set one provider key in the deployment env, or pair a gateway.';
         this.setState({ museThinking: false }); render(); return;
       }
       this.setState({ museThinking: false });
@@ -3001,6 +3023,48 @@ class Component extends DCLogic {
   }
   _tok() { try { return localStorage.getItem('muse.gateway.token') || ''; } catch (e) { return ''; } }
 
+  // BYOK (bring-your-own-key): a provider key the user pastes on this page. Stored
+  // ONLY in this browser; sent to /api/chat per message and never persisted on the
+  // server. Lets a visitor turn chat on without any deployment env change.
+  _byok() {
+    try {
+      return {
+        key: localStorage.getItem('muse.byok.key') || '',
+        prov: localStorage.getItem('muse.byok.prov') || 'openrouter',
+      };
+    } catch (e) { return { key: '', prov: 'openrouter' }; }
+  }
+  BYOK_PROVIDERS = [
+    { id: 'openrouter', name: 'OpenRouter — all models' },
+    { id: 'anthropic', name: 'Anthropic (Claude)' },
+    { id: 'openai', name: 'OpenAI' },
+    { id: 'google', name: 'Google Gemini' },
+    { id: 'groq', name: 'Groq (free tier)' },
+    { id: 'cerebras', name: 'Cerebras (free tier)' },
+    { id: 'nim', name: 'NVIDIA NIM (free tier)' },
+    { id: 'mistral', name: 'Mistral' },
+    { id: 'deepseek', name: 'DeepSeek' },
+    { id: 'xai', name: 'xAI (Grok)' },
+    { id: 'together', name: 'Together AI' },
+    { id: 'perplexity', name: 'Perplexity' },
+    { id: 'fireworks', name: 'Fireworks' },
+  ];
+  setByokProv = (e) => this.setState({ byokProv: e.target.value });
+  setByokKey = (e) => this.setState({ byokKey: e.target.value });
+  saveByok = () => {
+    const key = (this.state.byokKey || '').trim();
+    const prov = this.state.byokProv || 'openrouter';
+    try {
+      if (key) { localStorage.setItem('muse.byok.key', key); localStorage.setItem('muse.byok.prov', prov); }
+    } catch (e) {}
+    this.setState({ byokSaved: !!key, serverChat: key ? 'ready' : this.state.serverChat });
+  };
+  clearByok = () => {
+    try { localStorage.removeItem('muse.byok.key'); localStorage.removeItem('muse.byok.prov'); } catch (e) {}
+    this.setState({ byokKey: '', byokSaved: false });
+    this._probeServerChat();
+  };
+
   async _api(path, { method = 'GET', body = null, auth = true } = {}) {
     const headers = { 'Accept': 'application/json' };
     if (body) headers['Content-Type'] = 'application/json';
@@ -3018,7 +3082,9 @@ class Component extends DCLogic {
   onToken = () => {
     let url = ''; try { url = localStorage.getItem('muse.gateway.url') || ''; } catch (e) {}
     let dev = ''; try { dev = localStorage.getItem('muse.gateway.device') || ''; } catch (e) {}
+    const byok = this._byok();
     this.setState({ connOpen: true, gatewayUrl: url, deviceId: dev, needsPhrase: false,
+      byokKey: '', byokProv: byok.prov, byokSaved: !!byok.key,
       connStep: this._tok() ? 'connected' : 'idle', connError: '' });
   };
   closeConn = () => this.setState({ connOpen: false });
@@ -3232,6 +3298,14 @@ class Component extends DCLogic {
       phrase: s.pairPhrase,
       needsPhrase: s.needsPhrase,
       ownerPhrase: this.OWNER_PHRASE,
+      byokProv: s.byokProv,
+      byokKey: s.byokKey,
+      byokSaved: s.byokSaved,
+      byokProviders: this.BYOK_PROVIDERS.map(p => ({ ...p, selected: p.id === s.byokProv })),
+      onByokProv: this.setByokProv,
+      onByokKey: this.setByokKey,
+      onSaveByok: this.saveByok,
+      onClearByok: this.clearByok,
       live: s.connState === 'live',
       runtime: (rt.gateway || rt.host) ? {
         ver: (rt.gateway || {}).version || '—',
