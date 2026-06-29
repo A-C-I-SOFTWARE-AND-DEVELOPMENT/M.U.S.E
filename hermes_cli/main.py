@@ -6016,17 +6016,22 @@ def cmd_cockpit(args):
         from gateway.cockpit.server import _resolve_cors_origins as _cors
 
         _cors_set = _cors(getattr(args, "cors_origins", None))
-        print(f"muse cockpit API listening on http://{bound_host}:{bound_port}")
-        print(f"Open the browser cockpit: http://{bound_host}:{bound_port}/cockpit/")
+        _base = f"http://{bound_host}:{bound_port}"
+        print(f"muse cockpit API listening on {_base}")
+        print(f"Open the browser cockpit: {_base}/cockpit/")
         print(f"Pairing token: {token}")
+        # Hands-off connect: open this link and the cockpit goes live with zero
+        # clicks (the token rides in the URL hash and is scrubbed from the bar
+        # after load). For the public cockpit, substitute a browser-reachable
+        # gateway URL (a tunnel) for {_base} in both spots.
+        print(
+            f"One-click connect (this machine): {_base}/cockpit/#gateway={_base}&token={token}"
+        )
         if _cors_set:
-            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-
             print("Cross-origin connect allowed from: " + ", ".join(sorted(_cors_set)))
             print(
-                "  -> Open the public cockpit (e.g. https://musehq.io), open Connect, "
-                "point it at this gateway's URL, and pair with the owner phrase: "
-                f"{AUTHORIZATION_PHRASE!r}"
+                "  -> Or open the public cockpit (e.g. https://musehq.io) and use the "
+                "hands-off link above with your gateway's browser-reachable URL."
             )
         print("Pair the muse Android app (or the browser cockpit) with this base URL + token.")
         print("Press Ctrl-C to stop.")
