@@ -826,11 +826,11 @@ body { perspective: 1800px; }
                 <span style="flex:1; text-align:center; font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:0.04em; color:var(--ring-1); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-sm); padding:9px 0;">{{ c }}</span>
               </sc-for>
             </div>
-            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">To authorize this device, type the owner phrase exactly:<br><span style="font-family:var(--mono); color:var(--signal);">{{ conn2.ownerPhrase }}</span></div>
-            <div style="display:flex; gap:8px;">
-              <input type="text" value="{{ conn2.phrase }}" oninput="{{ conn2.onPhrase }}" placeholder="Owner authorization phrase" style="flex:1; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;" style-focus="border-color:var(--ring-1);">
-              <button type="button" onclick="{{ conn2.onConfirm }}" class="btn primary" style="flex:none;">Pair</button>
-            </div>
+            <sc-if value="{{ conn2.needsPhrase }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">This gateway is exposed off-device (started with <span style="font-family:var(--mono);">--allow-external</span>), so it asks for the owner phrase:<br><span style="font-family:var(--mono); color:var(--signal);">{{ conn2.ownerPhrase }}</span></div>
+              <input type="text" value="{{ conn2.phrase }}" oninput="{{ conn2.onPhrase }}" placeholder="Owner authorization phrase" style="width:100%; box-sizing:border-box; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none; margin-bottom:10px;" style-focus="border-color:var(--ring-1);">
+            </sc-if>
+            <button type="button" onclick="{{ conn2.onConfirm }}" class="btn primary" style="width:100%;">Pair this device</button>
           </div>
         </sc-if>
 
@@ -1975,6 +1975,7 @@ class Component extends DCLogic {
     pairCode: '',
     pairExpires: 0,
     pairPhrase: '',
+    needsPhrase: false, // only true after a gateway demands the owner phrase (--allow-external)
     deviceId: '',
     connError: '',
     liveRuntime: null,
@@ -2977,7 +2978,7 @@ class Component extends DCLogic {
   onToken = () => {
     let url = ''; try { url = localStorage.getItem('muse.gateway.url') || ''; } catch (e) {}
     let dev = ''; try { dev = localStorage.getItem('muse.gateway.device') || ''; } catch (e) {}
-    this.setState({ connOpen: true, gatewayUrl: url, deviceId: dev,
+    this.setState({ connOpen: true, gatewayUrl: url, deviceId: dev, needsPhrase: false,
       connStep: this._tok() ? 'connected' : 'idle', connError: '' });
   };
   closeConn = () => this.setState({ connOpen: false });
@@ -3033,11 +3034,13 @@ class Component extends DCLogic {
           localStorage.setItem('muse.gateway.device', r.data.device_id || '');
           localStorage.setItem('muse.gateway.url', this._gw());
         } catch (e) {}
-        this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
+        this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', needsPhrase: false, connState: 'live', connStep: 'connected', connError: '' });
         this.pullRuntime();
         this._kickLive();
       } else if (r.status === 403) {
-        this.setState({ connError: 'Owner authorization phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' });
+        // This gateway is exposed off-device and demands the owner phrase. Reveal
+        // the field (default connect is phrase-free) and prompt for it.
+        this.setState({ needsPhrase: true, connError: this.state.needsPhrase ? 'Owner phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' : 'This gateway needs the owner phrase to pair. Enter it below.' });
       } else if (r.status === 401) {
         this.setState({ connStep: 'pairing', pairCode: '', connError: 'That pairing code was invalid or expired. Start again.' });
       } else {
@@ -3110,6 +3113,7 @@ class Component extends DCLogic {
       pairCodeChars: (s.pairCode || '').split(''),
       pairExpiresIn: expSecs ? (expSecs + 's left') : '',
       phrase: s.pairPhrase,
+      needsPhrase: s.needsPhrase,
       ownerPhrase: this.OWNER_PHRASE,
       live: s.connState === 'live',
       runtime: (rt.gateway || rt.host) ? {

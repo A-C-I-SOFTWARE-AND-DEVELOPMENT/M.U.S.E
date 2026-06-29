@@ -63,6 +63,45 @@ def _nexus_dist_root() -> Optional[Path]:
         return None
 
 
+# Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT — the
+# first-party muse cockpit. Defaulting these on means a user can run
+# ``muse cockpit serve`` and reach their gateway from the public cockpit with no
+# extra flags. It is bounded: every sensitive route still requires the bearer
+# token, and device pairing still requires the owner phrase (forced on whenever
+# CORS is enabled). Any OTHER origin is rejected. Extend with --cors-origin /
+# HERMES_COCKPIT_CORS_ORIGINS (CSV), or disable with
+# HERMES_COCKPIT_CORS_ORIGINS=off.
+_DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
+    "https://musehq.io",
+    "https://www.musehq.io",
+)
+_CORS_OFF_TOKENS = frozenset({"off", "none", "false", "0", "disable", "disabled"})
+
+
+def _resolve_cors_origins(explicit: Optional[_Iterable[str]] = None) -> frozenset[str]:
+    """Compute the cross-origin allowlist: first-party defaults + env + CLI.
+
+    ``HERMES_COCKPIT_CORS_ORIGINS`` is a comma-separated extension of the
+    defaults, or one of ``off``/``none``/``false``/``0``/``disable`` to clear
+    the defaults entirely. Explicit ``--cors-origin`` values are always added.
+    Origins are normalized (trailing slash stripped) for exact-match compare.
+    """
+    env = os.environ.get("HERMES_COCKPIT_CORS_ORIGINS")
+    if env is not None and env.strip().lower() in _CORS_OFF_TOKENS:
+        base: set[str] = set()  # explicit opt-out clears the first-party defaults
+    else:
+        base = {o.rstrip("/") for o in _DEFAULT_CORS_ORIGINS}
+        for raw in (env or "").split(","):
+            o = raw.strip().rstrip("/")
+            if o and o.lower() not in _CORS_OFF_TOKENS:
+                base.add(o)
+    for raw in explicit or ():
+        o = (raw or "").strip().rstrip("/")
+        if o:
+            base.add(o)
+    return frozenset(base)
+
+
 # Route table: (method, compiled-pattern, handler, requires_auth).
 # Patterns use ``{name}`` placeholders captured into ``path_params``.
 _HandlerFn = Callable[[h.Request], h.JsonResponse]
@@ -294,12 +333,56 @@ def _event_passes(
     return True
 
 
-def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
+def _make_handler(
+    token: Optional[str],
+    responder,
+    stop_event: threading.Event,
+    cors_origins: frozenset[str] = frozenset(),
+):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
         def log_message(self, format, *args):  # noqa: A002 - match base signature
             pass
+
+        # -- CORS (opt-in via allowlist; empty set => no CORS, default) -----
+        def _cors_origin(self) -> Optional[str]:
+            """Return the request Origin iff it is in the allowlist, else None.
+
+            With an empty allowlist this is always None, so no CORS header is
+            ever emitted and default (same-origin / native-app) behavior is
+            byte-for-byte unchanged.
+            """
+            origin = self.headers.get("Origin")
+            if origin and origin.rstrip("/") in cors_origins:
+                return origin
+            return None
+
+        def end_headers(self):  # inject CORS on every response to an allowed Origin
+            origin = self._cors_origin()
+            if origin is not None:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+            super().end_headers()
+
+        def do_OPTIONS(self):  # noqa: N802 - CORS preflight
+            self.close_connection = True
+            origin = self._cors_origin()
+            if origin is None:
+                # Unchanged default: OPTIONS is not a supported method.
+                self.send_error(501, "Unsupported method ('OPTIONS')")
+                return
+            self.send_response(204)
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Max-Age", "600")
+            # Chrome Private Network Access: a public/HTTPS page reaching this
+            # loopback (or LAN) gateway must get explicit consent on the
+            # preflight, or the request is blocked before any route runs.
+            if self.headers.get("Access-Control-Request-Private-Network") == "true":
+                self.send_header("Access-Control-Allow-Private-Network", "true")
+            self.send_header("Content-Length", "0")
+            self.end_headers()  # also injects Access-Control-Allow-Origin + Vary
 
         # -- auth -------------------------------------------------------
         def _authed(self) -> bool:
@@ -813,6 +896,7 @@ def serve(
     token: Optional[str] = None,
     allow_external: bool = False,
     allow_external_hosts: Optional[_Iterable[str]] = None,
+    cors_origins: Optional[_Iterable[str]] = None,
     responder=None,
 ) -> ThreadingHTTPServer:
     """Start the cockpit API server in a background thread.
@@ -855,6 +939,14 @@ def serve(
         )
     if token is None:
         token = cockpit_auth.load_or_create_token()
+    # Browser origins allowed to call the API cross-origin (first-party muse
+    # cockpit by default; extend/disable via --cors-origin /
+    # HERMES_COCKPIT_CORS_ORIGINS). Pairing stays friction-free on a loopback
+    # bind; if you expose the gateway over a tunnel, put authentication on the
+    # tunnel (e.g. Cloudflare Access) — see
+    # docs/remote/connect-cockpit-to-terminal.md. The CLI prints the active
+    # allowlist on startup, so no stderr warning here.
+    cors = _resolve_cors_origins(cors_origins)
     # Second guard for agentic execute lanes: only loopback cockpits may run
     # them (the owner-phrase gate is the first guard, enforced per-request).
     h.configure_runtime(allow_remote_execute=bool(allow_external))
@@ -870,7 +962,9 @@ def serve(
             return jarvis_responder(prompt, history, generate=default_prose_generator)
 
     stop_event = threading.Event()
-    server = _CockpitServer((host, port), _make_handler(token, chat_responder, stop_event))
+    server = _CockpitServer(
+        (host, port), _make_handler(token, chat_responder, stop_event, cors)
+    )
     server._stop_event = stop_event
     thread = threading.Thread(
         target=server.serve_forever, name="hermes-cockpit-http", daemon=True

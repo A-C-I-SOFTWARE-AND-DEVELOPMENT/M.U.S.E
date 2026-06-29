@@ -6009,12 +6009,25 @@ def cmd_cockpit(args):
             token=token,
             allow_external=getattr(args, "allow_external", False),
             allow_external_hosts=getattr(args, "allow_external_hosts", None),
+            cors_origins=getattr(args, "cors_origins", None),
         )
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
+        from gateway.cockpit.server import _resolve_cors_origins as _cors
+
+        _cors_set = _cors(getattr(args, "cors_origins", None))
         print(f"muse cockpit API listening on http://{bound_host}:{bound_port}")
         print(f"Open the browser cockpit: http://{bound_host}:{bound_port}/cockpit/")
         print(f"Pairing token: {token}")
+        if _cors_set:
+            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+            print("Cross-origin connect allowed from: " + ", ".join(sorted(_cors_set)))
+            print(
+                "  -> Open the public cockpit (e.g. https://musehq.io), open Connect, "
+                "point it at this gateway's URL, and pair with the owner phrase: "
+                f"{AUTHORIZATION_PHRASE!r}"
+            )
         print("Pair the muse Android app (or the browser cockpit) with this base URL + token.")
         print("Press Ctrl-C to stop.")
         try:
@@ -11915,6 +11928,18 @@ def main():
             "non-loopback bind (fail-closed): the bound host must match a host "
             "or CIDR given here, e.g. --allow-external-host 10.0.0.5 "
             "--allow-external-host 192.168.1.0/24."
+        ),
+    )
+    cockpit_serve.add_argument(
+        "--cors-origin", dest="cors_origins", action="append", default=None,
+        metavar="ORIGIN",
+        help=(
+            "Additional browser Origin allowed to call the cockpit API "
+            "cross-origin (e.g. --cors-origin https://my-tunnel.example). "
+            "Repeatable. The first-party muse cockpit origins are allowed by "
+            "default; also settable via HERMES_COCKPIT_CORS_ORIGINS (CSV), or "
+            "disable all CORS with HERMES_COCKPIT_CORS_ORIGINS=off. Whenever CORS "
+            "is enabled, device pairing requires the owner phrase."
         ),
     )
     cockpit_token = cockpit_sub.add_parser(
