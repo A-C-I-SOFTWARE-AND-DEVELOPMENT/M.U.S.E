@@ -694,7 +694,6 @@ body { perspective: 1800px; }
 <canvas data-bg="cockpit-bg" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08); transition:transform .4s ease-out; will-change:transform;"></canvas>
 <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.45) 100%);"></div>
 <div style="position:fixed; inset:-40% 0; z-index:1; pointer-events:none; opacity:0.045; mix-blend-mode:screen; background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22&gt;&lt;filter id=%22n%22&gt;&lt;feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/&gt;&lt;/filter&gt;&lt;rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/&gt;&lt;/svg&gt;'); background-size:200px 200px; animation:cockpitGrain 7s steps(6) infinite;"></div>
-<div style="position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.025; background:repeating-linear-gradient(0deg, rgba(255,255,255,0.7) 0, rgba(255,255,255,0.7) 1px, transparent 1px, transparent 3px); height:200%; animation:cockpitScan 9s linear infinite;"></div>
 </div>
 
 <!-- ===== Ignition / boot sequence ===== -->
@@ -787,6 +786,11 @@ body { perspective: 1800px; }
             <input type="text" value="{{ conn2.url }}" oninput="{{ conn2.onUrl }}" placeholder="{{ conn2.placeholder }}" spellcheck="false" style="flex:1; font-family:var(--mono); font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;" style-focus="border-color:var(--ring-1);">
             <button type="button" onclick="{{ conn2.onCheck }}" class="btn primary" style="flex:none;">Check</button>
           </div>
+          <sc-if value="{{ conn2.mixedContent }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px; border:1px solid rgba(245,196,81,0.4); border-radius:var(--radius-md); padding:10px 12px; background:rgba(245,196,81,0.08); font-size:12px; color:var(--signal-dim); line-height:1.5;">
+              This site is served over <b style="color:var(--signal);">https</b>, so your browser won\u2019t let it reach a <b style="color:var(--signal);">http://</b> gateway on your machine (mixed-content security). To pair a local gateway, use the <b style="color:var(--signal);">desktop app</b> (it talks to the gateway directly), run the cockpit locally, or expose your gateway over <b style="color:var(--signal);">https</b>. Chat still works here without a gateway.
+            </div>
+          </sc-if>
         </div>
 
         <!-- Health result -->
@@ -2970,6 +2974,7 @@ class Component extends DCLogic {
       open: s.connOpen,
       url: s.gatewayUrl || this.GATEWAY_DEFAULT,
       placeholder: this.GATEWAY_DEFAULT,
+      mixedContent: (typeof location !== 'undefined' && location.protocol === 'https:' && /^http:\/\//i.test(s.gatewayUrl || this.GATEWAY_DEFAULT)),
       step: s.connStep,
       isIdle: s.connStep === 'idle',
       isChecking: s.connStep === 'checking',
