@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { buildUpstream, normalizeStream, hasServerKey, type ChatMessage } from './_providers';
+import { rateLimit } from './_ratelimit';
 
 export const config = { runtime: 'edge' };
 
@@ -37,6 +38,23 @@ function json(body: unknown, status: number): Response {
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return json({ error: 'method not allowed' }, 405);
+  }
+
+  // Per-IP rate limit BEFORE any provider work — the public endpoint spends the
+  // server-held key with no auth, so a single abuser must not be able to drain
+  // it. 429 + Retry-After when a window is exceeded.
+  const rl = await rateLimit(req);
+  if (!rl.ok) {
+    return new Response(
+      JSON.stringify({ error: 'rate limit exceeded', scope: rl.scope }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': String(rl.retryAfter),
+        },
+      },
+    );
   }
 
   // No server key at all -> honest "not configured" so the UI disconnects
