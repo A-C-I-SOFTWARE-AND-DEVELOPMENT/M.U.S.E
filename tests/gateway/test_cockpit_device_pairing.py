@@ -211,9 +211,10 @@ def test_pair_confirm_bad_code_is_401(server) -> None:
 def test_pair_confirm_skips_owner_phrase_on_loopback(server) -> None:
     # Loopback-only cockpit (default): the owner phrase is NOT required to mint a
     # device token — anything that can reach 127.0.0.1 is already on the device,
-    # so the phrase was friction without security benefit (see commit
-    # "cockpit/pair_confirm: skip owner-phrase gate on loopback"). A valid code
-    # with a wrong/absent phrase still pairs.
+    # so the phrase was friction without security benefit. Enabling CORS for the
+    # public cockpit does NOT add the phrase; a valid code with a wrong/absent
+    # phrase still pairs. (Exposing the gateway off-device uses --allow-external,
+    # which restores the phrase — see the next test.)
     status, payload = _post(server, "/v1/cockpit/pair/start", {"device_name": "Pixel"})
     assert status == 201
     status, payload = _post(
