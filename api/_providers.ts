@@ -35,43 +35,68 @@ interface ServerProvider {
   baseUrl: string;
   keyEnv: string;
   shape: ProviderShape;
+  /** Real default model used when the request asks for 'auto' on this provider. */
+  defaultModel: string;
+  /**
+   * Provider whose API has a $0 free tier (free key → free public chat). The
+   * server prefers a keyed free provider over a paid one, so the deployment can
+   * run at no cost. NOT exclusive to OpenRouter — any of these flips chat live.
+   */
+  free?: boolean;
   /** Vendor slug used when routing this model through OpenRouter. */
   openrouterPrefix?: string;
 }
 
-// Server-side provider table. Mirrors the browserDirect/key conventions of
+// Server-side provider table. Mirrors the baseUrl/key conventions of
 // src/lib/providers.ts but stays import-free so it can run in the Edge runtime.
-// Only OpenAI-shape, Anthropic-shape, and Gemini-OpenAI-shape HTTP providers are
-// listed (OAuth/IAM/gateway-only providers are intentionally omitted server-side).
+// Only OpenAI-shape, Anthropic-shape, and Gemini-OpenAI-shape HTTP providers with
+// a public base URL + bearer key are listed (OAuth/IAM/local/gateway-only
+// providers are intentionally omitted server-side). ANY one of these keys, set on
+// the server, flips the public chat live — OpenRouter is not required. Providers
+// with a genuine $0 free tier are flagged `free` and win the pick order, so the
+// hosted chat can run at no cost (Groq, Google Gemini, Cerebras, NVIDIA NIM,
+// Hugging Face, GitHub Models, GLM Flash).
 const SERVER_PROVIDERS: ServerProvider[] = [
-  { id: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', keyEnv: 'OPENROUTER_API_KEY', shape: 'openai' },
-  { id: 'anthropic', baseUrl: 'https://api.anthropic.com', keyEnv: 'ANTHROPIC_API_KEY', shape: 'anthropic', openrouterPrefix: 'anthropic' },
-  { id: 'openai', baseUrl: 'https://api.openai.com/v1', keyEnv: 'OPENAI_API_KEY', shape: 'openai', openrouterPrefix: 'openai' },
-  { id: 'google', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', keyEnv: 'GEMINI_API_KEY', shape: 'gemini-openai', openrouterPrefix: 'google' },
-  { id: 'groq', baseUrl: 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY', shape: 'openai' },
-  { id: 'mistral', baseUrl: 'https://api.mistral.ai/v1', keyEnv: 'MISTRAL_API_KEY', shape: 'openai', openrouterPrefix: 'mistralai' },
-  { id: 'deepseek', baseUrl: 'https://api.deepseek.com', keyEnv: 'DEEPSEEK_API_KEY', shape: 'openai', openrouterPrefix: 'deepseek' },
-  { id: 'xai', baseUrl: 'https://api.x.ai/v1', keyEnv: 'XAI_API_KEY', shape: 'openai', openrouterPrefix: 'x-ai' },
-  { id: 'together', baseUrl: 'https://api.together.xyz/v1', keyEnv: 'TOGETHER_API_KEY', shape: 'openai' },
-  { id: 'perplexity', baseUrl: 'https://api.perplexity.ai', keyEnv: 'PERPLEXITY_API_KEY', shape: 'openai' },
+  // --- $0 free-tier providers (preferred so the public chat costs nothing) ---
+  { id: 'groq', baseUrl: 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY', shape: 'openai', free: true, defaultModel: 'llama-3.3-70b-versatile' },
+  { id: 'google', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', keyEnv: 'GEMINI_API_KEY', shape: 'gemini-openai', free: true, openrouterPrefix: 'google', defaultModel: 'gemini-2.0-flash' },
+  { id: 'cerebras', baseUrl: 'https://api.cerebras.ai/v1', keyEnv: 'CEREBRAS_API_KEY', shape: 'openai', free: true, defaultModel: 'llama-3.3-70b' },
+  { id: 'nim', baseUrl: 'https://integrate.api.nvidia.com/v1', keyEnv: 'NIM_API_KEY', shape: 'openai', free: true, defaultModel: 'meta/llama-3.3-70b-instruct' },
+  { id: 'huggingface', baseUrl: 'https://router.huggingface.co/v1', keyEnv: 'HF_TOKEN', shape: 'openai', free: true, defaultModel: 'meta-llama/Llama-3.3-70B-Instruct' },
+  { id: 'github-models', baseUrl: 'https://models.inference.ai.azure.com', keyEnv: 'GITHUB_TOKEN', shape: 'openai', free: true, openrouterPrefix: 'openai', defaultModel: 'gpt-4o-mini' },
+  { id: 'zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', keyEnv: 'ZHIPU_API_KEY', shape: 'openai', free: true, defaultModel: 'glm-4-flash' },
+  // --- universal router (300+ models behind one key; auto = omni) ---
+  { id: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', keyEnv: 'OPENROUTER_API_KEY', shape: 'openai', defaultModel: 'openrouter/auto' },
+  // --- paid (or paid-after-trial) direct providers ---
+  { id: 'anthropic', baseUrl: 'https://api.anthropic.com', keyEnv: 'ANTHROPIC_API_KEY', shape: 'anthropic', openrouterPrefix: 'anthropic', defaultModel: 'claude-3-5-haiku-latest' },
+  { id: 'openai', baseUrl: 'https://api.openai.com/v1', keyEnv: 'OPENAI_API_KEY', shape: 'openai', openrouterPrefix: 'openai', defaultModel: 'gpt-4o-mini' },
+  { id: 'mistral', baseUrl: 'https://api.mistral.ai/v1', keyEnv: 'MISTRAL_API_KEY', shape: 'openai', openrouterPrefix: 'mistralai', defaultModel: 'mistral-small-latest' },
+  { id: 'deepseek', baseUrl: 'https://api.deepseek.com', keyEnv: 'DEEPSEEK_API_KEY', shape: 'openai', openrouterPrefix: 'deepseek', defaultModel: 'deepseek-chat' },
+  { id: 'xai', baseUrl: 'https://api.x.ai/v1', keyEnv: 'XAI_API_KEY', shape: 'openai', openrouterPrefix: 'x-ai', defaultModel: 'grok-2-latest' },
+  { id: 'together', baseUrl: 'https://api.together.xyz/v1', keyEnv: 'TOGETHER_API_KEY', shape: 'openai', defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
+  { id: 'novita', baseUrl: 'https://api.novita.ai/v3/openai', keyEnv: 'NOVITA_API_KEY', shape: 'openai', defaultModel: 'meta-llama/llama-3.3-70b-instruct' },
+  { id: 'dashscope', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', keyEnv: 'DASHSCOPE_API_KEY', shape: 'openai', openrouterPrefix: 'qwen', defaultModel: 'qwen-max' },
+  { id: 'moonshot', baseUrl: 'https://api.moonshot.ai/v1', keyEnv: 'MOONSHOT_API_KEY', shape: 'openai', defaultModel: 'kimi-latest' },
+  { id: 'fireworks', baseUrl: 'https://api.fireworks.ai/inference/v1', keyEnv: 'FIREWORKS_API_KEY', shape: 'openai', defaultModel: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
+  { id: 'perplexity', baseUrl: 'https://api.perplexity.ai', keyEnv: 'PERPLEXITY_API_KEY', shape: 'openai', defaultModel: 'sonar' },
 ];
 
 const BY_ID = Object.fromEntries(SERVER_PROVIDERS.map((p) => [p.id, p]));
 const OPENROUTER = BY_ID.openrouter;
 
 // Omni fallback chain. When the omni/auto route is used, the request threads
-// through this ordered set of broadly-available models so a single model or
-// provider outage never stops the chat — OpenRouter tries the next candidate
-// automatically. 'openrouter/auto' is the primary (a meta-router over 300+
-// models); this is the explicit, fast, cross-vendor safety net beneath it.
+// through this ordered set of models so a single model or provider outage never
+// stops the chat — OpenRouter tries the next candidate automatically.
+// 'openrouter/auto' is the primary (a meta-router over 300+ models); these are
+// the explicit cross-vendor safety net beneath it, deliberately all `:free`
+// slugs so the fallback path costs nothing ("free tier, all free models").
 const OMNI_FALLBACKS = [
-  'openai/gpt-4o-mini',
-  'anthropic/claude-3.5-haiku',
-  'google/gemini-2.0-flash-001',
-  'meta-llama/llama-3.3-70b-instruct',
-  'deepseek/deepseek-chat',
-  'mistralai/mistral-small',
-  'qwen/qwen-2.5-72b-instruct',
+  'deepseek/deepseek-chat-v3-0324:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'google/gemini-2.0-flash-exp:free',
+  'qwen/qwen-2.5-72b-instruct:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+  'nvidia/llama-3.1-nemotron-70b-instruct:free',
 ];
 
 /**
@@ -135,7 +160,8 @@ export type ResolveResult =
 export function buildUpstream(model: string, messages: ChatMessage[]): ResolveResult {
   if (!model || model === 'auto') {
     // No vendor-privileged default. Server picks the first provider it has a key
-    // for, OpenRouter-first (spans every vendor); else honest "not configured".
+    // for, free-tier first (so the public chat can run at $0); else honest
+    // "not configured".
     model = pickServerModel();
     if (!model) return { ok: false, reason: 'server chat not configured' };
   }
@@ -148,9 +174,12 @@ export function buildUpstream(model: string, messages: ChatMessage[]): ResolveRe
     if (p.shape === 'anthropic') {
       return { ok: true, plan: buildAnthropic(p, directKey, model, messages) };
     }
-    const m = stripProviderPrefix(p.id, model);
+    // OpenRouter wants the full vendor/model slug (e.g. 'openrouter/auto',
+    // 'anthropic/claude-3.7-sonnet') as-is; every other provider wants its own
+    // bare model id, so strip the provider-id prefix.
+    const m = p.id === 'openrouter' ? openrouterModelId(model) : stripProviderPrefix(p.id, model);
     // Omni resilience when the user holds the OpenRouter key directly.
-    const extra = p.id === 'openrouter' && m === 'auto' ? omniRouting() : undefined;
+    const extra = p.id === 'openrouter' && m === 'openrouter/auto' ? omniRouting() : undefined;
     return { ok: true, plan: buildOpenAIShape(p, directKey, m, messages, extra) };
   }
 
@@ -158,11 +187,21 @@ export function buildUpstream(model: string, messages: ChatMessage[]): ResolveRe
   const orKey = envKey(OPENROUTER.keyEnv);
   if (orKey && (p.id === 'openrouter' || p.openrouterPrefix)) {
     const orModel = p.id === 'openrouter'
-      ? model.replace(/^openrouter\//, '')
+      ? openrouterModelId(model)
       : `${p.openrouterPrefix}/${model.split('/').pop()}`;
     // Thread through every model on the omni/auto route; never stop on one outage.
-    const extra = orModel === 'auto' ? omniRouting() : undefined;
+    const extra = orModel === 'openrouter/auto' ? omniRouting() : undefined;
     return { ok: true, plan: buildOpenAIShape(OPENROUTER, orKey, orModel, messages, extra) };
+  }
+
+  // The requested model's provider has no key and OpenRouter can't cover it.
+  // Rather than 501, fall back to whatever the server CAN serve (free-first), so
+  // any single provider key keeps the public chat alive regardless of which
+  // model the client asked for. Terminates after one hop: the fallback model's
+  // provider always holds a key, so it resolves on the direct path above.
+  const serverModel = pickServerModel();
+  if (serverModel && serverModel !== model) {
+    return buildUpstream(serverModel, messages);
   }
 
   return { ok: false, reason: 'server chat not configured' };
@@ -173,21 +212,36 @@ export function hasServerKey(): boolean {
   return SERVER_PROVIDERS.some((p) => !!envKey(p.keyEnv));
 }
 
-/** Vendor-neutral server pick: OpenRouter-first, else first keyed provider. */
+/**
+ * Vendor-neutral server pick. Free-first: a keyed $0 provider wins so the public
+ * chat can run at no cost, then OpenRouter's omni router, then any other keyed
+ * provider. OpenRouter is NOT privileged — a free direct key flips chat live on
+ * its own. Returns a real default model (prefixed with the provider id so
+ * providerForModel routes it back here), never the literal 'auto' for a provider
+ * that has no such model.
+ */
 function pickServerModel(): string {
-  if (envKey(OPENROUTER.keyEnv)) return 'openrouter/auto';
-  for (const p of SERVER_PROVIDERS) {
-    if (p.id === 'openrouter') continue;
-    if (envKey(p.keyEnv)) {
-      // Use a bare provider-id prefix so providerForModel routes it back here.
-      return `${p.id}/auto`;
-    }
+  // Stable sort (V8) by free-tier first; preserves table order within each group.
+  const ordered = [...SERVER_PROVIDERS].sort((a, b) => Number(!!b.free) - Number(!!a.free));
+  for (const p of ordered) {
+    if (!envKey(p.keyEnv)) continue;
+    // OpenRouter's own 'auto' is a real meta-model; others get a real default.
+    return p.id === 'openrouter' ? 'openrouter/auto' : `${p.id}/${p.defaultModel}`;
   }
   return '';
 }
 
 function stripProviderPrefix(id: string, model: string): string {
   return model.replace(new RegExp(`^${id}/`), '');
+}
+
+/**
+ * Normalize a model id to the slug OpenRouter expects: its auto router is
+ * 'openrouter/auto' (NOT bare 'auto'), so map both to the full slug. Every other
+ * OpenRouter slug (e.g. 'anthropic/claude-3.7-sonnet') passes through unchanged.
+ */
+function openrouterModelId(model: string): string {
+  return model === 'auto' || model === 'openrouter/auto' ? 'openrouter/auto' : model;
 }
 
 // ---- request builders ---------------------------------------------------------
