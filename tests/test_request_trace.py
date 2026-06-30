@@ -13,7 +13,20 @@ import pytest
 
 from gateway.cockpit import event_log
 from hermes_cli import request_trace
-from hermes_cli.request_trace import RequestTrace, current, lifecycle_event
+from hermes_cli.request_trace import (
+    RequestTrace,
+    current,
+    lifecycle_event,
+    summarize,
+)
+
+
+def _trace_rec(**attrs):
+    return {"message": "request_trace", "attributes": attrs}
+
+
+def _life_rec(**attrs):
+    return {"message": "model_lifecycle", "attributes": attrs}
 
 
 @pytest.fixture()
@@ -161,3 +174,75 @@ def test_first_token_recorded_once(home: Path, monkeypatch: pytest.MonkeyPatch) 
     assert first is not None
     trace.mark_first_token()  # second call must not overwrite
     assert trace.first_token_ms == first
+
+
+# ── summarize() aggregation ─────────────────────────────────────────────────
+
+
+def test_summarize_empty_is_honest() -> None:
+    s = summarize([])
+    assert s["request_count"] == 0
+    assert s["latency_ms"]["total_p50"] is None
+    assert s["tool_calls"]["failure_rate"] is None
+    assert s["fallback"]["rate"] is None
+    assert s["endpoints"] == {}
+
+
+def test_summarize_aggregates_traces() -> None:
+    records = [
+        _trace_rec(
+            endpoint="openai_v1_chat_completions", model="qwen", is_remote=False,
+            first_token_ms=100, total_latency_ms=1000,
+            tool_calls=4, tool_parse_errors=1, tool_exec_failures=1,
+            fallback_used=False,
+        ),
+        _trace_rec(
+            endpoint="openai_v1_chat_completions", model="qwen", is_remote=True,
+            first_token_ms=300, total_latency_ms=3000,
+            tool_calls=6, tool_parse_errors=0, tool_exec_failures=1,
+            fallback_used=True,
+        ),
+        # A non-trace hook record must be ignored.
+        {"message": "something_else", "attributes": {"x": 1}},
+        _life_rec(event="load", ok=True),
+        _life_rec(event="unload", ok=False),
+    ]
+    s = summarize(records)
+    assert s["request_count"] == 2
+    assert s["latency_ms"]["total_p50"] == 1000
+    assert s["latency_ms"]["total_p95"] == 3000
+    assert s["latency_ms"]["first_token_samples"] == 2
+    assert s["tool_calls"]["total"] == 10
+    assert s["tool_calls"]["exec_failures"] == 2
+    assert s["tool_calls"]["failure_rate"] == 0.2
+    assert s["fallback"]["count"] == 1
+    assert s["fallback"]["rate"] == 0.5
+    assert s["endpoints"] == {"openai_v1_chat_completions": 2}
+    assert s["models"] == {"qwen": 2}
+    assert s["remote"] == {"local": 1, "remote": 1, "unknown": 0}
+    assert s["lifecycle"] == {
+        "load_count": 1, "load_ok": 1, "unload_count": 1, "unload_ok": 0,
+    }
+
+
+def test_summarize_handles_missing_fields() -> None:
+    # Records lacking optional keys must not crash; first_token absent → no sample.
+    s = summarize([_trace_rec(model="m", endpoint="e")])
+    assert s["request_count"] == 1
+    assert s["latency_ms"]["first_token_samples"] == 0
+    assert s["latency_ms"]["total_p50"] is None
+    assert s["remote"]["unknown"] == 1
+
+
+@pytest.mark.parametrize(
+    "values,pct,expected",
+    [
+        ([], 50, None),
+        ([5], 50, 5),
+        ([1, 2, 3, 4], 50, 2),
+        ([1, 2, 3, 4], 95, 4),
+        ([10, 20, 30, 40, 50], 95, 50),
+    ],
+)
+def test_percentile(values, pct, expected) -> None:
+    assert request_trace._percentile(values, pct) == expected

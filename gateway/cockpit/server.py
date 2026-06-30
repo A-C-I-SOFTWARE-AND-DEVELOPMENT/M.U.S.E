@@ -154,6 +154,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/memory/contradictions/{id}/resolve"), h.memory_contradiction_resolve, True),
     ("GET", _compile("/v1/cockpit/memory/freshness"), h.memory_freshness, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
+    # Read-only summary of recent per-request observability traces
+    # (latency percentiles, tool-failure / fallback rates, endpoint mix).
+    ("GET", _compile("/v1/cockpit/trace"), h.trace_summary, True),
     ("GET", _compile("/v1/cockpit/audit"), h.audit_list, True),
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
     ("GET", _compile("/v1/cockpit/capabilities"), h.capabilities, True),

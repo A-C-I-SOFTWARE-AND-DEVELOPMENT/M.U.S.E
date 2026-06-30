@@ -34,7 +34,27 @@ into the caller. Records land in `${HERMES_HOME:-~/.hermes}/cockpit/events.jsonl
 and flow to the live SSE stream at `GET /v1/cockpit/events/stream` — so the
 cockpit "debug panel" need is already covered with no new endpoint.
 
-Two record shapes appear (source `hook`):
+For an at-a-glance **analytical view**, `GET /v1/cockpit/trace` folds the recent
+records into a summary — latency percentiles (p50/p95 first-token & total),
+tool-call failure rate, fallback rate, and endpoint / model / local-vs-remote
+distributions. It is read-only, bearer-auth'd like the rest of the cockpit, and
+honest-empty when tracing is off:
+
+```jsonc
+{
+  "request_count": 12,
+  "latency_ms": {"first_token_p50": 140, "first_token_p95": 410,
+                 "total_p50": 1800, "total_p95": 5200, "first_token_samples": 12},
+  "tool_calls": {"total": 47, "parse_errors": 0, "exec_failures": 2, "failure_rate": 0.0426},
+  "fallback": {"count": 1, "rate": 0.0833},
+  "endpoints": {"openai_v1_chat_completions": 12},
+  "models": {"qwen": 9, "gpt-4o": 3},
+  "remote": {"local": 9, "remote": 3, "unknown": 0},
+  "lifecycle": {"load_count": 4, "load_ok": 4, "unload_count": 3, "unload_ok": 3}
+}
+```
+
+Two raw record shapes appear in the event log (source `hook`):
 
 - **`request_trace`** — one per `run_conversation`, emitted at turn end:
 
@@ -92,8 +112,13 @@ healthy request trace reads `endpoint: openai_v1_chat_completions`; a
 ## Implementation
 
 - Module: [`hermes_cli/request_trace.py`](../../hermes_cli/request_trace.py)
+  (`RequestTrace`, `lifecycle_event`, and the pure `summarize` aggregator).
 - Wired in: `agent/conversation_loop.py` (start/first-token/api-latency/emit),
   `agent/tool_executor.py` (tool counts + failures, both paths),
   `agent/chat_completion_helpers.py` (fallback), `run_agent.py` +
   `agent/agent_runtime_helpers.py` (LM Studio load/unload).
-- Tests: [`tests/test_request_trace.py`](../../tests/test_request_trace.py)
+- Summary endpoint: `gateway/cockpit/handlers.py:trace_summary` registered at
+  `GET /v1/cockpit/trace` in `gateway/cockpit/server.py`.
+- Tests: [`tests/test_request_trace.py`](../../tests/test_request_trace.py) and
+  the endpoint tests in
+  [`tests/gateway/test_cockpit_events_stream.py`](../../tests/gateway/test_cockpit_events_stream.py).

@@ -178,6 +178,30 @@ def diagnostics(_req: Request) -> JsonResponse:
     return JsonResponse(200, payload)
 
 
+def trace_summary(req: Request) -> JsonResponse:
+    """Read-only summary of recent per-request observability traces.
+
+    Folds the ``request_trace`` / ``model_lifecycle`` records from the cockpit
+    event log into latency percentiles, tool-failure / fallback rates, and
+    endpoint / model distributions. Honest-empty when tracing is off or no
+    traces exist (``observability.request_trace`` / ``HERMES_REQUEST_TRACE``).
+    """
+    try:
+        from gateway.cockpit import event_log
+        from hermes_cli.request_trace import summarize
+
+        try:
+            limit = max(1, min(5000, int(req.query.get("limit", "500"))))
+        except (TypeError, ValueError):
+            limit = 500
+        records = event_log.read(source="hook", limit=limit)
+        payload = summarize(records)
+    except Exception as exc:  # pragma: no cover - defensive
+        payload = {"request_count": 0, "error": str(exc)}
+    payload["generated_at"] = _now_iso()
+    return JsonResponse(200, payload)
+
+
 def models(_req: Request) -> JsonResponse:
     """Read-only model policy (free-first routing). Never accepts API keys."""
     try:

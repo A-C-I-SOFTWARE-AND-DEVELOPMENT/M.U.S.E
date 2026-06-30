@@ -255,4 +255,100 @@ def lifecycle_event(
     _emit_event("model_lifecycle", attributes, session_id)
 
 
-__all__ = ["RequestTrace", "current", "lifecycle_event"]
+def _percentile(values: list[int], pct: float) -> Optional[int]:
+    """Nearest-rank percentile of a list of ints (None when empty)."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    # nearest-rank: rank = ceil(pct/100 * N), 1-indexed
+    rank = max(1, int(-(-pct * len(ordered) // 100)))
+    return ordered[min(rank, len(ordered)) - 1]
+
+
+def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate raw cockpit event-log records into a trace summary.
+
+    Accepts the records returned by :func:`gateway.cockpit.event_log.read`
+    (each ``{message, attributes, ...}``) and folds the ``request_trace`` and
+    ``model_lifecycle`` entries into latency percentiles, tool-failure / fallback
+    rates, and endpoint / model distributions. Pure and side-effect-free so it
+    can be unit-tested without HTTP or a live log. Honest-empty when there are no
+    trace records.
+    """
+    traces = [
+        r.get("attributes") or {}
+        for r in records
+        if isinstance(r, dict) and r.get("message") == "request_trace"
+    ]
+    lifecycle = [
+        r.get("attributes") or {}
+        for r in records
+        if isinstance(r, dict) and r.get("message") == "model_lifecycle"
+    ]
+
+    def _ints(key: str) -> list[int]:
+        out = []
+        for t in traces:
+            v = t.get(key)
+            if isinstance(v, (int, float)):
+                out.append(int(v))
+        return out
+
+    def _dist(key: str) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for t in traces:
+            k = t.get(key)
+            label = "unknown" if k is None else str(k)
+            counts[label] = counts.get(label, 0) + 1
+        return counts
+
+    n = len(traces)
+    first_token = _ints("first_token_ms")
+    total_latency = _ints("total_latency_ms")
+    tool_calls = sum(_ints("tool_calls"))
+    parse_errors = sum(_ints("tool_parse_errors"))
+    exec_failures = sum(_ints("tool_exec_failures"))
+    fallbacks = sum(1 for t in traces if t.get("fallback_used"))
+
+    def _rate(num: int, den: int) -> Optional[float]:
+        return round(num / den, 4) if den else None
+
+    load_events = [e for e in lifecycle if e.get("event") == "load"]
+    unload_events = [e for e in lifecycle if e.get("event") == "unload"]
+
+    return {
+        "request_count": n,
+        "latency_ms": {
+            "first_token_p50": _percentile(first_token, 50),
+            "first_token_p95": _percentile(first_token, 95),
+            "total_p50": _percentile(total_latency, 50),
+            "total_p95": _percentile(total_latency, 95),
+            "first_token_samples": len(first_token),
+        },
+        "tool_calls": {
+            "total": tool_calls,
+            "parse_errors": parse_errors,
+            "exec_failures": exec_failures,
+            "failure_rate": _rate(exec_failures, tool_calls),
+        },
+        "fallback": {
+            "count": fallbacks,
+            "rate": _rate(fallbacks, n),
+        },
+        "endpoints": _dist("endpoint"),
+        "models": _dist("model"),
+        "remote": {
+            "local": sum(1 for t in traces if t.get("is_remote") is False),
+            "remote": sum(1 for t in traces if t.get("is_remote") is True),
+            "unknown": sum(1 for t in traces if t.get("is_remote") is None),
+        },
+        "lifecycle": {
+            "load_count": len(load_events),
+            "load_ok": sum(1 for e in load_events if e.get("ok")),
+            "unload_count": len(unload_events),
+            "unload_ok": sum(1 for e in unload_events if e.get("ok")),
+        },
+    }
+
+
+__all__ = ["RequestTrace", "current", "lifecycle_event", "summarize"]

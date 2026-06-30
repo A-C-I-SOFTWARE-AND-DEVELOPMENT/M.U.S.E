@@ -171,3 +171,43 @@ def test_events_list_level_filter(server, home: Path) -> None:
     msgs = [e["message"] for e in body["events"]]
     assert "e1" in msgs
     assert "i1" not in msgs
+
+
+# ── GET /v1/cockpit/trace (request-trace summary) ──────────────────────────
+
+
+def test_trace_summary_requires_auth(server) -> None:
+    host, port = server.server_address
+    req = urllib.request.Request(f"http://{host}:{port}/v1/cockpit/trace")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req, timeout=5)
+    assert exc.value.code == 401
+
+
+def test_trace_summary_honest_empty(server, home: Path) -> None:
+    status, body = _get(server, "/v1/cockpit/trace")
+    assert status == 200
+    assert body["request_count"] == 0
+    assert "generated_at" in body
+
+
+def test_trace_summary_aggregates_emitted_traces(server, home: Path) -> None:
+    event_log.emit(
+        "info", "hook", "request_trace",
+        attributes={
+            "endpoint": "openai_v1_chat_completions", "model": "qwen",
+            "is_remote": False, "first_token_ms": 120, "total_latency_ms": 900,
+            "tool_calls": 3, "tool_parse_errors": 0, "tool_exec_failures": 1,
+            "fallback_used": False,
+        },
+    )
+    event_log.emit(
+        "info", "hook", "model_lifecycle",
+        attributes={"event": "unload", "model": "qwen", "ok": True},
+    )
+    status, body = _get(server, "/v1/cockpit/trace")
+    assert status == 200
+    assert body["request_count"] == 1
+    assert body["endpoints"] == {"openai_v1_chat_completions": 1}
+    assert body["tool_calls"]["failure_rate"] == round(1 / 3, 4)
+    assert body["lifecycle"]["unload_count"] == 1
