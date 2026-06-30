@@ -1405,7 +1405,20 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
     ):
         try:
             from hermes_cli.models import unload_lmstudio_model
-            unload_lmstudio_model(old_model, old_base_url, old_api_key)
+            _unload_ok = unload_lmstudio_model(old_model, old_base_url, old_api_key)
+            try:
+                from hermes_cli.request_trace import lifecycle_event
+                lifecycle_event(
+                    "unload",
+                    model=old_model,
+                    provider="lmstudio",
+                    reason="manual_switch",
+                    ok=_unload_ok,
+                    base_url=old_base_url,
+                    session_id=getattr(agent, "session_id", None),
+                )
+            except Exception:
+                pass
         except Exception as unload_err:
             logger.debug("LM Studio unload-on-switch skipped: %s", unload_err)
 

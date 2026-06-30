@@ -805,6 +805,11 @@ def init_agent(
         agent._fallback_chain = []
     agent._fallback_index = 0
     agent._fallback_activated = getattr(agent, "_fallback_activated", False)
+    # Per-request observability trace — replaced at the start of each
+    # run_conversation. Defaults to the shared no-op so any pre-turn access is
+    # safe and zero-cost when tracing is disabled.
+    from hermes_cli.request_trace import current as _trace
+    agent._active_trace = _trace(agent)
     # Legacy attribute kept for backward compat (tests, external callers)
     agent._fallback_model = agent._fallback_chain[0] if agent._fallback_chain else None
     if agent._fallback_chain and not agent.quiet_mode:

@@ -301,6 +301,19 @@ def run_conversation(
 
     agent._ensure_db_session()
 
+    # Begin an opt-in per-request observability trace (no-op unless the
+    # observability.request_trace flag / HERMES_REQUEST_TRACE env is set).
+    # Carried on the agent so deep call sites (tool executor, fallback) can
+    # reach it without threading a parameter through the whole loop.
+    from hermes_cli.request_trace import RequestTrace as _RequestTrace
+    agent._active_trace = _RequestTrace.start(
+        model=agent.model,
+        provider=agent.provider,
+        base_url=agent.base_url,
+        api_mode=agent.api_mode,
+        session_id=getattr(agent, "session_id", None),
+    )
+
     # Tell auxiliary_client what the live main provider/model are for
     # this turn. Used by tools whose behaviour depends on the active
     # main model (e.g. vision_analyze's native fast path) so they see
@@ -1129,6 +1142,9 @@ def run_conversation(
                 # support it.
                 def _stop_spinner():
                     nonlocal thinking_spinner
+                    # First streamed delta — record time-to-first-token for the
+                    # active request trace (no-op when tracing is disabled).
+                    agent._active_trace.mark_first_token()
                     if thinking_spinner:
                         thinking_spinner.stop("")
                         thinking_spinner = None
@@ -1167,7 +1183,8 @@ def run_conversation(
                     response = agent._interruptible_api_call(api_kwargs)
                 
                 api_duration = time.time() - api_start_time
-                
+                agent._active_trace.add_api_call(api_duration)
+
                 # Stop thinking spinner silently -- the response box or tool
                 # execution messages that follow are more informative.
                 if thinking_spinner:
@@ -4219,6 +4236,11 @@ def run_conversation(
         )
     except Exception as exc:
         logger.warning("on_session_end hook failed: %s", exc)
+
+    # Emit the per-request observability trace (no-op when disabled). Stamps
+    # total wall-clock latency and appends one JSON record to the cockpit
+    # event log; best-effort, never raises into the caller.
+    agent._active_trace.emit()
 
     return result
 

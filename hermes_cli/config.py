@@ -1660,6 +1660,18 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         },
     },
 
+    # ── Observability ─────────────────────────────────────────────────
+    # Thin, opt-in per-request tracing of the agent loop and model
+    # lifecycle (selected model, endpoint, local-vs-remote, first-token &
+    # total latency, tool-call counts, fallback outcome, LM Studio
+    # load/unload events). Off by default — when off the default code path
+    # is unchanged. Traces append to the cockpit event log and surface on
+    # GET /v1/cockpit/events/stream (message "request_trace" /
+    # "model_lifecycle"). The HERMES_REQUEST_TRACE=1 env var overrides this.
+    "observability": {
+        "request_trace": False,
+    },
+
     # Remotely-hosted model catalog manifest.  When enabled, the CLI fetches
     # curated model lists for OpenRouter and Nous Portal from this URL,
     # falling back to the in-repo snapshot on network failure.  Lets us

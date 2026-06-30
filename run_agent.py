@@ -636,9 +636,26 @@ class AIAgent:
             if config_context_length is None:
                 config_context_length = getattr(self, "_config_context_length", None)
             target_ctx = max(config_context_length or 0, MINIMUM_CONTEXT_LENGTH)
+            import time as _t
+            _load_t0 = _t.monotonic()
             loaded_ctx = ensure_lmstudio_model_loaded(
                 self.model, self.base_url, getattr(self, "api_key", ""), target_ctx,
             )
+            try:
+                from hermes_cli.request_trace import lifecycle_event
+                lifecycle_event(
+                    "load",
+                    model=self.model,
+                    provider=self.provider,
+                    reason="ensure_loaded",
+                    ok=bool(loaded_ctx),
+                    dur_ms=int((_t.monotonic() - _load_t0) * 1000),
+                    resolved_ctx=loaded_ctx,
+                    base_url=self.base_url,
+                    session_id=getattr(self, "session_id", None),
+                )
+            except Exception:
+                pass
             if loaded_ctx:
                 # Push into the live compressor so the status bar reflects the
                 # real loaded ctx the moment the load resolves, instead of
