@@ -10,7 +10,7 @@ the default runtime until you opt in by creating them.
 ```yaml
 profiles:
   game-godot:                       # the headless-verifiable path
-    model: claude-opus-4-8
+    model: anthropic:claude-opus
     enabled_toolsets: [terminal, files, image_gen, video_gen, asset3d_gen]
     preloaded_skills: [game-studio, comfyui]
     environment: local
@@ -19,7 +19,7 @@ profiles:
       image: ""                     # local godot binary or a godot-headless image
 
   game-ue5:                         # documented SOTA-graphics path
-    model: claude-opus-4-8
+    model: anthropic:claude-opus
     enabled_toolsets: [terminal, files, image_gen, video_gen, asset3d_gen]
     preloaded_skills: [game-studio, ue5-render, comfyui]
     environment: local
@@ -28,13 +28,28 @@ profiles:
       image: ""                     # owner-provided UE5 host
 
   game-unity:                       # documented profile only
-    model: claude-opus-4-8
+    model: anthropic:claude-opus
     enabled_toolsets: [terminal, files, image_gen, asset3d_gen]
     preloaded_skills: [game-studio]
     environment: local
     environment_config:
       gpu: true
 ```
+
+## Bootstrap (one command)
+
+Instead of hand-editing config, run the gated installer (dry-run by default):
+
+```bash
+# Show exactly what it would add:
+python skills/creative/game-studio/scripts/install_profiles.py
+# Merge the missing game-* profiles into $HERMES_HOME/config.yaml (backs up first):
+python skills/creative/game-studio/scripts/install_profiles.py --apply
+```
+
+It only adds profiles that are missing (idempotent), writes a `.bak` backup
+before touching the file, and never overwrites your existing profiles unless you
+pass `--force`.
 
 ## Constraint
 

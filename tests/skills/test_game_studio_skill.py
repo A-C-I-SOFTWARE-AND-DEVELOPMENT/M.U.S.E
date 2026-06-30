@@ -110,7 +110,8 @@ def test_routing_table_references_every_role(skill_src) -> None:
 
 
 def test_scripts_parse_as_python() -> None:
-    for script in ("export_godot_slice.py", "verify_slice.py", "run_pipeline.py"):
+    for script in ("export_godot_slice.py", "verify_slice.py", "run_pipeline.py",
+                   "install_profiles.py"):
         path = SKILL_DIR / "scripts" / script
         assert path.is_file(), f"missing script: {path}"
         ast.parse(path.read_text(), filename=str(path))
