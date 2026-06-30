@@ -94,6 +94,7 @@ typed in a terminal or spoke into a phone in the car.
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
 | Understand the SYNAPSE game / Neural Observatory / Platform-v1.0 program | [plans/2026-06-10-project-synapse-master-plan.md](plans/2026-06-10-project-synapse-master-plan.md) |
 | Build SYNAPSE from the locked design bible (17 docs, design + production + launch) | [synapse/design/00-INDEX.md](synapse/design/00-INDEX.md) |
+| Have muse build a graphically SOTA PC game (vertical slice) | [game-studio/README.md](game-studio/README.md) |
 
 Other useful pages outside this manual:
 

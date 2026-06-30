@@ -1,0 +1,7 @@
+name: meshy
+version: 1.0.0
+description: "Meshy text-to-3D mesh backend (glb/fbx/obj, PBR textures)."
+author: Jeremiah Echerd + Hermes Agent
+kind: backend
+requires_env:
+  - MESHY_API_KEY

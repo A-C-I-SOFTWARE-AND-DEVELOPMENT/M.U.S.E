@@ -1,0 +1,6 @@
+# Godot import cache + build output — regenerated, never committed.
+.godot/
+build/
+*.x86_64
+*.pck
+export.cfg
