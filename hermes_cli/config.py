@@ -81,6 +81,13 @@ _LAST_EXPANDED_CONFIG_BY_PATH: Dict[str, Any] = {}
 # produces a fresh inode, so stat() sees a new mtime_ns and the next
 # load repopulates automatically — no explicit invalidation hook.
 _LOAD_CONFIG_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
+# Sentinel cache key for "no config file on disk" — lets the defaults-only
+# result be cached too (previously it was rebuilt from DEFAULT_CONFIG on every
+# call, ~1.3 ms each, in the common no-config-file case: fresh installs, Termux,
+# CI, defaults). A real (mtime_ns, size) key can never equal this, so a config
+# file later appearing/disappearing invalidates correctly. mtime_ns/size are
+# always >= 0, so (-1, -1) is unambiguous.
+_MISSING_CONFIG_KEY: Tuple[int, int] = (-1, -1)
 # (path, mtime_ns, size) -> cached raw yaml dict. Same pattern as
 # _LOAD_CONFIG_CACHE but for read_raw_config() — used when callers want
 # the user's on-disk values without defaults merged in.
@@ -4457,8 +4464,12 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
         except FileNotFoundError:
             cache_key = None
 
+        # Effective key folds the "missing file" case into the same cache so the
+        # defaults-only result isn't rebuilt from DEFAULT_CONFIG on every call.
+        effective_key = cache_key if cache_key is not None else _MISSING_CONFIG_KEY
+
         cached = _LOAD_CONFIG_CACHE.get(path_key)
-        if cached is not None and cache_key is not None and cached[:2] == cache_key:
+        if cached is not None and cached[:2] == effective_key:
             return copy.deepcopy(cached[2]) if want_deepcopy else cached[2]
 
         config = copy.deepcopy(DEFAULT_CONFIG)
@@ -4482,25 +4493,22 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
         normalized = _normalize_root_model_keys(_normalize_max_turns_config(config))
         expanded = _expand_env_vars(normalized)
         _LAST_EXPANDED_CONFIG_BY_PATH[path_key] = copy.deepcopy(expanded)
-        if cache_key is not None:
-            # Cache stores a separate deepcopy so subsequent ``load_config()``
-            # (deepcopy=True) callers can mutate freely without affecting the
-            # cached value, and ``load_config_readonly()`` (deepcopy=False)
-            # callers all see the same stable cached object.
-            cached_copy = copy.deepcopy(expanded)
-            _LOAD_CONFIG_CACHE[path_key] = (cache_key[0], cache_key[1], cached_copy)
-            # On the readonly path return the same cached object subsequent
-            # calls will see — keeps "two readonly calls return the same
-            # object" invariant that callers may rely on for identity checks.
-            if not want_deepcopy:
-                return cached_copy
-        else:
-            _LOAD_CONFIG_CACHE.pop(path_key, None)
-        # First-load result is a fresh dict (not aliased to the cache); safe
-        # to return directly. For the deepcopy=True path this is the
-        # canonical "freshly-built mutable result" the function has always
-        # returned. For the deepcopy=False path with no cache (e.g. config
-        # file missing), it's also fine — callers get an isolated object.
+        # Cache in BOTH the file-present and file-missing cases, keyed on
+        # ``effective_key`` (the missing-file sentinel can never collide with a
+        # real (mtime_ns, size), so a file appearing or being deleted later is a
+        # cache miss and rebuilds correctly). The cache stores a separate
+        # deepcopy so ``load_config()`` (deepcopy=True) callers can mutate freely
+        # without affecting it, and ``load_config_readonly()`` (deepcopy=False)
+        # callers all share the same stable object.
+        cached_copy = copy.deepcopy(expanded)
+        _LOAD_CONFIG_CACHE[path_key] = (effective_key[0], effective_key[1], cached_copy)
+        # On the readonly path return the cached object subsequent calls will see
+        # — keeps the "two readonly calls return the same object" invariant that
+        # callers may rely on for identity checks.
+        if not want_deepcopy:
+            return cached_copy
+        # deepcopy=True: return the freshly-built, isolated mutable result the
+        # function has always handed back on a (re)build.
         return expanded
 
 
