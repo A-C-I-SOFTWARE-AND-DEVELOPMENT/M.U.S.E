@@ -18,6 +18,7 @@ SCRIPT = REPO / "skills" / "creative" / "game-studio" / "scripts" / "install_pro
 
 def _load_module():
     spec = importlib.util.spec_from_file_location("install_profiles", SCRIPT)
+    assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
