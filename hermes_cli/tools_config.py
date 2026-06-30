@@ -61,6 +61,7 @@ CONFIGURABLE_TOOLSETS = [
     ("video",           "🎬 Video Analysis",            "video_analyze (requires video-capable model)"),
     ("image_gen",       "🎨 Image Generation",          "image_generate"),
     ("video_gen",       "🎬 Video Generation",          "video_generate (text-to-video + image-to-video)"),
+    ("asset3d_gen",     "🧊 3D Generation",             "asset3d_generate (text/image-to-3D mesh)"),
     ("x_search",        "🐦 X (Twitter) Search",        "x_search (requires xAI OAuth or XAI_API_KEY)"),
     ("moa",             "🧠 Mixture of Agents",         "mixture_of_agents"),
     ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
@@ -94,7 +95,7 @@ CONFIGURABLE_TOOLSETS = [
 # `hermes tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
+_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "asset3d_gen", "x_search"}
 
 
 def _xai_credentials_present() -> bool:
@@ -340,6 +341,14 @@ TOOL_CATEGORIES = {
         # is a plugin, surfaced by ``_plugin_video_gen_providers()`` and
         # injected by ``_visible_providers``. Mirrors the design we'll
         # converge image_gen toward.
+        "providers": [],
+    },
+    "asset3d_gen": {
+        "name": "3D Generation",
+        "icon": "🧊",
+        # Providers list is intentionally empty — every 3D-mesh backend is a
+        # plugin, surfaced by ``_plugin_asset3d_gen_providers()`` and injected
+        # by ``_visible_providers``. Mirrors the video_gen design.
         "providers": [],
     },
     "x_search": {
@@ -1543,6 +1552,43 @@ def _plugin_image_gen_providers() -> list[dict]:
     return rows
 
 
+def _plugin_asset3d_gen_providers() -> list[dict]:
+    """Build picker-row dicts from plugin-registered 3D-asset gen providers.
+
+    Mirrors ``_plugin_video_gen_providers`` exactly — every 3D backend is a
+    plugin, so this is the only source of provider rows for the 3D Generation
+    category. The hardcoded ``TOOL_CATEGORIES`` entry keeps an empty list.
+    """
+    try:
+        from agent.asset3d_gen_registry import list_providers
+        from hermes_cli.plugins import _ensure_plugins_discovered
+
+        _ensure_plugins_discovered()
+        providers = list_providers()
+    except Exception:
+        return []
+
+    rows: list[dict] = []
+    for provider in providers:
+        try:
+            schema = provider.get_setup_schema()
+        except Exception:
+            continue
+        if not isinstance(schema, dict):
+            continue
+        row = {
+            "name": schema.get("name", provider.display_name),
+            "badge": schema.get("badge", ""),
+            "tag": schema.get("tag", ""),
+            "env_vars": schema.get("env_vars", []),
+            "asset3d_gen_plugin_name": provider.name,
+        }
+        if schema.get("post_setup"):
+            row["post_setup"] = schema["post_setup"]
+        rows.append(row)
+    return rows
+
+
 def _plugin_video_gen_providers() -> list[dict]:
     """Build picker-row dicts from plugin-registered video gen providers.
 
@@ -1714,6 +1760,11 @@ def _visible_providers(cat: dict, config: dict) -> list[dict]:
     # video_gen has NO hardcoded providers — every backend is a plugin.
     if cat.get("name") == "Video Generation":
         visible.extend(_plugin_video_gen_providers())
+
+    # Inject plugin-registered asset3d_gen backends. Like video_gen, 3D gen
+    # has NO hardcoded providers — every backend (meshy, hunyuan3d, …) is a plugin.
+    if cat.get("name") == "3D Generation":
+        visible.extend(_plugin_asset3d_gen_providers())
 
     # Inject plugin-registered web search backends. After PR #25182, this
     # is the SOLE source of provider rows for the Web Search & Extract
@@ -1908,6 +1959,11 @@ def _is_provider_active(provider: dict, config: dict) -> bool:
     if video_plugin_name:
         video_cfg = config.get("video_gen", {})
         return isinstance(video_cfg, dict) and video_cfg.get("provider") == video_plugin_name
+
+    asset3d_plugin_name = provider.get("asset3d_gen_plugin_name")
+    if asset3d_plugin_name:
+        asset3d_cfg = config.get("asset3d_gen", {})
+        return isinstance(asset3d_cfg, dict) and asset3d_cfg.get("provider") == asset3d_plugin_name
 
     managed_feature = provider.get("managed_nous_feature")
     if managed_feature:
@@ -2264,6 +2320,20 @@ def _select_plugin_video_gen_provider(plugin_name: str, config: dict) -> None:
     _configure_videogen_model_for_plugin(plugin_name, config)
 
 
+def _select_plugin_asset3d_gen_provider(plugin_name: str, config: dict) -> None:
+    """Persist a plugin-backed 3D-asset generation provider selection.
+
+    No interactive model picker — 3D backends expose a single default model
+    (resolved by the provider), so selecting the provider is sufficient.
+    """
+    cfg = config.setdefault("asset3d_gen", {})
+    if not isinstance(cfg, dict):
+        cfg = {}
+        config["asset3d_gen"] = cfg
+    cfg["provider"] = plugin_name
+    _print_success(f"  asset3d_gen.provider set to: {plugin_name}")
+
+
 def _configure_provider(provider: dict, config: dict):
     """Configure a single provider - prompt for API keys and set config."""
     env_vars = provider.get("env_vars", [])
@@ -2332,6 +2402,10 @@ def _configure_provider(provider: dict, config: dict):
         if video_plugin:
             _select_plugin_video_gen_provider(video_plugin, config)
             return
+        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
+        if asset3d_plugin:
+            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+            return
         # Imagegen backends prompt for model selection after backend pick.
         backend = provider.get("imagegen_backend")
         if backend:
@@ -2383,6 +2457,10 @@ def _configure_provider(provider: dict, config: dict):
         video_plugin = provider.get("video_gen_plugin_name")
         if video_plugin:
             _select_plugin_video_gen_provider(video_plugin, config)
+            return
+        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
+        if asset3d_plugin:
+            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
             return
         # Imagegen backends prompt for model selection after env vars are in.
         backend = provider.get("imagegen_backend")
@@ -2613,6 +2691,10 @@ def _reconfigure_provider(provider: dict, config: dict):
         if video_plugin:
             _select_plugin_video_gen_provider(video_plugin, config)
             return
+        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
+        if asset3d_plugin:
+            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+            return
         # Imagegen backends prompt for model selection on reconfig too.
         backend = provider.get("imagegen_backend")
         if backend:
@@ -2652,6 +2734,12 @@ def _reconfigure_provider(provider: dict, config: dict):
     video_plugin = provider.get("video_gen_plugin_name")
     if video_plugin:
         _select_plugin_video_gen_provider(video_plugin, config)
+        return
+
+    # Plugin-registered asset3d_gen provider — same flow, 3D registry.
+    asset3d_plugin = provider.get("asset3d_gen_plugin_name")
+    if asset3d_plugin:
+        _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
         return
 
     backend = provider.get("imagegen_backend")

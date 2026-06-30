@@ -98,4 +98,6 @@ studio keeps its legacy direct-Replicate path — default behaviour is unchanged
 Two ship today — `meshy` (text-to-3D) and `hunyuan3d` (image-to-3D via
 Replicate). Add more by copying either directory and swapping the HTTP calls
 (Tripo3D, TRELLIS also fit the `Asset3DGenProvider` interface). Pick the active
-one with `asset3d_gen.provider` in `config.yaml` and set the backend's API key.
+one interactively via `hermes tools` → **3D Generation** (it walks you through
+provider + API key and writes `asset3d_gen.provider`), or set
+`asset3d_gen.provider` in `config.yaml` directly.
