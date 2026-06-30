@@ -657,8 +657,12 @@ class AIAgent:
                     vram_before_mb=_vram_before,
                     vram_after_mb=probe_vram_mb(),
                 )
-            except Exception:
-                pass
+            except Exception as lifecycle_err:
+                # Observability is best-effort — a trace-emit failure must never
+                # affect model loading. Debug-log for diagnosability only.
+                logger.debug(
+                    "request-trace load lifecycle_event failed: %s", lifecycle_err
+                )
             if loaded_ctx:
                 # Push into the live compressor so the status bar reflects the
                 # real loaded ctx the moment the load resolves, instead of

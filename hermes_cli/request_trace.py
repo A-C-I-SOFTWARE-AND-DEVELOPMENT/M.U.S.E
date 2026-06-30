@@ -106,9 +106,11 @@ def _vram_enabled() -> bool:
         return False
 
 
-# Tri-state cache of nvidia-smi availability: None=unknown, True/False=resolved.
-# A GPU-less host pays at most one failed lookup, never a probe per event.
-_VRAM_AVAILABLE: Optional[bool] = None
+# Cache of nvidia-smi availability: ``nvidia_smi`` is None=unknown,
+# True/False=resolved. A GPU-less host pays at most one failed lookup, never a
+# probe per event. Held in a module dict (rather than a rebound module global) so
+# the resolved state mutates in place — clearer ownership, no ``global``.
+_VRAM_STATE: dict[str, Optional[bool]] = {"nvidia_smi": None}
 
 
 def probe_vram_mb() -> Optional[int]:
@@ -120,15 +122,14 @@ def probe_vram_mb() -> Optional[int]:
     sizes, not live usage), and it is gated separately from the base trace so
     the subprocess cost is strictly opt-in.
     """
-    global _VRAM_AVAILABLE
-    if not _vram_enabled() or _VRAM_AVAILABLE is False:
+    if not _vram_enabled() or _VRAM_STATE["nvidia_smi"] is False:
         return None
     try:
-        if _VRAM_AVAILABLE is None:
+        if _VRAM_STATE["nvidia_smi"] is None:
             if shutil.which("nvidia-smi") is None:
-                _VRAM_AVAILABLE = False
+                _VRAM_STATE["nvidia_smi"] = False
                 return None
-            _VRAM_AVAILABLE = True
+            _VRAM_STATE["nvidia_smi"] = True
         proc = subprocess.run(
             [
                 "nvidia-smi",

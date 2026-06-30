@@ -162,18 +162,18 @@ def test_vram_probe_off_by_default(home: Path) -> None:
 
 def test_vram_probe_no_nvidia_smi(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
-    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", None)
+    monkeypatch.setitem(request_trace._VRAM_STATE, "nvidia_smi", None)
     monkeypatch.setattr(request_trace.shutil, "which", lambda _name: None)
     assert request_trace.probe_vram_mb() is None
     # Absence is cached so we don't re-probe.
-    assert request_trace._VRAM_AVAILABLE is False
+    assert request_trace._VRAM_STATE["nvidia_smi"] is False
 
 
 def test_vram_probe_sums_gpus(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from types import SimpleNamespace
 
     monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
-    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", True)
+    monkeypatch.setitem(request_trace._VRAM_STATE, "nvidia_smi", True)
 
     def _fake_run(*_args, **_kwargs):
         return SimpleNamespace(returncode=0, stdout="1024\n2048\n")
@@ -186,7 +186,7 @@ def test_vram_probe_handles_failure(home: Path, monkeypatch: pytest.MonkeyPatch)
     from types import SimpleNamespace
 
     monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
-    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", True)
+    monkeypatch.setitem(request_trace._VRAM_STATE, "nvidia_smi", True)
     monkeypatch.setattr(
         request_trace.subprocess, "run",
         lambda *a, **k: SimpleNamespace(returncode=1, stdout=""),

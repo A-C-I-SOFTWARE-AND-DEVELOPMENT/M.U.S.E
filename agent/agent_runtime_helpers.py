@@ -1420,8 +1420,13 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
                     vram_before_mb=_vram_before,
                     vram_after_mb=probe_vram_mb(),
                 )
-            except Exception:
-                pass
+            except Exception as lifecycle_err:
+                # Observability is best-effort — a trace-emit failure must never
+                # affect the model switch. Log at debug for diagnosability only.
+                logger.debug(
+                    "request-trace unload lifecycle_event failed for %s: %s",
+                    old_model, lifecycle_err,
+                )
         except Exception as unload_err:
             logger.debug("LM Studio unload-on-switch skipped: %s", unload_err)
 
