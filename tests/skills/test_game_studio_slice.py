@@ -86,6 +86,30 @@ def test_player_script_has_controller_entrypoints():
     assert "res://assets/prop.glb" in body
 
 
+def test_gameplay_loop_present():
+    # Round 3: the slice is an actual game loop (collect → win), not just a walk.
+    assert (SLICE / "scripts" / "game.gd").is_file()
+    assert (SLICE / "scripts" / "collectible.gd").is_file()
+    assert (SLICE / "scenes" / "Collectible.tscn").is_file()
+
+    game = (SLICE / "scripts" / "game.gd").read_text()
+    assert "func collect" in game
+    assert "win" in game.lower()
+
+    collectible = (SLICE / "scripts" / "collectible.gd").read_text()
+    assert "collectibles" in collectible
+    assert "is_in_group(\"player\")" in collectible
+
+    main = (SLICE / "scenes" / "Main.tscn").read_text()
+    assert "scripts/game.gd" in main
+    assert 'type="CanvasLayer"' in main          # HUD
+    assert 'name="Status"' in main               # score label
+    assert "Collectible.tscn" in main            # objective instances
+
+    player = (SLICE / "scripts" / "player.gd").read_text()
+    assert 'add_to_group("player")' in player
+
+
 def test_prop_glb_is_valid_glb_header():
     raw = (SLICE / "assets" / "prop.glb").read_bytes()
     assert len(raw) >= 12

@@ -1,6 +1,8 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/game.gd" id="2_game"]
+[ext_resource type="PackedScene" path="res://scenes/Collectible.tscn" id="3_collectible"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.27, 0.42, 0.66, 1)
@@ -38,6 +40,7 @@ size = Vector3(24, 3, 0.5)
 size = Vector3(1, 1, 1)
 
 [node name="Main" type="Node3D"]
+script = ExtResource("2_game")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
@@ -89,3 +92,27 @@ mesh = SubResource("BoxMesh_hero")
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 6)
+
+[node name="Collectibles" type="Node3D" parent="."]
+
+[node name="Collectible1" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, -6)
+
+[node name="Collectible2" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1, -6)
+
+[node name="Collectible3" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, 6)
+
+[node name="Collectible4" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 4)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 420.0
+offset_bottom = 48.0
+text = "Collected: 0 / 0"
+

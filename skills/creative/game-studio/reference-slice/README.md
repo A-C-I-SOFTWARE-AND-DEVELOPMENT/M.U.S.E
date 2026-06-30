@@ -13,6 +13,9 @@ build — not a scaffold stub.
   greybox, and a `HeroProp` slot for the generated asset.
 - **`scenes/Player.tscn` + `scripts/player.gd`** — a `CharacterBody3D` controller
   (WASD move, Space jump, mouse-look), pure GDScript, no plugins.
+- **A real game loop** — `scripts/game.gd` (manager) + `scenes/Collectible.tscn`
+  + `scripts/collectible.gd`: collect the glowing pickups, a HUD tracks
+  `Collected: X / N`, and clearing them all shows a win message.
 - **`assets/prop.glb`** — placeholder hero prop; the slot the `asset3d_generate`
   tool fills (see `assets/README.md`).
 - **`export_presets.cfg`** — a headless `Linux/X11` preset named `linux`.
