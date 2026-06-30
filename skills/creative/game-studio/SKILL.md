@@ -134,6 +134,17 @@ Gate). Defer until the owner replies exactly `Yes, with authorization.`
 4. Produce + verify the artifact. For the reference slice, run
    `scripts/export_godot_slice.py` (gated) and `scripts/verify_slice.py`.
 
+## Templates
+
+Role agents emit structured, gate-ready artifacts from `templates/`:
+
+| Template | Owner role | Purpose |
+|---|---|---|
+| `game-design-document.md` | `game-designer` | The GDD (matches the sections the studio DAG generates). |
+| `art-direction-brief.md` | `graphics-tech-artist` + `audio-designer` | Locks the look + sound so assets stay coherent. |
+| `vertical-slice-checklist.md` | `qa-playtest` | Evidence-backed acceptance gate for the slice. |
+| `asset-provenance-log.md` | `3d-asset-artist` + `audio-designer` | Backs the asset-licensing owner gate. |
+
 ## Verification
 
 - A build claim must be accompanied by the export log + artifact path.

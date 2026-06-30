@@ -116,6 +116,23 @@ def test_scripts_parse_as_python() -> None:
         ast.parse(path.read_text(), filename=str(path))
 
 
+def test_templates_present_and_structured() -> None:
+    tdir = SKILL_DIR / "templates"
+    expected = {
+        "game-design-document.md",
+        "art-direction-brief.md",
+        "vertical-slice-checklist.md",
+        "asset-provenance-log.md",
+    }
+    for name in expected:
+        assert (tdir / name).is_file(), f"missing template: {name}"
+    # The GDD template must cover the sections the studio DAG asks for.
+    gdd = (tdir / "game-design-document.md").read_text()
+    for section in ("Vision", "Pillars", "Core loop", "Mechanics", "Systems",
+                    "Characters", "Levels", "Art direction", "Risk register"):
+        assert section in gdd, f"GDD template missing section: {section}"
+
+
 def test_workflow_present() -> None:
     wf = SKILL_DIR / "workflows" / "game-production-pipeline.md"
     assert wf.is_file()
