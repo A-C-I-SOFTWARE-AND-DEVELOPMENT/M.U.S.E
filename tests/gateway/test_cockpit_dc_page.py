@@ -130,9 +130,14 @@ def test_react_loads_before_dc_runtime(server) -> None:
 # ── self-containment: no remote executable/script/link references ───────────
 
 # Executable/reference contexts that must never point at a remote URL.
+# NOTE: the <link> rule exempts rel="canonical" (and other non-fetched discovery
+# metadata) — a canonical href is an SEO hint the browser never fetches or
+# executes, so it is not a self-containment violation. Loaded sub-resources
+# (rel="stylesheet"/"preload"/"modulepreload"/"icon"/"manifest") are still caught
+# because their tags don't carry rel="canonical".
 _REMOTE_PATTERNS = [
     re.compile(r"<script[^>]+src\s*=\s*[\"']https?://", re.IGNORECASE),
-    re.compile(r"<link[^>]+href\s*=\s*[\"']https?://", re.IGNORECASE),
+    re.compile(r"<link(?![^>]*rel\s*=\s*[\"']canonical[\"'])[^>]+href\s*=\s*[\"']https?://", re.IGNORECASE),
     re.compile(r"\bfrom\s*[\"']https?://"),
     re.compile(r"\bimport\s*\(\s*[\"']https?://"),
     re.compile(r"\bimport\s+[\"']https?://"),
