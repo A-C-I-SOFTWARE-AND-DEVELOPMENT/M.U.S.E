@@ -31,7 +31,7 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 _TRUTHY = {"1", "true", "yes", "on"}
@@ -129,6 +129,13 @@ class RequestTrace:
     fallback_used: bool = False
     fallback_model: Optional[str] = None
     fallback_reason: Optional[str] = None
+    # retry / failover classification (per FailoverReason)
+    retry_count: int = 0
+    retry_reasons: dict[str, int] = field(default_factory=dict)
+    # context compression
+    compressions: int = 0
+    compression_ms: int = 0
+    tokens_saved: int = 0
 
     @classmethod
     def start(
@@ -184,6 +191,24 @@ class RequestTrace:
         self.fallback_model = to_model or None
         self.fallback_reason = str(reason) if reason is not None else None
 
+    def record_retry_reason(self, reason: Any) -> None:
+        """Record one API-error classification (a retry/failover decision)."""
+        if not self.enabled:
+            return
+        self.retry_count += 1
+        key = str(reason) if reason is not None else "unknown"
+        self.retry_reasons[key] = self.retry_reasons.get(key, 0) + 1
+
+    def record_compression(self, ms: int, tokens_before: int, tokens_after: int) -> None:
+        """Record one context-compression pass: duration and tokens reclaimed."""
+        if not self.enabled:
+            return
+        self.compressions += 1
+        self.compression_ms += int(ms)
+        saved = int(tokens_before) - int(tokens_after)
+        if saved > 0:
+            self.tokens_saved += saved
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "trace_id": self.trace_id,
@@ -202,6 +227,11 @@ class RequestTrace:
             "fallback_used": self.fallback_used,
             "fallback_model": self.fallback_model,
             "fallback_reason": self.fallback_reason,
+            "retry_count": self.retry_count,
+            "retry_reasons": dict(self.retry_reasons),
+            "compressions": self.compressions,
+            "compression_ms": self.compression_ms,
+            "tokens_saved": self.tokens_saved,
         }
 
     def emit(self) -> None:
@@ -316,6 +346,15 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     load_events = [e for e in lifecycle if e.get("event") == "load"]
     unload_events = [e for e in lifecycle if e.get("event") == "unload"]
 
+    retry_total = sum(_ints("retry_count"))
+    retry_reasons: dict[str, int] = {}
+    for t in traces:
+        reasons = t.get("retry_reasons")
+        if isinstance(reasons, dict):
+            for k, v in reasons.items():
+                if isinstance(v, (int, float)):
+                    retry_reasons[str(k)] = retry_reasons.get(str(k), 0) + int(v)
+
     return {
         "request_count": n,
         "latency_ms": {
@@ -341,6 +380,15 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "local": sum(1 for t in traces if t.get("is_remote") is False),
             "remote": sum(1 for t in traces if t.get("is_remote") is True),
             "unknown": sum(1 for t in traces if t.get("is_remote") is None),
+        },
+        "retries": {
+            "count": retry_total,
+            "reasons": retry_reasons,
+        },
+        "compression": {
+            "passes": sum(_ints("compressions")),
+            "total_ms": sum(_ints("compression_ms")),
+            "tokens_saved": sum(_ints("tokens_saved")),
         },
         "lifecycle": {
             "load_count": len(load_events),

@@ -2061,6 +2061,7 @@ def run_conversation(
                     context_length=_ctx_len,
                     num_messages=len(api_messages) if api_messages else 0,
                 )
+                agent._active_trace.record_retry_reason(classified.reason.value)
                 logger.debug(
                     "Error classified: reason=%s status=%s retryable=%s compress=%s rotate=%s fallback=%s",
                     classified.reason.value, classified.status_code,
@@ -3509,11 +3510,24 @@ def run_conversation(
 
                 if agent.compression_enabled and _compressor.should_compress(_real_tokens):
                     agent._safe_print("  ⟳ compacting context…")
+                    _compress_t0 = time.monotonic()
                     messages, active_system_prompt = agent._compress_context(
                         messages, system_message,
                         approx_tokens=agent.context_compressor.last_prompt_tokens,
                         task_id=effective_task_id,
                     )
+                    # Record compression cost + tokens reclaimed (no-op when
+                    # tracing is off). Post-compression estimate reuses the same
+                    # rough estimator used above for the pre-compression count.
+                    if agent._active_trace.enabled:
+                        _tokens_after = estimate_request_tokens_rough(
+                            messages, tools=agent.tools or None
+                        )
+                        agent._active_trace.record_compression(
+                            int((time.monotonic() - _compress_t0) * 1000),
+                            _real_tokens,
+                            _tokens_after,
+                        )
                     # Compression created a new session — clear history so
                     # _flush_messages_to_session_db writes compressed messages
                     # to the new session (see preflight compression comment).

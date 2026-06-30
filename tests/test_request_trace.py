@@ -104,6 +104,33 @@ def test_enabled_trace_emits_one_record(home: Path, monkeypatch: pytest.MonkeyPa
     assert attrs["session_id"] == "sess-1"
 
 
+def test_retry_and_compression_recording(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HERMES_REQUEST_TRACE", "1")
+    trace = RequestTrace.start(model="m", provider="p", api_mode="chat_completions")
+    trace.record_retry_reason("rate_limit")
+    trace.record_retry_reason("rate_limit")
+    trace.record_retry_reason("context_overflow")
+    trace.record_compression(ms=40, tokens_before=10000, tokens_after=6000)
+    trace.record_compression(ms=20, tokens_before=5000, tokens_after=5200)  # no savings
+    d = trace.as_dict()
+    assert d["retry_count"] == 3
+    assert d["retry_reasons"] == {"rate_limit": 2, "context_overflow": 1}
+    assert d["compressions"] == 2
+    assert d["compression_ms"] == 60
+    assert d["tokens_saved"] == 4000  # negative-saving pass contributes 0
+
+
+def test_retry_compression_noop_when_disabled(home: Path) -> None:
+    trace = RequestTrace.start(model="m", provider="p")
+    trace.record_retry_reason("rate_limit")
+    trace.record_compression(ms=10, tokens_before=100, tokens_after=0)
+    d = trace.as_dict()
+    assert d["retry_count"] == 0
+    assert d["retry_reasons"] == {}
+    assert d["compressions"] == 0
+    assert d["tokens_saved"] == 0
+
+
 def test_enabled_lifecycle_event(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HERMES_REQUEST_TRACE", "1")
     lifecycle_event(
@@ -201,6 +228,8 @@ def test_summarize_aggregates_traces() -> None:
             first_token_ms=300, total_latency_ms=3000,
             tool_calls=6, tool_parse_errors=0, tool_exec_failures=1,
             fallback_used=True,
+            retry_count=2, retry_reasons={"rate_limit": 2},
+            compressions=1, compression_ms=50, tokens_saved=3000,
         ),
         # A non-trace hook record must be ignored.
         {"message": "something_else", "attributes": {"x": 1}},
@@ -223,6 +252,8 @@ def test_summarize_aggregates_traces() -> None:
     assert s["lifecycle"] == {
         "load_count": 1, "load_ok": 1, "unload_count": 1, "unload_ok": 0,
     }
+    assert s["retries"] == {"count": 2, "reasons": {"rate_limit": 2}}
+    assert s["compression"] == {"passes": 1, "total_ms": 50, "tokens_saved": 3000}
 
 
 def test_summarize_handles_missing_fields() -> None:

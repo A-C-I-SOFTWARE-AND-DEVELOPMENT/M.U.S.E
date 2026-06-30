@@ -50,6 +50,8 @@ honest-empty when tracing is off:
   "endpoints": {"openai_v1_chat_completions": 12},
   "models": {"qwen": 9, "gpt-4o": 3},
   "remote": {"local": 9, "remote": 3, "unknown": 0},
+  "retries": {"count": 5, "reasons": {"rate_limit": 4, "context_overflow": 1}},
+  "compression": {"passes": 6, "total_ms": 290, "tokens_saved": 24800},
   "lifecycle": {"load_count": 4, "load_ok": 4, "unload_count": 3, "unload_ok": 3}
 }
 ```
@@ -66,7 +68,9 @@ Two raw record shapes appear in the event log (source `hook`):
     "first_token_ms": 412, "api_calls": 2, "api_latency_ms": 1830,
     "total_latency_ms": 2050,
     "tool_calls": 3, "tool_parse_errors": 0, "tool_exec_failures": 1,
-    "fallback_used": false, "fallback_model": null, "fallback_reason": null
+    "fallback_used": false, "fallback_model": null, "fallback_reason": null,
+    "retry_count": 1, "retry_reasons": {"rate_limit": 1},
+    "compressions": 1, "compression_ms": 48, "tokens_saved": 4200
   }
   ```
 
@@ -90,6 +94,11 @@ Captured from existing measurement points (cheap, exact):
 - tool-call counts — at the parse and failure sites in both the sequential and
   concurrent executors.
 - fallback outcome — recorded when `try_activate_fallback` switches models.
+- retry-reason distribution — every `classify_api_error` outcome, counted by
+  `FailoverReason` (rate_limit, context_overflow, …).
+- context-compression cost — pass count, total time, and tokens reclaimed
+  (pre/post estimate via the loop's existing rough estimator; only computed when
+  tracing is on).
 - LM Studio load/unload `ok` + duration — at the load/unload call sites.
 
 **Not** captured today (left absent rather than faked):
