@@ -25,6 +25,7 @@ from agent.model_metadata import (
     _strip_provider_prefix,
     estimate_tokens_rough,
     estimate_messages_tokens_rough,
+    estimate_request_tokens_rough,
     get_model_context_length,
     get_next_probe_tier,
     get_cached_context_length,
@@ -1288,3 +1289,57 @@ class TestContextLengthCache:
         with patch("agent.model_metadata._get_context_cache_path", return_value=cache_file):
             save_context_length(model, url, 200000)
             assert get_cached_context_length(model, url) == 200000
+
+
+# =========================================================================
+# estimate_request_tokens_rough — tool-schema memoization
+# =========================================================================
+
+class TestEstimateRequestTokensRough:
+    """The request estimate memoizes the (expensive) tool-schema length on a
+    stable tools list, but must stay byte-for-byte equal to the direct
+    computation and react to changes in the tools list."""
+
+    def _tools(self, n: int):
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": f"tool_{i}",
+                    "description": "desc " * 10,
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+            for i in range(n)
+        ]
+
+    def test_matches_direct_computation(self):
+        msgs = [{"role": "user", "content": "hello " * 20}]
+        tools = self._tools(30)
+        expected = (
+            estimate_messages_tokens_rough(msgs) + (len(str(tools)) + 3) // 4
+        )
+        assert estimate_request_tokens_rough(msgs, tools=tools) == expected
+
+    def test_cache_hit_is_stable(self):
+        tools = self._tools(20)
+        first = estimate_request_tokens_rough([], tools=tools)
+        second = estimate_request_tokens_rough([], tools=tools)
+        assert first == second == (len(str(tools)) + 3) // 4
+
+    def test_reacts_to_tool_list_growth(self):
+        tools = self._tools(10)
+        before = estimate_request_tokens_rough([], tools=tools)
+        tools.append(
+            {"type": "function", "function": {"name": "extra", "description": "x" * 400}}
+        )
+        after = estimate_request_tokens_rough([], tools=tools)
+        # Length changed → recomputed, not a stale cache hit.
+        assert after != before
+        assert after == (len(str(tools)) + 3) // 4
+
+    def test_no_tools_and_system_prompt(self):
+        assert estimate_request_tokens_rough([], tools=None) == 0
+        assert estimate_request_tokens_rough(
+            [], system_prompt="abcd", tools=None
+        ) == (len("abcd") + 3) // 4
