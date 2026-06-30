@@ -22,7 +22,7 @@ generative production engine documented in [`../studio/README.md`](../studio/REA
 | Workflow | `skills/creative/game-studio/workflows/game-production-pipeline.md` | The staged pipeline mapped to muse verification gates. |
 | Engine profiles | [`engine-profiles.md`](engine-profiles.md) | UE5 / Godot / Unity as pluggable worker profiles. |
 | 3D asset tool | `tools/asset3d_generation_tool.py` + `agent/asset3d_gen_provider.py` | `asset3d_generate` — text-to-3D meshes via a pluggable backend. |
-| Meshy backend | `plugins/asset3d_gen/meshy/` | Hosted text-to-3D (no local GPU). |
+| 3D backends | `plugins/asset3d_gen/meshy/`, `plugins/asset3d_gen/hunyuan3d/` | Meshy (hosted text-to-3D) and Hunyuan3D-2 (Replicate, image-to-3D) — both opt-in behind their API keys. |
 | Reference slice | `skills/creative/game-studio/reference-slice/` | A real, runnable Godot 4 slice — the proof artifact. |
 | SOTA graphics | `skills/creative/ue5-render/` | Unreal Nanite/Lumen render path (owner GPU host). |
 | Textures/audio | `skills/creative/comfyui/` | Image/video/audio asset generation. |
@@ -73,6 +73,7 @@ python skills/creative/game-studio/scripts/verify_slice.py \
 
 ## Add a 3D backend
 
-Copy `plugins/asset3d_gen/meshy/` and swap the HTTP calls (Hunyuan3D on
-Replicate, Tripo3D, TRELLIS all fit the `Asset3DGenProvider` interface). Set
-`asset3d_gen.provider` in `config.yaml` and the backend's API key.
+Two ship today — `meshy` (text-to-3D) and `hunyuan3d` (image-to-3D via
+Replicate). Add more by copying either directory and swapping the HTTP calls
+(Tripo3D, TRELLIS also fit the `Asset3DGenProvider` interface). Pick the active
+one with `asset3d_gen.provider` in `config.yaml` and set the backend's API key.
