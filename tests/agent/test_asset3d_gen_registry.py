@@ -47,7 +47,7 @@ def test_register_and_get():
 
 def test_register_rejects_non_provider():
     with pytest.raises(TypeError):
-        reg.register_provider(object())  # type: ignore[arg-type]
+        reg.register_provider(object())  # ty: ignore[invalid-argument-type]  # intentional bad input
 
 
 def test_list_providers_sorted():

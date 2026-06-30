@@ -71,6 +71,14 @@ python skills/creative/game-studio/scripts/verify_slice.py \
     skills/creative/game-studio/reference-slice/build/slice.x86_64
 ```
 
+## Unified 3D path
+
+The studio engine's `mesh3d` stage (`agent/studio/adapters/Mesh3DAdapter`) and
+the muse `asset3d_generate` tool share one backend registry **when you opt in**:
+set `asset3d_gen.provider` in `config.yaml` and the studio DAG routes its 3D
+stage through the same provider (Meshy / Hunyuan3D / …). Leave it unset and the
+studio keeps its legacy direct-Replicate path — default behaviour is unchanged.
+
 ## Add a 3D backend
 
 Two ship today — `meshy` (text-to-3D) and `hunyuan3d` (image-to-3D via

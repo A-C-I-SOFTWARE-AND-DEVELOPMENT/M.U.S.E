@@ -141,13 +141,69 @@ class Sora2Adapter(Adapter):
 
 # ── 3D asset generation ─────────────────────────────────────────────
 
+
+def _explicit_asset3d_provider():
+    """Return the muse Asset3DGenProvider ONLY when one is explicitly selected.
+
+    Unifies the studio's 3D-mesh stage with the first-class
+    ``asset3d_generate`` tool surface (``plugins/asset3d_gen/<backend>/``), but
+    only when the operator has opted in by setting ``asset3d_gen.provider`` in
+    config.yaml. With it unset, this returns None and the legacy direct-Replicate
+    path below runs unchanged — so default behaviour is byte-for-byte identical.
+
+    Returns None in offline mode so the full-pipeline DAG tests stay hermetic.
+    """
+    try:
+        from agent.studio.adapters.free_providers import studio_offline
+
+        if studio_offline():
+            return None
+        from hermes_cli.config import load_config
+
+        cfg = load_config()
+        section = cfg.get("asset3d_gen") if isinstance(cfg, dict) else None
+        chosen = section.get("provider") if isinstance(section, dict) else None
+        if not (isinstance(chosen, str) and chosen.strip()):
+            return None
+        from agent.asset3d_gen_registry import get_active_provider
+        from hermes_cli.plugins import _ensure_plugins_discovered
+
+        _ensure_plugins_discovered()
+        return get_active_provider()
+    except Exception:  # noqa: BLE001 — never break the studio DAG on resolution
+        return None
+
+
 class Mesh3DAdapter(Adapter):
     capability = "mesh3d"
     provider = Provider.HUNYUAN3D
     requires_env = ["REPLICATE_API_TOKEN"]
     est_unit_cost_usd = 0.10
 
+    def available(self) -> bool:
+        # Real when the legacy Replicate token is present OR an asset3d provider
+        # has been explicitly configured (and we're not pinned offline).
+        if super().available():
+            return True
+        return _explicit_asset3d_provider() is not None
+
     def _real(self, prompt: str, workdir: Path, **kwargs):
+        # Prefer the unified muse provider registry when explicitly selected.
+        provider = _explicit_asset3d_provider()
+        if provider is not None:
+            result = provider.generate(
+                prompt=prompt,
+                fmt=kwargs.get("fmt", "glb"),
+                textured=kwargs.get("textured", True),
+                image=kwargs.get("image"),
+            )
+            if isinstance(result, dict) and result.get("success") and result.get("mesh"):
+                return self._save_provider_mesh(result, workdir)
+            err = (result or {}).get("error", "asset3d provider returned no mesh")
+            raise RuntimeError(f"asset3d provider '{getattr(provider, 'name', '?')}': {err}")
+
+        # Legacy direct-Replicate path (unchanged; runs when REPLICATE_API_TOKEN
+        # is set and no explicit asset3d_gen.provider is configured).
         url = "https://api.replicate.com/v1/predictions"
         headers = {
             "Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}",
@@ -160,6 +216,26 @@ class Mesh3DAdapter(Adapter):
         data = _post_json(url, headers, payload)
         out = _save(workdir, f"mesh_{int(time.time())}.json", json.dumps(data, indent=2))
         return [out], "hunyuan3d-2 mesh queued"
+
+    def _save_provider_mesh(self, result: dict, workdir: Path):
+        """Persist a unified-provider mesh result into the stage workdir."""
+        workdir.mkdir(parents=True, exist_ok=True)
+        manifest = {
+            "capability": "mesh3d",
+            "provider": result.get("provider"),
+            "mesh": result.get("mesh"),
+            "format": result.get("format"),
+            "textures": result.get("textures", []),
+            "poly_count": result.get("poly_count"),
+            "est_cost_usd": result.get("est_cost_usd"),
+        }
+        mpath = _save(workdir, f"mesh_{int(time.time()*1000)}.json", json.dumps(manifest, indent=2))
+        artifacts: List[str] = [mpath]
+        mesh = result.get("mesh")
+        # When the provider cached a local file, surface it as the primary artifact.
+        if isinstance(mesh, str) and os.path.exists(mesh):
+            artifacts.insert(0, mesh)
+        return artifacts, f"{result.get('provider')} mesh ({result.get('format')})"
 
 
 # ── Voice / dialogue ────────────────────────────────────────────────
