@@ -34,7 +34,23 @@ into the caller. Records land in `${HERMES_HOME:-~/.hermes}/cockpit/events.jsonl
 and flow to the live SSE stream at `GET /v1/cockpit/events/stream` — so the
 cockpit "debug panel" need is already covered with no new endpoint.
 
-For an at-a-glance **analytical view**, `GET /v1/cockpit/trace` folds the recent
+From the terminal (no cockpit server needed), `hermes trace` prints the same
+summary — `--json` for machine output, `--raw` for the recent raw records,
+`--limit N` to widen the scan:
+
+```text
+$ hermes trace
+Request traces: 12
+  first-token ms  p50=140  p95=410  (n=12)
+  total ms        p50=1800  p95=5200
+  tool calls      47  exec_failures=2  parse_errors=0  failure_rate=0.0426
+  fallback        1  rate=0.0833
+  retries         5  reasons={'rate_limit': 4, 'context_overflow': 1}
+  compression     passes=6  total_ms=290  tokens_saved=24800
+  ...
+```
+
+For an at-a-glance **analytical view** over HTTP, `GET /v1/cockpit/trace` folds the recent
 records into a summary — latency percentiles (p50/p95 first-token & total),
 tool-call failure rate, fallback rate, and endpoint / model / local-vs-remote
 distributions. It is read-only, bearer-auth'd like the rest of the cockpit, and
@@ -128,6 +144,8 @@ healthy request trace reads `endpoint: openai_v1_chat_completions`; a
   `agent/agent_runtime_helpers.py` (LM Studio load/unload).
 - Summary endpoint: `gateway/cockpit/handlers.py:trace_summary` registered at
   `GET /v1/cockpit/trace` in `gateway/cockpit/server.py`.
+- CLI: `hermes trace` (`hermes_cli/main.py:cmd_trace`) — terminal view of the
+  same summary, no HTTP server required.
 - Tests: [`tests/test_request_trace.py`](../../tests/test_request_trace.py) and
   the endpoint tests in
   [`tests/gateway/test_cockpit_events_stream.py`](../../tests/gateway/test_cockpit_events_stream.py).

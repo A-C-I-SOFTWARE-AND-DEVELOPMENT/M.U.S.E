@@ -5894,6 +5894,82 @@ def cmd_hooks(args):
     hooks_command(args)
 
 
+def cmd_trace(args):
+    """Print a summary of recent per-request observability traces.
+
+    Reads the cockpit event log (``request_trace`` / ``model_lifecycle``
+    records) and prints aggregate latency / tool-failure / fallback / retry /
+    compression stats — the same data served at ``GET /v1/cockpit/trace``, for
+    local-first use without the cockpit HTTP server. Honest-empty when tracing
+    is off. See docs/integrations/request-trace.md.
+    """
+    import json as _json
+
+    try:
+        from gateway.cockpit import event_log
+        from hermes_cli.request_trace import summarize
+
+        limit = max(1, min(5000, int(getattr(args, "limit", 500) or 500)))
+        records = event_log.read(source="hook", limit=limit)
+    except Exception as exc:
+        print(f"trace: unable to read event log: {exc}")
+        return
+
+    if getattr(args, "raw", False):
+        traces = [
+            r for r in records
+            if r.get("message") in ("request_trace", "model_lifecycle")
+        ]
+        if getattr(args, "json", False):
+            print(_json.dumps(traces, indent=2, default=str))
+        else:
+            for r in traces[-50:]:
+                row = {"message": r.get("message"), **(r.get("attributes") or {})}
+                print(_json.dumps(row, default=str))
+        return
+
+    summary = summarize(records)
+    if getattr(args, "json", False):
+        print(_json.dumps(summary, indent=2, default=str))
+        return
+
+    n = summary["request_count"]
+    if n == 0:
+        print("No request traces found.")
+        print(
+            "Enable with HERMES_REQUEST_TRACE=1 (or observability.request_trace: "
+            "true), run some requests, then re-check."
+        )
+        print("Docs: docs/integrations/request-trace.md")
+        return
+
+    lat = summary["latency_ms"]
+    tc = summary["tool_calls"]
+    fb = summary["fallback"]
+    rt = summary["retries"]
+    cp = summary["compression"]
+    print(f"Request traces: {n}")
+    print(
+        f"  first-token ms  p50={lat['first_token_p50']}  "
+        f"p95={lat['first_token_p95']}  (n={lat['first_token_samples']})"
+    )
+    print(f"  total ms        p50={lat['total_p50']}  p95={lat['total_p95']}")
+    print(
+        f"  tool calls      {tc['total']}  exec_failures={tc['exec_failures']}  "
+        f"parse_errors={tc['parse_errors']}  failure_rate={tc['failure_rate']}"
+    )
+    print(f"  fallback        {fb['count']}  rate={fb['rate']}")
+    print(f"  retries         {rt['count']}  reasons={rt['reasons']}")
+    print(
+        f"  compression     passes={cp['passes']}  total_ms={cp['total_ms']}  "
+        f"tokens_saved={cp['tokens_saved']}"
+    )
+    print(f"  endpoints       {summary['endpoints']}")
+    print(f"  models          {summary['models']}")
+    print(f"  local/remote    {summary['remote']}")
+    print(f"  lifecycle       {summary['lifecycle']}")
+
+
 def cmd_doctor(args):
     """Check configuration and dependencies."""
     if getattr(args, "jarvis_launch", False):
@@ -11847,6 +11923,32 @@ def main():
         ),
     )
     doctor_parser.set_defaults(func=cmd_doctor)
+
+    # =========================================================================
+    # trace command — local view of per-request observability traces
+    # =========================================================================
+    trace_parser = subparsers.add_parser(
+        "trace",
+        help="Summarize recent per-request observability traces",
+        description=(
+            "Aggregate the request_trace / model_lifecycle records from the "
+            "cockpit event log (latency percentiles, tool-failure / fallback / "
+            "retry rates, compression cost). Enable tracing with "
+            "HERMES_REQUEST_TRACE=1 or observability.request_trace: true."
+        ),
+    )
+    trace_parser.add_argument(
+        "--json", action="store_true", help="Emit the summary as JSON"
+    )
+    trace_parser.add_argument(
+        "--raw", action="store_true",
+        help="Print recent raw trace records instead of the aggregate summary",
+    )
+    trace_parser.add_argument(
+        "--limit", type=int, default=500,
+        help="Number of recent event-log records to scan (default 500)",
+    )
+    trace_parser.set_defaults(func=cmd_trace)
 
     # =========================================================================
     # jarvis command — free-first muse launch + emergency stop

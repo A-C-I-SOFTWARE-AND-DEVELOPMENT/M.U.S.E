@@ -7,6 +7,7 @@ trace emits exactly one ``request_trace`` record through the cockpit event log.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -277,3 +278,46 @@ def test_summarize_handles_missing_fields() -> None:
 )
 def test_percentile(values, pct, expected) -> None:
     assert request_trace._percentile(values, pct) == expected
+
+
+# ── `hermes trace` CLI command ──────────────────────────────────────────────
+
+
+def test_cli_trace_honest_empty(home: Path, capsys) -> None:
+    from types import SimpleNamespace
+
+    from hermes_cli.main import cmd_trace
+
+    cmd_trace(SimpleNamespace(json=False, raw=False, limit=500))
+    out = capsys.readouterr().out
+    assert "No request traces found" in out
+
+
+def test_cli_trace_summarizes_seeded_records(home: Path, capsys) -> None:
+    from types import SimpleNamespace
+
+    from hermes_cli.main import cmd_trace
+
+    event_log.emit(
+        "info", "hook", "request_trace",
+        attributes={
+            "endpoint": "openai_v1_chat_completions", "model": "qwen",
+            "is_remote": False, "first_token_ms": 120, "total_latency_ms": 900,
+            "tool_calls": 3, "tool_parse_errors": 0, "tool_exec_failures": 1,
+            "fallback_used": False, "retry_count": 1,
+            "retry_reasons": {"rate_limit": 1},
+            "compressions": 1, "compression_ms": 40, "tokens_saved": 3000,
+        },
+    )
+    # Human-readable summary
+    cmd_trace(SimpleNamespace(json=False, raw=False, limit=500))
+    out = capsys.readouterr().out
+    assert "Request traces: 1" in out
+    assert "openai_v1_chat_completions" in out
+
+    # JSON form parses and carries the aggregate blocks
+    cmd_trace(SimpleNamespace(json=True, raw=False, limit=500))
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["request_count"] == 1
+    assert payload["retries"]["count"] == 1
+    assert payload["compression"]["tokens_saved"] == 3000
