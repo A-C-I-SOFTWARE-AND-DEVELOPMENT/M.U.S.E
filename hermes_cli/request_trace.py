@@ -29,6 +29,8 @@ load/unload records land as ``message="model_lifecycle"``.
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -88,6 +90,65 @@ def _is_remote(base_url: Optional[str]) -> Optional[bool]:
     if not host:
         return None
     return host not in _LOOPBACK_HOSTS
+
+
+def _vram_enabled() -> bool:
+    """True when the (separate, also-opt-in) VRAM probe is switched on."""
+    env = os.environ.get("HERMES_REQUEST_TRACE_VRAM")
+    if env is not None:
+        return env.strip().lower() in _TRUTHY
+    try:
+        from hermes_cli.config import load_config_readonly
+
+        obs = load_config_readonly().get("observability") or {}
+        return bool(obs.get("request_trace_vram", False))
+    except Exception:  # pragma: no cover - config must never break the request
+        return False
+
+
+# Tri-state cache of nvidia-smi availability: None=unknown, True/False=resolved.
+# A GPU-less host pays at most one failed lookup, never a probe per event.
+_VRAM_AVAILABLE: Optional[bool] = None
+
+
+def probe_vram_mb() -> Optional[int]:
+    """Best-effort used-VRAM in MB via ``nvidia-smi`` (summed across GPUs).
+
+    Returns ``None`` when the VRAM flag is off, nvidia-smi is unavailable, or
+    the probe fails — never raises and never blocks for more than ~2s. This is
+    the honest source for VRAM (LM Studio's native API only reports model file
+    sizes, not live usage), and it is gated separately from the base trace so
+    the subprocess cost is strictly opt-in.
+    """
+    global _VRAM_AVAILABLE
+    if not _vram_enabled() or _VRAM_AVAILABLE is False:
+        return None
+    try:
+        if _VRAM_AVAILABLE is None:
+            if shutil.which("nvidia-smi") is None:
+                _VRAM_AVAILABLE = False
+                return None
+            _VRAM_AVAILABLE = True
+        proc = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=2.0,
+        )
+        if proc.returncode != 0:
+            return None
+        total = 0
+        for line in proc.stdout.strip().splitlines():
+            line = line.strip()
+            if line.isdigit():
+                total += int(line)
+        return total or None
+    except Exception:  # pragma: no cover - probe must never break the caller
+        return None
 
 
 def _emit_event(message: str, attributes: dict[str, Any], session_id: Optional[str]) -> None:
@@ -263,15 +324,24 @@ def lifecycle_event(
     resolved_ctx: Optional[int] = None,
     base_url: Optional[str] = None,
     session_id: Optional[str] = None,
+    vram_before_mb: Optional[int] = None,
+    vram_after_mb: Optional[int] = None,
 ) -> None:
     """Emit a standalone model-lifecycle event (``load`` / ``unload``).
 
     These happen between requests (e.g. a ``/model`` switch), so they are their
     own records rather than fields on a per-request trace. Gated by the same
-    flag and best-effort like everything else here.
+    flag and best-effort like everything else here. ``vram_*`` are populated by
+    the caller via :func:`probe_vram_mb` (``None`` unless the VRAM probe is on);
+    ``vram_delta_mb`` is derived when both ends are known.
     """
     if not _flag_enabled():
         return
+    vram_delta_mb = (
+        vram_after_mb - vram_before_mb
+        if isinstance(vram_before_mb, int) and isinstance(vram_after_mb, int)
+        else None
+    )
     attributes = {
         "event": event,
         "model": model or "",
@@ -281,6 +351,9 @@ def lifecycle_event(
         "dur_ms": dur_ms,
         "resolved_ctx": resolved_ctx,
         "is_remote": _is_remote(base_url),
+        "vram_before_mb": vram_before_mb,
+        "vram_after_mb": vram_after_mb,
+        "vram_delta_mb": vram_delta_mb,
     }
     _emit_event("model_lifecycle", attributes, session_id)
 
@@ -399,4 +472,6 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-__all__ = ["RequestTrace", "current", "lifecycle_event", "summarize"]
+__all__ = [
+    "RequestTrace", "current", "lifecycle_event", "probe_vram_mb", "summarize",
+]

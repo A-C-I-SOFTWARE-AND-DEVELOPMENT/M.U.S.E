@@ -1670,6 +1670,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # "model_lifecycle"). The HERMES_REQUEST_TRACE=1 env var overrides this.
     "observability": {
         "request_trace": False,
+        # Opt-in, GPU-only: probe used VRAM (nvidia-smi) around LM Studio
+        # load/unload. Separate flag because it spawns a subprocess; requires
+        # request_trace to be on. Overridable via HERMES_REQUEST_TRACE_VRAM=1.
+        "request_trace_vram": False,
     },
 
     # Remotely-hosted model catalog manifest.  When enabled, the CLI fetches

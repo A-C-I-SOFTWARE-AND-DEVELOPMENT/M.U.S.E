@@ -1263,3 +1263,7 @@ display:
 #
 # observability:
 #   request_trace: false
+#   # Opt-in, GPU-only: probe used VRAM (nvidia-smi) around LM Studio
+#   # load/unload. Spawns a subprocess; requires request_trace: true.
+#   # Override with HERMES_REQUEST_TRACE_VRAM=1.
+#   request_trace_vram: false

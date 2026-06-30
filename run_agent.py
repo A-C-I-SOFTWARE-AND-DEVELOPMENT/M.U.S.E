@@ -637,12 +637,13 @@ class AIAgent:
                 config_context_length = getattr(self, "_config_context_length", None)
             target_ctx = max(config_context_length or 0, MINIMUM_CONTEXT_LENGTH)
             import time as _t
+            from hermes_cli.request_trace import lifecycle_event, probe_vram_mb
+            _vram_before = probe_vram_mb()
             _load_t0 = _t.monotonic()
             loaded_ctx = ensure_lmstudio_model_loaded(
                 self.model, self.base_url, getattr(self, "api_key", ""), target_ctx,
             )
             try:
-                from hermes_cli.request_trace import lifecycle_event
                 lifecycle_event(
                     "load",
                     model=self.model,
@@ -653,6 +654,8 @@ class AIAgent:
                     resolved_ctx=loaded_ctx,
                     base_url=self.base_url,
                     session_id=getattr(self, "session_id", None),
+                    vram_before_mb=_vram_before,
+                    vram_after_mb=probe_vram_mb(),
                 )
             except Exception:
                 pass

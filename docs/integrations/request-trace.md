@@ -95,8 +95,12 @@ Two raw record shapes appear in the event log (source `hook`):
 
   ```json
   {"event": "unload", "model": "qwen", "provider": "lmstudio",
-   "reason": "manual_switch", "ok": true, "is_remote": false}
+   "reason": "manual_switch", "ok": true, "is_remote": false,
+   "vram_before_mb": 8000, "vram_after_mb": 3000, "vram_delta_mb": -5000}
   ```
+
+  The `vram_*` fields are populated only when the VRAM probe is enabled (see
+  below); otherwise they are `null`.
 
 ## What is and isn't captured
 
@@ -116,12 +120,16 @@ Captured from existing measurement points (cheap, exact):
   (pre/post estimate via the loop's existing rough estimator; only computed when
   tracing is on).
 - LM Studio load/unload `ok` + duration — at the load/unload call sites.
+- **VRAM before/after/delta** (opt-in) — when the separate VRAM probe is on, a
+  best-effort `nvidia-smi` reading is taken around each LM Studio load/unload.
+  This is the honest source for VRAM (LM Studio's native API reports model file
+  sizes, not live usage). Enable with `observability.request_trace_vram: true`
+  or `HERMES_REQUEST_TRACE_VRAM=1` — it spawns a subprocess, so it is gated
+  separately and requires base tracing to be on. On a host without an NVIDIA
+  GPU it resolves to `null` after a single cached lookup.
 
 **Not** captured today (left absent rather than faked):
 
-- **Live VRAM** — LM Studio's native API exposes model *file sizes*, not live
-  VRAM usage. Honest VRAM accounting needs an out-of-band probe (e.g.
-  `nvidia-smi`) and is intentionally deferred.
 - **Unload reasons other than `manual_switch`** — idle-timeout /
   memory-pressure unloads have no code paths yet, so they are never reported.
 

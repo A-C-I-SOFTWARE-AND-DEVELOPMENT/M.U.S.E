@@ -36,6 +36,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     # Default state: tracing off (no env override, default config flag False).
     monkeypatch.delenv("HERMES_REQUEST_TRACE", raising=False)
+    monkeypatch.delenv("HERMES_REQUEST_TRACE_VRAM", raising=False)
     return tmp_path
 
 
@@ -137,6 +138,7 @@ def test_enabled_lifecycle_event(home: Path, monkeypatch: pytest.MonkeyPatch) ->
     lifecycle_event(
         "unload", model="qwen", provider="lmstudio", reason="manual_switch",
         ok=True, base_url="http://10.0.0.5:1234/v1", session_id="sess-2",
+        vram_before_mb=8000, vram_after_mb=3000,
     )
     records, _ = event_log.read_since_offset(0)
     life = [r for r in records if r["message"] == "model_lifecycle"]
@@ -146,6 +148,50 @@ def test_enabled_lifecycle_event(home: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert attrs["reason"] == "manual_switch"
     assert attrs["ok"] is True
     assert attrs["is_remote"] is True  # non-loopback host → remote
+    assert attrs["vram_before_mb"] == 8000
+    assert attrs["vram_after_mb"] == 3000
+    assert attrs["vram_delta_mb"] == -5000  # unload reclaimed 5 GB
+
+
+# ── VRAM probe (opt-in, GPU-only) ───────────────────────────────────────────
+
+
+def test_vram_probe_off_by_default(home: Path) -> None:
+    assert request_trace.probe_vram_mb() is None
+
+
+def test_vram_probe_no_nvidia_smi(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
+    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", None)
+    monkeypatch.setattr(request_trace.shutil, "which", lambda _name: None)
+    assert request_trace.probe_vram_mb() is None
+    # Absence is cached so we don't re-probe.
+    assert request_trace._VRAM_AVAILABLE is False
+
+
+def test_vram_probe_sums_gpus(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
+    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", True)
+
+    def _fake_run(*_args, **_kwargs):
+        return SimpleNamespace(returncode=0, stdout="1024\n2048\n")
+
+    monkeypatch.setattr(request_trace.subprocess, "run", _fake_run)
+    assert request_trace.probe_vram_mb() == 3072
+
+
+def test_vram_probe_handles_failure(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("HERMES_REQUEST_TRACE_VRAM", "1")
+    monkeypatch.setattr(request_trace, "_VRAM_AVAILABLE", True)
+    monkeypatch.setattr(
+        request_trace.subprocess, "run",
+        lambda *a, **k: SimpleNamespace(returncode=1, stdout=""),
+    )
+    assert request_trace.probe_vram_mb() is None
 
 
 # ── derivation helpers ──────────────────────────────────────────────────────
