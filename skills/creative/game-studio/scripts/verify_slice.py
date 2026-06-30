@@ -38,7 +38,10 @@ def verify(artifact: str | Path) -> dict:
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if len(args) != 1:
-        print(json.dumps({"ok": False, "reason": "usage: verify_slice.py <artifact-path>"}))
+        print(json.dumps({
+            "ok": False, "artifact": None, "size_bytes": 0,
+            "reason": "usage: verify_slice.py <artifact-path>",
+        }))
         return 2
     result = verify(args[0])
     print(json.dumps(result, indent=2))

@@ -231,6 +231,30 @@ class TestGenerate:
 # ---------------------------------------------------------------------------
 
 
+class TestConfigPrecedence:
+    def test_art_style_env_beats_config(self, monkeypatch):
+        from plugins.asset3d_gen import meshy
+
+        monkeypatch.setenv("MESHY_ART_STYLE", "photorealistic")
+        monkeypatch.setattr(meshy, "_load_meshy_config", lambda: {"art_style": "anime"})
+        # Env must win, matching the documented precedence + _resolve_model().
+        assert meshy._resolve_art_style() == "photorealistic"
+
+    def test_art_style_config_when_no_env(self, monkeypatch):
+        from plugins.asset3d_gen import meshy
+
+        monkeypatch.delenv("MESHY_ART_STYLE", raising=False)
+        monkeypatch.setattr(meshy, "_load_meshy_config", lambda: {"art_style": "anime"})
+        assert meshy._resolve_art_style() == "anime"
+
+    def test_art_style_default_when_neither(self, monkeypatch):
+        from plugins.asset3d_gen import meshy
+
+        monkeypatch.delenv("MESHY_ART_STYLE", raising=False)
+        monkeypatch.setattr(meshy, "_load_meshy_config", lambda: {})
+        assert meshy._resolve_art_style() == meshy.DEFAULT_ART_STYLE
+
+
 class TestRegistration:
     def test_register(self):
         from plugins.asset3d_gen.meshy import MeshyAsset3DProvider, register

@@ -101,9 +101,14 @@ def _resolve_model() -> str:
 
 
 def _resolve_art_style() -> str:
+    # Precedence matches _resolve_model() and the module docstring: env first,
+    # then config.yaml, then the default.
+    env_override = os.environ.get("MESHY_ART_STYLE")
+    if env_override:
+        return env_override
     cfg = _load_meshy_config()
     style = cfg.get("art_style") if isinstance(cfg.get("art_style"), str) else None
-    return style or os.environ.get("MESHY_ART_STYLE") or DEFAULT_ART_STYLE
+    return style or DEFAULT_ART_STYLE
 
 
 def _api_key() -> str:
@@ -327,11 +332,16 @@ class MeshyAsset3DProvider(Asset3DGenProvider):
     @staticmethod
     def _http_error(exc: "requests.HTTPError", model_id: str, prompt: str, fmt: str) -> Dict[str, Any]:
         response = exc.response
-        status = response.status_code if response is not None else 0
+        if response is None:
+            return error_response(
+                error=f"Meshy API error: {exc}", error_type="api_error",
+                provider="meshy", model=model_id, prompt=prompt, fmt=fmt,
+            )
+        status = response.status_code
         try:
             err_msg = response.json().get("message") or response.text[:300]
         except Exception:  # noqa: BLE001
-            err_msg = response.text[:300] if response is not None else str(exc)
+            err_msg = response.text[:300]
         logger.error("Meshy API failed (%d): %s", status, err_msg)
         return error_response(
             error=f"Meshy API error ({status}): {err_msg}",
