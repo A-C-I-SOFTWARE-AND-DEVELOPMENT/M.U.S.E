@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **120 routes** across **118 distinct handlers**
+- **121 routes** across **119 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -118,6 +118,7 @@ helper it calls) compares the request against
 | GET | `/v1/cockpit/sessions` | `gateway.cockpit.handlers.sessions_list` | bearer | — | json |  |
 | GET | `/v1/cockpit/skills` | `gateway.cockpit.handlers.skills_list` | bearer | — | json | The gateway's real installed skills (read-only). |
 | GET | `/v1/cockpit/templates` | `gateway.cockpit.handlers.templates_list` | bearer | — | json | Owner-defined prompt templates (contract §3) — read-only. |
+| GET | `/v1/cockpit/trace` | `gateway.cockpit.handlers.trace_summary` | bearer | — | json | Read-only summary of recent per-request observability traces. |
 | POST | `/v1/cockpit/voice/intake` | `gateway.cockpit.handlers.voice_intake_create` | bearer | — | json | Open a voice intake from a transcript and return the read-back. |
 | POST | `/v1/cockpit/voice/responses` | `gateway.cockpit.handlers.voice_responses` | bearer | — | json | Synthesize spoken audio for a response string (returned as base64). |
 | POST | `/v1/cockpit/voice/transcribe` | `gateway.cockpit.handlers.voice_transcribe` | bearer | — | json | Transcribe uploaded audio to redacted text (audio is NOT retained). |

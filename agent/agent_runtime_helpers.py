@@ -1405,7 +1405,28 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
     ):
         try:
             from hermes_cli.models import unload_lmstudio_model
-            unload_lmstudio_model(old_model, old_base_url, old_api_key)
+            from hermes_cli.request_trace import lifecycle_event, probe_vram_mb
+            _vram_before = probe_vram_mb()
+            _unload_ok = unload_lmstudio_model(old_model, old_base_url, old_api_key)
+            try:
+                lifecycle_event(
+                    "unload",
+                    model=old_model,
+                    provider="lmstudio",
+                    reason="manual_switch",
+                    ok=_unload_ok,
+                    base_url=old_base_url,
+                    session_id=getattr(agent, "session_id", None),
+                    vram_before_mb=_vram_before,
+                    vram_after_mb=probe_vram_mb(),
+                )
+            except Exception as lifecycle_err:
+                # Observability is best-effort — a trace-emit failure must never
+                # affect the model switch. Log at debug for diagnosability only.
+                logger.debug(
+                    "request-trace unload lifecycle_event failed for %s: %s",
+                    old_model, lifecycle_err,
+                )
         except Exception as unload_err:
             logger.debug("LM Studio unload-on-switch skipped: %s", unload_err)
 

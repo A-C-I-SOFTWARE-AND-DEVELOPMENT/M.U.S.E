@@ -301,6 +301,19 @@ def run_conversation(
 
     agent._ensure_db_session()
 
+    # Begin an opt-in per-request observability trace (no-op unless the
+    # observability.request_trace flag / HERMES_REQUEST_TRACE env is set).
+    # Carried on the agent so deep call sites (tool executor, fallback) can
+    # reach it without threading a parameter through the whole loop.
+    from hermes_cli.request_trace import RequestTrace as _RequestTrace
+    agent._active_trace = _RequestTrace.start(
+        model=agent.model,
+        provider=agent.provider,
+        base_url=agent.base_url,
+        api_mode=agent.api_mode,
+        session_id=getattr(agent, "session_id", None),
+    )
+
     # Tell auxiliary_client what the live main provider/model are for
     # this turn. Used by tools whose behaviour depends on the active
     # main model (e.g. vision_analyze's native fast path) so they see
@@ -1129,6 +1142,9 @@ def run_conversation(
                 # support it.
                 def _stop_spinner():
                     nonlocal thinking_spinner
+                    # First streamed delta — record time-to-first-token for the
+                    # active request trace (no-op when tracing is disabled).
+                    agent._active_trace.mark_first_token()
                     if thinking_spinner:
                         thinking_spinner.stop("")
                         thinking_spinner = None
@@ -1167,7 +1183,8 @@ def run_conversation(
                     response = agent._interruptible_api_call(api_kwargs)
                 
                 api_duration = time.time() - api_start_time
-                
+                agent._active_trace.add_api_call(api_duration)
+
                 # Stop thinking spinner silently -- the response box or tool
                 # execution messages that follow are more informative.
                 if thinking_spinner:
@@ -2044,6 +2061,7 @@ def run_conversation(
                     context_length=_ctx_len,
                     num_messages=len(api_messages) if api_messages else 0,
                 )
+                agent._active_trace.record_retry_reason(classified.reason.value)
                 logger.debug(
                     "Error classified: reason=%s status=%s retryable=%s compress=%s rotate=%s fallback=%s",
                     classified.reason.value, classified.status_code,
@@ -3492,11 +3510,24 @@ def run_conversation(
 
                 if agent.compression_enabled and _compressor.should_compress(_real_tokens):
                     agent._safe_print("  ⟳ compacting context…")
+                    _compress_t0 = time.monotonic()
                     messages, active_system_prompt = agent._compress_context(
                         messages, system_message,
                         approx_tokens=agent.context_compressor.last_prompt_tokens,
                         task_id=effective_task_id,
                     )
+                    # Record compression cost + tokens reclaimed (no-op when
+                    # tracing is off). Post-compression estimate reuses the same
+                    # rough estimator used above for the pre-compression count.
+                    if agent._active_trace.enabled:
+                        _tokens_after = estimate_request_tokens_rough(
+                            messages, tools=agent.tools or None
+                        )
+                        agent._active_trace.record_compression(
+                            int((time.monotonic() - _compress_t0) * 1000),
+                            _real_tokens,
+                            _tokens_after,
+                        )
                     # Compression created a new session — clear history so
                     # _flush_messages_to_session_db writes compressed messages
                     # to the new session (see preflight compression comment).
@@ -4219,6 +4250,11 @@ def run_conversation(
         )
     except Exception as exc:
         logger.warning("on_session_end hook failed: %s", exc)
+
+    # Emit the per-request observability trace (no-op when disabled). Stamps
+    # total wall-clock latency and appends one JSON record to the cockpit
+    # event log; best-effort, never raises into the caller.
+    agent._active_trace.emit()
 
     return result
 

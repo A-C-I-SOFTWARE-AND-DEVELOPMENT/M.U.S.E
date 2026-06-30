@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -1996,6 +1997,33 @@ def _estimate_message_chars(msg: Dict[str, Any]) -> int:
     return len(str(shadow))
 
 
+# Memo for the tool-schema character length used below. ``str(tools)`` over a
+# 50+ tool schema list is ~60-100 KB and dominates the cost of this estimate
+# (~90% of it in profiling). The agent loop calls this every iteration with a
+# stable, long-lived tools list that doesn't change within a turn, so caching the
+# length on ``(id, len)`` avoids re-serialising the schemas each call. Keyed on
+# ``len`` too, so an in-place append (e.g. memory/LCM tool schemas) is seen as a
+# change. Bounded LRU; the cached value is a deliberately-rough character count,
+# so even an (astronomically unlikely) post-GC id-reuse collision could only
+# nudge an already-approximate estimate — never crash, never corrupt state.
+_TOOLS_CHARLEN_CACHE: "OrderedDict[Tuple[int, int], int]" = OrderedDict()
+_TOOLS_CHARLEN_CACHE_MAX = 16
+
+
+def _tools_char_length(tools: List[Dict[str, Any]]) -> int:
+    """Length of ``str(tools)``, memoized on the list's identity + size."""
+    key = (id(tools), len(tools))
+    cached = _TOOLS_CHARLEN_CACHE.get(key)
+    if cached is not None:
+        _TOOLS_CHARLEN_CACHE.move_to_end(key)
+        return cached
+    value = len(str(tools))
+    _TOOLS_CHARLEN_CACHE[key] = value
+    if len(_TOOLS_CHARLEN_CACHE) > _TOOLS_CHARLEN_CACHE_MAX:
+        _TOOLS_CHARLEN_CACHE.popitem(last=False)
+    return value
+
+
 def estimate_request_tokens_rough(
     messages: List[Dict[str, Any]],
     *,
@@ -2009,6 +2037,9 @@ def estimate_request_tokens_rough(
     tools enabled, schemas alone can add 20-30K tokens — a significant
     blind spot when only counting messages. Image content is counted
     at a flat per-image cost (see estimate_messages_tokens_rough).
+
+    The tool-schema term is memoized (see ``_tools_char_length``) because it
+    otherwise re-serialises the full schema list on every call.
     """
     total = 0
     if system_prompt:
@@ -2016,5 +2047,5 @@ def estimate_request_tokens_rough(
     if messages:
         total += estimate_messages_tokens_rough(messages)
     if tools:
-        total += (len(str(tools)) + 3) // 4
+        total += (_tools_char_length(tools) + 3) // 4
     return total

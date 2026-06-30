@@ -1185,6 +1185,16 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             agent._transport_cache.clear()
         agent._fallback_activated = True
 
+        # Record the fallback outcome on the active request trace (no-op when
+        # tracing is disabled).
+        try:
+            from hermes_cli.request_trace import current as _trace
+            _trace(agent).record_fallback(fb_model, reason)
+        except Exception as trace_err:
+            # Best-effort telemetry — recording the fallback must never break
+            # fallback activation itself. Debug-log instead of silently passing.
+            logger.debug("request-trace record_fallback failed: %s", trace_err)
+
         # Honor per-provider / per-model request_timeout_seconds for the
         # fallback target (same knob the primary client uses).  None = use
         # SDK default.

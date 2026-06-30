@@ -364,6 +364,10 @@ _CATEGORY_MERGE: Dict[str, str] = {
     # with the other messaging-platform config (discord) so it isn't an
     # orphan tab of one field.
     "telegram": "discord",
+    # `observability.request_trace` is the only observability field today —
+    # group it with logging (both are diagnostics/output) so it isn't an
+    # orphan single-field tab.
+    "observability": "logging",
 }
 
 # Display order for tabs — unlisted categories sort alphabetically after these.

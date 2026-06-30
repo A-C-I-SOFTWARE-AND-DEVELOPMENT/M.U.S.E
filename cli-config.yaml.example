@@ -1249,3 +1249,21 @@ display:
 #     # tools.include / tools.exclude let you whitelist a subset:
 #     # tools:
 #     #   include: ["search_repositories", "get_file_contents"]
+
+# =============================================================================
+# Observability — per-request trace (opt-in)
+# =============================================================================
+# Thin, off-by-default trace of the agent loop and model lifecycle: selected
+# model + wire endpoint, local-vs-remote server, first-token & total latency,
+# tool-call counts (requested / malformed / failed), fallback outcome, and
+# LM Studio load/unload events. Records append to the cockpit event log and
+# surface on GET /v1/cockpit/events/stream (message "request_trace" /
+# "model_lifecycle"). The HERMES_REQUEST_TRACE=1 env var overrides this.
+# See docs/integrations/request-trace.md.
+#
+# observability:
+#   request_trace: false
+#   # Opt-in, GPU-only: probe used VRAM (nvidia-smi) around LM Studio
+#   # load/unload. Spawns a subprocess; requires request_trace: true.
+#   # Override with HERMES_REQUEST_TRACE_VRAM=1.
+#   request_trace_vram: false

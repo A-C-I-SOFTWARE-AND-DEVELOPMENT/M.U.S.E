@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 118,
+  "handler_count": 119,
   "owner_gated_count": 10,
-  "route_count": 120,
+  "route_count": 121,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -876,6 +876,15 @@
       "path": "/v1/cockpit/templates",
       "requires_auth": true,
       "summary": "Owner-defined prompt templates (contract \u00a73) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.trace_summary",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/trace",
+      "requires_auth": true,
+      "summary": "Read-only summary of recent per-request observability traces."
     },
     {
       "handler": "gateway.cockpit.handlers.voice_intake_create",
