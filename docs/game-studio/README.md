@@ -59,6 +59,20 @@ generative production engine documented in [`../studio/README.md`](../studio/REA
 See [`../jarvis-verification-gates.md`](../jarvis-verification-gates.md) for the
 full gate model.
 
+## Run the full pipeline from a brief
+
+```bash
+# Stub-safe: with no API keys this dry-runs the whole DAG and shows every stage.
+python skills/creative/game-studio/scripts/run_pipeline.py \
+    --title "Aether Drift" --genre "sci-fi explorer" --engine godot \
+    --core-loop "scan, salvage, upgrade, survive" --offline
+```
+
+This drives the existing `agent/studio/` production DAG (GDD → narrative →
+concept art → 3D meshes → gameplay code → audio → engine scaffold). It drives
+the *pipeline*; for a runnable artifact, pair `--engine godot` with the
+reference slice below.
+
 ## Try the reference slice
 
 ```bash

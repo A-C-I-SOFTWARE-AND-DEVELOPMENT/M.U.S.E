@@ -124,7 +124,13 @@ Gate). Defer until the owner replies exactly `Yes, with authorization.`
 1. Classify scope (full game vs slice vs single asset) — `studio-director`.
 2. Pick the engine profile (default `game-godot` here).
 3. Run the pipeline in `workflows/game-production-pipeline.md`, honoring the
-   gates above.
+   gates above. To execute the generative DAG end-to-end from a brief, use
+   `scripts/run_pipeline.py` (stub-safe; `--offline` forces zero-spend dry-run):
+
+   ```bash
+   python scripts/run_pipeline.py --title "Aether Drift" --genre "sci-fi explorer" \
+       --engine godot --core-loop "scan, salvage, upgrade" --offline
+   ```
 4. Produce + verify the artifact. For the reference slice, run
    `scripts/export_godot_slice.py` (gated) and `scripts/verify_slice.py`.
 
