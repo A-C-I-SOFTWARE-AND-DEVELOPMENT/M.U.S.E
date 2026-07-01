@@ -169,6 +169,7 @@ def test_refinement_self_review_reaches_and_fails_c19(tmp_path) -> None:
         _Compile(gate_packet), repo_root=str(repo), enabled=True, run=False
     )
 
+    assert signal is not None  # refinement must have run and produced a summary
     review_results = [
         r for r in signal.gate_summary["results"] if r["name"] == "review"
     ]
@@ -190,6 +191,7 @@ def test_refinement_distinct_reviewer_defers_not_fabricates(tmp_path) -> None:
         _Compile(gate_packet), repo_root=str(repo), enabled=True, run=False
     )
 
+    assert signal is not None  # refinement must have run and produced a summary
     review = next(
         r for r in signal.gate_summary["results"] if r["name"] == "review"
     )
@@ -210,6 +212,7 @@ def test_refinement_no_reviewer_no_review_evidence(tmp_path) -> None:
         _Compile(gate_packet), repo_root=str(repo), enabled=True, run=False
     )
 
+    assert signal is not None  # refinement must have run and produced a summary
     review = next(
         r for r in signal.gate_summary["results"] if r["name"] == "review"
     )
