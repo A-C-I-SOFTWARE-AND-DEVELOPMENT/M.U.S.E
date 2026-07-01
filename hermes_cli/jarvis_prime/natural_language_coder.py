@@ -261,6 +261,13 @@ class CodingWorkPacket:
             # The packet validator guarantees primary_worker != reviewer_worker
             # for RC2+, so a well-formed packet never self-blocks here.
             "acting_agent_id": self.primary_worker,
+            # Planned reviewer identity (same namespace as reviewer_id). This is
+            # an ASSIGNMENT, not a verdict — no review has run at gate-packet
+            # time. Production assemblers use it only to make the C19 builder ≠
+            # reviewer identity check reachable (with a non-approving verdict);
+            # they never fabricate an approval from it. See
+            # nlp_refine.run_execution_refinement / guardrails_cli._collect.
+            "reviewer_worker": self.reviewer_worker,
             "allowed_files": list(self.allowed_files),
             "non_goals": list(self.non_goals),
             "acceptance_criteria": list(self.acceptance_criteria),
