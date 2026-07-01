@@ -116,3 +116,89 @@ class TestMuseFeatureFlagsHelper:
             os.environ.pop("MUSE_TOOL_BROKER", None)
             flags = {f["feature"]: f for f in muse_feature_flags()}
         assert flags["effort_cap"]["enabled"] is True
+
+
+class TestEmptyEnvDefersToConfig:
+    """A present-but-empty MUSE_* env means "not specified" — defer to config.
+
+    Regression for P1-11: an exported-but-empty env var (``MUSE_...=``) used to
+    be parsed as an explicit False, silently forcing a config-enabled feature
+    OFF. Only a NON-empty value may override config, in either direction.
+    """
+
+    _FOOTER_ON = {"display": {"self_audit_footer": {"enabled": True}}}
+    _FOOTER_OFF = {"display": {"self_audit_footer": {"enabled": False}}}
+    _BROKER_ON = {"security": {"tool_broker": {"enabled": True}}}
+    _BROKER_OFF = {"security": {"tool_broker": {"enabled": False}}}
+
+    # -- self-audit footer -------------------------------------------------
+
+    def test_footer_empty_env_defers_to_config_true(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "")
+        assert self_audit_footer_enabled(self._FOOTER_ON) is True
+
+    def test_footer_empty_env_defers_to_config_false(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "")
+        assert self_audit_footer_enabled(self._FOOTER_OFF) is False
+
+    def test_footer_nonempty_true_env_overrides_config_false(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+        assert self_audit_footer_enabled(self._FOOTER_OFF) is True
+
+    def test_footer_nonempty_false_env_overrides_config_true(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "0")
+        assert self_audit_footer_enabled(self._FOOTER_ON) is False
+
+    def test_footer_whitespace_only_env_defers_to_config(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "   ")
+        assert self_audit_footer_enabled(self._FOOTER_ON) is True
+        assert self_audit_footer_enabled(self._FOOTER_OFF) is False
+
+    # -- tool broker -------------------------------------------------------
+
+    def test_broker_empty_env_defers_to_config_true(self, monkeypatch):
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "")
+        assert tool_broker_enabled(self._BROKER_ON) is True
+
+    def test_broker_empty_env_defers_to_config_false(self, monkeypatch):
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "")
+        assert tool_broker_enabled(self._BROKER_OFF) is False
+
+    def test_broker_nonempty_true_env_overrides_config_false(self, monkeypatch):
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "1")
+        assert tool_broker_enabled(self._BROKER_OFF) is True
+
+    def test_broker_nonempty_false_env_overrides_config_true(self, monkeypatch):
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "0")
+        assert tool_broker_enabled(self._BROKER_ON) is False
+
+    def test_broker_whitespace_only_env_defers_to_config(self, monkeypatch):
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "   ")
+        assert tool_broker_enabled(self._BROKER_ON) is True
+        assert tool_broker_enabled(self._BROKER_OFF) is False
+
+    # -- muse_feature_flags() rollup (config-backed footer + tool broker) ---
+
+    def test_flags_rollup_empty_env_defers_to_config(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "")
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "")
+        monkeypatch.delenv("MUSE_EFFORT_CAP", raising=False)
+        cfg = {
+            "display": {"self_audit_footer": {"enabled": True}},
+            "security": {"tool_broker": {"enabled": True}},
+        }
+        flags = {f["feature"]: f for f in muse_feature_flags(cfg)}
+        assert flags["self_audit_footer"]["enabled"] is True
+        assert flags["tool_broker"]["enabled"] is True
+
+    def test_flags_rollup_nonempty_env_overrides_config(self, monkeypatch):
+        monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "0")
+        monkeypatch.setenv("MUSE_TOOL_BROKER", "1")
+        monkeypatch.delenv("MUSE_EFFORT_CAP", raising=False)
+        cfg = {
+            "display": {"self_audit_footer": {"enabled": True}},
+            "security": {"tool_broker": {"enabled": False}},
+        }
+        flags = {f["feature"]: f for f in muse_feature_flags(cfg)}
+        assert flags["self_audit_footer"]["enabled"] is False
+        assert flags["tool_broker"]["enabled"] is True
