@@ -4037,6 +4037,15 @@ class AIAgent:
         from agent.agent_runtime_helpers import invoke_tool
         return invoke_tool(self, function_name, function_args, effective_task_id, tool_call_id, messages, pre_tool_block_checked)
 
+    def _maybe_broker_block_bypassing_tool(self, function_name: str, function_args: dict,
+                                           effective_task_id: Optional[str],
+                                           tool_call_id: Optional[str]) -> Optional[str]:
+        """Forwarder — see ``agent.agent_runtime_helpers.maybe_broker_block_bypassing_tool``."""
+        from agent.agent_runtime_helpers import maybe_broker_block_bypassing_tool
+        return maybe_broker_block_bypassing_tool(
+            self, function_name, function_args, effective_task_id, tool_call_id
+        )
+
     @staticmethod
     def _wrap_verbose(label: str, text: str, indent: str = "     ") -> str:
         """Word-wrap verbose tool output to fit the terminal width.

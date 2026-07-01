@@ -699,7 +699,26 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
             if not guardrail_decision.allows_execution:
                 _guardrail_block_decision = guardrail_decision
 
-        _execution_blocked = _block_msg is not None or _guardrail_block_decision is not None
+        # ToolBroker pre-dispatch choke point (P1-3) for tools that BYPASS
+        # handle_function_call (delegate_task, memory, todo, session_search,
+        # clarify, memory-provider, context-engine). Broker OFF (default) →
+        # no-op (returns None), so this dispatch stays byte-for-byte unchanged.
+        # A configured DENY / owner-approval / dry-run returns a structured
+        # block-result string (already JSON, starts with {"error") which is
+        # used verbatim as the tool result — the tool's special-case dispatch is
+        # skipped. Tools that fall through to handle_function_call are evaluated
+        # there instead (no double-evaluation). Fail-safe: errors pass through.
+        _broker_block_msg: Optional[str] = None
+        if _block_msg is None and _guardrail_block_decision is None:
+            _broker_block_msg = agent._maybe_broker_block_bypassing_tool(
+                function_name, function_args, effective_task_id, tool_call.id
+            )
+
+        _execution_blocked = (
+            _block_msg is not None
+            or _guardrail_block_decision is not None
+            or _broker_block_msg is not None
+        )
 
         if _execution_blocked:
             # Tool blocked by plugin or guardrail policy — skip counters,
@@ -776,6 +795,12 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
         if _block_msg is not None:
             # Tool blocked by plugin policy — return error without executing.
             function_result = json.dumps({"error": _block_msg}, ensure_ascii=False)
+            tool_duration = 0.0
+        elif _broker_block_msg is not None:
+            # Tool blocked / owner-gated / dry-run by a configured ToolBroker.
+            # The choke point already returns a structured JSON block-result
+            # (starts with {"error"), so use it verbatim without re-wrapping.
+            function_result = _broker_block_msg
             tool_duration = 0.0
         elif _guardrail_block_decision is not None:
             # Tool blocked by tool-loop guardrail — synthesize exactly one

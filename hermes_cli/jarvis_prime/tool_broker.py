@@ -83,18 +83,29 @@ gate is what a future dispatcher would consult before routing through it.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Iterable, Mapping, Optional, Protocol, runtime_checkable
 
+logger = logging.getLogger(__name__)
+
 # Environment override for the opt-in gate (mirrors the MUSE_* flags on the
 # other merged opt-in features).
 _ENV_FLAG = "MUSE_TOOL_BROKER"
 
-# Wildcard allowlist entry: an identity mapped to a set containing this token
-# may call any tool (subject to every other check — trust, injection, owner
-# gates, budget). Kept explicit so "no allowlist" can safely mean "nothing".
+# Wildcard token, used in two distinct positions:
+#   1. As a *tool* entry: an identity mapped to a set containing this token may
+#      call any tool (subject to every other check — trust, injection, owner
+#      gates, budget).
+#   2. As an *identity* key in the allowlist map: the entry under ``"*"`` is the
+#      fallback capability set applied to any identity that has no entry of its
+#      own. This lets a configured broker grant a default capability set to
+#      per-session UUID identities that cannot be enumerated ahead of time,
+#      instead of fail-closed bricking every such call. See ``_identity_allows``.
+# Kept explicit so "no allowlist and no ``"*"`` fallback" can safely mean
+# "nothing".
 ALLOW_ALL = "*"
 
 
@@ -418,6 +429,9 @@ class ToolBroker:
         )
         # Per-identity consumed-call counter (in-memory).
         self._consumed: dict[str, int] = {}
+        # Identities we've already warned about (no matching allowlist key and
+        # no ``"*"`` fallback) — warn once per identity, not per call.
+        self._warned_unmatched_identities: set[str] = set()
 
     # -- introspection -----------------------------------------------------
 
@@ -661,9 +675,35 @@ class ToolBroker:
 
     def _identity_allows(self, identity: str, tool_name: str) -> bool:
         allowed = self._allowlists.get(identity)
-        if allowed is None:
-            return False  # fail-closed: unknown identity has no capabilities
-        return ALLOW_ALL in allowed or tool_name in allowed
+        if allowed is not None:
+            return ALLOW_ALL in allowed or tool_name in allowed
+
+        # The exact identity has no allowlist entry. Before failing closed,
+        # consult a ``"*"`` wildcard *identity* key (distinct from the ALLOW_ALL
+        # *tool* token): it is the allowlist that applies to any identity without
+        # its own entry. This prevents a configured broker from fail-closed
+        # bricking every call when identities are per-session UUIDs that can
+        # never be enumerated in config ahead of time.
+        fallback = self._allowlists.get(ALLOW_ALL)
+        if fallback is not None:
+            return ALLOW_ALL in fallback or tool_name in fallback
+
+        # No exact key and no ``"*"`` fallback identity → fail-closed (unknown
+        # identity has no capabilities). Warn once per identity so a
+        # misconfigured broker (per-session UUIDs but no ``"*"`` fallback) is
+        # diagnosable instead of silently denying everything.
+        if identity not in self._warned_unmatched_identities:
+            self._warned_unmatched_identities.add(identity)
+            logger.warning(
+                "tool_broker: identity %r has no allowlist entry and no %r "
+                "fallback identity is configured; failing closed (all tools "
+                "denied for this identity). Add a %r identity key to the "
+                "allowlist to grant a default capability set.",
+                identity or "<anonymous>",
+                ALLOW_ALL,
+                ALLOW_ALL,
+            )
+        return False  # fail-closed: unknown identity has no capabilities
 
 
 def _effort_str(effort: Any) -> Optional[str]:
