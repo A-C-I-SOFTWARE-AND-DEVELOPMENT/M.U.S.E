@@ -1,0 +1,7 @@
+name: hunyuan3d
+version: 1.0.0
+description: "Hunyuan3D-2 text/image-to-3D via Replicate (glb meshes)."
+author: Jeremiah Echerd + Hermes Agent
+kind: backend
+requires_env:
+  - REPLICATE_API_TOKEN

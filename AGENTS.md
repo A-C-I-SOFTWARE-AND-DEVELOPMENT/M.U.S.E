@@ -47,6 +47,7 @@ hermes-agent/
 │   ├── hermes-achievements/  # Gamified achievement tracking
 │   ├── observability/    # Metrics / traces / logs plugin
 │   ├── image_gen/        # Image-generation providers
+│   ├── asset3d_gen/      # Text-to-3D mesh providers (meshy; Game Studio)
 │   └── <others>/         # disk-cleanup, example-dashboard, google_meet, platforms,
 │                         #   spotify, strike-freedom-cockpit, ...
 ├── optional-skills/      # Heavier/niche skills shipped but NOT active by default

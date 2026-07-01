@@ -134,6 +134,18 @@ TOOLSETS = {
         "includes": []
     },
 
+    "asset3d_gen": {
+        "description": (
+            "Text-to-3D mesh generation. Single ``asset3d_generate`` tool "
+            "produces game-ready meshes (glb/fbx/obj) with optional PBR "
+            "textures via the active backend (Meshy, Hunyuan3D, …). Used by "
+            "the Game Studio 3d-asset-artist role. Configure via "
+            "``asset3d_gen.provider``."
+        ),
+        "tools": ["asset3d_generate"],
+        "includes": []
+    },
+
     "computer_use": {
         "description": (
             "Background macOS desktop control via cua-driver — screenshots, "
