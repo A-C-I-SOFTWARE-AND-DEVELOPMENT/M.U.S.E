@@ -2695,8 +2695,15 @@ def council_dispatch(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "missing q"})
     try:
         from hermes_cli.jarvis_prime.aos_council import dispatch
+        from hermes_cli.jarvis_prime.effort_class import classify_effort_for_request
 
-        return JsonResponse(200, dispatch(query).to_dict())
+        # Deterministically stamp the request's smallest-sufficient effort class
+        # (offline mode-classify → router; no model call) and thread it in. This
+        # is a no-op unless the default-OFF MUSE_EFFORT_CAP flag is enabled: with
+        # the flag off, dispatch ignores effort_class and the routed council is
+        # byte-for-byte identical to before; when enabled it caps a real turn.
+        effort_class = classify_effort_for_request(query)
+        return JsonResponse(200, dispatch(query, effort_class=effort_class).to_dict())
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(
             200,

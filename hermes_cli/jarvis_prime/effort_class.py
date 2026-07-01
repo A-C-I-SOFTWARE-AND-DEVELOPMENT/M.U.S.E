@@ -156,3 +156,41 @@ def classify_effort(decision: "RouteDecision") -> EffortClass:
 
     # E0 — direct answer / defer to focused mode / owner decision (no council).
     return EffortClass.E0
+
+
+def classify_effort_for_request(
+    request: str,
+    *,
+    surface: str | None = None,
+) -> str | None:
+    """Deterministically stamp a raw request with its smallest-sufficient class.
+
+    This is the offline bridge for call sites that hold only a raw request
+    string (no upstream :class:`RouteDecision`) but still want to thread an
+    ``effort_class`` into :func:`~hermes_cli.jarvis_prime.aos_council.dispatch`.
+    It reuses the *existing* deterministic routing primitives — the
+    :class:`~hermes_cli.jarvis_prime.modes.ModeClassifier` (heuristic mode
+    classification) followed by :class:`~hermes_cli.jarvis_prime.router.Router`
+    (which already stamps ``effort_class``) — rather than duplicating any
+    routing logic. No model call, stdlib-only, never raises.
+
+    Returns the effort-class string (e.g. ``"E1"``) or ``None`` if the request
+    is empty or classification fails (the caller then dispatches uncapped,
+    identical to the pre-existing behavior). The returned value only ever
+    *changes* dispatch behavior when the default-OFF effort-cap flag is enabled;
+    with the flag off (the default) ``dispatch`` ignores it entirely.
+    """
+    try:
+        text = (request or "").strip()
+        if not text:
+            return None
+        from hermes_cli.jarvis_prime.modes import ClassifierContext, ModeClassifier
+        from hermes_cli.jarvis_prime.router import Router
+
+        classification = ModeClassifier().classify(
+            text, context=ClassifierContext(surface=surface)
+        )
+        decision = Router().route(mode=classification.mode, intent=text)
+        return decision.effort_class
+    except Exception:
+        return None
