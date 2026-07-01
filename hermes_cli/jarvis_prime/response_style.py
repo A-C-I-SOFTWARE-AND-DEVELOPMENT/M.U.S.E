@@ -60,7 +60,8 @@ _ENV_FLAG = "MUSE_STYLE_VALIDATOR"
 DEFAULT_MOBILE_VOICE_MAX_SENTENCES = 2
 
 # Objection / pushback markers for the Critic contract. Case-insensitive
-# substring/word signals that the reply actually names a disagreement, risk, or
+# whole-word / whole-phrase signals (matched with word boundaries, see
+# ``_compile_markers``) that the reply actually names a disagreement, risk, or
 # counter-point rather than agreeing. Kept small and high-precision.
 _OBJECTION_MARKERS: tuple[str, ...] = (
     "but ",
@@ -97,6 +98,7 @@ _OBJECTION_MARKERS: tuple[str, ...] = (
 # describes how the work will be checked (tests, validation, verification, CI).
 _VERIFICATION_MARKERS: tuple[str, ...] = (
     "test",
+    "tests",
     "verify",
     "verification",
     "validate",
@@ -183,9 +185,36 @@ def _sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
-def _has_marker(text: str, markers: tuple[str, ...]) -> bool:
-    low = (text or "").lower()
-    return any(marker in low for marker in markers)
+def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
+    """Compile each marker into a word-boundary-aware, case-insensitive pattern.
+
+    Plain substring matching false-positives short markers inside unrelated
+    words (``ci`` in ``specificity``, ``test`` in ``protestation``, ``but`` in
+    ``contribute``). Anchoring each marker with ``\\b`` on both sides makes a
+    marker only count as a whole word / phrase. Multi-word markers still match
+    across a normal space because ``re.escape`` preserves the literal space and
+    the boundaries land on the outer edges of the phrase.
+    """
+    compiled: list[re.Pattern[str]] = []
+    for marker in markers:
+        stripped = marker.strip()
+        if not stripped:
+            continue
+        compiled.append(
+            re.compile(r"\b" + re.escape(stripped) + r"\b", re.IGNORECASE)
+        )
+    return tuple(compiled)
+
+
+_OBJECTION_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(_OBJECTION_MARKERS)
+_VERIFICATION_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(
+    _VERIFICATION_MARKERS
+)
+
+
+def _has_marker(text: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
+    low = text or ""
+    return any(pattern.search(low) for pattern in patterns)
 
 
 def validate_response_style(
@@ -241,7 +270,7 @@ def validate_response_style(
                 )
             )
     elif resolved is Mode.CRITIC:
-        if not _has_marker(stripped, _OBJECTION_MARKERS):
+        if not _has_marker(stripped, _OBJECTION_PATTERNS):
             violations.append(
                 StyleViolation(
                     code="critic_no_objection",
@@ -252,7 +281,7 @@ def validate_response_style(
                 )
             )
     elif resolved is Mode.BUILDER:
-        if not _has_marker(stripped, _VERIFICATION_MARKERS):
+        if not _has_marker(stripped, _VERIFICATION_PATTERNS):
             violations.append(
                 StyleViolation(
                     code="builder_no_verification",

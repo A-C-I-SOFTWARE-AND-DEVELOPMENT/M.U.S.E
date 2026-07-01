@@ -83,6 +83,31 @@ def test_critic_without_objection_violates():
     assert [v.code for v in result.violations] == ["critic_no_objection"]
 
 
+def test_critic_objection_markers_require_word_boundary():
+    # "specificity" contains no whole objection word (guards against "ci"-style
+    # substrings) and "contribute" embeds "but" — neither is a real objection,
+    # so a Critic reply built only from them must still violate.
+    text = (
+        "I love the specificity here and how much this will contribute to "
+        "the roadmap. Great work all around."
+    )
+    result = validate_response_style(Mode.CRITIC, text)
+    assert result.ok is False
+    assert [v.code for v in result.violations] == ["critic_no_objection"]
+
+
+def test_critic_real_objection_words_still_trigger():
+    # Real objection words present as whole words must still count.
+    for text in (
+        "I agree in part, but the timeline is aggressive.",
+        "There is a real risk of data loss on rollback.",
+        "This is solid; however, the auth path is untested.",
+    ):
+        result = validate_response_style(Mode.CRITIC, text)
+        assert result.ok is True, text
+        assert result.violations == ()
+
+
 # ---------------------------------------------------------------------------
 # Builder — must ship a verification plan
 # ---------------------------------------------------------------------------
@@ -102,6 +127,31 @@ def test_builder_without_verification_plan_violates():
     result = validate_response_style(Mode.BUILDER, text)
     assert result.ok is False
     assert [v.code for v in result.violations] == ["builder_no_verification"]
+
+
+def test_builder_verification_markers_require_word_boundary():
+    # "protestation" embeds "test" and "specificity" embeds "ci"; neither is a
+    # real verification word, so a Builder reply built only from them must still
+    # violate.
+    text = (
+        "I'll wire it in without protestation and add specificity to the "
+        "config so the handler reads cleanly."
+    )
+    result = validate_response_style(Mode.BUILDER, text)
+    assert result.ok is False
+    assert [v.code for v in result.violations] == ["builder_no_verification"]
+
+
+def test_builder_real_verification_words_still_trigger():
+    # Real verification words present as whole words must still count.
+    for text in (
+        "I'll cover it with a unit test before merging.",
+        "I'll verify the output against the fixture.",
+        "Green CI is the gate before this ships.",
+    ):
+        result = validate_response_style(Mode.BUILDER, text)
+        assert result.ok is True, text
+        assert result.violations == ()
 
 
 # ---------------------------------------------------------------------------
