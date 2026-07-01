@@ -6334,12 +6334,13 @@ def _validate_critical_files_syntax(root) -> tuple[bool, str | None, str | None]
             # Missing file is suspicious but not necessarily fatal — a future
             # refactor may legitimately remove one of these. Skip and move on.
             continue
+        display_path = relpath.replace(os.sep, "/")
         try:
             py_compile.compile(str(path), doraise=True)
         except py_compile.PyCompileError as exc:
-            return False, str(path), str(exc)
+            return False, display_path, str(exc)
         except OSError as exc:
-            return False, str(path), f"could not read: {exc}"
+            return False, display_path, f"could not read: {exc}"
     return True, None, None
 
 
