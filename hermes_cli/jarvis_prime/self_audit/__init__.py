@@ -39,6 +39,12 @@ from hermes_cli.jarvis_prime.self_audit.llm_lane import (
     llm_judge,
     llm_target,
 )
+from hermes_cli.jarvis_prime.self_audit.footer import (
+    build_self_audit_footer,
+    render_self_audit_footer,
+    self_audit_footer_enabled,
+    should_render_for_effort,
+)
 from hermes_cli.jarvis_prime.self_audit.report import AuditReport, run_report
 from hermes_cli.jarvis_prime.self_audit.seeds import SEEDS, Seed, select_seeds
 
@@ -60,6 +66,10 @@ __all__ = [
     "aggregate_dimensions",
     "AuditReport",
     "run_report",
+    "render_self_audit_footer",
+    "build_self_audit_footer",
+    "self_audit_footer_enabled",
+    "should_render_for_effort",
     "ModelInvoke",
     "llm_judge",
     "llm_target",
