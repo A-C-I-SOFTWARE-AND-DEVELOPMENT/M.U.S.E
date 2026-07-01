@@ -182,6 +182,9 @@ class CodingWorkPacket:
             "owner_gates": [g.value for g in self.owner_gates],
             "primary_worker": self.primary_worker,
             "reviewer_worker": self.reviewer_worker,
+            # Acting/builder agent id (same value as primary_worker) so a
+            # serialized packet carries the identity the C19 review gate reads.
+            "acting_agent_id": self.primary_worker,
             "model_lane_hint": self.model_lane_hint,
             "evidence_required": list(self.evidence_required),
             "blocked": self.blocked,
@@ -251,6 +254,13 @@ class CodingWorkPacket:
             "branch": self.branch,
             "risk_class": self.risk_class,
             "mission": self.mission,
+            # Acting/builder agent id, in the same namespace as a review's
+            # reviewer_id. Guardrail collectors thread this into
+            # collect_git_diff_evidence(author_id=...) so the strict review
+            # gate's Clause C19 builder != reviewer check enforces at RC2+.
+            # The packet validator guarantees primary_worker != reviewer_worker
+            # for RC2+, so a well-formed packet never self-blocks here.
+            "acting_agent_id": self.primary_worker,
             "allowed_files": list(self.allowed_files),
             "non_goals": list(self.non_goals),
             "acceptance_criteria": list(self.acceptance_criteria),
