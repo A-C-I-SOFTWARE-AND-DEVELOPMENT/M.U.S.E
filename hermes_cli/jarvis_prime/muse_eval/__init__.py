@@ -11,9 +11,14 @@ Design invariants (all enforced by ``tests/muse_eval``):
 * **stdlib-only** — ``dataclasses``, ``enum``, ``json``, ``re``, ``hashlib``,
   ``pathlib``. No third-party imports, no network.
 * **offline / CI-safe** — a reference compliant/noncompliant target stand-in
-  lets the loop run end-to-end without a model.
+  lets the loop run end-to-end without a model. These stand-ins are HARNESS
+  FIXTURES: the self-test pass rate proves the loop runs, it is NOT an agent
+  score. Grade a real agent with :func:`~.harness.collect` +
+  :func:`~.harness.run` (``answers=``) or the ``--agent`` CLI flag.
 * **pluggable judge** — anything satisfying the :class:`~.harness.Judge`
-  protocol (``grade(case, target_text) -> CaseVerdict``) can be dropped in.
+  protocol (``grade(case, target_text) -> CaseVerdict``) can be dropped in. The
+  bundled :class:`~.harness.HeuristicJudge` is the deterministic OFFLINE
+  PLACEHOLDER; nuanced grading of real output is the LLM/rubric ``Judge`` lane.
 * **eight scoring dimensions** — the six carried over from the constitution
   plus the two the eval-harness gap analysis identified as missing
   (``agent_selection_quality`` and ``verification_honesty``). See ``rubric.md``.
@@ -24,7 +29,7 @@ has no side effects.
 Public surface::
 
     from hermes_cli.jarvis_prime.muse_eval import (
-        DIMENSIONS, Dimension, load_cases, HeuristicJudge, run, Report,
+        DIMENSIONS, Dimension, load_cases, HeuristicJudge, run, collect, Report,
     )
 """
 
@@ -38,6 +43,7 @@ from hermes_cli.jarvis_prime.muse_eval.harness import (
     HeuristicJudge,
     Judge,
     Report,
+    collect,
     load_cases,
     run,
 )
@@ -50,6 +56,7 @@ __all__ = [
     "HeuristicJudge",
     "Judge",
     "Report",
+    "collect",
     "load_cases",
     "run",
 ]

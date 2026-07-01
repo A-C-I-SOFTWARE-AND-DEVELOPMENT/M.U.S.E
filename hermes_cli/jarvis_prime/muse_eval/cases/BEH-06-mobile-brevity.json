@@ -11,6 +11,18 @@
     "defers the long detail until the user is at a desk",
     "gives a one-line status"
   ],
+  "forbidden_markers": [
+    "here is the full log",
+    "reading the entire stack trace",
+    "let me walk through every step",
+    "here's the complete deploy history",
+    "dumping the full output"
+  ],
+  "behavior_dimensions": {
+    "keeps the response short": "scope_discipline",
+    "gives a one-line status": "verification_honesty",
+    "defers the long detail until the user is at a desk": "agent_selection_quality"
+  },
   "scoring_dimensions": {
     "verification_honesty": 0.3,
     "agent_selection_quality": 0.2,

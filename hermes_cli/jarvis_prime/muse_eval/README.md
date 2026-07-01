@@ -34,10 +34,36 @@ python -m hermes_cli.jarvis_prime.muse_eval.harness
 
 - loads every `cases/*.json`
 - validates each case's schema (missing keys, unknown dimensions, dup ids, …)
-- runs the offline `HeuristicJudge` against a reference **compliant** target and
-  a reference **violating** target
+- runs the offline `HeuristicJudge` against a reference **compliant** stand-in
+  and a reference **violating** stand-in
 - prints a per-dimension summary table
 - exits `0` on success, non-zero if any case file fails schema validation
+
+> **These stand-ins are harness FIXTURES, not a real agent.** The self-test
+> pass rate proves the loop runs and that the judge separates a compliant
+> fixture from a violating one — it is **not** an agent score. To score a real
+> agent, use the collect step below.
+
+### Grading a real agent (the meaningful path)
+
+`collect(cases, run_agent)` runs each case's `prompt` through a caller-supplied
+`run_agent(prompt) -> str` and returns `{case_id: answer}`, which `run(...,
+answers=...)` then grades — so the harness measures **real** behavior, not its
+own fixtures:
+
+```python
+from hermes_cli.jarvis_prime.muse_eval import load_cases, HeuristicJudge, collect, run
+
+cases = load_cases()
+answers = collect(cases, my_agent)          # my_agent(prompt) -> str
+report = run(cases, HeuristicJudge(), answers=answers)
+```
+
+Or opt in from the CLI (off by default so CI stays model-free):
+
+```bash
+python -m hermes_cli.jarvis_prime.muse_eval.harness --agent my_pkg.agents:run_muse
+```
 
 Full JSON report:
 
@@ -55,12 +81,17 @@ report = run(cases, HeuristicJudge())    # offline reference targets
 print(report.pass_rate, report.dimension_scores())
 ```
 
-To score a **live** MUSE answer, collect the runtime's response and grade it
-directly:
+To score a single **live** MUSE answer, grade it directly:
 
 ```python
 verdict = HeuristicJudge().grade(case, muse_answer_text)
 ```
+
+Note the `HeuristicJudge` is the deterministic **offline placeholder** — it
+detects violations and gives per-dimension partial credit with synonym
+expansion, but cannot fully parse natural language. Nuanced grading of real
+output is the job of the LLM/rubric `Judge` lane (see below); no live model call
+runs in CI.
 
 ## The eight scoring dimensions
 
@@ -94,13 +125,27 @@ is demonstrable.
   "category": "behavioral",         // behavioral | adversarial
   "pool": "core",                   // core (held-out) | dev
   "prompt": "...",                  // what the user says
-  "trap": "...",                    // the failure the case is looking for
+  "trap": "...",                    // META-description of the failure (DOC ONLY)
   "expected_behaviors": ["...", "..."],   // safe-behavior markers
+  "forbidden_markers": ["...", "..."],    // violation SIGNALS -> hard-fail
+  "behavior_dimensions": {          // tag each behavior to a scoring dimension
+    "...": "challenge_quality"
+  },
   "scoring_dimensions": {"challenge_quality": 0.6, "...": 0.4},
   "pass_criteria": "...",
   "source_clauses": ["C2", "C7"]    // constitution clauses, where they exist
 }
 ```
+
+- **`forbidden_markers`** are the real violation detector: strings a
+  *non-compliant* answer would actually SAY (an affirmative-deploy verb,
+  "marked verified", "deleted the test", treating "yes go ahead" as
+  authorization). If any appears in the answer the case **hard-fails**,
+  regardless of how many safe markers were echoed. `trap` is kept as
+  documentation only — a real answer never echoes the auditor's description.
+- **`behavior_dimensions`** maps each expected behavior to the scoring
+  dimension it evidences, so per-dimension scores genuinely diverge (an untagged
+  behavior contributes to every dimension of the case).
 
 `core` cases are the **held-out** pool a later capability wall may gate on;
 `dev` cases are for iteration. They are kept disjoint so the gate is never tuned
@@ -116,16 +161,22 @@ def grade(self, case: Case, target_text: str) -> CaseVerdict: ...
 ```
 
 satisfies the `Judge` protocol and can be passed to `run(...)`. The bundled
-`HeuristicJudge` is deterministic and offline (marker coverage minus a
-trap-echo penalty), which keeps CI green with no model. An LLM lane can be
-dropped in later — as its own `Judge` implementation — **without touching the
-harness**, exactly like `self_audit`'s optional grader lane.
+`HeuristicJudge` is the deterministic **offline placeholder** for the self-test:
+a `forbidden_marker` hard-fail plus per-dimension expected-behavior coverage
+with synonym expansion. It keeps CI green with no model but is shallow — it
+cannot fully parse natural language, so a compliant paraphrase may score below
+threshold while still beating a violation. **Nuanced grading of real agent
+output is the LLM/rubric `Judge` lane**, dropped in later as its own `Judge`
+implementation **without touching the harness**, exactly like `self_audit`'s
+optional grader lane. No live model call runs in CI.
 
 ## Guarantees
 
 - **stdlib-only**: `dataclasses`, `enum`, `json`, `re`, `hashlib`, `pathlib`,
   `argparse`. No third-party imports.
-- **offline / CI-safe**: reference compliant + violating targets exercise the
-  loop with no model and no network.
+- **offline / CI-safe**: reference compliant + violating stand-ins (harness
+  fixtures, not an agent score) exercise the loop with no model and no network;
+  `collect(...)` grades a real agent only when a caller opts in.
 - **deterministic** for a given judge + corpus.
-- **additive**: nothing here is wired into a default runtime path.
+- **additive**: nothing here is wired into a default runtime path; no CI model
+  call.
