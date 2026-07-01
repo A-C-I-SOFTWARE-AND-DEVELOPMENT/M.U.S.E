@@ -3,6 +3,13 @@
   "generated_on": "2026-07-01",
   "name": "muse-codex-gpt-permanent-agent-registry",
   "purpose": "Permanent source-backed registry manifest for GPT chat and Codex code entities. This file registers every MUSE/AOS agent by canonical registry reference rather than duplicating brittle prompt text.",
+  "machine_readable_loader": {
+    "path": "codex/gpt/permanent_agent_registry.py",
+    "module": "codex.gpt.permanent_agent_registry",
+    "summary_command": "python -m codex.gpt.permanent_agent_registry --summary",
+    "export_command": "python -m codex.gpt.permanent_agent_registry --write-json /tmp/muse-agent-registry.json",
+    "tests": "tests/test_codex_gpt_permanent_agent_registry.py"
+  },
   "source_of_truth": {
     "activation_skill": "skills/aos-enterprise-council/SKILL.md",
     "readme": "skills/aos-enterprise-council/README.md",
