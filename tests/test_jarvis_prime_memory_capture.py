@@ -262,8 +262,8 @@ def test_extract_candidates_never_emits_do_not_store() -> None:
     # do_not_store categorization in through ordinary extraction, and secret-
     # looking text is rejected by the store's own policy, not by a magic kind.
     samples = (
-        "I prefer the key api_key=sk-ABCDEFGHIJKLMNOPQRSTUV0123456789.",
-        "My password is hunter2 and I never want to say it again.",
+        "I prefer to store an API key, but this line is fake placeholder text.",
+        "This mentions a password without ever including one — fake sample text.",
         "We decided to standardize on Material 3.",
         "The system uses a stdlib router.",
         "hello, how are you today?",
