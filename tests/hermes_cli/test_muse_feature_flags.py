@@ -30,6 +30,11 @@ class TestDefaultConfigRegistration:
     def test_tool_broker_registered_default_false(self):
         assert DEFAULT_CONFIG["security"]["tool_broker"]["enabled"] is False
 
+    def test_style_enforcement_registered_default_false(self):
+        assert (
+            DEFAULT_CONFIG["response"]["style_enforcement"]["enabled"] is False
+        )
+
     def test_dead_gate_keys_not_registered(self):
         # #20 Option B: the challenge-contract / style-validator "gates" were
         # dead (zero runtime consumers) and were removed. We must NOT register a
@@ -56,7 +61,12 @@ class TestGateResolutionDefaultsOff:
 
 class TestMuseFeatureFlagsHelper:
     def _clear_env(self):
-        for var in ("MUSE_SELF_AUDIT_FOOTER", "MUSE_TOOL_BROKER", "MUSE_EFFORT_CAP"):
+        for var in (
+            "MUSE_SELF_AUDIT_FOOTER",
+            "MUSE_TOOL_BROKER",
+            "MUSE_STYLE_ENFORCEMENT",
+            "MUSE_EFFORT_CAP",
+        ):
             os.environ.pop(var, None)
 
     def test_enumerates_all_flags(self):
@@ -64,7 +74,12 @@ class TestMuseFeatureFlagsHelper:
             self._clear_env()
             flags = muse_feature_flags()
         features = {f["feature"] for f in flags}
-        assert features == {"self_audit_footer", "tool_broker", "effort_cap"}
+        assert features == {
+            "self_audit_footer",
+            "tool_broker",
+            "style_enforcement",
+            "effort_cap",
+        }
         for flag in flags:
             assert set(flag) >= {
                 "feature",
@@ -98,6 +113,29 @@ class TestMuseFeatureFlagsHelper:
             os.environ.pop("MUSE_EFFORT_CAP", None)
             flags = {f["feature"]: f for f in muse_feature_flags(cfg)}
         assert flags["tool_broker"]["enabled"] is True
+
+    def test_config_enables_style_enforcement(self):
+        cfg = {"response": {"style_enforcement": {"enabled": True}}}
+        with patch.dict(os.environ, {}, clear=False):
+            self._clear_env()
+            flags = {f["feature"]: f for f in muse_feature_flags(cfg)}
+        assert flags["style_enforcement"]["enabled"] is True
+        assert flags["style_enforcement"]["config_key"] == (
+            "response.style_enforcement.enabled"
+        )
+        # Untouched flags stay off.
+        assert flags["tool_broker"]["enabled"] is False
+
+    def test_style_enforcement_env_wins_over_config(self):
+        cfg = {"response": {"style_enforcement": {"enabled": False}}}
+        with patch.dict(
+            os.environ, {"MUSE_STYLE_ENFORCEMENT": "1"}, clear=False
+        ):
+            os.environ.pop("MUSE_SELF_AUDIT_FOOTER", None)
+            os.environ.pop("MUSE_TOOL_BROKER", None)
+            os.environ.pop("MUSE_EFFORT_CAP", None)
+            flags = {f["feature"]: f for f in muse_feature_flags(cfg)}
+        assert flags["style_enforcement"]["enabled"] is True
 
     def test_effort_cap_is_registry_gated_not_config(self):
         # The effort cap has no config.yaml key — its config_key carries the

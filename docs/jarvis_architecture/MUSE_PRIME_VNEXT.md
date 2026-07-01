@@ -57,6 +57,7 @@ over the config key.
 |---|---|---|---|---|
 | self-audit footer | `display.self_audit_footer.enabled` | `MUSE_SELF_AUDIT_FOOTER` | `False` | `self_audit.footer.self_audit_footer_enabled` |
 | tool broker | `security.tool_broker.enabled` | `MUSE_TOOL_BROKER` | `False` | `tool_broker.tool_broker_enabled` |
+| style enforcement | `response.style_enforcement.enabled` | `MUSE_STYLE_ENFORCEMENT` | `False` | `response_enforcement.style_enforcement_enabled` |
 | effort-class cap | *registry* `policies.effort_cap.enabled` | `MUSE_EFFORT_CAP` | `False` | `aos_council.dispatcher._effort_cap_enabled` |
 
 **Notes.**
