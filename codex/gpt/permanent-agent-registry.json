@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "generated_on": "2026-07-01",
+  "name": "muse-codex-gpt-permanent-agent-registry",
+  "purpose": "Permanent source-backed registry manifest for GPT chat and Codex code entities. This file registers every MUSE/AOS agent by canonical registry reference rather than duplicating brittle prompt text.",
+  "source_of_truth": {
+    "activation_skill": "skills/aos-enterprise-council/SKILL.md",
+    "readme": "skills/aos-enterprise-council/README.md",
+    "top_level_agents": {
+      "path": "skills/aos-enterprise-council/registry/AOS_AGENT_REGISTRY_COMPLETE.md",
+      "distinct_count": 233,
+      "entry_count_including_aliases": 248,
+      "description": "Canonical/alias/mentioned registry for every distinct top-level agent name recovered across the MUSE/Hermes/AOS surfaces."
+    },
+    "sub_agents": {
+      "path": "skills/aos-enterprise-council/registry/AOS_SUBAGENT_REGISTRY_COMPLETE.md",
+      "count": 108,
+      "description": "Division specialists, worker templates, Python runtime workers, R-personas, and product roles."
+    },
+    "prompt_library": "skills/aos-enterprise-council/registry/AOS_PROMPT_LIBRARY_COMPLETE.md",
+    "workflow_library": "skills/aos-enterprise-council/registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md",
+    "memory_context_recovery": "skills/aos-enterprise-council/registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md"
+  },
+  "registered_total": {
+    "top_level_agents": 233,
+    "sub_agents": 108,
+    "named_roles_total": 341
+  },
+  "load_order": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "skills/jarvis-prime/SKILL.md",
+    "docs/jarvis-prime-operating-system.md",
+    "docs/jarvis-constitution.md",
+    "skills/aos-enterprise-council/SKILL.md",
+    "skills/aos-enterprise-council/registry/AOS_AGENT_REGISTRY_COMPLETE.md",
+    "skills/aos-enterprise-council/registry/AOS_SUBAGENT_REGISTRY_COMPLETE.md",
+    "skills/aos-enterprise-council/registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md",
+    "skills/aos-enterprise-council/registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md"
+  ],
+  "agent_category_roots": [
+    "skills/aos-enterprise-council/agents/executive",
+    "skills/aos-enterprise-council/agents/architecture",
+    "skills/aos-enterprise-council/agents/security",
+    "skills/aos-enterprise-council/agents/compliance",
+    "skills/aos-enterprise-council/agents/psychology",
+    "skills/aos-enterprise-council/agents/ux",
+    "skills/aos-enterprise-council/agents/qa",
+    "skills/aos-enterprise-council/agents/release",
+    "skills/aos-enterprise-council/agents/product",
+    "skills/aos-enterprise-council/agents/business",
+    "skills/aos-enterprise-council/agents/hazmat-command",
+    "skills/aos-enterprise-council/agents/nourish",
+    "skills/aos-enterprise-council/agents/hermes",
+    "skills/aos-enterprise-council/agents/claude-code",
+    "skills/aos-enterprise-council/agents/codex",
+    "skills/aos-enterprise-council/agents/memory",
+    "skills/aos-enterprise-council/agents/research",
+    "skills/aos-enterprise-council/agents/unknown-needs-review"
+  ],
+  "entity_bindings": {
+    "gpt_chat": {
+      "entity": "chat",
+      "responsibility": "Muse brain: intake, strategy, critique, planning, evidence synthesis, owner handoff, mode-aware conversation.",
+      "registry_rule": "Before naming or dispatching an agent, consult the source_of_truth registry paths. Do not invent unregistered agents."
+    },
+    "codex_code": {
+      "entity": "code",
+      "responsibility": "Codex lane: implementation review, bounded fixes, refactors, code audits, test/debug work, PR handoff packets.",
+      "registry_rule": "Before code-bearing work, route through the registered builder/reviewer lanes and preserve builder != reviewer for RC2+ work."
+    }
+  },
+  "hard_rules": [
+    "The registry is source-backed. The markdown registry files are canonical; this manifest is an index.",
+    "Never dispatch an unregistered agent name without adding it to the registry first.",
+    "Use the smallest capable layer: direct answer, AOS Council, specialist, skill, worker, or memory.",
+    "For code work, Codex/GPT must preserve the MUSE gates: Planning, Build, Review, Test, Security, Release, Owner Approval, Rollback.",
+    "Owner-gated actions remain owner-gated; this registry does not grant deploy, publish, credential, spending, or main-merge authority."
+  ]
+}
