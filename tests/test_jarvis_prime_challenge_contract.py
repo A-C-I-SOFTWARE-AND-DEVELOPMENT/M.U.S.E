@@ -9,21 +9,21 @@ Covers the guarantees:
 - ``classify_request_triviality`` separates trivial (greeting / ack / lookup)
   from non-trivial (decision / plan / build / strategy) inputs.
 - The detector is pure / deterministic / offline (no model call, no network).
-- Enforcement is gated: ``challenge_contract_enabled`` is OFF by default and ON
-  only via the opt-in config key or env var — proving default behavior is
-  unchanged.
+- The detector is always-inspection: there is no ``challenge_contract_enabled``
+  gate. Its only consumer (the self-audit footer scorer) calls it whenever the
+  footer itself is enabled, so the detector never alters default behavior.
 """
 
 from __future__ import annotations
 
 import pytest  # ty: ignore[unresolved-import]
 
+from hermes_cli.jarvis_prime import challenge_contract as _cc_mod
 from hermes_cli.jarvis_prime.challenge_contract import (
     ChallengeContractResult,
     ChallengeElement,
     ChallengeViolation,
     RequestTriviality,
-    challenge_contract_enabled,
     classify_request_triviality,
     evaluate_challenge_contract,
 )
@@ -391,37 +391,12 @@ def test_detector_makes_no_network_or_model_call():
 
 
 # ---------------------------------------------------------------------------
-# Enforcement gate — default OFF, opt-in ON
+# Always-inspection — no enforcement gate exists (dead-gate removed, B6 #20)
 # ---------------------------------------------------------------------------
 
-def test_enforcement_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("MUSE_CHALLENGE_CONTRACT", raising=False)
-    assert challenge_contract_enabled(None) is False
-    assert challenge_contract_enabled({}) is False
-
-
-def test_enforcement_enabled_via_config(monkeypatch):
-    monkeypatch.delenv("MUSE_CHALLENGE_CONTRACT", raising=False)
-    cfg = {"display": {"challenge_contract": {"enabled": True}}}
-    assert challenge_contract_enabled(cfg) is True
-
-
-def test_enforcement_enabled_via_env(monkeypatch):
-    monkeypatch.setenv("MUSE_CHALLENGE_CONTRACT", "1")
-    assert challenge_contract_enabled({}) is True
-    monkeypatch.setenv("MUSE_CHALLENGE_CONTRACT", "off")
-    assert challenge_contract_enabled({}) is False
-
-
-def test_enforcement_env_overrides_config(monkeypatch):
-    monkeypatch.setenv("MUSE_CHALLENGE_CONTRACT", "0")
-    cfg = {"display": {"challenge_contract": {"enabled": True}}}
-    assert challenge_contract_enabled(cfg) is False
-
-
-def test_enforcement_ignores_malformed_config(monkeypatch):
-    monkeypatch.delenv("MUSE_CHALLENGE_CONTRACT", raising=False)
-    assert (
-        challenge_contract_enabled({"display": {"challenge_contract": "on"}})
-        is False
-    )
+def test_no_enforcement_gate_helper():
+    # The dead ``challenge_contract_enabled`` helper gated nothing (zero runtime
+    # consumers) and was removed so the detector is documented as always-
+    # inspection. Guard against it being reintroduced.
+    assert not hasattr(_cc_mod, "challenge_contract_enabled")
+    assert "challenge_contract_enabled" not in _cc_mod.__all__

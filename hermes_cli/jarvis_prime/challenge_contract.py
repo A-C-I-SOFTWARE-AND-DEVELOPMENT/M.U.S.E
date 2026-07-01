@@ -35,14 +35,17 @@ Design constraints (all enforced here):
   :func:`classify_request_triviality` perform no model call, no I/O, and no
   randomness — they only read the text handed to them and return a structured
   result. Identical input ⇒ identical output.
-- **Additive & default-inert.** This module changes no default behavior on its
-  own. Any *enforcement* (rejecting or regenerating a reply that fails the
-  contract) is **opt-in and default OFF**, gated by
-  :func:`challenge_contract_enabled` (config
-  ``display.challenge_contract.enabled`` or env ``MUSE_CHALLENGE_CONTRACT``).
-  Mirrors the opt-in response-style validator
-  (``hermes_cli/jarvis_prime/response_style.py``) and self-audit footer
-  (``hermes_cli/jarvis_prime/self_audit/footer.py``).
+- **Additive & always-inspection (no enforcement gate).** This module changes
+  no default behavior on its own. It exposes **pure inspection** only —
+  :func:`evaluate_challenge_contract` and :func:`classify_request_triviality` —
+  and is wired *nowhere* on the hot response path. There is deliberately **no**
+  ``challenge_contract_enabled`` flag: the detector is a signal source, not a
+  gate, so the only consumer (the offline self-audit footer scorer in
+  :mod:`hermes_cli.jarvis_prime.self_audit.live_scorer`) simply calls the
+  detector whenever the *footer itself* is enabled
+  (``display.self_audit_footer.enabled`` / ``MUSE_SELF_AUDIT_FOOTER``). See the
+  "MUSE feature flags" section of ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``
+  for the full flag registry.
 - **Boundary-aware detection.** Category markers are matched with word/phrase
   boundaries (see :func:`_compile_markers`) so a short marker never
   false-positives inside an unrelated word (``risk`` in ``brisk``, ``cut`` in
@@ -50,20 +53,16 @@ Design constraints (all enforced here):
 
 The detector is inspectable infra: it is wired *nowhere* on the hot response
 path by default, so the default runtime output is byte-for-byte unchanged. A
-caller that has opted in (via the gate helper) may consult it to decide whether
-to regenerate; that decision is the caller's, not this module's.
+caller may consult it to decide whether to regenerate; that decision is the
+caller's, not this module's.
 """
 
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Mapping, Optional
-
-# Environment override for the opt-in enforcement flag (mirrors MUSE_* flags).
-_ENV_FLAG = "MUSE_CHALLENGE_CONTRACT"
+from typing import Any, Optional
 
 
 class ChallengeElement(Enum):
@@ -586,7 +585,7 @@ def evaluate_challenge_contract(
       categories any one of which would have satisfied it.
 
     Detection changes nothing on its own; a caller decides what to do with a
-    violation (see :func:`challenge_contract_enabled`).
+    violation.
     """
     if request_is_trivial:
         return ChallengeContractResult(satisfied=True, exempt=True, found=())
@@ -624,40 +623,6 @@ def evaluate_challenge_contract(
     )
 
 
-def challenge_contract_enabled(
-    user_config: Mapping[str, Any] | None = None,
-) -> bool:
-    """Return whether Challenge-Contract ENFORCEMENT is enabled (default OFF).
-
-    Resolution (later wins):
-
-    1. Built-in default — ``False`` (enforcement off; the detector stays pure
-       infra).
-    2. ``display.challenge_contract.enabled`` in the user config.
-    3. The ``MUSE_CHALLENGE_CONTRACT`` environment variable, when set to a
-       truthy value (``1``/``true``/``yes``/``on``) or a falsy one.
-
-    The default is OFF, so with no config and no env var this returns ``False``
-    and no enforcement runs — the default runtime output is unchanged. This
-    gates *enforcement only*; :func:`evaluate_challenge_contract` and
-    :func:`classify_request_triviality` are always safe to call (they are pure
-    inspection functions that change nothing).
-    """
-    enabled = False
-
-    display = (user_config or {}).get("display") if user_config else None
-    if isinstance(display, Mapping):
-        section = display.get("challenge_contract")
-        if isinstance(section, Mapping) and "enabled" in section:
-            enabled = bool(section.get("enabled"))
-
-    raw = os.environ.get(_ENV_FLAG)
-    if raw is not None:
-        enabled = raw.strip().lower() in {"1", "true", "yes", "on"}
-
-    return enabled
-
-
 __all__ = [
     "ChallengeElement",
     "RequestTriviality",
@@ -665,5 +630,4 @@ __all__ = [
     "ChallengeContractResult",
     "classify_request_triviality",
     "evaluate_challenge_contract",
-    "challenge_contract_enabled",
 ]

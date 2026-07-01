@@ -515,6 +515,34 @@ def _ensure_hermes_home_managed(home: Path):
 # Config loading/saving
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# MUSE feature flags (additive, opt-in, default OFF)
+# -----------------------------------------------------------------------------
+# The vNext MUSE control surface is a small set of opt-in flags. They are split
+# across three namespaces for historical reasons and are NOT renamed (renaming
+# would break existing config.yaml files). Each flag defaults OFF, so with no
+# config and no env var the default runtime behavior is byte-for-byte unchanged.
+# Env var wins over config in every case. The single source of truth for this
+# table is the "MUSE feature flags" section of
+# ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``; ``muse_feature_flags()``
+# below enumerates them programmatically.
+#
+#   feature            | config key                            | env var                | default | resolver
+#   -------------------|---------------------------------------|------------------------|---------|-------------------------------------------------
+#   self-audit footer  | display.self_audit_footer.enabled     | MUSE_SELF_AUDIT_FOOTER | False   | self_audit.footer.self_audit_footer_enabled
+#   tool broker        | security.tool_broker.enabled          | MUSE_TOOL_BROKER       | False   | tool_broker.tool_broker_enabled
+#   effort-class cap   | registry policies.effort_cap.enabled  | MUSE_EFFORT_CAP        | False   | aos_council.dispatcher._effort_cap_enabled
+#
+# Notes:
+#  * The effort-class cap is gated in the *council registry* (policies.*), NOT in
+#    ``config.yaml`` — so it is intentionally absent from DEFAULT_CONFIG. It is
+#    listed here (and in muse_feature_flags) purely for discoverability.
+#  * The challenge-contract and response-style detectors are *always-inspection*
+#    signal sources with NO gate of their own: they contribute to the self-audit
+#    footer score only when the footer is enabled. There is deliberately no
+#    ``display.challenge_contract`` / ``display.style_validator`` config key.
+# -----------------------------------------------------------------------------
+
 DEFAULT_CONFIG: Dict[str, Any] = {
     "model": "",
     "providers": {},
@@ -1132,7 +1160,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         # offline — it renders already-available self-audit scores and never
         # adds a model call to the response path. Disabled by default so the
         # default runtime output is unchanged. May also be toggled via the
-        # MUSE_SELF_AUDIT_FOOTER environment variable.
+        # MUSE_SELF_AUDIT_FOOTER environment variable. One of the opt-in MUSE
+        # feature flags — see the "MUSE feature flags" comment above
+        # DEFAULT_CONFIG and ``muse_feature_flags()`` for the full registry.
         "self_audit_footer": {
             "enabled": False,
         },
@@ -1581,6 +1611,18 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         # for restricted networks, audited environments, or air-gapped
         # systems where any runtime install is unacceptable.
         "allow_lazy_installs": True,
+        # ── MUSE opt-in: capability-scoped tool broker ──────────────────
+        # Additive vNext control surface. When enabled, the ToolBroker
+        # capability firewall
+        # (``hermes_cli/jarvis_prime/tool_broker.py``) mediates tool access
+        # per identity / effort / risk class. Default OFF, so the default
+        # tool-call path is byte-for-byte unchanged. Also toggleable via the
+        # MUSE_TOOL_BROKER env var (env wins). Resolved by
+        # ``tool_broker.tool_broker_enabled``. See the "MUSE feature flags"
+        # registry in ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+        "tool_broker": {
+            "enabled": False,
+        },
     },
 
     "cron": {
@@ -4382,6 +4424,75 @@ def cfg_get(cfg: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> A
         node = node[key]
     return node
 
+
+# Discoverability registry for the opt-in MUSE feature flags. Each entry names
+# the feature, its config key path (or the ``registry:`` marker for the
+# council-registry-gated effort cap), its env var, and its default. The keys are
+# intentionally split across three namespaces (``display.*`` / ``security.*`` /
+# registry ``policies.*``) and are NOT renamed. Mirrors the comment block above
+# DEFAULT_CONFIG and the "MUSE feature flags" section of
+# ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+_MUSE_FEATURE_FLAGS: Tuple[Dict[str, Any], ...] = (
+    {
+        "feature": "self_audit_footer",
+        "config_key": "display.self_audit_footer.enabled",
+        "env_var": "MUSE_SELF_AUDIT_FOOTER",
+        "default": False,
+        "summary": "Opt-in 3-line self-audit footer on major turns.",
+    },
+    {
+        "feature": "tool_broker",
+        "config_key": "security.tool_broker.enabled",
+        "env_var": "MUSE_TOOL_BROKER",
+        "default": False,
+        "summary": "Capability-scoped tool broker mediating tool access.",
+    },
+    {
+        # Gated in the council registry (policies.*), NOT in config.yaml.
+        "feature": "effort_cap",
+        "config_key": "registry:policies.effort_cap.enabled",
+        "env_var": "MUSE_EFFORT_CAP",
+        "default": False,
+        "summary": "Effort-class ceiling on the assembled council size.",
+    },
+)
+
+
+def _flag_truthy_env(env_var: str) -> Optional[bool]:
+    """Resolve an env override for a MUSE flag, or ``None`` if unset."""
+    raw = os.environ.get(env_var)
+    if raw is None:
+        return None
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def muse_feature_flags(
+    config: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """Enumerate the opt-in MUSE feature flags and their resolved on/off state.
+
+    Additive, read-only discoverability helper. Returns one dict per flag with:
+    ``feature``, ``config_key``, ``env_var``, ``default``, ``summary``, and the
+    resolved ``enabled`` (env var wins over config; both default OFF).
+
+    ``config`` is an optional loaded config dict; when omitted, only the env var
+    and the built-in default are consulted (so it is safe to call with no I/O).
+    The registry-gated ``effort_cap`` flag has no ``config.yaml`` key, so its
+    ``enabled`` reflects the env var / default only — its registry state is
+    resolved at dispatch time by the council dispatcher.
+    """
+    results: List[Dict[str, Any]] = []
+    for spec in _MUSE_FEATURE_FLAGS:
+        env_val = _flag_truthy_env(str(spec["env_var"]))
+        if env_val is not None:
+            enabled = env_val
+        elif not str(spec["config_key"]).startswith("registry:") and config is not None:
+            keys = str(spec["config_key"]).split(".")
+            enabled = bool(cfg_get(config, *keys, default=spec["default"]))
+        else:
+            enabled = bool(spec["default"])
+        results.append({**spec, "enabled": enabled})
+    return results
 
 
 def read_raw_config() -> Dict[str, Any]:

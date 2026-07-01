@@ -689,11 +689,10 @@ def tool_broker_enabled(user_config: Mapping[str, Any] | None = None) -> bool:
 
     The default is OFF, so with no config and no env var this returns ``False``
     and no broker runs — the default runtime tool-call path is byte-for-byte
-    unchanged. Mirrors the opt-in gate helpers on the merged features
-    (``challenge_contract_enabled`` / ``self_audit_footer_enabled`` /
-    ``response_style`` gate). This gates *wiring the broker into dispatch*;
-    constructing and calling a :class:`ToolBroker` directly is always safe
-    (it is pure inspection that changes nothing on its own).
+    unchanged. Mirrors the opt-in gate helper on the self-audit footer
+    (``self_audit_footer_enabled``). This gates *wiring the broker into
+    dispatch*; constructing and calling a :class:`ToolBroker` directly is always
+    safe (it is pure inspection that changes nothing on its own).
     """
     enabled = False
 
