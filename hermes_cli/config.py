@@ -1126,6 +1126,16 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "enabled": False,
             "fields": ["model", "context_pct", "cwd"],  # Order shown; drop any to hide
         },
+        # Opt-in self-audit footer. When enabled, MUSE may append a concise
+        # 3-line footer (Passed / Watch / Improvement) summarizing how a major
+        # turn scored against the Constitution dimensions. Deterministic and
+        # offline — it renders already-available self-audit scores and never
+        # adds a model call to the response path. Disabled by default so the
+        # default runtime output is unchanged. May also be toggled via the
+        # MUSE_SELF_AUDIT_FOOTER environment variable.
+        "self_audit_footer": {
+            "enabled": False,
+        },
         "copy_shortcut": "auto",  # "auto" (platform default) | "ctrl_c" | "ctrl_shift_c" | "disabled"
     },
 
