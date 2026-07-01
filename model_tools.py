@@ -794,10 +794,11 @@ def _maybe_broker_block(
     Returns:
         - ``None`` when the call should proceed to dispatch. This is the case
           for: flag OFF (default), enabled-but-unconfigured (pass-through with
-          warning), an ALLOW/DRY_RUN verdict, or any fail-safe error path.
+          warning), an ALLOW verdict, or any fail-safe error path.
         - A JSON error string (same shape as the pre_tool_call block hook) when
-          a *configured* broker returns DENY or REQUIRES_OWNER_APPROVAL. The
-          caller must return this verbatim and skip dispatch.
+          a *configured* broker returns DENY, REQUIRES_OWNER_APPROVAL, or
+          DRY_RUN. The caller must return this verbatim and skip dispatch. A
+          DRY_RUN is a preview only: dispatch is skipped so the tool never runs.
 
     Never raises: every failure mode falls through to ``None`` (pass-through).
     """
@@ -921,8 +922,33 @@ def _maybe_broker_block(
             )
         )
 
-        if decision.verdict in (BrokerVerdict.ALLOW, BrokerVerdict.DRY_RUN):
+        if decision.verdict is BrokerVerdict.ALLOW:
             return None
+
+        if decision.verdict is BrokerVerdict.DRY_RUN:
+            # Dry-run is a PREVIEW, not an execute grant. Return a structured
+            # block-result (same shape as DENY / REQUIRES_OWNER_APPROVAL) so the
+            # caller skips dispatch and the tool never runs. Emitting ``None``
+            # here would fall through to dispatch and execute the tool for real
+            # while auditing it as "no side effect" — the exact inversion this
+            # branch exists to prevent.
+            logger.info(
+                "tool_broker dry-run preview (no side effect): tool=%s identity=%s reason=%s",
+                function_name,
+                identity,
+                decision.reason,
+            )
+            return json.dumps(
+                {
+                    "error": (
+                        f"Tool '{function_name}' was a dry-run preview "
+                        f"(ToolBroker): {decision.reason}. This call was NOT "
+                        f"executed and no side effect was performed."
+                    ),
+                    "tool_broker": decision.to_dict(),
+                },
+                ensure_ascii=False,
+            )
 
         if decision.verdict is BrokerVerdict.REQUIRES_OWNER_APPROVAL:
             logger.info(
