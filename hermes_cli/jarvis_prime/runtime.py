@@ -139,6 +139,11 @@ class JarvisTurn:
     fallback_chain: list[str] = field(default_factory=list)
     scorecard_basis: Optional[str] = None
     gemma_variant: Optional[str] = None
+    # Effort-class stamp (E0–E5) for this turn — the smallest-sufficient
+    # effort class of the routing decision, promoted to a first-class,
+    # auditable field on the per-turn trace. Mirrors ``route.effort_class``;
+    # additive and observational only.
+    effort_class: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -147,6 +152,7 @@ class JarvisTurn:
             "classification": self.classification.to_dict(),
             "persona_prompt": self.persona_prompt.render(),
             "route": self.route.to_dict(),
+            "effort_class": self.effort_class,
             "gate_summary": self.gate_summary.to_dict() if self.gate_summary else None,
             "recollection": self.recollection,
             "research_brief": self.research_brief.to_dict() if self.research_brief else None,
@@ -565,6 +571,7 @@ class JarvisPrime:
             "packet": dict(packet) if packet else {},
             "requires_owner_authorization": route.requires_owner_authorization,
             "pending_actions": list(route.pending_actions),
+            "effort_class": route.effort_class,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -679,6 +686,7 @@ class JarvisPrime:
             classification=classification,
             persona_prompt=persona_prompt,
             route=route,
+            effort_class=route.effort_class,
             gate_summary=gate_summary,
             recollection=recollection,
             research_brief=research_brief,
