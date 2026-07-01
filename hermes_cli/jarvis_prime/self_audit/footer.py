@@ -163,7 +163,14 @@ def render_self_audit_footer(
         Self-audit:
         - Passed: <dims that scored a full pass>
         - Watch: <dims with any failure>
+        - Not scored: <dims that were never evaluated (no offline signal)>
         - Improvement: <caller-supplied one-liner>
+
+    A dimension is only reported under *Passed* when it was actually probed and
+    scored a full pass. A dimension that was **never evaluated** (zero probes —
+    e.g. a Constitution dimension with no cheap offline signal) renders in the
+    distinct *Not scored* bucket, never as a genuine pass. This keeps the footer
+    honest: a neutral, not-validated result is not displayed as a validated one.
 
     ``improvement`` is an optional caller-supplied one-line suggestion (e.g.
     "route to Product Experience earlier next time"). It is never derived from
@@ -175,12 +182,18 @@ def render_self_audit_footer(
 
     passed: list[str] = []
     watch: list[str] = []
+    not_scored: list[str] = []
     for dimension in sorted(resolved):
         score = resolved[dimension]
         value = getattr(score, "score", None)
         if value is None:
             continue
-        if value >= _PASS_THRESHOLD:
+        # A dimension with zero probes was never actually evaluated: its
+        # score is a neutral fallback, not a validated pass. Report it in the
+        # distinct "Not scored" bucket so it is never conflated with a pass.
+        if getattr(score, "probed", None) == 0:
+            not_scored.append(_label(dimension))
+        elif value >= _PASS_THRESHOLD:
             passed.append(_label(dimension))
         else:
             watch.append(_label(dimension))
@@ -191,6 +204,8 @@ def render_self_audit_footer(
         body.append(f"- Passed: {', '.join(passed[:max_items])}")
     if watch:
         body.append(f"- Watch: {', '.join(watch[:max_items])}")
+    if not_scored:
+        body.append(f"- Not scored: {', '.join(not_scored[:max_items])}")
     if improvement:
         body.append(f"- Improvement: {improvement.strip()}")
 

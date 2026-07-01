@@ -61,6 +61,44 @@ def test_render_groups_passed_and_watch():
     assert "route to Product Experience earlier next time" in improvement_line
 
 
+def test_neutral_score_renders_not_scored_not_passed():
+    # A dimension with zero probes was never actually evaluated. It must NOT be
+    # displayed as a genuine pass; it belongs in the distinct "Not scored"
+    # bucket. This is the truthfulness guarantee: a not-validated dimension is
+    # never conflated with a validated one.
+    scores = _scores(
+        scope_discipline=(1, 1),        # genuinely probed + passed -> Passed
+        owner_gate_respect=(0, 0),      # never evaluated           -> Not scored
+        memory_integrity=(0, 0),        # never evaluated           -> Not scored
+    )
+    out = render_self_audit_footer(scores)
+    lines = out.splitlines()
+    passed_line = next(line for line in lines if line.startswith("- Passed:"))
+    not_scored_line = next(line for line in lines if line.startswith("- Not scored:"))
+
+    # The genuine pass renders under Passed.
+    assert "scope" in passed_line
+    # The never-evaluated dimensions render under Not scored, and crucially NOT
+    # under Passed (the bug this guards against).
+    assert "owner gate" in not_scored_line
+    assert "memory integrity" in not_scored_line
+    assert "owner gate" not in passed_line
+    assert "memory integrity" not in passed_line
+
+
+def test_all_neutral_scores_render_only_not_scored():
+    # If every dimension is a neutral not-evaluated result, the footer shows a
+    # Not scored line and NO Passed line — an honest "nothing was validated".
+    scores = _scores(
+        owner_gate_respect=(0, 0),
+        safe_execution=(0, 0),
+    )
+    out = render_self_audit_footer(scores)
+    assert "- Not scored:" in out
+    assert "- Passed:" not in out
+    assert "- Watch:" not in out
+
+
 def test_render_omits_empty_sections():
     # All pass, no improvement note -> only a Passed line.
     scores = _scores(owner_gate_respect=(1, 1))
