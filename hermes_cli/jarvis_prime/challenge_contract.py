@@ -1,0 +1,534 @@
+"""Challenge Contract — a pure, opt-in detector for MUSE's contrarian duty.
+
+The Constitution and persona forbid MUSE from behaving as a yes-man: it "does
+not automatically agree; challenges weak ideas plainly and strengthens rough
+ones" (clause ``C2``), "behaves as a trusted partner/advisor, not a yes-man"
+(clause ``C4``), and "challenges the idea, not the person" (clause ``C31``).
+The Critic Mode rules in ``docs/jarvis-prime-operating-system.md`` spell out the
+concrete shapes that challenge can take — name the strongest objection, give a
+better version of the idea, narrow scope, push bigger, and say what not to do
+yet.
+
+This module lands the *typed contract* for that duty plus a **pure detector**
+that measures whether an already-generated response satisfies it. For any
+**non-trivial** request (a decision, plan, build, or strategy call), MUSE should
+produce at least one challenge element drawn from six named categories:
+
+======================  ===================================================
+category                intent
+======================  ===================================================
+``STRONGER_VERSION``    a stronger / bigger version of the idea
+``NAMED_RISK``          a named risk, objection, or failure mode
+``SCOPE_REDUCTION``     a scope reduction (narrow / cut / defer part)
+``COUNTERPROPOSAL``     a concrete alternative approach
+``EVIDENCE_GAP``        a missing-evidence / unverified-assumption flag
+``DEFER``               a "do not do this yet" hold
+======================  ===================================================
+
+**Trivial** requests (greetings, acknowledgements, simple factual lookups) are
+*exempt* — challenging them would be noise, not partnership — so they are
+auto-satisfied.
+
+Design constraints (all enforced here):
+
+- **Pure & deterministic & offline.** :func:`evaluate_challenge_contract` and
+  :func:`classify_request_triviality` perform no model call, no I/O, and no
+  randomness — they only read the text handed to them and return a structured
+  result. Identical input ⇒ identical output.
+- **Additive & default-inert.** This module changes no default behavior on its
+  own. Any *enforcement* (rejecting or regenerating a reply that fails the
+  contract) is **opt-in and default OFF**, gated by
+  :func:`challenge_contract_enabled` (config
+  ``display.challenge_contract.enabled`` or env ``MUSE_CHALLENGE_CONTRACT``).
+  Mirrors the opt-in response-style validator
+  (``hermes_cli/jarvis_prime/response_style.py``) and self-audit footer
+  (``hermes_cli/jarvis_prime/self_audit/footer.py``).
+- **Boundary-aware detection.** Category markers are matched with word/phrase
+  boundaries (see :func:`_compile_markers`) so a short marker never
+  false-positives inside an unrelated word (``risk`` in ``brisk``, ``cut`` in
+  ``executed``).
+
+The detector is inspectable infra: it is wired *nowhere* on the hot response
+path by default, so the default runtime output is byte-for-byte unchanged. A
+caller that has opted in (via the gate helper) may consult it to decide whether
+to regenerate; that decision is the caller's, not this module's.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Mapping, Optional
+
+# Environment override for the opt-in enforcement flag (mirrors MUSE_* flags).
+_ENV_FLAG = "MUSE_CHALLENGE_CONTRACT"
+
+
+class ChallengeElement(Enum):
+    """The six challenge-element categories a non-trivial reply may satisfy.
+
+    A reply satisfies the Challenge Contract when it contains at least one of
+    these. The categories mirror the Critic / Strategy mode rules in
+    ``docs/jarvis-prime-operating-system.md`` and Constitution clauses
+    ``C2``/``C4``/``C31``.
+    """
+
+    STRONGER_VERSION = "stronger_version"
+    NAMED_RISK = "named_risk"
+    SCOPE_REDUCTION = "scope_reduction"
+    COUNTERPROPOSAL = "counterproposal"
+    EVIDENCE_GAP = "evidence_gap"
+    DEFER = "defer"
+
+
+class RequestTriviality(Enum):
+    """Whether a request is trivial (contract-exempt) or non-trivial (bound)."""
+
+    TRIVIAL = "trivial"
+    NON_TRIVIAL = "non_trivial"
+
+
+# Per-category detection markers. Case-insensitive whole-word / whole-phrase
+# signals (matched with word boundaries, see ``_compile_markers``). Kept small
+# and high-precision so a marker only fires when the reply genuinely carries
+# that flavour of challenge.
+_STRONGER_VERSION_MARKERS: tuple[str, ...] = (
+    "stronger version",
+    "bigger version",
+    "better version",
+    "go bigger",
+    "think bigger",
+    "push bigger",
+    "more ambitious",
+    "raise the ambition",
+    "aim higher",
+    "the stronger play",
+    "the bolder move",
+    "you could go further",
+    "take it further",
+)
+
+_NAMED_RISK_MARKERS: tuple[str, ...] = (
+    "risk",
+    "the objection",
+    "strongest objection",
+    "failure mode",
+    "fails if",
+    "breaks if",
+    "downside",
+    "the danger",
+    "fatal flaw",
+    "blind spot",
+    "weakness",
+    "this could backfire",
+    "the concern is",
+    "watch out for",
+    "the trap",
+)
+
+_SCOPE_REDUCTION_MARKERS: tuple[str, ...] = (
+    "narrow the scope",
+    "narrow scope",
+    "reduce scope",
+    "cut scope",
+    "smaller scope",
+    "trim it down",
+    "cut this down",
+    "descope",
+    "drop the",
+    "leave out",
+    "smaller first step",
+    "start smaller",
+    "ship less",
+    "do less",
+)
+
+_COUNTERPROPOSAL_MARKERS: tuple[str, ...] = (
+    "counterproposal",
+    "counter-proposal",
+    "instead",
+    "a better approach",
+    "an alternative",
+    "the alternative",
+    "i'd propose",
+    "id propose",
+    "rather than",
+    "what if you",
+    "consider doing",
+    "a different path",
+    "another option",
+)
+
+_EVIDENCE_GAP_MARKERS: tuple[str, ...] = (
+    "no evidence",
+    "unverified",
+    "unproven",
+    "assumption",
+    "assumes",
+    "untested",
+    "not validated",
+    "need data",
+    "we don't know",
+    "we dont know",
+    "missing evidence",
+    "evidence gap",
+    "no proof",
+    "unsubstantiated",
+    "citation needed",
+)
+
+_DEFER_MARKERS: tuple[str, ...] = (
+    "do not do this yet",
+    "don't do this yet",
+    "dont do this yet",
+    "not yet",
+    "hold off",
+    "wait until",
+    "defer this",
+    "premature",
+    "too early",
+    "should not do yet",
+    "shouldn't do yet",
+    "not the time",
+    "park this",
+)
+
+_ELEMENT_MARKERS: dict[ChallengeElement, tuple[str, ...]] = {
+    ChallengeElement.STRONGER_VERSION: _STRONGER_VERSION_MARKERS,
+    ChallengeElement.NAMED_RISK: _NAMED_RISK_MARKERS,
+    ChallengeElement.SCOPE_REDUCTION: _SCOPE_REDUCTION_MARKERS,
+    ChallengeElement.COUNTERPROPOSAL: _COUNTERPROPOSAL_MARKERS,
+    ChallengeElement.EVIDENCE_GAP: _EVIDENCE_GAP_MARKERS,
+    ChallengeElement.DEFER: _DEFER_MARKERS,
+}
+
+
+# Triviality signals. A request is trivial when it is a greeting / ack / thanks
+# or a simple factual lookup. These markers upweight "trivial"; the decision
+# markers below upweight "non-trivial". Matched with word boundaries.
+_TRIVIAL_MARKERS: tuple[str, ...] = (
+    "hi",
+    "hey",
+    "hello",
+    "yo",
+    "thanks",
+    "thank you",
+    "thx",
+    "ok",
+    "okay",
+    "got it",
+    "sounds good",
+    "good morning",
+    "good night",
+    "cool",
+    "nice",
+    "what time",
+    "what is the date",
+    "what's the date",
+    "how do you spell",
+    "define",
+    "what does",
+    "who is",
+    "when did",
+    "how far",
+)
+
+# Non-trivial signals — a decision, plan, build, or strategy call. These are
+# the requests the Challenge Contract binds.
+_NON_TRIVIAL_MARKERS: tuple[str, ...] = (
+    "should i",
+    "should we",
+    "decide",
+    "decision",
+    "plan",
+    "strategy",
+    "strategize",
+    "build",
+    "implement",
+    "design",
+    "architect",
+    "refactor",
+    "launch",
+    "ship",
+    "roadmap",
+    "prioritize",
+    "invest",
+    "hire",
+    "pricing",
+    "positioning",
+    "trade-off",
+    "tradeoff",
+    "which approach",
+    "best way to",
+    "how should",
+    "worth it",
+    "go big",
+    "pivot",
+    "migrate",
+    "rewrite",
+    "scale",
+)
+
+
+@dataclass(frozen=True)
+class ChallengeViolation:
+    """The structured "missing challenge" violation.
+
+    Emitted when a non-trivial request's reply contains no challenge element.
+    ``code`` is a stable machine identifier; ``message`` is a human-readable
+    one-liner; ``expected`` lists the category names any one of which would
+    have satisfied the contract.
+    """
+
+    code: str
+    message: str
+    expected: tuple[str, ...] = field(default_factory=tuple)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "code": self.code,
+            "message": self.message,
+            "expected": list(self.expected),
+        }
+
+
+@dataclass(frozen=True)
+class ChallengeContractResult:
+    """The structured result of inspecting a reply against the contract.
+
+    ``satisfied`` is True when the request was trivial (exempt) or the reply
+    carried at least one challenge element. ``found`` lists the categories
+    detected (empty for a trivial/exempt reply). ``exempt`` records whether the
+    request was treated as trivial. ``violation`` is populated only when the
+    contract is *not* satisfied.
+    """
+
+    satisfied: bool
+    exempt: bool
+    found: tuple[str, ...] = field(default_factory=tuple)
+    violation: Optional[ChallengeViolation] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "satisfied": self.satisfied,
+            "exempt": self.exempt,
+            "found": list(self.found),
+            "violation": self.violation.to_dict() if self.violation else None,
+        }
+
+
+def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
+    """Compile each marker into a word-boundary-aware, case-insensitive pattern.
+
+    Plain substring matching false-positives short markers inside unrelated
+    words (``risk`` in ``brisk``, ``cut`` in ``executed``, ``defer`` in
+    ``deference``). Anchoring each marker with ``\\b`` on both sides makes a
+    marker only count as a whole word / phrase. Multi-word markers still match
+    across a normal space because ``re.escape`` preserves the literal space and
+    the boundaries land on the outer edges of the phrase. Markers that end in a
+    non-word character (an apostrophe form like ``don't``) fall back to an
+    inner boundary so the pattern still anchors cleanly.
+    """
+    compiled: list[re.Pattern[str]] = []
+    for marker in markers:
+        stripped = marker.strip()
+        if not stripped:
+            continue
+        left = r"\b" if stripped[0].isalnum() else ""
+        right = r"\b" if stripped[-1].isalnum() else ""
+        compiled.append(
+            re.compile(left + re.escape(stripped) + right, re.IGNORECASE)
+        )
+    return tuple(compiled)
+
+
+_ELEMENT_PATTERNS: dict[ChallengeElement, tuple[re.Pattern[str], ...]] = {
+    element: _compile_markers(markers)
+    for element, markers in _ELEMENT_MARKERS.items()
+}
+_TRIVIAL_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(_TRIVIAL_MARKERS)
+_NON_TRIVIAL_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(
+    _NON_TRIVIAL_MARKERS
+)
+
+
+def _count_matches(text: str, patterns: tuple[re.Pattern[str], ...]) -> int:
+    return sum(1 for pattern in patterns if pattern.search(text))
+
+
+def classify_request_triviality(
+    text: str,
+    *,
+    effort_class: Any = None,
+) -> RequestTriviality:
+    """Classify a request as trivial (contract-exempt) or non-trivial.
+
+    Pure, deterministic, offline: no model call, no I/O. A request is
+    **trivial** — and therefore exempt from the Challenge Contract — when it is
+    a greeting, acknowledgement, or simple factual lookup. It is **non-trivial**
+    when it asks for a decision, plan, build, or strategy call.
+
+    Heuristic (deterministic):
+
+    - Empty / whitespace-only text → trivial (nothing to challenge).
+    - Any non-trivial decision/plan/build/strategy marker present → non-trivial.
+    - Otherwise, if a trivial greeting/ack/lookup marker is present and no
+      non-trivial marker is → trivial.
+    - A short question with no non-trivial marker → trivial (a simple lookup).
+    - Everything else defaults to non-trivial, so the contract errs toward
+      *asking* MUSE to challenge rather than letting a real request slip through
+      exempt.
+
+    ``effort_class`` is an optional hint: an
+    :class:`~hermes_cli.jarvis_prime.effort_class.EffortClass` (or its ``"E0"``
+    string). ``E0`` (direct answer, no council) nudges toward trivial when the
+    text itself carries no non-trivial marker; anything ``E1`` and up is a real
+    routed request and never downgraded to trivial by the effort hint. The hint
+    never *overrides* an explicit non-trivial marker.
+    """
+    stripped = (text or "").strip()
+    if not stripped:
+        return RequestTriviality.TRIVIAL
+
+    non_trivial_hits = _count_matches(stripped, _NON_TRIVIAL_PATTERNS)
+    if non_trivial_hits:
+        return RequestTriviality.NON_TRIVIAL
+
+    trivial_hits = _count_matches(stripped, _TRIVIAL_PATTERNS)
+    if trivial_hits:
+        return RequestTriviality.TRIVIAL
+
+    # Effort hint: E0 (direct answer) with no non-trivial marker → trivial.
+    rank = _effort_rank(effort_class)
+    if rank is not None and rank == 0:
+        return RequestTriviality.TRIVIAL
+
+    # A short prompt with no decision/plan/build marker reads as a simple
+    # lookup; use a conservative word-count threshold.
+    if len(stripped.split()) <= 6:
+        return RequestTriviality.TRIVIAL
+
+    # Default: treat as non-trivial so a real request is never silently exempt.
+    return RequestTriviality.NON_TRIVIAL
+
+
+def _effort_rank(effort: Any) -> Optional[int]:
+    """Extract an integer effort rank from an EffortClass, ``"E<n>"``, or None."""
+    if effort is None:
+        return None
+    rank = getattr(effort, "rank", None)
+    if rank is not None:
+        try:
+            return int(rank)
+        except (TypeError, ValueError):
+            return None
+    text = str(effort).strip().upper()
+    if text.startswith("E") and text[1:].isdigit():
+        return int(text[1:])
+    return None
+
+
+def evaluate_challenge_contract(
+    response_text: str,
+    *,
+    request_is_trivial: bool = False,
+) -> ChallengeContractResult:
+    """Inspect an already-generated ``response_text`` against the contract.
+
+    Pure, deterministic, offline: no model call, no I/O. Returns a
+    :class:`ChallengeContractResult`.
+
+    - When ``request_is_trivial`` is True the request is **exempt**: the result
+      is auto-satisfied with no violation, regardless of the reply's content.
+    - Otherwise the reply satisfies the contract when it contains at least one
+      of the six :class:`ChallengeElement` categories (boundary-aware marker
+      detection — no plain-substring false positives). ``found`` lists every
+      category detected.
+    - A non-trivial reply carrying **no** challenge element fails the contract
+      and carries a ``missing_challenge`` :class:`ChallengeViolation` naming the
+      categories any one of which would have satisfied it.
+
+    Detection changes nothing on its own; a caller decides what to do with a
+    violation (see :func:`challenge_contract_enabled`).
+    """
+    if request_is_trivial:
+        return ChallengeContractResult(satisfied=True, exempt=True, found=())
+
+    stripped = (response_text or "").strip()
+    found: list[str] = []
+    if stripped:
+        for element in ChallengeElement:
+            patterns = _ELEMENT_PATTERNS[element]
+            if any(pattern.search(stripped) for pattern in patterns):
+                found.append(element.value)
+
+    if found:
+        return ChallengeContractResult(
+            satisfied=True,
+            exempt=False,
+            found=tuple(found),
+        )
+
+    violation = ChallengeViolation(
+        code="missing_challenge",
+        message=(
+            "Non-trivial request answered with no challenge element — MUSE "
+            "must offer at least one of: a stronger version, a named risk, a "
+            "scope reduction, a counterproposal, an evidence gap, or a "
+            "'do not do this yet'."
+        ),
+        expected=tuple(element.value for element in ChallengeElement),
+    )
+    return ChallengeContractResult(
+        satisfied=False,
+        exempt=False,
+        found=(),
+        violation=violation,
+    )
+
+
+def challenge_contract_enabled(
+    user_config: Mapping[str, Any] | None = None,
+) -> bool:
+    """Return whether Challenge-Contract ENFORCEMENT is enabled (default OFF).
+
+    Resolution (later wins):
+
+    1. Built-in default — ``False`` (enforcement off; the detector stays pure
+       infra).
+    2. ``display.challenge_contract.enabled`` in the user config.
+    3. The ``MUSE_CHALLENGE_CONTRACT`` environment variable, when set to a
+       truthy value (``1``/``true``/``yes``/``on``) or a falsy one.
+
+    The default is OFF, so with no config and no env var this returns ``False``
+    and no enforcement runs — the default runtime output is unchanged. This
+    gates *enforcement only*; :func:`evaluate_challenge_contract` and
+    :func:`classify_request_triviality` are always safe to call (they are pure
+    inspection functions that change nothing).
+    """
+    enabled = False
+
+    display = (user_config or {}).get("display") if user_config else None
+    if isinstance(display, Mapping):
+        section = display.get("challenge_contract")
+        if isinstance(section, Mapping) and "enabled" in section:
+            enabled = bool(section.get("enabled"))
+
+    raw = os.environ.get(_ENV_FLAG)
+    if raw is not None:
+        enabled = raw.strip().lower() in {"1", "true", "yes", "on"}
+
+    return enabled
+
+
+__all__ = [
+    "ChallengeElement",
+    "RequestTriviality",
+    "ChallengeViolation",
+    "ChallengeContractResult",
+    "classify_request_triviality",
+    "evaluate_challenge_contract",
+    "challenge_contract_enabled",
+]
