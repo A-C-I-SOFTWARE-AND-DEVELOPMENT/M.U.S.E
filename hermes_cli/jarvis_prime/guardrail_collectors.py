@@ -386,6 +386,48 @@ def collect_review_evidence(
     ).to_artifact()
 
 
+def collect_reviewer_assignment_evidence(
+    reviewer_id: str,
+    diff_hash: str = "",
+) -> Optional[EvidenceArtifact]:
+    """Record the *planned reviewer assignment* as review evidence.
+
+    This exists so the strict review gate's Clause C19 (builder ≠ reviewer)
+    identity check is REACHABLE at assembly time even before a human/agent
+    review has actually run. Assembly sites (``nlp_refine.run_execution_
+    refinement``, ``guardrails_cli._collect``) know only *which* agent is
+    assigned to review — never a real verdict.
+
+    Safety: the verdict is fixed to ``needs_owner`` (a NON-approving, neutral
+    verdict). It can NEVER cause the review gate to PASS — the gate maps
+    ``needs_owner`` to ``NEEDS_OWNER_APPROVAL`` and only an explicit ``approve``
+    verdict passes. So this never fabricates an approval; it only lets C19
+    compare the assigned reviewer against the builder. When ``reviewer_id`` is
+    blank (no reviewer assigned) it returns ``None`` and adds nothing — flows
+    without a reviewer are unchanged.
+
+    A real ``approve``/``request_changes`` verdict must still come from an
+    actual review step via ``collect_review_evidence``; this assignment
+    artifact is deliberately not a substitute for that.
+    """
+
+    reviewer = str(reviewer_id or "").strip()
+    if not reviewer or reviewer.lower() == "unknown":
+        return None
+    summary = (
+        "reviewer assignment recorded (no verdict yet); a real review verdict "
+        "must come from an actual review step"
+    )
+    return ReviewEvidence(
+        reviewer_id=reviewer,
+        verdict="needs_owner",
+        diff_hash=diff_hash or "",
+        review_hash=sha256_hex(summary),
+        summary=summary,
+        contrarian_notes=(),
+    ).to_artifact()
+
+
 # ---------------------------------------------------------------------------
 # Rollback evidence
 # ---------------------------------------------------------------------------
@@ -429,5 +471,6 @@ __all__ = [
     "collect_test_evidence",
     "collect_secret_scan_evidence",
     "collect_review_evidence",
+    "collect_reviewer_assignment_evidence",
     "collect_rollback_evidence",
 ]

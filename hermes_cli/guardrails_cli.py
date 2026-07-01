@@ -255,6 +255,12 @@ def _collect(args: Any) -> dict:
     author_id = str(
         packet.get("acting_agent_id") or packet.get("author_id") or ""
     ).strip()
+    # Planned reviewer identity (an ASSIGNMENT, not a verdict — no review has run
+    # at collect time). Same identity namespace as author_id, for the strict
+    # review gate's Clause C19 builder ≠ reviewer check.
+    reviewer_id = str(
+        packet.get("reviewer_worker") or packet.get("reviewer_id") or ""
+    ).strip()
 
     diff_art = gc.collect_git_diff_evidence(
         repo_root, allowed, protected, author_id=author_id
@@ -268,6 +274,16 @@ def _collect(args: Any) -> dict:
         branch=str(diff_art.payload.get("branch") or ""),
     )
     artifacts = [diff_art, scan_art, rollback_art]
+    # When a reviewer is genuinely assigned, record a NON-approving reviewer-
+    # assignment artifact so C19's builder ≠ reviewer identity check is reachable.
+    # It fixes the verdict to ``needs_owner`` (never a spurious PASS) — a real
+    # approve/request_changes verdict must still come from an actual review step.
+    # No reviewer assigned ⇒ nothing is added and behavior is unchanged.
+    review_art = gc.collect_reviewer_assignment_evidence(
+        reviewer_id, diff_hash=str(diff_art.payload.get("head_commit") or "")
+    )
+    if review_art is not None:
+        artifacts.append(review_art)
     if getattr(args, "run_tests", False):
         artifacts.extend(gc.collect_test_evidence(repo_root, commands, run=True))
     return {
