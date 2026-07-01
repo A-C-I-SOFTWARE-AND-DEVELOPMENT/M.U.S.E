@@ -502,3 +502,94 @@ def test_gate_env_truthy_values(monkeypatch, truthy):
 def test_gate_env_falsy_values(monkeypatch, falsy):
     monkeypatch.setenv("MUSE_TOOL_BROKER", falsy)
     assert tool_broker_enabled() is False
+
+
+# ---------------------------------------------------------------------------
+# P1-4: "*" wildcard IDENTITY fallback (distinct from the "*" tool token)
+# ---------------------------------------------------------------------------
+
+
+class TestWildcardIdentityFallback:
+    def test_star_identity_grants_default_capability_set(self):
+        """An identity absent from the allowlist falls back to the ``"*"``
+        identity key's capability set. A random per-session UUID identity may
+        call a tool the ``"*"`` fallback lists — no fail-closed brick."""
+        broker = ToolBroker(allowlists={ALLOW_ALL: {SAFE_TOOL}})
+        decision = broker.evaluate(
+            ToolCallRequest(tool_name=SAFE_TOOL, identity="random-uuid-1234")
+        )
+        assert decision.verdict is BrokerVerdict.ALLOW
+
+    def test_star_identity_fallback_still_denies_unlisted_tool(self):
+        """The ``"*"`` fallback is a real allowlist, not a blanket ALLOW: a tool
+        it does NOT list is still denied for the unmatched identity."""
+        broker = ToolBroker(allowlists={ALLOW_ALL: {SAFE_TOOL}})
+        decision = broker.evaluate(
+            ToolCallRequest(tool_name="not_listed_tool", identity="random-uuid")
+        )
+        assert decision.verdict is BrokerVerdict.DENY
+        assert decision.error is not None
+        assert decision.error.code == "not_on_allowlist"
+
+    def test_exact_identity_takes_precedence_over_star(self):
+        """An identity with its own entry uses THAT entry, not the ``"*"``
+        fallback."""
+        broker = ToolBroker(
+            allowlists={"planner": {SAFE_TOOL}, ALLOW_ALL: {"other_tool"}}
+        )
+        # planner may call SAFE_TOOL (its own entry) ...
+        assert (
+            broker.evaluate(
+                ToolCallRequest(tool_name=SAFE_TOOL, identity="planner")
+            ).verdict
+            is BrokerVerdict.ALLOW
+        )
+        # ... but NOT other_tool, even though the "*" fallback lists it, because
+        # planner has an exact entry that takes precedence.
+        assert (
+            broker.evaluate(
+                ToolCallRequest(tool_name="other_tool", identity="planner")
+            ).verdict
+            is BrokerVerdict.DENY
+        )
+
+    def test_star_identity_may_be_wildcard_tool(self):
+        """``{"*": {"*"}}`` = any identity may call any tool (permissive default
+        allowlist used by the P1-5 'controls without an allowlist' path)."""
+        broker = ToolBroker(allowlists={ALLOW_ALL: {ALLOW_ALL}})
+        decision = broker.evaluate(
+            ToolCallRequest(tool_name="anything", identity="whoever")
+        )
+        assert decision.verdict is BrokerVerdict.ALLOW
+
+    def test_warns_once_when_identity_unmatched_and_no_star(self, caplog):
+        """When a runtime identity has no allowlist entry AND there is no ``"*"``
+        fallback, a warning is emitted once (not once per call)."""
+        import logging
+
+        broker = ToolBroker(allowlists={"planner": {SAFE_TOOL}})
+        with caplog.at_level(logging.WARNING):
+            for _ in range(3):
+                broker.evaluate(
+                    ToolCallRequest(tool_name=SAFE_TOOL, identity="ghost")
+                )
+        warnings = [
+            r for r in caplog.records
+            if r.levelno == logging.WARNING and "ghost" in r.getMessage()
+        ]
+        assert len(warnings) == 1
+        assert "no allowlist entry" in warnings[0].getMessage()
+
+    def test_no_warning_when_star_fallback_present(self, caplog):
+        """No 'unmatched identity' warning when a ``"*"`` fallback exists."""
+        import logging
+
+        broker = ToolBroker(allowlists={ALLOW_ALL: {SAFE_TOOL}})
+        with caplog.at_level(logging.WARNING):
+            broker.evaluate(
+                ToolCallRequest(tool_name=SAFE_TOOL, identity="ghost")
+            )
+        assert not [
+            r for r in caplog.records
+            if "no allowlist entry" in r.getMessage()
+        ]

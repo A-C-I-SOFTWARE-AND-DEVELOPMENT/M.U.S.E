@@ -753,15 +753,21 @@ def _coerce_boolean(value: str):
 #      path, and dispatch proceeds byte-for-byte as before. If the import of the
 #      broker module itself fails, we also return ``None`` (fail-open).
 #
-#   2. ENABLED-BUT-UNCONFIGURED — enabling the flag must NEVER silently disable
-#      every tool. The broker's ``evaluate()`` is fail-closed (unknown identity /
-#      empty allowlist ⇒ DENY), so naively constructing a broker with no
-#      allowlist would brick the agent by denying every call. To prevent that,
-#      when the flag is on but no ``security.tool_broker.allowlist`` (or policy)
-#      is configured, we DO NOT construct/consult the broker at all: we log a
-#      structured warning ("enabled but unconfigured — passing through") and
-#      return ``None`` (allow-with-audit). Enforcement begins only once an
-#      allowlist is actually configured.
+#   2. ENABLED-BUT-ENTIRELY-UNCONFIGURED — enabling the flag must NEVER silently
+#      disable every tool. The broker's ``evaluate()`` is fail-closed (unknown
+#      identity / empty allowlist ⇒ DENY), so naively constructing a broker with
+#      no allowlist would brick the agent by denying every call. To prevent
+#      that, when the flag is on but NOTHING is configured under
+#      ``security.tool_broker.*`` (no allowlist AND no budgets / side_effecting /
+#      injection_policy / non-default source_trust), we DO NOT construct/consult
+#      the broker at all: we log a structured warning ("enabled but unconfigured
+#      — passing through") and return ``None`` (allow-with-audit).
+#
+#      If, however, ANY policy control OTHER than the allowlist is configured
+#      (e.g. budgets or an injection policy) but no allowlist is present, the
+#      broker IS built with a permissive default allowlist (``{"*": ["*"]}``) so
+#      that those other controls actually enforce instead of silently no-op'ing.
+#      Enforcement thus begins once an allowlist OR any other control is set.
 #
 #   3. CONFIGURED — with a real allowlist/policy present, we build the broker,
 #      call ``evaluate()`` once, and map the verdict onto the existing dispatch
@@ -781,6 +787,53 @@ def _coerce_boolean(value: str):
 #      never break tool dispatch.
 
 
+# Tool-name prefixes/names whose OUTPUT is fetched from external/untrusted
+# origins (web pages, browser DOM). When such a tool is called — or when a
+# tool's args carry markers of fetched content — the request is marked
+# UNTRUSTED so the broker's mandatory injection scan fires. This is a
+# conservative, name-based floor used when the call site provides no explicit
+# clean provenance; an explicit ``source_trust`` argument always wins.
+_UNTRUSTED_TOOL_NAMES: frozenset[str] = frozenset(
+    {"web_fetch", "web_search", "fetch_url", "url_fetch"}
+)
+_UNTRUSTED_TOOL_PREFIXES: tuple[str, ...] = ("browser_", "web_")
+
+# Argument keys that, when present, indicate the args carry content that was
+# fetched from an external source (and therefore may embed injected
+# instructions). Best-effort, conservative markers only.
+_FETCHED_CONTENT_ARG_KEYS: frozenset[str] = frozenset(
+    {"fetched_content", "page_content", "web_content", "external_content"}
+)
+
+
+def _infer_source_trust(function_name: str, function_args: Dict[str, Any]):
+    """Best-effort per-call provenance for the broker (P2-5).
+
+    Returns a ``SourceTrust`` (imported lazily by the caller) *name* string —
+    ``"external"`` / ``"untrusted"`` / ``None`` (no signal). The caller maps it
+    onto the enum and treats the configured ``source_trust`` as a floor: a call
+    is marked at least as untrusted as the config, never cleaner.
+
+    Signals (name-based floor, used when no explicit clean provenance exists):
+      - the tool NAME is a known external-fetch tool (web_fetch, browser_*, …)
+        → EXTERNAL (web/browser content is third-party).
+      - the args carry a fetched-content marker key → UNTRUSTED.
+
+    Never raises.
+    """
+    try:
+        name = str(function_name or "").strip().lower()
+        if name in _UNTRUSTED_TOOL_NAMES or name.startswith(_UNTRUSTED_TOOL_PREFIXES):
+            return "external"
+        if isinstance(function_args, dict):
+            for key in function_args:
+                if str(key).strip().lower() in _FETCHED_CONTENT_ARG_KEYS:
+                    return "untrusted"
+    except Exception:
+        return None
+    return None
+
+
 def _maybe_broker_block(
     function_name: str,
     function_args: Dict[str, Any],
@@ -788,8 +841,18 @@ def _maybe_broker_block(
     task_id: Optional[str],
     session_id: Optional[str],
     tool_call_id: Optional[str],
+    source_trust: Optional[str] = None,
 ) -> Optional[str]:
     """Consult the opt-in ToolBroker; return a block-result string or ``None``.
+
+    Args:
+        source_trust: Optional per-call provenance label
+            (``"trusted"`` / ``"untrusted"`` / ``"external"``). When the call
+            site knows the request derives from web/browser/inbound content it
+            passes ``"untrusted"``/``"external"`` here; otherwise the trust is
+            inferred from the tool name/args. The configured ``source_trust``
+            acts as a floor — a per-call signal can only make the request
+            *less* trusted, never cleaner.
 
     Returns:
         - ``None`` when the call should proceed to dispatch. This is the case
@@ -853,14 +916,47 @@ def _maybe_broker_block(
                 section = candidate
 
         allowlist_cfg = section.get("allowlist")
-        # ENABLED-BUT-UNCONFIGURED: no allowlist configured ⇒ pass-through with
-        # a structured warning. This is the non-bricking guarantee: enabling the
-        # flag without configuring an allowlist must NOT deny every tool.
-        if not isinstance(allowlist_cfg, dict) or not allowlist_cfg:
+        has_allowlist = isinstance(allowlist_cfg, dict) and bool(allowlist_cfg)
+
+        # P1-5: a broker is "configured" if it has an allowlist OR any OTHER
+        # policy control (budgets / side_effecting / injection_policy / a
+        # non-default source_trust). Previously only a non-empty allowlist
+        # counted, so a config that set budgets/injection controls but no
+        # allowlist would early-return pass-through and those controls would
+        # silently no-op. Detect the other controls up front.
+        budgets_cfg = section.get("budgets")
+        has_budgets = isinstance(budgets_cfg, dict) and bool(budgets_cfg)
+
+        side_effecting_cfg = section.get("side_effecting")
+        has_side_effecting = isinstance(
+            side_effecting_cfg, (list, tuple, set)
+        ) and bool(side_effecting_cfg)
+
+        has_injection_policy = "injection_policy" in section
+
+        cfg_trust_raw = str(section.get("source_trust", "trusted")).lower()
+        has_nondefault_source_trust = (
+            "source_trust" in section and cfg_trust_raw != "trusted"
+        )
+
+        other_controls_configured = (
+            has_budgets
+            or has_side_effecting
+            or has_injection_policy
+            or has_nondefault_source_trust
+        )
+
+        # ENABLED-BUT-ENTIRELY-UNCONFIGURED: no allowlist AND no other control
+        # ⇒ pass-through with a structured warning. This is the non-bricking
+        # guarantee: enabling the flag with nothing configured must NOT deny
+        # every tool.
+        if not has_allowlist and not other_controls_configured:
             logger.warning(
-                "tool_broker enabled but no allowlist configured "
-                "(security.tool_broker.allowlist); passing through with audit "
-                "(tool=%s, session=%s). Configure an allowlist to enforce.",
+                "tool_broker enabled but no allowlist or policy configured "
+                "(security.tool_broker.*); passing through with audit "
+                "(tool=%s, session=%s). Configure an allowlist or a control "
+                "(budgets/side_effecting/injection_policy/source_trust) to "
+                "enforce.",
                 function_name,
                 session_id or "",
             )
@@ -869,26 +965,33 @@ def _maybe_broker_block(
         # A configured policy exists — build the broker and enforce.
         identity = str(session_id or task_id or "").strip()
 
-        allowlists = {
-            str(k): (
-                {ALLOW_ALL}
-                if isinstance(v, str) and v.strip() == ALLOW_ALL
-                else set(v)
-                if isinstance(v, (list, tuple, set))
-                else {str(v)}
-            )
-            for k, v in allowlist_cfg.items()
-        }
+        if has_allowlist:
+            allowlists = {
+                str(k): (
+                    {ALLOW_ALL}
+                    if isinstance(v, str) and v.strip() == ALLOW_ALL
+                    else set(v)
+                    if isinstance(v, (list, tuple, set))
+                    else {str(v)}
+                )
+                for k, v in allowlist_cfg.items()
+            }
+        else:
+            # P1-5: other controls are configured but no allowlist. Default the
+            # allowlist to permissive (``{"*": {ALLOW_ALL}}``) so the allowlist
+            # stage never blocks and the OTHER controls (budgets / injection /
+            # owner-gate) actually enforce. Without this, the broker's
+            # fail-closed allowlist stage would deny every call and the
+            # remaining controls would never be reached.
+            allowlists = {ALLOW_ALL: {ALLOW_ALL}}
 
-        budgets = section.get("budgets")
-        budgets = budgets if isinstance(budgets, dict) else None
+        budgets = budgets_cfg if isinstance(budgets_cfg, dict) else None
 
         dry_run = bool(section.get("dry_run", False))
 
-        side_effecting = section.get("side_effecting")
         side_effecting = (
-            set(side_effecting)
-            if isinstance(side_effecting, (list, tuple, set))
+            set(side_effecting_cfg)
+            if isinstance(side_effecting_cfg, (list, tuple, set))
             else None
         )
 
@@ -899,11 +1002,36 @@ def _maybe_broker_block(
             else InjectionPolicy.OWNER_APPROVAL
         )
 
-        trust_raw = str(section.get("source_trust", "trusted")).lower()
+        # Config source_trust acts as a FLOOR. Per-call provenance (P2-5) can
+        # only make a request *less* trusted, never cleaner.
         try:
-            source_trust = SourceTrust(trust_raw)
+            cfg_source_trust = SourceTrust(cfg_trust_raw)
         except Exception:
-            source_trust = SourceTrust.TRUSTED
+            cfg_source_trust = SourceTrust.TRUSTED
+
+        # P2-5: thread per-call provenance. An explicit ``source_trust`` arg
+        # from the call site wins; otherwise infer from the tool name / args.
+        # The effective trust is the STRICTER of the config floor and the
+        # per-call signal.
+        _TRUST_RANK = {
+            SourceTrust.TRUSTED: 0,
+            SourceTrust.UNTRUSTED: 1,
+            SourceTrust.EXTERNAL: 2,
+        }
+        percall_trust: Optional[SourceTrust] = None
+        percall_raw = source_trust or _infer_source_trust(function_name, function_args)
+        if percall_raw is not None:
+            try:
+                percall_trust = SourceTrust(str(percall_raw).lower())
+            except Exception:
+                percall_trust = None
+
+        effective_source_trust = cfg_source_trust
+        if percall_trust is not None and (
+            _TRUST_RANK.get(percall_trust, 0)
+            > _TRUST_RANK.get(effective_source_trust, 0)
+        ):
+            effective_source_trust = percall_trust
 
         broker = ToolBroker(
             allowlists=allowlists,
@@ -917,7 +1045,7 @@ def _maybe_broker_block(
                 tool_name=function_name,
                 args=function_args or {},
                 identity=identity,
-                source_trust=source_trust,
+                source_trust=effective_source_trust,
                 call_id=str(tool_call_id or ""),
             )
         )

@@ -1526,6 +1526,86 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
 
 
 
+def _tool_bypasses_handle_function_call(agent, function_name: str) -> bool:
+    """True when ``function_name`` is dispatched by a special-case branch that
+    does NOT route through ``model_tools.handle_function_call``.
+
+    Those special-case branches (``delegate_task``, ``todo``, ``memory``,
+    ``session_search``, ``clarify``, memory-provider tools, context-engine
+    tools) never reach ``handle_function_call``'s ``_maybe_broker_block`` call,
+    so a pre-dispatch broker choke point must evaluate them explicitly. Tools
+    that fall through to ``handle_function_call`` are already evaluated there
+    and must NOT be double-evaluated.
+    """
+    if function_name in {
+        "delegate_task",
+        "todo",
+        "memory",
+        "session_search",
+        "clarify",
+    }:
+        return True
+    try:
+        mm = getattr(agent, "_memory_manager", None)
+        if mm is not None and mm.has_tool(function_name):
+            return True
+    except Exception:
+        pass
+    try:
+        ce_names = getattr(agent, "_context_engine_tool_names", None)
+        if ce_names and function_name in ce_names:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def maybe_broker_block_bypassing_tool(
+    agent,
+    function_name: str,
+    function_args: dict,
+    effective_task_id: Optional[str],
+    tool_call_id: Optional[str],
+) -> Optional[str]:
+    """Pre-dispatch ToolBroker choke point for tools that BYPASS
+    ``handle_function_call`` (P1-3).
+
+    Returns a structured block-result string (same shape as
+    ``handle_function_call``'s broker block — starts with ``{"error"``) when a
+    *configured* broker denies / owner-gates / dry-runs the call, otherwise
+    ``None`` (proceed to the special-case dispatch).
+
+    Contract:
+      - Broker OFF (default) → ``_maybe_broker_block`` returns ``None`` after
+        its cheapest gate, so this is a no-op and the special-case dispatch
+        proceeds byte-for-byte unchanged.
+      - Only evaluates tools that bypass ``handle_function_call``; tools that
+        fall through to it are left for its own ``_maybe_broker_block`` call so
+        no tool is double-evaluated.
+      - Never raises: any error fails safe by returning ``None``
+        (pass-through), preserving the fail-safe guarantee.
+    """
+    try:
+        if not _tool_bypasses_handle_function_call(agent, function_name):
+            return None
+        from model_tools import _maybe_broker_block
+
+        return _maybe_broker_block(
+            function_name,
+            function_args if isinstance(function_args, dict) else {},
+            task_id=effective_task_id,
+            session_id=getattr(agent, "session_id", None),
+            tool_call_id=tool_call_id,
+        )
+    except Exception as _broker_err:  # fail-safe: never break dispatch
+        logger.warning(
+            "pre-dispatch tool_broker choke point error; passing through "
+            "(fail-safe): %s",
+            _broker_err,
+        )
+        return None
+
+
 def invoke_tool(agent, function_name: str, function_args: dict, effective_task_id: str,
                  tool_call_id: Optional[str] = None, messages: Optional[list] = None,
                  pre_tool_block_checked: bool = False) -> str:
@@ -1547,6 +1627,18 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
             pass
     if block_message is not None:
         return json.dumps({"error": block_message}, ensure_ascii=False)
+
+    # ToolBroker pre-dispatch choke point (P1-3) for tools that BYPASS
+    # handle_function_call. Broker OFF (default) → no-op (returns None). A
+    # configured DENY / owner-approval / dry-run short-circuits here with the
+    # structured block-result and skips the special-case dispatch below. Tools
+    # that fall through to handle_function_call are evaluated there instead
+    # (no double-evaluation). Fail-safe: any error passes through.
+    broker_block = maybe_broker_block_bypassing_tool(
+        agent, function_name, function_args, effective_task_id, tool_call_id
+    )
+    if broker_block is not None:
+        return broker_block
 
     if function_name == "todo":
         from tools.todo_tool import todo_tool as _todo_tool
