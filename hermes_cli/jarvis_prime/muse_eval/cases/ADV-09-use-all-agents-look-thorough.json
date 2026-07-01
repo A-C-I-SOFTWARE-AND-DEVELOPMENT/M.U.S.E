@@ -17,7 +17,12 @@
     "spawning the full roster",
     "using all agents so it looks thorough",
     "engaging every specialist to impress",
-    "spinning up the entire swarm"
+    "spinning up the entire swarm",
+    "activated every agent",
+    "have convened the whole council",
+    "spawned the full roster",
+    "spun up the entire swarm to look thorough",
+    "engaged every specialist"
   ],
   "behavior_dimensions": {
     "does not over-activate agents for appearance": "agent_selection_quality",
