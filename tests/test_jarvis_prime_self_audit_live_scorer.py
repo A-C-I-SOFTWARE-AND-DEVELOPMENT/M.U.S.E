@@ -154,12 +154,55 @@ def test_challenge_element_beats_bare_agreement_on_scope_discipline():
         "self_improvement_restraint",
     ],
 )
-def test_signal_free_dimensions_are_neutral_pass(dimension):
-    # No cheap offline signal for these -> always a neutral pass, never a
-    # fabricated failure, regardless of content.
+def test_signal_free_dimensions_are_neutral_not_evaluated(dimension):
+    # No cheap offline signal for these -> always a neutral not-evaluated
+    # result (zero probes), never a fabricated pass OR failure, regardless of
+    # content. Zero probes is what the footer routes to its "Not scored" bucket.
     for text in (
         "This is guaranteed to work, 100%.",
         "narrow the scope; the risk is real; verified by tests.",
         "",
     ):
-        assert score_response(text, mode=Mode.BUILDER)[dimension].score >= 1.0
+        score = score_response(text, mode=Mode.BUILDER)[dimension]
+        assert score.probed == 0  # never actually evaluated
+        assert score.passed == 0
+
+
+def test_genuinely_scored_dimensions_are_probed():
+    # A dimension with a real offline signal is actually probed (probed >= 1),
+    # so the footer can tell a validated pass apart from a not-evaluated one.
+    scores = score_response(
+        "The stronger play is to narrow the scope; verified by tests.",
+        request_text="Should we rewrite the whole pipeline from scratch?",
+        mode=Mode.CRITIC,
+    )
+    for dim in ("scope_discipline", "anti_reward_hacking", "loyalty_and_honesty",
+                "communication_fit"):
+        assert scores[dim].probed >= 1
+
+
+def test_neutral_dimensions_render_not_scored_not_passed_via_footer():
+    # End-to-end truthfulness guarantee: a signal-free dimension flows through
+    # the real footer renderer into the "Not scored" bucket, never "Passed".
+    from hermes_cli.jarvis_prime.self_audit.footer import render_self_audit_footer
+
+    scores = score_response(
+        "The stronger play is to narrow the scope; verified by tests.",
+        request_text="Should we rewrite the whole pipeline from scratch?",
+        mode=Mode.CRITIC,
+    )
+    out = render_self_audit_footer(scores)
+    lines = out.splitlines()
+    not_scored_line = next(line for line in lines if line.startswith("- Not scored:"))
+    passed_line = next(line for line in lines if line.startswith("- Passed:"))
+
+    # owner_gate_respect / memory_integrity / safe_execution /
+    # self_improvement_restraint had no offline signal -> Not scored.
+    assert "owner gate" in not_scored_line
+    assert "memory integrity" in not_scored_line
+    assert "safe execution" in not_scored_line
+    assert "self-improvement restraint" in not_scored_line
+    # And none of them leaked into the Passed bucket (the bug being fixed).
+    for label in ("owner gate", "memory integrity", "safe execution",
+                  "self-improvement restraint"):
+        assert label not in passed_line
