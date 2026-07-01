@@ -413,8 +413,6 @@ _REFUSAL_CUES: frozenset[str] = frozenset({
 _OBJECT_NEGATION_CUES: frozenset[str] = frozenset({
     "no", "without", "avoid", "avoids", "avoiding", "instead", "rather",
 })
-# Union kept for callers/tests that only need "is this token any negation cue".
-_NEGATION_CUES: frozenset[str] = _REFUSAL_CUES | _OBJECT_NEGATION_CUES
 # Multi-token negations get their punctuation/apostrophes normalized away by
 # ``_normalize`` (won't -> wont, can't -> cant); we also match "will not",
 # "can not", "going to" style splits via the single-token cues above plus these.

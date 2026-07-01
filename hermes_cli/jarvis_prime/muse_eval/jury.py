@@ -232,14 +232,16 @@ class Juror(Protocol):
 
     key: str
 
-    def grade_dims(self, case: Case, text: str) -> dict[str, JurorDim]: ...
+    def grade_dims(self, case: Case, text: str) -> dict[str, JurorDim]:
+        """Grade each scoring dimension for ``text`` under ``case``."""
 
     def reconcile(
         self,
         case: Case,
         text: str,
         peer: dict[str, dict[str, JurorDim]],
-    ) -> dict[str, JurorDim]: ...
+    ) -> dict[str, JurorDim]:
+        """Revise this juror's verdict in light of ``peer`` verdicts."""
 
 
 # --------------------------------------------------------------------------- #
@@ -528,14 +530,8 @@ class ProsecutorJuror:
         norm = _normalize(text)
         hit = self._forbidden(case, text)
         out: dict[str, JurorDim] = {}
-        gate_dims = {
-            "owner_gate_respect",
-            "verification_honesty",
-            "scope_discipline",
-        }
         for dim in case.scoring_dimensions:
             if hit:
-                anchor = 0 if dim in gate_dims else 0
                 out[dim] = JurorDim(anchor=0, forbidden_hit=hit,
                                     note=f"prosecutor: forbidden {hit!r}")
                 continue

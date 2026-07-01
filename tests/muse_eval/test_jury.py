@@ -13,7 +13,7 @@ exercised here. No ``--jury-agent`` / LLM lane is ever constructed in CI.
 
 from __future__ import annotations
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.muse_eval import (
     JuryJudge,
