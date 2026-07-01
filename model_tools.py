@@ -738,6 +738,236 @@ def _coerce_boolean(value: str):
     return value
 
 
+# =============================================================================
+# ToolBroker capability-firewall guard (opt-in, default-OFF, non-bricking)
+# =============================================================================
+#
+# The ToolBroker (hermes_cli/jarvis_prime/tool_broker.py) is an additive,
+# identity-scoped capability wall in front of tool dispatch. It is wired here
+# but gated so that:
+#
+#   1. DEFAULT (flag OFF) — ``_maybe_broker_block`` returns ``None`` immediately
+#      after the cheapest possible check (``tool_broker_enabled``, which honors
+#      the ``MUSE_TOOL_BROKER`` env var and only reads config when needed). No
+#      broker is constructed, no config is loaded on the env-var-off/config-off
+#      path, and dispatch proceeds byte-for-byte as before. If the import of the
+#      broker module itself fails, we also return ``None`` (fail-open).
+#
+#   2. ENABLED-BUT-UNCONFIGURED — enabling the flag must NEVER silently disable
+#      every tool. The broker's ``evaluate()`` is fail-closed (unknown identity /
+#      empty allowlist ⇒ DENY), so naively constructing a broker with no
+#      allowlist would brick the agent by denying every call. To prevent that,
+#      when the flag is on but no ``security.tool_broker.allowlist`` (or policy)
+#      is configured, we DO NOT construct/consult the broker at all: we log a
+#      structured warning ("enabled but unconfigured — passing through") and
+#      return ``None`` (allow-with-audit). Enforcement begins only once an
+#      allowlist is actually configured.
+#
+#   3. CONFIGURED — with a real allowlist/policy present, we build the broker,
+#      call ``evaluate()`` once, and map the verdict onto the existing dispatch
+#      block shape (``json.dumps({"error": ...})``) — the exact contract the
+#      pre_tool_call block hook already uses — so we reuse the existing
+#      short-circuit mechanism instead of inventing a competing one:
+#        * ALLOW / DRY_RUN            → return ``None`` (proceed to dispatch)
+#        * DENY                        → structured "blocked by ToolBroker" result
+#        * REQUIRES_OWNER_APPROVAL     → structured owner-approval block result
+#          (the model is told the owner must authorize; we do not invent a new
+#          interactive approval channel here — this reuses the block-result
+#          contract, and a future step can route it through ACP/approval_policy)
+#
+#   4. FAIL-SAFE — ``evaluate()`` is documented never to raise, but the whole
+#      guard is wrapped so ANY unexpected error (import, config, evaluate) fails
+#      SAFE by passing through (return ``None``) with a warning. A broker bug can
+#      never break tool dispatch.
+
+
+def _maybe_broker_block(
+    function_name: str,
+    function_args: Dict[str, Any],
+    *,
+    task_id: Optional[str],
+    session_id: Optional[str],
+    tool_call_id: Optional[str],
+) -> Optional[str]:
+    """Consult the opt-in ToolBroker; return a block-result string or ``None``.
+
+    Returns:
+        - ``None`` when the call should proceed to dispatch. This is the case
+          for: flag OFF (default), enabled-but-unconfigured (pass-through with
+          warning), an ALLOW/DRY_RUN verdict, or any fail-safe error path.
+        - A JSON error string (same shape as the pre_tool_call block hook) when
+          a *configured* broker returns DENY or REQUIRES_OWNER_APPROVAL. The
+          caller must return this verbatim and skip dispatch.
+
+    Never raises: every failure mode falls through to ``None`` (pass-through).
+    """
+    try:
+        from hermes_cli.jarvis_prime.tool_broker import tool_broker_enabled
+    except Exception as _imp_err:  # pragma: no cover - broker module optional
+        logger.debug("tool_broker import failed; passing through: %s", _imp_err)
+        return None
+
+    # Cheapest possible gate. With no env var and no config this returns False
+    # without loading config, so the default (flag-OFF) path adds one function
+    # call and nothing else — dispatch stays byte-for-byte unchanged.
+    try:
+        if not tool_broker_enabled():
+            # Env var not forcing ON; consult config only now.
+            try:
+                from hermes_cli.config import load_config_readonly
+
+                user_config = load_config_readonly()
+            except Exception:
+                user_config = None
+            if not tool_broker_enabled(user_config):
+                return None
+        else:
+            # Env var forced it ON; still want config for the allowlist/policy.
+            try:
+                from hermes_cli.config import load_config_readonly
+
+                user_config = load_config_readonly()
+            except Exception:
+                user_config = None
+    except Exception as _gate_err:  # fail-safe: never break dispatch
+        logger.warning("tool_broker gate error; passing through: %s", _gate_err)
+        return None
+
+    # Flag is ON past this point. Everything below is fail-safe.
+    try:
+        from hermes_cli.jarvis_prime.tool_broker import (
+            ALLOW_ALL,
+            BrokerVerdict,
+            InjectionPolicy,
+            SourceTrust,
+            ToolBroker,
+            ToolCallRequest,
+        )
+
+        section = {}
+        security = (user_config or {}).get("security") if user_config else None
+        if isinstance(security, dict):
+            candidate = security.get("tool_broker")
+            if isinstance(candidate, dict):
+                section = candidate
+
+        allowlist_cfg = section.get("allowlist")
+        # ENABLED-BUT-UNCONFIGURED: no allowlist configured ⇒ pass-through with
+        # a structured warning. This is the non-bricking guarantee: enabling the
+        # flag without configuring an allowlist must NOT deny every tool.
+        if not isinstance(allowlist_cfg, dict) or not allowlist_cfg:
+            logger.warning(
+                "tool_broker enabled but no allowlist configured "
+                "(security.tool_broker.allowlist); passing through with audit "
+                "(tool=%s, session=%s). Configure an allowlist to enforce.",
+                function_name,
+                session_id or "",
+            )
+            return None
+
+        # A configured policy exists — build the broker and enforce.
+        identity = str(session_id or task_id or "").strip()
+
+        allowlists = {
+            str(k): (
+                {ALLOW_ALL}
+                if isinstance(v, str) and v.strip() == ALLOW_ALL
+                else set(v)
+                if isinstance(v, (list, tuple, set))
+                else {str(v)}
+            )
+            for k, v in allowlist_cfg.items()
+        }
+
+        budgets = section.get("budgets")
+        budgets = budgets if isinstance(budgets, dict) else None
+
+        dry_run = bool(section.get("dry_run", False))
+
+        side_effecting = section.get("side_effecting")
+        side_effecting = (
+            set(side_effecting)
+            if isinstance(side_effecting, (list, tuple, set))
+            else None
+        )
+
+        policy_raw = str(section.get("injection_policy", "owner_approval")).lower()
+        injection_policy = (
+            InjectionPolicy.DENY
+            if policy_raw == "deny"
+            else InjectionPolicy.OWNER_APPROVAL
+        )
+
+        trust_raw = str(section.get("source_trust", "trusted")).lower()
+        try:
+            source_trust = SourceTrust(trust_raw)
+        except Exception:
+            source_trust = SourceTrust.TRUSTED
+
+        broker = ToolBroker(
+            allowlists=allowlists,
+            budgets=budgets,
+            dry_run=dry_run,
+            injection_policy=injection_policy,
+            side_effecting_tools=side_effecting,
+        )
+        decision = broker.evaluate(
+            ToolCallRequest(
+                tool_name=function_name,
+                args=function_args or {},
+                identity=identity,
+                source_trust=source_trust,
+                call_id=str(tool_call_id or ""),
+            )
+        )
+
+        if decision.verdict in (BrokerVerdict.ALLOW, BrokerVerdict.DRY_RUN):
+            return None
+
+        if decision.verdict is BrokerVerdict.REQUIRES_OWNER_APPROVAL:
+            logger.info(
+                "tool_broker requires owner approval: tool=%s identity=%s reason=%s",
+                function_name,
+                identity,
+                decision.reason,
+            )
+            return json.dumps(
+                {
+                    "error": (
+                        f"Tool '{function_name}' requires owner approval "
+                        f"(ToolBroker): {decision.reason}. This call was not "
+                        f"executed. The owner must authorize it before it can run."
+                    ),
+                    "tool_broker": decision.to_dict(),
+                },
+                ensure_ascii=False,
+            )
+
+        # DENY (or any other non-allow verdict) from a configured policy.
+        logger.info(
+            "tool_broker denied tool call: tool=%s identity=%s reason=%s",
+            function_name,
+            identity,
+            decision.reason,
+        )
+        return json.dumps(
+            {
+                "error": (
+                    f"Tool '{function_name}' blocked by ToolBroker: "
+                    f"{decision.reason}. This call was not executed."
+                ),
+                "tool_broker": decision.to_dict(),
+            },
+            ensure_ascii=False,
+        )
+    except Exception as _broker_err:  # fail-safe: never break dispatch
+        logger.warning(
+            "tool_broker evaluation error; passing through (fail-safe): %s",
+            _broker_err,
+        )
+        return None
+
+
 def handle_function_call(
     function_name: str,
     function_args: Dict[str, Any],
@@ -811,6 +1041,24 @@ def handle_function_call(
             logger.debug("ACP edit approval guard error: %s", _edit_approval_err)
             if function_name in {"write_file", "patch"}:
                 return json.dumps({"error": "Edit approval denied: approval guard failed"}, ensure_ascii=False)
+
+        # ToolBroker capability firewall (opt-in, default-OFF, non-bricking).
+        # When the flag is OFF this is a single function call that returns None
+        # immediately, so default dispatch is byte-for-byte unchanged. When ON
+        # but no allowlist is configured it passes through with a warning (never
+        # bricks). When ON and configured, a DENY / REQUIRES_OWNER_APPROVAL
+        # verdict short-circuits here with the same block-result shape the
+        # pre_tool_call hook uses, skipping dispatch. Any error fails safe
+        # (pass-through). See _maybe_broker_block for the full contract.
+        broker_block_message = _maybe_broker_block(
+            function_name,
+            function_args,
+            task_id=task_id,
+            session_id=session_id,
+            tool_call_id=tool_call_id,
+        )
+        if broker_block_message is not None:
+            return broker_block_message
 
         # Notify the read-loop tracker when a non-read/search tool runs,
         # so the *consecutive* counter resets (reads after other work are fine).
