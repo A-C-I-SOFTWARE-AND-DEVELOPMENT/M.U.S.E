@@ -40,11 +40,10 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 # Environment override for the opt-in flag (mirrors MUSE_* runtime flags).
 _ENV_FLAG = "MUSE_SELF_AUDIT_FOOTER"
 
-# A dimension whose pass-rate is at or above this is reported as "Passed".
-# Below the watch floor it is a "Watch" line. This is a display threshold only;
-# it never changes any gate or verdict.
+# A dimension whose pass-rate is at or above this is reported as "Passed";
+# anything below it (any failure) is a "Watch" line. This is a display
+# threshold only; it never changes any gate or verdict.
 _PASS_THRESHOLD = 1.0
-_WATCH_FLOOR = 0.0  # anything with a failure (score < 1.0) is a watch item
 
 # Human-readable labels for the Constitution's machine dimension names. Falls
 # back to a de-underscored form for any dimension not listed (so a new

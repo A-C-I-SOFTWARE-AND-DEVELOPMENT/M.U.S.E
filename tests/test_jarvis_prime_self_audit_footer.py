@@ -189,23 +189,72 @@ def test_build_skips_effort_check_when_none(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# No model call on the hot path — the renderer is pure and offline
+# Rendering is deterministic and offline — no model / network dependency
 # ---------------------------------------------------------------------------
 
-def test_rendering_makes_no_model_call(monkeypatch):
-    """Any accidental model invocation would raise, proving offline rendering."""
+def test_render_is_deterministic_offline():
+    """Drive footer.py's real render path from a fixed input and assert exact,
+    repeatable output — no model, no randomness.
 
-    def _boom(*args, **kwargs):  # pragma: no cover - must never run
-        raise AssertionError("self-audit footer must not call a model")
+    This exercises ``render_self_audit_footer`` directly (the same function the
+    gated ``build_self_audit_footer`` calls). Because the expected string is
+    pinned, the test FAILS if someone later makes render non-deterministic —
+    e.g. by folding in a model call to derive the grouping or improvement line.
+    """
+    scores = _scores(
+        evidence_grounding=(2, 2),     # full pass  -> Passed
+        scope_discipline=(2, 2),       # full pass  -> Passed
+        verification_honesty=(2, 1),   # a failure  -> Watch
+    )
+    expected = (
+        "Self-audit:\n"
+        "- Passed: evidence, scope\n"
+        "- Watch: verification\n"
+        "- Improvement: route to Product Experience earlier next time"
+    )
+    first = render_self_audit_footer(
+        scores,
+        improvement="route to Product Experience earlier next time",
+    )
+    second = render_self_audit_footer(
+        scores,
+        improvement="route to Product Experience earlier next time",
+    )
+    assert first == expected
+    assert first == second  # deterministic: identical input -> identical output
 
-    # Poison the LLM lane callables; the renderer must never touch them.
-    import hermes_cli.jarvis_prime.self_audit.llm_lane as llm_lane
 
-    monkeypatch.setattr(llm_lane, "llm_judge", _boom, raising=False)
-    monkeypatch.setattr(llm_lane, "llm_target", _boom, raising=False)
-    monkeypatch.setattr(llm_lane, "llm_auditor", _boom, raising=False)
-    monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+def test_offline_auditor_to_render_needs_no_model_or_network():
+    """The canonical offline proof: the deterministic ``run_report`` auditor ->
+    ``render_self_audit_footer`` path runs to completion with the network and
+    the LLM lane's model callables poisoned to raise on use.
 
-    scores = _scores(evidence_grounding=(2, 2), verification_honesty=(2, 1))
-    out = build_self_audit_footer(scores, user_config={}, effort=EffortClass.E4)
+    footer.py never imports ``llm_lane``, so this guards the *whole* pipeline:
+    if any step (auditor or renderer) grew a model/network call, one of the
+    poisoned hooks would fire and this test would fail.
+    """
+    import socket
+
+    def _no_network(*args, **kwargs):  # pragma: no cover - must never run
+        raise AssertionError("self-audit footer path must not open a socket")
+
+    def _no_model(*args, **kwargs):  # pragma: no cover - must never run
+        raise AssertionError("self-audit footer path must not call a model")
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(socket.socket, "connect", _no_network, raising=False)
+        # Poison the LLM lane so any accidental model call anywhere in the
+        # offline auditor -> render path raises instead of silently running.
+        import hermes_cli.jarvis_prime.self_audit.llm_lane as llm_lane
+
+        mp.setattr(llm_lane, "llm_judge", _no_model, raising=False)
+        mp.setattr(llm_lane, "llm_target", _no_model, raising=False)
+        mp.setattr(llm_lane, "llm_auditor", _no_model, raising=False)
+
+        report = run_report(
+            list(SEEDS), noncompliant_target, run_id="audit_footer_offline"
+        )
+        out = render_self_audit_footer(report)
+
     assert "Self-audit:" in out
+    assert "- Watch:" in out  # a noncompliant target yields at least one watch
