@@ -218,6 +218,46 @@ class TestConfiguredDeny:
 
 
 # ---------------------------------------------------------------------------
+# 4b. Flag ON + dry_run → structured PREVIEW block, tool never dispatched
+# ---------------------------------------------------------------------------
+
+class TestConfiguredDryRun:
+    def test_dry_run_previews_and_does_not_dispatch(self, monkeypatch):
+        """dry_run mode downgrades an otherwise-ALLOW decision to DRY_RUN. A
+        DRY_RUN is a PREVIEW, not an execute grant: dispatch must be SKIPPED and
+        a structured block-result returned. Regression guard for the inverted
+        safety knob where DRY_RUN fell through to dispatch and ran for real."""
+        monkeypatch.delenv("MUSE_TOOL_BROKER", raising=False)
+
+        # SAFE_TOOL is on the allowlist (would ALLOW), but dry_run is on → the
+        # broker returns DRY_RUN instead of ALLOW.
+        cfg = _cfg(allowlist={"sess-1": [SAFE_TOOL]}, dry_run=True)
+        with (
+            patch("model_tools.registry.dispatch", return_value='{"ok":true}') as disp,
+            patch("hermes_cli.config.load_config_readonly", return_value=cfg),
+        ):
+            raw = handle_function_call(
+                SAFE_TOOL, {"path": "x.txt"}, task_id="t1", session_id="sess-1"
+            )
+
+        # A structured block-result was returned (same contract as DENY:
+        # starts with the "error" key so the flywheel failure check matches).
+        assert raw.startswith('{"error"')
+        parsed = json.loads(raw)
+        assert "error" in parsed
+        # The message clearly names the tool and says it was a dry-run preview
+        # with no side effect performed.
+        assert SAFE_TOOL in parsed["error"]
+        assert "dry-run" in parsed["error"].lower()
+        assert "not" in parsed["error"].lower()
+        assert "executed" in parsed["error"].lower()
+        # Structured decision attached with the DRY_RUN verdict for the audit.
+        assert parsed["tool_broker"]["verdict"] == "dry_run"
+        # Crucially, the tool was NOT executed.
+        disp.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
 # 5. Flag ON + broker.evaluate raises → fail-safe pass-through, no crash
 # ---------------------------------------------------------------------------
 
