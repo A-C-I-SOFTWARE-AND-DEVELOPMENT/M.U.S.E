@@ -1,6 +1,7 @@
 """Tests for the ToolBroker pre-dispatch choke point (P1-3).
 
-Tools like ``delegate_task`` / ``memory`` / ``todo`` / ``session_search`` are
+Tools like ``delegate_task`` / ``memory`` / the task-list tool /
+``session_search`` are
 dispatched by special-case branches that BYPASS
 ``model_tools.handle_function_call`` (and therefore its ``_maybe_broker_block``
 call). These tests prove the pre-dispatch choke point evaluates those bypassing
@@ -115,13 +116,13 @@ class TestBrokerOnBlocksBypassingTool:
     def test_delegate_task_allowed_dispatches(self, monkeypatch):
         """When the allowlist permits delegate_task, it is NOT a side-effecting
         default here? delegate_task IS side-effecting → owner approval. Confirm
-        that an explicit non-side-effecting bypassing tool ('todo') on the
+        that an explicit non-side-effecting bypassing task-list tool on the
         allowlist dispatches through the choke point."""
         monkeypatch.delenv("MUSE_TOOL_BROKER", raising=False)
         agent = _FakeAgent()
 
         # Route a benign bypassing tool: choke point should ALLOW and return
-        # None, so invoke_tool proceeds to the real ('todo') dispatch.
+        # None, so invoke_tool proceeds to the real task-list-tool dispatch.
         cfg = _cfg(allowlist={"sess-1": ["todo"]})
         with (
             patch("hermes_cli.config.load_config_readonly", return_value=cfg),

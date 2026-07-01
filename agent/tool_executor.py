@@ -700,8 +700,8 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
                 _guardrail_block_decision = guardrail_decision
 
         # ToolBroker pre-dispatch choke point (P1-3) for tools that BYPASS
-        # handle_function_call (delegate_task, memory, 'todo', session_search,
-        # clarify, memory-provider, context-engine). Broker OFF (default) →
+        # handle_function_call (the special-cased side-effecting/bypassing
+        # tools). Broker OFF (default) →
         # no-op (returns None), so this dispatch stays byte-for-byte unchanged.
         # A configured DENY / owner-approval / dry-run returns a structured
         # block-result string (already JSON, starts with {"error") which is
