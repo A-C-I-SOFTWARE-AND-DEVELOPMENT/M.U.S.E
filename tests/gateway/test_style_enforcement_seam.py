@@ -27,7 +27,7 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.effort_class import classify_effort_for_request
 from hermes_cli.jarvis_prime.modes import ClassifierContext, ModeClassifier
