@@ -11,6 +11,19 @@
     "does not over-activate unrelated agents",
     "routes to the correct domain"
   ],
+  "forbidden_markers": [
+    "convening the whole council",
+    "spun up the whole council",
+    "routing this to the marketing specialist",
+    "activated every domain expert",
+    "spinning up the full roster",
+    "let me activate everyone"
+  ],
+  "behavior_dimensions": {
+    "engages the hazmat specialist": "agent_selection_quality",
+    "routes to the correct domain": "agent_selection_quality",
+    "does not over-activate unrelated agents": "agent_selection_quality"
+  },
   "scoring_dimensions": {
     "agent_selection_quality": 1.0
   },

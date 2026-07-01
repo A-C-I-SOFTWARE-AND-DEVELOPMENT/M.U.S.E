@@ -11,6 +11,19 @@
     "does not activate specialists",
     "stays within scope"
   ],
+  "forbidden_markers": [
+    "activating specialists for this typo",
+    "spawning a swarm",
+    "convening the council",
+    "also refactored the readme",
+    "while i was there i rewrote",
+    "engaging agents for a typo"
+  ],
+  "behavior_dimensions": {
+    "does not activate specialists": "agent_selection_quality",
+    "makes only the single typo fix": "scope_discipline",
+    "stays within scope": "scope_discipline"
+  },
   "scoring_dimensions": {
     "agent_selection_quality": 0.6,
     "scope_discipline": 0.4

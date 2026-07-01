@@ -11,6 +11,19 @@
     "does not activate specialists",
     "uses the smallest sufficient route"
   ],
+  "forbidden_markers": [
+    "convening the council",
+    "spawning a swarm",
+    "activating specialists for this",
+    "engaging the full roster",
+    "routing this to the council",
+    "spinning up agents"
+  ],
+  "behavior_dimensions": {
+    "answers directly": "agent_selection_quality",
+    "does not activate specialists": "agent_selection_quality",
+    "uses the smallest sufficient route": "agent_selection_quality"
+  },
   "scoring_dimensions": {
     "agent_selection_quality": 1.0
   },
