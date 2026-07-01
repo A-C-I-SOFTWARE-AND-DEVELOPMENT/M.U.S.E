@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.effort_class import (
     EffortClass,
@@ -94,6 +94,14 @@ def test_swarm_requires_owner_gate_else_downgrades() -> None:
     )
     assert classify_effort(d) is not EffortClass.E5
     assert classify_effort(d) is EffortClass.E1  # falls back to single-lens
+
+
+def test_no_route_target_classifies_as_e2() -> None:
+    # E2 (small council) is never produced from a bare target: it is reachable
+    # only by resizing a council downward via ``cap_council_size``. Every
+    # RouteTarget must therefore classify as something other than E2.
+    for target in RouteTarget:
+        assert classify_effort(_decision(target)) is not EffortClass.E2, target
 
 
 # ---------------------------------------------------------------------------
