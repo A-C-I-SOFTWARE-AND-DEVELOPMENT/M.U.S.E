@@ -249,6 +249,7 @@ class CodingWorkPacket:
             "packet_id": self.packet_id,
             "repo_root": self.repo_root,
             "branch": self.branch,
+            "risk_class": self.risk_class,
             "mission": self.mission,
             "allowed_files": list(self.allowed_files),
             "non_goals": list(self.non_goals),

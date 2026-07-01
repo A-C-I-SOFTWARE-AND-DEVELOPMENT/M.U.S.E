@@ -341,6 +341,28 @@ GATES: tuple[Gate, ...] = (
 # ---------------------------------------------------------------------------
 
 
+# Risk-band ordering, mirrored from ``capability_wall._RC_ORDER``. Kept local so
+# the review gate can compare bands without importing capability_wall (which
+# imports this module — a lazy dependency, not a load-time cycle).
+_RC_ORDER = {"RC0": 0, "RC1": 1, "RC2": 2, "RC3": 3, "RC4": 4}
+
+# Clause C19: for RC2+ work, the agent that wrote the change may not be the one
+# that approves it. The threshold band at/above which self-approval is blocked.
+_C19_MIN_BAND = "RC2"
+
+
+def _rc_at_or_above(risk_class: str, threshold: str) -> bool:
+    """True when ``risk_class`` is at least as high a band as ``threshold``.
+
+    Unknown bands are treated as RC1 (the packet default), matching
+    ``capability_wall._packet_rc`` so a missing/garbled class is never silently
+    escalated *or* silently exempted below RC2.
+    """
+
+    rc = _RC_ORDER.get(str(risk_class).upper(), _RC_ORDER["RC1"])
+    return rc >= _RC_ORDER.get(threshold.upper(), _RC_ORDER["RC2"])
+
+
 def _packet_id_mismatch(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> Optional[str]:
     pid = _get(packet, "packet_id")
     if pid and bundle.packet_id and str(pid) != str(bundle.packet_id):
@@ -383,7 +405,27 @@ def strict_review_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundl
     arts = bundle.by_type(ARTIFACT_REVIEW)
     if not arts:
         return _strict_fail(name, "no review evidence captured")
-    verdict = str(arts[-1].payload.get("verdict", ""))
+    review = arts[-1]
+
+    # Clause C19 gate: for RC2+ work the reviewer must not be the builder. The
+    # reviewer identity is the review artifact's ``reviewer_id`` (falling back to
+    # its producer); the builder identity is the producer of the captured
+    # git_diff artifact — the agent that authored the change under review. A
+    # self-approving review (reviewer == builder) is a hard FAIL, not a score.
+    risk_class = str(_get(packet, "risk_class", "RC1"))
+    if _rc_at_or_above(risk_class, _C19_MIN_BAND):
+        reviewer = str(review.payload.get("reviewer_id") or review.producer or "").strip()
+        diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
+        builder = str(diff_arts[-1].producer).strip() if diff_arts else ""
+        if reviewer and builder and reviewer == builder:
+            return _strict_fail(
+                name,
+                f"C19 self-approval blocked at {risk_class.upper()}: "
+                f"reviewer {reviewer!r} is the change's builder",
+                (f"reviewer_id={reviewer}", f"builder={builder}"),
+            )
+
+    verdict = str(review.payload.get("verdict", ""))
     if verdict in ("blocked", "request_changes"):
         return _strict_fail(name, f"reviewer verdict: {verdict}", (verdict,))
     if verdict == "needs_owner":
