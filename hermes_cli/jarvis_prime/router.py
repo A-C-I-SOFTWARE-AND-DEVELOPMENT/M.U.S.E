@@ -72,6 +72,13 @@ class RouteDecision:
     council_questions: tuple[str, ...] = ()
     requires_owner_authorization: bool = False
     pending_actions: tuple[str, ...] = ()
+    # Effort-class stamp (E0–E5), populated by ``Router.route``. Additive and
+    # observational — it records the smallest-sufficient effort class for this
+    # decision without altering which target/agents are dispatched. Stored as
+    # the enum's string value (e.g. ``"E1"``) so the frozen dataclass stays
+    # trivially serialisable; ``None`` only for decisions built outside the
+    # router (e.g. hand-constructed test fixtures).
+    effort_class: Optional[str] = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -81,6 +88,7 @@ class RouteDecision:
             "council_questions": list(self.council_questions),
             "requires_owner_authorization": self.requires_owner_authorization,
             "pending_actions": list(self.pending_actions),
+            "effort_class": self.effort_class,
         }
 
 
@@ -89,6 +97,34 @@ class Router:
     """Map (mode, intent, awareness) → RouteDecision."""
 
     def route(
+        self,
+        mode: "Mode",
+        intent: str,
+        awareness: "Optional[AwarenessSnapshot]" = None,
+        risk_class: str = "RC1",
+        pending_owner_actions: tuple[str, ...] = (),
+    ) -> RouteDecision:
+        """Route to a target and stamp the smallest-sufficient effort class.
+
+        The routing logic lives in :meth:`_route`; this wrapper is where the
+        effort-class stamp is applied so *every* returned decision carries an
+        ``effort_class`` unconditionally. Stamping is purely additive — it
+        records the classification without changing the chosen target.
+        """
+        decision = self._route(
+            mode=mode,
+            intent=intent,
+            awareness=awareness,
+            risk_class=risk_class,
+            pending_owner_actions=pending_owner_actions,
+        )
+        from dataclasses import replace
+
+        from hermes_cli.jarvis_prime.effort_class import classify_effort
+
+        return replace(decision, effort_class=classify_effort(decision).value)
+
+    def _route(
         self,
         mode: "Mode",
         intent: str,
