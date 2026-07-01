@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.muse_eval import harness as H
 from hermes_cli.jarvis_prime.muse_eval import (
