@@ -531,6 +531,7 @@ def _ensure_hermes_home_managed(home: Path):
 #   -------------------|---------------------------------------|------------------------|---------|-------------------------------------------------
 #   self-audit footer  | display.self_audit_footer.enabled     | MUSE_SELF_AUDIT_FOOTER | False   | self_audit.footer.self_audit_footer_enabled
 #   tool broker        | security.tool_broker.enabled          | MUSE_TOOL_BROKER       | False   | tool_broker.tool_broker_enabled
+#   style enforcement  | response.style_enforcement.enabled    | MUSE_STYLE_ENFORCEMENT | False   | response_enforcement.style_enforcement_enabled
 #   effort-class cap   | registry policies.effort_cap.enabled  | MUSE_EFFORT_CAP        | False   | aos_council.dispatcher._effort_cap_enabled
 #
 # Notes:
@@ -541,6 +542,9 @@ def _ensure_hermes_home_managed(home: Path):
 #    signal sources with NO gate of their own: they contribute to the self-audit
 #    footer score only when the footer is enabled. There is deliberately no
 #    ``display.challenge_contract`` / ``display.style_validator`` config key.
+#    The opt-in *enforcement* loop that composes those detectors and regenerates
+#    a violating reply is gated separately by ``response.style_enforcement`` (the
+#    ``style_enforcement`` flag above) — it does not reintroduce those dead keys.
 # -----------------------------------------------------------------------------
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -1582,6 +1586,29 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # Supports string format: {"name": "system prompt"}
     # Or dict format: {"name": {"description": "...", "system_prompt": "...", "tone": "...", "style": "..."}}
     "personalities": {},
+
+    # ── MUSE opt-in: response-style enforcement ─────────────────────────
+    # Additive vNext control surface (P2-7). When enabled, the gateway
+    # response seam runs the EXISTING per-mode style validator
+    # (``hermes_cli/jarvis_prime/response_style.py``) and challenge-contract
+    # detector (``hermes_cli/jarvis_prime/challenge_contract.py``) against a
+    # produced reply and, on a violation, re-invokes the model once (capped
+    # at ``max_attempts``, hard ceiling 2) with a short corrective nudge. It
+    # fails open — the last produced reply is always delivered, never blanked.
+    # Default OFF, so the default response path is byte-for-byte unchanged.
+    # Also toggleable via the MUSE_STYLE_ENFORCEMENT env var (env wins).
+    # Resolved by
+    # ``hermes_cli.jarvis_prime.response_enforcement.style_enforcement_enabled``.
+    # See the "MUSE feature flags" registry in
+    # ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+    "response": {
+        "style_enforcement": {
+            "enabled": False,
+            # Regenerate attempts on a violation; clamped to [1, 2] by the
+            # resolver. 1 = a single corrective retry (the default).
+            "max_attempts": 1,
+        },
+    },
 
     # Pre-exec security scanning via tirith
     "security": {
@@ -4446,6 +4473,13 @@ _MUSE_FEATURE_FLAGS: Tuple[Dict[str, Any], ...] = (
         "env_var": "MUSE_TOOL_BROKER",
         "default": False,
         "summary": "Capability-scoped tool broker mediating tool access.",
+    },
+    {
+        "feature": "style_enforcement",
+        "config_key": "response.style_enforcement.enabled",
+        "env_var": "MUSE_STYLE_ENFORCEMENT",
+        "default": False,
+        "summary": "Bounded validate-then-regenerate loop on per-mode style / challenge violations.",
     },
     {
         # Gated in the council registry (policies.*), NOT in config.yaml.

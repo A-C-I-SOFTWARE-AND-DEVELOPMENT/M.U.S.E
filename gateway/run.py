@@ -17025,6 +17025,94 @@ class GatewayRunner:
             # Return final response, or a message if something went wrong
             final_response = result.get("final_response")
 
+            # ── MUSE opt-in: bounded validate-then-regenerate enforcement ──
+            # Default OFF. The enabled-check MUST strictly precede ALL new work
+            # (classification, detectors, extra model calls) so the default
+            # path pays ZERO cost and delivers the original final_response
+            # byte-for-byte. Fails open: the last produced reply is always kept.
+            try:
+                # Import ONLY the cheap gate resolver up front; the detectors /
+                # classifiers are imported inside the enabled branch so the
+                # default (flag-off) path pays zero cost.
+                from hermes_cli.jarvis_prime.response_enforcement import (
+                    style_enforcement_enabled,
+                )
+
+                if (
+                    style_enforcement_enabled(user_config)
+                    # Streaming guard: a reply already streamed/previewed to the
+                    # user cannot be re-generated in place — skip the loop.
+                    and _stream_consumer is None
+                    and not result.get("response_previewed")
+                    and final_response
+                ):
+                    from hermes_cli.jarvis_prime.effort_class import (
+                        classify_effort_for_request,
+                    )
+                    from hermes_cli.jarvis_prime.modes import (
+                        ClassifierContext,
+                        ModeClassifier,
+                    )
+                    from hermes_cli.jarvis_prime.response_enforcement import (
+                        evaluate_enforcement,
+                        resolve_max_attempts,
+                        _corrective_nudge,
+                    )
+
+                    _enf_request = message if isinstance(message, str) else ""
+                    # TWO separate deterministic primitives: mode + effort.
+                    _mode_cls = ModeClassifier().classify(
+                        _enf_request,
+                        context=ClassifierContext(surface=platform_key),
+                    )
+                    _enf_mode = _mode_cls.mode if _mode_cls is not None else None
+                    _enf_effort = classify_effort_for_request(
+                        _enf_request, surface=platform_key
+                    )
+
+                    if _enf_mode is not None:
+                        _max_attempts = resolve_max_attempts(user_config)
+                        for _attempt in range(_max_attempts):
+                            _check = evaluate_enforcement(
+                                _enf_mode,
+                                final_response,
+                                request_text=_enf_request,
+                                effort_class=_enf_effort,
+                            )
+                            if _check.ok:
+                                break
+                            if _attempt >= _max_attempts - 1:
+                                # Out of attempts — keep the last reply (fail-open).
+                                break
+                            _nudge = _corrective_nudge(_check)
+                            if not _nudge:
+                                break
+                            logger.debug(
+                                "style_enforcement: regenerating (attempt %d) — %s",
+                                _attempt + 1,
+                                _check.to_dict(),
+                            )
+                            _regen = agent.run_conversation(
+                                _run_message,
+                                system_message=_nudge,
+                                conversation_history=agent_history,
+                                task_id=session_id,
+                            )
+                            _regen_final = _regen.get("final_response")
+                            if _regen_final:
+                                # Adopt the regenerated turn wholesale so the
+                                # returned metadata stays consistent with the
+                                # reply we actually deliver.
+                                result = _regen
+                                result_holder[0] = _regen
+                                final_response = _regen_final
+                            else:
+                                # Regeneration produced nothing usable — keep the
+                                # prior reply (fail-open) and stop.
+                                break
+            except Exception as _enf_exc:  # never raise to the user — fail open
+                logger.debug("style_enforcement: skipped (%s)", _enf_exc)
+
             # Extract actual token counts from the agent instance used for this run
             _last_prompt_toks = 0
             _input_toks = 0
