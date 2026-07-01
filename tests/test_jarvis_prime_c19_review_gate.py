@@ -1,4 +1,4 @@
-"""C19 builder != reviewer enforcement in the strict review gate.
+"""C19 builder != reviewer enforcement in the review gates (strict + default).
 
 Clause C19 (``docs/jarvis-constitution.md``): for RC2+ work, the agent that
 wrote the change is not the one that approves it. Previously C19 was only
@@ -352,3 +352,131 @@ def test_distinct_reviewer_id_rc2_does_not_warn(caplog) -> None:
 
     assert result.outcome is GateOutcome.PASS
     assert not [r for r in caplog.records if "C19 fail-open" in r.getMessage()]
+
+
+# ---------------------------------------------------------------------------
+# C19 on the DEFAULT (non-strict) review_gate.
+#
+# The same Clause C19 builder != reviewer check now fires on the default,
+# packet-level review_gate — not only the opt-in strict gate. On the default
+# path the identities are read off the packet (builder = acting_agent_id /
+# author_id, reviewer = reviewer_worker / reviewer_id) rather than an evidence
+# bundle. Policy is identical: block only when BOTH identities are known and
+# equal at RC2+; below RC2 or with an unknown identity it fails OPEN (no block,
+# observable warning), so current flows keep their outcome unchanged.
+# ---------------------------------------------------------------------------
+
+
+def _default_review_ready(**overrides) -> dict:
+    """A packet that satisfies the default review_gate's self-attested checks.
+
+    ``diff_reviewed`` and ``contrarian_objection`` present means the gate would
+    PASS absent a C19 self-approval, isolating the C19 effect under test.
+    """
+
+    packet = {"diff_reviewed": True, "contrarian_objection": "considered"}
+    packet.update(overrides)
+    return packet
+
+
+def test_default_gate_rc2_same_agent_fails_c19() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    packet = _default_review_ready(
+        risk_class="RC2", acting_agent_id="agent-x", reviewer_worker="agent-x"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.FAIL
+    assert "C19 self-approval blocked" in result.reason
+
+
+def test_default_gate_rc2_author_id_reviewer_id_aliases_fail_c19() -> None:
+    # The default gate also accepts the author_id / reviewer_id aliases.
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    packet = _default_review_ready(
+        risk_class="RC2", author_id="agent-x", reviewer_id="agent-x"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.FAIL
+    assert "C19 self-approval blocked" in result.reason
+
+
+def test_default_gate_rc2_distinct_agents_pass_unchanged() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    packet = _default_review_ready(
+        risk_class="RC2", acting_agent_id="builder-bot", reviewer_worker="review-bot"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.PASS
+
+
+def test_default_gate_rc2_unknown_identity_fails_open_and_warns(caplog) -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    # No builder/reviewer identity on the packet: fail-open (PASS), warn.
+    packet = _default_review_ready(risk_class="RC2")
+    with caplog.at_level(logging.WARNING, logger="hermes.jarvis_prime.gates"):
+        result = review_gate(packet)
+
+    assert result.outcome is GateOutcome.PASS
+    assert any("C19 fail-open" in r.getMessage() for r in caplog.records)
+
+
+def test_default_gate_rc2_unknown_literal_reviewer_fails_open() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    # The literal "unknown" reviewer normalizes to empty -> fail-open, PASS.
+    packet = _default_review_ready(
+        risk_class="RC2", acting_agent_id="agent-x", reviewer_worker="unknown"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.PASS
+
+
+def test_default_gate_rc3_same_agent_fails_c19() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    packet = _default_review_ready(
+        risk_class="RC3", acting_agent_id="agent-x", reviewer_worker="agent-x"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.FAIL
+    assert "C19 self-approval blocked" in result.reason
+
+
+def test_default_gate_rc0_rc1_same_agent_unchanged() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    # Below the C19 band: same agent is NOT gated; the gate passes on the
+    # self-attested fields exactly as before.
+    for rc in ("RC0", "RC1"):
+        packet = _default_review_ready(
+            risk_class=rc, acting_agent_id="agent-x", reviewer_worker="agent-x"
+        )
+        result = review_gate(packet)
+        assert result.outcome is GateOutcome.PASS, rc
+
+
+def test_default_gate_no_risk_class_defaults_below_c19_band() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    # Absent risk_class defaults to RC1 -> below C19 band -> same agent passes.
+    packet = _default_review_ready(
+        acting_agent_id="agent-x", reviewer_worker="agent-x"
+    )
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.PASS
+
+
+def test_default_gate_c19_precedes_incomplete_review_fields() -> None:
+    from hermes_cli.jarvis_prime.gates import review_gate
+
+    # Even without diff_reviewed / contrarian_objection, a genuine RC2 same-agent
+    # self-approval fails specifically on C19 (the offender is named), not merely
+    # "review incomplete".
+    packet = {"risk_class": "RC2", "acting_agent_id": "agent-x", "reviewer_worker": "agent-x"}
+    result = review_gate(packet)
+    assert result.outcome is GateOutcome.FAIL
+    assert "C19 self-approval blocked" in result.reason

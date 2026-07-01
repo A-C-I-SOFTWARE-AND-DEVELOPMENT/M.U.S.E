@@ -150,6 +150,28 @@ def build_gate(packet: Mapping[str, Any]) -> GateResult:
 
 def review_gate(packet: Mapping[str, Any]) -> GateResult:
     name = "review"
+
+    # Clause C19 (default gate): for RC2+ work a genuine same-agent
+    # self-approval is a hard FAIL here too — not only on the opt-in strict
+    # gate. The builder identity is the packet's ``acting_agent_id`` (a.k.a.
+    # ``author_id``) and the reviewer identity is ``reviewer_worker`` (a.k.a.
+    # ``reviewer_id``); both live in the same agent-id namespace. Policy is
+    # fail-OPEN via the shared helper: below RC2, or when either identity is
+    # unknown/empty, this returns None and does NOT block, so current flows that
+    # do not populate identities keep their existing outcome byte-for-byte.
+    # ``validate_work_packet`` already forbids builder == reviewer at RC2+, so a
+    # well-formed packet never self-blocks; this catches the genuine offender.
+    risk_class = str(_get(packet, "risk_class", "RC1"))
+    builder = _normalize_identity(
+        _get(packet, "acting_agent_id") or _get(packet, "author_id")
+    )
+    reviewer = _normalize_identity(
+        _get(packet, "reviewer_worker") or _get(packet, "reviewer_id")
+    )
+    c19 = _c19_identity_finding(name, risk_class, builder, reviewer)
+    if c19 is not None:
+        return c19
+
     findings: list[str] = []
     if not _has(packet, "diff_reviewed"):
         findings.append("diff not reviewed")
@@ -366,6 +388,85 @@ def _rc_at_or_above(risk_class: str, threshold: str) -> bool:
     return rc >= _RC_ORDER.get(threshold.upper(), _RC_ORDER["RC2"])
 
 
+def _normalize_identity(value: Any) -> str:
+    """Normalize an agent-id operand for the C19 comparison.
+
+    Trims whitespace and treats the literal ``"unknown"`` (any case) as unset,
+    mirroring ``strict_review_gate``'s handling of a placeholder reviewer id.
+    """
+
+    ident = str(value or "").strip()
+    if ident.lower() == "unknown":
+        return ""
+    return ident
+
+
+# Default fail-open warning messages for the packet-level ``review_gate``. The
+# strict gate overrides these with evidence-namespace wording (author_id /
+# reviewer_id from the bundle) via the ``*_warning`` parameters below, so both
+# gates keep their own precise, actionable fail-open text.
+_C19_DEFAULT_BUILDER_MISSING_WARNING = (
+    "C19 fail-open at %s: no builder identity "
+    "(reviewer=%r); self-approval cannot be verified — thread the "
+    "acting agent id (acting_agent_id/author_id) onto the packet to enforce C19"
+)
+_C19_DEFAULT_REVIEWER_MISSING_WARNING = (
+    "C19 fail-open at %s: no reviewer identity "
+    "(builder=%r); self-approval cannot be verified — thread a real "
+    "reviewer agent id (reviewer_worker/reviewer_id) onto the packet to enforce C19"
+)
+
+
+def _c19_identity_finding(
+    name: str,
+    risk_class: str,
+    builder: str,
+    reviewer: str,
+    *,
+    builder_missing_warning: str = _C19_DEFAULT_BUILDER_MISSING_WARNING,
+    reviewer_missing_warning: str = _C19_DEFAULT_REVIEWER_MISSING_WARNING,
+) -> Optional[GateResult]:
+    """Shared Clause C19 builder != reviewer check for RC2+ work.
+
+    Returns a FAIL ``GateResult`` only when BOTH identities are known, non-empty,
+    and equal (a genuine same-agent self-approval). When the band is below RC2,
+    or either identity is unknown/empty, returns ``None`` (no block) — the
+    fail-OPEN policy — and emits the caller-supplied C19 warning so the fail-open
+    is observable rather than silent. Both operands must already be normalized
+    (``_normalize_identity``) and must live in the SAME agent-id namespace, or
+    the comparison is meaningless (see ``strict_review_gate`` for the rationale
+    on why a collector-tool ``producer`` literal must never be a fallback).
+
+    Each warning template takes exactly two ``%``-args: the upper-cased risk band
+    and the *known* opposing identity (or ``<unknown>`` when neither is known).
+    """
+
+    if not _rc_at_or_above(risk_class, _C19_MIN_BAND):
+        return None
+    if not builder:
+        LOGGER.warning(
+            builder_missing_warning,
+            str(risk_class).upper(),
+            reviewer or "<unknown>",
+        )
+        return None
+    if not reviewer:
+        LOGGER.warning(
+            reviewer_missing_warning,
+            str(risk_class).upper(),
+            builder,
+        )
+        return None
+    if reviewer == builder:
+        return _strict_fail(
+            "review",
+            f"C19 self-approval blocked at {str(risk_class).upper()}: "
+            f"reviewer {reviewer!r} is the change's builder",
+            (f"reviewer_id={reviewer}", f"builder={builder}"),
+        )
+    return None
+
+
 def _packet_id_mismatch(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> Optional[str]:
     pid = _get(packet, "packet_id")
     if pid and bundle.packet_id and str(pid) != str(bundle.packet_id):
@@ -427,41 +528,33 @@ def strict_review_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundl
     # Policy is fail-OPEN: when EITHER identity is unknown/unset we do NOT block
     # — we only block when BOTH identities are known and equal. RC2+ work
     # reaching the gate with an unknown builder OR an unknown reviewer is logged
-    # as a warning so the fail-open is observable rather than silent.
+    # as a warning so the fail-open is observable rather than silent. The check
+    # itself lives in the shared ``_c19_identity_finding`` helper (reused by the
+    # default ``review_gate``); strict mode sources the operands from evidence:
+    # the review artifact's ``reviewer_id`` and the git_diff artifact's
+    # ``author_id`` (the acting agent threaded into collect_git_diff_evidence).
     risk_class = str(_get(packet, "risk_class", "RC1"))
-    if _rc_at_or_above(risk_class, _C19_MIN_BAND):
-        reviewer = str(review.payload.get("reviewer_id") or "").strip()
-        if reviewer.lower() == "unknown":
-            reviewer = ""
-        diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
-        builder = (
-            str(diff_arts[-1].payload.get("author_id") or "").strip()
-            if diff_arts
-            else ""
-        )
-        if not builder:
-            LOGGER.warning(
-                "C19 fail-open at %s: git_diff evidence has no author_id "
-                "(reviewer_id=%r); self-approval cannot be verified — thread the "
-                "acting agent id into collect_git_diff_evidence to enforce C19",
-                risk_class.upper(),
-                reviewer or "<unknown>",
-            )
-        elif not reviewer:
-            LOGGER.warning(
-                "C19 fail-open at %s: review evidence has no reviewer_id "
-                "(builder=%r); self-approval cannot be verified — thread a real "
-                "reviewer agent id into collect_review_evidence to enforce C19",
-                risk_class.upper(),
-                builder,
-            )
-        elif reviewer == builder:
-            return _strict_fail(
-                name,
-                f"C19 self-approval blocked at {risk_class.upper()}: "
-                f"reviewer {reviewer!r} is the change's builder",
-                (f"reviewer_id={reviewer}", f"builder={builder}"),
-            )
+    reviewer = _normalize_identity(review.payload.get("reviewer_id"))
+    diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
+    builder = _normalize_identity(diff_arts[-1].payload.get("author_id")) if diff_arts else ""
+    c19 = _c19_identity_finding(
+        name,
+        risk_class,
+        builder,
+        reviewer,
+        builder_missing_warning=(
+            "C19 fail-open at %s: git_diff evidence has no author_id "
+            "(reviewer_id=%r); self-approval cannot be verified — thread the "
+            "acting agent id into collect_git_diff_evidence to enforce C19"
+        ),
+        reviewer_missing_warning=(
+            "C19 fail-open at %s: review evidence has no reviewer_id "
+            "(builder=%r); self-approval cannot be verified — thread a real "
+            "reviewer agent id into collect_review_evidence to enforce C19"
+        ),
+    )
+    if c19 is not None:
+        return c19
 
     verdict = str(review.payload.get("verdict", ""))
     if verdict in ("blocked", "request_changes"):
