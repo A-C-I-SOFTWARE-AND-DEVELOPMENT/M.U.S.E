@@ -12,6 +12,8 @@ Covers the guarantees:
 
 from __future__ import annotations
 
+import re
+
 import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.modes import Mode
@@ -63,6 +65,53 @@ def test_mobile_voice_custom_budget():
 
 
 # ---------------------------------------------------------------------------
+# F3 — Mobile Voice length backstop (word count / line count) is not evadable
+# ---------------------------------------------------------------------------
+
+def test_mobile_voice_unpunctuated_runon_flagged_by_word_backstop():
+    # ~60-word run-on with a single terminal period reads as ONE sentence, so
+    # the sentence rule alone misses it; the word backstop must flag it.
+    text = (
+        "so basically what I would do here is take the whole plan and just "
+        "run with it end to end without stopping to check anything because "
+        "it all seems fine and the team is happy and the roadmap looks clean "
+        "and honestly there is nothing to worry about at all in my view here."
+    )
+    assert len(text.split()) > 40
+    assert len(re.findall(r"[.!?]+", text)) == 1  # a single terminal sentence
+    result = validate_response_style(Mode.MOBILE_VOICE, text)
+    assert result.ok is False
+    assert result.violations[0].code == "mobile_voice_too_long"
+
+
+def test_mobile_voice_bullet_list_flagged_by_line_backstop():
+    # A 6-bullet list with no terminal punctuation reads as one "sentence"; the
+    # newline/line backstop must flag it (6 lines > 2-sentence budget).
+    text = "\n".join(
+        [
+            "- first item",
+            "- second item",
+            "- third item",
+            "- fourth item",
+            "- fifth item",
+            "- sixth item",
+        ]
+    )
+    result = validate_response_style(Mode.MOBILE_VOICE, text)
+    assert result.ok is False
+    assert result.violations[0].code == "mobile_voice_too_long"
+
+
+def test_mobile_voice_genuinely_brief_reply_is_ok():
+    # A real 2-sentence, short reply must still pass (precision guard — the
+    # backstop must not over-flag brief replies).
+    text = "Noted. I'll capture that."
+    result = validate_response_style(Mode.MOBILE_VOICE, text)
+    assert result.ok is True
+    assert result.violations == ()
+
+
+# ---------------------------------------------------------------------------
 # Critic — must name an objection
 # ---------------------------------------------------------------------------
 
@@ -106,6 +155,14 @@ def test_critic_real_objection_words_still_trigger():
         result = validate_response_style(Mode.CRITIC, text)
         assert result.ok is True, text
         assert result.violations == ()
+
+
+def test_critic_curly_apostrophe_objection_detected():
+    # A curly apostrophe in "won't work" must still count as an objection (F4).
+    text = "That won’t work — the rollback path breaks midway."
+    result = validate_response_style(Mode.CRITIC, text)
+    assert result.ok is True
+    assert result.violations == ()
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +209,14 @@ def test_builder_real_verification_words_still_trigger():
         result = validate_response_style(Mode.BUILDER, text)
         assert result.ok is True, text
         assert result.violations == ()
+
+
+def test_builder_curly_apostrophe_verification_detected():
+    # A curly apostrophe in "how it'll be checked" must still count (F4).
+    text = "I’ll wire it in, then describe how it’ll be checked before merging."
+    result = validate_response_style(Mode.BUILDER, text)
+    assert result.ok is True
+    assert result.violations == ()
 
 
 # ---------------------------------------------------------------------------
