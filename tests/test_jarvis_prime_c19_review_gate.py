@@ -10,9 +10,12 @@ lived in different namespaces and could never be equal — C19 never fired.
 
 The mechanism now compares ``reviewer_id`` against the git_diff artifact's
 ``author_id`` — the acting agent threaded into ``collect_git_diff_evidence`` —
-so both operands are real agent ids in the same namespace. Policy is fail-OPEN:
-the gate blocks only when BOTH identities are known and equal; an unknown author
-at RC2+ passes (fail-open) and emits an observable warning.
+so both operands are real agent ids in the same namespace. Neither operand falls
+back to a collector-tool ``producer`` literal (P0-4 hardening): a fallback would
+put the reviewer in a different namespace than the builder and silently exempt
+every RC2+ change. Policy is fail-OPEN: the gate blocks only when BOTH identities
+are known and equal; an unknown builder OR an unknown reviewer at RC2+ passes
+(fail-open) and emits an observable warning.
 
 The end-to-end tests below drive the REAL ``collect_git_diff_evidence`` (with an
 acting agent id) and ``collect_review_evidence`` collectors — they do not
@@ -203,18 +206,25 @@ def test_unit_missing_risk_class_defaults_below_c19_threshold() -> None:
     assert result.outcome is GateOutcome.PASS
 
 
-def test_unit_rc2_reviewer_id_falls_back_to_producer() -> None:
-    # When reviewer_id is blank, the review artifact's producer identifies the
-    # reviewer; a self-approval (producer == builder author_id) is still caught.
+def test_unit_rc2_reviewer_id_does_not_fall_back_to_producer(caplog) -> None:
+    # HARDENED (P0-4): the reviewer identity must NOT fall back to the review
+    # artifact's ``producer``. In production ``producer`` is the fixed literal
+    # ``"reviewer"`` (a different namespace than agent ids), so a fallback would
+    # make reviewer == builder impossible and silently exempt every RC2+ change
+    # from C19. With a blank reviewer_id the gate now fails OPEN (does not block)
+    # and emits an observable C19 warning, rather than fabricating a match.
     b = GuardrailEvidenceBundle(packet_id=_PACKET_ID)
     b.add(_diff_artifact("codex"))
     b.add(_review_artifact("", producer="codex"))
     packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
 
-    result = strict_review_gate(packet, b)
+    with caplog.at_level(logging.WARNING, logger="hermes.jarvis_prime.gates"):
+        result = strict_review_gate(packet, b)
 
-    assert result.outcome is GateOutcome.FAIL
-    assert "C19" in result.reason
+    assert result.outcome is GateOutcome.PASS
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("C19 fail-open" in r.getMessage() for r in warnings)
+    assert any("reviewer_id" in r.getMessage() for r in warnings)
 
 
 def test_unit_rc2_explicit_blocked_verdict_still_fails() -> None:
@@ -229,3 +239,116 @@ def test_unit_rc2_explicit_blocked_verdict_still_fails() -> None:
 
     assert result.outcome is GateOutcome.FAIL
     assert "blocked" in result.reason
+
+
+# ---------------------------------------------------------------------------
+# P0-2: the review bundle must be bound to the packet under evaluation, exactly
+# as the strict BUILD gate already binds it — an approve-review for packet A may
+# not be replayed against packet B.
+# ---------------------------------------------------------------------------
+
+
+def test_review_packet_id_mismatch_fails() -> None:
+    b = GuardrailEvidenceBundle(packet_id="OTHER-PACKET")
+    b.add(_diff_artifact("builder-bot"))
+    b.add(_review_artifact("review-bot"))
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    result = strict_review_gate(packet, b)
+
+    assert result.outcome is GateOutcome.FAIL
+    assert "packet" in result.reason
+    assert "packet_id" in " ".join(result.findings)
+
+
+# ---------------------------------------------------------------------------
+# P0-3: verdict whitelist — only an explicit ``approve`` reaches a terminal
+# PASS. An absent ("") or garbled ("lgtm") verdict must FAIL closed instead of
+# falling through as if the reviewer had approved.
+# ---------------------------------------------------------------------------
+
+
+def test_absent_verdict_fails_closed() -> None:
+    bundle = _bundle(author_id="builder-bot", reviewer_id="review-bot", verdict="")
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    result = strict_review_gate(packet, bundle)
+
+    assert result.outcome is GateOutcome.FAIL
+    assert "verdict" in result.reason
+
+
+def test_garbled_verdict_fails_closed() -> None:
+    bundle = _bundle(author_id="builder-bot", reviewer_id="review-bot", verdict="lgtm")
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    result = strict_review_gate(packet, bundle)
+
+    assert result.outcome is GateOutcome.FAIL
+    assert "verdict" in result.reason
+    assert "lgtm" in result.reason
+
+
+def test_explicit_approve_verdict_still_passes() -> None:
+    # The happy path is unchanged: a real ``approve`` with a distinct reviewer
+    # and a matching packet still PASSes.
+    bundle = _bundle(author_id="builder-bot", reviewer_id="review-bot", verdict="approve")
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    result = strict_review_gate(packet, bundle)
+
+    assert result.outcome is GateOutcome.PASS
+    assert result.reason == "reviewer verdict: approve"
+
+
+# ---------------------------------------------------------------------------
+# P0-4: an empty/"unknown" reviewer_id at RC2+ must not silently exempt C19.
+# It fails OPEN (does not block) but emits an observable warning, mirroring the
+# missing-builder fail-open branch.
+# ---------------------------------------------------------------------------
+
+
+def test_empty_reviewer_id_rc2_fails_open_and_warns(caplog) -> None:
+    b = GuardrailEvidenceBundle(packet_id=_PACKET_ID)
+    b.add(_diff_artifact("builder-bot"))
+    b.add(_review_artifact(""))  # empty reviewer_id
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    with caplog.at_level(logging.WARNING, logger="hermes.jarvis_prime.gates"):
+        result = strict_review_gate(packet, b)
+
+    assert result.outcome is GateOutcome.PASS
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("C19 fail-open" in r.getMessage() for r in warnings)
+    assert any("reviewer_id" in r.getMessage() for r in warnings)
+
+
+def test_unknown_literal_reviewer_id_rc2_fails_open_and_warns(caplog) -> None:
+    # The collector defaults a blank reviewer_id to the literal "unknown"; that
+    # must be treated as absent, not as a real agent id.
+    b = GuardrailEvidenceBundle(packet_id=_PACKET_ID)
+    b.add(_diff_artifact("builder-bot"))
+    b.add(_review_artifact("unknown"))
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    with caplog.at_level(logging.WARNING, logger="hermes.jarvis_prime.gates"):
+        result = strict_review_gate(packet, b)
+
+    assert result.outcome is GateOutcome.PASS
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("C19 fail-open" in r.getMessage() for r in warnings)
+    assert any("reviewer_id" in r.getMessage() for r in warnings)
+
+
+def test_distinct_reviewer_id_rc2_does_not_warn(caplog) -> None:
+    # A proper distinct reviewer_id enforces C19 without a fail-open warning.
+    b = GuardrailEvidenceBundle(packet_id=_PACKET_ID)
+    b.add(_diff_artifact("builder-bot"))
+    b.add(_review_artifact("review-bot"))
+    packet = {"packet_id": _PACKET_ID, "risk_class": "RC2"}
+
+    with caplog.at_level(logging.WARNING, logger="hermes.jarvis_prime.gates"):
+        result = strict_review_gate(packet, b)
+
+    assert result.outcome is GateOutcome.PASS
+    assert not [r for r in caplog.records if "C19 fail-open" in r.getMessage()]
