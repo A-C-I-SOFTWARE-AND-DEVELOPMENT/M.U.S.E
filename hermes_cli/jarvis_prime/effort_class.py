@@ -45,7 +45,8 @@ class EffortClass(Enum):
 
     - ``E0`` — direct answer, no council (0 agents).
     - ``E1`` — one specialist lens (1 agent).
-    - ``E2`` — small council (2–3 agents).
+    - ``E2`` — small council (2–3 agents); a cap ceiling band, never emitted
+      by :func:`classify_effort` (supplied only as a caller cap input).
     - ``E3`` — full council (4–7 agents).
     - ``E4`` — deep research / implementation run (build → review → test).
     - ``E5`` — owner-approved swarm only (parallel grains; owner-gated).
@@ -114,11 +115,16 @@ def classify_effort(decision: "RouteDecision") -> EffortClass:
     - build / review / fix / test / publish  → ``E4``
     - owner-gated self-improvement swarm      → ``E5``
 
-    ``E2`` (small council) is not produced from a bare target here because
-    the operator/strategy council paths dispatch the full council; ``E2`` is
-    available for callers that resize a council downward (see
-    :func:`cap_council_size`). Keeping the target→class map conservative is
-    what makes stamping non-behavior-changing.
+    ``classify_effort`` never emits ``E2`` (small council): the
+    operator/strategy council paths dispatch the full council, so a bare
+    target classifies as ``E3``, not ``E2``. ``E2`` still exists as a
+    ceiling band — ``max_council_size(EffortClass.E2) == 3`` (see
+    :func:`max_council_size` / ``_MAX_COUNCIL_SIZE``) — that the opt-in
+    council cap consumes to trim an already-stamped council down toward its
+    permitted size. It is reachable only as an *input*: a caller can supply
+    ``effort_class='E2'`` to the dispatcher/cap, which is not the same as
+    this classifier producing it. Keeping the target→class map conservative
+    is what makes stamping non-behavior-changing.
     """
     # Imported lazily to avoid a circular import (router imports this module).
     from hermes_cli.jarvis_prime.router import RouteTarget
