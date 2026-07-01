@@ -14,6 +14,7 @@ from hermes_cli.jarvis_prime.effort_class import (
     EffortClass,
     cap_council_size,
     classify_effort,
+    classify_effort_for_request,
     max_council_size,
 )
 from hermes_cli.jarvis_prime.memory import MemoryStore
@@ -212,3 +213,43 @@ def test_delegation_envelope_carries_effort_class(jp: JarvisPrime) -> None:
     decision = jp.decide(mode=Mode.STRATEGY, intent="should we change positioning")
     envelope = jp.delegate(decision)
     assert envelope["effort_class"] == decision.effort_class == "E3"
+
+
+# ---------------------------------------------------------------------------
+# Offline request → effort-class bridge (used by real dispatch call sites)
+# ---------------------------------------------------------------------------
+
+
+def test_classify_effort_for_request_matches_full_route() -> None:
+    # The bridge must return exactly what the deterministic mode-classify →
+    # router path already produces — it composes those primitives, never a
+    # separate heuristic. A strategy-shaped request → full council (E3).
+    intent = "should we change positioning and product strategy"
+    stamped = classify_effort_for_request(intent)
+    assert stamped == "E3"
+    # Cross-check against the primitives directly.
+    from hermes_cli.jarvis_prime.modes import ModeClassifier
+    from hermes_cli.jarvis_prime.router import Router
+
+    mode = ModeClassifier().classify(intent).mode
+    assert Router().route(mode=mode, intent=intent).effort_class == stamped
+
+
+def test_classify_effort_for_request_empty_is_none() -> None:
+    # Empty / whitespace requests carry no effort class → None (caller then
+    # dispatches uncapped, identical to the prior behavior).
+    assert classify_effort_for_request("") is None
+    assert classify_effort_for_request("   ") is None
+
+
+def test_classify_effort_for_request_never_raises(monkeypatch) -> None:
+    # If the routing primitives raise, the bridge fails closed to None rather
+    # than propagating — the dispatch call site must never crash on stamping.
+    import hermes_cli.jarvis_prime.modes as modes_mod
+
+    class _BoomClassifier:
+        def classify(self, *_a, **_k):  # noqa: D401 - test stub
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(modes_mod, "ModeClassifier", _BoomClassifier)
+    assert classify_effort_for_request("anything at all") is None

@@ -7,8 +7,6 @@ shipped catalog's exact contents); one test confirms the real
 
 from __future__ import annotations
 
-import pytest  # ty: ignore[unresolved-import]
-
 from hermes_cli.jarvis_prime.aos_council import dispatch, load_registry, roster
 
 REG = {
@@ -289,3 +287,36 @@ def test_effort_cap_on_none_class_is_noop(monkeypatch):
     s = dispatch(_CAP_REQUEST, registry=reg, effort_class=None)
     assert len(s.council) == 4
     assert len(s.specialists) == 3
+
+
+def test_effort_cap_on_e4_leaves_overflowing_council_uncapped_end_to_end(monkeypatch):
+    # E4/E5 are execution runs, not councils: cap_council_size imposes no
+    # ceiling, so even with the flag ON an overflowing 4+3=7-member council must
+    # pass through dispatch untrimmed. Proves the "no ceiling" branch end-to-end.
+    monkeypatch.delenv("MUSE_EFFORT_CAP", raising=False)
+    reg = _enable_cap_via_registry(_CAP_REG)
+    for cls in ("E4", "E5"):
+        s = dispatch(_CAP_REQUEST, registry=reg, effort_class=cls)
+        assert len(s.council) == 4, cls
+        assert len(s.specialists) == 3, cls
+        assert len(s.engaged) == 7, cls
+
+
+def test_effort_cap_on_empty_council_with_specialists_caps_specialists_only(monkeypatch):
+    # The empty-council branch: when the active council is empty (registry has
+    # no active_council members) the floor cannot apply (no core members to
+    # preserve), so the ceiling caps the specialists alone. E1 (ceiling 1) keeps
+    # the single top-relevance specialist and drops the rest.
+    monkeypatch.delenv("MUSE_EFFORT_CAP", raising=False)
+    reg = _enable_cap_via_registry(
+        {
+            "policies": {"default_slack_council_max": 6},
+            "active_council": [],
+            "domain_specialists": _CAP_REG["domain_specialists"],
+        }
+    )
+    s = dispatch(_CAP_REQUEST, registry=reg, effort_class="E1")
+    assert s.council == []
+    # Ceiling 1, no council floor to reserve → exactly the top specialist kept.
+    assert [m.id for m in s.specialists] == ["arch-specialist"]
+    assert len(s.engaged) == 1

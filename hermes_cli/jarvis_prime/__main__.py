@@ -2222,7 +2222,20 @@ def _cmd_council(args: argparse.Namespace) -> int:
         return 0
 
     if op == "dispatch":
-        session = dispatch(args.request, max_council=getattr(args, "max_council", None))
+        # Deterministically stamp the request's smallest-sufficient effort class
+        # (offline mode-classify → router; no model call) and thread it into
+        # dispatch. This is a no-op unless the default-OFF MUSE_EFFORT_CAP flag
+        # is enabled — with the flag off, dispatch ignores effort_class and the
+        # routed council is byte-for-byte identical to before. When enabled, it
+        # lets a real CLI turn be capped to what the effort class permits.
+        from hermes_cli.jarvis_prime.effort_class import classify_effort_for_request
+
+        effort_class = classify_effort_for_request(args.request)
+        session = dispatch(
+            args.request,
+            max_council=getattr(args, "max_council", None),
+            effort_class=effort_class,
+        )
         if getattr(args, "execute", False):
             from hermes_cli.jarvis_prime.aos_council import execute
 
