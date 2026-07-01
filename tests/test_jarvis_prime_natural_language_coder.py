@@ -184,6 +184,27 @@ def test_to_gate_packet_passes_planning_gate() -> None:
     assert planning.outcome is GateOutcome.PASS
 
 
+def test_gate_packet_carries_acting_agent_id_as_builder() -> None:
+    # The acting/builder identity the C19 review gate reads must be emitted by
+    # the packet producer, in the same namespace as reviewer_worker. It equals
+    # primary_worker (the builder), so guardrail collectors can thread it into
+    # collect_git_diff_evidence(author_id=...).
+    packet = build_work_packet("refactor the router module")
+    gate_packet = packet.to_gate_packet()
+    assert gate_packet["acting_agent_id"] == packet.primary_worker
+    # to_dict (serialized form the guardrails CLI reads) carries it too.
+    assert packet.to_dict()["acting_agent_id"] == packet.primary_worker
+
+
+def test_gate_packet_acting_agent_distinct_from_reviewer_at_rc2() -> None:
+    # C19 safety invariant: for an RC2+ packet the acting agent id (builder)
+    # must differ from reviewer_worker, so activating C19 never self-blocks a
+    # well-formed default flow.
+    packet = build_work_packet("refactor the router module")
+    assert packet.risk_class == "RC2"
+    assert packet.to_gate_packet()["acting_agent_id"] != packet.reviewer_worker
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------

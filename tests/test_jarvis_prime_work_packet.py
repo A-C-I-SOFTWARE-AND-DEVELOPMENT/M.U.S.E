@@ -50,6 +50,18 @@ def test_work_packet_creation_defaults_are_safe() -> None:
     assert "T" in packet.created_at
 
 
+def test_acting_agent_id_is_optional_and_empty_by_default() -> None:
+    # Additive field for C19: optional, empty by default so existing packet
+    # construction and serialization are unaffected; round-trips through
+    # to_dict / from_dict.
+    assert WorkPacket().acting_agent_id == ""
+
+    packet = WorkPacket(acting_agent_id="claude-code-windows")
+    payload = packet.to_dict()
+    assert payload["acting_agent_id"] == "claude-code-windows"
+    assert WorkPacket.from_dict(payload).acting_agent_id == "claude-code-windows"
+
+
 def test_authorization_phrase_default_matches_owner_auth_canonical() -> None:
     # Single source of truth: WorkPacket must default to the exact string
     # the shipped owner-auth gate enforces.
