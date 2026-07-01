@@ -111,3 +111,91 @@ def test_seam_never_raises_on_bad_score_object(monkeypatch):
     agent_result = {"self_audit_scores": object(), "effort_class": EffortClass.E3}
     # Should not raise; returns a string (empty when nothing renders).
     assert isinstance(_build_self_audit_footer_line(agent_result, {}), str)
+
+
+# ---------------------------------------------------------------------------
+# Offline scorer fallback: flag ON + no precomputed scores + response text
+# available -> the footer renders from offline-derived per-turn scores.
+# ---------------------------------------------------------------------------
+
+def test_seam_scores_offline_from_response_when_enabled(monkeypatch):
+    monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+    # No "self_audit_scores"; the seam derives scores offline from the text.
+    agent_result = {
+        "final_response": "This is verified — the tests pass and the source confirms it.",
+        "effort_class": EffortClass.E3,
+    }
+    out = _build_self_audit_footer_line(agent_result, {})
+    assert out.startswith("Self-audit:")
+    assert "- Passed:" in out
+
+
+def test_seam_offline_scoring_never_calls_a_model(monkeypatch):
+    """The offline fallback must not open a socket (no model/network call)."""
+    import socket
+
+    monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+
+    def _boom(*args, **kwargs):  # pragma: no cover - only on regression
+        raise AssertionError("self-audit seam opened a socket")
+
+    monkeypatch.setattr(socket, "socket", _boom)
+    agent_result = {
+        "final_response": "Instead, narrow the scope; the risk is the untested path.",
+        "effort_class": EffortClass.E3,
+    }
+    out = _build_self_audit_footer_line(agent_result, {})
+    assert out.startswith("Self-audit:")
+
+
+def test_seam_offline_scoring_noop_when_no_response_text(monkeypatch):
+    monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+    # Flag on, no scores, and no/empty response text -> no-op (no crash).
+    assert _build_self_audit_footer_line(
+        {"final_response": "   ", "effort_class": EffortClass.E3}, {}
+    ) == ""
+    assert _build_self_audit_footer_line({"effort_class": EffortClass.E3}, {}) == ""
+
+
+def test_seam_offline_scoring_survives_scorer_error(monkeypatch):
+    """A scorer exception degrades to a no-op; the response is never broken."""
+    monkeypatch.setenv("MUSE_SELF_AUDIT_FOOTER", "1")
+
+    import hermes_cli.jarvis_prime.self_audit.live_scorer as live_scorer
+
+    def _raise(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(live_scorer, "score_response", _raise)
+    agent_result = {
+        "final_response": "Any response text here.",
+        "effort_class": EffortClass.E3,
+    }
+    # No crash; degrades to no footer.
+    assert _build_self_audit_footer_line(agent_result, {}) == ""
+
+
+# ---------------------------------------------------------------------------
+# Flag OFF (default): the offline scorer is NOT invoked at all.
+# ---------------------------------------------------------------------------
+
+def test_seam_flag_off_does_not_invoke_scorer(monkeypatch):
+    monkeypatch.delenv("MUSE_SELF_AUDIT_FOOTER", raising=False)
+
+    import hermes_cli.jarvis_prime.self_audit.live_scorer as live_scorer
+
+    calls = []
+    orig = live_scorer.score_response
+
+    def _spy(*args, **kwargs):  # pragma: no cover - must never run when off
+        calls.append((args, kwargs))
+        return orig(*args, **kwargs)
+
+    monkeypatch.setattr(live_scorer, "score_response", _spy)
+    agent_result = {
+        "final_response": "This is verified by the tests and the source.",
+        "effort_class": EffortClass.E3,
+    }
+    # Flag off (default): no footer AND the scorer is never called.
+    assert _build_self_audit_footer_line(agent_result, {}) == ""
+    assert calls == []

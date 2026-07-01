@@ -1208,16 +1208,18 @@ def _build_self_audit_footer_line(
     unchanged. Deterministic and offline — it consumes self-audit dimension
     scores the turn *already* produced and never calls a model on the hot path.
 
-    Score source: the footer only renders when a per-turn self-audit score
-    object is already present under ``agent_result["self_audit_scores"]`` (a
-    ``{dimension: DimensionScore}`` mapping or an ``AuditReport``). The gateway
-    agent loop does not currently populate this key, so today this reliably
-    degrades to a no-op even when the flag is on.
+    Score source: the footer prefers a per-turn self-audit score object already
+    present under ``agent_result["self_audit_scores"]`` (a
+    ``{dimension: DimensionScore}`` mapping or an ``AuditReport``). When the flag
+    is enabled and no such object exists, scores are computed *offline* from the
+    turn's response text via
+    :func:`hermes_cli.jarvis_prime.self_audit.live_scorer.score_response` — a
+    deterministic heuristic approximation (reusing the response-style and
+    challenge-contract detectors) with **no model / network call on the hot
+    path**. A full model-judge scorer remains a future owner-gated upgrade.
 
-    TODO(self-audit-footer): once a per-turn self-audit score source is wired
-    into the agent result (e.g. a cheap offline audit record produced during the
-    turn), surface it as ``agent_result["self_audit_scores"]`` and this footer
-    will render for opt-in users with no further seam changes required.
+    When the flag is OFF (the default) the scorer is never invoked and the
+    default runtime output is byte-for-byte unchanged.
     """
     try:
         from hermes_cli.jarvis_prime.self_audit.footer import (
@@ -1228,19 +1230,38 @@ def _build_self_audit_footer_line(
         return ""
 
     # Flag is default-OFF; when disabled, do nothing (default output unchanged).
+    # The offline scorer below is *only* reached past this early return, so with
+    # the flag off it is never called.
     if not self_audit_footer_enabled(user_config):
         return ""
 
-    scores = (agent_result or {}).get("self_audit_scores")
+    result = agent_result or {}
+    scores = result.get("self_audit_scores")
     if scores is None:
-        # No per-turn score source available at this seam -> no-op (see TODO).
-        return ""
+        # No precomputed scores -> derive them offline from the response text.
+        # Deterministic heuristic, no model/network call (see live_scorer).
+        try:
+            from hermes_cli.jarvis_prime.self_audit.live_scorer import (
+                score_response,
+            )
+
+            response_text = result.get("final_response") or ""
+            if not str(response_text).strip():
+                return ""
+            scores = score_response(
+                str(response_text),
+                request_text=result.get("request_text"),
+                mode=result.get("mode"),
+                effort_class=result.get("effort_class"),
+            )
+        except Exception:  # pragma: no cover - never break the send path
+            return ""
 
     try:
         return build_self_audit_footer(
             scores,
             user_config=user_config,
-            effort=(agent_result or {}).get("effort_class"),
+            effort=result.get("effort_class"),
         )
     except Exception:  # pragma: no cover - never break the send path
         return ""
