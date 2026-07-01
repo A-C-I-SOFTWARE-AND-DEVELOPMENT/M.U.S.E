@@ -248,3 +248,73 @@ def test_candidate_carries_typed_kind_through_proposed_surface(tmp_path) -> None
     promoted = store.promote_to_durable(node.id)  # ty: ignore[unresolved-attribute]
     assert promoted.ok
     assert REPO_CONVENTION in promoted.node.tags  # ty: ignore[unresolved-attribute]
+
+
+# ---------------------------------------------------------------------------
+# Load-bearing safety invariants (guard tests)
+# ---------------------------------------------------------------------------
+
+
+def test_extract_candidates_never_emits_do_not_store() -> None:
+    # ``do_not_store`` is only ever set *explicitly* on a hand-built candidate;
+    # the deterministic extractor must never auto-emit it. This is what makes
+    # the capture_to_tree reject-at-write path safe: a caller cannot smuggle a
+    # do_not_store categorization in through ordinary extraction, and secret-
+    # looking text is rejected by the store's own policy, not by a magic kind.
+    samples = (
+        "I prefer the key api_key=sk-ABCDEFGHIJKLMNOPQRSTUV0123456789.",
+        "My password is hunter2 and I never want to say it again.",
+        "We decided to standardize on Material 3.",
+        "The system uses a stdlib router.",
+        "hello, how are you today?",
+        "Our convention is snake_case for module names.",
+        "According to the docs, retries are capped.",
+        "I was wrong about the default timeout.",
+    )
+    for text in samples:
+        kinds = {c.kind for c in extract_candidates(text)}
+        assert DO_NOT_STORE not in kinds, text
+        # Also assert on the canonical form, since a legacy kind could in
+        # principle resolve onto a canonical name.
+        canonical = {c.canonical_kind for c in extract_candidates(text)}
+        assert DO_NOT_STORE not in canonical, text
+
+
+def test_capture_to_tree_result_alignment_with_do_not_store_interleaved(
+    tmp_path,
+) -> None:
+    # runtime.py relies on ``zip(candidates, results)`` for reporting, so
+    # capture_to_tree MUST return exactly one result per input candidate, in
+    # order — including for do_not_store candidates that never touch the store.
+    store = MemoryTreeStore(path=tmp_path / "tree.jsonl")
+    storable = extract_candidates("We decided to deploy on Monday.")
+    assert len(storable) == 1
+    storable_cand = storable[0]
+    do_not_store_cand = MemoryCandidate(
+        kind=DO_NOT_STORE,
+        namespace=MemoryNamespace.GENERAL.value,
+        title="do not store: ephemeral chatter",
+        text="Just some ephemeral small talk to not remember.",
+        confidence=0.5,
+        source_trust=SourceTrust.OWNER,
+        owner_originated=True,
+    )
+    candidates = [storable_cand, do_not_store_cand]
+
+    results = capture_to_tree(store, candidates)
+
+    # One result per input candidate, positionally aligned (the zip contract).
+    assert len(results) == len(candidates)
+    storable_result, do_not_store_result = results
+
+    # The storable candidate is written to the proposed inbox.
+    assert storable_result.ok
+    node = storable_result.node
+    assert node.approval_state is ApprovalState.PROPOSED  # ty: ignore[unresolved-attribute]
+    assert node in store.proposed()
+
+    # The do_not_store candidate is rejected and never persisted.
+    assert not do_not_store_result.ok
+    assert do_not_store_result.node is None
+    assert any("do_not_store" in r for r in do_not_store_result.reasons)
+    assert store.proposed() == [node]
