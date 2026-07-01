@@ -102,13 +102,25 @@ def collect_git_diff_evidence(
     repo_root: str,
     allowed_files: Sequence[str] = (),
     protected_files: Sequence[str] = (),
+    *,
+    author_id: str = "",
 ) -> EvidenceArtifact:
-    """Capture the working-tree diff state without mutating the repo."""
+    """Capture the working-tree diff state without mutating the repo.
+
+    ``author_id`` records the AGENT that authored the change under review, in
+    the same identity namespace as a review's ``reviewer_id`` (see
+    ``collect_review_evidence``). Callers that know the acting agent id must
+    pass it so the strict review gate's C19 builder ≠ reviewer check can fire;
+    left blank the gate fails open (see ``strict_review_gate``).
+    """
 
     root = str(repo_root or ".")
+    author = str(author_id or "").strip()
     branch_raw = _git(root, ["rev-parse", "--abbrev-ref", "HEAD"])
     if branch_raw is None:
-        return GitDiffEvidence(repo_root=root, git_available=False).to_artifact()
+        return GitDiffEvidence(
+            repo_root=root, git_available=False, author_id=author
+        ).to_artifact()
 
     branch = branch_raw.strip()
     head = (_git(root, ["rev-parse", "HEAD"]) or "").strip()
@@ -147,6 +159,7 @@ def collect_git_diff_evidence(
         working_tree_clean=not bool(status.strip()),
         diff_check_passed=not bool(diff_check.strip()),
         status_porcelain=status[:_OUTPUT_TAIL],
+        author_id=author,
     ).to_artifact()
 
 

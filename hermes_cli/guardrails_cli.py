@@ -248,8 +248,17 @@ def _collect(args: Any) -> dict:
         or []
     )
     rollback = packet.get("planned_rollback") or packet.get("rollback_plan") or []
+    # The acting agent that authored the change, if the packet carries it (same
+    # identity namespace as a review's reviewer_id). Absent ⇒ the C19 gate fails
+    # open (see strict_review_gate). Wiring this end-to-end from the orchestrator
+    # is a follow-up; reading it here means any caller that already knows it wins.
+    author_id = str(
+        packet.get("acting_agent_id") or packet.get("author_id") or ""
+    ).strip()
 
-    diff_art = gc.collect_git_diff_evidence(repo_root, allowed, protected)
+    diff_art = gc.collect_git_diff_evidence(
+        repo_root, allowed, protected, author_id=author_id
+    )
     changed = list(diff_art.payload.get("changed_files") or [])
     scan_art = gc.collect_secret_scan_evidence(repo_root, changed or list(allowed))
     rollback_art = gc.collect_rollback_evidence(

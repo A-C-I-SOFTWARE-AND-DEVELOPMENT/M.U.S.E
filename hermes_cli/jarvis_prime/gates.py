@@ -23,6 +23,7 @@ and surface as gate failures.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -37,6 +38,8 @@ from hermes_cli.jarvis_prime.guardrail_evidence import (
     ARTIFACT_TEST_RESULT,
     GuardrailEvidenceBundle,
 )
+
+LOGGER = logging.getLogger("hermes.jarvis_prime.gates")
 
 
 class GateOutcome(Enum):
@@ -341,6 +344,28 @@ GATES: tuple[Gate, ...] = (
 # ---------------------------------------------------------------------------
 
 
+# Risk-band ordering, mirrored from ``capability_wall._RC_ORDER``. Kept local so
+# the review gate can compare bands without importing capability_wall (which
+# imports this module — a lazy dependency, not a load-time cycle).
+_RC_ORDER = {"RC0": 0, "RC1": 1, "RC2": 2, "RC3": 3, "RC4": 4}
+
+# Clause C19: for RC2+ work, the agent that wrote the change may not be the one
+# that approves it. The threshold band at/above which self-approval is blocked.
+_C19_MIN_BAND = "RC2"
+
+
+def _rc_at_or_above(risk_class: str, threshold: str) -> bool:
+    """True when ``risk_class`` is at least as high a band as ``threshold``.
+
+    Unknown bands are treated as RC1 (the packet default), matching
+    ``capability_wall._packet_rc`` so a missing/garbled class is never silently
+    escalated *or* silently exempted below RC2.
+    """
+
+    rc = _RC_ORDER.get(str(risk_class).upper(), _RC_ORDER["RC1"])
+    return rc >= _RC_ORDER.get(threshold.upper(), _RC_ORDER["RC2"])
+
+
 def _packet_id_mismatch(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> Optional[str]:
     pid = _get(packet, "packet_id")
     if pid and bundle.packet_id and str(pid) != str(bundle.packet_id):
@@ -383,7 +408,47 @@ def strict_review_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundl
     arts = bundle.by_type(ARTIFACT_REVIEW)
     if not arts:
         return _strict_fail(name, "no review evidence captured")
-    verdict = str(arts[-1].payload.get("verdict", ""))
+    review = arts[-1]
+
+    # Clause C19 gate: for RC2+ work the reviewer must not be the builder. Both
+    # operands must live in the SAME identity namespace (agent ids), or the
+    # comparison is meaningless. The reviewer identity is the review artifact's
+    # ``reviewer_id`` (falling back to its producer); the builder identity is the
+    # git_diff artifact's ``author_id`` — the acting agent threaded to
+    # ``collect_git_diff_evidence`` (NOT the collector-tool ``producer``, which
+    # is a fixed literal and would never match a real reviewer id). A
+    # self-approving review (reviewer == builder) is a hard FAIL, not a score.
+    #
+    # Policy is fail-OPEN: when the author identity is unknown/unset we do NOT
+    # block — we only block when BOTH identities are known and equal. RC2+ work
+    # reaching the gate with an unknown author is logged as a warning so the
+    # fail-open is observable rather than silent.
+    risk_class = str(_get(packet, "risk_class", "RC1"))
+    if _rc_at_or_above(risk_class, _C19_MIN_BAND):
+        reviewer = str(review.payload.get("reviewer_id") or review.producer or "").strip()
+        diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
+        builder = (
+            str(diff_arts[-1].payload.get("author_id") or "").strip()
+            if diff_arts
+            else ""
+        )
+        if not builder:
+            LOGGER.warning(
+                "C19 fail-open at %s: git_diff evidence has no author_id "
+                "(reviewer_id=%r); self-approval cannot be verified — thread the "
+                "acting agent id into collect_git_diff_evidence to enforce C19",
+                risk_class.upper(),
+                reviewer or "<unknown>",
+            )
+        elif reviewer and reviewer == builder:
+            return _strict_fail(
+                name,
+                f"C19 self-approval blocked at {risk_class.upper()}: "
+                f"reviewer {reviewer!r} is the change's builder",
+                (f"reviewer_id={reviewer}", f"builder={builder}"),
+            )
+
+    verdict = str(review.payload.get("verdict", ""))
     if verdict in ("blocked", "request_changes"):
         return _strict_fail(name, f"reviewer verdict: {verdict}", (verdict,))
     if verdict == "needs_owner":
