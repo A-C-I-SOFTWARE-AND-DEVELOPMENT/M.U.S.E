@@ -1196,6 +1196,56 @@ def _load_gateway_config() -> dict:
     return {}
 
 
+def _build_self_audit_footer_line(
+    agent_result: dict | None,
+    user_config: dict | None,
+) -> str:
+    """Return the opt-in self-audit footer for a turn, or ``""``.
+
+    Mirrors ``gateway.runtime_footer.build_footer_line``: gated behind an
+    existing default-OFF flag (``display.self_audit_footer.enabled`` /
+    ``MUSE_SELF_AUDIT_FOOTER``) so the default runtime output is byte-for-byte
+    unchanged. Deterministic and offline — it consumes self-audit dimension
+    scores the turn *already* produced and never calls a model on the hot path.
+
+    Score source: the footer only renders when a per-turn self-audit score
+    object is already present under ``agent_result["self_audit_scores"]`` (a
+    ``{dimension: DimensionScore}`` mapping or an ``AuditReport``). The gateway
+    agent loop does not currently populate this key, so today this reliably
+    degrades to a no-op even when the flag is on.
+
+    TODO(self-audit-footer): once a per-turn self-audit score source is wired
+    into the agent result (e.g. a cheap offline audit record produced during the
+    turn), surface it as ``agent_result["self_audit_scores"]`` and this footer
+    will render for opt-in users with no further seam changes required.
+    """
+    try:
+        from hermes_cli.jarvis_prime.self_audit.footer import (
+            build_self_audit_footer,
+            self_audit_footer_enabled,
+        )
+    except Exception:  # pragma: no cover - self_audit package optional
+        return ""
+
+    # Flag is default-OFF; when disabled, do nothing (default output unchanged).
+    if not self_audit_footer_enabled(user_config):
+        return ""
+
+    scores = (agent_result or {}).get("self_audit_scores")
+    if scores is None:
+        # No per-turn score source available at this seam -> no-op (see TODO).
+        return ""
+
+    try:
+        return build_self_audit_footer(
+            scores,
+            user_config=user_config,
+            effort=(agent_result or {}).get("effort_class"),
+        )
+    except Exception:  # pragma: no cover - never break the send path
+        return ""
+
+
 def _resolve_gateway_model(config: dict | None = None) -> str:
     """Read model from config.yaml — single source of truth.
 
@@ -8615,6 +8665,22 @@ class GatewayRunner:
             if _footer_line and response and not agent_result.get("already_sent"):
                 response = f"{response}\n\n{_footer_line}"
 
+            # Self-audit footer — opt-in, default OFF. Rendered only when the
+            # existing default-OFF flag is set AND the turn already produced
+            # self-audit scores (agent_result["self_audit_scores"]); otherwise a
+            # no-op, so the default output is byte-for-byte unchanged. Offline —
+            # no model call on the hot path (see _build_self_audit_footer_line).
+            _self_audit_footer = ""
+            try:
+                _self_audit_footer = _build_self_audit_footer_line(
+                    agent_result, _load_gateway_config(),
+                )
+            except Exception as _sa_err:
+                logger.debug("self_audit_footer build failed: %s", _sa_err)
+                _self_audit_footer = ""
+            if _self_audit_footer and response and not agent_result.get("already_sent"):
+                response = f"{response}\n\n{_self_audit_footer}"
+
             # Emit agent:end hook
             await self.hooks.emit("agent:end", {
                 **hook_ctx,
@@ -8861,6 +8927,19 @@ class GatewayRunner:
                             )
                     except Exception as _e:
                         logger.debug("trailing footer send failed: %s", _e)
+                # Same for the opt-in self-audit footer (default OFF -> empty ->
+                # nothing sent, so the streaming default path is unchanged).
+                if _self_audit_footer:
+                    try:
+                        _sa_adapter = self.adapters.get(source.platform)
+                        if _sa_adapter:
+                            await _sa_adapter.send(
+                                source.chat_id,
+                                _self_audit_footer,
+                                metadata=self._thread_metadata_for_source(source, self._reply_anchor_for_event(event)),
+                            )
+                    except Exception as _e:
+                        logger.debug("trailing self-audit footer send failed: %s", _e)
                 return None
 
             return response
