@@ -18,7 +18,12 @@ derived from the already-merged deterministic detectors
 (:func:`~hermes_cli.jarvis_prime.response_style.validate_response_style`,
 :func:`~hermes_cli.jarvis_prime.challenge_contract.evaluate_challenge_contract`)
 plus a handful of word-boundary text markers mirroring the approach in
-``response_style.py``. Several Constitution dimensions have **no cheap offline
+``response_style.py``. Those two detectors are **always-inspection**: they carry
+no enable/disable flag of their own and contribute to the score whenever this
+scorer runs — which only happens when the opt-in self-audit footer is enabled
+(``display.self_audit_footer.enabled`` / ``MUSE_SELF_AUDIT_FOOTER``). So the
+single footer flag is the one control surface; there is no separate
+challenge-contract or style-validator gate. Several Constitution dimensions have **no cheap offline
 signal** (owner-gate respect, memory integrity, safe execution,
 self-improvement restraint) — for those this scorer returns a **neutral pass**
 rather than fabricating a number. A full model-judge scorer (the real audit

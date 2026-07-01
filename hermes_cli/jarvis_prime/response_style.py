@@ -24,12 +24,17 @@ Design constraints (all enforced here):
 - **Pure & deterministic & offline.** :func:`validate_response_style` performs
   no model call, no I/O, and no randomness — it only reads the text it is
   handed and returns a structured result. Identical input ⇒ identical output.
-- **Additive & default-inert.** This module changes no default behavior on its
-  own. Any *enforcement* (rejecting or regenerating a reply based on a
-  violation) is **opt-in and default OFF**, gated by
-  :func:`style_validator_enabled` (config ``display.style_validator.enabled``
-  or env ``MUSE_STYLE_VALIDATOR``). Mirrors the opt-in self-audit footer
-  (``hermes_cli/jarvis_prime/self_audit/footer.py``).
+- **Additive & always-inspection (no enforcement gate).** This module changes
+  no default behavior on its own. It exposes **pure inspection** only —
+  :func:`validate_response_style` — and is wired *nowhere* on the hot response
+  path. There is deliberately **no** ``style_validator_enabled`` flag: the
+  validator is a signal source, not a gate, so the only consumer (the offline
+  self-audit footer scorer in
+  :mod:`hermes_cli.jarvis_prime.self_audit.live_scorer`) simply calls it
+  whenever the *footer itself* is enabled
+  (``display.self_audit_footer.enabled`` / ``MUSE_SELF_AUDIT_FOOTER``). See the
+  "MUSE feature flags" section of ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``
+  for the full flag registry.
 - **Reuses existing thresholds.** The Mobile Voice length rule reuses the
   BRIEF-cadence ``max_sentences`` budget from
   :mod:`~hermes_cli.jarvis_prime.communication_style` rather than inventing a
@@ -37,21 +42,17 @@ Design constraints (all enforced here):
 
 The validator is inspectable infra: it is wired *nowhere* on the hot response
 path by default, so the default runtime output is byte-for-byte unchanged. A
-caller that has opted in (via the gate helper) may consult it to decide whether
-to regenerate; that decision is the caller's, not this module's.
+caller may consult it to decide whether to regenerate; that decision is the
+caller's, not this module's.
 """
 
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from hermes_cli.jarvis_prime.modes import Mode
-
-# Environment override for the opt-in enforcement flag (mirrors MUSE_* flags).
-_ENV_FLAG = "MUSE_STYLE_VALIDATOR"
 
 # The Mobile Voice brevity budget. The BRIEF cadence in
 # ``communication_style.decide_pacing`` caps a mobile/voice reply at 2
@@ -346,43 +347,10 @@ def validate_response_style(
     )
 
 
-def style_validator_enabled(
-    user_config: Mapping[str, Any] | None = None,
-) -> bool:
-    """Return whether style-validator ENFORCEMENT is enabled (default OFF).
-
-    Resolution (later wins):
-
-    1. Built-in default — ``False`` (enforcement off; validator stays pure infra).
-    2. ``display.style_validator.enabled`` in the user config.
-    3. The ``MUSE_STYLE_VALIDATOR`` environment variable, when set to a truthy
-       value (``1``/``true``/``yes``/``on``) or a falsy one.
-
-    The default is OFF, so with no config and no env var this returns ``False``
-    and no enforcement runs — the default runtime output is unchanged. This gates
-    *enforcement only*; :func:`validate_response_style` itself is always safe to
-    call (it is a pure inspection function that changes nothing).
-    """
-    enabled = False
-
-    display = (user_config or {}).get("display") if user_config else None
-    if isinstance(display, Mapping):
-        section = display.get("style_validator")
-        if isinstance(section, Mapping) and "enabled" in section:
-            enabled = bool(section.get("enabled"))
-
-    raw = os.environ.get(_ENV_FLAG)
-    if raw is not None:
-        enabled = raw.strip().lower() in {"1", "true", "yes", "on"}
-
-    return enabled
-
-
 __all__ = [
     "StyleViolation",
     "StyleValidationResult",
     "validate_response_style",
-    "style_validator_enabled",
     "DEFAULT_MOBILE_VOICE_MAX_SENTENCES",
     "DEFAULT_MOBILE_VOICE_MAX_WORDS",
 ]

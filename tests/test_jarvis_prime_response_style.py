@@ -5,9 +5,9 @@ Covers the guarantees:
 - Per-mode rules: Mobile Voice brevity, Critic must object, Builder must ship a
   verification plan; non-styled modes always pass.
 - The validator is pure / deterministic / offline (no model call, no network).
-- Enforcement is gated: ``style_validator_enabled`` is OFF by default and ON
-  only via the opt-in config key or env var — proving default behavior is
-  unchanged.
+- The validator is always-inspection: there is no ``style_validator_enabled``
+  gate. Its only consumer (the self-audit footer scorer) calls it whenever the
+  footer itself is enabled, so the validator never alters default behavior.
 """
 
 from __future__ import annotations
@@ -16,12 +16,12 @@ import re
 
 import pytest  # ty: ignore[unresolved-import]
 
+from hermes_cli.jarvis_prime import response_style as _rs_mod
 from hermes_cli.jarvis_prime.modes import Mode
 from hermes_cli.jarvis_prime.response_style import (
     DEFAULT_MOBILE_VOICE_MAX_SENTENCES,
     StyleValidationResult,
     StyleViolation,
-    style_validator_enabled,
     validate_response_style,
 )
 
@@ -282,34 +282,12 @@ def test_validator_makes_no_network_or_model_call():
 
 
 # ---------------------------------------------------------------------------
-# Enforcement gate — default OFF, opt-in ON
+# Always-inspection — no enforcement gate exists (dead-gate removed, B6 #20)
 # ---------------------------------------------------------------------------
 
-def test_enforcement_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("MUSE_STYLE_VALIDATOR", raising=False)
-    assert style_validator_enabled(None) is False
-    assert style_validator_enabled({}) is False
-
-
-def test_enforcement_enabled_via_config(monkeypatch):
-    monkeypatch.delenv("MUSE_STYLE_VALIDATOR", raising=False)
-    cfg = {"display": {"style_validator": {"enabled": True}}}
-    assert style_validator_enabled(cfg) is True
-
-
-def test_enforcement_enabled_via_env(monkeypatch):
-    monkeypatch.setenv("MUSE_STYLE_VALIDATOR", "1")
-    assert style_validator_enabled({}) is True
-    monkeypatch.setenv("MUSE_STYLE_VALIDATOR", "off")
-    assert style_validator_enabled({}) is False
-
-
-def test_enforcement_env_overrides_config(monkeypatch):
-    monkeypatch.setenv("MUSE_STYLE_VALIDATOR", "0")
-    cfg = {"display": {"style_validator": {"enabled": True}}}
-    assert style_validator_enabled(cfg) is False
-
-
-def test_enforcement_ignores_malformed_config(monkeypatch):
-    monkeypatch.delenv("MUSE_STYLE_VALIDATOR", raising=False)
-    assert style_validator_enabled({"display": {"style_validator": "on"}}) is False
+def test_no_enforcement_gate_helper():
+    # The dead ``style_validator_enabled`` helper gated nothing (zero runtime
+    # consumers) and was removed so the validator is documented as always-
+    # inspection. Guard against it being reintroduced.
+    assert not hasattr(_rs_mod, "style_validator_enabled")
+    assert "style_validator_enabled" not in _rs_mod.__all__
