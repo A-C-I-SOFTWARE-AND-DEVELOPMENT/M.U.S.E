@@ -47,6 +47,7 @@ from hermes_cli.jarvis_prime.muse_eval.harness import (
     load_cases,
     run,
 )
+from hermes_cli.jarvis_prime.muse_eval.jury import JuryJudge, make_default_jury
 
 __all__ = [
     "DIMENSIONS",
@@ -55,8 +56,10 @@ __all__ = [
     "Dimension",
     "HeuristicJudge",
     "Judge",
+    "JuryJudge",
     "Report",
     "collect",
     "load_cases",
+    "make_default_jury",
     "run",
 ]
