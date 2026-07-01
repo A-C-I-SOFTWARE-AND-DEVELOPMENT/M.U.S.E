@@ -8,6 +8,7 @@ shipped catalog's exact contents); one test confirms the real
 from __future__ import annotations
 
 from hermes_cli.jarvis_prime.aos_council import dispatch, load_registry, roster
+from hermes_cli.jarvis_prime.aos_council.dispatcher import _effort_cap_enabled
 
 REG = {
     "policies": {
@@ -253,6 +254,21 @@ def test_effort_cap_on_env_flag_also_enables(monkeypatch):
     monkeypatch.setenv("MUSE_EFFORT_CAP", "1")
     s = dispatch(_CAP_REQUEST, registry=_CAP_REG, effort_class="E2")
     assert len(s.engaged) == 3
+
+
+def test_effort_cap_empty_env_defers_to_registry(monkeypatch):
+    # P1-11 regression: a present-but-empty MUSE_EFFORT_CAP must not force the
+    # cap OFF — it is not a truthy token, so resolution falls through to the
+    # registry policy, which enables the cap here.
+    monkeypatch.setenv("MUSE_EFFORT_CAP", "")
+    reg = {"policies": {"effort_cap": {"enabled": True}}}
+    assert _effort_cap_enabled(reg) is True
+
+
+def test_effort_cap_env_true_wins_without_registry(monkeypatch):
+    # First-True-wins: a truthy env enables the cap even with no registry policy.
+    monkeypatch.setenv("MUSE_EFFORT_CAP", "1")
+    assert _effort_cap_enabled(None) is True
 
 
 def test_effort_cap_on_error_falls_open_to_uncapped(monkeypatch):

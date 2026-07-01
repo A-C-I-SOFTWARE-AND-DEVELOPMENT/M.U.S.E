@@ -743,7 +743,7 @@ def tool_broker_enabled(user_config: Mapping[str, Any] | None = None) -> bool:
             enabled = bool(section.get("enabled"))
 
     raw = os.environ.get(_ENV_FLAG)
-    if raw is not None:
+    if raw is not None and raw.strip():  # present-but-empty defers to config
         enabled = raw.strip().lower() in {"1", "true", "yes", "on"}
 
     return enabled

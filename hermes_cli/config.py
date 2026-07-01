@@ -4459,11 +4459,21 @@ _MUSE_FEATURE_FLAGS: Tuple[Dict[str, Any], ...] = (
 
 
 def _flag_truthy_env(env_var: str) -> Optional[bool]:
-    """Resolve an env override for a MUSE flag, or ``None`` if unset."""
+    """Resolve an env override for a MUSE flag, or ``None`` if unset.
+
+    A present-but-empty (or whitespace-only) value means "not specified" and
+    returns ``None`` so the config-backed resolvers defer to config instead of
+    silently forcing the feature OFF. Only the config-backed MUSE flags have
+    this empty-value pitfall; env-only resolvers with no config fallback already
+    resolve an empty value to their default with nothing to clobber.
+    """
     raw = os.environ.get(env_var)
     if raw is None:
         return None
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+    stripped = raw.strip()
+    if not stripped:  # present-but-empty => not specified; defer to config
+        return None
+    return stripped.lower() in {"1", "true", "yes", "on"}
 
 
 def muse_feature_flags(

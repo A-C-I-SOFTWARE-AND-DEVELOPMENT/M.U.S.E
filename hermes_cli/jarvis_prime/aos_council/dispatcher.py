@@ -197,6 +197,8 @@ def _effort_cap_enabled(registry: Optional[dict[str, Any]]) -> bool:
     """
     try:
         env = os.getenv("MUSE_EFFORT_CAP")
+        # A present-but-empty env value falls through here (empty string is not a
+        # truthy token) and defers to the registry policy below — first True wins.
         if env is not None and env.strip().lower() in {"1", "true", "yes", "on"}:
             return True
         policies = (registry or {}).get("policies")
