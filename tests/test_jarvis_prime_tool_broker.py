@@ -9,8 +9,9 @@ Covers the guarantees:
 - Dry-run mode: an otherwise-ALLOW decision is downgraded to DRY_RUN.
 - Injection-scan hook: an obvious injection payload is flagged →
   REQUIRES_OWNER_APPROVAL (default policy) or DENY (deny policy).
-- Source trust: untrusted / external sources get stricter treatment than
-  trusted.
+- Source trust: on a flagged request, untrusted / external sources get a
+  genuinely stricter verdict (DENY) than trusted (REQUIRES_OWNER_APPROVAL); a
+  clean read-only untrusted call is still ALLOWed in this inert evaluator.
 - Owner gate: a side-effecting / owner-gated tool → REQUIRES_OWNER_APPROVAL,
   reusing the approval-policy owner-gate concept.
 - Structured errors: evaluate() never raises on malformed input — it returns a
@@ -24,7 +25,7 @@ from __future__ import annotations
 
 import socket
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from hermes_cli.jarvis_prime.tool_broker import (
     ALLOW_ALL,
@@ -183,6 +184,25 @@ def test_dry_run_still_denies_disallowed_tool():
     assert decision.verdict is BrokerVerdict.DENY
 
 
+def test_dry_run_consumes_budget():
+    # A previewed (DRY_RUN) call still counts against the per-identity cap,
+    # exactly like an ALLOW would.
+    broker = ToolBroker(
+        allowlists={"planner": {SAFE_TOOL}},
+        budgets={"planner": 1},
+        dry_run=True,
+    )
+    req = ToolCallRequest(tool_name=SAFE_TOOL, identity="planner")
+    first = broker.evaluate(req)
+    assert first.verdict is BrokerVerdict.DRY_RUN
+    assert broker.remaining_budget("planner") == 0
+    # The preview burned the only budgeted call, so the next is denied.
+    second = broker.evaluate(req)
+    assert second.verdict is BrokerVerdict.DENY
+    assert second.error is not None
+    assert second.error.code == "budget_exceeded"
+
+
 # ---------------------------------------------------------------------------
 # Injection-scan hook
 # ---------------------------------------------------------------------------
@@ -251,7 +271,7 @@ def test_custom_scanner_hook_is_used():
 # ---------------------------------------------------------------------------
 
 
-def test_untrusted_source_scan_is_recorded_mandatory():
+def test_untrusted_flagged_source_scan_is_recorded_mandatory():
     broker = ToolBroker(allowlists={"planner": {SAFE_TOOL}})
     decision = broker.evaluate(
         ToolCallRequest(
@@ -261,13 +281,70 @@ def test_untrusted_source_scan_is_recorded_mandatory():
             args={"note": INJECTION_PAYLOAD},
         )
     )
-    assert decision.verdict is BrokerVerdict.REQUIRES_OWNER_APPROVAL
+    # A flagged request from an untrusted source is DENIED (stricter), and the
+    # scan is recorded as mandatory.
+    assert decision.verdict is BrokerVerdict.DENY
+    assert decision.error is not None
+    assert decision.error.code == "injection_flagged"
     assert decision.audit.get("mandatory_scan") is True
 
 
-def test_untrusted_source_stricter_than_trusted_for_side_effect():
-    # A side-effecting tool is owner-gated regardless, but the reason records
-    # the trust label so untrusted is visibly stricter.
+def test_untrusted_stricter_than_trusted_on_flagged_request():
+    # GENUINE behavioral difference: the SAME flagged, read-only request yields
+    # a stricter verdict from an untrusted/external source than from a trusted
+    # one — trusted is owner-gated, untrusted/external is denied outright.
+    broker = ToolBroker(allowlists={"planner": {SAFE_TOOL}})
+
+    def _flagged(trust):
+        return broker.evaluate(
+            ToolCallRequest(
+                tool_name=SAFE_TOOL,
+                identity="planner",
+                source_trust=trust,
+                args={"note": INJECTION_PAYLOAD},
+            )
+        )
+
+    trusted = _flagged(SourceTrust.TRUSTED)
+    untrusted = _flagged(SourceTrust.UNTRUSTED)
+    external = _flagged(SourceTrust.EXTERNAL)
+
+    # Trusted: owner can vet and authorize.
+    assert trusted.verdict is BrokerVerdict.REQUIRES_OWNER_APPROVAL
+    assert trusted.error is None
+    # Untrusted / external: denied outright — strictly stronger than trusted.
+    assert untrusted.verdict is BrokerVerdict.DENY
+    assert untrusted.error is not None
+    assert untrusted.error.code == "injection_flagged"
+    assert untrusted.audit.get("untrusted_denied") is True
+    assert external.verdict is BrokerVerdict.DENY
+    assert external.error is not None
+    assert external.error.code == "injection_flagged"
+
+    # The verdicts genuinely differ for the identical request payload.
+    assert trusted.verdict is not untrusted.verdict
+
+
+def test_untrusted_clean_readonly_still_allowed():
+    # The stricter behavior triggers on a RISK SIGNAL, not on trust alone: a
+    # clean, read-only, non-owner-gated call from an untrusted source is still
+    # ALLOWed in this inert evaluator (broader trust-only enforcement is the
+    # documented live-dispatch wiring follow-up).
+    broker = ToolBroker(allowlists={"planner": {SAFE_TOOL}})
+    decision = broker.evaluate(
+        ToolCallRequest(
+            tool_name=SAFE_TOOL,
+            identity="planner",
+            source_trust=SourceTrust.EXTERNAL,
+            args={"path": "docs/readme.md"},
+        )
+    )
+    assert decision.verdict is BrokerVerdict.ALLOW
+
+
+def test_side_effecting_owner_gated_at_every_trust_level():
+    # A side-effecting tool is owner-gated regardless of trust; the reason
+    # records the trust label.
     broker = ToolBroker(allowlists={"planner": {SIDE_EFFECTING_TOOL}})
     trusted = broker.evaluate(
         ToolCallRequest(

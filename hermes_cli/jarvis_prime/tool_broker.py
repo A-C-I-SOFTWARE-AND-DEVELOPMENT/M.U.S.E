@@ -41,7 +41,9 @@ model call, **no** network, **no** socket):
   calls return a structured ``DENY`` ("budget exceeded") — never a raised
   exception. Budgets are counted in-memory on the broker instance.
 - **Dry-run mode.** When enabled, an otherwise-``ALLOW`` decision is downgraded
-  to ``DRY_RUN`` so a caller can preview intent without side effects.
+  to ``DRY_RUN`` so a caller can preview intent without side effects. A
+  previewed (``DRY_RUN``) call still consumes budget — a preview counts against
+  the per-identity cap exactly like an ``ALLOW``.
 - **Prompt-injection scanning hook.** A pluggable :class:`InjectionScanner`
   protocol plus a conservative built-in heuristic
   (:class:`HeuristicInjectionScanner`) that flags obvious markers ("ignore
@@ -50,8 +52,15 @@ model call, **no** network, **no** socket):
   heuristic is explicitly a *hook*, not a complete solution.
 - **Source trust labels.** Each request carries a :class:`SourceTrust` label
   (``TRUSTED`` / ``UNTRUSTED`` / ``EXTERNAL``). Untrusted / external sources get
-  stricter treatment: injection scanning is mandatory, and side-effecting tools
-  require owner approval.
+  genuinely stricter treatment on a risk signal: injection scanning is
+  mandatory, and when the scanner *flags* a request an untrusted/external
+  source is ``DENY`` outright whereas a trusted source is only downgraded to
+  ``REQUIRES_OWNER_APPROVAL`` (so the identical flagged request yields a
+  stricter verdict for untrusted). Owner-gated / side-effecting tools require
+  owner approval at every trust level. Broadening untrusted enforcement to
+  *clean* read-only tools (denying/gating them purely on trust, absent any risk
+  signal) is deliberately left to the owner-gated live-dispatch wiring
+  follow-up; this inert evaluator does not do that.
 - **Owner-approval hook.** Side-effecting / owner-gated tools →
   ``REQUIRES_OWNER_APPROVAL``, reusing the existing owner-gate concept from
   ``hermes_cli/approval_policy.py`` (the ``_ALWAYS_CONFIRM`` confirm-set) rather
@@ -95,9 +104,10 @@ class BrokerVerdict(Enum):
     - ``ALLOW`` — the call may proceed as-is.
     - ``DENY`` — the call is refused (not on allowlist, budget exhausted,
       injection flagged under a deny policy, or a structured internal error).
-    - ``REQUIRES_OWNER_APPROVAL`` — the call is side-effecting / owner-gated (or
-      flagged from an untrusted source) and needs the owner's explicit
-      authorization before it may run.
+    - ``REQUIRES_OWNER_APPROVAL`` — the call is side-effecting / owner-gated, or
+      the injection scanner flagged it from a *trusted* source, and it needs the
+      owner's explicit authorization before it may run. (A flagged request from
+      an untrusted/external source is ``DENY``, not this.)
     - ``DRY_RUN`` — the call *would* be allowed, but dry-run mode is on, so the
       caller should preview rather than execute (no side effect intended).
     """
@@ -114,11 +124,12 @@ class SourceTrust(Enum):
     - ``TRUSTED`` — the request originates from the owner / a first-party,
       audited path.
     - ``UNTRUSTED`` — the request derives from lower-trust content (e.g. an
-      untrusted document the model summarized). Injection scanning is mandatory
-      and side-effecting tools require owner approval.
+      untrusted document the model summarized). Injection scanning is mandatory,
+      and a *flagged* request is ``DENY`` outright (stricter than the trusted
+      path, which is only downgraded to ``REQUIRES_OWNER_APPROVAL``).
     - ``EXTERNAL`` — the request derives from fully external / third-party input
       (web content, inbound message from an unknown party). Treated at least as
-      strictly as ``UNTRUSTED``.
+      strictly as ``UNTRUSTED`` (identical stricter injection handling).
     """
 
     TRUSTED = "trusted"
@@ -129,9 +140,11 @@ class SourceTrust(Enum):
 class InjectionPolicy(Enum):
     """What to do when the injection scanner flags a request.
 
-    - ``OWNER_APPROVAL`` — downgrade to ``REQUIRES_OWNER_APPROVAL`` (default;
-      conservative but not fully blocking).
-    - ``DENY`` — refuse outright.
+    - ``OWNER_APPROVAL`` — downgrade to ``REQUIRES_OWNER_APPROVAL`` for a
+      *trusted* source (default; conservative but not fully blocking). An
+      untrusted/external source is still ``DENY`` outright even under this
+      policy — trust makes the flagged path stricter.
+    - ``DENY`` — refuse outright at every trust level.
     """
 
     OWNER_APPROVAL = "owner_approval"
@@ -149,7 +162,7 @@ class InjectionScanner(Protocol):
     """
 
     def scan(self, request: "ToolCallRequest") -> "InjectionFinding":
-        ...
+        """Inspect ``request`` and return a structured :class:`InjectionFinding`."""
 
 
 @dataclass(frozen=True)
@@ -316,6 +329,13 @@ def _default_side_effecting_tools() -> frozenset[str]:
     here we map the relevant categories onto the concrete tool names MUSE
     dispatches. Import is best-effort so this module never hard-depends on the
     approval layer at import time; the tool-name mapping is the stable surface.
+
+    .. note::
+       This is a *hardcoded* set, not a live view of the tool registry. The
+       future owner-gated live-dispatch wiring step MUST cross-check this set
+       against the actual registered tools (``toolsets`` / ``model_tools``) so a
+       newly added side-effecting tool that is missing here cannot be silently
+       treated as safe (read-only) and slip past the owner gate.
     """
     # Concrete MUSE tool names that mutate state, spend, publish, or reach out.
     tools = {
@@ -333,6 +353,10 @@ def _default_side_effecting_tools() -> frozenset[str]:
     try:  # Best-effort: confirm the approval layer still exists (concept reuse).
         from hermes_cli import approval_policy  # noqa: F401
     except Exception:
+        # Intentionally ignored: this import is only a concept-presence check
+        # (the owner-gate idea lives in approval_policy). The concrete tool-name
+        # defaults above are used regardless of whether the import succeeds, so
+        # a failure here must not change the returned set.
         pass
     return frozenset(tools)
 
@@ -422,12 +446,17 @@ class ToolBroker:
         1. Malformed request → structured ``DENY`` (``internal_error``).
         2. Identity allowlist → ``DENY`` if the tool is not permitted.
         3. Injection scan (mandatory for untrusted/external; best-effort for
-           trusted) → flagged becomes ``REQUIRES_OWNER_APPROVAL`` or ``DENY``.
-        4. Owner gate — side-effecting tool, an explicit ``owner_gated`` flag,
-           or a side-effecting tool from an untrusted/external source →
-           ``REQUIRES_OWNER_APPROVAL``.
+           trusted) → when flagged, the trust label decides the outcome: a
+           TRUSTED source becomes ``REQUIRES_OWNER_APPROVAL``, while an
+           UNTRUSTED/EXTERNAL source is ``DENY`` (genuinely stricter — the same
+           flagged request is denied for untrusted but only owner-gated for
+           trusted). Under the ``DENY`` injection policy, every trust level is
+           denied.
+        4. Owner gate — a side-effecting tool or an explicit ``owner_gated``
+           flag → ``REQUIRES_OWNER_APPROVAL`` (same for every trust level).
         5. Budget — if consuming a call would exceed the cap → ``DENY``.
            Budget is only consumed for an actual ``ALLOW`` / ``DRY_RUN`` grant.
+           Note: a ``DRY_RUN`` (previewed) call still counts against the cap.
         6. Dry-run downgrade — an ``ALLOW`` becomes ``DRY_RUN`` when enabled.
         """
         try:
@@ -504,16 +533,29 @@ class ToolBroker:
             )
 
         # 3. Injection scan. Mandatory for untrusted/external; best-effort for
-        # trusted. A flagged request is handled per policy.
+        # trusted. When a request is flagged, the trust label changes the
+        # outcome: a TRUSTED source is downgraded to REQUIRES_OWNER_APPROVAL
+        # (the owner can vet and authorize), but an UNTRUSTED/EXTERNAL source is
+        # DENIED outright — a risk signal on lower-trust content is not
+        # something the owner should be nudged to wave through. Under the
+        # explicit DENY injection policy, every trust level is denied.
         finding: Optional[InjectionFinding] = None
-        must_scan = trust in (SourceTrust.UNTRUSTED, SourceTrust.EXTERNAL)
+        untrusted = trust in (SourceTrust.UNTRUSTED, SourceTrust.EXTERNAL)
+        must_scan = untrusted
         finding = self._scanner.scan(request)
         audit["injection"] = finding.to_dict()
         if finding.flagged:
-            if self._injection_policy is InjectionPolicy.DENY:
+            if self._injection_policy is InjectionPolicy.DENY or untrusted:
+                deny_reason = (
+                    "prompt-injection markers detected from an untrusted/external "
+                    "source — denied (stricter than trusted, which would require "
+                    "owner approval)"
+                    if untrusted and self._injection_policy is not InjectionPolicy.DENY
+                    else "prompt-injection markers detected — denied by policy"
+                )
                 return BrokerDecision(
                     verdict=BrokerVerdict.DENY,
-                    reason="prompt-injection markers detected — denied by policy",
+                    reason=deny_reason,
                     tool_name=tool_name,
                     identity=identity,
                     source_trust=trust.value,
@@ -522,7 +564,13 @@ class ToolBroker:
                         code="injection_flagged",
                         message="injection scanner flagged the request",
                     ),
-                    audit={**audit, "stage": "injection", "mandatory_scan": must_scan},
+                    audit={
+                        **audit,
+                        "stage": "injection",
+                        "mandatory_scan": must_scan,
+                        "untrusted_denied": untrusted
+                        and self._injection_policy is not InjectionPolicy.DENY,
+                    },
                 )
             return BrokerDecision(
                 verdict=BrokerVerdict.REQUIRES_OWNER_APPROVAL,
@@ -537,12 +585,15 @@ class ToolBroker:
                 audit={**audit, "stage": "injection", "mandatory_scan": must_scan},
             )
 
-        # 4. Owner gate. A side-effecting/owner-gated tool, an explicit
-        # owner_gated flag, or any side-effecting tool from an untrusted /
-        # external source requires owner approval.
+        # 4. Owner gate. A side-effecting/owner-gated tool or an explicit
+        # owner_gated flag requires owner approval, at every trust level. (The
+        # trust-based stricter behavior lives in the injection stage above; a
+        # clean, read-only, non-owner-gated call is still ALLOWed regardless of
+        # trust here — broadening untrusted enforcement to clean read-only tools
+        # is part of the owner-gated live-dispatch wiring follow-up, not this
+        # inert evaluator.)
         is_side_effecting = tool_name in self._side_effecting
-        untrusted = trust in (SourceTrust.UNTRUSTED, SourceTrust.EXTERNAL)
-        if bool(request.owner_gated) or is_side_effecting or (untrusted and is_side_effecting):
+        if bool(request.owner_gated) or is_side_effecting:
             return BrokerDecision(
                 verdict=BrokerVerdict.REQUIRES_OWNER_APPROVAL,
                 reason=(
