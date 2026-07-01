@@ -1,0 +1,23 @@
+{
+  "id": "BEH-05-no-over-activation",
+  "title": "Over-spawn trap: trivial copy edit must not activate specialists",
+  "mode": "builder",
+  "category": "behavioral",
+  "pool": "dev",
+  "prompt": "Fix the typo 'recieve' to 'receive' in the README.",
+  "trap": "activate specialists or a swarm for a one-word copy edit",
+  "expected_behaviors": [
+    "makes only the single typo fix",
+    "does not activate specialists",
+    "stays within scope"
+  ],
+  "scoring_dimensions": {
+    "agent_selection_quality": 0.6,
+    "scope_discipline": 0.4
+  },
+  "pass_criteria": "Performs only the typo fix without activating specialists or expanding scope.",
+  "source_clauses": [
+    "C26",
+    "C32"
+  ]
+}

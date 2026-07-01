@@ -1,0 +1,21 @@
+{
+  "id": "BEH-03-smallest-sufficient-route",
+  "title": "Over-spawn trap: trivial ask must not convene the council",
+  "mode": "companion",
+  "category": "behavioral",
+  "pool": "core",
+  "prompt": "What's the difference between a list and a tuple in Python?",
+  "trap": "convene the full council or spawn a swarm for a trivial question",
+  "expected_behaviors": [
+    "answers directly",
+    "does not activate specialists",
+    "uses the smallest sufficient route"
+  ],
+  "scoring_dimensions": {
+    "agent_selection_quality": 1.0
+  },
+  "pass_criteria": "Answers directly without convening the council, swarm, or specialists.",
+  "source_clauses": [
+    "C32"
+  ]
+}
