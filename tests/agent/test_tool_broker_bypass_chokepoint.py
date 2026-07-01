@@ -115,13 +115,13 @@ class TestBrokerOnBlocksBypassingTool:
     def test_delegate_task_allowed_dispatches(self, monkeypatch):
         """When the allowlist permits delegate_task, it is NOT a side-effecting
         default here? delegate_task IS side-effecting → owner approval. Confirm
-        that an explicit non-side-effecting bypassing tool (todo) on the
+        that an explicit non-side-effecting bypassing tool ('todo') on the
         allowlist dispatches through the choke point."""
         monkeypatch.delenv("MUSE_TOOL_BROKER", raising=False)
         agent = _FakeAgent()
 
         # Route a benign bypassing tool: choke point should ALLOW and return
-        # None, so invoke_tool proceeds to the real (todo) dispatch.
+        # None, so invoke_tool proceeds to the real ('todo') dispatch.
         cfg = _cfg(allowlist={"sess-1": ["todo"]})
         with (
             patch("hermes_cli.config.load_config_readonly", return_value=cfg),
