@@ -59,6 +59,13 @@ _ENV_FLAG = "MUSE_STYLE_VALIDATOR"
 # contract. Sourced from the pacing logic so the two never drift.
 DEFAULT_MOBILE_VOICE_MAX_SENTENCES = 2
 
+# Word-count backstop for Mobile Voice (F3). Terminal-punctuation sentence
+# counting alone is evadable: an unpunctuated run-on or a bullet list reads as a
+# single "sentence" and slips past the cap. A reply over this many words is too
+# long for Mobile Voice regardless of how it is punctuated. Sized so a genuinely
+# brief 2-sentence reply comfortably passes but a padded run-on trips it.
+DEFAULT_MOBILE_VOICE_MAX_WORDS = 40
+
 # Objection / pushback markers for the Critic contract. Case-insensitive
 # whole-word / whole-phrase signals (matched with word boundaries, see
 # ``_compile_markers``) that the reply actually names a disagreement, risk, or
@@ -185,6 +192,19 @@ def _sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
+# Apostrophe variants that must all fold to the straight ASCII apostrophe so a
+# curly ``won't`` / ``it'll`` in polished output still matches an ASCII marker
+# (F4). Covers U+2019 (right single quote), U+2018 (left), U+02BC (modifier
+# letter apostrophe).
+_APOSTROPHES = "’‘ʼ"
+_APOSTROPHE_RE = re.compile("[" + _APOSTROPHES + "]")
+
+
+def _normalize_apostrophes(text: str) -> str:
+    """Fold curly / modifier apostrophes to a straight ASCII apostrophe."""
+    return _APOSTROPHE_RE.sub("'", text or "")
+
+
 def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
     """Compile each marker into a word-boundary-aware, case-insensitive pattern.
 
@@ -197,7 +217,7 @@ def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
     """
     compiled: list[re.Pattern[str]] = []
     for marker in markers:
-        stripped = marker.strip()
+        stripped = _normalize_apostrophes(marker.strip())
         if not stripped:
             continue
         compiled.append(
@@ -213,7 +233,7 @@ _VERIFICATION_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(
 
 
 def _has_marker(text: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
-    low = text or ""
+    low = _normalize_apostrophes(text or "")
     return any(pattern.search(low) for pattern in patterns)
 
 
@@ -223,6 +243,7 @@ def validate_response_style(
     *,
     effort_class: Any = None,  # accepted for parity / future rules; unused today
     mobile_voice_max_sentences: int = DEFAULT_MOBILE_VOICE_MAX_SENTENCES,
+    mobile_voice_max_words: int = DEFAULT_MOBILE_VOICE_MAX_WORDS,
 ) -> StyleValidationResult:
     """Inspect an already-generated ``text`` against ``mode``'s style contract.
 
@@ -234,7 +255,11 @@ def validate_response_style(
     Rules (one per styled mode):
 
     - **Mobile Voice** — brevity. A reply exceeding ``mobile_voice_max_sentences``
-      (default 2, the BRIEF-cadence budget) → ``mobile_voice_too_long``.
+      (default 2, the BRIEF-cadence budget) → ``mobile_voice_too_long``. A
+      length backstop also flags a reply whose word count exceeds
+      ``mobile_voice_max_words`` (default 40) or whose newline-delimited line
+      count exceeds the sentence budget — so an unpunctuated run-on or a bullet
+      list cannot evade the cap by reading as a single "sentence".
     - **Critic** — must push back. A reply with no objection marker →
       ``critic_no_objection``.
     - **Builder** — must ship a verification plan. A reply that never mentions
@@ -257,16 +282,37 @@ def validate_response_style(
     if resolved is Mode.MOBILE_VOICE:
         n = len(_sentences(stripped))
         limit = int(mobile_voice_max_sentences)
-        if limit > 0 and n > limit:
+        # Backstop (F3): terminal-punctuation sentence counting is evadable —
+        # an unpunctuated run-on or a bullet list reads as one "sentence". Also
+        # measure raw word count and newline-delimited line count so neither
+        # slips past the cap.
+        word_count = len(stripped.split())
+        word_limit = int(mobile_voice_max_words)
+        line_count = len([ln for ln in stripped.splitlines() if ln.strip()])
+
+        too_many_sentences = limit > 0 and n > limit
+        too_many_words = word_limit > 0 and word_count > word_limit
+        too_many_lines = limit > 0 and line_count > limit
+
+        if too_many_sentences or too_many_words or too_many_lines:
+            # Report the most representative measure/limit pair: prefer the
+            # sentence overflow (the primary rule), else the word backstop, else
+            # the line backstop.
+            if too_many_sentences:
+                observed, obs_limit, unit = n, limit, "sentences"
+            elif too_many_words:
+                observed, obs_limit, unit = word_count, word_limit, "words"
+            else:
+                observed, obs_limit, unit = line_count, limit, "lines"
             violations.append(
                 StyleViolation(
                     code="mobile_voice_too_long",
                     message=(
-                        f"Mobile Voice reply has {n} sentences; the brevity "
-                        f"budget is {limit}."
+                        f"Mobile Voice reply has {observed} {unit}; the brevity "
+                        f"budget is {obs_limit}."
                     ),
-                    observed=n,
-                    limit=limit,
+                    observed=observed,
+                    limit=obs_limit,
                 )
             )
     elif resolved is Mode.CRITIC:
@@ -338,4 +384,5 @@ __all__ = [
     "validate_response_style",
     "style_validator_enabled",
     "DEFAULT_MOBILE_VOICE_MAX_SENTENCES",
+    "DEFAULT_MOBILE_VOICE_MAX_WORDS",
 ]

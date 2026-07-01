@@ -166,6 +166,115 @@ def test_empty_reply_on_non_trivial_request_violates():
 
 
 # ---------------------------------------------------------------------------
+# F1 — yes-man / agreement replies must NOT read as a satisfied challenge
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Looks perfect, no risk, ship it.",
+        "No downside here — go for it.",
+        "This is great, no concerns at all, ship it right away.",
+        "LGTM. No risk, no objection, just ship it.",
+    ],
+)
+def test_yes_man_replies_do_not_satisfy_contract(text):
+    # Bare single-token markers negated by "no" (no risk / no downside) must not
+    # count as a real challenge; these are pure agreement and must violate.
+    result = evaluate_challenge_contract(text, request_is_trivial=False)
+    assert result.satisfied is False, text
+    assert result.found == (), text
+    assert result.violation is not None
+    assert result.violation.code == "missing_challenge"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The risk here is a mid-migration failure; instead, I'd ship a "
+        "read-only pass first.",
+        "There is a real risk of data loss on rollback.",
+        "Instead of rewriting it, wrap the old module behind an adapter.",
+        "This assumes traffic keeps climbing — we need data before committing.",
+    ],
+)
+def test_genuine_challenge_still_satisfies_contract(text):
+    # A real, polarity-bearing challenge must still be detected (recall guard).
+    result = evaluate_challenge_contract(text, request_is_trivial=False)
+    assert result.satisfied is True, text
+    assert result.found != ()
+    assert result.violation is None
+
+
+def test_negated_risk_does_not_count_but_real_risk_in_same_reply_does():
+    # "no risk" is negated, but a second, genuine named risk in the same reply
+    # must still satisfy the contract.
+    text = "There's no risk on the happy path, but the real risk is rollback."
+    result = evaluate_challenge_contract(text, request_is_trivial=False)
+    assert result.satisfied is True
+    assert ChallengeElement.NAMED_RISK.value in result.found
+
+
+# ---------------------------------------------------------------------------
+# F2 — substantive design/decision requests are NOT trivially exempt
+# ---------------------------------------------------------------------------
+
+def test_long_define_request_is_non_trivial():
+    # A long "define the ... architecture ... approach ..." is a substantive
+    # design ask, not a bare lookup, so it must be NON-trivial.
+    text = (
+        "define the rollout architecture and migration approach for the new "
+        "service"
+    )
+    assert classify_request_triviality(text) is RequestTriviality.NON_TRIVIAL
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "define REST",
+        "who is the CEO",
+        "what does idempotent mean",
+        "what's the capital",
+    ],
+)
+def test_short_lookup_requests_stay_trivial(text):
+    # The short factual lookups must remain trivial (exempt) — precision guard
+    # so F2 does not over-correct genuine lookups into non-trivial.
+    assert classify_request_triviality(text) is RequestTriviality.TRIVIAL
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Design the rollout for the new billing service and its migration.",
+        "Lay out the architecture and the strategic approach for launch.",
+    ],
+)
+def test_design_decision_stems_are_non_trivial(text):
+    assert classify_request_triviality(text) is RequestTriviality.NON_TRIVIAL
+
+
+# ---------------------------------------------------------------------------
+# F4 — curly apostrophes in polished output must still match markers
+# ---------------------------------------------------------------------------
+
+def test_curly_apostrophe_counterproposal_detected():
+    # A curly apostrophe in "instead, I'd" must still detect the counterproposal.
+    text = "The plan is thin; instead, I’d wrap the old module in an adapter."
+    result = evaluate_challenge_contract(text, request_is_trivial=False)
+    assert result.satisfied is True
+    assert ChallengeElement.COUNTERPROPOSAL.value in result.found
+
+
+def test_curly_apostrophe_defer_detected():
+    text = "Don’t ship yet — hold off until the pricing experiment lands."
+    result = evaluate_challenge_contract(text, request_is_trivial=False)
+    assert result.satisfied is True
+    assert ChallengeElement.DEFER.value in result.found
+
+
+# ---------------------------------------------------------------------------
 # Request triviality classifier
 # ---------------------------------------------------------------------------
 

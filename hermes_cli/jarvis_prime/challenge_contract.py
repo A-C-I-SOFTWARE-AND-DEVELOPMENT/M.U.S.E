@@ -111,7 +111,15 @@ _STRONGER_VERSION_MARKERS: tuple[str, ...] = (
 )
 
 _NAMED_RISK_MARKERS: tuple[str, ...] = (
-    "risk",
+    # Polarity-bearing phrase forms only — a bare "risk" also matches the
+    # yes-man reply "no risk, ship it", so require the word to sit inside a
+    # phrase that actually names a risk (see F1 / the negation+agreement guard
+    # in ``evaluate_challenge_contract``).
+    "the risk is",
+    "the risk here",
+    "a risk is",
+    "risk of",
+    "real risk",
     "the objection",
     "strongest objection",
     "failure mode",
@@ -148,7 +156,14 @@ _SCOPE_REDUCTION_MARKERS: tuple[str, ...] = (
 _COUNTERPROPOSAL_MARKERS: tuple[str, ...] = (
     "counterproposal",
     "counter-proposal",
-    "instead",
+    # A bare "instead" fires on agreement noise; require the polarity-bearing
+    # forms that introduce a concrete alternative — a leading "instead," (comma
+    # redirect), "instead of X", or "instead, I'd…".
+    "instead,",
+    "instead, i'd",
+    "instead i'd",
+    "instead, i would",
+    "instead of",
     "a better approach",
     "an alternative",
     "the alternative",
@@ -166,7 +181,12 @@ _EVIDENCE_GAP_MARKERS: tuple[str, ...] = (
     "unverified",
     "unproven",
     "assumption",
-    "assumes",
+    # A bare "assumes" can appear in agreement ("everyone assumes it's great");
+    # require the polarity-bearing forms that flag an unverified assumption.
+    "assumes that",
+    "this assumes",
+    "you're assuming",
+    "youre assuming",
     "untested",
     "not validated",
     "need data",
@@ -183,7 +203,13 @@ _DEFER_MARKERS: tuple[str, ...] = (
     "do not do this yet",
     "don't do this yet",
     "dont do this yet",
-    "not yet",
+    # A bare "not yet" reads as agreement in "no downside, not yet a problem";
+    # require the hold-bearing phrase forms.
+    "not yet — ",
+    "not yet -",
+    "don't ship yet",
+    "dont ship yet",
+    "do not ship yet",
     "hold off",
     "wait until",
     "defer this",
@@ -228,11 +254,23 @@ _TRIVIAL_MARKERS: tuple[str, ...] = (
     "what is the date",
     "what's the date",
     "how do you spell",
-    "define",
-    "what does",
-    "who is",
     "when did",
     "how far",
+)
+
+# Short-lookup verbs. These read as a trivial factual lookup ("define REST",
+# "who is the CEO") ONLY when the whole request is short. Behind a longer
+# request they head a substantive ask ("define the architecture for…") and must
+# NOT force trivial (F2), so they are matched only inside the ``<=6 words``
+# branch of :func:`classify_request_triviality`.
+_LOOKUP_MARKERS: tuple[str, ...] = (
+    "define",
+    "what does",
+    "what's",
+    "whats",
+    "who is",
+    "who's",
+    "whos",
 )
 
 # Non-trivial signals — a decision, plan, build, or strategy call. These are
@@ -261,14 +299,25 @@ _NON_TRIVIAL_MARKERS: tuple[str, ...] = (
     "trade-off",
     "tradeoff",
     "which approach",
+    "approach",
     "best way to",
     "how should",
     "worth it",
     "go big",
     "pivot",
     "migrate",
+    "migration",
     "rewrite",
     "scale",
+    # F2: substantive design / decision stems so a long "define the architecture
+    # for..." reads as non-trivial rather than a bare lookup. These are the
+    # whole-word forms of the ``architect`` / ``migrat`` / ``rollout`` /
+    # ``approach`` / ``strateg`` / ``design`` stems.
+    "architecture",
+    "architectural",
+    "rollout",
+    "roll out",
+    "strategic",
 )
 
 
@@ -319,6 +368,19 @@ class ChallengeContractResult:
         }
 
 
+# Apostrophe variants that must all fold to the straight ASCII apostrophe so a
+# curly ``don't`` in polished output still matches an ASCII ``don't`` marker
+# (F4). Covers U+2019 (right single quote), U+2018 (left), U+02BC (modifier
+# letter apostrophe).
+_APOSTROPHES = "’‘ʼ"
+_APOSTROPHE_RE = re.compile("[" + _APOSTROPHES + "]")
+
+
+def _normalize_apostrophes(text: str) -> str:
+    """Fold curly / modifier apostrophes to a straight ASCII apostrophe."""
+    return _APOSTROPHE_RE.sub("'", text or "")
+
+
 def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
     """Compile each marker into a word-boundary-aware, case-insensitive pattern.
 
@@ -333,7 +395,7 @@ def _compile_markers(markers: tuple[str, ...]) -> tuple[re.Pattern[str], ...]:
     """
     compiled: list[re.Pattern[str]] = []
     for marker in markers:
-        stripped = marker.strip()
+        stripped = _normalize_apostrophes(marker.strip())
         if not stripped:
             continue
         left = r"\b" if stripped[0].isalnum() else ""
@@ -349,6 +411,7 @@ _ELEMENT_PATTERNS: dict[ChallengeElement, tuple[re.Pattern[str], ...]] = {
     for element, markers in _ELEMENT_MARKERS.items()
 }
 _TRIVIAL_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(_TRIVIAL_MARKERS)
+_LOOKUP_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(_LOOKUP_MARKERS)
 _NON_TRIVIAL_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(
     _NON_TRIVIAL_MARKERS
 )
@@ -356,6 +419,69 @@ _NON_TRIVIAL_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(
 
 def _count_matches(text: str, patterns: tuple[re.Pattern[str], ...]) -> int:
     return sum(1 for pattern in patterns if pattern.search(text))
+
+
+# Agreement / yes-man cues. A reply that carries one of these — and whose only
+# "challenge" markers are negated (``no risk``) — is pure agreement, not a
+# challenge (see F1). Matched with word/phrase boundaries.
+_AGREEMENT_CUES: tuple[str, ...] = (
+    "ship it",
+    "go for it",
+    "looks perfect",
+    "looks great",
+    "lgtm",
+    "no notes",
+    "no downside",
+    "no risk",
+    "no concerns",
+    "no objection",
+    "fully agree",
+    "totally agree",
+    "sounds perfect",
+    "no changes needed",
+    "great idea",
+    "love it",
+    "perfect as is",
+)
+_AGREEMENT_PATTERNS: tuple[re.Pattern[str], ...] = _compile_markers(_AGREEMENT_CUES)
+
+# A short single-token marker preceded by a negation ("no", "not", "without",
+# "zero") reads as agreement ("no risk", "without any downside"), not a
+# challenge. This pattern captures ``<negation> [filler] <marker>`` so the
+# match can be discounted.
+_NEGATION_PREFIX = re.compile(
+    r"\b(?:no|not|without|zero|little|hardly any|barely any)\b"
+    r"(?:\s+\w+){0,2}\s+$",
+    re.IGNORECASE,
+)
+
+
+def _is_negated_match(text: str, match: re.Match[str]) -> bool:
+    """Return True when the marker at ``match`` is negated (``no <marker>``).
+
+    Looks at the short window of words immediately before the marker; a
+    negation cue there ("no risk", "not a real downside") flips the marker's
+    polarity so it should NOT count as a challenge.
+    """
+    prefix = text[: match.start()]
+    # Only inspect the tail so an earlier, unrelated "no" doesn't over-suppress.
+    tail = prefix[-40:]
+    return bool(_NEGATION_PREFIX.search(tail))
+
+
+def _element_challenges(text: str, patterns: tuple[re.Pattern[str], ...]) -> bool:
+    """True when ``text`` contains a genuine (non-negated) marker for a category.
+
+    Reuses the file's word-boundary patterns but discards any single match that
+    is negated by a preceding ``no``/``not``/``without`` cue. If every match of
+    every marker is negated, the category does not count — this is the F1
+    yes-man guard ("no risk, ship it" must not read as a named risk).
+    """
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            if not _is_negated_match(text, match):
+                return True
+    return False
 
 
 def classify_request_triviality(
@@ -388,7 +514,7 @@ def classify_request_triviality(
     routed request and never downgraded to trivial by the effort hint. The hint
     never *overrides* an explicit non-trivial marker.
     """
-    stripped = (text or "").strip()
+    stripped = _normalize_apostrophes((text or "").strip())
     if not stripped:
         return RequestTriviality.TRIVIAL
 
@@ -400,6 +526,15 @@ def classify_request_triviality(
     if trivial_hits:
         return RequestTriviality.TRIVIAL
 
+    is_short = len(stripped.split()) <= 6
+
+    # Short-lookup verbs (``define`` / ``who is`` / ``what does`` / ``what's``)
+    # only read as trivial when the whole request is short (F2). Behind a long
+    # request they head a substantive design/decision ask ("define the
+    # architecture for…") and must NOT force trivial.
+    if is_short and _count_matches(stripped, _LOOKUP_PATTERNS):
+        return RequestTriviality.TRIVIAL
+
     # Effort hint: E0 (direct answer) with no non-trivial marker → trivial.
     rank = _effort_rank(effort_class)
     if rank is not None and rank == 0:
@@ -407,7 +542,7 @@ def classify_request_triviality(
 
     # A short prompt with no decision/plan/build marker reads as a simple
     # lookup; use a conservative word-count threshold.
-    if len(stripped.split()) <= 6:
+    if is_short:
         return RequestTriviality.TRIVIAL
 
     # Default: treat as non-trivial so a real request is never silently exempt.
@@ -456,12 +591,12 @@ def evaluate_challenge_contract(
     if request_is_trivial:
         return ChallengeContractResult(satisfied=True, exempt=True, found=())
 
-    stripped = (response_text or "").strip()
+    stripped = _normalize_apostrophes((response_text or "").strip())
     found: list[str] = []
     if stripped:
         for element in ChallengeElement:
             patterns = _ELEMENT_PATTERNS[element]
-            if any(pattern.search(stripped) for pattern in patterns):
+            if _element_challenges(stripped, patterns):
                 found.append(element.value)
 
     if found:
