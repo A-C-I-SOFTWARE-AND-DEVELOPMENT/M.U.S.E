@@ -127,10 +127,15 @@ def run_execution_refinement(
         )
 
     allowed_files = tuple(packet.get("allowed_files", ()) or ())
+    # Acting agent that authored the change, if the packet carries it (same
+    # namespace as a review's reviewer_id, for the C19 builder ≠ reviewer check).
+    # Absent ⇒ C19 fails open with a logged warning (see strict_review_gate);
+    # threading it from the orchestrator is a documented follow-up.
+    author_id = str(packet.get("acting_agent_id") or packet.get("author_id") or "").strip()
     bundle = GuardrailEvidenceBundle(packet_id=packet.get("packet_id", ""))
     for artifact in collect_test_evidence(repo_root, SAFE_COMMANDS, run=run):
         bundle.add(artifact)
-    bundle.add(collect_git_diff_evidence(repo_root, allowed_files))
+    bundle.add(collect_git_diff_evidence(repo_root, allowed_files, author_id=author_id))
     bundle.add(collect_secret_scan_evidence(repo_root, allowed_files))
 
     summary = run_gate_summary(packet, evidence_bundle=bundle, strict_evidence=True)

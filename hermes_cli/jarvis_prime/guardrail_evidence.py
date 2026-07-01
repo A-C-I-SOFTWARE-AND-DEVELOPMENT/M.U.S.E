@@ -178,6 +178,11 @@ class GitDiffEvidence:
     working_tree_clean: bool = True
     diff_check_passed: bool = True
     status_porcelain: str = ""
+    # The AGENT that authored the change under review. Lives in the same
+    # identity namespace as a review's ``reviewer_id`` so the C19 builder ≠
+    # reviewer check can compare like-for-like. Empty ("") when the acting
+    # agent id was not threaded to the collector (fail-open at the gate).
+    author_id: str = ""
 
     def to_artifact(self, producer: str = "git_diff_collector") -> EvidenceArtifact:
         return EvidenceArtifact.make(
@@ -195,6 +200,7 @@ class GitDiffEvidence:
                 "working_tree_clean": self.working_tree_clean,
                 "diff_check_passed": self.diff_check_passed,
                 "status_porcelain": self.status_porcelain,
+                "author_id": self.author_id,
             },
         )
 

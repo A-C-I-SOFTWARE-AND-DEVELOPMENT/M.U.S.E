@@ -23,6 +23,7 @@ and surface as gate failures.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -37,6 +38,8 @@ from hermes_cli.jarvis_prime.guardrail_evidence import (
     ARTIFACT_TEST_RESULT,
     GuardrailEvidenceBundle,
 )
+
+LOGGER = logging.getLogger("hermes.jarvis_prime.gates")
 
 
 class GateOutcome(Enum):
@@ -407,17 +410,37 @@ def strict_review_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundl
         return _strict_fail(name, "no review evidence captured")
     review = arts[-1]
 
-    # Clause C19 gate: for RC2+ work the reviewer must not be the builder. The
-    # reviewer identity is the review artifact's ``reviewer_id`` (falling back to
-    # its producer); the builder identity is the producer of the captured
-    # git_diff artifact — the agent that authored the change under review. A
+    # Clause C19 gate: for RC2+ work the reviewer must not be the builder. Both
+    # operands must live in the SAME identity namespace (agent ids), or the
+    # comparison is meaningless. The reviewer identity is the review artifact's
+    # ``reviewer_id`` (falling back to its producer); the builder identity is the
+    # git_diff artifact's ``author_id`` — the acting agent threaded to
+    # ``collect_git_diff_evidence`` (NOT the collector-tool ``producer``, which
+    # is a fixed literal and would never match a real reviewer id). A
     # self-approving review (reviewer == builder) is a hard FAIL, not a score.
+    #
+    # Policy is fail-OPEN: when the author identity is unknown/unset we do NOT
+    # block — we only block when BOTH identities are known and equal. RC2+ work
+    # reaching the gate with an unknown author is logged as a warning so the
+    # fail-open is observable rather than silent.
     risk_class = str(_get(packet, "risk_class", "RC1"))
     if _rc_at_or_above(risk_class, _C19_MIN_BAND):
         reviewer = str(review.payload.get("reviewer_id") or review.producer or "").strip()
         diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
-        builder = str(diff_arts[-1].producer).strip() if diff_arts else ""
-        if reviewer and builder and reviewer == builder:
+        builder = (
+            str(diff_arts[-1].payload.get("author_id") or "").strip()
+            if diff_arts
+            else ""
+        )
+        if not builder:
+            LOGGER.warning(
+                "C19 fail-open at %s: git_diff evidence has no author_id "
+                "(reviewer_id=%r); self-approval cannot be verified — thread the "
+                "acting agent id into collect_git_diff_evidence to enforce C19",
+                risk_class.upper(),
+                reviewer or "<unknown>",
+            )
+        elif reviewer and reviewer == builder:
             return _strict_fail(
                 name,
                 f"C19 self-approval blocked at {risk_class.upper()}: "
