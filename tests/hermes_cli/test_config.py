@@ -60,6 +60,31 @@ class TestEnsureHermesHome:
             ensure_hermes_home()
             assert soul_path.read_text(encoding="utf-8") == "custom soul"
 
+    def test_memoized_but_reheals_deleted_home(self, tmp_path):
+        """Repeat calls are memoized, but a home deleted mid-process is
+        re-created on the next call (the is_dir() guard on the memo)."""
+        import shutil
+
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            ensure_hermes_home()
+            assert (tmp_path / "cron").is_dir()
+            shutil.rmtree(tmp_path)
+            ensure_hermes_home()
+            assert (tmp_path / "cron").is_dir()
+            assert (tmp_path / "SOUL.md").is_file()
+
+    def test_profile_switch_ensures_new_home(self, tmp_path):
+        """Changing HERMES_HOME (profile switch) ensures the new location
+        even though the old one is memoized."""
+        home_a = tmp_path / "a"
+        home_b = tmp_path / "b"
+        with patch.dict(os.environ, {"HERMES_HOME": str(home_a)}):
+            ensure_hermes_home()
+            assert (home_a / "sessions").is_dir()
+        with patch.dict(os.environ, {"HERMES_HOME": str(home_b)}):
+            ensure_hermes_home()
+            assert (home_b / "sessions").is_dir()
+
 
 class TestLoadConfigDefaults:
     def test_returns_defaults_when_no_file(self, tmp_path):

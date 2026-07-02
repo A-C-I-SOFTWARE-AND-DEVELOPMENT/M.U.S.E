@@ -462,14 +462,31 @@ def _ensure_default_soul_md(home: Path) -> None:
     _secure_file(soul_path)
 
 
+# Home paths whose directory structure has already been ensured this process.
+# ensure_hermes_home() is called on every config read (~20-50x per agent turn
+# via load_config*), and the full pass costs ~195us in mkdir/chmod/exists
+# syscalls even when everything already exists. Memoizing success — guarded by
+# a single is_dir() stat so a home deleted mid-process is still re-created —
+# drops the repeat cost to ~2us. Keyed on the resolved path so profile
+# switches (which change HERMES_HOME) re-ensure the new location.
+_HERMES_HOME_ENSURED: set = set()
+
+
 def ensure_hermes_home():
     """Ensure ~/.hermes directory structure exists with secure permissions.
 
     In managed mode (NixOS), dirs are created by the activation script with
     setgid + group-writable (2770). We skip mkdir and set umask(0o007) so
     any files created (e.g. SOUL.md) are group-writable (0660).
+
+    Idempotent and memoized: after the first successful pass for a given
+    home path, subsequent calls only pay one ``is_dir()`` stat (which also
+    re-heals the structure if the whole home dir was deleted mid-process).
     """
     home = get_hermes_home()
+    key = str(home)
+    if key in _HERMES_HOME_ENSURED and home.is_dir():
+        return
     if is_managed():
         old_umask = os.umask(0o007)
         try:
@@ -487,6 +504,7 @@ def ensure_hermes_home():
             d.mkdir(parents=True, exist_ok=True)
             _secure_dir(d)
         _ensure_default_soul_md(home)
+    _HERMES_HOME_ENSURED.add(key)
 
 
 def _ensure_hermes_home_managed(home: Path):

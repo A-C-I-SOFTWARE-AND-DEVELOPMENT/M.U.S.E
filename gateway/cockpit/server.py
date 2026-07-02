@@ -789,12 +789,19 @@ def _make_handler(
                 pass
 
         def _stream_events(self) -> None:
-            self._sse_headers()
             q = self._query()
             levels = _csv_set(q.get("level"))
             sources = _csv_set(q.get("source"))
             job_id = q.get("job_id") or None
+            # Snapshot the tail offset BEFORE sending response headers. A
+            # client unblocks the moment headers arrive; if the snapshot
+            # happened after (as it used to), an event emitted in that window
+            # landed below the snapshot and was silently lost — the "connect,
+            # then act, then watch for your events" contract broke under
+            # load. _stream_observatory/_stream_actions already snapshot
+            # their cursors pre-headers; this brings events/stream in line.
             offset = event_log.current_offset()
+            self._sse_headers()
             last_beat = time.monotonic()
             started = time.monotonic()
             try:
