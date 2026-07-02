@@ -966,7 +966,32 @@ body { perspective: 1800px; }
               </sc-if>
               <div style="{{ msg.bubbleStyle }}">
                 <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute); margin-bottom:6px;">{{ msg.who }}</div>
+                <sc-if value="{{ msg.hasTools }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+                    <sc-for list="{{ msg.tools }}" as="tc" hint-placeholder-count="2">
+                      <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        <span class="{{ tc.cls }}" style="flex:none;">{{ tc.statusLabel }}</span>
+                        <span class="mono" style="color:var(--signal);">{{ tc.name }}</span>
+                        <span style="color:var(--signal-dim); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ tc.summary }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ msg.phaseLabel }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-family:var(--mono); font-size:11px; color:var(--ring-1);"><span class="dot live" style="width:6px; height:6px;"></span> {{ msg.phaseLabel }}</div>
+                </sc-if>
                 <div style="font-size:var(--type-body-size); line-height:var(--type-body-line); color:var(--signal); white-space:pre-wrap;">{{ msg.text }}</div>
+                <sc-if value="{{ msg.hasApproval }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:12px; border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:12px 14px; background:linear-gradient(180deg, rgba(120,180,255,0.08), rgba(120,180,255,0));">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><span class="pill accent" style="flex:none;">Approval needed</span><span class="mono" style="font-size:11px; color:var(--signal-dim);">{{ msg.approval.tool }}</span></div>
+                    <div style="font-size:12px; line-height:1.5; color:var(--signal-dim); margin-bottom:10px;">{{ msg.approval.summary }}</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button type="button" class="btn primary" style="padding:6px 14px;" onclick="{{ msg.onApproveOnce }}">Approve once</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onApproveSession }}">Approve for session</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onDeny }}">Deny</button>
+                    </div>
+                  </div>
+                </sc-if>
                 <sc-if value="{{ msg.hasRouting }}" hint-placeholder-val="{{ false }}">
                   <div style="margin-top:12px; border-top:1px solid var(--edge); padding-top:10px; display:flex; flex-direction:column; gap:8px;">
                     <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--signal-mute);">{{ msg.routingTitle }}</div>
@@ -1913,6 +1938,74 @@ body { perspective: 1800px; }
       </section>
     </sc-if>
 
+    <!-- ===================== ACCOUNT ===================== -->
+    <sc-if value="{{ show.account }}" hint-placeholder-val="{{ false }}">
+      <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
+        <div class="section-header" style="margin-top:0;">
+          <div class="heads"><span class="eyebrow">Sign in &amp; run the full agent</span><h2 class="section-title">Account</h2></div>
+          <div class="trailing"><span class="{{ account.statusCls }}">{{ account.statusLabel }}</span></div>
+        </div>
+
+        <sc-if value="{{ account.authAvailable }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start;">
+
+            <!-- Sign-in / account card -->
+            <div class="card" style="display:flex; flex-direction:column; gap:12px;">
+              <sc-if value="{{ account.signedIn }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Signed in</div>
+                  <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;">{{ account.email }}</div>
+                </div>
+                <button type="button" class="btn secondary" onclick="{{ account.onSignOut }}" style="align-self:flex-start;">Sign out</button>
+              </sc-if>
+              <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="{{ account.signinTabCls }}" onclick="{{ account.onModeSignin }}" style="padding:6px 14px;">Sign in</button>
+                  <button type="button" class="{{ account.signupTabCls }}" onclick="{{ account.onModeSignup }}" style="padding:6px 14px;">Create account</button>
+                </div>
+                <label style="font-size:11px; color:var(--signal-mute);">Email</label>
+                <input class="field" type="email" placeholder="you@example.com" value="{{ authEmail }}" oninput="{{ account.onEmail }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Password</label>
+                <input class="field" type="password" placeholder="••••••••" value="{{ authPassword }}" oninput="{{ account.onPassword }}" onkeydown="{{ account.onKey }}">
+                <button type="button" class="btn primary" onclick="{{ account.onSubmit }}" style="align-self:flex-start;">{{ account.submitLabel }}</button>
+                <sc-if value="{{ account.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.error }}</div></sc-if>
+                <sc-if value="{{ account.notice }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--ring-1);">{{ account.notice }}</div></sc-if>
+              </sc-if>
+            </div>
+
+            <!-- Gateway binding card -->
+            <div class="card" style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Your gateway</div>
+                <div style="font-size:12px; color:var(--signal-dim); margin-top:4px;">Bind your own muse gateway to run the full agent — tools, code execution, sub-agents — from this page, anywhere. Your gateway must be reachable over https (expose it with a tunnel or reverse proxy) and started with <span class="mono">muse cockpit serve --agent full</span>.</div>
+              </div>
+              <sc-if value="{{ account.relayConnected }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:8px;"><span class="pill ok" style="flex:none;">Connected</span><span class="mono" style="font-size:11px; color:var(--signal-dim); min-width:0; overflow:hidden; text-overflow:ellipsis;">{{ account.relayGatewayUrl }}</span></div>
+                <button type="button" class="btn secondary" onclick="{{ account.onUnbind }}" style="align-self:flex-start;">Disconnect gateway</button>
+              </sc-if>
+              <sc-if value="{{ account.canBind }}" hint-placeholder-val="{{ false }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Gateway URL (https)</label>
+                <input class="field" placeholder="https://gw.example.com" value="{{ gatewayUrl }}" oninput="{{ account.onGatewayUrl }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Pairing token (muse cockpit token)</label>
+                <input class="field" type="password" placeholder="paste your gateway token" value="{{ bindToken }}" oninput="{{ account.onBindToken }}">
+                <button type="button" class="btn primary" onclick="{{ account.onBind }}" style="align-self:flex-start;">Bind to my account</button>
+                <sc-if value="{{ account.bindError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.bindError }}</div></sc-if>
+              </sc-if>
+              <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:12px; color:var(--signal-mute);">Sign in to bind a gateway to your account.</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ account.authUnavailable }}" hint-placeholder-val="{{ true }}">
+          <div class="card" style="max-width:640px;">
+            <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); margin-bottom:6px;">Accounts aren’t enabled on this deployment</div>
+            <div style="font-size:13px; line-height:1.6; color:var(--signal-dim);">This build of the cockpit has no hosted sign-in configured. You can still chat here (anonymous demo), or pair your own local gateway from <b>Connect</b> to run the full agent on your machine.</div>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+
     <!-- ===================== RUNTIMES ===================== -->
     <sc-if value="{{ show.runtimes }}" hint-placeholder-val="{{ false }}">
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
@@ -2024,6 +2117,15 @@ class Component extends DCLogic {
     serverChat: 'unknown', // public /api/chat readiness: 'ready' | 'needs-key' | 'none'
     connStep: 'idle',
     gatewayUrl: '',
+    // Hosted-product config (from GET /api/config) + account session. When
+    // `cfg.auth` is present the Account panel mounts; when a session exists AND
+    // /api/me reports connected, chat runs the FULL agent through the relay.
+    cfg: null,
+    auth: null,          // { access_token, refresh_token, user:{id,email}, expires_at }
+    authEmail: '', authPassword: '', authMode: 'signin', authBusy: false, authError: '', authNotice: '',
+    relayConnected: false, // /api/me says this account has a bound gateway
+    relayGatewayUrl: '',
+    bindToken: '', bindBusy: false, bindError: '',
     // PWA install (Add to device). canInstall flips true once the browser fires
     // beforeinstallprompt (or on iOS Safari, where we show a gesture hint).
     canInstall: false,
@@ -2419,6 +2521,7 @@ class Component extends DCLogic {
     { id: 'schedules', label: 'Schedules', group: 'System' },
     { id: 'runtimes', label: 'Runtimes', group: 'System' },
     { id: 'runtime', label: 'Health', group: 'System' },
+    { id: 'account', label: 'Account', group: 'System' },
   ];
 
   opModes = [
@@ -2616,6 +2719,12 @@ class Component extends DCLogic {
     // no login). Probe it so the header shows an honest "online" when ready.
     this._probeServerChat();
 
+    // Hosted-product bootstrap: fetch /api/config (which Supabase project, which
+    // lanes exist), hydrate any saved account session, and check the account's
+    // gateway binding. All best-effort — a static host with no /api leaves the
+    // page in its current no-login mode unchanged.
+    this._bootAccount();
+
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
       payments: this._appDoc('Send a payment', 'One charge at a time', '<div class="big">$1,240.00</div><div class="row"><span class="muted">To</span><span>Ada Lovelace</span></div><div class="row"><span class="muted">When</span><span>Today</span></div><div class="row"><span class="muted">Fee</span><span>$0.00</span></div><button class="cta" style="margin-top:18px">Send payment</button>'),
@@ -2768,17 +2877,32 @@ class Component extends DCLogic {
     const chat = [...this.state.chat, { who: 'You', isMuse: false, text }];
     this.setState({ chat, composer: '', museThinking: true });
     clearTimeout(this._reply);
-    // If paired with a live gateway, dispatch a real job and poll for completion
+    // Lane 1 — FULL agent (TUI parity): signed in with a bound gateway, OR
+    // device-paired to a gateway that advertises full-agent mode. Streams the
+    // real agent (tools, code execution, sub-agents, owner approvals).
+    if (this._agentLaneReady() || (this._tok() && this._gatewayIsFullAgent())) {
+      this._dispatchAgentChat(text);
+      return;
+    }
+    // Lane 2 — device-paired but jarvis-only gateway: run a real job + poll.
     if (this._tok()) {
       this._dispatchLiveJob(text);
       return;
     }
-    // No gateway token: use the app's own /api/chat (hosted server chat). On
-    // the public deployment this streams a real reply from the server-held
-    // provider key; on a static host with no /api it falls back to an honest
-    // "not configured / pair a gateway" message (never a fabricated answer).
+    // Lane 3 — anonymous demo: the deployment's /api/chat (server key or BYOK),
+    // or an honest "sign in / pair a gateway" message. Never fabricates.
     this._dispatchApiChat(text);
   };
+
+  _gatewayIsFullAgent() {
+    const info = this.state.gatewayInfo;
+    return !!(info && info.agent === 'full');
+  }
+
+  _agentPhaseLabel(p) {
+    const map = { RECEIVING: 'receiving', THINKING: 'thinking', ROUTING: 'routing', TOOL: 'running a tool', CODING: 'writing code', RESEARCH: 'researching', VERIFICATION: 'verifying', FINAL: '' };
+    return map[p] || (p || '').toLowerCase();
+  }
 
   _dispatchApiChat = async (text) => {
     void text;
@@ -3121,18 +3245,124 @@ class Component extends DCLogic {
   };
 
   async _api(path, { method = 'GET', body = null, auth = true } = {}) {
+    // Two transports, same call sites:
+    //  * Relay: signed in AND the account has a bound gateway -> go through the
+    //    server-side /api/gateway/<path> relay with the Supabase bearer (works
+    //    from anywhere, no mixed-content, gateway bearer stays server-side).
+    //  * Direct: a device-paired gateway URL + token (the original path).
+    const relay = this._agentLaneReady();
     const headers = { 'Accept': 'application/json' };
     if (body) headers['Content-Type'] = 'application/json';
-    if (auth) { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; }
+    let target;
+    if (relay) {
+      headers['Authorization'] = 'Bearer ' + this.state.auth.access_token;
+      target = '/api/gateway' + path;
+    } else {
+      if (auth) { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; }
+      target = this._gw() + path;
+    }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 6000);
     try {
-      const res = await fetch(this._gw() + path, { method, headers, body: body ? JSON.stringify(body) : null, signal: ctrl.signal, mode: 'cors' });
+      const res = await fetch(target, { method, headers, body: body ? JSON.stringify(body) : null, signal: ctrl.signal, mode: 'cors' });
       const text = await res.text();
       let data = null; try { data = text ? JSON.parse(text) : null; } catch (e) { data = { raw: text }; }
       return { ok: res.ok, status: res.status, data };
     } finally { clearTimeout(timer); }
   }
+
+  // Full-agent chat: stream POST /v1/agent/chat (NDJSON chunk vocabulary) either
+  // through the relay (signed-in) or directly (device-paired to a --agent full
+  // gateway). Renders body_delta incrementally, tool_call as chips, phase as a
+  // status line, and approval as an inline Approve/Deny card.
+  _dispatchAgentChat = async (text) => {
+    const relay = this._agentLaneReady();
+    const sessionKey = this._agentSessionKey();
+    const history = this.state.chat
+      .filter(m => m && typeof m.text === 'string' && (m.isMuse || m.who === 'You'))
+      .map(m => ({ role: m.isMuse ? 'assistant' : 'user', content: m.text }));
+    // The muse message is a single mutable accumulator. Every render replaces
+    // the chat element at `idx` with a fresh snapshot of the WHOLE accumulator
+    // (text + tools + phase + approval together), so no field is ever dropped
+    // between streamed chunks regardless of render batching.
+    const prior = [...this.state.chat];
+    const idx = prior.length; // the new muse message goes at the end
+    const acc = { who: 'muse', isMuse: true, text: '', tools: [], phase: '', approval: null, agent: true, sessionKey };
+    this._activeAgentAcc = acc; // so an approval decision can clear the card
+    const render = () => this.setState({ chat: [...prior, { ...acc, tools: acc.tools.map(t => ({ ...t })), approval: acc.approval ? { ...acc.approval } : null }] });
+    this.setState({ chat: [...prior, { ...acc }], museThinking: true });
+    void idx;
+
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' };
+    let url;
+    if (relay) { headers['Authorization'] = 'Bearer ' + this.state.auth.access_token; url = '/api/gateway/v1/agent/chat'; }
+    else { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; url = this._gw() + '/v1/agent/chat'; }
+
+    try {
+      const r = await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ prompt: text, history, session_key: sessionKey }) });
+      if (r.status === 409) { this.setState({ museThinking: false, chat: prior }); this._dispatchLiveJob(text); return; } // gateway not in full mode → job lane
+      if (r.status === 402) { acc.text = 'The full-agent lane needs an active subscription on this account.'; this.setState({ museThinking: false }); render(); return; }
+      if (r.status === 429) { let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' — ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
+      if (!r.ok || !r.body) { let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable — ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
+      this.setState({ museThinking: false });
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let c; try { c = JSON.parse(line); } catch (e) { continue; }
+          if (c.type === 'body_delta') { acc.text += (c.text || ''); render(); }
+          else if (c.type === 'body') { if (c.text) acc.text = c.text; render(); }
+          else if (c.type === 'phase') { acc.phase = c.phase || ''; render(); }
+          else if (c.type === 'tool_call') {
+            const existing = acc.tools.find(t => t.id === c.id);
+            if (existing) { existing.status = c.status; existing.detail = c.detail || existing.detail; }
+            else acc.tools.push({ id: c.id, name: c.name, summary: c.summary, status: c.status, detail: c.detail });
+            render();
+          }
+          else if (c.type === 'approval') { acc.approval = { id: c.id, sessionKey: c.sessionKey, summary: c.summary, tool: c.tool }; render(); }
+          else if (c.type === 'error') { acc.text = acc.text || ('Error: ' + (c.message || 'the agent run failed')); render(); }
+          else if (c.type === 'done') { acc.phase = ''; render(); this.pullAll(); }
+        }
+      }
+    } catch (e) {
+      acc.text = acc.text || ('Could not reach the agent (' + ((e && e.message) || e) + ').');
+      this.setState({ museThinking: false }); render();
+    }
+  };
+
+  _agentSessionKey() {
+    try {
+      let k = localStorage.getItem('muse.agent.session');
+      if (!k) { k = 'web-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('muse.agent.session', k); }
+      return k;
+    } catch (e) { return 'web-session'; }
+  }
+
+  // Resolve an inline owner-approval card raised mid-stream.
+  decideAgentApproval = (msgIdx, choice) => async () => {
+    const msg = this.state.chat[msgIdx];
+    const ap = msg && msg.approval;
+    if (!ap) return;
+    const relay = this._agentLaneReady();
+    const headers = { 'Content-Type': 'application/json' };
+    let url;
+    if (relay) { headers['Authorization'] = 'Bearer ' + this.state.auth.access_token; url = '/api/gateway/v1/agent/approvals'; }
+    else { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; url = this._gw() + '/v1/agent/approvals'; }
+    try {
+      await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ session_key: ap.sessionKey, choice }) });
+    } catch (e) {}
+    // Clear the card on the live accumulator too, so when the server resumes
+    // the stream its next render doesn't re-show the resolved approval.
+    if (this._activeAgentAcc && this._activeAgentAcc.sessionKey === ap.sessionKey) this._activeAgentAcc.approval = null;
+    this.setState({ chat: this.state.chat.map((m, i) => i === msgIdx ? { ...m, approval: null, approvalChoice: choice } : m) });
+  };
 
   onToken = () => {
     let url = ''; try { url = localStorage.getItem('muse.gateway.url') || ''; } catch (e) {}
@@ -3317,6 +3547,149 @@ class Component extends DCLogic {
       else if (r.ok || r.status === 400) this.setState({ serverChat: 'ready' });
       else this.setState({ serverChat: 'none' });
     } catch (e) { this.setState({ serverChat: 'none' }); }
+  };
+
+  // ===== Hosted-product account layer (Supabase GoTrue over REST, no SDK) =====
+  AUTH_STORE = 'muse.auth.session.v1';
+
+  _loadSession() {
+    try { return JSON.parse(localStorage.getItem(this.AUTH_STORE) || 'null'); } catch (e) { return null; }
+  }
+  _saveSession(sess) {
+    try {
+      if (sess) localStorage.setItem(this.AUTH_STORE, JSON.stringify(sess));
+      else localStorage.removeItem(this.AUTH_STORE);
+    } catch (e) {}
+  }
+
+  _bootAccount = async () => {
+    let cfg = null;
+    try {
+      const r = await fetch('/api/config', { headers: { Accept: 'application/json' } });
+      if (r.ok) cfg = await r.json();
+    } catch (e) { /* static host without /api — stay in no-login mode */ }
+    const sess = this._loadSession();
+    this.setState({ cfg, auth: sess || null });
+    if (sess && sess.access_token) {
+      await this._refreshIfNeeded();
+      await this._checkRelay();
+    }
+  };
+
+  _supa() { const c = this.state.cfg; return (c && c.auth) ? c.auth : null; }
+
+  async _refreshIfNeeded() {
+    const sess = this.state.auth; const supa = this._supa();
+    if (!sess || !supa) return;
+    const now = Math.floor(Date.now() / 1000);
+    if (sess.expires_at && sess.expires_at - now > 60) return; // still valid
+    if (!sess.refresh_token) return;
+    try {
+      const r = await fetch(supa.supabaseUrl + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supa.supabaseAnonKey },
+        body: JSON.stringify({ refresh_token: sess.refresh_token }),
+      });
+      if (r.ok) { const d = await r.json(); this._applyAuth(d); }
+      else this._signOutLocal();
+    } catch (e) { /* keep the stale session; the next call will 401 and sign out */ }
+  }
+
+  _applyAuth(d) {
+    if (!d || !d.access_token) return;
+    const sess = {
+      access_token: d.access_token,
+      refresh_token: d.refresh_token,
+      expires_at: d.expires_at || (Math.floor(Date.now() / 1000) + (d.expires_in || 3600)),
+      user: d.user ? { id: d.user.id, email: d.user.email } : (this.state.auth && this.state.auth.user) || null,
+    };
+    this._saveSession(sess);
+    this.setState({ auth: sess, authPassword: '', authError: '' });
+  }
+
+  _signOutLocal() {
+    this._saveSession(null);
+    this.setState({ auth: null, relayConnected: false, relayGatewayUrl: '' });
+  }
+
+  setAuthEmail = (e) => this.setState({ authEmail: e.target.value });
+  setAuthPassword = (e) => this.setState({ authPassword: e.target.value });
+  setAuthMode = (mode) => () => this.setState({ authMode: mode, authError: '', authNotice: '' });
+
+  submitAuth = async () => {
+    const supa = this._supa();
+    if (!supa) { this.setState({ authError: 'Sign-in is not configured on this deployment yet.' }); return; }
+    const email = (this.state.authEmail || '').trim();
+    const password = this.state.authPassword || '';
+    if (!email || !password) { this.setState({ authError: 'Email and password are required.' }); return; }
+    const signup = this.state.authMode === 'signup';
+    this.setState({ authBusy: true, authError: '', authNotice: '' });
+    try {
+      const path = signup ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+      const r = await fetch(supa.supabaseUrl + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supa.supabaseAnonKey },
+        body: JSON.stringify({ email, password }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { this.setState({ authBusy: false, authError: (d && (d.error_description || d.msg || d.error)) || ('Sign-in failed (' + r.status + ').') }); return; }
+      if (d.access_token) { this._applyAuth(d); this.setState({ authBusy: false }); await this._checkRelay(); }
+      else { this.setState({ authBusy: false, authNotice: 'Check your email to confirm your account, then sign in.', authMode: 'signin' }); }
+    } catch (e) {
+      this.setState({ authBusy: false, authError: 'Could not reach the auth service (' + ((e && e.message) || e) + ').' });
+    }
+  };
+
+  signOut = async () => {
+    const supa = this._supa(); const sess = this.state.auth;
+    if (supa && sess && sess.access_token) {
+      try { await fetch(supa.supabaseUrl + '/auth/v1/logout', { method: 'POST', headers: { apikey: supa.supabaseAnonKey, Authorization: 'Bearer ' + sess.access_token } }); } catch (e) {}
+    }
+    this._signOutLocal();
+  };
+
+  _checkRelay = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ relayConnected: false }); return; }
+    try {
+      const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + sess.access_token } });
+      if (r.status === 401) { this._signOutLocal(); return; }
+      if (r.ok) { const d = await r.json(); this.setState({ relayConnected: !!d.connected, relayGatewayUrl: d.gateway_url || '' }); }
+    } catch (e) { /* relay not configured or unreachable; leave as-is */ }
+  };
+
+  // Signed-in chat runs the FULL agent when the account has a bound gateway.
+  _agentLaneReady() { return !!(this.state.auth && this.state.auth.access_token && this.state.relayConnected); }
+
+  setBindToken = (e) => this.setState({ bindToken: e.target.value });
+  bindGateway = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ bindError: 'Sign in first.' }); return; }
+    const url = this._gw();
+    const token = (this.state.bindToken || this._tok() || '').trim();
+    if (!/^https:\/\//i.test(url)) { this.setState({ bindError: 'Your gateway URL must be https:// to bind it to your account (expose it via a tunnel/reverse proxy).' }); return; }
+    if (!token) { this.setState({ bindError: 'Paste your gateway pairing token (muse cockpit token).' }); return; }
+    this.setState({ bindBusy: true, bindError: '' });
+    try {
+      const r = await fetch('/api/gateway-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+        body: JSON.stringify({ gateway_url: url, gateway_token: token }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { this.setState({ bindBusy: false, bindError: (d && d.error) || ('Bind failed (' + r.status + ').') }); return; }
+      this.setState({ bindBusy: false, bindToken: '', relayConnected: true, relayGatewayUrl: url });
+    } catch (e) {
+      this.setState({ bindBusy: false, bindError: 'Could not reach the binding service (' + ((e && e.message) || e) + ').' });
+    }
+  };
+  unbindGateway = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) return;
+    try {
+      await fetch('/api/gateway-binding', { method: 'DELETE', headers: { Authorization: 'Bearer ' + sess.access_token } });
+    } catch (e) {}
+    this.setState({ relayConnected: false, relayGatewayUrl: '' });
   };
 
   _connVals(s) {
@@ -3862,7 +4235,18 @@ class Component extends DCLogic {
         : { uptime: '—', latency: '—', tps: '—' },
       onToken: this.onToken, onEmergency: this.onEmergency,
       // chat
-      chat: s.chat.map(m => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
+      chat: s.chat.map((m, mi) => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
+        hasTools: !!(m.tools && m.tools.length),
+        tools: (m.tools || []).map(t => ({
+          name: t.name, summary: t.summary || '',
+          statusLabel: t.status === 'OK' ? 'done' : (t.status === 'FAIL' ? 'failed' : 'running'),
+          cls: t.status === 'OK' ? 'pill ok' : (t.status === 'FAIL' ? 'pill warn' : 'pill accent'),
+        })),
+        phaseLabel: (!m.approval && m.phase && m.phase !== 'FINAL') ? this._agentPhaseLabel(m.phase) : '',
+        hasApproval: !!m.approval,
+        onApproveOnce: this.decideAgentApproval(mi, 'once'),
+        onApproveSession: this.decideAgentApproval(mi, 'session'),
+        onDeny: this.decideAgentApproval(mi, 'deny'),
         bubbleStyle: m.isMuse
           ? 'background:var(--void-3); border:1px solid var(--edge); border-left:2px solid var(--ring-1); border-radius:var(--radius-md); padding:12px 16px;'
           : 'background:var(--void-2); border:1px solid var(--edge); border-radius:var(--radius-md); padding:12px 16px;' })),
@@ -3870,6 +4254,30 @@ class Component extends DCLogic {
       showExamples: s.chat.every(m => m.isMuse),
       examples: this.STARTER_PROMPTS.map(t => ({ text: t, onPick: this.pickExample(t) })),
       onComposer: this.onComposer, onComposerKey: this.onComposerKey, onSend: this.onSend,
+      // account
+      authEmail: s.authEmail, authPassword: s.authPassword, bindToken: s.bindToken,
+      account: {
+        authAvailable: !!(s.cfg && s.cfg.auth),
+        authUnavailable: !(s.cfg && s.cfg.auth),
+        signedIn: !!(s.auth && s.auth.access_token),
+        signedOut: !(s.auth && s.auth.access_token),
+        email: (s.auth && s.auth.user && s.auth.user.email) || '',
+        statusLabel: (s.auth && s.auth.access_token) ? (s.relayConnected ? 'Full agent ready' : 'Signed in') : 'Signed out',
+        statusCls: (s.auth && s.auth.access_token) ? (s.relayConnected ? 'pill ok' : 'pill accent') : 'pill neutral',
+        signinTabCls: s.authMode === 'signin' ? 'btn primary' : 'btn secondary',
+        signupTabCls: s.authMode === 'signup' ? 'btn primary' : 'btn secondary',
+        submitLabel: s.authBusy ? 'Working…' : (s.authMode === 'signup' ? 'Create account' : 'Sign in'),
+        error: s.authError, notice: s.authNotice,
+        relayConnected: s.relayConnected, relayGatewayUrl: s.relayGatewayUrl,
+        canBind: !!(s.auth && s.auth.access_token) && !s.relayConnected,
+        bindError: s.bindError,
+        onModeSignin: this.setAuthMode('signin'), onModeSignup: this.setAuthMode('signup'),
+        onEmail: this.setAuthEmail, onPassword: this.setAuthPassword,
+        onKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.submitAuth(); } },
+        onSubmit: this.submitAuth, onSignOut: this.signOut,
+        onGatewayUrl: this.setGatewayUrl, onBindToken: this.setBindToken,
+        onBind: this.bindGateway, onUnbind: this.unbindGateway,
+      },
       // jobs
       jobs, hasJobs: jobs.length > 0, noJobs: jobs.length === 0, jobsCards: s.jobsLayout === 'cards' && jobs.length > 0, jobsStream: s.jobsLayout === 'stream' && jobs.length > 0,
       runningLabel: runningCount + ' running', onNewJob: this.onNewJob,

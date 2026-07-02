@@ -40,6 +40,11 @@ from gateway.jarvis_local_http import (
     error,
 )
 
+# Full-agent streaming chat (POST) — served only when the cockpit runs with
+# ``--agent full`` (or HERMES_COCKPIT_AGENT=full); otherwise the route answers
+# 409 with a hint so clients fall back to /v1/jarvis/chat cleanly.
+AGENT_CHAT_PATH = "/v1/agent/chat"
+
 def _nexus_dist_root() -> Optional[Path]:
     """Resolve the built NEXUS PWA directory (``apps/nexus/dist``) so the cockpit
     can serve it *same-origin* at ``/nexus/`` — letting a phone running MUSE in
@@ -212,6 +217,10 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/research/{id}"), h.research_get, True),
     ("GET", _compile("/v1/cockpit/approvals"), h.approvals_list, True),
     ("POST", _compile("/v1/cockpit/approvals/{id}"), h.approvals_decide, True),
+    # Full-agent chat companions (POST /v1/agent/chat streams; these resolve
+    # its owner-approval requests and interrupt an in-flight run).
+    ("POST", _compile("/v1/agent/approvals"), h.agent_approval_decide, True),
+    ("POST", _compile("/v1/agent/stop"), h.agent_stop, True),
     ("GET", _compile("/v1/cockpit/autonomy"), h.autonomy_get, True),
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
@@ -353,6 +362,7 @@ def _make_handler(
     responder,
     stop_event: threading.Event,
     cors_origins: frozenset[str] = frozenset(),
+    agent_mode: str = "jarvis",
 ):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -601,6 +611,24 @@ def _make_handler(
                 self._stream_chat()
                 return
 
+            # Full-agent streaming chat — POST only, opt-in via --agent full.
+            if method == "POST" and path.rstrip("/") == AGENT_CHAT_PATH:
+                if not self._authed():
+                    self._send_json(401, {"error": "missing or invalid bearer token"})
+                    return
+                if agent_mode != "full":
+                    self._send_json(
+                        409,
+                        {
+                            "error": "full agent mode is not enabled on this gateway",
+                            "hint": "start it with: muse cockpit serve --agent full",
+                            "agent": agent_mode,
+                        },
+                    )
+                    return
+                self._stream_agent_chat()
+                return
+
             # Server-Sent Events live streams — GET only, matched before the
             # buffered table so "/jobs/stream" isn't read as "/jobs/{id}".
             if method == "GET":
@@ -644,6 +672,47 @@ def _make_handler(
             self.end_headers()
             try:
                 stream = encode_stream(responder(prompt, history))
+                for line in stream:
+                    self._write_chunk(line)
+                self._write_chunk(b"")
+            except BrokenPipeError:
+                pass
+            except Exception as exc:  # pragma: no cover - defensive
+                try:
+                    self._write_chunk(next(encode_stream([error(str(exc))])))
+                    self._write_chunk(b"")
+                except Exception:
+                    pass
+
+        def _stream_agent_chat(self) -> None:
+            """NDJSON stream of one FULL-agent turn (tools, code, sub-agents).
+
+            Body: ``{prompt, history?, session_id?, session_key?}``. The
+            chunk vocabulary is the jarvis one plus ``body_delta`` (token
+            streaming) and ``approval`` (owner gate; resolve via
+            ``POST /v1/agent/approvals``).
+            """
+            from gateway.cockpit.agent_full import full_agent_responder
+
+            payload = self._read_body()
+            prompt = str(payload.get("prompt", ""))
+            history = list(payload.get("history", []) or [])
+            session_id = payload.get("session_id") or None
+            session_key = payload.get("session_key") or None
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.send_header("X-Accel-Buffering", "no")  # defeat proxy buffering
+            self.end_headers()
+            try:
+                stream = encode_stream(
+                    full_agent_responder(
+                        prompt,
+                        history,
+                        session_id=session_id,
+                        session_key=session_key,
+                    )
+                )
                 for line in stream:
                     self._write_chunk(line)
                 self._write_chunk(b"")
@@ -913,12 +982,19 @@ def serve(
     allow_external_hosts: Optional[_Iterable[str]] = None,
     cors_origins: Optional[_Iterable[str]] = None,
     responder=None,
+    agent_mode: Optional[str] = None,
 ) -> ThreadingHTTPServer:
     """Start the cockpit API server in a background thread.
 
     Loopback-only unless ``allow_external=True`` (which also warns). The
     bearer ``token`` defaults to the persisted cockpit token (created on
     first use). ``responder`` overrides the chat responder (tests).
+
+    ``agent_mode`` selects what ``POST /v1/agent/chat`` serves: ``"full"``
+    runs the complete AIAgent (tools, code execution, sub-agents) with
+    streaming + owner approvals; the default ``"jarvis"`` keeps that route
+    answering 409 so existing deployments are byte-for-byte unchanged.
+    Resolution order: explicit arg → ``HERMES_COCKPIT_AGENT`` env → jarvis.
 
     When binding a **non-loopback** host, ``allow_external=True`` is no longer
     sufficient on its own: the host must also appear in ``allow_external_hosts``
@@ -965,6 +1041,19 @@ def serve(
     # Second guard for agentic execute lanes: only loopback cockpits may run
     # them (the owner-phrase gate is the first guard, enforced per-request).
     h.configure_runtime(allow_remote_execute=bool(allow_external))
+    # Resolve the /v1/agent/chat mode: explicit arg → env → jarvis (default,
+    # no behavior change). Anything unrecognized falls back to jarvis.
+    resolved_agent_mode = (
+        (agent_mode or os.environ.get("HERMES_COCKPIT_AGENT") or "jarvis").strip().lower()
+    )
+    if resolved_agent_mode not in ("jarvis", "full"):
+        warnings.warn(
+            f"unknown cockpit agent mode {resolved_agent_mode!r}; using 'jarvis'",
+            stacklevel=2,
+        )
+        resolved_agent_mode = "jarvis"
+    h.configure_agent_mode(resolved_agent_mode)
+
     if responder is not None:
         chat_responder = responder
     else:
@@ -978,7 +1067,8 @@ def serve(
 
     stop_event = threading.Event()
     server = _CockpitServer(
-        (host, port), _make_handler(token, chat_responder, stop_event, cors)
+        (host, port),
+        _make_handler(token, chat_responder, stop_event, cors, resolved_agent_mode),
     )
     server._stop_event = stop_event
     thread = threading.Thread(

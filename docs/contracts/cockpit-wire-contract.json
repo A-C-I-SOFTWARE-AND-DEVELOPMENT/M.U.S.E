@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 119,
+  "handler_count": 121,
   "owner_gated_count": 10,
-  "route_count": 121,
+  "route_count": 123,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -30,6 +30,24 @@
       "path": "/cockpit/{path}",
       "requires_auth": false,
       "summary": "Serve the bundled browser cockpit. Returns True if it handled the"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.agent_approval_decide",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/agent/approvals",
+      "requires_auth": true,
+      "summary": "Resolve a pending owner approval raised by a /v1/agent/chat run."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.agent_stop",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/agent/stop",
+      "requires_auth": true,
+      "summary": "Interrupt the in-flight /v1/agent/chat run for a session."
     },
     {
       "handler": "gateway.cockpit.handlers.approvals_list",

@@ -54,6 +54,18 @@ def configure_runtime(*, allow_remote_execute: bool) -> None:
     _ALLOW_REMOTE_EXECUTE = bool(allow_remote_execute)
 
 
+# Which chat engine POST /v1/agent/chat serves: "jarvis" (default; the route
+# answers 409) or "full" (the complete AIAgent with tools + approvals).
+# Surfaced in /v1/health as "agent" so clients pick their chat lane.
+_AGENT_MODE = "jarvis"
+
+
+def configure_agent_mode(mode: str) -> None:
+    """Set the cockpit chat agent mode from ``server.serve`` (startup)."""
+    global _AGENT_MODE
+    _AGENT_MODE = mode if mode in ("jarvis", "full") else "jarvis"
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -75,9 +87,56 @@ def health(_req: Request) -> JsonResponse:
             "service": "hermes-cockpit",
             "api_version": COCKPIT_API_VERSION,
             "gateway_version": version,
+            "agent": _AGENT_MODE,
             "time": _now_iso(),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Full-agent chat companions (/v1/agent/*)
+# ---------------------------------------------------------------------------
+
+
+def agent_approval_decide(req: Request) -> JsonResponse:
+    """Resolve a pending owner approval raised by a /v1/agent/chat run.
+
+    Body: ``{"session_key": ..., "choice": "once"|"session"|"always"|"deny"}``
+    (the ``approval`` chunk carries the session key back to the client).
+    """
+    if _AGENT_MODE != "full":
+        return JsonResponse(409, {"error": "full agent mode is not enabled on this gateway"})
+    session_key = str(req.body.get("session_key") or "").strip()
+    choice = str(req.body.get("choice") or "").strip().lower()
+    if not session_key or not choice:
+        return JsonResponse(400, {"error": "session_key and choice are required"})
+    from gateway.cockpit import agent_full
+
+    try:
+        resolved = agent_full.resolve_approval(session_key, choice)
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    if resolved == 0:
+        return JsonResponse(404, {"error": "no pending approval for that session"})
+    return JsonResponse(200, {"ok": True, "resolved": resolved, "choice": choice})
+
+
+def agent_stop(req: Request) -> JsonResponse:
+    """Interrupt the in-flight /v1/agent/chat run for a session.
+
+    Body: ``{"session_key": ...}``. Graceful: the agent finishes its current
+    step and the stream closes with an interrupted result.
+    """
+    if _AGENT_MODE != "full":
+        return JsonResponse(409, {"error": "full agent mode is not enabled on this gateway"})
+    session_key = str(req.body.get("session_key") or "").strip()
+    if not session_key:
+        return JsonResponse(400, {"error": "session_key is required"})
+    from gateway.cockpit import agent_full
+
+    if not agent_full.interrupt_run(session_key):
+        return JsonResponse(404, {"error": "no active run for that session"})
+    return JsonResponse(200, {"ok": True, "stopped": session_key})
 
 
 def runtime_status(_req: Request) -> JsonResponse:

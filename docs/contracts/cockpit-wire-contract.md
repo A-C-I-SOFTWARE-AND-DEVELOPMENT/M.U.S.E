@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **121 routes** across **119 distinct handlers**
+- **123 routes** across **121 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -24,6 +24,8 @@ helper it calls) compares the request against
 | GET | `/` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
 | GET | `/cockpit` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
 | GET | `/cockpit/{path}` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
+| POST | `/v1/agent/approvals` | `gateway.cockpit.handlers.agent_approval_decide` | bearer | — | json | Resolve a pending owner approval raised by a /v1/agent/chat run. |
+| POST | `/v1/agent/stop` | `gateway.cockpit.handlers.agent_stop` | bearer | — | json | Interrupt the in-flight /v1/agent/chat run for a session. |
 | GET | `/v1/cockpit/approvals` | `gateway.cockpit.handlers.approvals_list` | bearer | — | json | The owner-approval queue as canonical ``ApprovalCard``s. |
 | POST | `/v1/cockpit/approvals/{id}` | `gateway.cockpit.handlers.approvals_decide` | bearer | owner-phrase | json | Approve/reject a proposal. Approve requires the exact owner phrase. |
 | GET | `/v1/cockpit/audit` | `gateway.cockpit.handlers.audit_list` | bearer | — | json | Audit records (canonical ``AuditRecord``) from the decision ledger. |
