@@ -2,11 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>M.U.S.E — Interactive 3D Atlas</title>
 <meta name="description" content="An interactive, ultra-HD 3D model of M.U.S.E and all its systems, with an animated first-prompt-to-finished-product build pipeline.">
 <meta property="og:title" content="M.U.S.E — Interactive 3D Systems Atlas">
 <meta property="og:description" content="Orbit the whole mind: 12 architecture planes, every system, and an animated first-prompt-to-finished-product build pipeline.">
+<meta property="og:url" content="https://musehq.io/atlas/">
+<meta property="og:image" content="https://musehq.io/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://musehq.io/atlas/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='none' stroke='%2336e6f0' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%23eaf4ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -40,6 +44,9 @@
 
 <!-- top-right controls -->
 <div id="controls">
+  <div class="btnrow">
+    <a class="atlas-back" href="../" target="_top" title="Back to the muse cockpit">↩ Cockpit</a>
+  </div>
   <div class="btnrow">
     <button id="btnPlay" class="ctl primary">▶ Play the build</button>
     <button id="btnReset" class="ctl">⟲ Reset view</button>
