@@ -2042,7 +2042,7 @@ body { perspective: 1800px; }
               <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
                 <div style="display:flex; gap:8px;">
                   <button type="button" class="{{ account.signinTabCls }}" onclick="{{ account.onModeSignin }}" style="padding:6px 14px;">Sign in</button>
-                  <button type="button" class="{{ account.signupTabCls }}" onclick="{{ account.onModeSignup }}" style="padding:6px 14px;">Create account</button>
+                  <button type="button" class="{{ account.signupTabCls }}" onclick="{{ account.onModeSignup() }}" style="padding:6px 14px;">Create account</button>
                 </div>
                 <label style="font-size:11px; color:var(--signal-mute);">Email</label>
                 <input class="field" type="email" placeholder="you@example.com" value="{{ authEmail }}" oninput="{{ account.onEmail }}">
