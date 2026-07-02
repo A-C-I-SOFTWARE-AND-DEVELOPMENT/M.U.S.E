@@ -1,10 +1,16 @@
-/* SacredGeometry — canvas wrapper */
+/* SacredGeometry — canvas wrapper.
+ *
+ * A fixed, full-viewport, pointer-transparent layer that sits BEHIND the app
+ * shell (z-index 0; the shell is z-index 2). The canvas keeps its intrinsic
+ * pixel size (the draw code owns it) and floats centered in the void.
+ */
 
 .sacred-geometry {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
@@ -12,6 +18,4 @@
 
 .sacred-geometry canvas {
   display: block;
-  width: 100%;
-  height: 100%;
 }

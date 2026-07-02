@@ -12,7 +12,7 @@
  * the shell or Home.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { chat, getToken, type ChatTurn } from "../lib/gateway";
+import { chat, getToken, TOKEN_EVENT, type ChatTurn } from "../lib/gateway";
 
 type Msg = { role: "user" | "asst"; text: string };
 
@@ -23,13 +23,16 @@ export function Chat() {
   const [paired, setPaired] = useState<boolean>(() => Boolean(getToken()));
   const logRef = useRef<HTMLDivElement | null>(null);
 
-  // Re-check pairing when the window regains focus (e.g. after pairing in
-  // Settings) and on storage changes from another tab.
+  // Re-check pairing when the token changes in this document (auto-pair /
+  // Settings), when the window regains focus, and on storage changes from
+  // another tab.
   useEffect(() => {
     const refresh = () => setPaired(Boolean(getToken()));
+    window.addEventListener(TOKEN_EVENT, refresh);
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
     return () => {
+      window.removeEventListener(TOKEN_EVENT, refresh);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
     };

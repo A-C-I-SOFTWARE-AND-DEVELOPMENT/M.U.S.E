@@ -21,7 +21,7 @@ import { SacredGeometry } from "./components/SacredGeometry";
 import { Glyph } from "./components/Glyph";
 import { Dock } from "./components/Dock";
 import { getRoutes, type RouteDef } from "./routes";
-import { pingHealth } from "./lib/gateway";
+import { autoPairLocal, getToken, pingHealth } from "./lib/gateway";
 import "./styles/app.css";
 
 type Health = "connecting" | "online" | "offline";
@@ -78,6 +78,11 @@ export function App() {
     const tick = async () => {
       const ok = await nativeHealth();
       if (alive) setHealth(ok ? "online" : "offline");
+      // Zero-touch connect: the gateway is up but this device holds no token
+      // (first run, cleared storage, or the brain finished booting after the
+      // pre-render attempt). autoPairLocal() is single-flight, spaced, and a
+      // no-op outside the native shell / off-loopback — safe to call each tick.
+      if (ok && !getToken()) void autoPairLocal();
     };
     void tick();
     const t = setInterval(() => void tick(), 10000);
@@ -169,9 +174,9 @@ export function App() {
           {health === "offline" && (
             <div className="offline-banner" role="status">
               <span>
-                Offline — can't reach the gateway. Is{" "}
-                <span className="mono">hermes cockpit serve</span> running? Check
-                the gateway URL in Settings.
+                Offline — can't reach the gateway. Start the brain in Settings
+                (or run <span className="mono">muse cockpit serve</span>), then
+                retry.
               </span>
               <button className="retry" onClick={retryHealth}>
                 Retry

@@ -212,7 +212,8 @@ pub fn find_muse_binary(app: &AppHandle) -> Option<PathBuf> {
 // ---- start / stop ------------------------------------------------------------
 
 async fn status_for(app: &AppHandle) -> BrainStatus {
-    let base = crate::gateway_url();
+    // Hint-aware: honors the UI's Settings override, not just env/default.
+    let base = crate::effective_gateway_url(app);
     let reachable = probe_health(base.clone()).await;
     let managed = app
         .state::<BrainState>()
@@ -233,7 +234,8 @@ async fn status_for(app: &AppHandle) -> BrainStatus {
 /// we haven't already spawned one. Idempotent by construction: probe first,
 /// then check the tracked child handle, only then spawn.
 async fn start_if_needed(app: &AppHandle) -> Result<(), String> {
-    let base = crate::gateway_url();
+    // Hint-aware: honors the UI's Settings override, not just env/default.
+    let base = crate::effective_gateway_url(app);
     if probe_health(base).await {
         return Ok(()); // already running (ours or external) — never double-serve
     }

@@ -63,17 +63,29 @@ def _nexus_dist_root() -> Optional[Path]:
         return None
 
 
-# Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT — the
-# first-party muse cockpit. Defaulting these on means a user can run
-# ``muse cockpit serve`` and reach their gateway from the public cockpit with no
-# extra flags. It is bounded: every sensitive route still requires the bearer
-# token, and device pairing still requires the owner phrase (forced on whenever
-# CORS is enabled). Any OTHER origin is rejected. Extend with --cors-origin /
-# HERMES_COCKPIT_CORS_ORIGINS (CSV), or disable with
+# Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT —
+# the first-party muse cockpit plus the muse desktop app's webview. Defaulting
+# these on means a user can run ``muse cockpit serve`` and reach their gateway
+# from the public cockpit — or install the desktop app and have it connect —
+# with no extra flags. It is bounded: every sensitive route still requires the
+# bearer token, and device pairing on an externally-reachable cockpit still
+# requires the owner phrase. Any OTHER origin is rejected. Extend with
+# --cors-origin / HERMES_COCKPIT_CORS_ORIGINS (CSV), or disable with
 # HERMES_COCKPIT_CORS_ORIGINS=off.
 _DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
     "https://musehq.io",
     "https://www.musehq.io",
+    # The muse desktop shell (Tauri v2 webview). macOS/Linux serve the bundled
+    # UI from the tauri: custom scheme; Windows (WebView2) uses
+    # http(s)://tauri.localhost. Allowing them lets the desktop app talk to
+    # the gateway directly (streaming SSE/NDJSON) instead of via its native
+    # HTTP proxy fallback.
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+    # The desktop UI's Vite dev server (`cargo tauri dev` / `npm run dev`).
+    "http://localhost:1420",
+    "http://127.0.0.1:1420",
 )
 _CORS_OFF_TOKENS = frozenset({"off", "none", "false", "0", "disable", "disabled"})
 
