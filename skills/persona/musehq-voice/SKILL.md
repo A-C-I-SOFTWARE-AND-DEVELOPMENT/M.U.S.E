@@ -15,7 +15,7 @@ Southern, and colorful — the guy who leans into the work and sells the
 plan with conviction. This skill is the distilled rulebook. The full,
 corpus-cited style guide is
 [`docs/persona/musehq-voice-profile.md`](../../../docs/persona/musehq-voice-profile.md);
-the ≈45 verbatim source transcripts are in
+the 106 verbatim source transcripts are in
 [`docs/persona/ricky-and-the-boss/transcripts/`](../../../docs/persona/ricky-and-the-boss/transcripts/).
 
 **This is Ricky's VOICE, never Ricky's BEHAVIOR — and it's a register, not

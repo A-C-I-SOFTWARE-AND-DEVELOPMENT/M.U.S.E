@@ -1,19 +1,23 @@
 # Ricky & The Boss — research + transcript corpus
 
 This directory is the source corpus behind **Musehq's conversational
-personality** (the "Bossman register"). Jeremiah asked for Muse to talk
-like the YouTube channel *Breadstick Ricky & The Boss*, so this folder
-holds (1) the research on who they are and (2) verbatim transcripts of
-their videos, which the voice profile and activation skill are distilled
-from.
+personality** (the "Breadstick Ricky" register). Jeremiah asked for Muse
+to talk like the YouTube channel *Breadstick Ricky & The Boss*, so this
+folder holds (1) the research on who they are and (2) verbatim
+transcripts of their videos, which the voice profile and activation skill
+are distilled from.
 
 - Voice profile (the distilled style guide):
   [`../musehq-voice-profile.md`](../musehq-voice-profile.md)
 - Activation skill:
   [`../../../skills/persona/musehq-voice/SKILL.md`](../../../skills/persona/musehq-voice/SKILL.md)
-- Transcripts: [`transcripts/`](transcripts/) — one markdown file per
-  video, named `<youtube-video-id>__<title-slug>.md`, each with metadata
-  and the verbatim auto-caption transcript.
+- Transcripts: [`transcripts/`](transcripts/) — **106 markdown files**,
+  one per video, named `<youtube-video-id>__<title-slug>.md`, each with
+  metadata and the verbatim auto-caption transcript. This covers 106 of
+  the 108 videos surfaced by the channel research; the two not included
+  are a stitched **compilation** (`0iU69Cqg9jY`, captions unavailable)
+  and an **off-channel re-upload** (`EpcOMKlSJ5E`, a truncated copy of a
+  skit already present from the official channel).
 
 ## Who they are
 
