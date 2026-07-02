@@ -1,0 +1,201 @@
+/* M.U.S.E — Interactive 3D Atlas. Premium dark cockpit UI over a WebGL canvas. */
+:root {
+  --bg0: #05080f;
+  --ink: #eef3ff;
+  --ink-dim: #aab8d4;
+  --ink-faint: #7c8aaa;
+  --panel: rgba(12, 18, 34, 0.72);
+  --panel-line: rgba(255, 255, 255, 0.12);
+  --cyan: #36e6f0;
+  --violet: #a06bff;
+  --amber: #ffb13d;
+  --crimson: #ff5a7a;
+  --emerald: #2fd07a;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%; overflow: hidden;
+  background: var(--bg0); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#scene { position: fixed; inset: 0; display: block; }
+.bg-grad {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(1200px 900px at 16% 2%, rgba(54, 230, 240, 0.10), transparent 60%),
+    radial-gradient(1300px 1000px at 88% 24%, rgba(160, 107, 255, 0.12), transparent 60%),
+    radial-gradient(1200px 1000px at 50% 100%, rgba(47, 208, 122, 0.08), transparent 60%),
+    linear-gradient(180deg, #05080f 0%, #070c18 50%, #05070e 100%);
+}
+
+/* ---- generic glass panel ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-line);
+  border-radius: 16px;
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  box-shadow: 0 24px 60px -40px rgba(0, 0, 0, 0.9);
+}
+
+/* ---- masthead ---- */
+#masthead {
+  position: fixed; top: 22px; left: 22px; z-index: 10;
+  display: flex; align-items: center; gap: 16px; padding: 14px 20px 14px 14px;
+  max-width: 540px;
+}
+#masthead .glyph { width: 54px; height: 54px; flex: 0 0 auto; }
+#masthead h1 {
+  margin: 0; font-size: 23px; font-weight: 800; letter-spacing: 0.4px; line-height: 1.05;
+  background: linear-gradient(92deg, #fff, #bfe9ff 42%, #c8b3ff 72%, #ffd9a8);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#masthead .sub { font-size: 13px; color: var(--ink-dim); margin-top: 3px; }
+
+/* ---- top-right controls ---- */
+#controls {
+  position: fixed; top: 22px; right: 22px; z-index: 10;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+}
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+button.ctl {
+  font: inherit; font-size: 13px; font-weight: 650; color: var(--ink);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-line);
+  border-radius: 11px; padding: 9px 14px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+  white-space: nowrap;
+}
+button.ctl:hover { background: rgba(255, 255, 255, 0.13); border-color: rgba(255, 255, 255, 0.28); }
+button.ctl:active { transform: translateY(1px); }
+/* Back-to-cockpit link — styled to match the control buttons. target=_top so it
+   breaks out of the cockpit's atlas iframe or navigates normally when standalone. */
+a.atlas-back {
+  font: inherit; font-size: 13px; font-weight: 650; color: var(--ink);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-line);
+  border-radius: 11px; padding: 9px 14px; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+a.atlas-back:hover { background: rgba(255, 255, 255, 0.13); border-color: rgba(255, 255, 255, 0.28); }
+a.atlas-back:focus-visible { outline: 2px solid rgba(54, 230, 240, 0.9); outline-offset: 2px; }
+button.ctl.primary {
+  background: linear-gradient(92deg, rgba(54, 230, 240, 0.30), rgba(160, 107, 255, 0.30));
+  border-color: rgba(120, 180, 255, 0.6);
+}
+button.ctl.on { background: rgba(54, 230, 240, 0.22); border-color: rgba(54, 230, 240, 0.7); }
+
+/* ---- plane legend (left) ---- */
+#legend {
+  position: fixed; left: 22px; top: 120px; z-index: 9;
+  width: 232px; max-height: calc(100vh - 320px); overflow-y: auto;
+  padding: 12px; display: flex; flex-direction: column; gap: 4px;
+}
+#legend .lh { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-faint); margin: 2px 6px 8px; }
+.legrow {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 9px;
+  cursor: pointer; transition: background 0.12s;
+}
+.legrow:hover { background: rgba(255, 255, 255, 0.07); }
+.legrow .swatch { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; box-shadow: 0 0 10px 1px currentColor; }
+.legrow .ln { font-size: 13.5px; color: var(--ink); font-weight: 600; line-height: 1.1; }
+.legrow .lc { font-size: 11px; color: var(--ink-faint); margin-left: auto; }
+
+/* ---- detail panel (node click) ---- */
+#detail {
+  position: fixed; right: 22px; bottom: 132px; z-index: 11;
+  width: 360px; padding: 18px 20px; display: none;
+}
+#detail.show { display: block; animation: pop 0.18s ease; }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+#detail .dp { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+#detail h3 { margin: 6px 0 8px; font-size: 21px; color: #fff; }
+#detail p { margin: 0 0 12px; font-size: 14.5px; line-height: 1.5; color: var(--ink-dim); }
+#detail .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+#detail .chip { font-size: 12px; color: var(--ink-faint); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--panel-line); border-radius: 999px; padding: 3px 11px; }
+#detail .gate { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #ffd0d8; background: rgba(255, 90, 122, 0.16); border: 1px solid rgba(255, 90, 122, 0.5); border-radius: 999px; padding: 4px 11px; }
+#detail .close { position: absolute; top: 12px; right: 14px; cursor: pointer; color: var(--ink-faint); font-size: 18px; }
+#detail .close:hover { color: #fff; }
+
+/* ---- pipeline narration (bottom) ---- */
+#pipeline {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px; z-index: 12;
+  width: min(1180px, calc(100vw - 64px)); padding: 16px 22px;
+}
+#pipeline .ptop { display: flex; align-items: baseline; gap: 14px; }
+#pipeline .pstage { font-size: 12px; font-weight: 800; letter-spacing: 1px; color: var(--cyan); text-transform: uppercase; }
+#pipeline .ptitle { font-size: 17px; font-weight: 750; color: #fff; }
+#pipeline .pdesc { font-size: 13.5px; color: var(--ink-dim); margin-top: 4px; min-height: 20px; line-height: 1.4; }
+#pipeline .pbar { position: relative; height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); margin-top: 12px; overflow: hidden; }
+#pipeline .pfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; border-radius: 6px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--amber)); transition: width 0.5s ease; }
+#gatepips { display: flex; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
+.pip { font-size: 11px; font-weight: 700; color: var(--ink-faint);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-line);
+  border-radius: 8px; padding: 4px 9px; transition: all 0.25s; }
+.pip.lit { color: #062; background: rgba(47, 208, 122, 0.9); border-color: rgba(47, 208, 122, 1); box-shadow: 0 0 14px 1px rgba(47, 208, 122, 0.6); }
+
+/* ---- tooltip ---- */
+#tip {
+  position: fixed; z-index: 14; pointer-events: none; display: none;
+  padding: 6px 11px; font-size: 13px; font-weight: 600; color: #fff;
+  background: rgba(8, 12, 24, 0.92); border: 1px solid var(--panel-line); border-radius: 9px;
+  transform: translate(-50%, -140%); white-space: nowrap;
+}
+
+/* ---- loader ---- */
+#loader {
+  position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+  background: var(--bg0); transition: opacity 0.6s; flex-direction: column; gap: 18px;
+}
+#loader.gone { opacity: 0; pointer-events: none; }
+#loader .ring { width: 64px; height: 64px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--cyan); border-right-color: var(--violet); animation: spin 0.9s linear infinite; }
+#loader .lt { font-size: 14px; color: var(--ink-dim); letter-spacing: 0.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 8px; }
+
+/* default: the masthead shows its full title; the short form is mobile-only */
+.mast-short { display: none; }
+
+@media (max-width: 820px) {
+  /* The legend is collapsed on phones (focus planes by tapping nodes). */
+  #legend { display: none; }
+
+  /* Stack the HUD vertically so the title and the controls never overlap:
+     a slim masthead pinned to the top, the controls as a wrapping row beneath. */
+  #masthead {
+    top: 8px; left: 8px; right: 8px; max-width: none;
+    padding: 9px 12px; gap: 11px;
+  }
+  #masthead .glyph { width: 36px; height: 36px; }
+  #masthead h1 { font-size: 18px; white-space: nowrap; }
+  #masthead .sub { display: none; }
+  .mast-rest { display: none; } /* "— 3D Systems Atlas" → just "M.U.S.E Atlas" */
+  .mast-short { display: inline; }
+
+  #controls {
+    top: 72px; left: 8px; right: 8px; /* directly below the slim masthead */
+    flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: 8px;
+  }
+  #controls .btnrow { display: contents; } /* flatten both rows into one wrapping row */
+  button.ctl { font-size: 12px; padding: 7px 11px; border-radius: 10px; }
+
+  /* Full-bleed panels with even side margins; keep them clear of each other.
+     transform:none cancels the desktop translateX(-50%) centering, which would
+     otherwise shift the now-full-width panel half off the left edge. */
+  #detail { left: 8px; right: 8px; width: auto; bottom: 168px; }
+  #pipeline { left: 8px; right: 8px; width: auto; transform: none; bottom: 8px; padding: 13px 15px; }
+  #pipeline .ptitle { font-size: 15px; }
+  #pipeline .pdesc { font-size: 12.5px; }
+  #tip { font-size: 12px; }
+}
+
+/* Very narrow phones: shrink the control buttons a touch so 5 fit cleanly. */
+@media (max-width: 380px) {
+  button.ctl { font-size: 11px; padding: 6px 9px; }
+  #masthead h1 { font-size: 16px; }
+}

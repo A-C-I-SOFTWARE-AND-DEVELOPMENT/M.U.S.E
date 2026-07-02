@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>M.U.S.E — Interactive 3D Atlas</title>
+<meta name="description" content="An interactive, ultra-HD 3D model of M.U.S.E and all its systems, with an animated first-prompt-to-finished-product build pipeline.">
+<meta property="og:title" content="M.U.S.E — Interactive 3D Systems Atlas">
+<meta property="og:description" content="Orbit the whole mind: 12 architecture planes, every system, and an animated first-prompt-to-finished-product build pipeline.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='none' stroke='%2336e6f0' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%23eaf4ff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-grad"></div>
+<canvas id="scene"></canvas>
+
+<!-- masthead -->
+<div id="masthead" class="panel">
+  <svg class="glyph" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="g_core" cx="42%" cy="38%" r="65%">
+        <stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#eaf4ff"/><stop offset="100%" stop-color="#bcd6ff"/>
+      </radialGradient>
+      <linearGradient id="g_ring" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#36e6f0"/><stop offset="38%" stop-color="#6b8bff"/>
+        <stop offset="68%" stop-color="#a06bff"/><stop offset="100%" stop-color="#ffb13d"/>
+      </linearGradient>
+    </defs>
+    <g transform="rotate(-32 100 100)">
+      <circle cx="100" cy="100" r="86" stroke="url(#g_ring)" stroke-width="9" fill="none" opacity="0.92"/>
+      <circle cx="100" cy="100" r="70" stroke="url(#g_ring)" stroke-width="2.5" fill="none" opacity="0.45"/>
+    </g>
+    <circle cx="100" cy="100" r="40" fill="url(#g_core)"/>
+  </svg>
+  <div>
+    <h1>M.U.S.E<span class="mast-rest"> — 3D Systems Atlas</span><span class="mast-short"> Atlas</span></h1>
+    <div class="sub">Interactive map of the whole mind · drag to orbit · scroll to zoom · click any node</div>
+  </div>
+</div>
+
+<!-- top-right controls -->
+<div id="controls">
+  <div class="btnrow">
+    <button id="btnPlay" class="ctl primary">▶ Play the build</button>
+    <button id="btnReset" class="ctl">⟲ Reset view</button>
+  </div>
+  <div class="btnrow">
+    <button id="btnRotate" class="ctl on">↻ Auto-rotate</button>
+    <button id="btnLabels" class="ctl on">🏷 Labels</button>
+    <button id="btnOverview" class="ctl">⤢ Overview</button>
+  </div>
+</div>
+
+<!-- plane legend -->
+<div id="legend" class="panel">
+  <div class="lh">The 12 planes · click to focus</div>
+</div>
+
+<!-- node detail -->
+<div id="detail" class="panel">
+  <span class="close" id="detailClose">✕</span>
+  <div class="dp" id="detailKicker">component</div>
+  <h3 id="detailTitle">—</h3>
+  <p id="detailDesc">—</p>
+  <div class="chips" id="detailChips"></div>
+</div>
+
+<!-- pipeline narration -->
+<div id="pipeline" class="panel">
+  <div class="ptop">
+    <span class="pstage" id="pStage">Idle</span>
+    <span class="ptitle" id="pTitle">Press “Play the build” to watch a prompt become a finished product</span>
+  </div>
+  <div class="pdesc" id="pDesc">The glowing packet travels the full path — surface → operating layer → the eight gates → orchestration → cognition → verification → a shipped pull request.</div>
+  <div id="gatepips"></div>
+  <div class="pbar"><div class="pfill" id="pFill"></div></div>
+</div>
+
+<div id="tip"></div>
+<div id="hint" class="">Drag <b>orbit</b> · scroll <b>zoom</b> · right-drag <b>pan</b> · click a node for details</div>
+
+<div id="loader">
+  <div class="ring"></div>
+  <div class="lt">Assembling the synaptic substrate…</div>
+</div>
+
+<script src="architecture_data.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

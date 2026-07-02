@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>M.U.S.E. — Neural Observatory (demo)</title>
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="observatory.css" />
+<!-- Always-on static hosting: load the bundled, clearly-labeled snapshot
+     instead of a live gateway. This is the ONLY difference from the live
+     observatory.html; observatory.js detects the global and serves the bundle. -->
+<script>window.OBSERVATORY_DEMO_URL = "./observatory-demo.json";</script>
+<style>
+  #demobadge {
+    position: fixed; z-index: 60; left: 50%; top: 10px; transform: translateX(-50%);
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16, 20, 36, 0.86); border: 1px solid rgba(122, 224, 255, 0.45);
+    color: #cfe9ff; font: 600 12px/1.2 system-ui, -apple-system, sans-serif;
+    letter-spacing: 0.02em; pointer-events: none; backdrop-filter: blur(6px);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  }
+  #demobadge a { color: #7ae0ff; pointer-events: auto; }
+  @media (max-width: 560px) { #demobadge { font-size: 11px; top: 6px; } }
+</style>
+</head>
+<body>
+
+<!-- Demo disclosure — this page is a static capture, not live MUSE telemetry. -->
+<div id="demobadge">◍ DEMO · static snapshot — not live MUSE telemetry ·
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E" target="_blank" rel="noopener">source</a>
+</div>
+
+<!-- Full-viewport WebGL stage. Everything else floats above it. -->
+<div id="stage"></div>
+
+<!-- ── Top HUD bar ─────────────────────────────────────────────────────── -->
+<header id="hud">
+  <a class="brand" href="../" title="Back to NEXUS">
+    <svg class="spin" viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
+      <defs><linearGradient id="r" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#7ae0ff"/><stop offset="1" stop-color="#b388ff"/>
+      </linearGradient></defs>
+      <circle cx="24" cy="24" r="15" fill="none" stroke="url(#r)" stroke-width="1.6"
+              stroke-dasharray="66 28" stroke-linecap="round"/>
+      <circle cx="24" cy="24" r="3.1" fill="#fff"/>
+    </svg>
+    <span>Neural&nbsp;Observatory</span>
+  </a>
+
+  <nav class="views" role="tablist" aria-label="View">
+    <button class="view active" data-view="galaxy">Galaxy</button>
+    <button class="view" data-view="pipelines">Pipelines</button>
+    <button class="view" data-view="ladder">Ladder</button>
+    <button class="view" data-view="all">All</button>
+  </nav>
+
+  <span class="grow"></span>
+
+  <label class="winwrap">window
+    <select id="winsel" title="Metrics window">
+      <option value="15m">15m</option>
+      <option value="1h" selected>1h</option>
+      <option value="24h">24h</option>
+      <option value="7d">7d</option>
+    </select>
+  </label>
+
+  <label class="winwrap">layout
+    <select id="layoutsel" title="Galaxy layout (sacred geometry)">
+      <option value="gateway" selected>Galaxy</option>
+      <option value="phyllotaxis">Flower</option>
+      <option value="fibonacci">Sphere</option>
+      <option value="platonic">Icosahedron</option>
+      <option value="polytope">24-cell</option>
+    </select>
+  </label>
+
+  <span class="pill" id="telemetry" title="Telemetry collector state">telemetry: …</span>
+  <span class="pill" id="conn" title="Live event stream state"><span class="dot" id="conndot"></span><span id="conntext">connecting…</span></span>
+  <!-- Token is meaningless in static demo mode (no backend) — hidden. -->
+  <button id="tokenbtn" title="Set the cockpit pairing token" hidden>Token</button>
+</header>
+
+<!-- ── Left panel: recommendation verdict cards ────────────────────────── -->
+<aside id="recs" class="open">
+  <div class="panelhead">
+    <b>Recommendations</b>
+    <span class="grow"></span>
+    <button id="recstoggle" class="ghost" title="Collapse panel">⟨</button>
+  </div>
+  <div id="recslist"><div class="empty">Loading…</div></div>
+</aside>
+<button id="recsopen" class="edgetab" hidden title="Open recommendations">⟩ Recs</button>
+
+<!-- ── Right info drawer ───────────────────────────────────────────────── -->
+<aside id="drawer">
+  <div class="panelhead">
+    <b id="drawertitle">Details</b>
+    <span class="grow"></span>
+    <button id="drawerclose" class="ghost" title="Close">✕</button>
+  </div>
+  <div id="drawerbody"></div>
+</aside>
+
+<!-- ── Bottom dock: pipeline lanes summary ─────────────────────────────── -->
+<footer id="dock">
+  <div id="stations" class="stationsrow"></div>
+  <div id="dockevents" class="dockevents"></div>
+  <div id="layoutnote" class="layoutnote"></div>
+</footer>
+
+<!-- ── Hover tooltip ───────────────────────────────────────────────────── -->
+<div id="tooltip" hidden></div>
+
+<!-- ── Dormant banner (graph available, telemetry off) ─────────────────── -->
+<div id="dormantbanner" hidden>
+  <div class="dormantcard">
+    <span class="glyph small"><span class="ring"></span><span class="core"></span></span>
+    <div>
+      <b>Telemetry dormant</b>
+      <p>Set <code>MUSE_OBSERVATORY=1</code> or create
+      <code>~/.hermes/observatory/.enabled</code>, then restart the gateway.
+      The galaxy below is MUSE's real knowledge graph; live heat, pipelines and
+      routing will light up once the collector records events.</p>
+      <p class="muted">Docs: <code>docs/synapse/design/10-observatory-spec.md</code></p>
+    </div>
+    <button id="dormantdismiss" class="ghost" title="Dismiss">✕</button>
+  </div>
+</div>
+
+<!-- ── Full-screen dormant hero (no graph, no telemetry) ──────────────── -->
+<div id="hero" hidden>
+  <span class="glyph big"><span class="ring"></span><span class="core"></span></span>
+  <h1>Neural Observatory is dormant</h1>
+  <p>No knowledge graph and no telemetry yet — nothing to render, and this page
+  never invents data.</p>
+  <p>1 · Build the graph: <code>POST /v1/cockpit/graph/build</code> (or
+  <code>jarvis_prime graph build</code>)<br/>
+  2 · Enable telemetry: set <code>MUSE_OBSERVATORY=1</code> or create
+  <code>~/.hermes/observatory/.enabled</code>, then restart the gateway.</p>
+  <p class="muted">Docs: <code>docs/synapse/design/10-observatory-spec.md</code></p>
+  <button id="heroretry">Re-check</button>
+</div>
+
+<!-- ── WebGL context lost overlay ──────────────────────────────────────── -->
+<div id="ctxlost" hidden>
+  <div class="dormantcard">
+    <b>Graphics context lost</b>
+    <p>The browser dropped the WebGL context (GPU reset or memory pressure).</p>
+    <button id="ctxreload" class="primary">Reload the Observatory</button>
+  </div>
+</div>
+
+<!-- ── Token dialog (unused in demo mode; kept so observatory.js queries resolve) ── -->
+<dialog id="tokendlg">
+  <form method="dialog">
+    <h3>Pair this browser</h3>
+    <p class="muted">Paste the token printed by <code>hermes cockpit serve</code>.
+    It is stored only in this browser (localStorage). The owner authorization
+    phrase is <b>never</b> asked for or stored by this page.</p>
+    <input type="password" id="tokenin" placeholder="cockpit token" autocomplete="off" />
+    <div class="row end">
+      <button value="cancel">Cancel</button>
+      <button value="save" class="primary" id="tokensave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ── Wallpaper action flash (non-spatial action pulse) ───────────────── -->
+<div id="actionflash" hidden></div>
+
+<script type="module" src="observatory.js"></script>
+</body>
+</html>

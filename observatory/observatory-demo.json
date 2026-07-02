@@ -1,0 +1,1189 @@
+{
+ "_demo": true,
+ "_note": "Static, illustrative snapshot for the always-on hosted viewer. Structure is authentic (real M.U.S.E. areas, real layout engine); telemetry numbers are frozen samples, NOT live measurement.",
+ "generated_by": "scripts/build_observatory_demo.py",
+ "snapshot": {
+  "v": 1,
+  "generated_at": "2026-06-20T18:00:00Z",
+  "graph": {
+   "graph_version": "g-demo-20260620",
+   "node_count": 3986,
+   "edge_count": 777,
+   "clusters": [
+    {
+     "id": "c-40d652de",
+     "label": "gateway/cockpit",
+     "type_mix": {
+      "code": 0.82,
+      "docs": 0.18
+     },
+     "members": 412,
+     "pos": [
+      -3.9408,
+      2.2212,
+      -0.0841
+     ],
+     "radius": 11.1615,
+     "heat": 0.61
+    },
+    {
+     "id": "c-1f3ee75c",
+     "label": "hermes_cli/jarvis_prime",
+     "type_mix": {
+      "code": 0.88,
+      "docs": 0.12
+     },
+     "members": 524,
+     "pos": [
+      7.476,
+      -7.4572,
+      3.1291
+     ],
+     "radius": 12.093,
+     "heat": 0.74
+    },
+    {
+     "id": "c-5e309014",
+     "label": "hermes_cli/jarvis_prime/graphrag",
+     "type_mix": {
+      "code": 0.9,
+      "docs": 0.1
+     },
+     "members": 263,
+     "pos": [
+      15.8102,
+      -5.2272,
+      -3.684
+     ],
+     "radius": 9.6104,
+     "heat": 0.43
+    },
+    {
+     "id": "c-e4a4d513",
+     "label": "axiom/core",
+     "type_mix": {
+      "code": 0.93,
+      "docs": 0.07
+     },
+     "members": 188,
+     "pos": [
+      -3.0059,
+      -10.6159,
+      5.8472
+     ],
+     "radius": 8.593,
+     "heat": 0.55
+    },
+    {
+     "id": "c-e5785536",
+     "label": "axiom/orchestrator",
+     "type_mix": {
+      "code": 0.91,
+      "docs": 0.09
+     },
+     "members": 156,
+     "pos": [
+      -12.2563,
+      -11.3387,
+      7.1703
+     ],
+     "radius": 8.0748,
+     "heat": null
+    },
+    {
+     "id": "c-591e9fd4",
+     "label": "plugins/memory",
+     "type_mix": {
+      "code": 0.86,
+      "docs": 0.14
+     },
+     "members": 142,
+     "pos": [
+      10.219,
+      -16.4362,
+      -4.4667
+     ],
+     "radius": 7.8257,
+     "heat": 0.29
+    },
+    {
+     "id": "c-07c4f5f9",
+     "label": "plugins/github_assistant",
+     "type_mix": {
+      "code": 0.84,
+      "docs": 0.16
+     },
+     "members": 98,
+     "pos": [
+      -58.5013,
+      100.0,
+      -44.7057
+     ],
+     "radius": 6.9157,
+     "heat": null
+    },
+    {
+     "id": "c-f044ef30",
+     "label": "plugins/model_providers",
+     "type_mix": {
+      "code": 0.89,
+      "docs": 0.11
+     },
+     "members": 167,
+     "pos": [
+      15.9865,
+      -1.6205,
+      8.219
+     ],
+     "radius": 8.2603,
+     "heat": 0.34
+    },
+    {
+     "id": "c-10423f85",
+     "label": "second_brain",
+     "type_mix": {
+      "code": 0.7,
+      "docs": 0.3
+     },
+     "members": 211,
+     "pos": [
+      22.7152,
+      -3.8245,
+      -8.8646
+     ],
+     "radius": 8.93,
+     "heat": 0.22
+    },
+    {
+     "id": "c-449a6011",
+     "label": "apps/android",
+     "type_mix": {
+      "code": 0.95,
+      "docs": 0.05
+     },
+     "members": 305,
+     "pos": [
+      -3.7523,
+      10.6427,
+      2.4755
+     ],
+     "radius": 10.097,
+     "heat": 0.48
+    },
+    {
+     "id": "c-1a07636b",
+     "label": "apps/synapse-ue",
+     "type_mix": {
+      "code": 0.97,
+      "docs": 0.03
+     },
+     "members": 134,
+     "pos": [
+      -12.2005,
+      8.7723,
+      -7.0533
+     ],
+     "radius": 7.6758,
+     "heat": null
+    },
+    {
+     "id": "c-7fa86c5a",
+     "label": "docs/synapse",
+     "type_mix": {
+      "docs": 1.0
+     },
+     "members": 86,
+     "pos": [
+      -18.0641,
+      13.7521,
+      -11.9583
+     ],
+     "radius": 6.621,
+     "heat": null
+    },
+    {
+     "id": "c-7d625eca",
+     "label": "docs/orchestration",
+     "type_mix": {
+      "docs": 1.0
+     },
+     "members": 73,
+     "pos": [
+      -19.7982,
+      -15.733,
+      10.109
+     ],
+     "radius": 6.269,
+     "heat": 0.18
+    },
+    {
+     "id": "c-8b6f4658",
+     "label": "skills/aos-enterprise-council",
+     "type_mix": {
+      "docs": 0.88,
+      "code": 0.12
+     },
+     "members": 261,
+     "pos": [
+      6.9733,
+      -15.3393,
+      4.842
+     ],
+     "radius": 9.586,
+     "heat": 0.39
+    },
+    {
+     "id": "c-c6fef851",
+     "label": "run_agent.py core",
+     "type_mix": {
+      "code": 1.0
+     },
+     "members": 240,
+     "pos": [
+      11.286,
+      -11.5552,
+      13.1239
+     ],
+     "radius": 9.3217,
+     "heat": 0.66
+    },
+    {
+     "id": "c-d5ce3799",
+     "label": "model_tools",
+     "type_mix": {
+      "code": 1.0
+     },
+     "members": 132,
+     "pos": [
+      14.3086,
+      -14.7872,
+      20.2352
+     ],
+     "radius": 7.6375,
+     "heat": 0.41
+    },
+    {
+     "id": "c-471e8186",
+     "label": "gateway/messaging",
+     "type_mix": {
+      "code": 0.92,
+      "docs": 0.08
+     },
+     "members": 178,
+     "pos": [
+      -10.3699,
+      6.9893,
+      2.2796
+     ],
+     "radius": 8.4378,
+     "heat": 0.27
+    },
+    {
+     "id": "c-8a75b071",
+     "label": "tui_gateway",
+     "type_mix": {
+      "code": 0.96,
+      "docs": 0.04
+     },
+     "members": 64,
+     "pos": [
+      -3.0677,
+      7.9719,
+      -6.6408
+     ],
+     "radius": 6.0,
+     "heat": null
+    },
+    {
+     "id": "c-d7e3510b",
+     "label": "providers",
+     "type_mix": {
+      "code": 0.94,
+      "docs": 0.06
+     },
+     "members": 91,
+     "pos": [
+      22.8807,
+      2.5366,
+      12.106
+     ],
+     "radius": 6.7469,
+     "heat": 0.2
+    },
+    {
+     "id": "c-02f91914",
+     "label": "cron",
+     "type_mix": {
+      "code": 0.9,
+      "docs": 0.1
+     },
+     "members": 47,
+     "pos": [
+      15.7582,
+      -11.911,
+      3.9076
+     ],
+     "radius": 5.4132,
+     "heat": null
+    },
+    {
+     "id": "c-13dd35d0",
+     "label": "orchestration/ledger",
+     "type_mix": {
+      "code": 0.85,
+      "docs": 0.15
+     },
+     "members": 119,
+     "pos": [
+      -10.8441,
+      -4.1677,
+      3.5551
+     ],
+     "radius": 7.378,
+     "heat": 0.52
+    },
+    {
+     "id": "c-8a8361c6",
+     "label": "memory tree",
+     "type_mix": {
+      "docs": 0.6,
+      "code": 0.4
+     },
+     "members": 95,
+     "pos": [
+      12.3872,
+      -22.8724,
+      -9.542
+     ],
+     "radius": 6.8444,
+     "heat": 0.31
+    }
+   ],
+   "cluster_edges": [
+    {
+     "a": "c-40d652de",
+     "b": "c-1f3ee75c",
+     "weight": 9.0,
+     "heat": 0.2
+    },
+    {
+     "a": "c-1f3ee75c",
+     "b": "c-5e309014",
+     "weight": 7.0,
+     "heat": null
+    },
+    {
+     "a": "c-1f3ee75c",
+     "b": "c-e4a4d513",
+     "weight": 6.0,
+     "heat": null
+    },
+    {
+     "a": "c-e4a4d513",
+     "b": "c-e5785536",
+     "weight": 8.0,
+     "heat": 0.56
+    },
+    {
+     "a": "c-e5785536",
+     "b": "c-13dd35d0",
+     "weight": 5.0,
+     "heat": null
+    },
+    {
+     "a": "c-1f3ee75c",
+     "b": "c-591e9fd4",
+     "weight": 4.0,
+     "heat": null
+    },
+    {
+     "a": "c-591e9fd4",
+     "b": "c-8a8361c6",
+     "weight": 6.0,
+     "heat": 0.32
+    },
+    {
+     "a": "c-1f3ee75c",
+     "b": "c-f044ef30",
+     "weight": 5.0,
+     "heat": null
+    },
+    {
+     "a": "c-f044ef30",
+     "b": "c-d7e3510b",
+     "weight": 4.0,
+     "heat": null
+    },
+    {
+     "a": "c-40d652de",
+     "b": "c-471e8186",
+     "weight": 5.0,
+     "heat": 0.68
+    },
+    {
+     "a": "c-c6fef851",
+     "b": "c-d5ce3799",
+     "weight": 7.0,
+     "heat": null
+    },
+    {
+     "a": "c-c6fef851",
+     "b": "c-1f3ee75c",
+     "weight": 6.0,
+     "heat": null
+    },
+    {
+     "a": "c-449a6011",
+     "b": "c-40d652de",
+     "weight": 4.0,
+     "heat": 0.44
+    },
+    {
+     "a": "c-1a07636b",
+     "b": "c-40d652de",
+     "weight": 3.0,
+     "heat": null
+    },
+    {
+     "a": "c-7fa86c5a",
+     "b": "c-1a07636b",
+     "weight": 3.0,
+     "heat": null
+    },
+    {
+     "a": "c-8b6f4658",
+     "b": "c-1f3ee75c",
+     "weight": 4.0,
+     "heat": 0.2
+    },
+    {
+     "a": "c-10423f85",
+     "b": "c-5e309014",
+     "weight": 5.0,
+     "heat": null
+    },
+    {
+     "a": "c-7d625eca",
+     "b": "c-e5785536",
+     "weight": 3.0,
+     "heat": null
+    },
+    {
+     "a": "c-40d652de",
+     "b": "c-8a75b071",
+     "weight": 3.0,
+     "heat": 0.56
+    },
+    {
+     "a": "c-1f3ee75c",
+     "b": "c-02f91914",
+     "weight": 2.0,
+     "heat": null
+    },
+    {
+     "a": "c-13dd35d0",
+     "b": "c-40d652de",
+     "weight": 4.0,
+     "heat": 0.32
+    }
+   ],
+   "clusters_total": 22,
+   "clusters_truncated": false,
+   "layout_status": "computed",
+   "layout_algo": "fr3d"
+  },
+  "stations": {
+   "nodes": [
+    "job",
+    "navigator",
+    "worker",
+    "gate",
+    "ledger"
+   ],
+   "active_jobs": [
+    {
+     "job_id": "jb-7f3a2e",
+     "task_class": "code",
+     "stage": "worker",
+     "stage_entered_at": "2026-06-20T17:59:51Z",
+     "queue_pos": null
+    },
+    {
+     "job_id": "jb-91c4d0",
+     "task_class": "docs",
+     "stage": "gate",
+     "stage_entered_at": "2026-06-20T17:59:58Z",
+     "queue_pos": null
+    },
+    {
+     "job_id": "jb-2b8e15",
+     "task_class": "research",
+     "stage": "navigator",
+     "stage_entered_at": "2026-06-20T18:00:00Z",
+     "queue_pos": 1
+    }
+   ],
+   "queue_depth": 1
+  },
+  "ladder": {
+   "tiers": [
+    {
+     "tier": "local",
+     "model": "qwen2.5-coder-7b",
+     "share_1h": 0.58,
+     "n": 742,
+     "p50_latency_ms": 410,
+     "p95_latency_ms": 980
+    },
+    {
+     "tier": "hosted",
+     "model": "claude-sonnet-4-6",
+     "share_1h": 0.31,
+     "n": 396,
+     "p50_latency_ms": 1180,
+     "p95_latency_ms": 3200
+    },
+    {
+     "tier": "paired",
+     "model": "gpt-4o",
+     "share_1h": 0.11,
+     "n": 141,
+     "p50_latency_ms": 1520,
+     "p95_latency_ms": 4100
+    }
+   ]
+  },
+  "metrics_rollup": {
+   "v": 1,
+   "window": "1h",
+   "from": "2026-06-20T17:00:00Z",
+   "to": "2026-06-20T18:00:00Z",
+   "stages": [
+    {
+     "stage": "perceive",
+     "task_class": null,
+     "count": 1279,
+     "p50_ms": 12,
+     "p95_ms": 48,
+     "queue_wait_p95_ms": 5,
+     "retries": 0
+    },
+    {
+     "stage": "classify",
+     "task_class": null,
+     "count": 1279,
+     "p50_ms": 34,
+     "p95_ms": 120,
+     "queue_wait_p95_ms": 8,
+     "retries": 2
+    },
+    {
+     "stage": "decide",
+     "task_class": null,
+     "count": 1188,
+     "p50_ms": 410,
+     "p95_ms": 1900,
+     "queue_wait_p95_ms": 30,
+     "retries": 11
+    },
+    {
+     "stage": "gate",
+     "task_class": null,
+     "count": 1188,
+     "p50_ms": 58,
+     "p95_ms": 240,
+     "queue_wait_p95_ms": 12,
+     "retries": 4
+    },
+    {
+     "stage": "delegate",
+     "task_class": null,
+     "count": 1042,
+     "p50_ms": 880,
+     "p95_ms": 3400,
+     "queue_wait_p95_ms": 140,
+     "retries": 9
+    },
+    {
+     "stage": "speak",
+     "task_class": null,
+     "count": 1042,
+     "p50_ms": 220,
+     "p95_ms": 900,
+     "queue_wait_p95_ms": 7,
+     "retries": 1
+    }
+   ],
+   "gates": [
+    {
+     "gate": "planning",
+     "task_class": null,
+     "passes": 1150,
+     "fails": 38,
+     "overrides": 0,
+     "fail_rate": 0.032
+    },
+    {
+     "gate": "build",
+     "task_class": null,
+     "passes": 1102,
+     "fails": 86,
+     "overrides": 0,
+     "fail_rate": 0.072
+    },
+    {
+     "gate": "review",
+     "task_class": null,
+     "passes": 1064,
+     "fails": 124,
+     "overrides": 3,
+     "fail_rate": 0.104
+    },
+    {
+     "gate": "test",
+     "task_class": null,
+     "passes": 998,
+     "fails": 190,
+     "overrides": 0,
+     "fail_rate": 0.16
+    },
+    {
+     "gate": "security",
+     "task_class": null,
+     "passes": 1181,
+     "fails": 7,
+     "overrides": 0,
+     "fail_rate": 0.006
+    },
+    {
+     "gate": "release",
+     "task_class": null,
+     "passes": 1042,
+     "fails": 0,
+     "overrides": 0,
+     "fail_rate": 0.0
+    },
+    {
+     "gate": "owner",
+     "task_class": null,
+     "passes": 64,
+     "fails": 0,
+     "overrides": 0,
+     "fail_rate": 0.0
+    },
+    {
+     "gate": "rollback",
+     "task_class": null,
+     "passes": 1042,
+     "fails": 0,
+     "overrides": 0,
+     "fail_rate": 0.0
+    }
+   ],
+   "models": [
+    {
+     "tier": "local",
+     "model": "qwen2.5-coder-7b",
+     "calls": 742,
+     "p95_latency_ms": 980,
+     "tokens_in": 1284000,
+     "tokens_out": 318000,
+     "est_cost_usd": 0.0
+    },
+    {
+     "tier": "hosted",
+     "model": "claude-sonnet-4-6",
+     "calls": 396,
+     "p95_latency_ms": 3200,
+     "tokens_in": 902000,
+     "tokens_out": 241000,
+     "est_cost_usd": 4.81
+    },
+    {
+     "tier": "paired",
+     "model": "gpt-4o",
+     "calls": 141,
+     "p95_latency_ms": 4100,
+     "tokens_in": 388000,
+     "tokens_out": 96000,
+     "est_cost_usd": 2.34
+    }
+   ],
+   "cost_per_task_class": [
+    {
+     "task_class": "code",
+     "usd": 4.12,
+     "n": 612
+    },
+    {
+     "task_class": "research",
+     "usd": 2.05,
+     "n": 188
+    },
+    {
+     "task_class": "docs",
+     "usd": 0.98,
+     "n": 242
+    }
+   ],
+   "heat": [
+    {
+     "key": "stage:delegate:code",
+     "score": 0.81,
+     "n": 612,
+     "evidence_ref": "/v1/cockpit/ledger?stage=delegate&class=code"
+    },
+    {
+     "key": "gate:test:code",
+     "score": 0.64,
+     "n": 190,
+     "evidence_ref": "/v1/cockpit/ledger?gate=test&class=code"
+    },
+    {
+     "key": "stage:decide:research",
+     "score": 0.47,
+     "n": 188,
+     "evidence_ref": "/v1/cockpit/ledger?stage=decide&class=research"
+    },
+    {
+     "key": "gate:review:docs",
+     "score": null,
+     "n": 3,
+     "evidence_ref": "/v1/cockpit/ledger?gate=review&class=docs"
+    }
+   ],
+   "heat_weights": {
+    "latency": 0.3,
+    "queue": 0.2,
+    "fail": 0.25,
+    "retry": 0.15,
+    "cost": 0.1
+   },
+   "min_n": 5,
+   "collector": {
+    "events_in_window": 8421,
+    "events_recorded": 8421,
+    "io_errors": 0
+   }
+  }
+ },
+ "recommendations": {
+  "v": 1,
+  "generated_at": "2026-06-20T18:00:00Z",
+  "cards": [
+   {
+    "id": "rec-route-local-code",
+    "title": "Route short code edits to the local tier",
+    "state": "validated",
+    "delta": "-18% median latency",
+    "validation": {
+     "method": "replay",
+     "n_baseline": 240,
+     "n_candidate": 240,
+     "median_delta_pct": -18.4,
+     "ci95": [
+      -23.1,
+      -12.9
+     ],
+     "metric": "latency_ms"
+    },
+    "evidence_refs": [
+     "/v1/cockpit/ledger?stage=delegate&class=code"
+    ],
+    "created_at": "2026-06-20T17:42:00Z"
+   },
+   {
+    "id": "rec-test-gate-retries",
+    "title": "Pre-warm the test gate for the code class",
+    "state": "collecting",
+    "delta": null,
+    "validation": {
+     "method": "shadow",
+     "n_baseline": 31,
+     "n_candidate": 0,
+     "median_delta_pct": null,
+     "ci95": null,
+     "metric": "retries"
+    },
+    "evidence_refs": [],
+    "created_at": "2026-06-20T17:55:00Z"
+   }
+  ]
+ },
+ "layouts": {
+  "c-1f3ee75c": {
+   "v": 1,
+   "cluster": "c-1f3ee75c",
+   "graph_version": "g-demo-20260620",
+   "layout_status": "computed",
+   "layout_algo": "radial-refined",
+   "truncated": false,
+   "nodes": [
+    {
+     "id": "c-1f3ee75c-n0",
+     "type": "function",
+     "label": "run_agent",
+     "pos": [
+      0.0292,
+      -0.7904,
+      0.0802
+     ],
+     "degree": 12,
+     "heat": 0.15,
+     "source_ref": "hermes_cli/jarvis_prime/run_agent.py"
+    },
+    {
+     "id": "c-1f3ee75c-n1",
+     "type": "class",
+     "label": "system_contract",
+     "pos": [
+      -0.5402,
+      0.5268,
+      0.5871
+     ],
+     "degree": 11,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/system_contract.py"
+    },
+    {
+     "id": "c-1f3ee75c-n2",
+     "type": "function",
+     "label": "router",
+     "pos": [
+      0.1828,
+      0.2154,
+      -1.1098
+     ],
+     "degree": 10,
+     "heat": 0.51,
+     "source_ref": "hermes_cli/jarvis_prime/router.py"
+    },
+    {
+     "id": "c-1f3ee75c-n3",
+     "type": "class",
+     "label": "memory_tree",
+     "pos": [
+      0.9944,
+      0.1979,
+      1.0964
+     ],
+     "degree": 9,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/memory_tree.py"
+    },
+    {
+     "id": "c-1f3ee75c-n4",
+     "type": "function",
+     "label": "graph_query",
+     "pos": [
+      -1.53,
+      0.0487,
+      -0.2169
+     ],
+     "degree": 8,
+     "heat": 0.15,
+     "source_ref": "hermes_cli/jarvis_prime/graph_query.py"
+    },
+    {
+     "id": "c-1f3ee75c-n5",
+     "type": "class",
+     "label": "modes",
+     "pos": [
+      1.5692,
+      -0.2017,
+      -0.9579
+     ],
+     "degree": 7,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/modes.py"
+    },
+    {
+     "id": "c-1f3ee75c-n6",
+     "type": "function",
+     "label": "constitution",
+     "pos": [
+      -0.3754,
+      -0.4674,
+      1.8284
+     ],
+     "degree": 6,
+     "heat": 0.51,
+     "source_ref": "hermes_cli/jarvis_prime/constitution.py"
+    },
+    {
+     "id": "c-1f3ee75c-n7",
+     "type": "class",
+     "label": "self_audit",
+     "pos": [
+      -0.8444,
+      -0.8113,
+      -1.7115
+     ],
+     "degree": 5,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/self_audit.py"
+    },
+    {
+     "id": "c-1f3ee75c-n8",
+     "type": "function",
+     "label": "learning",
+     "pos": [
+      1.8863,
+      -1.237,
+      0.6172
+     ],
+     "degree": 4,
+     "heat": 0.15,
+     "source_ref": "hermes_cli/jarvis_prime/learning.py"
+    },
+    {
+     "id": "c-1f3ee75c-n9",
+     "type": "class",
+     "label": "persona",
+     "pos": [
+      -1.4998,
+      -1.6892,
+      0.6854
+     ],
+     "degree": 3,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/persona.py"
+    },
+    {
+     "id": "c-1f3ee75c-n10",
+     "type": "function",
+     "label": "gates",
+     "pos": [
+      0.6595,
+      -2.035,
+      -1.3083
+     ],
+     "degree": 2,
+     "heat": 0.51,
+     "source_ref": "hermes_cli/jarvis_prime/gates.py"
+    },
+    {
+     "id": "c-1f3ee75c-n11",
+     "type": "class",
+     "label": "speak",
+     "pos": [
+      0.3211,
+      -2.6486,
+      0.8861
+     ],
+     "degree": 1,
+     "heat": null,
+     "source_ref": "hermes_cli/jarvis_prime/speak.py"
+    }
+   ],
+   "edges": [
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n1",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n2",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n3",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n4",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n5",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n6",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n7",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n8",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n9",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n10",
+     "weight": 1.0
+    },
+    {
+     "a": "c-1f3ee75c-n0",
+     "b": "c-1f3ee75c-n11",
+     "weight": 1.0
+    }
+   ]
+  },
+  "c-e4a4d513": {
+   "v": 1,
+   "cluster": "c-e4a4d513",
+   "graph_version": "g-demo-20260620",
+   "layout_status": "computed",
+   "layout_algo": "radial-refined",
+   "truncated": false,
+   "nodes": [
+    {
+     "id": "c-e4a4d513-n0",
+     "type": "function",
+     "label": "verifier",
+     "pos": [
+      -0.109,
+      -0.7821,
+      -0.0317
+     ],
+     "degree": 12,
+     "heat": 0.15,
+     "source_ref": "axiom/core/verifier.py"
+    },
+    {
+     "id": "c-e4a4d513-n1",
+     "type": "class",
+     "label": "ledger",
+     "pos": [
+      -0.7067,
+      0.3977,
+      0.6096
+     ],
+     "degree": 11,
+     "heat": null,
+     "source_ref": "axiom/core/ledger.py"
+    },
+    {
+     "id": "c-e4a4d513-n2",
+     "type": "function",
+     "label": "canonical",
+     "pos": [
+      0.0752,
+      0.2836,
+      -1.3209
+     ],
+     "degree": 10,
+     "heat": 0.51,
+     "source_ref": "axiom/core/canonical.py"
+    },
+    {
+     "id": "c-e4a4d513-n3",
+     "type": "class",
+     "label": "registry",
+     "pos": [
+      0.9276,
+      0.0142,
+      1.2
+     ],
+     "degree": 9,
+     "heat": null,
+     "source_ref": "axiom/core/registry.py"
+    },
+    {
+     "id": "c-e4a4d513-n4",
+     "type": "function",
+     "label": "contracts",
+     "pos": [
+      -1.656,
+      -0.3972,
+      -0.2592
+     ],
+     "degree": 8,
+     "heat": 0.15,
+     "source_ref": "axiom/core/contracts.py"
+    },
+    {
+     "id": "c-e4a4d513-n5",
+     "type": "class",
+     "label": "effects",
+     "pos": [
+      1.3951,
+      -0.8571,
+      -0.9168
+     ],
+     "degree": 7,
+     "heat": null,
+     "source_ref": "axiom/core/effects.py"
+    },
+    {
+     "id": "c-e4a4d513-n6",
+     "type": "function",
+     "label": "merkle",
+     "pos": [
+      -0.3442,
+      -1.4557,
+      1.4103
+     ],
+     "degree": 6,
+     "heat": 0.51,
+     "source_ref": "axiom/core/merkle.py"
+    },
+    {
+     "id": "c-e4a4d513-n7",
+     "type": "class",
+     "label": "attestation",
+     "pos": [
+      -0.46,
+      -2.1678,
+      -0.8336
+     ],
+     "degree": 5,
+     "heat": null,
+     "source_ref": "axiom/core/attestation.py"
+    }
+   ],
+   "edges": [
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n1",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n2",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n3",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n4",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n5",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n6",
+     "weight": 1.0
+    },
+    {
+     "a": "c-e4a4d513-n0",
+     "b": "c-e4a4d513-n7",
+     "weight": 1.0
+    }
+   ]
+  }
+ }
+}
