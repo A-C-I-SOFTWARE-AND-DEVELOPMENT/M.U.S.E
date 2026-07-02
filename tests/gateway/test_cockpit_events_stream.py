@@ -61,6 +61,53 @@ def test_event_log_normalizes_unknown_level_and_source(home: Path) -> None:
     assert records[0]["source"] == "gateway"
 
 
+def test_event_log_read_tail_matches_full_scan(home: Path) -> None:
+    """read(limit>0) tail-reads backwards; its output must be byte-identical
+    to full-scanning (limit=0) and slicing the last N — across filters,
+    malformed/blank lines, and records larger than the tail block size."""
+    import json as _json
+
+    p = event_log._path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as fh:
+        for i in range(400):
+            if i % 37 == 0:
+                fh.write("{not json]\n")
+            rec = {
+                "ts": f"2026-07-{(i % 28) + 1:02d}T12:00:00+00:00",
+                "level": ("info", "warn", "error")[i % 3],
+                "source": ("gateway", "worker", "hook", "cron")[i % 4],
+                "job_id": f"j{i % 5}",
+                "message": f"m{i}",
+                "attributes": {"i": i},
+            }
+            if i == 200:  # spans multiple tail blocks
+                rec["attributes"]["pad"] = "y" * (event_log._TAIL_BLOCK * 2 + 17)
+            fh.write(_json.dumps(rec) + "\n")
+
+    cases = [
+        dict(limit=10),
+        dict(limit=50, source="hook"),
+        dict(limit=7, level="error,warn", source="gateway,worker"),
+        dict(limit=5, job_id="j3"),
+        dict(limit=30, since="2026-07-15"),
+        dict(limit=10_000),  # limit exceeds matches -> everything
+    ]
+    for kw in cases:
+        limit = kw["limit"]
+        rest = {k: v for k, v in kw.items() if k != "limit"}
+        full = event_log.read(limit=0, **rest)
+        assert event_log.read(**kw) == full[-limit:], kw
+
+
+def test_event_log_read_empty_and_missing(home: Path) -> None:
+    assert event_log.read(limit=50) == []  # no file yet
+    p = event_log._path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("", encoding="utf-8")
+    assert event_log.read(limit=50) == []  # empty file
+
+
 # ── integration: the live stream ───────────────────────────────────────────
 
 
