@@ -1,0 +1,12 @@
+# Ricky and Roscoe may be committing tax fraud 😂 #comedy #rickyandtheboss #breadstickricky
+
+- video_id: oRwTEfW0Q2g
+- url: https://www.youtube.com/watch?v=oRwTEfW0Q2g
+- channel: Breadstick Ricky & The Boss
+- published: 2025-02-13
+- length: 02:12
+- views: 633.9K
+
+## Transcript
+
+sorry I'm late my meeting with my CPA ran over but I got my taxes finished worst time of year I'll tell you I got to go next week think you're getting some money back I guess I'll find out in March cuz right now between all my kids and my tax write offs uh I'm either going to get a big refund check or go to jail for tax fraud no in between you know what if jail time ain't a possibility I don't believe the CPA is doing a good enough job all right you're not one of those people that has a bunch of kids for the tax refund right no sir those are the worst kind of people actually when I was a little kid I found myself in the kitchen one day and the refrigerator door was open next thing I know I've got cookie dough in my hand I took a big old bite and realized in that moment right there some things are better wrong and you know what I just kind of stuck with that and now I got a bunch of kids you know that's probably the only thing you've ever said that I agree with you on you know too bad you know after nine it cuts off though you know you can follow married nine every day of the week and you get that 10th kid and Hell that help be at all on taxes ridiculous to me yeah I don't know why they cut it off at nine I mean what why cut it off if you're going to go that high anyway do you fought married in nine have every year and we continue to do so do you have nine kids I I didn't think you had that many kids well no of course not is the camera on there the camera on yeah the camera isn't on of course I have nine kids you've met every every single son don't even do no stupid question let's move on next person huh I no I didn't even know you could file like kids and all that stuff I I just been doing you know like single and none all year that's my my first year with a good job then I have to pay in you know like maybe like a couple hundred bucks or something couple hundred bucks you've been filing single and zero all year with our pay scale yeah you know you know I didn't want to get in trouble you know the IRS you you you ain't going to get in trouble trust me they love your dumbass okay we we we need to have a talk about taxes here in a minute and fraud and how easy it is to do you know I got my taxes done can we just go ahead and start this safety meeting up

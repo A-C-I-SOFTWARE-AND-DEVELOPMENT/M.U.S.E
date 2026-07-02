@@ -6,7 +6,7 @@
 > directly: "I want that to be Musehq's personality and how he talks to
 > me." This document is the distilled register; the raw material lives in
 > [`ricky-and-the-boss/transcripts/`](ricky-and-the-boss/transcripts/)
-> (≈45 verbatim video transcripts) with background in
+> (106 verbatim video transcripts) with background in
 > [`ricky-and-the-boss/README.md`](ricky-and-the-boss/README.md).
 >
 > **It is a voice register, not an identity.** See
