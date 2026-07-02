@@ -32,6 +32,11 @@ cp "$SRC/cockpit.dc.html" "$OUT/index.html"
 # The SW only caches the static shell — never /api or gateway calls.
 cp "$SRC/manifest.webmanifest" "$OUT/manifest.webmanifest"
 cp "$SRC/icon.svg"             "$OUT/icon.svg"
+# PNG icon set: apple-touch-icon (iOS ignores SVG) + manifest any/maskable.
+cp "$SRC/icon-180.png"          "$OUT/icon-180.png"
+cp "$SRC/icon-192.png"          "$OUT/icon-192.png"
+cp "$SRC/icon-512.png"          "$OUT/icon-512.png"
+cp "$SRC/icon-maskable-512.png" "$OUT/icon-maskable-512.png"
 cp "$SRC/sw.js"                "$OUT/sw.js"
 
 # Vendored runtime: React (UMD) + dc-runtime, plus three.js shared with the atlas.

@@ -22,7 +22,7 @@
 //
 // Bumping CACHE invalidates the old shell cache on activate (also clears any
 // junk a previous version cached under the SPA rewrite).
-const CACHE = 'muse-cockpit-v2';
+const CACHE = 'muse-cockpit-v3';
 
 // The static app shell — enough to boot the cockpit and the atlas offline.
 const SHELL = [
@@ -30,6 +30,10 @@ const SHELL = [
   'index.html',
   'manifest.webmanifest',
   'icon.svg',
+  'icon-180.png',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-maskable-512.png',
   'vendor/react.production.min.js',
   'vendor/react-dom.production.min.js',
   'vendor/dc-runtime.js',
