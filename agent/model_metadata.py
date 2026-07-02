@@ -14,10 +14,22 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-import requests
+# NOTE: `requests` is imported lazily inside the network-fetch functions —
+# it costs ~50ms at import and this module sits on the CLI/agent startup path.
 import yaml
 
 from utils import base_url_host_matches, base_url_hostname
+
+
+def __getattr__(name: str):
+    # PEP 562: keep `agent.model_metadata.requests` reachable as a module
+    # attribute (tests use @patch("agent.model_metadata.requests.get"))
+    # without paying the ~50ms requests import on the startup path.
+    if name == "requests":
+        import requests
+
+        return requests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 from hermes_constants import OPENROUTER_MODELS_URL
 
@@ -52,6 +64,7 @@ _PROVIDER_PREFIXES: frozenset[str] = frozenset({
     "qwen-oauth",
     "xiaomi",
     "arcee",
+    "cerebras",
     "gmi",
     "tencent-tokenhub",
     "custom", "local",
@@ -64,6 +77,7 @@ _PROVIDER_PREFIXES: frozenset[str] = frozenset({
     "mimo", "xiaomi-mimo",
     "tencent", "tokenhub", "tencent-cloud", "tencentmaas",
     "arcee-ai", "arceeai",
+    "cerebras-ai", "cerebrasai", "cerebras-cloud",
     "gmi-cloud", "gmicloud",
     "xai", "x-ai", "x.ai", "grok",
     "nvidia", "nim", "nvidia-nim", "nemotron",
@@ -617,6 +631,8 @@ def fetch_model_metadata(force_refresh: bool = False) -> Dict[str, Dict[str, Any
         return _model_metadata_cache
 
     try:
+        import requests
+
         response = requests.get(OPENROUTER_MODELS_URL, timeout=10, verify=_resolve_requests_verify())
         response.raise_for_status()
         data = response.json()
@@ -684,6 +700,8 @@ def fetch_endpoint_model_metadata(
 
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     last_error: Optional[Exception] = None
+
+    import requests
 
     if is_local_endpoint(normalized) or is_lmstudio_provider:
         try:
@@ -1392,6 +1410,8 @@ def _query_anthropic_context_length(model: str, base_url: str, api_key: str) -> 
     if not api_key or api_key.startswith("sk-ant-oat"):
         return None  # OAuth tokens can't access /v1/models
     try:
+        import requests
+
         base = base_url.rstrip("/")
         if base.endswith("/v1"):
             base = base[:-3]
@@ -1464,6 +1484,8 @@ def _fetch_codex_oauth_context_lengths(access_token: str) -> Dict[str, int]:
         return _codex_oauth_context_cache
 
     try:
+        import requests
+
         resp = requests.get(
             "https://chatgpt.com/backend-api/codex/models?client_version=1.0.0",
             headers={"Authorization": f"Bearer {access_token}"},

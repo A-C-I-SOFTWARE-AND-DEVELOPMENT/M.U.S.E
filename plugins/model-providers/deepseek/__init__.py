@@ -87,7 +87,10 @@ deepseek = DeepSeekProfile(
     aliases=("deepseek-chat",),
     env_vars=("DEEPSEEK_API_KEY",),
     display_name="DeepSeek",
-    description="DeepSeek — native DeepSeek API",
+    # V4-Flash/V4-Pro have been DSpark-accelerated server-side since
+    # 2026-06-27 (60-85% faster generation, identical outputs) — routing to
+    # this provider gets the speedup with no client-side changes.
+    description="DeepSeek — native DeepSeek API (V4 DSpark-accelerated)",
     signup_url="https://platform.deepseek.com/",
     fallback_models=(
         "deepseek-chat",

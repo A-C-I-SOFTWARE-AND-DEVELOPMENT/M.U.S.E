@@ -210,7 +210,11 @@ def _ollama_message_to_namespace(message: dict, finish_reason: str):
     if isinstance(raw_tcs, list) and raw_tcs:
         tool_calls_ns = []
         for idx, tc in enumerate(raw_tcs):
-            fn = (tc or {}).get("function", {}) if isinstance(tc, dict) else {}
+            if not isinstance(tc, dict):
+                tc = {}
+            fn = tc.get("function")
+            if not isinstance(fn, dict):
+                fn = {}
             name = fn.get("name", "")
             args = fn.get("arguments", {})
             if not isinstance(args, str):
@@ -218,7 +222,7 @@ def _ollama_message_to_namespace(message: dict, finish_reason: str):
                     args = json.dumps(args)
                 except Exception:
                     args = "{}"
-            tc_id = (tc or {}).get("id") or f"call_{idx}"
+            tc_id = tc.get("id") or f"call_{idx}"
             tool_calls_ns.append(SimpleNamespace(
                 id=tc_id,
                 type="function",
