@@ -1057,7 +1057,7 @@ body { perspective: 1800px; }
           </div>
         </sc-if>
         <div class="row" style="gap:10px; padding-top:12px; flex-wrap:nowrap;">
-          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey }}">
+          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey(event) }}">
           <button type="button" class="btn primary" onclick="{{ onSend }}" style="flex:none;">Send</button>
         </div>
       </section>
