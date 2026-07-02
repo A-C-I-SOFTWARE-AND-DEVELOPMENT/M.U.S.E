@@ -6086,6 +6086,7 @@ def cmd_cockpit(args):
             allow_external=getattr(args, "allow_external", False),
             allow_external_hosts=getattr(args, "allow_external_hosts", None),
             cors_origins=getattr(args, "cors_origins", None),
+            agent_mode=getattr(args, "agent_mode", None),
         )
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
@@ -6094,6 +6095,16 @@ def cmd_cockpit(args):
         _cors_set = _cors(getattr(args, "cors_origins", None))
         _base = f"http://{bound_host}:{bound_port}"
         print(f"muse cockpit API listening on {_base}")
+        _agent_mode = (
+            getattr(args, "agent_mode", None)
+            or os.environ.get("HERMES_COCKPIT_AGENT")
+            or "jarvis"
+        ).strip().lower()
+        if _agent_mode == "full":
+            print(
+                "Full-agent chat enabled: POST /v1/agent/chat streams the real "
+                "agent (tools, code execution, sub-agents, owner approvals)."
+            )
         print(f"Open the browser cockpit: {_base}/cockpit/")
         print(f"Pairing token: {token}")
         # Hands-off connect: open this link and the cockpit goes live with zero
@@ -12048,6 +12059,16 @@ def main():
             "default; also settable via HERMES_COCKPIT_CORS_ORIGINS (CSV), or "
             "disable all CORS with HERMES_COCKPIT_CORS_ORIGINS=off. Whenever CORS "
             "is enabled, device pairing requires the owner phrase."
+        ),
+    )
+    cockpit_serve.add_argument(
+        "--agent", dest="agent_mode", choices=["jarvis", "full"], default=None,
+        help=(
+            "Chat engine for POST /v1/agent/chat: 'full' streams the complete "
+            "agent (tools, code execution, sub-agents, owner approvals — same "
+            "capabilities as the muse TUI); 'jarvis' (default) keeps the "
+            "lightweight JarvisPrime responder only. Also settable via "
+            "HERMES_COCKPIT_AGENT. /v1/jarvis/chat is unchanged either way."
         ),
     )
     cockpit_token = cockpit_sub.add_parser(

@@ -140,6 +140,42 @@ def tool_call(
     return payload
 
 
+def body_delta(text: str) -> dict:
+    """An incremental slice of the reply body (model streaming).
+
+    Additive: clients that don't understand ``body_delta`` drop it and
+    still receive the final accumulated ``body`` chunk, so streaming
+    never breaks a pre-update app.
+    """
+    return {"type": "body_delta", "text": text}
+
+
+def approval(
+    approval_id: str,
+    session_key: str,
+    summary: str,
+    *,
+    tool: str | None = None,
+    choices: tuple[str, ...] = ("once", "session", "always", "deny"),
+) -> dict:
+    """An owner-approval request blocking the current agent run.
+
+    The client renders Approve/Deny controls and resolves via
+    ``POST /v1/agent/approvals`` with ``{"session_key": ..., "choice": ...}``.
+    ``summary`` is secret-scrubbed like tool summaries.
+    """
+    payload: dict = {
+        "type": "approval",
+        "id": approval_id,
+        "sessionKey": session_key,
+        "summary": _scrub(summary),
+        "choices": list(choices),
+    }
+    if tool:
+        payload["tool"] = tool
+    return payload
+
+
 def evidence_ref(audit_id: str, title: str) -> dict:
     """A reference to an evidence/proof record the app resolves on tap.
 

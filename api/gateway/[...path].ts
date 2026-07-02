@@ -188,6 +188,40 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: 'invalid relay path' }, 400);
   }
 
+  // Metered lane: full-agent chat (and its companions) carry entitlement +
+  // per-day quota. Other cockpit/observatory paths only require the session +
+  // binding above — the user is reaching their own gateway's read surface.
+  if (/^\/v1\/agent\//i.test(parsed.path)) {
+    const { agentChatDailyLimit, agentLaneRequiresPro, checkAndCountQuota, getEntitlement } =
+      await import('../_entitlements');
+    const ent = await getEntitlement(account.accountId || '');
+    if (agentLaneRequiresPro() && !ent.active) {
+      return json(
+        { error: 'the full-agent lane requires an active subscription', tier: ent.tier },
+        402,
+      );
+    }
+    // Only the chat turn itself consumes quota; approvals/stop must always
+    // get through so a blocked or runaway run can be resolved.
+    if (/^\/v1\/agent\/chat\b/i.test(parsed.path)) {
+      const limit = agentChatDailyLimit(ent.tier);
+      const quota = await checkAndCountQuota(account.accountId || '', 'agent_chat', limit);
+      if (!quota.ok) {
+        if (quota.reason === 'quota_exceeded') {
+          return json(
+            {
+              error: `daily agent-chat limit reached (${quota.used}/${quota.limit})`,
+              tier: ent.tier,
+              limit: quota.limit,
+            },
+            429,
+          );
+        }
+        return json({ error: 'quota accounting unavailable — try again shortly' }, 503);
+      }
+    }
+  }
+
   // Build the upstream URL from the STORED base only — the client never gets to
   // name the host. The bearer is attached server-side and never echoed back.
   const target = `${account.gatewayUrl}${parsed.path}`;

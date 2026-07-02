@@ -279,6 +279,35 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .header-status:hover .status-text, .header-status:focus-visible .status-text { color: var(--signal); }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); }
 
+/* Skip-to-content styles live with the other a11y helpers below (single
+   .skip-link definition — merged with main's #609 version). */
+
+/* Hamburger + drawer backdrop: desktop-hidden, revealed at the mobile breakpoint. */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  flex: none;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  background: var(--void-2);
+  color: var(--signal);
+  cursor: pointer;
+}
+.nav-toggle:hover { border-color: rgba(122,224,255,0.3); }
+.nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(4,5,9,0.6);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
 /* ---- Left nav rail ----------------------------------------------------- */
 .app-nav {
   grid-area: nav;
@@ -372,8 +401,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 
 /* Primary — core fill, void text (the single bright control). */
-.btn.primary { background: var(--core); color: var(--void); border-color: var(--core); }
-.btn.primary:hover:not(:disabled) { background: #f2fbff; border-color: #f2fbff; }
+.btn.primary { background: var(--ring-grad); color: #06121a; border-color: transparent; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* Secondary — 1px edge + signal text, tonal fill on interaction. */
 .btn.secondary { border-color: var(--edge); color: var(--signal); }
@@ -595,39 +624,61 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 /* ======================================================================== *
  * Responsive — collapse the rail to a horizontal strip on narrow viewports
  * ======================================================================== */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  /* Single-column shell; the nav becomes an off-canvas drawer toggled by the
+     header hamburger, so the content gets the full width and the 27-item nav
+     never piles up inline. */
   .app {
     grid-template-columns: 1fr;
     grid-template-areas:
       "header"
-      "nav"
       "main";
-    height: auto;
-    overflow: visible;
+    height: 100vh;
+    overflow: hidden;
   }
-  .app-main { overflow: visible; }
+  .nav-toggle { display: inline-flex; }
+  .header-telemetry { display: none; }             /* decorative — hidden on mobile */
+  .lockup .expansion { display: none; }            /* keep just the wordmark */
+  .app-header { gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+  .header-actions { gap: 6px; }
+
   .app-nav {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    border-right: 0;
-    border-bottom: 1px solid var(--edge);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: min(84vw, 320px);
+    height: 100vh;
+    z-index: 50;
+    border-right: 1px solid var(--edge);
+    background: linear-gradient(180deg, var(--void-2), var(--void));
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    transform: translateX(-102%);
+    transition: transform var(--duration-base, .28s) var(--easing-standard);
+    will-change: transform;
+    padding-top: var(--space-4);
+    overscroll-behavior: contain;
   }
-  .nav-item { width: auto; }
-  .nav-item.active::before { display: none; }
-  .nav-item.active { box-shadow: inset 0 -2px 0 0 var(--ring-1); }
-  /* Header: keep it to the essentials on phones. The decorative telemetry
-     cluster and the wordmark expansion are dropped so the lockup, status pill,
-     and action buttons wrap cleanly within the viewport instead of forcing
-     ~960px of horizontal overflow. */
-  .app-header { padding: 10px 16px; gap: 10px; }
-  .app-header .expansion { display: none; }
-  .header-telemetry { display: none; }
+  .app.nav-open .app-nav { transform: translateX(0); }
+  .app.nav-open .nav-backdrop { display: block; opacity: 1; }
+
+  .app-main { padding: var(--space-4); }
+  .view { max-width: 100%; }
   .header-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   /* Chat fills natural flow (the page scrolls) so the composer is never pinned
      below the fold behind a hardcoded desktop-header viewport calc. */
   .chat-view { height: auto !important; min-height: calc(100dvh - 150px); }
+}
+
+@media (max-width: 480px) {
+  /* On the smallest phones, drop the non-essential Audio/Reset controls and the
+     status label text (the dot remains) so the header never overflows. Connect
+     and Emergency stop always stay reachable. */
+  .hide-phone { display: none !important; }
+  .header-status .status-text { display: none; }
+  .app-header { padding: var(--space-3); gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav { transition: none; }
 }
 
 /* =====================================================================
@@ -711,9 +762,9 @@ body { perspective: 1800px; }
 .btn:hover { transform: translateY(-1.5px); }
 .btn:active { transform: translateY(0) scale(.975); }
 .btn.primary {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 24px -12px rgba(255,255,255,0.30);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 26px -12px rgba(122,224,255,0.5);
 }
-.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 16px 32px -12px rgba(255,255,255,0.42); }
+.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 16px 36px -12px rgba(150,180,255,0.6); }
 .btn.secondary:hover { box-shadow: 0 0 0 1px rgba(122,224,255,0.18), 0 12px 26px -16px rgba(122,224,255,0.3); }
 .btn.danger:hover { box-shadow: 0 0 26px -8px rgba(255,92,99,0.5); }
 
@@ -803,10 +854,13 @@ body { perspective: 1800px; }
 
 <!-- ===== The cockpit ===== -->
 <a class="skip-link" href="#main">Skip to main content</a>
-<div class="app" style="position:relative; z-index:2;">
+<div class="{{ appCls }}" style="position:relative; z-index:2;">
 
   <!-- Header -->
   <header class="app-header">
+    <button type="button" class="nav-toggle" onclick="{{ onToggleNav }}" aria-label="{{ navToggleLabel }}" aria-controls="cockpit-nav">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+    </button>
     <span class="lockup">
       <span class="glyph spin" style="position:relative;">
         <span style="position:absolute; inset:-14px; border-radius:50%; pointer-events:none; background:radial-gradient(circle at 50% 50%, rgba(122,224,255,0.10) 0%, rgba(122,224,255,0) 70%);"></span>
@@ -822,6 +876,7 @@ body { perspective: 1800px; }
 
     <span class="grow"></span>
 
+    <sc-if value="{{ telemetryLive }}" hint-placeholder-val="{{ false }}">
     <div class="header-telemetry">
       <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
         <span style="font-family:var(--mono); font-size:13px; color:var(--signal);">{{ telemetry.uptime }}</span>
@@ -838,24 +893,28 @@ body { perspective: 1800px; }
         <span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">speed</span>
       </div>
     </div>
+    </sc-if>
 
-    <button type="button" class="header-status" onclick="{{ onToken() }}" title="Connect a gateway or set a provider key">
+    <button type="button" class="header-status" onclick="{{ onToken }}" title="Connect a gateway or set a provider key">
       <span class="{{ conn.dotCls }}"></span>
       <span class="status-text">{{ conn.label }}</span>
     </button>
     <span class="header-actions">
       <sc-if value="{{ canInstall }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary" onclick="{{ onInstall }}" title="Install muse as an app on this device">{{ installLabel }}</button></sc-if>
-      <button type="button" class="btn secondary" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
-      <button type="button" class="btn secondary" onclick="{{ onResetAll }}" title="Undo all your changes across the cockpit">Reset</button>
+      <button type="button" class="btn secondary hide-phone" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
+      <button type="button" class="btn secondary hide-phone" onclick="{{ onResetAll }}" title="Undo all your changes across the cockpit">Reset</button>
       <button type="button" class="btn secondary" onclick="{{ onToken }}" title="Connect a device">Connect</button>
       <button type="button" class="{{ stopBtnCls }}" onclick="{{ onEmergency }}" title="Pause everything and switch to view-only">{{ stopLabel }}</button>
     </span>
   </header>
 
+  <!-- Mobile nav drawer backdrop (only visible/interactive when the drawer is open) -->
+  <div class="nav-backdrop" onclick="{{ onCloseNav }}" aria-hidden="true"></div>
+
   <!-- ===== Connection panel (real gateway pairing) ===== -->
   <sc-if value="{{ conn2.open }}" hint-placeholder-val="{{ false }}">
     <div onclick="{{ conn2.onClose }}" style="position:fixed; inset:0; z-index:180; background:rgba(4,5,9,0.66); backdrop-filter:blur(8px); display:flex; align-items:flex-start; justify-content:center; padding:72px 20px;">
-      <div onclick="{{ stop(event) }}" role="dialog" aria-modal="true" aria-label="Connect muse" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
+      <div onclick="{{ stop }}" role="dialog" aria-modal="true" aria-label="Connect muse" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
         <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:4px;">
           <span class="glyph" style="flex:none; margin-top:2px;"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="#fff"></circle><circle cx="24" cy="24" r="14" fill="none" stroke="var(--ring-1)" stroke-width="1.2" opacity="0.7"></circle><circle cx="24" cy="24" r="21" fill="none" stroke="var(--ring-2)" stroke-width="0.8" opacity="0.4"></circle></svg></span>
           <div style="flex:1;">
@@ -987,7 +1046,7 @@ body { perspective: 1800px; }
   </sc-if>
 
   <!-- Nav rail -->
-  <nav class="app-nav" aria-label="Cockpit destinations">
+  <nav class="app-nav" id="cockpit-nav" aria-label="Cockpit destinations">
     <sc-for list="{{ nav }}" as="item" hint-placeholder-count="11">
       <sc-if value="{{ item.isSection }}" hint-placeholder-val="{{ false }}">
         <div class="nav-section">{{ item.label }}</div>
@@ -1011,7 +1070,7 @@ body { perspective: 1800px; }
       <section class="chat-view" style="max-width:860px; margin:0 auto; animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; display:flex; flex-direction:column; height:calc(100vh - 57px - 48px);">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse</span><h2 class="section-title">Chat with muse</h2></div>
-          <div class="trailing"><button type="button" class="pill accent" onclick="{{ onToken() }}" title="Connect a gateway or set a provider key" style="cursor:pointer; font:inherit;"><span class="{{ conn.dotCls }}"></span> {{ conn.label }}</button></div>
+          <div class="trailing"><button type="button" class="pill accent" onclick="{{ onToken }}" title="Connect a gateway or set a provider key" style="cursor:pointer; font:inherit;"><span class="{{ conn.dotCls }}"></span> {{ conn.label }}</button></div>
         </div>
         <div style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:18px; padding:8px 4px 16px;" role="log" aria-live="polite" aria-label="Conversation with muse" aria-relevant="additions text">
           <sc-for list="{{ chat }}" as="msg" hint-placeholder-count="4">
@@ -1023,7 +1082,32 @@ body { perspective: 1800px; }
               </sc-if>
               <div style="{{ msg.bubbleStyle }}">
                 <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute); margin-bottom:6px;">{{ msg.who }}</div>
+                <sc-if value="{{ msg.hasTools }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+                    <sc-for list="{{ msg.tools }}" as="tc" hint-placeholder-count="2">
+                      <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                        <span class="{{ tc.cls }}" style="flex:none;">{{ tc.statusLabel }}</span>
+                        <span class="mono" style="color:var(--signal);">{{ tc.name }}</span>
+                        <span style="color:var(--signal-dim); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ tc.summary }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ msg.phaseLabel }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-family:var(--mono); font-size:11px; color:var(--ring-1);"><span class="dot live" style="width:6px; height:6px;"></span> {{ msg.phaseLabel }}</div>
+                </sc-if>
                 <div style="font-size:var(--type-body-size); line-height:var(--type-body-line); color:var(--signal); white-space:pre-wrap;">{{ msg.text }}</div>
+                <sc-if value="{{ msg.hasApproval }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:12px; border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:12px 14px; background:linear-gradient(180deg, rgba(120,180,255,0.08), rgba(120,180,255,0));">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><span class="pill accent" style="flex:none;">Approval needed</span><span class="mono" style="font-size:11px; color:var(--signal-dim);">{{ msg.approval.tool }}</span></div>
+                    <div style="font-size:12px; line-height:1.5; color:var(--signal-dim); margin-bottom:10px;">{{ msg.approval.summary }}</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button type="button" class="btn primary" style="padding:6px 14px;" onclick="{{ msg.onApproveOnce }}">Approve once</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onApproveSession }}">Approve for session</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onDeny }}">Deny</button>
+                    </div>
+                  </div>
+                </sc-if>
                 <sc-if value="{{ msg.hasRouting }}" hint-placeholder-val="{{ false }}">
                   <div style="margin-top:12px; border-top:1px solid var(--edge); padding-top:10px; display:flex; flex-direction:column; gap:8px;">
                     <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.6px; color:var(--signal-mute);">{{ msg.routingTitle }}</div>
@@ -1057,7 +1141,7 @@ body { perspective: 1800px; }
           </div>
         </sc-if>
         <div class="row" style="gap:10px; padding-top:12px; flex-wrap:nowrap;">
-          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey(event) }}">
+          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey }}">
           <button type="button" class="btn primary" onclick="{{ onSend }}" style="flex:none;">Send</button>
         </div>
       </section>
@@ -1274,7 +1358,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Customize &amp; build</span><h2 class="section-title">Studio</h2></div>
-          <div class="trailing"><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
+          <div class="trailing"><span class="pill accent" title="This section is an interactive preview — switches and previews here change local UI state only and are not yet applied to a live gateway.">Interactive demo</span><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:12px; align-items:start;">
@@ -1307,7 +1391,7 @@ body { perspective: 1800px; }
                 <span class="grow"></span>
                 <button type="button" class="btn secondary" onclick="{{ onAddServer }}" style="padding:5px 12px;">+ Add server</button>
               </div>
-              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities.</div>
+              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities. (Preview — these switches change local state only until a gateway is paired.)</div>
               <sc-for list="{{ mcps }}" as="m" hint-placeholder-count="5">
                 <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid var(--edge);">
                   <div style="min-width:0;">
@@ -1896,7 +1980,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">What muse can do</span><h2 class="section-title">Tools</h2></div>
-          <div class="trailing"><span class="pill accent">{{ toolsActiveLabel }}</span></div>
+          <div class="trailing"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ toolsActiveLabel }}</span></div>
         </div>
         <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
           <sc-for list="{{ toolsets }}" as="t" hint-placeholder-count="8">
@@ -1917,7 +2001,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse anywhere</span><h2 class="section-title">Channels</h2></div>
-          <div class="trailing"><span class="pill accent">{{ channelsLabel }}</span></div>
+          <div class="trailing"><sc-if value="{{ channelsIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill accent">{{ channelsLabel }}</span></div>
         </div>
         <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface — it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
         <sc-for list="{{ channels }}" as="c" hint-placeholder-count="7">
@@ -1937,7 +2021,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Runs on its own</span><h2 class="section-title">Schedules</h2></div>
-          <div class="trailing"><span class="pill neutral">unattended automations</span></div>
+          <div class="trailing"><sc-if value="{{ schedulesIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample schedules — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill neutral">unattended automations</span></div>
         </div>
         <sc-for list="{{ schedules }}" as="sch" hint-placeholder-count="4">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
@@ -1970,6 +2054,111 @@ body { perspective: 1800px; }
       </section>
     </sc-if>
 
+    <!-- ===================== ACCOUNT ===================== -->
+    <sc-if value="{{ show.account }}" hint-placeholder-val="{{ false }}">
+      <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
+        <div class="section-header" style="margin-top:0;">
+          <div class="heads"><span class="eyebrow">Sign in &amp; run the full agent</span><h2 class="section-title">Account</h2></div>
+          <div class="trailing"><span class="{{ account.statusCls }}">{{ account.statusLabel }}</span></div>
+        </div>
+
+        <sc-if value="{{ account.authAvailable }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start;">
+
+            <!-- Sign-in / account card -->
+            <div class="card" style="display:flex; flex-direction:column; gap:12px;">
+              <sc-if value="{{ account.signedIn }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Signed in</div>
+                  <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;">{{ account.email }}</div>
+                </div>
+                <button type="button" class="btn secondary" onclick="{{ account.onSignOut }}" style="align-self:flex-start;">Sign out</button>
+              </sc-if>
+              <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="{{ account.signinTabCls }}" onclick="{{ account.onModeSignin }}" style="padding:6px 14px;">Sign in</button>
+                  <button type="button" class="{{ account.signupTabCls }}" onclick="{{ account.onModeSignup }}" style="padding:6px 14px;">Create account</button>
+                </div>
+                <label style="font-size:11px; color:var(--signal-mute);">Email</label>
+                <input class="field" type="email" placeholder="you@example.com" value="{{ authEmail }}" oninput="{{ account.onEmail }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Password</label>
+                <input class="field" type="password" placeholder="••••••••" value="{{ authPassword }}" oninput="{{ account.onPassword }}" onkeydown="{{ account.onKey }}">
+                <button type="button" class="btn primary" onclick="{{ account.onSubmit }}" style="align-self:flex-start;">{{ account.submitLabel }}</button>
+                <sc-if value="{{ account.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.error }}</div></sc-if>
+                <sc-if value="{{ account.notice }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--ring-1);">{{ account.notice }}</div></sc-if>
+              </sc-if>
+            </div>
+
+            <!-- Gateway binding card -->
+            <div class="card" style="display:flex; flex-direction:column; gap:12px;">
+              <div>
+                <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Your gateway</div>
+                <div style="font-size:12px; color:var(--signal-dim); margin-top:4px;">Bind your own muse gateway to run the full agent — tools, code execution, sub-agents — from this page, anywhere. Your gateway must be reachable over https (expose it with a tunnel or reverse proxy) and started with <span class="mono">muse cockpit serve --agent full</span>.</div>
+              </div>
+              <sc-if value="{{ account.relayConnected }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:8px;"><span class="pill ok" style="flex:none;">Connected</span><span class="mono" style="font-size:11px; color:var(--signal-dim); min-width:0; overflow:hidden; text-overflow:ellipsis;">{{ account.relayGatewayUrl }}</span></div>
+                <button type="button" class="btn secondary" onclick="{{ account.onUnbind }}" style="align-self:flex-start;">Disconnect gateway</button>
+              </sc-if>
+              <sc-if value="{{ account.canBind }}" hint-placeholder-val="{{ false }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Gateway URL (https)</label>
+                <input class="field" placeholder="https://gw.example.com" value="{{ gatewayUrl }}" oninput="{{ account.onGatewayUrl }}">
+                <label style="font-size:11px; color:var(--signal-mute);">Pairing token (muse cockpit token)</label>
+                <input class="field" type="password" placeholder="paste your gateway token" value="{{ bindToken }}" oninput="{{ account.onBindToken }}">
+                <button type="button" class="btn primary" onclick="{{ account.onBind }}" style="align-self:flex-start;">Bind to my account</button>
+                <sc-if value="{{ account.bindError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.bindError }}</div></sc-if>
+              </sc-if>
+              <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:12px; color:var(--signal-mute);">Sign in to bind a gateway to your account.</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- Pricing / plan card (only when Stripe is configured) -->
+          <sc-if value="{{ account.billingConfigured }}" hint-placeholder-val="{{ false }}">
+            <div class="card" style="margin-top:12px; display:flex; flex-direction:column; gap:12px; max-width:760px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Plan</span>
+                <span class="{{ account.planCls }}">{{ account.planLabel }}</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div style="border:1px solid var(--edge); border-radius:var(--radius-md); padding:14px; background:var(--void-2);">
+                  <div style="font-weight:600; color:var(--signal); margin-bottom:6px;">Free</div>
+                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Anonymous demo chat, plus the full agent on your own gateway with a daily cap.</div>
+                </div>
+                <div style="border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(120,180,255,0.06), rgba(120,180,255,0));">
+                  <div style="font-weight:600; color:var(--signal); margin-bottom:6px;">Pro</div>
+                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Higher daily limits and a hosted always-on gateway option — no machine of your own to keep running.</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <sc-if value="{{ account.isPro }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" class="btn secondary" onclick="{{ account.onPortal }}">Manage subscription</button>
+                </sc-if>
+                <sc-if value="{{ account.canUpgrade }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" class="btn primary" onclick="{{ account.onUpgradeMonthly }}">Upgrade to Pro</button>
+                  <sc-if value="{{ account.hasYearly }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn secondary" onclick="{{ account.onUpgradeYearly }}">Pay yearly</button>
+                  </sc-if>
+                </sc-if>
+                <sc-if value="{{ account.billingError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.billingError }}</span></sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ account.authUnavailable }}" hint-placeholder-val="{{ true }}">
+          <div class="card" style="max-width:640px;">
+            <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); margin-bottom:6px;">Accounts aren’t enabled on this deployment</div>
+            <div style="font-size:13px; line-height:1.6; color:var(--signal-dim);">This build of the cockpit has no hosted sign-in configured. You can still chat here (anonymous demo), or pair your own local gateway from <b>Connect</b> to run the full agent on your machine.</div>
+          </div>
+        </sc-if>
+        <div style="margin-top:28px; padding-top:16px; border-top:1px solid var(--edge); font-size:12px; color:var(--signal-mute); display:flex; gap:16px; flex-wrap:wrap;">
+          <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">Terms</a>
+          <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">Privacy</a>
+          <a href="mailto:support@musehq.io" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">support@musehq.io</a>
+        </div>
+      </section>
+    </sc-if>
+
     <!-- ===================== RUNTIMES ===================== -->
     <sc-if value="{{ show.runtimes }}" hint-placeholder-val="{{ false }}">
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
@@ -1996,7 +2185,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">Download muse</span><h2 class="section-title">Releases</h2></div>
           <div class="trailing"><span class="pill accent">{{ releasesCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. Desktop, Android, and source are now published to a single rolling release that auto-refreshes from the latest main — the old per-platform channels are gone, but all of their downloads live here.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main, and tagged releases carry the versioned changelog — every download below links to its real GitHub release.</div>
         <div class="card" style="max-width:720px; display:flex; flex-direction:column; gap:14px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span style="font-size:18px; font-weight:600; color:var(--signal); letter-spacing:-0.3px;">{{ release.name }}</span>
@@ -2037,6 +2226,7 @@ body { perspective: 1800px; }
                     </div>
                   </sc-for>
                 </div>
+                <sc-if value="{{ p.url }}" hint-placeholder-val="{{ true }}"><a href="{{ p.url }}" target="_blank" rel="noopener" class="mono" style="display:inline-block; margin-top:10px; font-size:11px; color:var(--ring-1); text-decoration:none;" style-hover="text-decoration:underline;">{{ p.urlLabel }}</a></sc-if>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:10px;">{{ p.sign }}</div>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:4px;">{{ p.reqs }}</div>
               </div>
@@ -2080,6 +2270,19 @@ class Component extends DCLogic {
     serverChat: 'unknown', // public /api/chat readiness: 'ready' | 'needs-key' | 'none'
     connStep: 'idle',
     gatewayUrl: '',
+    // Hosted-product config (from GET /api/config) + account session. When
+    // `cfg.auth` is present the Account panel mounts; when a session exists AND
+    // /api/me reports connected, chat runs the FULL agent through the relay.
+    cfg: null,
+    auth: null,          // { access_token, refresh_token, user:{id,email}, expires_at }
+    authEmail: '', authPassword: '', authMode: 'signin', authBusy: false, authError: '', authNotice: '',
+    relayConnected: false, // /api/me says this account has a bound gateway
+    relayGatewayUrl: '',
+    bindToken: '', bindBusy: false, bindError: '',
+    // Live channel/schedule data from the gateway (null → show seeded demo).
+    channelsLive: null, schedulesLive: null,
+    // Commerce state.
+    billingBusy: false, billingError: '', tier: 'free',
     // PWA install (Add to device). canInstall flips true once the browser fires
     // beforeinstallprompt (or on iOS Safari, where we show a gesture hint).
     canInstall: false,
@@ -2103,6 +2306,7 @@ class Component extends DCLogic {
     connError: '',
     liveRuntime: null,
     activeView: 'chat', // chat-first: open to the assistant, not the demo Tasks view
+    navOpen: false, // mobile nav drawer (desktop ignores it via CSS)
     jobsLayout: 'cards',
     halted: false,
     composer: '',
@@ -2475,6 +2679,7 @@ class Component extends DCLogic {
     { id: 'schedules', label: 'Schedules', group: 'System' },
     { id: 'runtimes', label: 'Runtimes', group: 'System' },
     { id: 'runtime', label: 'Health', group: 'System' },
+    { id: 'account', label: 'Account', group: 'System' },
   ];
 
   opModes = [
@@ -2562,28 +2767,34 @@ class Component extends DCLogic {
   ];
 
   releaseData = {
-    name: 'muse — unified release', channel: 'One rolling release', tag: 'muse-latest',
-    ver: 'Rolling · currently v0.14.0', signLabel: 'Signed where configured · unsigned fallback',
-    latestVer: 'v0.14.0', latestName: 'The Foundation Release', latestDate: 'May 16, 2026',
-    latestSummary: 'Installs and runs anywhere, ships with what you actually use. SuperGrok OAuth (grok-4.3 @ 1M context), an OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, a debloat wave + PyPI install, ~19s off cold-start, and 22 messaging platforms.',
+    name: 'muse — releases', channel: 'Rolling builds + tagged releases', tag: 'v1.2.0 · rolling',
+    ver: 'Latest tagged v1.2.0 · desktop and Android publish rolling builds', signLabel: 'Signed where configured · unsigned fallback',
+    latestVer: 'v1.2.0', latestName: 'LM Studio native v1 REST API', latestDate: 'June 22, 2026',
+    latestSummary: 'Adopts LM Studio 0.4.0’s native REST API end-to-end: accurate context-window detection for local and remote servers, model lifecycle management (load / unload / download) with automatic VRAM freeing on model switch, and three new gated agent tools.',
     privacy: 'Runs on your device: its only network traffic is to your own local Hermes gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
-    blurb: 'One download for everything muse. The desktop cockpit, the Android app, and the full source — previously five separate channels — now publish to this single release that auto-refreshes from the latest main. Nothing is lost; it is all here.',
-    url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-latest',
+    blurb: 'Everything muse downloads from GitHub Releases. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main; tagged releases carry the versioned changelog. Pick your platform below — each card links straight to its release.',
+    url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
       { id: 'desktop', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS · Windows · Linux',
-        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', urlLabel: 'Open muse-desktop-latest →',
+        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys. Rolling build, auto-versioned from the latest main.',
         sign: 'Signed when certs are provisioned; unsigned installers (clearly marked) otherwise.', reqs: 'Requires macOS 11+, Windows 10+, or a modern Linux desktop.',
         assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
       { id: 'android', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
-        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest', urlLabel: 'Open android-latest →',
+        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys. Rolling build; sideload install (debug-signed until release keystore secrets are configured).',
         sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
         assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
       { id: 'source', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',
-        note: 'The complete repository at the latest main commit, auto-synced hourly. Clone it and run your own gateway.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', urlLabel: 'Open the repository →',
+        note: 'The complete repository at the latest main commit. Clone it and run your own gateway.',
         sign: 'No build assets — source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
-        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz' } ] },
+        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz from the repo page' } ] },
     ],
     history: [
+      { ver: 'v1.2.0', date: '2026-06-22', name: 'LM Studio native v1 REST API', summary: 'Native LM Studio /api/v1 adoption: real context windows locally and remotely, model load/unload/download tools with auto VRAM freeing on switch, Windows pytest fixes.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/v1.2.0' },
+      { ver: 'v1.1.0', date: '2026-06', name: 'Free-First muse Launch', summary: 'muse launchable in one command, free-first model routing with paid APIs strictly opt-in, Claude Code / Codex wired as official worker lanes, launch doctor report.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/launch/RELEASE_NOTES_v1.1.0.md' },
+      { ver: 'v1.0.0', date: '2026-06', name: 'muse Runtime launch', summary: 'muse invocable from the interactive CLI: six-mode runtime (Companion/Strategy/Critic/Operator/Builder/Mobile Voice), owner gates, emergency-stop primitives.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/launch/RELEASE_NOTES_v1.0.0.md' },
       { ver: 'v0.14.0', date: '2026-05-16', name: 'The Foundation Release', summary: 'SuperGrok OAuth (grok-4.3 @ 1M ctx), OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, install debloat + PyPI, ~19s cold-start cut, 22 platforms.' },
       { ver: 'v0.13.0', date: '2026-05-07', name: 'The Tenacity Release', summary: 'Durable multi-agent Kanban, /goal (Ralph loop), Checkpoints v2, gateway session auto-resume, 8 P0 security closures, Google Chat (20th platform), pluggable providers, 7 locales.' },
       { ver: 'v0.12.0', date: '2026-04-30', name: 'The Curator Release', summary: 'Autonomous background skill-library Curator, upgraded self-improvement loop, 4 new providers, Spotify + Google Meet, ComfyUI/TouchDesigner bundled, ~57% TUI cold-start cut.' },
@@ -2619,6 +2830,32 @@ class Component extends DCLogic {
     this._reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     for (let i = 0; i < 40; i++) this._pushSeries(true);
     this.setState({ work: this._seedWork() });
+    // Refresh the Releases section from the build-time GitHub snapshot
+    // (cockpit-dist/releases.json). The baked releaseData stays as the
+    // offline/gateway-served fallback; nothing changes when the file is absent.
+    fetch('releases.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).then(live => {
+      if (!live || typeof live !== 'object') return;
+      this.setState(s => {
+        const w = { ...s.work };
+        const rel = { ...w.release };
+        for (const k of ['tag', 'ver', 'latestVer', 'latestName', 'latestDate', 'latestSummary', 'url']) {
+          if (typeof live[k] === 'string' && live[k]) rel[k] = live[k];
+        }
+        if (Array.isArray(live.platforms)) {
+          rel.platforms = rel.platforms.map(p => {
+            const lp = live.platforms.find(x => x && x.id === p.id);
+            if (!lp) return p;
+            const merged = { ...p };
+            for (const k of ['url', 'urlLabel', 'sub', 'note']) {
+              if (typeof lp[k] === 'string' && lp[k]) merged[k] = lp[k];
+            }
+            return merged;
+          });
+        }
+        w.release = rel;
+        return { work: w };
+      });
+    }).catch(() => {});
     this._bootTimer = setTimeout(() => { if (this.state.bootActive) this.setState({ bootActive: false }); }, 2600);
     this._timer = setInterval(() => this._sim(), 1000);
     if (!this._reduceMotion) this._drawTimer = setInterval(() => { this._drawSparks(); this._drawGraph(); }, 280);
@@ -2653,6 +2890,12 @@ class Component extends DCLogic {
     this._probeServerChat();
     // Draw one static frame under reduce-motion instead of starting the loop.
     if (this._reduceMotion) { try { this._drawCockpitBg(); this._drawSparks(); this._drawGraph(); } catch (e) {} }
+
+    // Hosted-product bootstrap: fetch /api/config (which Supabase project, which
+    // lanes exist), hydrate any saved account session, and check the account's
+    // gateway binding. All best-effort — a static host with no /api leaves the
+    // page in its current no-login mode unchanged.
+    this._bootAccount();
 
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
@@ -2725,7 +2968,9 @@ class Component extends DCLogic {
   dl = () => this._sfx('pick');
   editRelease = (key) => (e) => { const v = e.target.textContent.replace(/\s+/g, ' ').trim(); this.setState(s => { const w = { ...s.work }; w.release = { ...w.release, [key]: v }; return { work: w }; }); this._sfx('edit'); };
   editPlatform = (idx, key) => (e) => { const v = e.target.textContent.replace(/\s+/g, ' ').trim(); this.setState(s => { const w = { ...s.work }; const rel = { ...w.release }; const ps = rel.platforms.slice(); ps[idx] = { ...ps[idx], [key]: v }; rel.platforms = ps; w.release = rel; return { work: w }; }); this._sfx('edit'); };
-  select = (id) => () => { this._sfx('nav'); this.setState({ activeView: id }); };
+  select = (id) => () => { this._sfx('nav'); this.setState({ activeView: id, navOpen: false }); };
+  toggleNav = () => { this._sfx('nav'); this.setState({ navOpen: !this.state.navOpen }); };
+  closeNav = () => this.setState({ navOpen: false });
   stop = (e) => { e.stopPropagation(); };
 
   // ---- audio engine (Web Audio, synthesized on-brand blips) ----
@@ -2807,17 +3052,32 @@ class Component extends DCLogic {
     const chat = [...this.state.chat, { who: 'You', isMuse: false, text }];
     this.setState({ chat, composer: '', museThinking: true });
     clearTimeout(this._reply);
-    // If paired with a live gateway, dispatch a real job and poll for completion
+    // Lane 1 — FULL agent (TUI parity): signed in with a bound gateway, OR
+    // device-paired to a gateway that advertises full-agent mode. Streams the
+    // real agent (tools, code execution, sub-agents, owner approvals).
+    if (this._agentLaneReady() || (this._tok() && this._gatewayIsFullAgent())) {
+      this._dispatchAgentChat(text);
+      return;
+    }
+    // Lane 2 — device-paired but jarvis-only gateway: run a real job + poll.
     if (this._tok()) {
       this._dispatchLiveJob(text);
       return;
     }
-    // No gateway token: use the app's own /api/chat (hosted server chat). On
-    // the public deployment this streams a real reply from the server-held
-    // provider key; on a static host with no /api it falls back to an honest
-    // "not configured / pair a gateway" message (never a fabricated answer).
+    // Lane 3 — anonymous demo: the deployment's /api/chat (server key or BYOK),
+    // or an honest "sign in / pair a gateway" message. Never fabricates.
     this._dispatchApiChat(text);
   };
+
+  _gatewayIsFullAgent() {
+    const info = this.state.gatewayInfo;
+    return !!(info && info.agent === 'full');
+  }
+
+  _agentPhaseLabel(p) {
+    const map = { RECEIVING: 'receiving', THINKING: 'thinking', ROUTING: 'routing', TOOL: 'running a tool', CODING: 'writing code', RESEARCH: 'researching', VERIFICATION: 'verifying', FINAL: '' };
+    return map[p] || (p || '').toLowerCase();
+  }
 
   _dispatchApiChat = async (text) => {
     void text;
@@ -3099,17 +3359,44 @@ class Component extends DCLogic {
   };
 
   pullAll = async () => {
-    if (!this._tok()) return;
+    // Live pulls run when EITHER a device token is paired OR the account is
+    // signed-in with a bound gateway (the relay lane) — _api() picks the right
+    // transport. Without either, the seeded demo data (badged) stays.
+    if (!this._tok() && !this._agentLaneReady()) return;
     // Fire all in parallel; each method is fault-tolerant
     Promise.allSettled([
       this.pullRuntime(), this.pullJobs(), this.pullApprovals(),
       this.pullMemory(), this.pullEvidence(), this.pullLearning(),
       this.pullLedger(), this.pullSkills(), this.pullModels(),
       this.pullSessions(), this.pullDiagnostics(), this.pullAutonomy(),
+      this.pullChannels(), this.pullSchedules(),
     ]);
+  };
+
+  pullChannels = async () => {
+    const r = await this._api('/v1/cockpit/channels');
+    if (!r.ok || !r.data || !Array.isArray(r.data.channels)) return;
+    const channels = r.data.channels.map(c => ({
+      name: c.name, note: c.detail || (c.connected ? 'Connected' : 'Not connected'),
+      stateLabel: c.connected ? 'Connected' : 'Idle',
+      stateCls: c.connected ? 'pill ok' : 'pill neutral',
+    }));
+    if (channels.length) this._setIf({ channelsLive: channels });
+  };
+
+  pullSchedules = async () => {
+    const r = await this._api('/v1/cockpit/schedules');
+    if (!r.ok || !r.data || !Array.isArray(r.data.schedules)) return;
+    const schedules = r.data.schedules.map(s => ({
+      name: s.name, when: s.when || '(no cadence)', to: s.to || 'this device',
+      stateLabel: s.enabled ? 'On' : 'Paused',
+      stateCls: s.enabled ? 'pill ok' : 'pill neutral',
+    }));
+    if (schedules.length) this._setIf({ schedulesLive: schedules });
   };
   onToggleFusionMode = () => this.setState({ chatFusion: !this.state.chatFusion });
   onEmergency = () => this.setState({ halted: !this.state.halted });
+  _noop = () => {};
 
   // ===== Real muse gateway connection (cockpit HTTP API contract) =====
   GATEWAY_DEFAULT = 'http://127.0.0.1:8765';
@@ -3174,18 +3461,124 @@ class Component extends DCLogic {
   };
 
   async _api(path, { method = 'GET', body = null, auth = true } = {}) {
+    // Two transports, same call sites:
+    //  * Relay: signed in AND the account has a bound gateway -> go through the
+    //    server-side /api/gateway/<path> relay with the Supabase bearer (works
+    //    from anywhere, no mixed-content, gateway bearer stays server-side).
+    //  * Direct: a device-paired gateway URL + token (the original path).
+    const relay = this._agentLaneReady();
     const headers = { 'Accept': 'application/json' };
     if (body) headers['Content-Type'] = 'application/json';
-    if (auth) { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; }
+    let target;
+    if (relay) {
+      headers['Authorization'] = 'Bearer ' + this.state.auth.access_token;
+      target = '/api/gateway' + path;
+    } else {
+      if (auth) { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; }
+      target = this._gw() + path;
+    }
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 6000);
     try {
-      const res = await fetch(this._gw() + path, { method, headers, body: body ? JSON.stringify(body) : null, signal: ctrl.signal, mode: 'cors' });
+      const res = await fetch(target, { method, headers, body: body ? JSON.stringify(body) : null, signal: ctrl.signal, mode: 'cors' });
       const text = await res.text();
       let data = null; try { data = text ? JSON.parse(text) : null; } catch (e) { data = { raw: text }; }
       return { ok: res.ok, status: res.status, data };
     } finally { clearTimeout(timer); }
   }
+
+  // Full-agent chat: stream POST /v1/agent/chat (NDJSON chunk vocabulary) either
+  // through the relay (signed-in) or directly (device-paired to a --agent full
+  // gateway). Renders body_delta incrementally, tool_call as chips, phase as a
+  // status line, and approval as an inline Approve/Deny card.
+  _dispatchAgentChat = async (text) => {
+    const relay = this._agentLaneReady();
+    const sessionKey = this._agentSessionKey();
+    const history = this.state.chat
+      .filter(m => m && typeof m.text === 'string' && (m.isMuse || m.who === 'You'))
+      .map(m => ({ role: m.isMuse ? 'assistant' : 'user', content: m.text }));
+    // The muse message is a single mutable accumulator. Every render replaces
+    // the chat element at `idx` with a fresh snapshot of the WHOLE accumulator
+    // (text + tools + phase + approval together), so no field is ever dropped
+    // between streamed chunks regardless of render batching.
+    const prior = [...this.state.chat];
+    const idx = prior.length; // the new muse message goes at the end
+    const acc = { who: 'muse', isMuse: true, text: '', tools: [], phase: '', approval: null, agent: true, sessionKey };
+    this._activeAgentAcc = acc; // so an approval decision can clear the card
+    const render = () => this.setState({ chat: [...prior, { ...acc, tools: acc.tools.map(t => ({ ...t })), approval: acc.approval ? { ...acc.approval } : null }] });
+    this.setState({ chat: [...prior, { ...acc }], museThinking: true });
+    void idx;
+
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' };
+    let url;
+    if (relay) { headers['Authorization'] = 'Bearer ' + this.state.auth.access_token; url = '/api/gateway/v1/agent/chat'; }
+    else { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; url = this._gw() + '/v1/agent/chat'; }
+
+    try {
+      const r = await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ prompt: text, history, session_key: sessionKey }) });
+      if (r.status === 409) { this.setState({ museThinking: false, chat: prior }); this._dispatchLiveJob(text); return; } // gateway not in full mode → job lane
+      if (r.status === 402) { acc.text = 'The full-agent lane needs an active subscription on this account.'; this.setState({ museThinking: false }); render(); return; }
+      if (r.status === 429) { let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' — ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
+      if (!r.ok || !r.body) { let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable — ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
+      this.setState({ museThinking: false });
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let c; try { c = JSON.parse(line); } catch (e) { continue; }
+          if (c.type === 'body_delta') { acc.text += (c.text || ''); render(); }
+          else if (c.type === 'body') { if (c.text) acc.text = c.text; render(); }
+          else if (c.type === 'phase') { acc.phase = c.phase || ''; render(); }
+          else if (c.type === 'tool_call') {
+            const existing = acc.tools.find(t => t.id === c.id);
+            if (existing) { existing.status = c.status; existing.detail = c.detail || existing.detail; }
+            else acc.tools.push({ id: c.id, name: c.name, summary: c.summary, status: c.status, detail: c.detail });
+            render();
+          }
+          else if (c.type === 'approval') { acc.approval = { id: c.id, sessionKey: c.sessionKey, summary: c.summary, tool: c.tool }; render(); }
+          else if (c.type === 'error') { acc.text = acc.text || ('Error: ' + (c.message || 'the agent run failed')); render(); }
+          else if (c.type === 'done') { acc.phase = ''; render(); this.pullAll(); }
+        }
+      }
+    } catch (e) {
+      acc.text = acc.text || ('Could not reach the agent (' + ((e && e.message) || e) + ').');
+      this.setState({ museThinking: false }); render();
+    }
+  };
+
+  _agentSessionKey() {
+    try {
+      let k = localStorage.getItem('muse.agent.session');
+      if (!k) { k = 'web-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('muse.agent.session', k); }
+      return k;
+    } catch (e) { return 'web-session'; }
+  }
+
+  // Resolve an inline owner-approval card raised mid-stream.
+  decideAgentApproval = (msgIdx, choice) => async () => {
+    const msg = this.state.chat[msgIdx];
+    const ap = msg && msg.approval;
+    if (!ap) return;
+    const relay = this._agentLaneReady();
+    const headers = { 'Content-Type': 'application/json' };
+    let url;
+    if (relay) { headers['Authorization'] = 'Bearer ' + this.state.auth.access_token; url = '/api/gateway/v1/agent/approvals'; }
+    else { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; url = this._gw() + '/v1/agent/approvals'; }
+    try {
+      await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ session_key: ap.sessionKey, choice }) });
+    } catch (e) {}
+    // Clear the card on the live accumulator too, so when the server resumes
+    // the stream its next render doesn't re-show the resolved approval.
+    if (this._activeAgentAcc && this._activeAgentAcc.sessionKey === ap.sessionKey) this._activeAgentAcc.approval = null;
+    this.setState({ chat: this.state.chat.map((m, i) => i === msgIdx ? { ...m, approval: null, approvalChoice: choice } : m) });
+  };
 
   onToken = () => {
     let url = ''; try { url = localStorage.getItem('muse.gateway.url') || ''; } catch (e) {}
@@ -3374,6 +3767,201 @@ class Component extends DCLogic {
       else if (r.ok || r.status === 400) this.setState({ serverChat: 'ready' });
       else this.setState({ serverChat: 'none' });
     } catch (e) { this.setState({ serverChat: 'none' }); }
+  };
+
+  // ===== Hosted-product account layer (Supabase GoTrue over REST, no SDK) =====
+  AUTH_STORE = 'muse.auth.session.v1';
+
+  _loadSession() {
+    try { return JSON.parse(localStorage.getItem(this.AUTH_STORE) || 'null'); } catch (e) { return null; }
+  }
+  _saveSession(sess) {
+    try {
+      if (sess) localStorage.setItem(this.AUTH_STORE, JSON.stringify(sess));
+      else localStorage.removeItem(this.AUTH_STORE);
+    } catch (e) {}
+  }
+
+  _bootAccount = async () => {
+    let cfg = null;
+    try {
+      const r = await fetch('/api/config', { headers: { Accept: 'application/json' } });
+      if (r.ok) cfg = await r.json();
+    } catch (e) { /* static host without /api — stay in no-login mode */ }
+    const sess = this._loadSession();
+    this.setState({ cfg, auth: sess || null });
+    if (sess && sess.access_token) {
+      await this._refreshIfNeeded();
+      await this._checkRelay();
+    }
+  };
+
+  _supa() { const c = this.state.cfg; return (c && c.auth) ? c.auth : null; }
+
+  async _refreshIfNeeded() {
+    const sess = this.state.auth; const supa = this._supa();
+    if (!sess || !supa) return;
+    const now = Math.floor(Date.now() / 1000);
+    if (sess.expires_at && sess.expires_at - now > 60) return; // still valid
+    if (!sess.refresh_token) return;
+    try {
+      const r = await fetch(supa.supabaseUrl + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supa.supabaseAnonKey },
+        body: JSON.stringify({ refresh_token: sess.refresh_token }),
+      });
+      if (r.ok) { const d = await r.json(); this._applyAuth(d); }
+      else this._signOutLocal();
+    } catch (e) { /* keep the stale session; the next call will 401 and sign out */ }
+  }
+
+  _applyAuth(d) {
+    if (!d || !d.access_token) return;
+    const sess = {
+      access_token: d.access_token,
+      refresh_token: d.refresh_token,
+      expires_at: d.expires_at || (Math.floor(Date.now() / 1000) + (d.expires_in || 3600)),
+      user: d.user ? { id: d.user.id, email: d.user.email } : (this.state.auth && this.state.auth.user) || null,
+    };
+    this._saveSession(sess);
+    this.setState({ auth: sess, authPassword: '', authError: '' });
+  }
+
+  _signOutLocal() {
+    this._saveSession(null);
+    this.setState({ auth: null, relayConnected: false, relayGatewayUrl: '' });
+  }
+
+  setAuthEmail = (e) => this.setState({ authEmail: e.target.value });
+  setAuthPassword = (e) => this.setState({ authPassword: e.target.value });
+  setAuthMode = (mode) => () => this.setState({ authMode: mode, authError: '', authNotice: '' });
+
+  submitAuth = async () => {
+    const supa = this._supa();
+    if (!supa) { this.setState({ authError: 'Sign-in is not configured on this deployment yet.' }); return; }
+    const email = (this.state.authEmail || '').trim();
+    const password = this.state.authPassword || '';
+    if (!email || !password) { this.setState({ authError: 'Email and password are required.' }); return; }
+    const signup = this.state.authMode === 'signup';
+    this.setState({ authBusy: true, authError: '', authNotice: '' });
+    try {
+      const path = signup ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+      const r = await fetch(supa.supabaseUrl + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supa.supabaseAnonKey },
+        body: JSON.stringify({ email, password }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { this.setState({ authBusy: false, authError: (d && (d.error_description || d.msg || d.error)) || ('Sign-in failed (' + r.status + ').') }); return; }
+      if (d.access_token) { this._applyAuth(d); this.setState({ authBusy: false }); await this._checkRelay(); }
+      else { this.setState({ authBusy: false, authNotice: 'Check your email to confirm your account, then sign in.', authMode: 'signin' }); }
+    } catch (e) {
+      this.setState({ authBusy: false, authError: 'Could not reach the auth service (' + ((e && e.message) || e) + ').' });
+    }
+  };
+
+  signOut = async () => {
+    const supa = this._supa(); const sess = this.state.auth;
+    if (supa && sess && sess.access_token) {
+      try { await fetch(supa.supabaseUrl + '/auth/v1/logout', { method: 'POST', headers: { apikey: supa.supabaseAnonKey, Authorization: 'Bearer ' + sess.access_token } }); } catch (e) {}
+    }
+    this._signOutLocal();
+  };
+
+  _checkRelay = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ relayConnected: false }); return; }
+    try {
+      const r = await fetch('/api/me', { headers: { Authorization: 'Bearer ' + sess.access_token } });
+      if (r.status === 401) { this._signOutLocal(); return; }
+      if (r.ok) { const d = await r.json(); this.setState({ relayConnected: !!d.connected, relayGatewayUrl: d.gateway_url || '' }); }
+    } catch (e) { /* relay not configured or unreachable; leave as-is */ }
+    this._checkTier();
+  };
+
+  // Read the account's own subscription row (RLS: select-own) to reflect Pro
+  // status in the pricing card. Best-effort; defaults to free.
+  _checkTier = async () => {
+    const sess = this.state.auth; const supa = this._supa();
+    if (!sess || !sess.access_token || !supa) return;
+    try {
+      const url = supa.supabaseUrl + '/rest/v1/subscriptions?select=tier,status&limit=1';
+      const r = await fetch(url, { headers: { apikey: supa.supabaseAnonKey, Authorization: 'Bearer ' + sess.access_token, Accept: 'application/json' } });
+      if (!r.ok) return;
+      const rows = await r.json();
+      const row = Array.isArray(rows) ? rows[0] : null;
+      const active = row && (row.status === 'active' || row.status === 'trialing');
+      this.setState({ tier: active && row.tier === 'pro' ? 'pro' : 'free' });
+    } catch (e) { /* leave as free */ }
+  };
+
+  // Signed-in chat runs the FULL agent when the account has a bound gateway.
+  _agentLaneReady() { return !!(this.state.auth && this.state.auth.access_token && this.state.relayConnected); }
+
+  setBindToken = (e) => this.setState({ bindToken: e.target.value });
+  bindGateway = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ bindError: 'Sign in first.' }); return; }
+    const url = this._gw();
+    const token = (this.state.bindToken || this._tok() || '').trim();
+    if (!/^https:\/\//i.test(url)) { this.setState({ bindError: 'Your gateway URL must be https:// to bind it to your account (expose it via a tunnel/reverse proxy).' }); return; }
+    if (!token) { this.setState({ bindError: 'Paste your gateway pairing token (muse cockpit token).' }); return; }
+    this.setState({ bindBusy: true, bindError: '' });
+    try {
+      const r = await fetch('/api/gateway-binding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+        body: JSON.stringify({ gateway_url: url, gateway_token: token }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { this.setState({ bindBusy: false, bindError: (d && d.error) || ('Bind failed (' + r.status + ').') }); return; }
+      this.setState({ bindBusy: false, bindToken: '', relayConnected: true, relayGatewayUrl: url });
+    } catch (e) {
+      this.setState({ bindBusy: false, bindError: 'Could not reach the binding service (' + ((e && e.message) || e) + ').' });
+    }
+  };
+  unbindGateway = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) return;
+    try {
+      await fetch('/api/gateway-binding', { method: 'DELETE', headers: { Authorization: 'Bearer ' + sess.access_token } });
+    } catch (e) {}
+    this.setState({ relayConnected: false, relayGatewayUrl: '' });
+  };
+
+  // ===== Commerce (Stripe Checkout + Billing Portal) =====
+  startCheckout = (interval) => async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ activeView: 'account' }); return; }
+    this.setState({ billingBusy: true, billingError: '' });
+    try {
+      const r = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+        body: JSON.stringify({ interval: interval || 'monthly' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.url) { window.location.href = d.url; return; }
+      this.setState({ billingBusy: false, billingError: (d && d.error) || ('Checkout failed (' + r.status + ').') });
+    } catch (e) {
+      this.setState({ billingBusy: false, billingError: 'Could not reach billing (' + ((e && e.message) || e) + ').' });
+    }
+  };
+  openPortal = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) return;
+    this.setState({ billingBusy: true, billingError: '' });
+    try {
+      const r = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + sess.access_token },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.url) { window.location.href = d.url; return; }
+      this.setState({ billingBusy: false, billingError: (d && d.error) || ('Could not open the billing portal (' + r.status + ').') });
+    } catch (e) {
+      this.setState({ billingBusy: false, billingError: 'Could not reach billing (' + ((e && e.message) || e) + ').' });
+    }
   };
 
   _connVals(s) {
@@ -3882,13 +4470,23 @@ class Component extends DCLogic {
     const research = W.research.map((r, i) => ({ ...r,
       onCycle: this.cycleField('research', i, 'conf', ['High', 'Measured', 'Vendor', 'Estimated']),
       onEditClaim: this.editField('research', i, 'claim'), onEditSrc: this.editField('research', i, 'src') }));
-    const channels = W.channels.map((c, i) => ({ ...c, on: s.channelOn[c.id], onToggle: this.toggleChannel(c.id), ...sw(s.channelOn[c.id]),
-      stateLabel: s.channelOn[c.id] ? 'Connected' : 'Off', stateCls: s.channelOn[c.id] ? 'pill ok' : 'pill neutral',
-      onEditName: this.editField('channels', i, 'name'), onEditNote: this.editField('channels', i, 'note') }));
-    const channelsLabel = W.channels.filter(c => s.channelOn[c.id]).length + ' connected';
-    const schedules = W.schedules.map((c, i) => ({ ...c, on: s.scheduleOn[c.id], onToggle: this.toggleSchedule(c.id), ...sw(s.scheduleOn[c.id]),
-      stateLabel: s.scheduleOn[c.id] ? 'On' : 'Paused', stateCls: s.scheduleOn[c.id] ? 'pill ok' : 'pill neutral',
-      onEditName: this.editField('schedules', i, 'name'), onEditWhen: this.editField('schedules', i, 'when'), onEditTo: this.editField('schedules', i, 'to') }));
+    // Channels/Schedules: live gateway data when connected (read-only, from
+    // /v1/cockpit/channels|schedules), else the seeded editable demo list.
+    const channelsLive = s.channelsLive;
+    const channels = channelsLive
+      ? channelsLive.map(c => ({ ...c, on: c.stateLabel === 'Connected', onToggle: this._noop, ...sw(c.stateLabel === 'Connected'), onEditName: this._noop, onEditNote: this._noop }))
+      : W.channels.map((c, i) => ({ ...c, on: s.channelOn[c.id], onToggle: this.toggleChannel(c.id), ...sw(s.channelOn[c.id]),
+        stateLabel: s.channelOn[c.id] ? 'Connected' : 'Off', stateCls: s.channelOn[c.id] ? 'pill ok' : 'pill neutral',
+        onEditName: this.editField('channels', i, 'name'), onEditNote: this.editField('channels', i, 'note') }));
+    const channelsLabel = channelsLive
+      ? channelsLive.filter(c => c.stateLabel === 'Connected').length + ' connected'
+      : W.channels.filter(c => s.channelOn[c.id]).length + ' connected';
+    const schedulesLive = s.schedulesLive;
+    const schedules = schedulesLive
+      ? schedulesLive.map(c => ({ ...c, on: c.stateLabel === 'On', onToggle: this._noop, ...sw(c.stateLabel === 'On'), onEditName: this._noop, onEditWhen: this._noop, onEditTo: this._noop }))
+      : W.schedules.map((c, i) => ({ ...c, on: s.scheduleOn[c.id], onToggle: this.toggleSchedule(c.id), ...sw(s.scheduleOn[c.id]),
+        stateLabel: s.scheduleOn[c.id] ? 'On' : 'Paused', stateCls: s.scheduleOn[c.id] ? 'pill ok' : 'pill neutral',
+        onEditName: this.editField('schedules', i, 'name'), onEditWhen: this.editField('schedules', i, 'when'), onEditTo: this.editField('schedules', i, 'to') }));
     const toolsets = W.tools.map((t, i) => ({ ...t, on: s.toolsetOn[t.id], onToggle: this.toggleToolset(t.id), ...sw(s.toolsetOn[t.id]), countLabel: t.count + ' tools',
       onEditName: this.editField('tools', i, 'name'), onEditDesc: this.editField('tools', i, 'desc') }));
     const toolsTotal = W.tools.reduce((a, t) => a + (s.toolsetOn[t.id] ? t.count : 0), 0);
@@ -3943,9 +4541,24 @@ class Component extends DCLogic {
       telemetry: (s.connState === 'live')
         ? { uptime: this._liveUptime(s), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
         : { uptime: '—', latency: '—', tps: '—' },
+      telemetryLive: s.connState === 'live',
+      appCls: s.navOpen ? 'app nav-open' : 'app',
+      onToggleNav: this.toggleNav, onCloseNav: this.closeNav,
+      navToggleLabel: s.navOpen ? 'Close menu' : 'Open menu',
       onToken: this.onToken, onEmergency: this.onEmergency,
       // chat
-      chat: s.chat.map(m => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
+      chat: s.chat.map((m, mi) => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
+        hasTools: !!(m.tools && m.tools.length),
+        tools: (m.tools || []).map(t => ({
+          name: t.name, summary: t.summary || '',
+          statusLabel: t.status === 'OK' ? 'done' : (t.status === 'FAIL' ? 'failed' : 'running'),
+          cls: t.status === 'OK' ? 'pill ok' : (t.status === 'FAIL' ? 'pill warn' : 'pill accent'),
+        })),
+        phaseLabel: (!m.approval && m.phase && m.phase !== 'FINAL') ? this._agentPhaseLabel(m.phase) : '',
+        hasApproval: !!m.approval,
+        onApproveOnce: this.decideAgentApproval(mi, 'once'),
+        onApproveSession: this.decideAgentApproval(mi, 'session'),
+        onDeny: this.decideAgentApproval(mi, 'deny'),
         bubbleStyle: m.isMuse
           ? 'background:var(--void-3); border:1px solid var(--edge); border-left:2px solid var(--ring-1); border-radius:var(--radius-md); padding:12px 16px;'
           : 'background:var(--void-2); border:1px solid var(--edge); border-radius:var(--radius-md); padding:12px 16px;' })),
@@ -3953,6 +4566,41 @@ class Component extends DCLogic {
       showExamples: s.chat.every(m => m.isMuse),
       examples: this.STARTER_PROMPTS.map(t => ({ text: t, onPick: this.pickExample(t) })),
       onComposer: this.onComposer, onComposerKey: this.onComposerKey, onSend: this.onSend,
+      // account
+      authEmail: s.authEmail, authPassword: s.authPassword, bindToken: s.bindToken,
+      account: {
+        authAvailable: !!(s.cfg && s.cfg.auth),
+        authUnavailable: !(s.cfg && s.cfg.auth),
+        signedIn: !!(s.auth && s.auth.access_token),
+        signedOut: !(s.auth && s.auth.access_token),
+        email: (s.auth && s.auth.user && s.auth.user.email) || '',
+        statusLabel: (s.auth && s.auth.access_token) ? (s.relayConnected ? 'Full agent ready' : 'Signed in') : 'Signed out',
+        statusCls: (s.auth && s.auth.access_token) ? (s.relayConnected ? 'pill ok' : 'pill accent') : 'pill neutral',
+        signinTabCls: s.authMode === 'signin' ? 'btn primary' : 'btn secondary',
+        signupTabCls: s.authMode === 'signup' ? 'btn primary' : 'btn secondary',
+        submitLabel: s.authBusy ? 'Working…' : (s.authMode === 'signup' ? 'Create account' : 'Sign in'),
+        error: s.authError, notice: s.authNotice,
+        relayConnected: s.relayConnected, relayGatewayUrl: s.relayGatewayUrl,
+        canBind: !!(s.auth && s.auth.access_token) && !s.relayConnected,
+        bindError: s.bindError,
+        onModeSignin: this.setAuthMode('signin'), onModeSignup: this.setAuthMode('signup'),
+        onEmail: this.setAuthEmail, onPassword: this.setAuthPassword,
+        onKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.submitAuth(); } },
+        onSubmit: this.submitAuth, onSignOut: this.signOut,
+        onGatewayUrl: this.setGatewayUrl, onBindToken: this.setBindToken,
+        onBind: this.bindGateway, onUnbind: this.unbindGateway,
+        // commerce
+        billingConfigured: !!(s.cfg && s.cfg.billing && s.cfg.billing.configured),
+        hasYearly: !!(s.cfg && s.cfg.billing && s.cfg.billing.hasYearly),
+        isPro: s.tier === 'pro',
+        canUpgrade: !!(s.auth && s.auth.access_token) && s.tier !== 'pro',
+        planLabel: s.tier === 'pro' ? 'Pro' : 'Free',
+        planCls: s.tier === 'pro' ? 'pill ok' : 'pill neutral',
+        billingError: s.billingError,
+        onUpgradeMonthly: this.startCheckout('monthly'),
+        onUpgradeYearly: this.startCheckout('yearly'),
+        onPortal: this.openPortal,
+      },
       // jobs
       jobs, hasJobs: jobs.length > 0, noJobs: jobs.length === 0, jobsCards: s.jobsLayout === 'cards' && jobs.length > 0, jobsStream: s.jobsLayout === 'stream' && jobs.length > 0,
       runningLabel: runningCount + ' running', onNewJob: this.onNewJob,
@@ -3985,11 +4633,11 @@ class Component extends DCLogic {
       ledger,
       council, councilLabel: councilTotal + ' roles · 108 helpers',
       toolsets, toolsActiveLabel: toolsTotal + ' tools on',
-      channels, channelsLabel,
-      schedules,
+      channels, channelsLabel, channelsIsDemo: !s.channelsLive,
+      schedules, schedulesIsDemo: !s.schedulesLive,
       research,
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
-      release, releasesCountLabel: rel.platforms.length + ' platforms · one release', historyCountLabel: (rel.history || []).length + ' versions',
+      release, releasesCountLabel: rel.platforms.length + ' platforms · GitHub Releases', historyCountLabel: (rel.history || []).length + ' versions',
       audioOn: s.audioOn, onToggleAudio: this.toggleAudio, audioLabel: s.audioOn ? 'Sound on' : 'Muted',
       canInstall: s.canInstall, installLabel: s.installLabel, onInstall: this.installApp,
       installHint: s.installHint, onDismissInstallHint: this.dismissInstallHint,
@@ -4011,9 +4659,9 @@ class Component extends DCLogic {
       onConnectGithub: this.onConnectGithub,
       onAddServer: this.onAddServer,
       onBrowsePlugins: this.onBrowsePlugins,
-      githubStatusLabel: s.github.connected ? 'Connected' : 'Not connected',
+      githubStatusLabel: s.github.connected ? 'Connected (demo)' : 'Demo — not linked',
       githubStatusCls: s.github.connected ? 'pill ok' : 'pill neutral',
-      githubBtnLabel: s.github.connected ? 'Disconnect' : 'Connect GitHub',
+      githubBtnLabel: s.github.connected ? 'Disconnect (demo)' : 'Connect GitHub (demo)',
       githubBtnCls: s.github.connected ? 'btn secondary' : 'btn primary',
       mcps, plugins,
       mcpOnCount: s.mcps.filter(m => m.on).length,

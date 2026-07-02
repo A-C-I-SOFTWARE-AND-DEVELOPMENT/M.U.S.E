@@ -735,6 +735,11 @@ agent:
 #   qqbot:            hermes-qqbot            (same as telegram)
 #   teams:            hermes-teams            (same as telegram)
 #   google_chat:      hermes-google_chat      (same as telegram)
+#   cockpit:          hermes-cockpit          (full agent surface for the cockpit's
+#                                              POST /v1/agent/chat lane — terminal,
+#                                              files, code execution, delegation,
+#                                              browser, web; enabled with
+#                                              `muse cockpit serve --agent full`)
 #
 platform_toolsets:
   cli: [hermes-cli]
