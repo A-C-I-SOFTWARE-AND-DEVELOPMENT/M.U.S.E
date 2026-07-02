@@ -2037,7 +2037,7 @@ body { perspective: 1800px; }
                   <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Signed in</div>
                   <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;">{{ account.email }}</div>
                 </div>
-                <button type="button" class="btn secondary" onclick="{{ account.onSignOut }}" style="align-self:flex-start;">Sign out</button>
+                <button type="button" class="btn secondary" onclick="{{ account.onSignOut() }}" style="align-self:flex-start;">Sign out</button>
               </sc-if>
               <sc-if value="{{ account.signedOut }}" hint-placeholder-val="{{ true }}">
                 <div style="display:flex; gap:8px;">
