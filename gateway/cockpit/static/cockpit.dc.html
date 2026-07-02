@@ -843,11 +843,13 @@ body { perspective: 1800px; }
     /* Film-grain overlay. The noise texture lives here as a CSS data URI so the
        browser's own CSS parser reads it — an inline style="background-image:..."
        is split on ';' by the dc-runtime style parser, which truncated the data
-       URI to an invalid value and fired ERR_INVALID_URL on every page load. */
+       URI to an invalid value and fired ERR_INVALID_URL on every page load.
+       Static (no cockpitGrain animation): this layer sits behind the
+       backdrop-filter glass panels, and animating it forced every panel to
+       re-blur on each step — one of the page-flicker sources. */
     .cockpit-grain {
-      position: fixed; inset: -40% 0; z-index: 1; pointer-events: none;
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
       opacity: 0.045; mix-blend-mode: screen; background-size: 200px 200px;
-      animation: cockpitGrain 7s steps(6) infinite;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
     @media (prefers-reduced-motion: reduce) {
@@ -858,7 +860,7 @@ body { perspective: 1800px; }
 
 <!-- ===== Ambient atmosphere (fixed, tonal, behind the cockpit) ===== -->
 <div style="position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; transform:translateZ(0);">
-<canvas data-bg="cockpit-bg" aria-hidden="true" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08); transition:transform .4s ease-out; will-change:transform;"></canvas>
+<canvas data-bg="cockpit-bg" aria-hidden="true" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08);"></canvas>
 <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.45) 100%);"></div>
 <div class="cockpit-grain"></div>
 </div>
@@ -960,6 +962,7 @@ body { perspective: 1800px; }
         <div style="margin-top:18px; border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(122,224,255,0.06), rgba(122,224,255,0));">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><span style="font-size:13px; font-weight:600; color:var(--signal);">Use your own key — chat now</span><sc-if value="{{ conn2.byokSaved }}" hint-placeholder-val="{{ false }}"><span class="pill ok" style="font-size:9px; margin-left:auto;">SAVED</span></sc-if></div>
           <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:10px;">No gateway, no deployment setup. Pick a provider, paste an API key, and send. The key is stored only in this browser and sent over https per message — it is never saved on our server. (Free keys work: Groq, Gemini, Cerebras, NVIDIA NIM.)</div>
+          <div style="font-size:11px; color:var(--signal-mute); line-height:1.5; margin-bottom:10px;">A website can’t read API keys from your computer — paste one here, or pair your own <span class="mono">muse</span> gateway below (it uses the keys already in your <span class="mono">~/.hermes/.env</span>).</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <select value="{{ conn2.byokProv }}" onchange="{{ conn2.onByokProv }}" style="flex:none; width:200px; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;">
               <sc-for list="{{ conn2.byokProviders }}" as="bp" hint-placeholder-count="5"><option value="{{ bp.id }}">{{ bp.name }}</option></sc-for>
@@ -2889,19 +2892,33 @@ class Component extends DCLogic {
       });
     }).catch(() => {});
     this._bootTimer = setTimeout(() => { if (this.state.bootActive) this.setState({ bootActive: false }); }, 2600);
-    this._timer = setInterval(() => this._sim(), 1000);
-    if (!this._reduceMotion) this._drawTimer = setInterval(() => { this._drawSparks(); this._drawGraph(); }, 280);
+    // Ambient redraw cadence: when motion is on, the rAF _loop drives all canvas
+    // draws (throttled), so no extra timer is needed. Under reduced-motion the
+    // rAF loop is off, so _sim() does a slow 1 Hz redraw for the sparklines.
+    if (this._reduceMotion) this._timer = setInterval(() => this._sim(), 1000);
     this._initGraph();
-    this._bgT0 = performance.now();
-    this._par = { x: 0, y: 0 };
-    this._onMove = (e) => {
-      const dx = e.clientX / (window.innerWidth || 1) - 0.5;
-      const dy = e.clientY / (window.innerHeight || 1) - 0.5;
-      this._par = { x: dx, y: dy };
-      const el = document.querySelector('canvas[data-bg="cockpit-bg"]');
-      if (el) el.style.transform = `translate3d(${(-dx * 22).toFixed(1)}px, ${(-dy * 22).toFixed(1)}px, 0) scale(1.08)`;
+    // The full-viewport sacred-geometry background is decorative, but ANY
+    // per-frame change to it — canvas redraws or animated transforms — sits
+    // behind the backdrop-filter glass panels, and each change forces every
+    // blur panel to re-sample, which Chromium renders as constant flicker.
+    // So the layer stays fully static: painted ONCE here, repainted only on
+    // resize or when the browser discarded the canvas buffer (backgrounded-tab
+    // purge, bfcache restore). The old mousemove parallax animated this
+    // canvas's transform and re-blurred every panel while the pointer moved —
+    // do not reintroduce it on this layer.
+    this._paintBg = () => {
+      try {
+        const el = document.querySelector('canvas[data-bg="cockpit-bg"]');
+        if (el && !el._ctxHook) { el._ctxHook = 1; el.addEventListener('contextrestored', this._paintBg); }
+        this._drawCockpitBg();
+      } catch (e) {}
     };
-    window.addEventListener('mousemove', this._onMove, { passive: true });
+    this._bgRaf1 = requestAnimationFrame(() => { this._bgRaf2 = requestAnimationFrame(this._paintBg); }); // after layout
+    this._onResize = () => { clearTimeout(this._rzT); this._rzT = setTimeout(this._paintBg, 150); };
+    window.addEventListener('resize', this._onResize, { passive: true });
+    this._onVis = () => { if (!document.hidden) this._paintBg(); };
+    document.addEventListener('visibilitychange', this._onVis);
+    window.addEventListener('pageshow', this._onVis);
     // Escape closes whichever overlay is open (Connect panel / add-model), so the
     // modal is dismissible from the keyboard, not just by a backdrop mouse click.
     this._onKeyDown = (e) => {
@@ -2938,8 +2955,12 @@ class Component extends DCLogic {
     if (!this._reduceMotion) this._loop();
   }
   componentWillUnmount() {
-    clearInterval(this._timer); clearInterval(this._drawTimer); clearInterval(this._liveTimer); clearTimeout(this._bootTimer); clearTimeout(this._reply); clearTimeout(this._buildT);
-    if (this._onMove) window.removeEventListener('mousemove', this._onMove);
+    clearInterval(this._timer); clearInterval(this._liveTimer); clearTimeout(this._bootTimer); clearTimeout(this._reply); clearTimeout(this._buildT);
+    if (this._onResize) window.removeEventListener('resize', this._onResize);
+    clearTimeout(this._rzT);
+    if (this._onVis) { document.removeEventListener('visibilitychange', this._onVis); window.removeEventListener('pageshow', this._onVis); }
+    if (this._bgRaf1) cancelAnimationFrame(this._bgRaf1);
+    if (this._bgRaf2) cancelAnimationFrame(this._bgRaf2);
     if (this._onKeyDown) window.removeEventListener('keydown', this._onKeyDown);
     if (this._raf) cancelAnimationFrame(this._raf);
   }
@@ -2974,7 +2995,11 @@ class Component extends DCLogic {
     // Ambient visuals only. The cockpit never fabricates live metrics, jobs, or
     // logs — real numbers arrive from a paired gateway via pullAll(). Offline it
     // shows honest empty/zero state instead of a simulated running system.
-    try { this._drawSparks(); this._drawGraph(); } catch (e) { if (window.console) console.error('draw', e); }
+    // When the rAF _loop is active it already redraws these every frame, so only
+    // draw here under reduced-motion (loop off) to avoid interleaved repaints.
+    if (this._reduceMotion) {
+      try { this._drawSparks(); this._drawGraph(); } catch (e) { if (window.console) console.error('draw', e); }
+    }
   }
 
   _clock(total) {
@@ -4212,11 +4237,18 @@ class Component extends DCLogic {
     this.graph = { nodes, edges };
   }
 
-  _loop = () => {
-    this._drawCockpitBg();
+  _loop = (now) => {
+    // Only the small in-panel sparkline + graph canvases animate here; the
+    // full-viewport background is painted once (see componentDidMount) so it
+    // never forces the backdrop-filter panels to re-blur. Throttled to ~30fps
+    // and paused when the tab is hidden.
+    this._raf = requestAnimationFrame(this._loop);
+    if (typeof document !== 'undefined' && document.hidden) return;
+    const t = now || (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (this._lastFrame && t - this._lastFrame < 32) return; // ~30fps
+    this._lastFrame = t;
     this._drawSparks();
     this._drawGraph();
-    this._raf = requestAnimationFrame(this._loop);
   };
 
   // ---- Sacred-geometry ambient background (option 08) ----
@@ -4226,7 +4258,10 @@ class Component extends DCLogic {
     const c = this._prep(el, el.clientHeight);
     if (!c) return;
     const { ctx, w, h } = c;
-    const t = (performance.now() - (this._bgT0 || 0)) / 1000;
+    // Frozen clock: this scene is painted once (mount / resize / buffer
+    // restore), so every repaint must reproduce identical geometry — a live
+    // clock would snap the rotation forward on the resize repaint.
+    const t = 0;
     const cx = w * 0.6, cy = h * 0.46, m = Math.min(w, h);
     const pal = ['#7ae0ff', '#b388ff', '#5b8cff'];
     const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
