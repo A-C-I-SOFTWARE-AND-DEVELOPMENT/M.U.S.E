@@ -823,7 +823,7 @@ body { perspective: 1800px; }
 
   <!-- Header -->
   <header class="app-header">
-    <button type="button" class="nav-toggle" onclick="{{ onToggleNav }}" aria-label="{{ navToggleLabel }}" aria-controls="cockpit-nav">
+    <button type="button" class="nav-toggle" onclick="{{ onToggleNav() }}" aria-label="{{ navToggleLabel }}" aria-controls="cockpit-nav">
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
     </button>
     <span class="lockup">
