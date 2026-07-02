@@ -300,6 +300,39 @@ def test_clip_scrubs_before_truncation(home: Path) -> None:
     assert "sk_live_" + "A" * 40 not in clipped  # raw prefix must not survive
 
 
+def test_client_disconnect_interrupts_worker(home: Path) -> None:
+    """Closing the responder mid-stream (client disconnect) interrupts the run
+    so an abandoned agent with live code execution can't keep running."""
+    import threading as _t
+    import time as _time
+
+    released = _t.Event()
+
+    class Blocker(FakeAgent):
+        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+            for _ in range(1000):
+                if self.interrupted:
+                    break
+                self._stream("tok ")
+                _time.sleep(0.01)
+            return {"final_response": "x", "completed": True}
+
+        def interrupt(self, message=None):
+            super().interrupt(message)
+            released.set()
+
+    box = {}
+    gen = agent_full.full_agent_responder(
+        "go", [], session_key="disc", agent_factory=lambda **kw: box.setdefault("a", Blocker(**kw))
+    )
+    for i, _c in enumerate(gen):
+        if i >= 5:
+            break
+    gen.close()  # GeneratorExit → interrupt_run
+    assert released.wait(timeout=5), "disconnect must interrupt the worker"
+    assert box["a"].interrupted is True
+
+
 # ---------------------------------------------------------------------------
 # HTTP surface
 # ---------------------------------------------------------------------------

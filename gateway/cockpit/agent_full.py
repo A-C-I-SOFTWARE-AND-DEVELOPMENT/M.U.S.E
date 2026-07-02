@@ -399,10 +399,14 @@ def full_agent_responder(
                 streamed_any_delta = True
             yield item
     except GeneratorExit:
+        # Client disconnect: interrupt the run but do NOT free the session slot
+        # here — the worker's own finally is the SOLE releaser. That ordering
+        # (worker unregisters the approval notify bridge, THEN frees the active
+        # slot) means a fresh run with the same session key is refused (busy)
+        # until the old worker has fully torn down, so the winding-down run can
+        # never clobber a new run's notify bridge or approvals.
         interrupt_run(skey)
         raise
-    finally:
-        _unregister_active(skey, agent)
 
     exc = result_box.get("exception")
     if exc is not None:
