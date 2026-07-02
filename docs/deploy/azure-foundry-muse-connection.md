@@ -59,6 +59,35 @@ Some Foundry resources expose service endpoints instead; keep the exact endpoint
 
 ## Runtime behavior
 
-The default local config remains NVIDIA NIM unless Azure is explicitly activated. This is intentional: it connects the project while avoiding a broken default provider when Azure CLI is not authenticated yet.
+After Azure authentication succeeds, run the connector with `--activate` to make Azure Foundry the active Hermes provider. The active deployment for this project is `gpt-5` on the Azure OpenAI-compatible `/openai/v1` endpoint.
 
-To make Azure Foundry the active Hermes provider, run the connector with `--activate` after Azure login and endpoint discovery succeeds.
+Current activated endpoint:
+
+`https://echerd27-5762-resource.cognitiveservices.azure.com/openai/v1`
+
+Project API endpoint:
+
+`https://echerd27-5762-resource.services.ai.azure.com/api/projects/echerd27-5762`
+
+## Long-horizon Foundry agents
+
+The long-horizon Agent Service roster is tracked in `config/azure-foundry-agents.yaml`.
+
+Created agents:
+
+- `MUSE Long-Horizon Orchestrator`
+- `MUSE Research Synthesizer`
+- `MUSE Build Planner`
+- `MUSE Quality Verifier`
+
+Enabled interfaces:
+
+- Azure AI Foundry Agent Service
+- Azure OpenAI Responses API
+- Azure OpenAI Chat Completions API
+- Azure AI Foundry project API
+- Hermes local dashboard/provider routing
+
+The creation/update script is:
+
+`scripts/azure/create_foundry_agents.py`

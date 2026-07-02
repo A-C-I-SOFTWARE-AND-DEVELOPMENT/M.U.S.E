@@ -153,11 +153,12 @@ def configure_hermes(manifest: dict[str, Any], base_url: str | None, default_mod
     }
 
     providers = cfg.setdefault("providers", {})
+    api_mode = "codex_responses" if default_model.lower().startswith(("gpt-5", "o1", "o3", "o4")) else "chat_completions"
     providers["azure-foundry-muse"] = {
         "name": "M.U.S.E Microsoft Foundry",
         "base_url": base_url or "",
         "key_env": "AZURE_FOUNDRY_API_KEY",
-        "api_mode": "chat_completions",
+        "api_mode": api_mode,
         "auth_mode": "entra_id",
         "default_model": default_model,
         "models": {default_model: {}},
@@ -180,7 +181,7 @@ def configure_hermes(manifest: dict[str, Any], base_url: str | None, default_mod
             "default": default_model,
             "provider": "azure-foundry",
             "base_url": base_url or "",
-            "api_mode": "chat_completions",
+            "api_mode": api_mode,
             "auth_mode": "entra_id",
             "entra": {"scope": az["inference"].get("scope", "https://ai.azure.com/.default")},
         }
@@ -192,8 +193,18 @@ def configure_hermes(manifest: dict[str, Any], base_url: str | None, default_mod
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--activate", action="store_true", help="Make Azure Foundry the active Hermes model provider")
-    ap.add_argument("--base-url", default=os.environ.get("AZURE_FOUNDRY_BASE_URL", "").strip())
-    ap.add_argument("--model", default=os.environ.get("AZURE_FOUNDRY_MODEL", "").strip() or "gpt-4o")
+    manifest_default_base_url = ""
+    manifest_default_model = "gpt-4o"
+    if MANIFEST.exists():
+        try:
+            _manifest_boot = load_yaml(MANIFEST)
+            _inf = ((_manifest_boot.get("azure_foundry") or {}).get("inference") or {})
+            manifest_default_base_url = str(_inf.get("base_url") or "").strip()
+            manifest_default_model = str(_inf.get("default_model_fallback") or "gpt-4o").strip() or "gpt-4o"
+        except Exception:
+            pass
+    ap.add_argument("--base-url", default=os.environ.get("AZURE_FOUNDRY_BASE_URL", "").strip() or manifest_default_base_url)
+    ap.add_argument("--model", default=os.environ.get("AZURE_FOUNDRY_MODEL", "").strip() or manifest_default_model)
     args = ap.parse_args()
 
     manifest = load_yaml(MANIFEST)
