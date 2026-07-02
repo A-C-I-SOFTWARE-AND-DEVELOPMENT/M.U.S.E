@@ -1530,8 +1530,8 @@ body { perspective: 1800px; }
                 <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:14px; font-weight:600; color:var(--signal);">{{ p.name }}</span><sc-if value="{{ p.omni }}" hint-placeholder-val="{{ false }}"><span class="pill accent" style="font-size:9px;">OMNI</span></sc-if><sc-if value="{{ p.free }}" hint-placeholder-val="{{ false }}"><span class="pill" style="font-size:9px; color:var(--ring-1); border-color:var(--ring-1);">FREE</span></sc-if></div>
                 <div style="font-size:11px; color:var(--signal-mute);">{{ p.kindLabel }}</div>
               </div>
-              <button type="button" onclick="{{ p.onOpenKey }}" title="API key / OAuth" style="{{ p.keyBtnStyle }}">{{ p.keyBtnLabel }}</button>
-              <button type="button" onclick="{{ p.onToggle }}" style="{{ p.trackStyle }};"><span style="{{ p.knobStyle }}"></span></button>
+              <button type="button" onclick="{{ p.onOpenKey() }}" title="API key / OAuth" style="{{ p.keyBtnStyle }}">{{ p.keyBtnLabel }}</button>
+              <button type="button" onclick="{{ p.onToggle() }}" style="{{ p.trackStyle }};"><span style="{{ p.knobStyle }}"></span></button>
             </div>
           </sc-for>
         </div>
