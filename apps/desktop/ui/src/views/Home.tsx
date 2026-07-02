@@ -10,13 +10,29 @@ import { SectionHeader } from "../components/SectionHeader";
 import {
   chat,
   getToken,
+  isAutoPairBlocked,
   pairConfirm,
   pairStart,
+  TOKEN_EVENT,
   type ChatTurn,
 } from "../lib/gateway";
+import { brainAvailable } from "../lib/brain";
 
 export function Home() {
   const [paired, setPaired] = useState<boolean>(() => Boolean(getToken()));
+  // Auto-pairing lands asynchronously (boot or a later health tick) — flip
+  // the pairing card away the moment the token arrives.
+  useEffect(() => {
+    const refresh = () => setPaired(Boolean(getToken()));
+    window.addEventListener(TOKEN_EVENT, refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(TOKEN_EVENT, refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
   return (
     <div className="view">
       {!paired && <PairCard onPaired={() => setPaired(true)} />}
@@ -106,17 +122,30 @@ function PairCard({ onPaired }: { onPaired: () => void }) {
     onPaired();
   }, [code, phrase, onPaired]);
 
+  // Inside the native shell (loopback gateway) this device pairs itself the
+  // moment the brain answers — the card only lingers while that's pending, so
+  // present it as a status, not a chore. Manual pairing stays available for
+  // remote gateways (where the owner phrase is enforced).
+  const autoPairing = brainAvailable() && !isAutoPairBlocked();
   return (
     <div className="card" style={{ borderColor: "var(--ring-1)" }}>
       <SectionHeader
-        eyebrow="Pair this device"
-        title="Owner-gated pairing"
-        trailing={<span className="pill">owner-gated</span>}
+        eyebrow={autoPairing ? "Connecting" : "Pair this device"}
+        title={autoPairing ? "Connecting to your local gateway" : "Owner-gated pairing"}
+        trailing={<span className="pill">{autoPairing ? "automatic" : "owner-gated"}</span>}
       />
-      <p className="muted">
-        Generate a short-lived pairing code, then confirm it with the owner
-        phrase. A per-device token is minted once and stored only on this device.
-      </p>
+      {autoPairing ? (
+        <p className="muted">
+          This PC connects to its local muse gateway automatically — no code or
+          phrase needed. If the brain is still starting, this card disappears as
+          soon as it answers. You can also pair manually below.
+        </p>
+      ) : (
+        <p className="muted">
+          Generate a short-lived pairing code, then confirm it with the owner
+          phrase. A per-device token is minted once and stored only on this device.
+        </p>
+      )}
       <div className="row">
         <input
           type="text"

@@ -20,16 +20,19 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
+  autoPairLocal,
   DEFAULT_GATEWAY_BASE,
   emergencyStop,
   getGatewayBase,
   getToken,
+  isLoopbackBase,
   pairConfirm,
   pairStart,
   pingHealth,
   promptOwnerPhrase,
   setGatewayBase,
   setToken,
+  TOKEN_EVENT,
 } from "../lib/gateway";
 import {
   autostartSet,
@@ -315,6 +318,32 @@ function PairingCard() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Keep the paired pill live when auto-pairing lands in the background.
+  useEffect(() => {
+    const refresh = () => setPaired(Boolean(getToken()));
+    window.addEventListener(TOKEN_EVENT, refresh);
+    return () => window.removeEventListener(TOKEN_EVENT, refresh);
+  }, []);
+
+  const autoConnect = useCallback(async () => {
+    setBusy(true);
+    setMsg("Connecting to the local gateway…");
+    const outcome = await autoPairLocal({ force: true });
+    setBusy(false);
+    if (outcome === "paired") {
+      setPaired(true);
+      setMsg("Connected. A fresh token for this device was minted and stored.");
+    } else if (outcome === "blocked") {
+      setMsg(
+        "This gateway requires the owner phrase (it accepts remote connections) — pair manually below.",
+      );
+    } else {
+      setMsg(
+        "Couldn't connect — the gateway didn't answer (or pairing is rate-limited; wait ~30s and retry).",
+      );
+    }
+  }, []);
+
   const start = useCallback(async () => {
     setBusy(true);
     setMsg("Requesting a pairing code…");
@@ -378,10 +407,27 @@ function PairingCard() {
         <span className="pill">{paired ? "paired ✓" : "not paired"}</span>
         <span className="pill">owner-gated</span>
       </div>
+      {isLoopbackBase() && (
+        <>
+          <p className="muted">
+            On this PC, muse connects to its local gateway <b>automatically</b> —
+            no code or phrase needed. Use the button below to reconnect (for
+            example after clearing the token).
+          </p>
+          <div className="row">
+            <button className="primary" onClick={() => void autoConnect()} disabled={busy}>
+              {paired ? "Reconnect (mint a fresh token)" : "Connect to this PC's gateway"}
+            </button>
+          </div>
+          <div className="divider" />
+        </>
+      )}
+
       <p className="muted">
-        Generate a short-lived pairing code, then confirm it with the owner
-        phrase. A per-device token is minted once and stored only on this device
-        (localStorage). The owner phrase is never stored.
+        Pairing a <b>remote</b> device: generate a short-lived pairing code, then
+        confirm it with the owner phrase. A per-device token is minted once and
+        stored only on this device (localStorage). The owner phrase is never
+        stored.
       </p>
 
       <div className="row">

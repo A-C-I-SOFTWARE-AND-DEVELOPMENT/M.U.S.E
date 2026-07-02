@@ -82,8 +82,25 @@ The app defaults to `http://127.0.0.1:8765`. Override it at runtime in-app
 `VITE_GATEWAY_BASE` env var for the UI. The native menu's **Help → Gateway**
 item reflects `MUSE_GATEWAY_URL` if set.
 
-The first launch is unpaired: use the **Pair this device** card to mint a
-per-device bearer token (owner-phrase gated), exactly like the browser cockpit.
+### Zero-touch pairing (install → open → connected)
+
+On a **loopback** gateway (the default) the desktop app pairs itself: at boot
+(and on every health tick while unpaired) it silently walks
+`pair/start → pair/confirm` and stores the minted per-device token — no code,
+no owner phrase, no gateway URL to type. This leans on the gateway's own
+loopback trust rule (`gateway/cockpit/handlers.py:pair_confirm`): anything that
+can reach `127.0.0.1` is already on the device, so the owner phrase is only
+enforced when the cockpit is started `--allow-external`. Point the app at a
+**remote** gateway and auto-pairing steps aside (the server answers 403), the
+manual owner-phrase pairing flow in Settings takes over, and nothing is minted
+silently.
+
+The gateway's default CORS allowlist includes the desktop webview origins
+(`tauri://localhost`, `http(s)://tauri.localhost`, and the Vite dev server on
+`:1420`), so the UI talks to the gateway directly — streaming SSE jobs and
+NDJSON chat. Against an older gateway without those origins, requests fall
+back to the shell's native HTTP proxy (buffered, non-streaming) and the jobs
+list degrades to polling; everything still works.
 
 ## One installable: the app starts the brain
 

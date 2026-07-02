@@ -181,12 +181,13 @@ export function SacredGeometry({
     };
   }, [width, height, paused, centers]);
 
+  // Layout belongs to the stylesheet: the wrapper is a fixed, full-viewport,
+  // pointer-transparent layer BEHIND the app shell (.sacred-geometry — see
+  // SacredGeometry.css / app.css). No inline position/size here: an inline
+  // `position: relative` would put the wrapper back into normal flow and
+  // shove the whole app shell down by the canvas height.
   return (
-    <div
-      className={`sacred-geometry ${className}`}
-      style={{ width, height, position: "relative" }}
-      aria-hidden="true"
-    >
+    <div className={`sacred-geometry ${className}`} aria-hidden="true">
       <canvas ref={canvasRef} width={width} height={height} />
     </div>
   );

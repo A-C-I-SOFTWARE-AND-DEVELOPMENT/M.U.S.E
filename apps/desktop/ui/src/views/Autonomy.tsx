@@ -18,6 +18,7 @@ import {
   promptOwnerPhrase,
   revokeAutonomy,
   setAutonomy,
+  TOKEN_EVENT,
   type AutonomyState,
 } from "../lib/gateway";
 
@@ -57,6 +58,10 @@ export function Autonomy() {
 
   useEffect(() => {
     void fetchState();
+    // Re-fetch when this device gains/loses its token (auto-pair / Settings).
+    const refresh = () => void fetchState();
+    window.addEventListener(TOKEN_EVENT, refresh);
+    return () => window.removeEventListener(TOKEN_EVENT, refresh);
   }, [fetchState]);
 
   const current = load.kind === "ready" ? String(load.state.level || "") : "";

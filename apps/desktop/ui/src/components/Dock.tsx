@@ -15,7 +15,7 @@
  * accent, focus-visible rings (global), reduced-motion (global).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { chat, getToken, type ChatTurn } from "../lib/gateway";
+import { chat, getToken, TOKEN_EVENT, type ChatTurn } from "../lib/gateway";
 import {
   DOCK_CHROME_COMMANDS,
   matchGlobalDockCommand,
@@ -96,12 +96,15 @@ export function Dock() {
   useEffect(() => saveJSON(POS_KEY, pos), [pos]);
   useEffect(() => saveJSON(SIZE_KEY, size), [size]);
 
-  // Re-check pairing when the window regains focus / storage changes.
+  // Re-check pairing when the token changes (auto-pair / Settings), the
+  // window regains focus, or storage changes from another tab.
   useEffect(() => {
     const refresh = () => setPaired(Boolean(getToken()));
+    window.addEventListener(TOKEN_EVENT, refresh);
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
     return () => {
+      window.removeEventListener(TOKEN_EVENT, refresh);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
     };
