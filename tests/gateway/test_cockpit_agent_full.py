@@ -360,9 +360,7 @@ def _get_json(server, path: str):
 
 @pytest.fixture()
 def full_server(home: Path, monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(
-        agent_full, "_create_agent", lambda **kw: FakeAgent(**kw)
-    )
+    monkeypatch.setattr(agent_full, "_create_agent", FakeAgent)
     srv = serve(host="127.0.0.1", port=0, token=TOKEN, agent_mode="full")
     yield srv
     srv.shutdown()
