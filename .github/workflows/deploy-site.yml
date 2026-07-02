@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   deploy-vercel:
-    if: github.event_name == 'release' && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
+    if: github.event_name == 'release' && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
     runs-on: ubuntu-latest
     steps:
       # Skips cleanly when no deploy hook is configured for this repo —
@@ -42,7 +42,7 @@ jobs:
           curl -X POST "$VERCEL_DEPLOY_HOOK"
 
   deploy-docs:
-    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/muse'
+    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

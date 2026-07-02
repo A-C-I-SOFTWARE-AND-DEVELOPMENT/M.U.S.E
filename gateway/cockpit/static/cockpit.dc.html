@@ -1217,7 +1217,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Customize &amp; build</span><h2 class="section-title">Studio</h2></div>
-          <div class="trailing"><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
+          <div class="trailing"><span class="pill accent" title="This section is an interactive preview — switches and previews here change local UI state only and are not yet applied to a live gateway.">Interactive demo</span><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:12px; align-items:start;">
@@ -1250,7 +1250,7 @@ body { perspective: 1800px; }
                 <span class="grow"></span>
                 <button type="button" class="btn secondary" onclick="{{ onAddServer }}" style="padding:5px 12px;">+ Add server</button>
               </div>
-              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities.</div>
+              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities. (Preview — these switches change local state only until a gateway is paired.)</div>
               <sc-for list="{{ mcps }}" as="m" hint-placeholder-count="5">
                 <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid var(--edge);">
                   <div style="min-width:0;">
@@ -1839,7 +1839,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">What muse can do</span><h2 class="section-title">Tools</h2></div>
-          <div class="trailing"><span class="pill accent">{{ toolsActiveLabel }}</span></div>
+          <div class="trailing"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ toolsActiveLabel }}</span></div>
         </div>
         <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
           <sc-for list="{{ toolsets }}" as="t" hint-placeholder-count="8">
@@ -1860,7 +1860,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse anywhere</span><h2 class="section-title">Channels</h2></div>
-          <div class="trailing"><span class="pill accent">{{ channelsLabel }}</span></div>
+          <div class="trailing"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ channelsLabel }}</span></div>
         </div>
         <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface — it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
         <sc-for list="{{ channels }}" as="c" hint-placeholder-count="7">
@@ -1880,7 +1880,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Runs on its own</span><h2 class="section-title">Schedules</h2></div>
-          <div class="trailing"><span class="pill neutral">unattended automations</span></div>
+          <div class="trailing"><span class="pill neutral" title="Sample schedules — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill neutral">unattended automations</span></div>
         </div>
         <sc-for list="{{ schedules }}" as="sch" hint-placeholder-count="4">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
@@ -1939,7 +1939,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">Download muse</span><h2 class="section-title">Releases</h2></div>
           <div class="trailing"><span class="pill accent">{{ releasesCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. Desktop, Android, and source are now published to a single rolling release that auto-refreshes from the latest main — the old per-platform channels are gone, but all of their downloads live here.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main, and tagged releases carry the versioned changelog — every download below links to its real GitHub release.</div>
         <div class="card" style="max-width:720px; display:flex; flex-direction:column; gap:14px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span style="font-size:18px; font-weight:600; color:var(--signal); letter-spacing:-0.3px;">{{ release.name }}</span>
@@ -1980,6 +1980,7 @@ body { perspective: 1800px; }
                     </div>
                   </sc-for>
                 </div>
+                <sc-if value="{{ p.url }}" hint-placeholder-val="{{ true }}"><a href="{{ p.url }}" target="_blank" rel="noopener" class="mono" style="display:inline-block; margin-top:10px; font-size:11px; color:var(--ring-1); text-decoration:none;" style-hover="text-decoration:underline;">{{ p.urlLabel }}</a></sc-if>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:10px;">{{ p.sign }}</div>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:4px;">{{ p.reqs }}</div>
               </div>
@@ -2505,28 +2506,34 @@ class Component extends DCLogic {
   ];
 
   releaseData = {
-    name: 'muse — unified release', channel: 'One rolling release', tag: 'muse-latest',
-    ver: 'Rolling · currently v0.14.0', signLabel: 'Signed where configured · unsigned fallback',
-    latestVer: 'v0.14.0', latestName: 'The Foundation Release', latestDate: 'May 16, 2026',
-    latestSummary: 'Installs and runs anywhere, ships with what you actually use. SuperGrok OAuth (grok-4.3 @ 1M context), an OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, a debloat wave + PyPI install, ~19s off cold-start, and 22 messaging platforms.',
+    name: 'muse — releases', channel: 'Rolling builds + tagged releases', tag: 'v1.2.0 · rolling',
+    ver: 'Latest tagged v1.2.0 · desktop and Android publish rolling builds', signLabel: 'Signed where configured · unsigned fallback',
+    latestVer: 'v1.2.0', latestName: 'LM Studio native v1 REST API', latestDate: 'June 22, 2026',
+    latestSummary: 'Adopts LM Studio 0.4.0’s native REST API end-to-end: accurate context-window detection for local and remote servers, model lifecycle management (load / unload / download) with automatic VRAM freeing on model switch, and three new gated agent tools.',
     privacy: 'Runs on your device: its only network traffic is to your own local Hermes gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
-    blurb: 'One download for everything muse. The desktop cockpit, the Android app, and the full source — previously five separate channels — now publish to this single release that auto-refreshes from the latest main. Nothing is lost; it is all here.',
-    url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-latest',
+    blurb: 'Everything muse downloads from GitHub Releases. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main; tagged releases carry the versioned changelog. Pick your platform below — each card links straight to its release.',
+    url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
       { id: 'desktop', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS · Windows · Linux',
-        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', urlLabel: 'Open muse-desktop-latest →',
+        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys. Rolling build, auto-versioned from the latest main.',
         sign: 'Signed when certs are provisioned; unsigned installers (clearly marked) otherwise.', reqs: 'Requires macOS 11+, Windows 10+, or a modern Linux desktop.',
         assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
       { id: 'android', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
-        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest', urlLabel: 'Open android-latest →',
+        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys. Rolling build; sideload install (debug-signed until release keystore secrets are configured).',
         sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
         assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
       { id: 'source', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',
-        note: 'The complete repository at the latest main commit, auto-synced hourly. Clone it and run your own gateway.',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', urlLabel: 'Open the repository →',
+        note: 'The complete repository at the latest main commit. Clone it and run your own gateway.',
         sign: 'No build assets — source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
-        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz' } ] },
+        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz from the repo page' } ] },
     ],
     history: [
+      { ver: 'v1.2.0', date: '2026-06-22', name: 'LM Studio native v1 REST API', summary: 'Native LM Studio /api/v1 adoption: real context windows locally and remotely, model load/unload/download tools with auto VRAM freeing on switch, Windows pytest fixes.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/v1.2.0' },
+      { ver: 'v1.1.0', date: '2026-06', name: 'Free-First muse Launch', summary: 'muse launchable in one command, free-first model routing with paid APIs strictly opt-in, Claude Code / Codex wired as official worker lanes, launch doctor report.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/launch/RELEASE_NOTES_v1.1.0.md' },
+      { ver: 'v1.0.0', date: '2026-06', name: 'muse Runtime launch', summary: 'muse invocable from the interactive CLI: six-mode runtime (Companion/Strategy/Critic/Operator/Builder/Mobile Voice), owner gates, emergency-stop primitives.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/launch/RELEASE_NOTES_v1.0.0.md' },
       { ver: 'v0.14.0', date: '2026-05-16', name: 'The Foundation Release', summary: 'SuperGrok OAuth (grok-4.3 @ 1M ctx), OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, install debloat + PyPI, ~19s cold-start cut, 22 platforms.' },
       { ver: 'v0.13.0', date: '2026-05-07', name: 'The Tenacity Release', summary: 'Durable multi-agent Kanban, /goal (Ralph loop), Checkpoints v2, gateway session auto-resume, 8 P0 security closures, Google Chat (20th platform), pluggable providers, 7 locales.' },
       { ver: 'v0.12.0', date: '2026-04-30', name: 'The Curator Release', summary: 'Autonomous background skill-library Curator, upgraded self-improvement loop, 4 new providers, Spotify + Google Meet, ComfyUI/TouchDesigner bundled, ~57% TUI cold-start cut.' },
@@ -2558,6 +2565,32 @@ class Component extends DCLogic {
   componentDidMount() {
     for (let i = 0; i < 40; i++) this._pushSeries(true);
     this.setState({ work: this._seedWork() });
+    // Refresh the Releases section from the build-time GitHub snapshot
+    // (cockpit-dist/releases.json). The baked releaseData stays as the
+    // offline/gateway-served fallback; nothing changes when the file is absent.
+    fetch('releases.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).then(live => {
+      if (!live || typeof live !== 'object') return;
+      this.setState(s => {
+        const w = { ...s.work };
+        const rel = { ...w.release };
+        for (const k of ['tag', 'ver', 'latestVer', 'latestName', 'latestDate', 'latestSummary', 'url']) {
+          if (typeof live[k] === 'string' && live[k]) rel[k] = live[k];
+        }
+        if (Array.isArray(live.platforms)) {
+          rel.platforms = rel.platforms.map(p => {
+            const lp = live.platforms.find(x => x && x.id === p.id);
+            if (!lp) return p;
+            const merged = { ...p };
+            for (const k of ['url', 'urlLabel', 'sub', 'note']) {
+              if (typeof lp[k] === 'string' && lp[k]) merged[k] = lp[k];
+            }
+            return merged;
+          });
+        }
+        w.release = rel;
+        return { work: w };
+      });
+    }).catch(() => {});
     this._bootTimer = setTimeout(() => { if (this.state.bootActive) this.setState({ bootActive: false }); }, 2600);
     this._timer = setInterval(() => this._sim(), 1000);
     this._drawTimer = setInterval(() => { this._drawSparks(); this._drawGraph(); }, 280);
@@ -3873,7 +3906,7 @@ class Component extends DCLogic {
       schedules,
       research,
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
-      release, releasesCountLabel: rel.platforms.length + ' platforms · one release', historyCountLabel: (rel.history || []).length + ' versions',
+      release, releasesCountLabel: rel.platforms.length + ' platforms · GitHub Releases', historyCountLabel: (rel.history || []).length + ' versions',
       audioOn: s.audioOn, onToggleAudio: this.toggleAudio, audioLabel: s.audioOn ? 'Sound on' : 'Muted',
       canInstall: s.canInstall, installLabel: s.installLabel, onInstall: this.installApp,
       installHint: s.installHint, onDismissInstallHint: this.dismissInstallHint,
@@ -3895,9 +3928,9 @@ class Component extends DCLogic {
       onConnectGithub: this.onConnectGithub,
       onAddServer: this.onAddServer,
       onBrowsePlugins: this.onBrowsePlugins,
-      githubStatusLabel: s.github.connected ? 'Connected' : 'Not connected',
+      githubStatusLabel: s.github.connected ? 'Connected (demo)' : 'Demo — not linked',
       githubStatusCls: s.github.connected ? 'pill ok' : 'pill neutral',
-      githubBtnLabel: s.github.connected ? 'Disconnect' : 'Connect GitHub',
+      githubBtnLabel: s.github.connected ? 'Disconnect (demo)' : 'Connect GitHub (demo)',
       githubBtnCls: s.github.connected ? 'btn secondary' : 'btn primary',
       mcps, plugins,
       mcpOnCount: s.mcps.filter(m => m.on).length,

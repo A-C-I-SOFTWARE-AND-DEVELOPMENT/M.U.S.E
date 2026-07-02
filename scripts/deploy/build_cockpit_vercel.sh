@@ -47,6 +47,14 @@ cp "$SRC/atlas/style.css"             "$OUT/atlas/"
 cp "$SRC/atlas/app.js"                "$OUT/atlas/"
 cp "$SRC/atlas/architecture_data.js"  "$OUT/atlas/"
 
+# Build-time GitHub releases snapshot (best-effort; the page has a baked
+# fallback, so a network failure here never fails the build).
+if command -v node >/dev/null 2>&1; then
+  node scripts/deploy/gen_releases_json.mjs "$OUT" || true
+else
+  echo "node not found — skipping releases.json (page uses baked fallback)"
+fi
+
 # Allow indexing of the public site (commercial SEO baseline) + sitemap.
 printf 'User-agent: *\nAllow: /\nSitemap: https://musehq.io/sitemap.xml\n' > "$OUT/robots.txt"
 
