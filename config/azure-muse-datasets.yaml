@@ -1,0 +1,22 @@
+version: 2026-07-02-025758
+datasets:
+- name: muse-full-representation
+  version: 2026-07-02-025758
+  id: azureai://accounts/echerd27-5762-resource/projects/echerd27-5762/data/muse-full-representation/versions/2026-07-02-025758
+  type: FileDatasetVersion
+- name: muse-datasets-registry
+  version: 2026-07-02-025758
+  id: azureai://accounts/echerd27-5762-resource/projects/echerd27-5762/data/muse-datasets-registry/versions/2026-07-02-025758
+  type: FileDatasetVersion
+- name: muse-pipelines-registry
+  version: 2026-07-02-025758
+  id: azureai://accounts/echerd27-5762-resource/projects/echerd27-5762/data/muse-pipelines-registry/versions/2026-07-02-025758
+  type: FileDatasetVersion
+- name: muse-karpathy-llm-wiki-registry
+  version: 2026-07-02-025758
+  id: azureai://accounts/echerd27-5762-resource/projects/echerd27-5762/data/muse-karpathy-llm-wiki-registry/versions/2026-07-02-025758
+  type: FileDatasetVersion
+- name: muse-rag-registry
+  version: 2026-07-02-025758
+  id: azureai://accounts/echerd27-5762-resource/projects/echerd27-5762/data/muse-rag-registry/versions/2026-07-02-025758
+  type: FileDatasetVersion

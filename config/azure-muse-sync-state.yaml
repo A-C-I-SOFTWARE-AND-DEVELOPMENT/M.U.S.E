@@ -1,0 +1,62 @@
+generated_at: '2026-07-02T02:57:58.947137+00:00'
+project_endpoint: https://echerd27-5762-resource.services.ai.azure.com/api/projects/echerd27-5762
+model: gpt-5
+scanned_file_count: 6684
+category_counts:
+  config: 6
+  datasets: 5
+  docs: 737
+  karpathy_llm_wiki: 10
+  other: 2248
+  pipelines: 222
+  rag: 39
+  runtime: 528
+  scripts: 66
+  skills: 1253
+  tests: 1570
+payload_files:
+- .azure\sync_payload\muse_full_azure_representation.md
+- .azure\sync_payload\muse_path_index.md
+- .azure\sync_payload\muse_datasets.md
+- .azure\sync_payload\muse_pipelines.md
+- .azure\sync_payload\muse_rag.md
+- .azure\sync_payload\muse_karpathy_llm_wiki.md
+- .azure\sync_payload\muse_skills.md
+- .azure\sync_payload\muse_docs.md
+- .azure\sync_payload\muse_config.md
+vector_store:
+  id: vs_4p4BOhIhB7eA7QdfpG3vX4e9
+  name: MUSE full project RAG
+updated_agents:
+- name: MUSE Long-Horizon Orchestrator
+  id: asst_EuCTroV9qZzXIqCL4GUlpkPI
+- name: MUSE Research Synthesizer
+  id: asst_H2MnAGwsjYGwrRSI8kX1HMKI
+- name: MUSE Build Planner
+  id: asst_I9RB6wCAwYN0hYywvg1OIiiL
+- name: MUSE Quality Verifier
+  id: asst_oTcfBh7WCmqpVqGSXyBewQIO
+smoke_test:
+  thread_id: thread_Hu8weSubrbgo144fT6PPkmvf
+  run_id: run_nzf7E6GbF3F4c9lJy8aAV6Nv
+  status: completed
+  response_preview: 'Azure-side representation layers for M.U.S.E (per the attached Foundry pack) include:
+
+
+    - Repository inventory — complete categorized inventory of repo assets; surfaced as a file + vector store searchable corpus. 【4:2†muse_config.md】
+    【4:2†muse_full_azure_representation.md】
+
+    - Datasets — dataset files, dataset-producing scripts, eval/sample sets, and source-data pointers; surfaced via Foundry file_search vector
+    store and a dataset registry manifest. 【4:2†muse_config.md】 【4:2†muse_datasets.md】
+
+    - Pipelines — CI, orchestration, studio, research-fabric, Teams, and Azure sync workflows; surfaced as a pipeline registry document in the
+    vector store. 【4:2†muse_config.md】 【4:2†muse_full_azure_representation.md】
+
+    - Karpathy LLM wiki — compiled markdown knowledge system (wiki/RAG-alternative); surfaced via a wiki index in the vector store. 【4:2†muse_config.md】
+    【4:2†muse_karpathy_llm_wiki.md】
+
+    - RAG — Foundry-native file_search vector store built from this representation and attached to M.U.S.E agents. 【4:2†muse_full_azure_representation.md】
+    【4:2†muse_config.md】
+
+    - Agents — orchestrator, research synthesizer, build planner, quality verifier; hosted via Azure AI Foundry Agent Service. 【4:2†muse_full_'
+uploaded_file_count: 9
