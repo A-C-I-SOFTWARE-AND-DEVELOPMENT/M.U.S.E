@@ -36,11 +36,29 @@ export interface RateVerdict {
   scope?: 'minute' | 'day';
 }
 
-/** Best-effort client IP from the standard proxy headers (Vercel sets XFF). */
+/**
+ * Client IP for rate-limit keying, from the PLATFORM-TRUSTED source only.
+ *
+ * The prior implementation used the leftmost X-Forwarded-For entry, which the
+ * client can prepend — so an abuser sending `X-Forwarded-For: <random>` got a
+ * fresh per-IP bucket every request and fully bypassed the meter on the
+ * key-spending public endpoint. On Vercel, `x-real-ip` is set by the platform to
+ * the actual client address and is NOT client-controllable, so we prefer it.
+ * We only fall back to X-Forwarded-For and then take the RIGHTMOST hop (appended
+ * by the trusted edge), never the spoofable leftmost value.
+ */
 export function clientIp(req: Request): string {
-  const xff = req.headers.get('x-forwarded-for') || '';
-  const first = xff.split(',')[0].trim();
-  return first || req.headers.get('x-real-ip') || 'unknown';
+  const realIp = (req.headers.get('x-real-ip') || '').trim();
+  if (realIp) return realIp;
+  // x-vercel-forwarded-for is also platform-controlled on Vercel.
+  for (const header of ['x-vercel-forwarded-for', 'x-forwarded-for']) {
+    const parts = (req.headers.get(header) || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return 'unknown';
 }
 
 // ---- in-memory fixed-window counters (per isolate) -------------------------

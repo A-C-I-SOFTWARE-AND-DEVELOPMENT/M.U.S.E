@@ -57,7 +57,7 @@
     <p>This interactive cockpit needs JavaScript. Useful links:</p>
     <ul>
       <li><a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E">Source &amp; releases on GitHub</a></li>
-      <li><a href="atlas/index.html">Interactive 3D Systems Atlas</a></li>
+      <li><a href="atlas/">Interactive 3D Systems Atlas</a></li>
     </ul>
   </main>
 </noscript>
@@ -83,7 +83,7 @@
   --core:        #ffffff; /* the single point of light — primary accent / hero */
   --signal:      #e8ecf4; /* primary text */
   --signal-dim:  #aab2c4; /* secondary text */
-  --signal-mute: #6b7388; /* tertiary text / metadata */
+  --signal-mute: #767e93; /* tertiary text / metadata — ≥4.5:1 on --void for WCAG AA */
   --ring-1:      #7ae0ff; /* spectral ring — cyan start stop */
   --ring-2:      #b388ff; /* spectral ring — violet end stop */
   --ok:          #5be3a0; /* success / online (UI status — never brand art) */
@@ -250,12 +250,15 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   z-index: 20;
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* wrap onto a second row instead of overflowing / colliding when narrow */
+  row-gap: var(--space-2);
   gap: var(--space-4);
   padding: var(--space-3) var(--space-6);
   border-bottom: 1px solid var(--edge);
   background: rgba(5, 5, 7, 0.78);
   backdrop-filter: blur(10px);
 }
+.header-telemetry { display: flex; align-items: center; gap: 20px; margin-right: 8px; }
 
 .lockup { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .lockup .wordmark {
@@ -271,8 +274,9 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   color: var(--signal-mute);
 }
 
-.header-status { display: flex; align-items: center; gap: var(--space-2); }
+.header-status { display: flex; align-items: center; gap: var(--space-2); background: none; border: 0; padding: 4px 6px; margin: -4px -6px; border-radius: var(--radius-sm); cursor: pointer; }
 .header-status .status-text { font-size: var(--type-label-size); color: var(--signal-dim); }
+.header-status:hover .status-text, .header-status:focus-visible .status-text { color: var(--signal); }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); }
 
 /* ---- Left nav rail ----------------------------------------------------- */
@@ -576,6 +580,17 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 .banner.show { display: flex; }
 .banner.offline { background: rgba(255, 92, 99, 0.08); border: 1px solid var(--danger); color: #ffd7d9; }
 .banner.pair    { background: var(--void-2); border: 1px solid var(--edge); color: var(--signal); }
+/* The halt banner is a direct child of the 100vh overflow:hidden .app grid; with
+   no grid-area it auto-places into an implicit row below the viewport and was
+   unreachable. Float it as a fixed toast so it — and its Resume button — are
+   always visible while an emergency stop is active. */
+.banner.halt-toast {
+  position: fixed; top: 66px; left: 50%; transform: translateX(-50%);
+  z-index: 150; margin: 0; width: max-content; max-width: min(680px, calc(100vw - 32px));
+  background: rgba(30, 10, 12, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.8);
+}
+@media (max-width: 760px) { .banner.halt-toast { top: 12px; } }
 
 /* ======================================================================== *
  * Responsive — collapse the rail to a horizontal strip on narrow viewports
@@ -602,6 +617,17 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
   .nav-item { width: auto; }
   .nav-item.active::before { display: none; }
   .nav-item.active { box-shadow: inset 0 -2px 0 0 var(--ring-1); }
+  /* Header: keep it to the essentials on phones. The decorative telemetry
+     cluster and the wordmark expansion are dropped so the lockup, status pill,
+     and action buttons wrap cleanly within the viewport instead of forcing
+     ~960px of horizontal overflow. */
+  .app-header { padding: 10px 16px; gap: 10px; }
+  .app-header .expansion { display: none; }
+  .header-telemetry { display: none; }
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  /* Chat fills natural flow (the page scrolls) so the composer is never pinned
+     below the fold behind a hardcoded desktop-header viewport calc. */
+  .chat-view { height: auto !important; min-height: calc(100dvh - 150px); }
 }
 
 /* =====================================================================
@@ -615,6 +641,26 @@ body { perspective: 1800px; }
 .app button, .app input, .btn, .nav-item, .field {
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* Keyboard skip link — off-screen until focused, then pinned top-left. */
+.skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 240;
+  padding: 9px 14px; border-radius: var(--radius-md);
+  background: var(--core); color: var(--void); font-size: 13px; font-weight: 600;
+  text-decoration: none; transform: translateY(-160%); transition: transform .18s ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid var(--ring-1); outline-offset: 2px; }
+
+/* Visible keyboard focus for every interactive control (inputs, selects, the
+   composer, header/nav/pill buttons). Inline outline:none + a border swap left
+   keyboard users with no focus cue; :focus-visible restores one without
+   affecting mouse users. */
+.app :focus-visible,
+.app input:focus-visible, .app select:focus-visible, .field:focus-visible,
+.app button:focus-visible, .btn:focus-visible, .nav-item:focus-visible, .header-status:focus-visible {
+  outline: 2px solid var(--ring-1);
+  outline-offset: 2px;
 }
 
 /* Floating glass header */
@@ -711,8 +757,18 @@ body { perspective: 1800px; }
     }
     @keyframes cockpitScan { to { transform: translateY(50%); } }
     @keyframes cockpitFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Film-grain overlay. The noise texture lives here as a CSS data URI so the
+       browser's own CSS parser reads it — an inline style="background-image:..."
+       is split on ';' by the dc-runtime style parser, which truncated the data
+       URI to an invalid value and fired ERR_INVALID_URL on every page load. */
+    .cockpit-grain {
+      position: fixed; inset: -40% 0; z-index: 1; pointer-events: none;
+      opacity: 0.045; mix-blend-mode: screen; background-size: 200px 200px;
+      animation: cockpitGrain 7s steps(6) infinite;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
     @media (prefers-reduced-motion: reduce) {
-      [style*="cockpitGrain"], [style*="cockpitScan"] { animation: none !important; }
+      [style*="cockpitGrain"], [style*="cockpitScan"], .cockpit-grain { animation: none !important; }
     }
   </style>
 </helmet>
@@ -721,7 +777,7 @@ body { perspective: 1800px; }
 <div style="position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; transform:translateZ(0);">
 <canvas data-bg="cockpit-bg" aria-hidden="true" style="position:fixed; inset:0; z-index:0; width:100%; height:100%; pointer-events:none; opacity:0.6; transform:scale(1.08); transition:transform .4s ease-out; will-change:transform;"></canvas>
 <div style="position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 50% 50%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.45) 100%);"></div>
-<div style="position:fixed; inset:-40% 0; z-index:1; pointer-events:none; opacity:0.045; mix-blend-mode:screen; background-image:url('data:image/svg+xml;utf8,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22&gt;&lt;filter id=%22n%22&gt;&lt;feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/&gt;&lt;/filter&gt;&lt;rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/&gt;&lt;/svg&gt;'); background-size:200px 200px; animation:cockpitGrain 7s steps(6) infinite;"></div>
+<div class="cockpit-grain"></div>
 </div>
 
 <!-- ===== Ignition / boot sequence ===== -->
@@ -746,6 +802,7 @@ body { perspective: 1800px; }
 </sc-if>
 
 <!-- ===== The cockpit ===== -->
+<a class="skip-link" href="#main">Skip to main content</a>
 <div class="app" style="position:relative; z-index:2;">
 
   <!-- Header -->
@@ -765,7 +822,7 @@ body { perspective: 1800px; }
 
     <span class="grow"></span>
 
-    <div style="display:flex; align-items:center; gap:20px; margin-right:8px;">
+    <div class="header-telemetry">
       <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
         <span style="font-family:var(--mono); font-size:13px; color:var(--signal);">{{ telemetry.uptime }}</span>
         <span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">running for</span>
@@ -782,10 +839,10 @@ body { perspective: 1800px; }
       </div>
     </div>
 
-    <span class="header-status">
+    <button type="button" class="header-status" onclick="{{ onToken() }}" title="Connect a gateway or set a provider key">
       <span class="{{ conn.dotCls }}"></span>
       <span class="status-text">{{ conn.label }}</span>
-    </span>
+    </button>
     <span class="header-actions">
       <sc-if value="{{ canInstall }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary" onclick="{{ onInstall }}" title="Install muse as an app on this device">{{ installLabel }}</button></sc-if>
       <button type="button" class="btn secondary" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
@@ -798,7 +855,7 @@ body { perspective: 1800px; }
   <!-- ===== Connection panel (real gateway pairing) ===== -->
   <sc-if value="{{ conn2.open }}" hint-placeholder-val="{{ false }}">
     <div onclick="{{ conn2.onClose }}" style="position:fixed; inset:0; z-index:180; background:rgba(4,5,9,0.66); backdrop-filter:blur(8px); display:flex; align-items:flex-start; justify-content:center; padding:72px 20px;">
-      <div onclick="{{ stop }}" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
+      <div onclick="{{ stop(event) }}" role="dialog" aria-modal="true" aria-label="Connect muse" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
         <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:4px;">
           <span class="glyph" style="flex:none; margin-top:2px;"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="#fff"></circle><circle cx="24" cy="24" r="14" fill="none" stroke="var(--ring-1)" stroke-width="1.2" opacity="0.7"></circle><circle cx="24" cy="24" r="21" fill="none" stroke="var(--ring-2)" stroke-width="0.8" opacity="0.4"></circle></svg></span>
           <div style="flex:1;">
@@ -920,7 +977,7 @@ body { perspective: 1800px; }
 
   <!-- Halt banner -->
   <sc-if value="{{ halted }}" hint-placeholder-val="{{ false }}">
-    <div class="banner offline show" style="margin-top:0;">
+    <div class="banner offline show halt-toast" role="alert" style="margin:0;">
       <span class="dot danger"></span>
       <span style="font-weight:500;">Emergency stop is on.</span>
       <span class="muted">Everything is paused · view-only until you resume.</span>
@@ -936,7 +993,7 @@ body { perspective: 1800px; }
         <div class="nav-section">{{ item.label }}</div>
       </sc-if>
       <sc-if value="{{ item.isLink }}" hint-placeholder-val="{{ false }}">
-        <button type="button" class="{{ item.cls }}" onclick="{{ item.onClick }}">
+        <button type="button" class="{{ item.cls }}" aria-current="{{ item.ariaCurrent }}" onclick="{{ item.onClick }}">
           <span>{{ item.label }}</span>
           <sc-if value="{{ item.ext }}" hint-placeholder-val="">
             <span class="nav-ext">{{ item.ext }}</span>
@@ -947,16 +1004,16 @@ body { perspective: 1800px; }
   </nav>
 
   <!-- Main -->
-  <main class="app-main">
+  <main class="app-main" id="main" tabindex="-1">
 
     <!-- ===================== CHAT ===================== -->
     <sc-if value="{{ show.chat }}" hint-placeholder-val="{{ false }}">
-      <section style="max-width:860px; margin:0 auto; animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; display:flex; flex-direction:column; height:calc(100vh - 57px - 48px);">
+      <section class="chat-view" style="max-width:860px; margin:0 auto; animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; display:flex; flex-direction:column; height:calc(100vh - 57px - 48px);">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse</span><h2 class="section-title">Chat with muse</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> {{ conn.label }}</span></div>
+          <div class="trailing"><button type="button" class="pill accent" onclick="{{ onToken() }}" title="Connect a gateway or set a provider key" style="cursor:pointer; font:inherit;"><span class="{{ conn.dotCls }}"></span> {{ conn.label }}</button></div>
         </div>
-        <div style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:18px; padding:8px 4px 16px;">
+        <div style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:18px; padding:8px 4px 16px;" role="log" aria-live="polite" aria-label="Conversation with muse" aria-relevant="additions text">
           <sc-for list="{{ chat }}" as="msg" hint-placeholder-count="4">
             <div style="display:flex; gap:12px; max-width:78%; align-self:{{ msg.align }};">
               <sc-if value="{{ msg.isMuse }}" hint-placeholder-val="{{ false }}">
@@ -1000,7 +1057,7 @@ body { perspective: 1800px; }
           </div>
         </sc-if>
         <div class="row" style="gap:10px; padding-top:12px; flex-wrap:nowrap;">
-          <input class="field" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey }}">
+          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey(event) }}">
           <button type="button" class="btn primary" onclick="{{ onSend }}" style="flex:none;">Send</button>
         </div>
       </section>
@@ -1139,7 +1196,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Live numbers</span><h2 class="section-title">Live stats</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> live feed</span></div>
+          <div class="trailing"><span class="{{ statsPill.cls }}"><span class="{{ statsPill.dot }}"></span> {{ statsPill.label }}</span></div>
         </div>
         <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;">
           <sc-for list="{{ metricCards }}" as="m" hint-placeholder-count="4">
@@ -1147,7 +1204,7 @@ body { perspective: 1800px; }
               <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">{{ m.label }}</div>
               <div style="display:flex; align-items:baseline; gap:8px; margin:6px 0 10px;">
                 <span style="font-size:26px; font-weight:600; color:var(--signal); letter-spacing:-0.5px;">{{ m.value }}</span>
-                <span class="{{ m.deltaCls }}" style="font-size:11px;">{{ m.delta }}</span>
+                <sc-if value="{{ m.delta }}" hint-placeholder-val=""><span class="{{ m.deltaCls }}" style="font-size:11px;">{{ m.delta }}</span></sc-if>
               </div>
               <canvas data-key="{{ m.key }}" ref="{{ setCanvas }}" aria-hidden="true" height="48" style="width:100%; height:48px; display:block;"></canvas>
             </div>
@@ -1508,7 +1565,7 @@ body { perspective: 1800px; }
           <div class="trailing"><span class="pill accent"><span class="dot live"></span> interactive · WebGL</span></div>
         </div>
         <div style="position:relative; height:calc(100vh - 180px); min-height:520px; border-radius:10px; overflow:hidden; box-shadow:0 30px 70px -34px rgba(0,0,0,0.9), 0 0 0 1px var(--edge);">
-          <iframe src="{{ atlasSrc }}" title="MUSE 3D Systems Atlas" style="width:100%; height:100%; border:0; display:block; background:#05080f;"></iframe>
+          <iframe src="atlas/index.html" loading="lazy" title="MUSE 3D Systems Atlas" style="width:100%; height:100%; border:0; display:block; background:#05080f;"></iframe>
         </div>
       </section>
     </sc-if>
@@ -2556,11 +2613,15 @@ class Component extends DCLogic {
   ];
 
   componentDidMount() {
+    // Honor the OS "reduce motion" setting: skip the continuous rAF background
+    // draw loop and the periodic canvas redraw, rendering a single static frame
+    // instead. (CSS animations already stop via the prefers-reduced-motion rules.)
+    this._reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     for (let i = 0; i < 40; i++) this._pushSeries(true);
     this.setState({ work: this._seedWork() });
     this._bootTimer = setTimeout(() => { if (this.state.bootActive) this.setState({ bootActive: false }); }, 2600);
     this._timer = setInterval(() => this._sim(), 1000);
-    this._drawTimer = setInterval(() => { this._drawSparks(); this._drawGraph(); }, 280);
+    if (!this._reduceMotion) this._drawTimer = setInterval(() => { this._drawSparks(); this._drawGraph(); }, 280);
     this._initGraph();
     this._bgT0 = performance.now();
     this._par = { x: 0, y: 0 };
@@ -2572,6 +2633,14 @@ class Component extends DCLogic {
       if (el) el.style.transform = `translate3d(${(-dx * 22).toFixed(1)}px, ${(-dy * 22).toFixed(1)}px, 0) scale(1.08)`;
     };
     window.addEventListener('mousemove', this._onMove, { passive: true });
+    // Escape closes whichever overlay is open (Connect panel / add-model), so the
+    // modal is dismissible from the keyboard, not just by a backdrop mouse click.
+    this._onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      if (this.state.connOpen) this.closeConn();
+      else if (this.state.addModelOpen) this.setState({ addModelOpen: false });
+    };
+    window.addEventListener('keydown', this._onKeyDown);
     // Hands-off connect from the URL hash (#gateway=&token=) before we kick live,
     // so a one-click link lands straight in a live session (token then scrubbed).
     this._autoConnectFromUrl();
@@ -2582,6 +2651,8 @@ class Component extends DCLogic {
     // Public chat readiness: /api/chat is served by THIS deployment (no gateway,
     // no login). Probe it so the header shows an honest "online" when ready.
     this._probeServerChat();
+    // Draw one static frame under reduce-motion instead of starting the loop.
+    if (this._reduceMotion) { try { this._drawCockpitBg(); this._drawSparks(); this._drawGraph(); } catch (e) {} }
 
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
@@ -2589,11 +2660,12 @@ class Component extends DCLogic {
       checkout: this._appDoc('Checkout', 'Fast and secure', '<div class="row"><span>Pro plan</span><span>$29.00</span></div><div class="row"><span>Seats × 3</span><span>$87.00</span></div><div class="row"><span class="muted">Tax</span><span>$9.28</span></div><div class="row"><span style="font-weight:600">Total</span><span style="font-weight:600">$125.28</span></div><button class="cta" style="margin-top:18px">Pay now</button>'),
       search: this._appDoc('Help center', 'Find an answer', '<input class="search" placeholder="Search articles…"><div class="row">Getting started with muse<span class="muted">→</span></div><div class="row">Connecting GitHub<span class="muted">→</span></div><div class="row">Inviting your team<span class="muted">→</span></div><div class="row">Billing &amp; plans<span class="muted">→</span></div>'),
     };
-    this._loop();
+    if (!this._reduceMotion) this._loop();
   }
   componentWillUnmount() {
     clearInterval(this._timer); clearInterval(this._drawTimer); clearInterval(this._liveTimer); clearTimeout(this._bootTimer); clearTimeout(this._reply); clearTimeout(this._buildT);
     if (this._onMove) window.removeEventListener('mousemove', this._onMove);
+    if (this._onKeyDown) window.removeEventListener('keydown', this._onKeyDown);
     if (this._raf) cancelAnimationFrame(this._raf);
   }
 
@@ -2767,9 +2839,21 @@ class Component extends DCLogic {
         body: JSON.stringify({ model: 'auto', messages: history }),
       });
       if (!r.ok || !r.body) {
-        let hint = 'needs a provider key';
-        try { const d = await r.json(); hint = (d && (d.error || d.hint)) || hint; } catch (e) { /* non-JSON */ }
-        acc = 'Live chat is not configured on the server yet — ' + hint + '. Quickest fix: click Connect → "Use your own key", paste any provider key (a free Groq/Gemini key works), and chat instantly. Or set one provider key in the deployment env, or pair a gateway.';
+        let hint = '';
+        try { const d = await r.json(); hint = (d && (d.error || d.hint)) || ''; } catch (e) { /* non-JSON */ }
+        const usingOwnKey = !!this._byok().key;
+        const detail = hint ? ' — ' + hint : '';
+        if (r.status === 429) {
+          acc = 'Rate limit reached — too many requests in a short window' + (hint ? ' (' + hint + ')' : '') + '. Wait a moment and try again.';
+        } else if (r.status === 501) {
+          acc = 'Live chat is not configured on the server yet' + detail + '. Quickest fix: click Connect → "Use your own key", paste any provider key (a free Groq/Gemini key works), and chat instantly. Or set one provider key in the deployment env, or pair a gateway.';
+        } else if (r.status === 502 || r.status === 401 || r.status === 403) {
+          acc = usingOwnKey
+            ? 'The provider rejected the request' + detail + '. Check that the key you pasted (Connect → "Use your own key") is valid and has access to this model.'
+            : 'The chat provider returned an error' + detail + '. Please try again in a moment.';
+        } else {
+          acc = 'Chat request failed (' + r.status + ')' + detail + '. Please try again.';
+        }
         this.setState({ museThinking: false }); render(); return;
       }
       this.setState({ museThinking: false });
@@ -3079,7 +3163,9 @@ class Component extends DCLogic {
     try {
       if (key) { localStorage.setItem('muse.byok.key', key); localStorage.setItem('muse.byok.prov', prov); }
     } catch (e) {}
-    this.setState({ byokSaved: !!key, serverChat: key ? 'ready' : this.state.serverChat });
+    // A pasted key is unvalidated until the first request, so don't claim the
+    // server-verified "online" state — use the honest "your key" state instead.
+    this.setState({ byokSaved: !!key, serverChat: key ? 'byok' : this.state.serverChat });
   };
   clearByok = () => {
     try { localStorage.removeItem('muse.byok.key'); localStorage.removeItem('muse.byok.prov'); } catch (e) {}
@@ -3275,6 +3361,10 @@ class Component extends DCLogic {
   dismissInstallHint = () => this.setState({ installHint: '' });
 
   _probeServerChat = async () => {
+    // If the visitor saved their own key in THIS browser, chat is configured via
+    // that key (sent per-request) — report it honestly and consistently on every
+    // load, so the header can't contradict the "SAVED" state in the Connect panel.
+    if (this._byok().key) { this.setState({ serverChat: 'byok' }); return; }
     // Is public server chat ready? /api/chat holds the provider key on the
     // deployment (set once by the owner); visitors need no login or pairing.
     // An empty POST returns 501 when no key is configured, 400 when it is.
@@ -3359,7 +3449,13 @@ class Component extends DCLogic {
   toggleGuardrail = (key) => () => this.setState({ guardrails: { ...this.state.guardrails, [key]: !this.state.guardrails[key] } });
   toggleMcp = (id) => () => this.setState({ mcps: this.state.mcps.map(m => m.id === id ? { ...m, on: !m.on } : m) });
   togglePlugin = (id) => () => this.setState({ plugins: this.state.plugins.map(p => p.id === id ? { ...p, on: !p.on } : p) });
-  onConnectGithub = () => this.setState({ github: { ...this.state.github, connected: !this.state.github.connected } });
+  onConnectGithub = () => {
+    // Don't fake a GitHub connection on the public site: connecting a repo needs a
+    // paired gateway. Unpaired -> open the Connect panel instead of flipping to a
+    // hollow "Connected" state with no repo/branch behind it.
+    if (!this.state.github.connected && !this._tok()) { this.onToken(); return; }
+    this.setState({ github: { ...this.state.github, connected: !this.state.github.connected } });
+  };
   setMode = (id) => () => { this._sfx('pick'); this.setState({ activeMode: id }); };
   setRuntime = (id) => () => { this._sfx('pick'); this.setState({ runtimeActive: id }); };
   toggleChannel = (id) => () => { const nv = !this.state.channelOn[id]; this._sfx(nv ? 'on' : 'off'); this.setState({ channelOn: { ...this.state.channelOn, [id]: nv } }); };
@@ -3374,11 +3470,18 @@ class Component extends DCLogic {
   openAddModel = () => this.setState({ addModelOpen: !this.state.addModelOpen });
   onNewModelField = (k) => (e) => this.setState({ newModel: { ...this.state.newModel, [k]: e.target.value } });
   addModel = () => { const nm = this.state.newModel; if (!nm.name.trim()) return; const m = { id: 'm' + Date.now(), prov: nm.prov, name: nm.name.trim(), ctx: Number(nm.ctx) || 128, strengths: [nm.strength], cost: 1, on: true, fuse: false, weight: 10 }; this.setState({ models: [...this.state.models, m], newModel: { name: '', prov: nm.prov, ctx: 128, strength: 'Reasoning' }, addModelOpen: false }); };
-  addProvider = () => { const name = (typeof window !== 'undefined' && window.prompt) ? window.prompt('New provider name?') : null; if (!name) return; this.setState({ providers: [...this.state.providers, { id: 'p' + Date.now(), name: name, kind: 'Custom', connected: true }] }); };
+  addProvider = () => { const name = (typeof window !== 'undefined' && window.prompt) ? window.prompt('New provider name?') : null; if (!name) return; this.setState({ providers: [...this.state.providers, { id: 'p' + Date.now(), name: name, kind: 'Custom', connected: false }] }); };
   onResetAll = () => {
     if (typeof window !== 'undefined' && window.confirm && !window.confirm('Reset all your changes back to defaults? This clears edits across the whole cockpit.')) return;
     this.setState({
       halted: false, jobsLayout: 'cards', composer: '', autonomyLevel: 'Supervised',
+      // Reset promises to clear edits "across the whole cockpit" — that includes
+      // the conversation. Restore the single honest greeting and drop any
+      // in-flight thinking state.
+      chat: [
+        { who: 'muse', isMuse: true, text: 'Hi — I’m muse. Ask me anything and I’ll answer right here — no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
+      ],
+      museThinking: false,
       guardrails: { spend: true, deploy: true, export: false, selfmod: false },
       mcps: this.state.mcps.map(m => ({ ...m, on: ['fs', 'git', 'fetch', 'time', 'github'].includes(m.id) })),
       plugins: this.state.plugins.map(p => ({ ...p, on: ['lint', 'fmt', 'shot'].includes(p.id) })),
@@ -3424,6 +3527,10 @@ class Component extends DCLogic {
     clearTimeout(this._buildT); this._buildT = setTimeout(() => this.setState({ building: false }), 1300);
   };
   onNewJob = () => {
+    // Without a paired gateway there is nothing to run the task — creating a local
+    // "New task · Working" card that never progresses contradicts the section's
+    // own honest empty state. Route to pairing instead.
+    if (!this._tok()) { this.onToken(); return; }
     const n = this.state.jobsRaw.length + 1;
     const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' · new', phase: 0, live: true, secs: 0 };
     this.setState({ jobsRaw: [job, ...this.state.jobsRaw] });
@@ -3643,7 +3750,7 @@ class Component extends DCLogic {
       if (n.id === 'jobs' && runningCount) ext = String(runningCount);
       if (n.id === 'agents' && workingAgents) ext = String(workingAgents);
       if (n.id === 'approvals' && s.approvalsRaw.length) ext = String(s.approvalsRaw.length);
-      nav.push({ ...n, isSection: false, isLink: true, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), onClick: this.select(n.id), ext });
+      nav.push({ ...n, isSection: false, isLink: true, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), ariaCurrent: (s.activeView === n.id ? 'page' : 'false'), onClick: this.select(n.id), ext });
     });
 
     const show = {};
@@ -3669,7 +3776,15 @@ class Component extends DCLogic {
 
     const approvals = s.approvalsRaw.map(a => ({ ...a, onApprove: this.approve(a.id), onDeny: this.deny(a.id), confirming: s.approveTarget === a.id, notConfirming: s.approveTarget !== a.id }));
 
-    const fmtDelta = (v, good) => ({ delta: (v >= 0 ? '+' : '') + v + '%', deltaCls: 'pill ' + (good ? 'ok' : 'warn') });
+    // Live stats reflect a paired gateway. Without one the values are honestly
+    // zero, so we must NOT show trend deltas or a "live feed" pill — that would
+    // fabricate movement the site explicitly promises never to invent.
+    const statsLive = s.connState === 'live';
+    const noDelta = { delta: '', deltaCls: 'pill neutral' };
+    const fmtDelta = (v, good) => (statsLive ? { delta: (v >= 0 ? '+' : '') + v + '%', deltaCls: 'pill ' + (good ? 'ok' : 'warn') } : noDelta);
+    const statsPill = statsLive
+      ? { cls: 'pill accent', dot: 'dot live', label: 'live feed' }
+      : { cls: 'pill neutral', dot: 'dot off', label: 'no live feed · connect a gateway' };
     const metricCards = [
       { key: 'latency', label: 'response time', value: s.metricVals.latency + ' ms', ...fmtDelta(-4, true) },
       { key: 'tps', label: 'words per second', value: s.metricVals.tps.toLocaleString() + '/s', ...fmtDelta(+6, true) },
@@ -3816,10 +3931,11 @@ class Component extends DCLogic {
         : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connecting…' }
         : s.connState === 'error' ? { dotCls: 'dot danger', label: 'gateway offline' }
         : s.serverChat === 'ready' ? { dotCls: 'dot live', label: 'online' }
+        : s.serverChat === 'byok' ? { dotCls: 'dot live', label: 'chat ready · your key' }
         : s.serverChat === 'needs-key' ? { dotCls: 'dot warn', label: 'set a provider key' }
         : { dotCls: 'dot off', label: 'offline' }),
       connClass: s.connState,
-      connBadge: (s.connState === 'live' || s.serverChat === 'ready') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'OFFLINE' },
+      connBadge: (s.connState === 'live' || s.serverChat === 'ready' || s.serverChat === 'byok') ? { cls: 'pill ok', label: 'LIVE' } : { cls: 'pill neutral', label: 'OFFLINE' },
       conn2: this._connVals(s),
       stopBtnCls: halted ? 'btn secondary' : 'btn danger',
       stopLabel: halted ? 'Resume' : 'Emergency stop',
@@ -3850,7 +3966,7 @@ class Component extends DCLogic {
       approvalsCountLabel: approvals.length ? approvals.length + ' pending' : 'clear',
       approvalsCountCls: approvals.length ? 'pill warn' : 'pill ok',
       // observatory
-      metricCards, logLines: s.logLines, setCanvas: this.setCanvas, setGraph: this.setGraph,
+      metricCards, statsPill, logLines: s.logLines, setCanvas: this.setCanvas, setGraph: this.setGraph,
       // routes / autonomy / memory / evidence / graph / learning / runtime
       agents,
       workingLabelAgents: halted ? 'all paused' : (workingAgents + ' working now'),
@@ -3889,7 +4005,7 @@ class Component extends DCLogic {
         : 'display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:9999px;border:1px solid var(--edge);background:var(--void-2);color:var(--signal-dim);cursor:pointer;font:inherit;font-size:12px;font-weight:600;',
       fusionModeHint: s.chatFusion ? 'muse splits each task across the best models' : 'muse uses one model',
       onResetAll: this.onResetAll,
-      atlasSrc: (typeof window !== 'undefined' && window.__resources && window.__resources.atlas) ? window.__resources.atlas : 'atlas/muse-atlas.html',
+      atlasSrc: (typeof window !== 'undefined' && window.__resources && window.__resources.atlas) ? window.__resources.atlas : 'atlas/index.html',
       stop: this.stop,
       github: s.github,
       onConnectGithub: this.onConnectGithub,
