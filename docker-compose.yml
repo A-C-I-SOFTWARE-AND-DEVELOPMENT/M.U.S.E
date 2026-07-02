@@ -46,7 +46,15 @@ services:
       # model policy (local OSS + any provider key present in ~/.hermes/.env).
       # Idempotent — guarded by ~/.hermes/.models_bootstrapped. Set to 0 to opt out.
       - HERMES_BOOTSTRAP_MODELS=${HERMES_BOOTSTRAP_MODELS:-1}
-      # To expose the OpenAI-compatible API server beyond localhost,
+      # Microsoft Foundry / Azure AI Foundry connection for the M.U.S.E project.
+      # Preferred local/hosted auth is Entra ID (az login / managed identity).
+      - AZURE_FOUNDRY_BASE_URL=${AZURE_FOUNDRY_BASE_URL:-}
+      - AZURE_FOUNDRY_MODEL=${AZURE_FOUNDRY_MODEL:-}
+      - AZURE_FOUNDRY_API_KEY=${AZURE_FOUNDRY_API_KEY:-}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+
       # uncomment BOTH lines (API_SERVER_KEY is mandatory for auth):
       # - API_SERVER_HOST=0.0.0.0
       # - API_SERVER_KEY=${API_SERVER_KEY}
