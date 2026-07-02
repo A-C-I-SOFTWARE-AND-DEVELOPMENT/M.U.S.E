@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 from gateway.cockpit import agent_full
 from gateway.cockpit.server import serve
@@ -60,11 +60,13 @@ class FakeAgent:
         fail=False,
         block_for_approval=False,
     ):
+        # No-op fallbacks so the callbacks are always callable (the real
+        # responder always supplies them; direct-construction tests may not).
         self.session_id = session_id
         self.gateway_session_key = gateway_session_key
-        self._stream = stream_delta_callback
-        self._tool_start = tool_start_callback
-        self._tool_complete = tool_complete_callback
+        self._stream = stream_delta_callback or (lambda _d: None)
+        self._tool_start = tool_start_callback or (lambda *_a: None)
+        self._tool_complete = tool_complete_callback or (lambda *_a: None)
         self._final = final_response
         self._fail = fail
         self._block_for_approval = block_for_approval
@@ -93,9 +95,16 @@ class FakeAgent:
             entry = _ApprovalEntry(data)
             key = self.gateway_session_key
             with _lock:
-                _gateway_queues.setdefault(key, []).append(entry)
+                queue = _gateway_queues.get(key)
+                if queue is None:
+                    queue = []
+                    _gateway_queues[key] = queue
+                queue.append(entry)
                 notify = _gateway_notify_cbs.get(key)
-            assert notify is not None, "responder must register the notify bridge"
+            # Control-flow narrowing (an explicit raise) is understood by the
+            # type checker; `notify` is non-None past this point.
+            if notify is None:
+                raise AssertionError("responder must register the notify bridge")
             notify(data)
             assert entry.event.wait(timeout=10), "approval never resolved"
         for piece in ("The answer ", "is 42."):
