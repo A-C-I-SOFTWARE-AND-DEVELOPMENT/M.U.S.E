@@ -93,7 +93,7 @@ class FakeAgent:
 
             data = {"command": "rm -rf /tmp/x", "description": "dangerous delete"}
             entry = _ApprovalEntry(data)
-            key = self.gateway_session_key
+            key = str(self.gateway_session_key)
             with _lock:
                 queue = _gateway_queues.get(key)
                 if queue is None:
@@ -343,3 +343,30 @@ def test_agent_companion_routes_refuse_in_jarvis_mode(jarvis_server) -> None:
             {"session_key": "s", "choice": "once"},
         )
     assert exc_info.value.code == 409
+
+
+def _get_authed(server, path: str):
+    req = urllib.request.Request(_url(server, path))
+    req.add_header("Authorization", f"Bearer {TOKEN}")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.status, json.loads(resp.read())
+
+
+def test_channels_endpoint_reads_runtime_status(jarvis_server) -> None:
+    status, data = _get_authed(jarvis_server, "/v1/cockpit/channels")
+    assert status == 200
+    assert isinstance(data.get("channels"), list)
+    assert "connected_count" in data
+
+
+def test_schedules_endpoint_lists_cron_jobs(jarvis_server) -> None:
+    status, data = _get_authed(jarvis_server, "/v1/cockpit/schedules")
+    assert status == 200
+    assert isinstance(data.get("schedules"), list)
+    assert "count" in data
+
+
+def test_channels_requires_auth(jarvis_server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        urllib.request.urlopen(_url(jarvis_server, "/v1/cockpit/channels"), timeout=10)
+    assert exc_info.value.code == 401

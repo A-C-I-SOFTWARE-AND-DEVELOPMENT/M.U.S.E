@@ -1885,7 +1885,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse anywhere</span><h2 class="section-title">Channels</h2></div>
-          <div class="trailing"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ channelsLabel }}</span></div>
+          <div class="trailing"><sc-if value="{{ channelsIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill accent">{{ channelsLabel }}</span></div>
         </div>
         <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface — it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
         <sc-for list="{{ channels }}" as="c" hint-placeholder-count="7">
@@ -1905,7 +1905,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Runs on its own</span><h2 class="section-title">Schedules</h2></div>
-          <div class="trailing"><span class="pill neutral" title="Sample schedules — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill neutral">unattended automations</span></div>
+          <div class="trailing"><sc-if value="{{ schedulesIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample schedules — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill neutral">unattended automations</span></div>
         </div>
         <sc-for list="{{ schedules }}" as="sch" hint-placeholder-count="4">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
@@ -2126,6 +2126,8 @@ class Component extends DCLogic {
     relayConnected: false, // /api/me says this account has a bound gateway
     relayGatewayUrl: '',
     bindToken: '', bindBusy: false, bindError: '',
+    // Live channel/schedule data from the gateway (null → show seeded demo).
+    channelsLive: null, schedulesLive: null,
     // PWA install (Add to device). canInstall flips true once the browser fires
     // beforeinstallprompt (or on iOS Safari, where we show a gesture hint).
     canInstall: false,
@@ -3172,17 +3174,44 @@ class Component extends DCLogic {
   };
 
   pullAll = async () => {
-    if (!this._tok()) return;
+    // Live pulls run when EITHER a device token is paired OR the account is
+    // signed-in with a bound gateway (the relay lane) — _api() picks the right
+    // transport. Without either, the seeded demo data (badged) stays.
+    if (!this._tok() && !this._agentLaneReady()) return;
     // Fire all in parallel; each method is fault-tolerant
     Promise.allSettled([
       this.pullRuntime(), this.pullJobs(), this.pullApprovals(),
       this.pullMemory(), this.pullEvidence(), this.pullLearning(),
       this.pullLedger(), this.pullSkills(), this.pullModels(),
       this.pullSessions(), this.pullDiagnostics(), this.pullAutonomy(),
+      this.pullChannels(), this.pullSchedules(),
     ]);
+  };
+
+  pullChannels = async () => {
+    const r = await this._api('/v1/cockpit/channels');
+    if (!r.ok || !r.data || !Array.isArray(r.data.channels)) return;
+    const channels = r.data.channels.map(c => ({
+      name: c.name, note: c.detail || (c.connected ? 'Connected' : 'Not connected'),
+      stateLabel: c.connected ? 'Connected' : 'Idle',
+      stateCls: c.connected ? 'pill ok' : 'pill neutral',
+    }));
+    if (channels.length) this._setIf({ channelsLive: channels });
+  };
+
+  pullSchedules = async () => {
+    const r = await this._api('/v1/cockpit/schedules');
+    if (!r.ok || !r.data || !Array.isArray(r.data.schedules)) return;
+    const schedules = r.data.schedules.map(s => ({
+      name: s.name, when: s.when || '(no cadence)', to: s.to || 'this device',
+      stateLabel: s.enabled ? 'On' : 'Paused',
+      stateCls: s.enabled ? 'pill ok' : 'pill neutral',
+    }));
+    if (schedules.length) this._setIf({ schedulesLive: schedules });
   };
   onToggleFusionMode = () => this.setState({ chatFusion: !this.state.chatFusion });
   onEmergency = () => this.setState({ halted: !this.state.halted });
+  _noop = () => {};
 
   // ===== Real muse gateway connection (cockpit HTTP API contract) =====
   GATEWAY_DEFAULT = 'http://127.0.0.1:8765';
@@ -4173,13 +4202,23 @@ class Component extends DCLogic {
     const research = W.research.map((r, i) => ({ ...r,
       onCycle: this.cycleField('research', i, 'conf', ['High', 'Measured', 'Vendor', 'Estimated']),
       onEditClaim: this.editField('research', i, 'claim'), onEditSrc: this.editField('research', i, 'src') }));
-    const channels = W.channels.map((c, i) => ({ ...c, on: s.channelOn[c.id], onToggle: this.toggleChannel(c.id), ...sw(s.channelOn[c.id]),
-      stateLabel: s.channelOn[c.id] ? 'Connected' : 'Off', stateCls: s.channelOn[c.id] ? 'pill ok' : 'pill neutral',
-      onEditName: this.editField('channels', i, 'name'), onEditNote: this.editField('channels', i, 'note') }));
-    const channelsLabel = W.channels.filter(c => s.channelOn[c.id]).length + ' connected';
-    const schedules = W.schedules.map((c, i) => ({ ...c, on: s.scheduleOn[c.id], onToggle: this.toggleSchedule(c.id), ...sw(s.scheduleOn[c.id]),
-      stateLabel: s.scheduleOn[c.id] ? 'On' : 'Paused', stateCls: s.scheduleOn[c.id] ? 'pill ok' : 'pill neutral',
-      onEditName: this.editField('schedules', i, 'name'), onEditWhen: this.editField('schedules', i, 'when'), onEditTo: this.editField('schedules', i, 'to') }));
+    // Channels/Schedules: live gateway data when connected (read-only, from
+    // /v1/cockpit/channels|schedules), else the seeded editable demo list.
+    const channelsLive = s.channelsLive;
+    const channels = channelsLive
+      ? channelsLive.map(c => ({ ...c, on: c.stateLabel === 'Connected', onToggle: this._noop, ...sw(c.stateLabel === 'Connected'), onEditName: this._noop, onEditNote: this._noop }))
+      : W.channels.map((c, i) => ({ ...c, on: s.channelOn[c.id], onToggle: this.toggleChannel(c.id), ...sw(s.channelOn[c.id]),
+        stateLabel: s.channelOn[c.id] ? 'Connected' : 'Off', stateCls: s.channelOn[c.id] ? 'pill ok' : 'pill neutral',
+        onEditName: this.editField('channels', i, 'name'), onEditNote: this.editField('channels', i, 'note') }));
+    const channelsLabel = channelsLive
+      ? channelsLive.filter(c => c.stateLabel === 'Connected').length + ' connected'
+      : W.channels.filter(c => s.channelOn[c.id]).length + ' connected';
+    const schedulesLive = s.schedulesLive;
+    const schedules = schedulesLive
+      ? schedulesLive.map(c => ({ ...c, on: c.stateLabel === 'On', onToggle: this._noop, ...sw(c.stateLabel === 'On'), onEditName: this._noop, onEditWhen: this._noop, onEditTo: this._noop }))
+      : W.schedules.map((c, i) => ({ ...c, on: s.scheduleOn[c.id], onToggle: this.toggleSchedule(c.id), ...sw(s.scheduleOn[c.id]),
+        stateLabel: s.scheduleOn[c.id] ? 'On' : 'Paused', stateCls: s.scheduleOn[c.id] ? 'pill ok' : 'pill neutral',
+        onEditName: this.editField('schedules', i, 'name'), onEditWhen: this.editField('schedules', i, 'when'), onEditTo: this.editField('schedules', i, 'to') }));
     const toolsets = W.tools.map((t, i) => ({ ...t, on: s.toolsetOn[t.id], onToggle: this.toggleToolset(t.id), ...sw(s.toolsetOn[t.id]), countLabel: t.count + ' tools',
       onEditName: this.editField('tools', i, 'name'), onEditDesc: this.editField('tools', i, 'desc') }));
     const toolsTotal = W.tools.reduce((a, t) => a + (s.toolsetOn[t.id] ? t.count : 0), 0);
@@ -4310,8 +4349,8 @@ class Component extends DCLogic {
       ledger,
       council, councilLabel: councilTotal + ' roles · 108 helpers',
       toolsets, toolsActiveLabel: toolsTotal + ' tools on',
-      channels, channelsLabel,
-      schedules,
+      channels, channelsLabel, channelsIsDemo: !s.channelsLive,
+      schedules, schedulesIsDemo: !s.schedulesLive,
       research,
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
       release, releasesCountLabel: rel.platforms.length + ' platforms · GitHub Releases', historyCountLabel: (rel.history || []).length + ' versions',

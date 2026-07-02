@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **123 routes** across **121 distinct handlers**
+- **125 routes** across **123 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -41,6 +41,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/avatar/room/{id}/place` | `gateway.cockpit.handlers.room_place` | bearer | — | json | Persist a furniture item's normalized (x, y) placement in the room. |
 | GET | `/v1/cockpit/axiom` | `gateway.cockpit.handlers.axiom_panel` | bearer | — | json | Axiom panel: chain audit, recent events, pending improvements. |
 | GET | `/v1/cockpit/capabilities` | `gateway.cockpit.handlers.capabilities` | bearer | — | json | Describe what *this backend* can do, for the app to negotiate against. |
+| GET | `/v1/cockpit/channels` | `gateway.cockpit.handlers.channels` | bearer | — | json | Read-only messaging-channel status (Telegram/Discord/Slack/…). |
 | POST | `/v1/cockpit/coding/audit` | `gateway.cockpit.handlers.coding_audit` | bearer | — | json | Classify + route a plain-English coding request (read-only). |
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
 | POST | `/v1/cockpit/coding/plan` | `gateway.cockpit.handlers.coding_plan` | bearer | — | json | Build + validate a bounded coding work packet (stage only, never runs). |
@@ -114,6 +115,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/research/{id}/task` | `gateway.cockpit.handlers.research_create_task` | bearer | — | json | Create a coding task from a research report — via the job queue gate. |
 | GET | `/v1/cockpit/runtime/status` | `gateway.cockpit.handlers.runtime_status` | bearer | — | json | Real runtime status: gateway, host, and live queue snapshot. |
 | GET | `/v1/cockpit/runtime/workers` | `gateway.cockpit.handlers.runtime_workers` | bearer | — | json | Detected worker lanes (Claude Code / Codex) — detection only, no keys. |
+| GET | `/v1/cockpit/schedules` | `gateway.cockpit.handlers.schedules` | bearer | — | json | Read-only list of scheduled (cron) jobs the gateway will run unattended. |
 | GET | `/v1/cockpit/second-brain/retrieve` | `gateway.cockpit.handlers.second_brain_retrieve` | bearer | — | json | Retrieve fused Second Brain context for ``q`` (read-only). |
 | GET | `/v1/cockpit/second-brain/status` | `gateway.cockpit.handlers.second_brain_status` | bearer | — | json | Second Brain availability + non-secret settings (read-only). |
 | GET | `/v1/cockpit/secrets/import` | `gateway.cockpit.handlers.secrets_import` | bearer | — | json | Owner-gated, **opt-in** export of the user's existing credential keys from |

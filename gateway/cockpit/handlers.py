@@ -139,6 +139,78 @@ def agent_stop(req: Request) -> JsonResponse:
     return JsonResponse(200, {"ok": True, "stopped": session_key})
 
 
+def channels(_req: Request) -> JsonResponse:
+    """Read-only messaging-channel status (Telegram/Discord/Slack/…).
+
+    Derived from the live runtime status the gateway already publishes — so
+    the cockpit's Channels view shows which surfaces are actually connected
+    instead of a static sample list. No writes: toggling a channel on/off is
+    a gateway config operation, not a cockpit action.
+    """
+    try:
+        from gateway.status import read_runtime_status
+
+        runtime = read_runtime_status() or {}
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"channels": [], "connected_count": 0, "error": str(exc)})
+
+    platforms = runtime.get("platforms", {}) or {}
+    items = []
+    for name, info in sorted(platforms.items()):
+        info = info if isinstance(info, dict) else {}
+        state = str(info.get("state") or info.get("status") or "").lower()
+        connected = bool(
+            info.get("connected")
+            or state in ("connected", "running", "online", "ready", "active")
+        )
+        items.append(
+            {
+                "id": name,
+                "name": name.replace("_", " ").title(),
+                "connected": connected,
+                "state": state or ("connected" if connected else "idle"),
+                "detail": info.get("detail") or info.get("note") or "",
+            }
+        )
+    return JsonResponse(
+        200,
+        {"channels": items, "connected_count": sum(1 for c in items if c["connected"])},
+    )
+
+
+def schedules(_req: Request) -> JsonResponse:
+    """Read-only list of scheduled (cron) jobs the gateway will run unattended.
+
+    Wraps ``cron.jobs.list_jobs`` so the Schedules view shows real automations
+    (their cadence + enabled state) instead of a static sample. Creating or
+    pausing a schedule stays a gateway/CLI operation for now (kept out of the
+    remotely-reachable cockpit surface).
+    """
+    try:
+        from cron.jobs import list_jobs
+
+        raw = list_jobs(include_disabled=True)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"schedules": [], "count": 0, "error": str(exc)})
+
+    items = []
+    for j in raw or []:
+        j = j if isinstance(j, dict) else {}
+        items.append(
+            {
+                "id": j.get("id") or j.get("name") or "",
+                "name": j.get("name") or j.get("prompt") or j.get("id") or "(unnamed)",
+                "when": j.get("schedule") or j.get("cron") or j.get("when") or "",
+                "to": j.get("target") or j.get("platform") or j.get("to") or "",
+                "enabled": bool(j.get("enabled", True)),
+            }
+        )
+    return JsonResponse(
+        200,
+        {"schedules": items, "count": len(items), "enabled_count": sum(1 for s in items if s["enabled"])},
+    )
+
+
 def runtime_status(_req: Request) -> JsonResponse:
     """Real runtime status: gateway, host, and live queue snapshot."""
     return JsonResponse(

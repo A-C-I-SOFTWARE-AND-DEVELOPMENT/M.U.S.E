@@ -221,6 +221,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     # its owner-approval requests and interrupt an in-flight run).
     ("POST", _compile("/v1/agent/approvals"), h.agent_approval_decide, True),
     ("POST", _compile("/v1/agent/stop"), h.agent_stop, True),
+    # Read-only messaging-channel + schedule status (Channels / Schedules views).
+    ("GET", _compile("/v1/cockpit/channels"), h.channels, True),
+    ("GET", _compile("/v1/cockpit/schedules"), h.schedules, True),
     ("GET", _compile("/v1/cockpit/autonomy"), h.autonomy_get, True),
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
