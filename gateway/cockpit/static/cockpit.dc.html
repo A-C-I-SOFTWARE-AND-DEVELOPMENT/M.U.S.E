@@ -855,7 +855,7 @@ body { perspective: 1800px; }
   <!-- ===== Connection panel (real gateway pairing) ===== -->
   <sc-if value="{{ conn2.open }}" hint-placeholder-val="{{ false }}">
     <div onclick="{{ conn2.onClose }}" style="position:fixed; inset:0; z-index:180; background:rgba(4,5,9,0.66); backdrop-filter:blur(8px); display:flex; align-items:flex-start; justify-content:center; padding:72px 20px;">
-      <div onclick="{{ stop }}" role="dialog" aria-modal="true" aria-label="Connect muse" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
+      <div onclick="{{ stop(event) }}" role="dialog" aria-modal="true" aria-label="Connect muse" style="width:520px; max-width:100%; max-height:84vh; overflow-y:auto; background:linear-gradient(180deg, var(--void-2), var(--void)); border:1px solid var(--edge); border-radius:var(--radius-lg); box-shadow:0 28px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(120,180,255,0.06); padding:24px 24px 22px;">
         <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:4px;">
           <span class="glyph" style="flex:none; margin-top:2px;"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="#fff"></circle><circle cx="24" cy="24" r="14" fill="none" stroke="var(--ring-1)" stroke-width="1.2" opacity="0.7"></circle><circle cx="24" cy="24" r="21" fill="none" stroke="var(--ring-2)" stroke-width="0.8" opacity="0.4"></circle></svg></span>
           <div style="flex:1;">
