@@ -40,7 +40,7 @@ import queue
 import threading
 import time
 import uuid
-from typing import Any, Callable, Iterator, Optional
+from typing import Any, Callable, Generator, Iterator, Optional
 
 from gateway.jarvis_local_http import (
     approval as approval_chunk,
@@ -251,7 +251,7 @@ def full_agent_responder(
     session_id: Optional[str] = None,
     session_key: Optional[str] = None,
     agent_factory: Optional[Callable[..., Any]] = None,
-) -> Iterator[dict]:
+) -> Generator[dict, None, None]:
     """Stream one full-agent turn for ``prompt``.
 
     ``history`` is the prior transcript as ``[{"role": ..., "content": ...}]``.
