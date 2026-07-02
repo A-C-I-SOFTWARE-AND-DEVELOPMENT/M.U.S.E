@@ -18,6 +18,7 @@ a fake injected via ``agent_factory`` (unit layer) or by monkeypatching
 from __future__ import annotations
 
 import json
+from functools import partial
 import threading
 import time
 import urllib.error
@@ -142,7 +143,7 @@ def test_approval_chunk_shape_and_choices() -> None:
 
 
 def test_responder_streams_tools_deltas_and_final_body(home: Path) -> None:
-    chunks = _drain(agent_factory=lambda **kw: FakeAgent(**kw))
+    chunks = _drain(agent_factory=FakeAgent)
     kinds = [c["type"] for c in chunks]
 
     assert kinds[0] == "thinking"
@@ -162,7 +163,7 @@ def test_responder_streams_tools_deltas_and_final_body(home: Path) -> None:
 
 
 def test_responder_surfaces_structured_failure_as_error(home: Path) -> None:
-    chunks = _drain(agent_factory=lambda **kw: FakeAgent(**kw, fail=True))
+    chunks = _drain(agent_factory=partial(FakeAgent, fail=True))
     kinds = [c["type"] for c in chunks]
     assert "error" in kinds
     assert kinds[-1] == "done"
@@ -190,7 +191,7 @@ def test_approval_round_trip(home: Path) -> None:
             "do something gated",
             [],
             session_key=skey,
-            agent_factory=lambda **kw: FakeAgent(**kw, block_for_approval=True),
+            agent_factory=partial(FakeAgent, block_for_approval=True),
         ):
             seen.append(c)
         finished.set()
@@ -282,7 +283,7 @@ def test_busy_session_is_refused_end_to_end(home: Path) -> None:
 
     second = list(
         agent_full.full_agent_responder(
-            "second", [], session_key=skey, agent_factory=lambda **kw: FakeAgent(**kw)
+            "second", [], session_key=skey, agent_factory=FakeAgent
         )
     )
     kinds = [c["type"] for c in second]

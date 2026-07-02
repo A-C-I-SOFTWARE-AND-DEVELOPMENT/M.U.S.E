@@ -38,7 +38,6 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-import time
 import uuid
 from typing import Any, Callable, Generator, Iterator, Optional
 
@@ -337,18 +336,22 @@ def full_agent_responder(
                     try:
                         reset_current_session_key(approval_token)
                     except Exception:
-                        pass
+                        # Best-effort contextvar cleanup — never mask the run's
+                        # real outcome by raising from the finally.
+                        logger.debug("cockpit agent: reset_current_session_key failed", exc_info=True)
                 if session_tokens:
                     try:
                         clear_session_vars(session_tokens)
                     except Exception:
-                        pass
+                        # Best-effort session-var cleanup; intentionally non-fatal.
+                        logger.debug("cockpit agent: clear_session_vars failed", exc_info=True)
             # Never blocks: put on a full queue would deadlock a finished worker,
             # so drop-and-continue if the consumer is gone.
             try:
                 q.put(_FINISHED, timeout=5)
             except queue.Full:
-                pass
+                # The consumer (client) is gone; nothing left to signal.
+                logger.debug("cockpit agent: finished marker dropped (consumer gone)")
 
     yield {"type": "thinking"}
     yield phase("RECEIVING")

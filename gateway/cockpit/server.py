@@ -720,12 +720,16 @@ def _make_handler(
                     self._write_chunk(line)
                 self._write_chunk(b"")
             except BrokenPipeError:
+                # Expected: the client disconnected mid-stream. The responder's
+                # own GeneratorExit path interrupts the run; nothing to do here.
                 pass
             except Exception as exc:  # pragma: no cover - defensive
                 try:
                     self._write_chunk(next(encode_stream([error(str(exc))])))
                     self._write_chunk(b"")
                 except Exception:
+                    # The client is gone after the primary error too; there is
+                    # nothing further to write.
                     pass
 
         def _write_chunk(self, data: bytes) -> None:
