@@ -1055,6 +1055,20 @@ def serve(
             stacklevel=2,
         )
         resolved_agent_mode = "jarvis"
+    # Loopback gate for the full-agent lane. Unlike the /v1/cockpit execute
+    # lanes (guarded by _ALLOW_REMOTE_EXECUTE), POST /v1/agent/chat drives the
+    # real AIAgent — arbitrary code execution — irrespective of that flag. So
+    # full mode is refused on a non-loopback bind: the hosted pattern is to bind
+    # 127.0.0.1 inside a container/host and expose it via a reverse proxy (see
+    # docs/deploy/hosted-fleet.md). This keeps a network-reachable bind from
+    # ever running code execution directly.
+    if resolved_agent_mode == "full" and not _is_loopback_host(host):
+        raise ValueError(
+            f"refusing to serve --agent full on non-loopback host {host!r}: the "
+            "full-agent lane runs code execution and must bind 127.0.0.1 behind a "
+            "reverse proxy (see docs/deploy/hosted-fleet.md). Bind loopback, or "
+            "use --agent jarvis for a network bind."
+        )
     h.configure_agent_mode(resolved_agent_mode)
 
     if responder is not None:

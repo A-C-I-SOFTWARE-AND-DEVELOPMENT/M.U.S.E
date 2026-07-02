@@ -72,26 +72,58 @@ _DETAIL_MAX = 600
 _active_lock = threading.Lock()
 _active_agents: dict[str, Any] = {}
 
+# Bound the chunk queue so a slow/gone consumer applies backpressure to the
+# worker thread (q.put blocks) instead of letting an abandoned run pile up
+# unbounded body_delta/tool_call chunks in memory.
+_QUEUE_MAXSIZE = 512
 
-def _register_active(session_key: str, agent: Any) -> None:
+
+def _claim_active(session_key: str, agent: Any) -> bool:
+    """Atomically register ``agent`` as the active run for ``session_key``.
+
+    Returns False when a run is ALREADY active for that key — the caller must
+    refuse (one in-flight run per session key, so concurrent POSTs with the
+    same client-supplied key can't clobber each other's agent/approval state).
+    """
     with _active_lock:
+        if session_key in _active_agents:
+            return False
         _active_agents[session_key] = agent
+        return True
 
 
-def _unregister_active(session_key: str) -> None:
+def _unregister_active(session_key: str, agent: Any = None) -> None:
+    """Remove the active run for ``session_key``.
+
+    When ``agent`` is given, only clears the slot if it still holds that exact
+    agent — so a late finally from a superseded run can't evict a newer one.
+    """
     with _active_lock:
-        _active_agents.pop(session_key, None)
+        cur = _active_agents.get(session_key)
+        if agent is None or cur is agent:
+            _active_agents.pop(session_key, None)
 
 
 def interrupt_run(session_key: str) -> bool:
     """Interrupt the active agent run for ``session_key`` (if any).
 
-    Returns True when a run was found and signalled.
+    Returns True when a run was found and signalled. Also wakes a run that is
+    blocked waiting on an owner approval: ``agent.interrupt`` alone does not
+    unblock ``tools.approval``'s wait, so we resolve any pending approval as a
+    denial first — otherwise a stopped-but-blocked run would hang until the
+    approval timeout.
     """
     with _active_lock:
         agent = _active_agents.get(session_key)
     if agent is None:
         return False
+    # Deny any pending approval so the blocked worker thread wakes immediately.
+    try:
+        from tools.approval import resolve_gateway_approval
+
+        resolve_gateway_approval(session_key, "deny", resolve_all=True)
+    except Exception:
+        logger.debug("interrupt_run: approval wake failed", exc_info=True)
     try:
         agent.interrupt("stopped from the cockpit")
     except Exception:
@@ -186,8 +218,24 @@ def _preview(name: str, args: Any) -> str:
         return name
 
 
+def _scrub(text: str) -> str:
+    """Secret-redact before truncation (a secret straddling the clip boundary
+    would otherwise evade the downstream regex)."""
+    if not text:
+        return text
+    try:
+        from hermes_cli.secrets_policy import redact
+
+        return redact(text)
+    except Exception:  # pragma: no cover - redaction is best-effort
+        return text
+
+
 def _clip(text: Any, limit: int = _DETAIL_MAX) -> str:
-    s = str(text) if text is not None else ""
+    # Scrub FIRST, then truncate — so a secret split by the clip can't leak its
+    # (now-unmatchable) prefix. tool_call() also scrubs, but that runs on the
+    # already-clipped string, so the ordering here is what actually protects it.
+    s = _scrub(str(text) if text is not None else "")
     return s if len(s) <= limit else s[: limit - 1] + "…"
 
 
@@ -219,7 +267,9 @@ def full_agent_responder(
     sid = session_id or f"cockpit-{run_id}"
     skey = session_key or sid
 
-    q: "queue.Queue[Any]" = queue.Queue()
+    # Bounded so an abandoned/slow consumer applies backpressure instead of
+    # letting chunks pile up unbounded in memory.
+    q: "queue.Queue[Any]" = queue.Queue(maxsize=_QUEUE_MAXSIZE)
     streamed_any_delta = False
 
     def _stream_delta(delta: str) -> None:
@@ -265,17 +315,7 @@ def full_agent_responder(
 
         approval_token = None
         session_tokens: list = []
-        agent = None
         try:
-            factory = agent_factory or _create_agent
-            agent = factory(
-                session_id=sid,
-                gateway_session_key=skey,
-                stream_delta_callback=_stream_delta,
-                tool_start_callback=_tool_start,
-                tool_complete_callback=_tool_complete,
-            )
-            _register_active(skey, agent)
             # Bind approval/session identity via contextvars so concurrent
             # runs never share approval channels (api_server pattern).
             approval_token = set_current_session_key(skey)
@@ -292,7 +332,7 @@ def full_agent_responder(
             try:
                 unregister_gateway_notify(skey)
             finally:
-                _unregister_active(skey)
+                _unregister_active(skey, agent)
                 if approval_token is not None:
                     try:
                         reset_current_session_key(approval_token)
@@ -303,27 +343,66 @@ def full_agent_responder(
                         clear_session_vars(session_tokens)
                     except Exception:
                         pass
-            q.put(_FINISHED)
+            # Never blocks: put on a full queue would deadlock a finished worker,
+            # so drop-and-continue if the consumer is gone.
+            try:
+                q.put(_FINISHED, timeout=5)
+            except queue.Full:
+                pass
 
     yield {"type": "thinking"}
     yield phase("RECEIVING")
     yield phase("THINKING")
+
+    # Build the agent up front so we can refuse a duplicate in-flight run for
+    # the same session key BEFORE starting a second worker (concurrent POSTs
+    # with the same client-supplied key must not clobber each other).
+    try:
+        factory = agent_factory or _create_agent
+        agent = factory(
+            session_id=sid,
+            gateway_session_key=skey,
+            stream_delta_callback=_stream_delta,
+            tool_start_callback=_tool_start,
+            tool_complete_callback=_tool_complete,
+        )
+    except Exception as exc:
+        yield error(_clip(exc, 400), retry_hint="check the gateway logs and model configuration")
+        yield done()
+        return
+
+    if not _claim_active(skey, agent):
+        yield error(
+            "a run is already in progress for this session — stop it or wait for it to finish",
+            retry_hint="POST /v1/agent/stop with this session_key, then retry",
+        )
+        yield done()
+        return
 
     thread = threading.Thread(
         target=_worker, name=f"cockpit-agent-{run_id}", daemon=True
     )
     thread.start()
 
-    while True:
-        try:
-            item = q.get(timeout=_POLL_SECONDS)
-        except queue.Empty:
-            continue
-        if item is _FINISHED:
-            break
-        if isinstance(item, dict) and item.get("type") == "body_delta":
-            streamed_any_delta = True
-        yield item
+    # On client disconnect the consumer generator is GC-closed and raises
+    # GeneratorExit at a yield below; interrupt the worker so an abandoned run
+    # (with live code execution) doesn't keep running headless.
+    try:
+        while True:
+            try:
+                item = q.get(timeout=_POLL_SECONDS)
+            except queue.Empty:
+                continue
+            if item is _FINISHED:
+                break
+            if isinstance(item, dict) and item.get("type") == "body_delta":
+                streamed_any_delta = True
+            yield item
+    except GeneratorExit:
+        interrupt_run(skey)
+        raise
+    finally:
+        _unregister_active(skey, agent)
 
     exc = result_box.get("exception")
     if exc is not None:

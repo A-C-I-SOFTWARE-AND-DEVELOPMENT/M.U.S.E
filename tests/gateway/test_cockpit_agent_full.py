@@ -227,13 +227,77 @@ def test_interrupt_run_registry(home: Path) -> None:
         tool_start_callback=lambda *a: None,
         tool_complete_callback=lambda *a: None,
     )
-    agent_full._register_active("sess-int", agent)
+    assert agent_full._claim_active("sess-int", agent) is True
     try:
         assert agent_full.interrupt_run("sess-int") is True
         assert agent.interrupted is True
     finally:
-        agent_full._unregister_active("sess-int")
+        agent_full._unregister_active("sess-int", agent)
     assert agent_full.interrupt_run("sess-int") is False
+
+
+def test_claim_active_refuses_second_run(home: Path) -> None:
+    a1 = FakeAgent()
+    a2 = FakeAgent()
+    assert agent_full._claim_active("dup-key", a1) is True
+    try:
+        # A second claim for the same key is refused (busy guard).
+        assert agent_full._claim_active("dup-key", a2) is False
+    finally:
+        agent_full._unregister_active("dup-key", a1)
+    # After release, a new claim succeeds.
+    assert agent_full._claim_active("dup-key", a2) is True
+    agent_full._unregister_active("dup-key", a2)
+
+
+def test_busy_session_is_refused_end_to_end(home: Path) -> None:
+    """A second responder for an in-flight session key gets an error, not a
+    clobbered run."""
+    import threading as _t
+    import time as _time
+
+    skey = "busy-e2e"
+    release = _t.Event()
+
+    class SlowAgent(FakeAgent):
+        def run_conversation(self, user_message, conversation_history=None, task_id=None):
+            release.wait(timeout=10)
+            return {"final_response": "done", "completed": True}
+
+    started = _t.Event()
+
+    def _run_first():
+        for _ in agent_full.full_agent_responder(
+            "first", [], session_key=skey, agent_factory=lambda **kw: SlowAgent(**kw)
+        ):
+            started.set()
+        # drains to completion
+
+    t = _t.Thread(target=_run_first, daemon=True)
+    t.start()
+    # Wait until the first run has claimed the session.
+    deadline = _time.monotonic() + 5
+    while _time.monotonic() < deadline and skey not in agent_full._active_agents:
+        _time.sleep(0.02)
+
+    second = list(
+        agent_full.full_agent_responder(
+            "second", [], session_key=skey, agent_factory=lambda **kw: FakeAgent(**kw)
+        )
+    )
+    kinds = [c["type"] for c in second]
+    assert "error" in kinds and kinds[-1] == "done"
+    err = next(c for c in second if c["type"] == "error")
+    assert "already in progress" in err["message"]
+    release.set()
+    t.join(timeout=10)
+
+
+def test_clip_scrubs_before_truncation(home: Path) -> None:
+    """A secret longer than the clip window is redacted, not half-leaked."""
+    secret = "sk_live_" + ("A" * 700)
+    clipped = agent_full._clip(secret)
+    assert "sk_live_" + "A" * 40 not in clipped  # raw prefix must not survive
 
 
 # ---------------------------------------------------------------------------
@@ -333,6 +397,13 @@ def test_agent_companion_routes_validate(full_server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc_info:
         _post_raw(full_server, "/v1/agent/stop", {"session_key": "nope"})
     assert exc_info.value.code == 404
+
+
+def test_full_agent_refused_on_non_loopback_bind(home: Path) -> None:
+    """--agent full must not bind a network host (the lane runs code exec)."""
+    with pytest.raises(ValueError, match="non-loopback"):
+        serve(host="0.0.0.0", port=0, token=TOKEN, agent_mode="full",
+              allow_external=True, allow_external_hosts=["0.0.0.0/0"])
 
 
 def test_agent_companion_routes_refuse_in_jarvis_mode(jarvis_server) -> None:
