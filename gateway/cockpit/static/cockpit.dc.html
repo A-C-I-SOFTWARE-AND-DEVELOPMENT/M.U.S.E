@@ -1067,9 +1067,9 @@ body { perspective: 1800px; }
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;"><span class="pill accent" style="flex:none;">Approval needed</span><span class="mono" style="font-size:11px; color:var(--signal-dim);">{{ msg.approval.tool }}</span></div>
                     <div style="font-size:12px; line-height:1.5; color:var(--signal-dim); margin-bottom:10px;">{{ msg.approval.summary }}</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                      <button type="button" class="btn primary" style="padding:6px 14px;" onclick="{{ msg.onApproveOnce }}">Approve once</button>
-                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onApproveSession }}">Approve for session</button>
-                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onDeny }}">Deny</button>
+                      <button type="button" class="btn primary" style="padding:6px 14px;" onclick="{{ msg.onApproveOnce() }}">Approve once</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onApproveSession() }}">Approve for session</button>
+                      <button type="button" class="btn secondary" style="padding:6px 14px;" onclick="{{ msg.onDeny() }}">Deny</button>
                     </div>
                   </div>
                 </sc-if>
