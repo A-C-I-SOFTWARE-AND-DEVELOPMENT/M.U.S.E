@@ -58,6 +58,11 @@ export default async function handler(req: Request): Promise<Response> {
           dailyLimitPro: agentChatDailyLimit('pro'),
         }
       : null,
+    // Commerce: the page shows the pricing card only when Stripe is configured.
+    billing: {
+      configured: !!(envVar('STRIPE_SECRET_KEY') && envVar('STRIPE_PRICE_PRO_MONTHLY')),
+      hasYearly: !!envVar('STRIPE_PRICE_PRO_YEARLY'),
+    },
   };
 
   return new Response(JSON.stringify(body), {

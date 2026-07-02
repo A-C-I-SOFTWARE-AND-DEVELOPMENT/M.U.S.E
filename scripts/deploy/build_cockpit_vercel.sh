@@ -62,5 +62,9 @@ printf 'User-agent: *\nAllow: /\nSitemap: https://musehq.io/sitemap.xml\n' > "$O
 if [ -f "$SRC/sitemap.xml" ]; then cp "$SRC/sitemap.xml" "$OUT/sitemap.xml"; fi
 if [ -f "$SRC/og.png" ]; then cp "$SRC/og.png" "$OUT/og.png"; fi
 
+# Commercial baseline: legal pages (linked from the page footer + account panel).
+if [ -f "$SRC/terms.html" ]; then cp "$SRC/terms.html" "$OUT/terms.html"; fi
+if [ -f "$SRC/privacy.html" ]; then cp "$SRC/privacy.html" "$OUT/privacy.html"; fi
+
 echo "muse Cockpit assembled into $OUT/"
 ls -R "$OUT"

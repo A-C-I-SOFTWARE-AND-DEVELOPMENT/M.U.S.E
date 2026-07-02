@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>muse — Privacy Policy</title>
+<style>
+  body { margin:0; background:#0a0b12; color:#c9d1e4; font:16px/1.7 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:48px 24px 96px; }
+  h1 { color:#eaf0ff; font-size:28px; letter-spacing:-0.3px; }
+  h2 { color:#eaf0ff; font-size:18px; margin-top:36px; }
+  a { color:#7db4ff; }
+  .muted { color:#7a86a8; font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="muted"><a href="/">← muse</a></p>
+  <h1>Privacy Policy</h1>
+  <p class="muted">Last updated: 2026-07-02</p>
+
+  <p>This policy explains what <strong>musehq.io</strong> collects and how it is
+  used. muse is built local-first: the console works with no sign-in, and the
+  data it keeps is deliberately minimal.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Anonymous demo chat:</strong> messages are relayed to the model
+      provider to generate a reply and are rate-limited per IP. We do not
+      require an account for this.</li>
+    <li><strong>Account data (if you sign in):</strong> your email and
+      authentication records, handled by our auth provider (Supabase).</li>
+    <li><strong>Gateway binding:</strong> if you connect your own gateway, we
+      store its URL and access token server-side to relay your requests. The
+      token is never exposed back to the browser after you save it.</li>
+    <li><strong>Usage counters:</strong> per-day counts used to enforce quotas.</li>
+    <li><strong>Billing:</strong> if you subscribe, Stripe processes your
+      payment. We store a Stripe customer id and your plan status — never card
+      numbers.</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <p>We don't sell your data. Your prompts and the agent's work run against the
+  gateway you connect; muse holds no provider API keys on your behalf for the
+  full-agent lane.</p>
+
+  <h2>Third parties</h2>
+  <p>The Service uses model providers (to answer chat), Supabase (auth and
+  storage), Stripe (billing), and our hosting/CDN. Each processes only what is
+  needed for its function.</p>
+
+  <h2>Your choices</h2>
+  <p>You can stop using the Service at any time, disconnect a bound gateway from
+  your account, and cancel a subscription from the billing portal. To request
+  deletion of account data, email us.</p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:support@musehq.io">support@musehq.io</a></p>
+
+  <p class="muted"><a href="/terms.html">Terms of Service</a></p>
+</main>
+</body>
+</html>

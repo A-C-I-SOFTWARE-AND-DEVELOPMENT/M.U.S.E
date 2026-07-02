@@ -1996,6 +1996,38 @@ body { perspective: 1800px; }
               </sc-if>
             </div>
           </div>
+
+          <!-- Pricing / plan card (only when Stripe is configured) -->
+          <sc-if value="{{ account.billingConfigured }}" hint-placeholder-val="{{ false }}">
+            <div class="card" style="margin-top:12px; display:flex; flex-direction:column; gap:12px; max-width:760px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Plan</span>
+                <span class="{{ account.planCls }}">{{ account.planLabel }}</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div style="border:1px solid var(--edge); border-radius:var(--radius-md); padding:14px; background:var(--void-2);">
+                  <div style="font-weight:600; color:var(--signal); margin-bottom:6px;">Free</div>
+                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Anonymous demo chat, plus the full agent on your own gateway with a daily cap.</div>
+                </div>
+                <div style="border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(120,180,255,0.06), rgba(120,180,255,0));">
+                  <div style="font-weight:600; color:var(--signal); margin-bottom:6px;">Pro</div>
+                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Higher daily limits and a hosted always-on gateway option — no machine of your own to keep running.</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <sc-if value="{{ account.isPro }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" class="btn secondary" onclick="{{ account.onPortal }}">Manage subscription</button>
+                </sc-if>
+                <sc-if value="{{ account.canUpgrade }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" class="btn primary" onclick="{{ account.onUpgradeMonthly }}">Upgrade to Pro</button>
+                  <sc-if value="{{ account.hasYearly }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" class="btn secondary" onclick="{{ account.onUpgradeYearly }}">Pay yearly</button>
+                  </sc-if>
+                </sc-if>
+                <sc-if value="{{ account.billingError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.billingError }}</span></sc-if>
+              </div>
+            </div>
+          </sc-if>
         </sc-if>
         <sc-if value="{{ account.authUnavailable }}" hint-placeholder-val="{{ true }}">
           <div class="card" style="max-width:640px;">
@@ -2003,6 +2035,11 @@ body { perspective: 1800px; }
             <div style="font-size:13px; line-height:1.6; color:var(--signal-dim);">This build of the cockpit has no hosted sign-in configured. You can still chat here (anonymous demo), or pair your own local gateway from <b>Connect</b> to run the full agent on your machine.</div>
           </div>
         </sc-if>
+        <div style="margin-top:28px; padding-top:16px; border-top:1px solid var(--edge); font-size:12px; color:var(--signal-mute); display:flex; gap:16px; flex-wrap:wrap;">
+          <a href="/terms.html" target="_blank" rel="noopener" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">Terms</a>
+          <a href="/privacy.html" target="_blank" rel="noopener" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">Privacy</a>
+          <a href="mailto:support@musehq.io" style="color:var(--signal-mute); text-decoration:none;" style-hover="text-decoration:underline;">support@musehq.io</a>
+        </div>
       </section>
     </sc-if>
 
@@ -2128,6 +2165,8 @@ class Component extends DCLogic {
     bindToken: '', bindBusy: false, bindError: '',
     // Live channel/schedule data from the gateway (null → show seeded demo).
     channelsLive: null, schedulesLive: null,
+    // Commerce state.
+    billingBusy: false, billingError: '', tier: 'free',
     // PWA install (Add to device). canInstall flips true once the browser fires
     // beforeinstallprompt (or on iOS Safari, where we show a gesture hint).
     canInstall: false,
@@ -3685,6 +3724,23 @@ class Component extends DCLogic {
       if (r.status === 401) { this._signOutLocal(); return; }
       if (r.ok) { const d = await r.json(); this.setState({ relayConnected: !!d.connected, relayGatewayUrl: d.gateway_url || '' }); }
     } catch (e) { /* relay not configured or unreachable; leave as-is */ }
+    this._checkTier();
+  };
+
+  // Read the account's own subscription row (RLS: select-own) to reflect Pro
+  // status in the pricing card. Best-effort; defaults to free.
+  _checkTier = async () => {
+    const sess = this.state.auth; const supa = this._supa();
+    if (!sess || !sess.access_token || !supa) return;
+    try {
+      const url = supa.supabaseUrl + '/rest/v1/subscriptions?select=tier,status&limit=1';
+      const r = await fetch(url, { headers: { apikey: supa.supabaseAnonKey, Authorization: 'Bearer ' + sess.access_token, Accept: 'application/json' } });
+      if (!r.ok) return;
+      const rows = await r.json();
+      const row = Array.isArray(rows) ? rows[0] : null;
+      const active = row && (row.status === 'active' || row.status === 'trialing');
+      this.setState({ tier: active && row.tier === 'pro' ? 'pro' : 'free' });
+    } catch (e) { /* leave as free */ }
   };
 
   // Signed-in chat runs the FULL agent when the account has a bound gateway.
@@ -3719,6 +3775,41 @@ class Component extends DCLogic {
       await fetch('/api/gateway-binding', { method: 'DELETE', headers: { Authorization: 'Bearer ' + sess.access_token } });
     } catch (e) {}
     this.setState({ relayConnected: false, relayGatewayUrl: '' });
+  };
+
+  // ===== Commerce (Stripe Checkout + Billing Portal) =====
+  startCheckout = (interval) => async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) { this.setState({ activeView: 'account' }); return; }
+    this.setState({ billingBusy: true, billingError: '' });
+    try {
+      const r = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+        body: JSON.stringify({ interval: interval || 'monthly' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.url) { window.location.href = d.url; return; }
+      this.setState({ billingBusy: false, billingError: (d && d.error) || ('Checkout failed (' + r.status + ').') });
+    } catch (e) {
+      this.setState({ billingBusy: false, billingError: 'Could not reach billing (' + ((e && e.message) || e) + ').' });
+    }
+  };
+  openPortal = async () => {
+    const sess = this.state.auth;
+    if (!sess || !sess.access_token) return;
+    this.setState({ billingBusy: true, billingError: '' });
+    try {
+      const r = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + sess.access_token },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.url) { window.location.href = d.url; return; }
+      this.setState({ billingBusy: false, billingError: (d && d.error) || ('Could not open the billing portal (' + r.status + ').') });
+    } catch (e) {
+      this.setState({ billingBusy: false, billingError: 'Could not reach billing (' + ((e && e.message) || e) + ').' });
+    }
   };
 
   _connVals(s) {
@@ -4316,6 +4407,17 @@ class Component extends DCLogic {
         onSubmit: this.submitAuth, onSignOut: this.signOut,
         onGatewayUrl: this.setGatewayUrl, onBindToken: this.setBindToken,
         onBind: this.bindGateway, onUnbind: this.unbindGateway,
+        // commerce
+        billingConfigured: !!(s.cfg && s.cfg.billing && s.cfg.billing.configured),
+        hasYearly: !!(s.cfg && s.cfg.billing && s.cfg.billing.hasYearly),
+        isPro: s.tier === 'pro',
+        canUpgrade: !!(s.auth && s.auth.access_token) && s.tier !== 'pro',
+        planLabel: s.tier === 'pro' ? 'Pro' : 'Free',
+        planCls: s.tier === 'pro' ? 'pill ok' : 'pill neutral',
+        billingError: s.billingError,
+        onUpgradeMonthly: this.startCheckout('monthly'),
+        onUpgradeYearly: this.startCheckout('yearly'),
+        onPortal: this.openPortal,
       },
       // jobs
       jobs, hasJobs: jobs.length > 0, noJobs: jobs.length === 0, jobsCards: s.jobsLayout === 'cards' && jobs.length > 0, jobsStream: s.jobsLayout === 'stream' && jobs.length > 0,
