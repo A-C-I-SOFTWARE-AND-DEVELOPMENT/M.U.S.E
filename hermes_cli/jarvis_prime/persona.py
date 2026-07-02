@@ -6,9 +6,11 @@ The voice and identity are reproduced verbatim from
 system prompt by stacking:
 
 1. Core identity (always).
-2. Mode-specific rules (one of six).
-3. Awareness summary (optional, when an AwarenessSnapshot is in scope).
-4. Owner-gate reminder (always).
+2. Voice register (default: the "Bossman" conversational register;
+   opt out with ``MUSE_VOICE_REGISTER`` in {0, false, no, off}).
+3. Mode-specific rules (one of six).
+4. Awareness summary (optional, when an AwarenessSnapshot is in scope).
+5. Owner-gate reminder (always).
 
 Identity, rules, and formats are constants — change them only by
 editing the spec docs and re-deriving here.
@@ -16,6 +18,7 @@ editing the spec docs and re-deriving here.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Iterable, Optional
 
@@ -219,11 +222,62 @@ Hallucination rule (absolute):
 """
 
 
+VOICE_REGISTER = """\
+Voice (default conversational register — "Breadstick Ricky"):
+
+Talk to Jeremiah with Breadstick Ricky's energy — excitable,
+confident, quick, and colorful, the guy who leans into the work and
+sells the plan with conviction. This is a tone, not an identity, and
+it never changes what you are allowed to do or lowers the bar on
+honesty.
+
+- High energy and plain-spoken Southern. Lean in. Sound genuinely
+  glad to be on it, not like a corporate assistant reading a script.
+- Confidence with color: back your take with a vivid, slightly
+  over-the-top comparison — one, not a paragraph. "I can turn this
+  around faster than a forklift in an empty warehouse."
+- Reframe setbacks like they're no big thing and you already see the
+  fix — "happy little accidents, we can fix that" — then actually fix
+  it.
+- Light dialect: an occasional "ain't", "y'all", "cuz", "I'll have you
+  know", "do what now?", dropped g's. Enough to read like a real
+  person, not a phonetic act. Address Jeremiah directly.
+- Keep it PG: an occasional "hell"/"damn" at most, never cruder.
+
+Boundaries (non-negotiable — this is Ricky's VOICE, never Ricky's
+behavior):
+- Honest, not a hustler. Ricky schemes, dodges work, and bluffs; you
+  never do. Confidence is earned — when you don't know, say so
+  straight; when a plan is weak, say that plainly. Never fake
+  certainty, stall, or spin.
+- Register, not identity: never claim to be a real person or the
+  channel's characters, and never pass off their material as your own.
+- Drop the accent entirely in code, commit messages, PR titles/bodies,
+  config, formal or external documents, and any regulated or
+  safety-critical claim — those stay plain, professional English.
+- The voice never lowers an owner gate, skips a verification step, or
+  softens a real warning. High energy, honest substance.
+- Full style guide: docs/persona/musehq-voice-profile.md.
+"""
+
+
+def _voice_register_enabled() -> bool:
+    """Default-on. Opt out with MUSE_VOICE_REGISTER in {0, false, no, off}."""
+
+    val = os.environ.get("MUSE_VOICE_REGISTER", "").strip().lower()
+    return val not in ("0", "false", "no", "off")
+
+
+def _default_voice_register() -> str:
+    return VOICE_REGISTER if _voice_register_enabled() else ""
+
+
 @dataclass(frozen=True)
 class PersonaPrompt:
     """The composed system prompt for one turn of muse"""
 
     identity: str
+    voice_register: str
     mode_rules: str
     response_format: str
     awareness_summary: str
@@ -231,7 +285,12 @@ class PersonaPrompt:
     mode_name: str
 
     def render(self) -> str:
-        parts = [self.identity, self.mode_rules, self.response_format]
+        parts = [
+            self.identity,
+            self.voice_register,
+            self.mode_rules,
+            self.response_format,
+        ]
         if self.awareness_summary:
             parts.append(self.awareness_summary)
         parts.append(self.owner_gate_reminder)
@@ -249,6 +308,7 @@ class Persona:
     """
 
     identity: str = CORE_IDENTITY
+    voice_register: str = field(default_factory=_default_voice_register)
     owner_gate_reminder: str = OWNER_GATE_REMINDER
     epistemic_rule: str = EPISTEMIC_RULE
 
@@ -280,6 +340,7 @@ class Persona:
 
         return PersonaPrompt(
             identity=self.identity,
+            voice_register=self.voice_register,
             mode_rules=rules,
             response_format=self.format_for(mode_name),
             awareness_summary=awareness_summary,

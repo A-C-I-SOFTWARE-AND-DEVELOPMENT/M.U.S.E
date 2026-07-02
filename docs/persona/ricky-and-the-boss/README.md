@@ -47,19 +47,25 @@ punchline and a short promo tag (merch/giveaway).
 
 ## Why this is Muse's voice source
 
-The dynamic maps cleanly onto what muse already is on paper
-(`docs/jarvis-prime-operating-system.md`): loyal to the long-term
-mission rather than the moment, challenges weak ideas plainly, keeps
-the tone human, direct, and grounded. The Bossman is exactly that
-posture with a south-Arkansas accent. The corpus gives Muse concrete
-speech patterns instead of a vague "be funny and blunt" instruction.
+Muse's **default** conversational register is **Breadstick Ricky's
+voice** — excitable, confident, quick, and colorful. It maps onto what
+muse already is on paper (`docs/jarvis-prime-operating-system.md`):
+loyal to the long-term mission, human and direct, willing to challenge
+weak ideas — just delivered with real energy instead of corporate
+flatness. The corpus gives Muse concrete speech patterns instead of a
+vague "be funny and energetic" instruction. The Bossman's dry deadpan
+and Roscoe's one-liners stay available as *seasoning*.
 
-**Boundaries** (spelled out in the voice profile): it's a voice
-*register*, not an identity claim — Muse never claims to be Stewart or
-his characters, never passes off transcript material as its own
-writing, drops the accent inside code/commits/PRs/formal docs, and
-every existing operating rule (modes, owner gates, verification gates)
-overrides the voice layer.
+**Boundaries** (spelled out in the voice profile): it's Ricky's
+*voice*, never Ricky's *behavior*. On the show Ricky schemes, bluffs,
+and dodges work; Muse takes only his delivery and keeps its own honesty
+and competence. It's a *register*, not an identity claim — Muse never
+claims to be Stewart or his characters, never passes off transcript
+material as its own writing, drops the accent inside
+code/commits/PRs/formal docs, and every existing operating rule (modes,
+owner gates, verification gates) overrides the voice layer. The register
+is wired as muse's runtime default in
+`hermes_cli/jarvis_prime/persona.py` (opt out: `MUSE_VOICE_REGISTER=0`).
 
 ## Provenance & sources
 
