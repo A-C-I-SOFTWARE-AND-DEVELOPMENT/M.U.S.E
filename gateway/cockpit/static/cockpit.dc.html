@@ -275,6 +275,48 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .header-status .status-text { font-size: var(--type-label-size); color: var(--signal-dim); }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); }
 
+/* Skip-to-content: visually hidden until focused (keyboard a11y). */
+.skip-link {
+  position: fixed;
+  top: 8px; left: 8px;
+  z-index: 300;
+  transform: translateY(-150%);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--void-3);
+  border: 1px solid var(--ring-1);
+  color: var(--signal);
+  font-size: var(--type-label-size);
+  transition: transform var(--duration-fast) var(--easing-standard);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* Hamburger + drawer backdrop: desktop-hidden, revealed at the mobile breakpoint. */
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px; height: 40px;
+  flex: none;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  background: var(--void-2);
+  color: var(--signal);
+  cursor: pointer;
+}
+.nav-toggle:hover { border-color: rgba(122,224,255,0.3); }
+.nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(4,5,9,0.6);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
 /* ---- Left nav rail ----------------------------------------------------- */
 .app-nav {
   grid-area: nav;
@@ -368,8 +410,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 
 /* Primary — core fill, void text (the single bright control). */
-.btn.primary { background: var(--core); color: var(--void); border-color: var(--core); }
-.btn.primary:hover:not(:disabled) { background: #f2fbff; border-color: #f2fbff; }
+.btn.primary { background: var(--ring-grad); color: #06121a; border-color: transparent; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* Secondary — 1px edge + signal text, tonal fill on interaction. */
 .btn.secondary { border-color: var(--edge); color: var(--signal); }
@@ -580,28 +622,57 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 /* ======================================================================== *
  * Responsive — collapse the rail to a horizontal strip on narrow viewports
  * ======================================================================== */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  /* Single-column shell; the nav becomes an off-canvas drawer toggled by the
+     header hamburger, so the content gets the full width and the 27-item nav
+     never piles up inline. */
   .app {
     grid-template-columns: 1fr;
     grid-template-areas:
       "header"
-      "nav"
       "main";
-    height: auto;
-    overflow: visible;
+    height: 100vh;
+    overflow: hidden;
   }
-  .app-main { overflow: visible; }
+  .nav-toggle { display: inline-flex; }
+  .header-telemetry { display: none !important; }  /* beats the inline display:flex */
+  .lockup .expansion { display: none; }            /* keep just the wordmark */
+  .app-header { gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+  .header-actions { gap: 6px; }
+
   .app-nav {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    border-right: 0;
-    border-bottom: 1px solid var(--edge);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: min(84vw, 320px);
+    height: 100vh;
+    z-index: 50;
+    border-right: 1px solid var(--edge);
+    background: linear-gradient(180deg, var(--void-2), var(--void));
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    transform: translateX(-102%);
+    transition: transform var(--duration-base, .28s) var(--easing-standard);
+    will-change: transform;
+    padding-top: var(--space-4);
+    overscroll-behavior: contain;
   }
-  .nav-item { width: auto; }
-  .nav-item.active::before { display: none; }
-  .nav-item.active { box-shadow: inset 0 -2px 0 0 var(--ring-1); }
+  .app.nav-open .app-nav { transform: translateX(0); }
+  .app.nav-open .nav-backdrop { display: block; opacity: 1; }
+
+  .app-main { padding: var(--space-4); }
+  .view { max-width: 100%; }
+}
+
+@media (max-width: 480px) {
+  /* On the smallest phones, drop the non-essential Audio/Reset controls and the
+     status label text (the dot remains) so the header never overflows. Connect
+     and Emergency stop always stay reachable. */
+  .hide-phone { display: none !important; }
+  .header-status .status-text { display: none; }
+  .app-header { padding: var(--space-3); gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav { transition: none; }
 }
 
 /* =====================================================================
@@ -665,9 +736,9 @@ body { perspective: 1800px; }
 .btn:hover { transform: translateY(-1.5px); }
 .btn:active { transform: translateY(0) scale(.975); }
 .btn.primary {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 10px 24px -12px rgba(255,255,255,0.30);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 10px 26px -12px rgba(122,224,255,0.5);
 }
-.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 16px 32px -12px rgba(255,255,255,0.42); }
+.btn.primary:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 16px 36px -12px rgba(150,180,255,0.6); }
 .btn.secondary:hover { box-shadow: 0 0 0 1px rgba(122,224,255,0.18), 0 12px 26px -16px rgba(122,224,255,0.3); }
 .btn.danger:hover { box-shadow: 0 0 26px -8px rgba(255,92,99,0.5); }
 
@@ -746,10 +817,15 @@ body { perspective: 1800px; }
 </sc-if>
 
 <!-- ===== The cockpit ===== -->
-<div class="app" style="position:relative; z-index:2;">
+<div class="{{ appCls }}" style="position:relative; z-index:2;">
+
+  <a href="#main" class="skip-link">Skip to content</a>
 
   <!-- Header -->
   <header class="app-header">
+    <button type="button" class="nav-toggle" onclick="{{ onToggleNav }}" aria-label="{{ navToggleLabel }}" aria-controls="cockpit-nav">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>
+    </button>
     <span class="lockup">
       <span class="glyph spin" style="position:relative;">
         <span style="position:absolute; inset:-14px; border-radius:50%; pointer-events:none; background:radial-gradient(circle at 50% 50%, rgba(122,224,255,0.10) 0%, rgba(122,224,255,0) 70%);"></span>
@@ -765,7 +841,8 @@ body { perspective: 1800px; }
 
     <span class="grow"></span>
 
-    <div style="display:flex; align-items:center; gap:20px; margin-right:8px;">
+    <sc-if value="{{ telemetryLive }}" hint-placeholder-val="{{ false }}">
+    <div class="header-telemetry" style="display:flex; align-items:center; gap:20px; margin-right:8px;">
       <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
         <span style="font-family:var(--mono); font-size:13px; color:var(--signal);">{{ telemetry.uptime }}</span>
         <span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">running for</span>
@@ -781,6 +858,7 @@ body { perspective: 1800px; }
         <span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">speed</span>
       </div>
     </div>
+    </sc-if>
 
     <span class="header-status">
       <span class="{{ conn.dotCls }}"></span>
@@ -788,12 +866,15 @@ body { perspective: 1800px; }
     </span>
     <span class="header-actions">
       <sc-if value="{{ canInstall }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn primary" onclick="{{ onInstall }}" title="Install muse as an app on this device">{{ installLabel }}</button></sc-if>
-      <button type="button" class="btn secondary" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
-      <button type="button" class="btn secondary" onclick="{{ onResetAll }}" title="Undo all your changes across the cockpit">Reset</button>
+      <button type="button" class="btn secondary hide-phone" onclick="{{ onToggleAudio }}" title="Turn interface sounds on or off">{{ audioLabel }}</button>
+      <button type="button" class="btn secondary hide-phone" onclick="{{ onResetAll }}" title="Undo all your changes across the cockpit">Reset</button>
       <button type="button" class="btn secondary" onclick="{{ onToken }}" title="Connect a device">Connect</button>
       <button type="button" class="{{ stopBtnCls }}" onclick="{{ onEmergency }}" title="Pause everything and switch to view-only">{{ stopLabel }}</button>
     </span>
   </header>
+
+  <!-- Mobile nav drawer backdrop (only visible/interactive when the drawer is open) -->
+  <div class="nav-backdrop" onclick="{{ onCloseNav }}" aria-hidden="true"></div>
 
   <!-- ===== Connection panel (real gateway pairing) ===== -->
   <sc-if value="{{ conn2.open }}" hint-placeholder-val="{{ false }}">
@@ -930,7 +1011,7 @@ body { perspective: 1800px; }
   </sc-if>
 
   <!-- Nav rail -->
-  <nav class="app-nav" aria-label="Cockpit destinations">
+  <nav class="app-nav" id="cockpit-nav" aria-label="Cockpit destinations">
     <sc-for list="{{ nav }}" as="item" hint-placeholder-count="11">
       <sc-if value="{{ item.isSection }}" hint-placeholder-val="{{ false }}">
         <div class="nav-section">{{ item.label }}</div>
@@ -947,7 +1028,7 @@ body { perspective: 1800px; }
   </nav>
 
   <!-- Main -->
-  <main class="app-main">
+  <main class="app-main" id="main">
 
     <!-- ===================== CHAT ===================== -->
     <sc-if value="{{ show.chat }}" hint-placeholder-val="{{ false }}">
@@ -2190,6 +2271,7 @@ class Component extends DCLogic {
     connError: '',
     liveRuntime: null,
     activeView: 'chat', // chat-first: open to the assistant, not the demo Tasks view
+    navOpen: false, // mobile nav drawer (desktop ignores it via CSS)
     jobsLayout: 'cards',
     halted: false,
     composer: '',
@@ -2836,7 +2918,9 @@ class Component extends DCLogic {
   dl = () => this._sfx('pick');
   editRelease = (key) => (e) => { const v = e.target.textContent.replace(/\s+/g, ' ').trim(); this.setState(s => { const w = { ...s.work }; w.release = { ...w.release, [key]: v }; return { work: w }; }); this._sfx('edit'); };
   editPlatform = (idx, key) => (e) => { const v = e.target.textContent.replace(/\s+/g, ' ').trim(); this.setState(s => { const w = { ...s.work }; const rel = { ...w.release }; const ps = rel.platforms.slice(); ps[idx] = { ...ps[idx], [key]: v }; rel.platforms = ps; w.release = rel; return { work: w }; }); this._sfx('edit'); };
-  select = (id) => () => { this._sfx('nav'); this.setState({ activeView: id }); };
+  select = (id) => () => { this._sfx('nav'); this.setState({ activeView: id, navOpen: false }); };
+  toggleNav = () => { this._sfx('nav'); this.setState({ navOpen: !this.state.navOpen }); };
+  closeNav = () => this.setState({ navOpen: false });
   stop = (e) => { e.stopPropagation(); };
 
   // ---- audio engine (Web Audio, synthesized on-brand blips) ----
@@ -4363,6 +4447,10 @@ class Component extends DCLogic {
       telemetry: (s.connState === 'live')
         ? { uptime: this._liveUptime(s), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
         : { uptime: '—', latency: '—', tps: '—' },
+      telemetryLive: s.connState === 'live',
+      appCls: s.navOpen ? 'app nav-open' : 'app',
+      onToggleNav: this.toggleNav, onCloseNav: this.closeNav,
+      navToggleLabel: s.navOpen ? 'Close menu' : 'Open menu',
       onToken: this.onToken, onEmergency: this.onEmergency,
       // chat
       chat: s.chat.map((m, mi) => ({ ...m, align: m.isMuse ? 'flex-start' : 'flex-end', who: m.who, hasRouting: !!m.routing,
