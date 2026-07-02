@@ -332,6 +332,15 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "trinity-large-preview",
         "trinity-mini",
     ],
+    # Cerebras rotates its catalog fast (May 2026 deprecated the llama/qwen-32b
+    # era IDs) — this static list is the July-2026 lineup; the live /v1/models
+    # fetch wins whenever CEREBRAS_API_KEY is set.
+    "cerebras": [
+        "zai-glm-4.7",
+        "gpt-oss-120b",
+        "qwen-3-coder-480b",
+        "gemma-4-31b-it",
+    ],
     "gmi": [
         "zai-org/GLM-5.1-FP8",
         "deepseek-ai/DeepSeek-V3.2",
@@ -951,6 +960,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("ollama-cloud",   "Ollama Cloud",             "Ollama Cloud (cloud-hosted open models — ollama.com)"),
     ProviderEntry("arcee",          "Arcee AI",                 "Arcee AI (Trinity models — direct API)"),
     ProviderEntry("gmi",            "GMI Cloud",                "GMI Cloud (multi-model direct API)"),
+    ProviderEntry("cerebras",       "Cerebras",                 "Cerebras (wafer-scale inference, ~1,000-3,000 tok/s — the speed lane)"),
     ProviderEntry("kilocode",       "Kilo Code",                "Kilo Code (Kilo Gateway API)"),
     ProviderEntry("opencode-zen",   "OpenCode Zen",             "OpenCode Zen (35+ curated models, pay-as-you-go)"),
     ProviderEntry("opencode-go",    "OpenCode Go",              "OpenCode Go (open models, $10/month subscription)"),
@@ -1006,6 +1016,9 @@ _PROVIDER_ALIASES = {
     "stepfun-coding-plan": "stepfun",
     "arcee-ai": "arcee",
     "arceeai": "arcee",
+    "cerebras-ai": "cerebras",
+    "cerebrasai": "cerebras",
+    "cerebras-cloud": "cerebras",
     "gmi-cloud": "gmi",
     "gmicloud": "gmi",
     "minimax-china": "minimax-cn",

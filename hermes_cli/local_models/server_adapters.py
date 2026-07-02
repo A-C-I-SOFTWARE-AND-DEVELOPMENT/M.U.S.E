@@ -6,7 +6,8 @@ and what OpenAI-compatible base URL it exposes. This module **never starts a
 server and never downloads anything** — it only produces the plan. The
 bootstrap layer and the CLI decide whether to actually run it.
 
-Supported runtimes: Ollama, llama.cpp, vLLM, SGLang, and any
+Supported runtimes: Ollama, llama.cpp, vLLM, SGLang, DSpark speculative
+decoding (llama.cpp/vLLM with a DeepSeek DSpark draft model), and any
 OpenAI-compatible local endpoint.
 """
 
@@ -147,11 +148,33 @@ class OpenAICompatibleAdapter(ServerAdapter):
         )
 
 
+class DsparkAdapter(ServerAdapter):
+    """DSpark speculative decoding on top of llama.cpp or vLLM.
+
+    DSpark (DeepSeek + PKU, MIT) pairs the target model with a small draft
+    module for 60-85% faster generation at identical output quality. The
+    draft catalog and plan builder live in ``dspark.py`` (imported lazily —
+    this dict is built at module import).
+    """
+
+    def __init__(self) -> None:
+        super().__init__(runtime="dspark", binary="", default_port=8080)
+
+    def is_installed(self) -> bool:
+        return any(_ADAPTERS[r].is_installed() for r in ("llama.cpp", "vllm"))
+
+    def launch_plan(self, model: str, *, port: Optional[int] = None) -> LaunchPlan:
+        from hermes_cli.local_models.dspark import build_dspark_plan
+
+        return build_dspark_plan(model, port=port)
+
+
 _ADAPTERS: dict[str, ServerAdapter] = {
     "ollama": OllamaAdapter(),
     "llama.cpp": LlamaCppAdapter(),
     "vllm": VllmAdapter(),
     "sglang": SglangAdapter(),
+    "dspark": DsparkAdapter(),
     "openai-compatible": OpenAICompatibleAdapter(),
 }
 

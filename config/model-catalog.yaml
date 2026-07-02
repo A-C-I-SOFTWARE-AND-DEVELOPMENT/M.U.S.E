@@ -21,9 +21,13 @@ defaults:
     - openrouter/llama-3.3-70b
     - novita/llama-3.3-70b
     - nvidia/llama-3.1-nemotron-70b
+    - cerebras/zai-glm-4.7
   fast:
     - ollama-local/qwen3_5-9b
     - ollama-local/gemma4-12b
+    # Cloud speed lane: wafer-scale Cerebras beats any cloud 8B on latency
+    # AND quality when CEREBRAS_API_KEY is present; stays behind local-first.
+    - cerebras/gpt-oss-120b
     - openrouter/llama-3.1-8b
   local:
     - ollama-local/qwen3_5-9b
@@ -147,6 +151,37 @@ providers:
         params_b: 671
         context: 65536
         tags: [oss, general, coding]
+
+  # Wafer-scale speed lane (~1,000-3,000 tok/s). Catalog rotates fast —
+  # these are the July-2026 IDs; `hermes doctor` probes /v1/models live.
+  cerebras:
+    requires_env: CEREBRAS_API_KEY
+    plugin: model-providers/cerebras
+    models:
+      - id: gemma-4-31b-it
+        model: gemma-4-31b-it
+        family: gemma
+        params_b: 31
+        context: 131072
+        tags: [oss, fast, general, multimodal]
+      - id: gpt-oss-120b
+        model: gpt-oss-120b
+        family: gpt-oss
+        params_b: 120
+        context: 131072
+        tags: [oss, fast, general, reasoning, tools]
+      - id: qwen-3-coder-480b
+        model: qwen-3-coder-480b
+        family: qwen
+        params_b: 480
+        context: 131072
+        tags: [oss, fast, coding, tools]
+      - id: zai-glm-4.7
+        model: zai-glm-4.7
+        family: glm
+        params_b: 357
+        context: 131072
+        tags: [oss, fast, coding, reasoning, tools]
 
   nvidia:
     requires_env: NVIDIA_API_KEY
