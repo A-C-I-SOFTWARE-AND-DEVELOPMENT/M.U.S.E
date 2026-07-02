@@ -839,7 +839,7 @@ body { perspective: 1800px; }
       </div>
     </div>
 
-    <button type="button" class="header-status" onclick="{{ onToken }}" title="Connect a gateway or set a provider key">
+    <button type="button" class="header-status" onclick="{{ onToken() }}" title="Connect a gateway or set a provider key">
       <span class="{{ conn.dotCls }}"></span>
       <span class="status-text">{{ conn.label }}</span>
     </button>
