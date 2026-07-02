@@ -73,31 +73,32 @@ def test_event_log_read_tail_matches_full_scan(home: Path) -> None:
         for i in range(400):
             if i % 37 == 0:
                 fh.write("{not json]\n")
+            # i == 200 gets a pad larger than the tail block so one record
+            # spans multiple backwards-read blocks.
+            attributes: dict = {"i": i}
+            if i == 200:
+                attributes["pad"] = "y" * (event_log._TAIL_BLOCK * 2 + 17)
             rec = {
                 "ts": f"2026-07-{(i % 28) + 1:02d}T12:00:00+00:00",
                 "level": ("info", "warn", "error")[i % 3],
                 "source": ("gateway", "worker", "hook", "cron")[i % 4],
                 "job_id": f"j{i % 5}",
                 "message": f"m{i}",
-                "attributes": {"i": i},
+                "attributes": attributes,
             }
-            if i == 200:  # spans multiple tail blocks
-                rec["attributes"]["pad"] = "y" * (event_log._TAIL_BLOCK * 2 + 17)
             fh.write(_json.dumps(rec) + "\n")
 
-    cases = [
-        dict(limit=10),
-        dict(limit=50, source="hook"),
-        dict(limit=7, level="error,warn", source="gateway,worker"),
-        dict(limit=5, job_id="j3"),
-        dict(limit=30, since="2026-07-15"),
-        dict(limit=10_000),  # limit exceeds matches -> everything
+    cases: list = [
+        (10, {}),
+        (50, {"source": "hook"}),
+        (7, {"level": "error,warn", "source": "gateway,worker"}),
+        (5, {"job_id": "j3"}),
+        (30, {"since": "2026-07-15"}),
+        (10_000, {}),  # limit exceeds matches -> everything
     ]
-    for kw in cases:
-        limit = kw["limit"]
-        rest = {k: v for k, v in kw.items() if k != "limit"}
+    for limit, rest in cases:
         full = event_log.read(limit=0, **rest)
-        assert event_log.read(**kw) == full[-limit:], kw
+        assert event_log.read(limit=limit, **rest) == full[-limit:], (limit, rest)
 
 
 def test_event_log_read_empty_and_missing(home: Path) -> None:
