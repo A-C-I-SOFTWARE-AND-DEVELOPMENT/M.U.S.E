@@ -311,7 +311,7 @@ class MoEModelRouter:
             QueryType.FACTUAL: factual_score,
         }
 
-        best_type = max(scores, key=scores.get)
+        best_type = max(scores, key=scores.__getitem__)
         best_score = scores[best_type]
 
         if best_score == 0:

@@ -27,7 +27,17 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from utils import atomic_json_write
 
-import requests
+
+def __getattr__(name: str):
+    # PEP 562: `requests` is imported lazily (costs ~50ms; only the network
+    # fetch needs it) but must stay reachable as a module attribute so
+    # @patch("agent.models_dev.requests.get") keeps working in tests.
+    if name == "requests":
+        import requests
+
+        return requests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 logger = logging.getLogger(__name__)
 
@@ -286,8 +296,11 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
                 )
                 return _models_dev_cache
 
-    # Stage 3: network fetch.
+    # Stage 3: network fetch. requests is imported here, not at module top —
+    # it costs ~50ms and the cache-hit paths above never need it.
     try:
+        import requests
+
         response = requests.get(MODELS_DEV_URL, timeout=15)
         response.raise_for_status()
         data = response.json()

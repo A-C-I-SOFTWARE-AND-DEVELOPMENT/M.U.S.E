@@ -2,7 +2,6 @@
 
 import json
 import logging
-import urllib.request
 
 from providers import register_provider
 from providers.base import ProviderProfile
@@ -23,6 +22,10 @@ class AnthropicProfile(ProviderProfile):
         if not api_key:
             return None
         try:
+            # Lazy: urllib.request costs ~15ms at import and provider plugins
+            # load eagerly on the CLI startup path (discovery in config).
+            import urllib.request
+
             req = urllib.request.Request("https://api.anthropic.com/v1/models")
             req.add_header("x-api-key", api_key)
             req.add_header("anthropic-version", "2023-06-01")
