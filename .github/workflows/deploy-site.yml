@@ -12,9 +12,11 @@ on:
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
 
+# Least privilege: only the docs job writes (it pushes the built site to the
+# gh-pages branch, which is how this repo's GitHub Pages is served). The Vercel
+# job just curls a deploy hook and needs no write scope.
 permissions:
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: pages
@@ -44,9 +46,12 @@ jobs:
   deploy-docs:
     if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    # Publishes to the gh-pages branch (this repo's Pages source), so it needs
+    # write access to repo contents. No `environment: github-pages` block: that
+    # gate enforced a deploy-branch policy that rejected the Actions-artifact
+    # path from main ("Deployments are only allowed from gh-pages").
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
@@ -89,6 +94,10 @@ jobs:
         run: |
           mkdir -p _site/docs
           cp -r website/build/* _site/docs/
+          # .nojekyll disables GitHub Pages' Jekyll pass, which would otherwise
+          # strip Docusaurus's underscore-prefixed asset dirs on the branch
+          # source. The `cp * ` glob above skips dotfiles, so add it explicitly.
+          touch _site/.nojekyll
           # llms.txt / llms-full.txt are also published at the site root
           # (https://a-c-i-software-and-development.github.io/muse/llms.txt) because some
           # agents and IDE plugins probe the classic root-level path rather
@@ -100,11 +109,18 @@ jobs:
             cp website/build/llms-full.txt _site/llms-full.txt
           fi
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deploy
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
+      # Publish to the gh-pages branch (this repo's Pages source). A plain git
+      # push with GITHUB_TOKEN — no third-party action to SHA-pin, matching this
+      # workflow's pinned-actions posture. The fresh repo inside _site force-
+      # pushes an orphan snapshot each run, keeping the branch a small artifact.
+      - name: Publish to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd _site
+          git init -q -b gh-pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy docs from ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
