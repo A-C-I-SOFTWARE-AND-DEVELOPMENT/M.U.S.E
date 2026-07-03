@@ -71,6 +71,31 @@ owner gates, verification gates) overrides the voice layer. The register
 is wired as muse's runtime default in
 `hermes_cli/jarvis_prime/persona.py` (opt out: `MUSE_VOICE_REGISTER=0`).
 
+## Retrieval — quoting specific bits, not just the style
+
+The voice register (`persona.py`) teaches muse *how to talk*. To let it
+**quote or riff on specific bits**, the corpus is bridged into the
+**Research Vault** by
+[`hermes_cli/jarvis_prime/persona_corpus.py`](../../../hermes_cli/jarvis_prime/persona_corpus.py),
+mirroring the `open_data_sources` → vault pattern. Each transcript
+becomes a source-cited artifact (YouTube URL, video id, character/theme
+tags), graded **WEAK** evidence with a license note — private
+voice-reference, not authoritative claims. Because the GraphRAG evidence
+indexer pulls the vault into the graph, the corpus is then reachable via
+both `ResearchVault.search` and `graph_query`.
+
+CLI (`python -m hermes_cli.jarvis_prime persona-corpus …`):
+
+| Command | What it does |
+|---|---|
+| `list` | List the transcripts with inferred character/theme tags |
+| `search "<terms>"` | Keyword-find a quotable skit + its YouTube citation |
+| `register-vault` | Bridge the corpus into the Research Vault (`--dry-run` to preview) |
+
+Nothing is downloaded — the transcripts are already in this folder. The
+bridge is idempotent (artifacts keyed by title+URL), reads the corpus
+from here by default, and honors `HERMES_PERSONA_CORPUS_DIR`.
+
 ## Provenance & sources
 
 - Transcripts were captured 2026-07-02 via Exa page snapshots of the

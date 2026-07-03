@@ -55,6 +55,10 @@ Subcommands:
 - ``data-sources {list|clusters|show|register-vault}`` — browse the open
   data-source registry (``docs/ai-intelligence/open-data-sources.yaml``) and
   bridge sources into the Research Vault. Read-only except ``register-vault``.
+- ``persona-corpus {list|search|register-vault}`` — the Breadstick Ricky voice
+  corpus (``docs/persona/ricky-and-the-boss/transcripts/``): list/search
+  transcripts and bridge them into the Research Vault so muse can quote/riff on
+  specific bits. Read-only except ``register-vault``.
 - ``architecture {list|show}`` — inspect the machine-readable M.U.S.E
   component registry (``docs/architecture/muse-component-registry.yaml``):
   list components by ``--kind``/``--risk``/``--owner-gated`` or show one by id,
@@ -1057,6 +1061,93 @@ def _cmd_data_sources_register_vault(args: argparse.Namespace) -> int:
     print(f"{verb} {len(result.registered)} source(s) into the Research Vault")
     for key, reason in result.skipped:
         print(f"  skipped {key}: {reason}")
+    if not dry_run:
+        print(f"  vault: {vault._resolve_path()}")
+    return 0
+
+
+# --- persona voice corpus (Breadstick Ricky) --------------------------------
+
+
+def _cmd_persona_corpus_list(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.persona_corpus import load_corpus
+
+    corpus_dir = Path(args.corpus_dir) if getattr(args, "corpus_dir", None) else None
+    transcripts = load_corpus(corpus_dir)
+    if getattr(args, "json", False):
+        _print_json(
+            [
+                {
+                    "video_id": t.video_id,
+                    "title": t.title,
+                    "url": t.url,
+                    "characters": list(t.characters),
+                    "themes": list(t.themes),
+                    "words": t.word_count,
+                }
+                for t in transcripts
+            ]
+        )
+        return 0
+    print(f"{len(transcripts)} transcript(s) in the persona corpus")
+    for t in transcripts:
+        who = ", ".join(t.characters) or "ensemble"
+        print(f"  {t.video_id}  {t.title[:60]}  [{who}]")
+    return 0
+
+
+def _cmd_persona_corpus_search(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.persona_corpus import search_corpus
+
+    corpus_dir = Path(args.corpus_dir) if getattr(args, "corpus_dir", None) else None
+    hits = search_corpus(args.query, corpus_dir=corpus_dir, limit=args.limit)
+    if getattr(args, "json", False):
+        _print_json(
+            [
+                {
+                    "title": a.title,
+                    "video_id": a.citation_anchors[0] if a.citation_anchors else "",
+                    "url": a.source_uri,
+                    "tags": list(a.tags),
+                }
+                for a in hits
+            ]
+        )
+        return 0
+    if not hits:
+        print(f"no persona-corpus matches for {args.query!r}")
+        return 0
+    print(f"top {len(hits)} match(es) for {args.query!r}:")
+    for a in hits:
+        vid = a.citation_anchors[0] if a.citation_anchors else "?"
+        print(f"  {vid}  {a.title[:60]}")
+        print(f"    {a.source_uri}")
+    return 0
+
+
+def _cmd_persona_corpus_register_vault(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.persona_corpus import register_all_in_vault
+    from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+    corpus_dir = Path(args.corpus_dir) if getattr(args, "corpus_dir", None) else None
+    dry_run = getattr(args, "dry_run", False)
+    vault_path = Path(args.store) if getattr(args, "store", None) else None
+    vault = ResearchVault.load(vault_path)
+    result = register_all_in_vault(vault, corpus_dir=corpus_dir, persist=not dry_run)
+    if getattr(args, "json", False):
+        _print_json(
+            {
+                "dry_run": dry_run,
+                "registered": [a.id for a in result.registered],
+                "skipped": [{"video_id": k, "reason": r} for k, r in result.skipped],
+                "vault": str(vault._resolve_path()),
+            }
+        )
+        return 0
+    verb = "would register" if dry_run else "registered"
+    print(f"{verb} {result.count} transcript(s) into the Research Vault")
+    for vid, reason in result.skipped:
+        print(f"  skipped {vid}: {reason}")
     if not dry_run:
         print(f"  vault: {vault._resolve_path()}")
     return 0
@@ -3179,6 +3270,55 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
     p_data_reg.add_argument("--json", action="store_true")
     p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
+
+    # persona-corpus — the Breadstick Ricky voice corpus
+    # (docs/persona/ricky-and-the-boss/transcripts/). Read-only list/search plus
+    # a Research-Vault bridge so muse can quote/riff on specific bits, not just
+    # imitate the register. See docs/persona/musehq-voice-profile.md.
+    p_persona = sub.add_parser(
+        "persona-corpus",
+        help="Breadstick Ricky voice corpus: list/search, bridge into the Research Vault",
+        description=(
+            "Browse the voice transcripts in "
+            "docs/persona/ricky-and-the-boss/transcripts/ and bridge them into "
+            "the Research Vault so muse can quote or riff on specific bits (the "
+            "vault feeds GraphRAG via the evidence indexer). Artifacts are graded "
+            "WEAK evidence and carry a license note — private voice-reference, "
+            "not authoritative claims. Read-only except 'register-vault'."
+        ),
+    )
+    p_persona_sub = p_persona.add_subparsers(dest="persona_corpus_command", required=True)
+
+    p_persona_list = p_persona_sub.add_parser("list", help="List corpus transcripts")
+    p_persona_list.add_argument("--corpus-dir", dest="corpus_dir", help="Override transcript directory")
+    p_persona_list.add_argument("--json", action="store_true")
+    p_persona_list.set_defaults(func=_cmd_persona_corpus_list)
+
+    p_persona_search = p_persona_sub.add_parser(
+        "search", help="Keyword-search the corpus for a quotable bit")
+    p_persona_search.add_argument("query", help="Search terms (e.g. 'raise honey bun')")
+    p_persona_search.add_argument("--limit", type=int, default=5, help="Max results (default 5)")
+    p_persona_search.add_argument("--corpus-dir", dest="corpus_dir", help="Override transcript directory")
+    p_persona_search.add_argument("--json", action="store_true")
+    p_persona_search.set_defaults(func=_cmd_persona_corpus_search)
+
+    p_persona_reg = p_persona_sub.add_parser(
+        "register-vault",
+        help="Bridge corpus transcripts into the Research Vault as cited artifacts",
+        description=(
+            "Record each transcript as a WEAK-evidence Research Vault artifact "
+            "(YouTube URL, video id, character/theme tags, license note). Nothing "
+            "is downloaded; the transcripts are already in the repo."
+        ),
+    )
+    p_persona_reg.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="Report what would be registered without writing the vault",
+    )
+    p_persona_reg.add_argument("--corpus-dir", dest="corpus_dir", help="Override transcript directory")
+    p_persona_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
+    p_persona_reg.add_argument("--json", action="store_true")
+    p_persona_reg.set_defaults(func=_cmd_persona_corpus_register_vault)
 
     # nvidia-dl-software — NVIDIA Deep Learning Software catalog (read-only +
     # a Research-Vault bridge). Inventory lives in
