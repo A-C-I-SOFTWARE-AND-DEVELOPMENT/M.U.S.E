@@ -314,3 +314,23 @@ def test_studio_portfolio_status_aggregates(tmp_path: Path):
     assert status["total_projects"] == 2
     assert status["active"] == 2
     assert status["released"] == 0
+
+
+def test_produce_on_reloaded_project_raises_actionable_error(tmp_path: Path):
+    """PortfolioManager.save()/load() does not persist ``brief``, so a project
+    reloaded from disk has brief=None. produce() must raise an actionable
+    RuntimeError instead of an opaque AttributeError deep in produce_game()."""
+    studio = AAAStudio(root=tmp_path)
+    proj = studio.new_game_project(GameBrief(title="Reload Me", genre="rpg", target="PC"))
+
+    save_path = tmp_path / "portfolio.json"
+    studio.portfolio_mgr.save(save_path)
+    reloaded_mgr = PortfolioManager.load(save_path)
+
+    reloaded = reloaded_mgr.get(proj.id)
+    assert reloaded is not None
+    assert reloaded.brief is None  # root cause: brief is not serialized
+
+    studio.portfolio_mgr = reloaded_mgr
+    with pytest.raises(RuntimeError, match="no brief"):
+        studio.produce(proj.id)

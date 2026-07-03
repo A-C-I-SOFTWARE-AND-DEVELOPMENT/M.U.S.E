@@ -57,23 +57,37 @@ def apply_anthropic_cache_control(
     messages, all at the same TTL.
 
     Returns:
-        Deep copy of messages with cache_control breakpoints injected.
+        A new list with cache_control breakpoints injected. Only the (<=4)
+        messages that receive a marker are deep-copied; the rest are shared by
+        reference from ``api_messages`` (the caller already builds those as
+        fresh per-turn shallow copies), so the input list is never mutated.
     """
-    messages = copy.deepcopy(api_messages)
-    if not messages:
-        return messages
+    if not api_messages:
+        return list(api_messages)
+
+    # Shallow list copy; deep-copy ONLY the messages we actually mark, right
+    # before mutating them. This avoids deep-copying the entire conversation
+    # history on every turn (the previous ``copy.deepcopy(api_messages)`` cost
+    # scaled linearly with history size and ran per-turn on the default Claude
+    # path). The wire payload is byte-identical: marked messages are copied
+    # before mutation, unmarked messages are unchanged.
+    messages = list(api_messages)
 
     marker = _build_marker(cache_ttl)
 
     breakpoints_used = 0
+    marked: List[int] = []
 
     if messages[0].get("role") == "system":
-        _apply_cache_marker(messages[0], marker, native_anthropic=native_anthropic)
+        marked.append(0)
         breakpoints_used += 1
 
     remaining = 4 - breakpoints_used
     non_sys = [i for i in range(len(messages)) if messages[i].get("role") != "system"]
-    for idx in non_sys[-remaining:]:
+    marked.extend(non_sys[-remaining:])
+
+    for idx in marked:
+        messages[idx] = copy.deepcopy(messages[idx])
         _apply_cache_marker(messages[idx], marker, native_anthropic=native_anthropic)
 
     return messages
