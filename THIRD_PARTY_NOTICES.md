@@ -7,6 +7,62 @@ attribution.
 
 ---
 
+## OpenCode (sst/opencode) — chat renderer for musehq.io
+
+- **Project:** OpenCode — the open-source, provider-agnostic AI coding agent.
+- **Source:** https://github.com/sst/opencode (commit `b44bc0a`, v1.17.13)
+- **License:** MIT License — Copyright (c) 2025 opencode.
+
+**How MUSE uses it.** musehq.io (`web/musehq/`) is built **on top of
+OpenCode's own chat layout**. We vendor OpenCode's self-contained
+Share-viewer chat renderer verbatim under
+`web/musehq/vendor/opencode/` — the SolidJS message/part components
+(`share/part.tsx`, `share/content-*.tsx`, `share/common.tsx`,
+`share/copy-button.tsx`), the icon set (`icons/`), and the accompanying
+CSS modules — and compose them into a MUSE Solid+Vite app. Their chat
+**layout** is preserved; the MUSE **look** is applied entirely through
+CSS custom properties (see `web/musehq/src/theme.css`), so the vendored
+components are unmodified except for two documented adaptations recorded
+in `web/musehq/vendor/opencode/VENDOR.md`:
+
+1. one import-path rewrite (`opencode/session/message-v2` →
+   the local trimmed types module `../message-v2`), and
+2. `message-v2.ts` is a trimmed, type-only re-declaration of the
+   `MessageV2` namespace (derived from OpenCode's generated
+   `packages/sdk/js/src/v2/gen/types.gen.ts`), since the upstream module
+   pulls in Effect/Zod runtime we don't need.
+
+The vendored license is preserved at
+`web/musehq/vendor/opencode/LICENSE`.
+
+### MIT License (OpenCode)
+
+```
+MIT License
+
+Copyright (c) 2025 opencode
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
 ## SIA — Self-Improving AI (Hexo Labs)
 
 - **Project:** SIA (Self-Improving AI / Self-Improving Auto-researcher)
