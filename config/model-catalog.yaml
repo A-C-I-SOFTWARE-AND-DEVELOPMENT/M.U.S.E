@@ -152,30 +152,21 @@ providers:
         context: 65536
         tags: [oss, general, coding]
 
-  # Wafer-scale speed lane (~1,000-3,000 tok/s). Catalog rotates fast —
-  # these are the July-2026 IDs; `hermes doctor` probes /v1/models live.
+  # Wafer-scale speed lane (~1,000-3,000 tok/s). Cerebras RETIRES model IDs
+  # aggressively (a retired ID 404s), so only IDs kept stable through several
+  # deprecation waves are pre-wired here; `hermes doctor` and the picker probe
+  # the live /v1/models list, which is authoritative. Do NOT re-add
+  # qwen-3-coder-480b (retired → GLM-4.7) or gemma-4-31b-it (not a Cerebras ID).
   cerebras:
     requires_env: CEREBRAS_API_KEY
     plugin: model-providers/cerebras
     models:
-      - id: gemma-4-31b-it
-        model: gemma-4-31b-it
-        family: gemma
-        params_b: 31
-        context: 131072
-        tags: [oss, fast, general, multimodal]
       - id: gpt-oss-120b
         model: gpt-oss-120b
         family: gpt-oss
         params_b: 120
         context: 131072
         tags: [oss, fast, general, reasoning, tools]
-      - id: qwen-3-coder-480b
-        model: qwen-3-coder-480b
-        family: qwen
-        params_b: 480
-        context: 131072
-        tags: [oss, fast, coding, tools]
       - id: zai-glm-4.7
         model: zai-glm-4.7
         family: glm
