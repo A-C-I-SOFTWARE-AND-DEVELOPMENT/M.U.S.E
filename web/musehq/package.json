@@ -1,0 +1,31 @@
+{
+  "name": "musehq-web",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "musehq.io — MUSE cockpit built on OpenCode's chat layout (vendored) wearing the MUSE Singularity look.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solid-primitives/resize-observer": "2.1.5",
+    "diff": "8.0.2",
+    "dompurify": "3.3.1",
+    "lang-map": "0.4.0",
+    "luxon": "3.6.1",
+    "marked": "17.0.1",
+    "marked-shiki": "1.2.1",
+    "shiki": "4.2.0",
+    "solid-js": "1.9.10",
+    "vscode-languageserver-types": "3.17.5"
+  },
+  "devDependencies": {
+    "@types/luxon": "3.7.1",
+    "typescript": "5.8.2",
+    "vite": "7.1.4",
+    "vite-plugin-solid": "2.11.10"
+  }
+}

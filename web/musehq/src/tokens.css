@@ -1,0 +1,86 @@
+/* NOTE: canonical copy of gateway/cockpit/static/tokens.css (design-system/tokens.json).
+ * Kept in-app so the Vite build is self-contained. Keep in sync with the cockpit. */
+
+/* muse — "Singularity" design tokens.
+ *
+ * One white core in the void; a single thin spectral ring. This is the
+ * canonical token source for the browser cockpit and the reference palette
+ * for other surfaces (Android theme migration tracked separately).
+ *
+ * Aligned to design-system/tokens.json. White is the hero; spectral color is a
+ * sparing accent (the matte ring). Elevation is TONAL (lift the void tone),
+ * never a drop shadow. Hierarchy by VALUE, not effects.
+ */
+:root {
+  /* ---- Color: the Singularity palette ---------------------------------- */
+  --void:        #050507; /* background — the dark field, full-bleed always */
+  --void-2:      #0b0d12; /* raised surface (tonal elevation, not a shadow) */
+  --void-3:      #12151d; /* cards (tonal elevation, not a shadow) */
+  --edge:        #1c2030; /* hairline borders */
+  --core:        #ffffff; /* the single point of light — primary accent / hero */
+  --signal:      #e8ecf4; /* primary text */
+  --signal-dim:  #aab2c4; /* secondary text */
+  --signal-mute: #6b7388; /* tertiary text / metadata */
+  --ring-1:      #7ae0ff; /* spectral ring — cyan start stop */
+  --ring-2:      #b388ff; /* spectral ring — violet end stop */
+  --ok:          #5be3a0; /* success / online (UI status — never brand art) */
+  --warn:        #f5c451; /* attention (UI status — never brand art) */
+  --danger:      #ff5c63; /* destructive / emergency stop (UI status only) */
+
+  /* ---- Gradients & lines ----------------------------------------------- */
+  --ring-grad:   linear-gradient(90deg, var(--ring-1), var(--ring-2)); /* left→right cyan→violet */
+
+  /* ---- Elevation (tonal — higher = lighter void tone, NEVER a shadow) -- */
+  --elevation-flat:   var(--void);
+  --elevation-raised: var(--void-2);
+  --elevation-card:   var(--void-3);
+
+  /* ---- Spacing: 4/8 grid ----------------------------------------------- */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ---- Radius ---------------------------------------------------------- */
+  --radius-sm:   8px;
+  --radius-md:   12px;  /* canonical default */
+  --radius-lg:   16px;
+  --radius-pill: 9999px;
+  --radius:      var(--radius-md); /* legacy alias — md is the default */
+
+  /* ---- Type scale ------------------------------------------------------ */
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --type-display-size:    40px;
+  --type-display-weight:  600;
+  --type-display-spacing: -0.5px;
+  --type-display-line:    48px;
+
+  --type-title-size:      22px;
+  --type-title-weight:    600;
+  --type-title-spacing:   -0.2px;
+  --type-title-line:      28px;
+
+  --type-body-size:       15px;
+  --type-body-weight:     400;
+  --type-body-spacing:    0;
+  --type-body-line:       22px;
+
+  --type-label-size:      12px;
+  --type-label-weight:    500;
+  --type-label-spacing:   0.4px;
+  --type-label-line:      16px;
+
+  /* ---- Motion: Material 3 ---------------------------------------------- */
+  --duration-fast:     150ms;
+  --duration-standard: 250ms;
+  --duration-slow:     350ms;
+  --easing-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0, 1);
+}
