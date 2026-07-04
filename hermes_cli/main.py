@@ -4628,10 +4628,13 @@ def _discover_opencode_local_models() -> list[str]:
         if proc.returncode == 0:
             for raw in proc.stdout.splitlines():
                 item = raw.strip()
-                if not item or item.startswith(("opencode", " if __main__", "Commands:", "Usage:")):
+                if not item:
+                    continue
+                # Skip Windows version header and CLI help text
+                if item.startswith(("Microsoft Windows", "Commands:", "Usage:", "if __main__")):
                     continue
                 # Keep full model IDs (provider/model) for all models
-                if item and item not in models:
+                if item not in models:
                     models.append(item)
     except Exception:
         pass
