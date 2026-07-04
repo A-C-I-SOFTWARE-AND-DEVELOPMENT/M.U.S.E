@@ -2125,6 +2125,8 @@ def select_provider_and_model(args=None):
         _model_flow_google_gemini_cli(config, current_model)
     elif selected_provider == "copilot-acp":
         _model_flow_copilot_acp(config, current_model)
+    elif selected_provider == "opencode":
+        _model_flow_opencode_local(config, current_model)
     elif selected_provider == "copilot":
         _model_flow_copilot(config, current_model)
     elif selected_provider == "custom":
@@ -2162,6 +2164,7 @@ def select_provider_and_model(args=None):
         "minimax",
         "minimax-cn",
         "kilocode",
+        "opencode",
         "opencode-zen",
         "opencode-go",
         "alibaba",
@@ -4601,6 +4604,93 @@ def _model_flow_copilot(config, current_model=""):
                 print(f"Reasoning effort set to: {selected_effort}")
     else:
         print("No change.")
+
+
+def _discover_opencode_local_models() -> list[str]:
+    """Return all available OpenCode model IDs for the setup picker."""
+    import subprocess
+    import sys
+
+    from hermes_cli.models import _PROVIDER_MODELS
+
+    models: list[str] = []
+    try:
+        # On Windows, opencode is a .cmd file; use cmd /c to run it.
+        # On MSYS/Git Bash, cmd /c also works.
+        cmd = ["cmd", "/c", "opencode", "models"]
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            timeout=12,
+            check=False,
+        )
+        if proc.returncode == 0:
+            for raw in proc.stdout.splitlines():
+                item = raw.strip()
+                if not item or item.startswith(("opencode", " if __main__", "Commands:", "Usage:")):
+                    continue
+                # Keep full model IDs (provider/model) for all models
+                if item and item not in models:
+                    models.append(item)
+    except Exception:
+        pass
+
+    for item in _PROVIDER_MODELS.get("opencode", []):
+        if item not in models:
+            models.append(item)
+    return models
+
+def _model_flow_opencode_local(config, current_model=""):
+    """OpenCode local flow: expose all available OpenCode models in muse setup."""
+    from hermes_cli.auth import (
+        PROVIDER_REGISTRY,
+        _prompt_model_selection,
+        _save_model_choice,
+        deactivate_provider,
+    )
+    from hermes_cli.config import load_config, save_config
+
+    provider_id = "opencode"
+    pconfig = PROVIDER_REGISTRY[provider_id]
+    effective_base = pconfig.inference_base_url
+
+    print("  OpenCode local uses your installed `opencode` model list.")
+    print("  This is NOT OpenCode Zen or OpenCode Go; no paid OpenCode cloud setup is used.")
+    print(f"  Endpoint: {effective_base}")
+    print()
+
+    normalized_current = (current_model or "").strip()
+
+    model_list = _discover_opencode_local_models()
+    if model_list:
+        print(f"  Found {len(model_list)} available OpenCode model(s)")
+        selected = _prompt_model_selection(model_list, current_model=normalized_current)
+    else:
+        try:
+            selected = input("Model name: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            selected = None
+
+    if not selected:
+        print("No change.")
+        return
+
+    _save_model_choice(selected)
+
+    cfg = load_config()
+    model = cfg.get("model")
+    if not isinstance(model, dict):
+        model = {"default": model} if model else {}
+        cfg["model"] = model
+    model["provider"] = provider_id
+    model["base_url"] = effective_base
+    model.pop("api_mode", None)
+    model.pop("api_key", None)
+    save_config(cfg)
+    deactivate_provider()
+
+    print(f"Default model set to: {selected} (via {pconfig.name})")
 
 
 def _model_flow_copilot_acp(config, current_model=""):
