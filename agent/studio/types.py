@@ -36,6 +36,7 @@ class Provider(str, Enum):
     TRELLIS = "microsoft/trellis"
     RODIN = "deemos/rodin"
     # Image / concept / storyboard
+    IMAGEN4 = "google/imagen-4"
     MIDJOURNEY_V7 = "midjourney/v7"
     FLUX_PRO = "bfl/flux-1.1-pro"
     SD35 = "stability/sd-3.5-large"

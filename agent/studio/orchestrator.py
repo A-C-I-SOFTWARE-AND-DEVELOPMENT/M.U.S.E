@@ -42,6 +42,7 @@ from agent.studio.types import (
 from agent.studio import adapters  # noqa: F401
 from agent.studio.adapters import ollama_local  # noqa: F401 — registers local adapters
 from agent.studio.adapters import free_providers  # noqa: F401 — pollinations + edge-tts
+from agent.studio.adapters import google_media  # noqa: F401 — Vertex Imagen + Veo
 
 
 class StudioOrchestrator:
