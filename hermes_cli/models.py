@@ -342,14 +342,14 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "trinity-large-preview",
         "trinity-mini",
     ],
-    # Cerebras rotates its catalog fast (May 2026 deprecated the llama/qwen-32b
-    # era IDs) — this static list is the July-2026 lineup; the live /v1/models
-    # fetch wins whenever CEREBRAS_API_KEY is set.
+    # Cerebras rotates its catalog fast and RETIRES model IDs (a retired ID
+    # 404s → "Cerebras not working"). Keep this fallback minimal — only IDs
+    # kept stable through several deprecation waves. qwen-3-coder-480b (retired
+    # → GLM-4.7) and gemma-4-31b-it (never a Cerebras ID) were removed. The
+    # live /v1/models fetch is authoritative whenever CEREBRAS_API_KEY is set.
     "cerebras": [
-        "zai-glm-4.7",
         "gpt-oss-120b",
-        "qwen-3-coder-480b",
-        "gemma-4-31b-it",
+        "zai-glm-4.7",
     ],
     "gmi": [
         "zai-org/GLM-5.1-FP8",

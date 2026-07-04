@@ -43,10 +43,17 @@ logger = logging.getLogger(__name__)
 
 MODELS_DEV_URL = "https://models.dev/api.json"
 _MODELS_DEV_CACHE_TTL = 3600  # 1 hour in-memory
+# Backoff after a network failure when there is NO disk cache to fall back on
+# (fresh/air-gapped install). Without it, every consumer lookup re-issues a
+# 15s-timeout request. Short enough to self-heal quickly once connectivity or
+# a disk cache appears.
+_MODELS_DEV_NEG_CACHE_TTL = 60
 
 # In-memory cache
 _models_dev_cache: Dict[str, Any] = {}
 _models_dev_cache_time: float = 0
+# Timestamp of the last fully-empty failure (network down AND no disk cache).
+_models_dev_last_failure: float = 0
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +272,7 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
     function always hits the network and only falls back to disk if the
     network call fails.
     """
-    global _models_dev_cache, _models_dev_cache_time
+    global _models_dev_cache, _models_dev_cache_time, _models_dev_last_failure
 
     # Stage 1: fresh in-memory cache wins. This is the hot path on
     # long-lived processes — no I/O, no system calls.
@@ -273,6 +280,18 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
         not force_refresh
         and _models_dev_cache
         and (time.time() - _models_dev_cache_time) < _MODELS_DEV_CACHE_TTL
+    ):
+        return _models_dev_cache
+
+    # Stage 1b: negative-result backoff. On a fresh/air-gapped install (network
+    # down AND no disk cache) every consumer lookup would otherwise re-issue a
+    # 15s-timeout request. After a fully-empty failure, short-circuit for
+    # _MODELS_DEV_NEG_CACHE_TTL seconds. Skipped on force_refresh and self-heals
+    # once the cache becomes truthy (stage 1 then wins).
+    if (
+        not force_refresh
+        and not _models_dev_cache
+        and (time.time() - _models_dev_last_failure) < _MODELS_DEV_NEG_CACHE_TTL
     ):
         return _models_dev_cache
 
@@ -325,6 +344,10 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
         if _models_dev_cache:
             _models_dev_cache_time = time.time() - _MODELS_DEV_CACHE_TTL + 300
             logger.debug("Loaded models.dev from disk cache (%d providers)", len(_models_dev_cache))
+        else:
+            # Nothing on disk either — record the failure so subsequent lookups
+            # back off instead of each re-issuing a 15s-timeout request.
+            _models_dev_last_failure = time.time()
 
     return _models_dev_cache
 

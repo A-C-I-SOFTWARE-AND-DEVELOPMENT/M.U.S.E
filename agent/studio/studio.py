@@ -127,6 +127,15 @@ class AAAStudio:
         project = self.portfolio_mgr.get(project_id)
         if project is None:
             raise KeyError(f"unknown project: {project_id}")
+        if project.brief is None:
+            # brief is not serialized by PortfolioManager.save()/load(), so a
+            # project reloaded from disk has brief=None. Fail with an actionable
+            # message instead of an opaque AttributeError deep in produce_*().
+            raise RuntimeError(
+                f"project {project_id} has no brief — the brief is not persisted "
+                "across save/load; recreate the project via new_game_project / "
+                "new_film_project before calling produce()."
+            )
         if project.kind == "game":
             manifest = self.orchestrator.produce_game(project.brief)
         else:
