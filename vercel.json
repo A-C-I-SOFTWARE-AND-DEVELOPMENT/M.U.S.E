@@ -3,7 +3,12 @@
   "buildCommand": "bash scripts/deploy/build_cockpit_vercel.sh cockpit-dist",
   "outputDirectory": "cockpit-dist",
   "framework": null,
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "source": "/chat/((?!assets/).*)",
+      "destination": "/chat/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

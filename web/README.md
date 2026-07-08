@@ -13,7 +13,8 @@ Browser-based dashboard for managing muse configuration, API keys, and monitorin
 ```bash
 # Start the backend API server
 cd ../
-python -m hermes_cli.main web --no-open
+muse dashboard --no-open
+# or: python -m hermes_cli.main dashboard --no-open
 
 # In another terminal, start the Vite dev server (with HMR + API proxy)
 cd web/

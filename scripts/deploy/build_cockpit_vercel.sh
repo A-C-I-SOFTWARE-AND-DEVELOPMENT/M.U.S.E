@@ -1,24 +1,16 @@
 #!/usr/bin/env bash
 # Assemble musehq.io into a static output directory for Vercel.
 #
-# musehq.io is now the OpenCode-layout cockpit: OpenCode's own chat renderer
-# (vendored, MIT, under web/musehq/vendor/opencode) composed into a Solid+Vite
-# app (web/musehq) and dressed in the MUSE "Singularity" look. Its composer is
-# wired to the repo-root Edge function /api/chat (a real assistant when a
-# provider key is set on the server or supplied via BYOK; an honest "pair a
-# gateway / add a key" banner otherwise).
-#
-# The PREVIOUS single-file cockpit (gateway/cockpit/static/cockpit.dc.html) is
-# preserved verbatim at /legacy.html so no feature is lost, and every cockpit
-# static surface (3D Atlas, Studio, Observatory, legal pages, PWA assets) is
-# carried over and linked from the new app's rail.
+# Canonical public face = the Singularity cockpit (cockpit.dc.html) — the full
+# Muse Omni operations UI (Connect, jobs, approvals, OMNI providers, atlas,
+# studio, observatory). The OpenCode-layout Solid chat shell (web/musehq) is
+# a secondary surface under /chat/.
 #
 # Output layout (served from the Vercel project root):
-#   <out>/index.html          <- the new musehq app (web/musehq/dist)
-#   <out>/assets/*            <- the app's hashed JS/CSS bundles
-#   <out>/sw.js               <- service-worker migration kill-switch
-#   <out>/legacy.html         <- the previous cockpit (cockpit.dc.html)
-#   <out>/vendor/*            <- React UMD, dc-runtime, three.js (legacy + atlas)
+#   <out>/index.html          <- Singularity cockpit (cockpit.dc.html)
+#   <out>/legacy.html         <- same cockpit (bookmark / old-link alias)
+#   <out>/chat/               <- OpenCode chat shell (web/musehq/dist)
+#   <out>/vendor/*            <- React UMD, dc-runtime, three.js
 #   <out>/atlas/*             <- the 3D Systems Atlas
 #   <out>/studio.html, observatory.html, terms.html, privacy.html, icons, ...
 #
@@ -31,33 +23,30 @@ SRC="gateway/cockpit/static"
 APP="web/musehq"
 
 rm -rf "$OUT"
-mkdir -p "$OUT/vendor" "$OUT/atlas"
+mkdir -p "$OUT/vendor" "$OUT/atlas" "$OUT/chat"
 
 # ---------------------------------------------------------------------------
-# 1. Build the new musehq app (OpenCode chat layout + MUSE look).
+# 1. Singularity cockpit is the site root (Muse Omni).
 # ---------------------------------------------------------------------------
-echo "Building $APP …"
+cp "$SRC/cockpit.dc.html" "$OUT/index.html"
+# Keep /legacy.html as an alias so old bookmarks and rail links still work.
+cp "$SRC/cockpit.dc.html" "$OUT/legacy.html"
+
+# ---------------------------------------------------------------------------
+# 2. Build the OpenCode chat shell into /chat/ (secondary surface).
+# ---------------------------------------------------------------------------
+echo "Building $APP for /chat/ …"
 if [ -f "$APP/package-lock.json" ]; then
   npm --prefix "$APP" ci
 else
   npm --prefix "$APP" install
 fi
-npm --prefix "$APP" run build
-
-# The Vite build (including public/sw.js) becomes the site root.
-cp -R "$APP/dist/." "$OUT/"
-
-# ---------------------------------------------------------------------------
-# 2. Preserve the previous cockpit verbatim at /legacy.html. Its asset refs
-#    (vendor/, atlas/, icon-180.png, manifest.webmanifest) are relative, so it
-#    reuses the root-level copies assembled below — no duplication.
-# ---------------------------------------------------------------------------
-cp "$SRC/cockpit.dc.html" "$OUT/legacy.html"
+# Vite base must be /chat/ so asset URLs resolve under that prefix on Vercel.
+MUSEHQ_BASE=/chat/ npm --prefix "$APP" run build
+cp -R "$APP/dist/." "$OUT/chat/"
 
 # ---------------------------------------------------------------------------
-# 3. Installable-PWA assets (shared by the new app and legacy cockpit).
-#    The new app ships its own service worker (public/sw.js, a migration
-#    kill-switch), so we do NOT copy the old $SRC/sw.js.
+# 3. Installable-PWA assets (Singularity cockpit at root).
 # ---------------------------------------------------------------------------
 cp "$SRC/manifest.webmanifest"  "$OUT/manifest.webmanifest"
 cp "$SRC/icon.svg"              "$OUT/icon.svg"
@@ -65,9 +54,13 @@ cp "$SRC/icon-180.png"          "$OUT/icon-180.png"
 cp "$SRC/icon-192.png"          "$OUT/icon-192.png"
 cp "$SRC/icon-512.png"          "$OUT/icon-512.png"
 cp "$SRC/icon-maskable-512.png" "$OUT/icon-maskable-512.png"
+# Prefer the cockpit service worker at root (not the musehq migration SW).
+if [ -f "$SRC/sw.js" ]; then
+  cp "$SRC/sw.js" "$OUT/sw.js"
+fi
 
 # ---------------------------------------------------------------------------
-# 4. Vendored runtime for the legacy cockpit + Atlas (React UMD, dc-runtime, three).
+# 4. Vendored runtime for the cockpit + Atlas (React UMD, dc-runtime, three).
 # ---------------------------------------------------------------------------
 cp "$SRC/vendor/react.production.min.js"      "$OUT/vendor/"
 cp "$SRC/vendor/react-dom.production.min.js"  "$OUT/vendor/"
@@ -76,7 +69,7 @@ cp "$SRC/vendor/three.module.min.js"          "$OUT/vendor/"
 cp "$SRC/vendor/three.core.min.js"            "$OUT/vendor/"
 
 # ---------------------------------------------------------------------------
-# 5. Cockpit static surfaces the new app links to (Atlas, Studio, Observatory).
+# 5. Cockpit static surfaces (Atlas, Studio, Observatory).
 # ---------------------------------------------------------------------------
 # Copy the whole atlas/ directory — Studio embeds atlas/muse-atlas.html, so a
 # partial copy 404s that iframe.
@@ -88,7 +81,7 @@ for f in studio.html studio-support.js observatory.html observatory.css observat
 done
 
 # Studio references styles/tokens.css + styles/cockpit.css (Observatory + the
-# legacy cockpit reference them at root, so keep both locations).
+# cockpit reference them at root, so keep both locations).
 mkdir -p "$OUT/styles"
 cp "$SRC/tokens.css"  "$OUT/styles/tokens.css"
 cp "$SRC/cockpit.css" "$OUT/styles/cockpit.css"
@@ -111,5 +104,6 @@ if [ -f "$SRC/og.png" ];      then cp "$SRC/og.png"      "$OUT/og.png"; fi
 if [ -f "$SRC/terms.html" ];   then cp "$SRC/terms.html"   "$OUT/terms.html"; fi
 if [ -f "$SRC/privacy.html" ]; then cp "$SRC/privacy.html" "$OUT/privacy.html"; fi
 
-echo "musehq.io assembled into $OUT/ (new app at /, legacy cockpit at /legacy.html)"
+echo "musehq.io assembled into $OUT/ (Singularity at /, OpenCode chat at /chat/)"
 ls "$OUT"
+ls "$OUT/chat" | head -20

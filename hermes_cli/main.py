@@ -6226,6 +6226,107 @@ def cmd_cockpit(args):
     raise SystemExit(2)
 
 
+def cmd_omni(args):
+    """Day-to-day Muse Omni launcher: full-agent cockpit (+ optional admin dashboard)."""
+    import subprocess
+    import time as _time
+    import webbrowser
+
+    from gateway.cockpit import auth as _auth
+    from gateway.cockpit.server import serve as _serve
+
+    admin_proc = None
+    with_admin = bool(getattr(args, "with_admin", False))
+    no_open = bool(getattr(args, "no_open", False))
+    admin_port = int(getattr(args, "admin_port", 9119) or 9119)
+    host = getattr(args, "host", "127.0.0.1")
+    port = int(getattr(args, "port", 8765) or 8765)
+
+    if with_admin:
+        dash_cmd = [
+            sys.executable,
+            "-m",
+            "hermes_cli.main",
+            "dashboard",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(admin_port),
+            "--no-open",
+        ]
+        if getattr(args, "skip_build", False):
+            dash_cmd.append("--skip-build")
+        print(f"Starting local admin dashboard on http://127.0.0.1:{admin_port} …")
+        admin_proc = subprocess.Popen(
+            dash_cmd,
+            cwd=str(PROJECT_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    # Full-agent lane is the point of `muse omni` — override jarvis default.
+    if not getattr(args, "agent_mode", None):
+        args.agent_mode = "full"
+    if not os.environ.get("HERMES_COCKPIT_AGENT"):
+        os.environ["HERMES_COCKPIT_AGENT"] = "full"
+
+    token = _auth.load_or_create_token()
+    server = _serve(
+        host=host,
+        port=port,
+        token=token,
+        allow_external=getattr(args, "allow_external", False),
+        allow_external_hosts=getattr(args, "allow_external_hosts", None),
+        cors_origins=getattr(args, "cors_origins", None),
+        agent_mode=getattr(args, "agent_mode", "full"),
+    )
+    _addr = server.server_address
+    bound_host, bound_port = _addr[0], _addr[1]
+    _base = f"http://{bound_host}:{bound_port}"
+    cockpit_url = f"{_base}/"
+    one_click = f"{_base}/#gateway={_base}&token={token}"
+
+    print("Muse Omni (Singularity cockpit) ready")
+    print(f"  Cockpit:     {cockpit_url}")
+    print(f"  One-click:   {one_click}")
+    print("  Agent mode:  full (tools, jobs, approvals)")
+    print(f"  Pair token:  {token}")
+    if with_admin:
+        print(f"  Local admin: http://127.0.0.1:{admin_port}/  (config, sessions, kanban)")
+        if admin_proc is not None and admin_proc.poll() is not None:
+            print(
+                "  Warning: admin dashboard process exited early "
+                f"(code {admin_proc.returncode}). Run `muse dashboard` separately."
+            )
+    print("Press Ctrl-C to stop.")
+
+    if not no_open:
+        try:
+            webbrowser.open(one_click)
+            if with_admin:
+                webbrowser.open(f"http://127.0.0.1:{admin_port}/")
+        except Exception:
+            pass
+
+    try:
+        while True:
+            _time.sleep(3600)
+    except KeyboardInterrupt:
+        server.shutdown()
+        if admin_proc is not None and admin_proc.poll() is None:
+            try:
+                admin_proc.terminate()
+                admin_proc.wait(timeout=5)
+            except Exception:
+                try:
+                    admin_proc.kill()
+                except Exception:
+                    pass
+        print("\nMuse Omni stopped")
+    raise SystemExit(0)
+
+
 def cmd_models(args):
     """Free-first model operations (bootstrap, ...)."""
     import json as _json
@@ -10893,7 +10994,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "guardrails", "hooks", "import", "insights",
         "jarvis", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
-        "model", "models", "pairing", "plugins", "postinstall", "profile", "proxy",
+        "model", "models", "omni", "pairing", "plugins", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
         "skills", "slack", "status", "sync", "tools", "trace", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat",
@@ -12169,6 +12270,62 @@ def main():
     )
     cockpit_token.add_argument("--rotate", action="store_true")
     cockpit_parser.set_defaults(func=cmd_cockpit)
+
+    # =========================================================================
+    # omni command — day-to-day Muse Omni (Singularity cockpit) launcher
+    # =========================================================================
+    omni_parser = subparsers.add_parser(
+        "omni",
+        help="Launch Muse Omni (Singularity cockpit) with full-agent mode",
+        description=(
+            "Start the Singularity cockpit gateway in full-agent mode — the "
+            "day-to-day Muse Omni operations UI (chat, jobs, approvals, "
+            "providers, atlas). Optionally also start the local admin "
+            "dashboard (config, sessions, kanban) with --with-admin."
+        ),
+    )
+    omni_parser.add_argument("--host", default="127.0.0.1")
+    omni_parser.add_argument("--port", type=int, default=8765)
+    omni_parser.add_argument(
+        "--with-admin",
+        action="store_true",
+        help="Also start muse dashboard on --admin-port (config, sessions, kanban)",
+    )
+    omni_parser.add_argument(
+        "--admin-port",
+        type=int,
+        default=9119,
+        help="Admin dashboard port when --with-admin is set (default 9119)",
+    )
+    omni_parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Don't open the browser automatically",
+    )
+    omni_parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Pass --skip-build to the admin dashboard subprocess",
+    )
+    omni_parser.add_argument(
+        "--allow-external", dest="allow_external", action="store_true",
+        help="Bind a non-loopback host (exposes the agent endpoint — risky).",
+    )
+    omni_parser.add_argument(
+        "--allow-external-host", dest="allow_external_hosts", action="append",
+        default=None, metavar="HOST/CIDR",
+        help="Allowlist a non-loopback host/CIDR (with --allow-external).",
+    )
+    omni_parser.add_argument(
+        "--cors-origin", dest="cors_origins", action="append", default=None,
+        metavar="ORIGIN",
+        help="Additional browser Origin allowed to call the cockpit API.",
+    )
+    omni_parser.add_argument(
+        "--agent", dest="agent_mode", choices=["jarvis", "full"], default="full",
+        help="Chat engine for /v1/agent/chat (default: full for muse omni).",
+    )
+    omni_parser.set_defaults(func=cmd_omni)
 
     # =========================================================================
     # models command — free-first model bootstrap

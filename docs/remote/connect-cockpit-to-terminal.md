@@ -1,9 +1,10 @@
 # Connect the cockpit to the muse in your terminal
 
-This guide gets the **cockpit** (the browser app — local or the public
-[musehq.io](https://musehq.io)) talking to the **muse gateway running in your
-terminal**, so the chat drives your real agents, jobs, orchestration, memory,
-evidence, and ledger — all your data — not just the stateless public chat.
+This guide gets the **Singularity cockpit** (Muse Omni — local or the public
+[musehq.io](https://musehq.io) root) talking to the **muse gateway running in
+your terminal**, so the chat drives your real agents, jobs, orchestration,
+memory, evidence, and ledger — all your data — not just the stateless public
+chat.
 
 There are three ways to do it. Pick by where you want to open the cockpit.
 
@@ -12,17 +13,31 @@ There are three ways to do it. Pick by where you want to open the cockpit.
 ## TL;DR
 
 ```bash
-muse cockpit serve
+muse omni
+# Muse Omni (Singularity cockpit) ready
+#   Cockpit:     http://127.0.0.1:8765/
+#   Agent mode:  full
+```
+
+Or the lower-level equivalent:
+
+```bash
+muse cockpit serve --agent full
 # muse cockpit API listening on http://127.0.0.1:8765
 # Open the browser cockpit: http://127.0.0.1:8765/cockpit/
 ```
 
-- **On the same machine?** Open the local URL it prints. Done — full power, zero
-  setup, nothing leaves your machine.
-- **Want to use the public musehq.io page?** musehq.io is allowed to reach your
+- **On the same machine?** Open the local URL it prints (or let `muse omni`
+  open the one-click connect link). Done — full power, zero setup, nothing
+  leaves your machine.
+- **Want to use the public musehq.io page?** musehq.io **root** is the
+  Singularity cockpit (Connect lives there). It is allowed to reach your
   gateway **by default** (CORS). In Chrome it can talk to `http://localhost`
   directly; from another browser or another device, expose the gateway over an
   **HTTPS tunnel** and point the cockpit's **Connect** dialog at the tunnel URL.
+- **Config / sessions / kanban admin?** Run `muse omni --with-admin` (or
+  `muse dashboard` separately) and use **Local Admin** in the System rail, or
+  open `http://127.0.0.1:9119`.
 
 Pairing is **friction-free** — no owner phrase — for a loopback gateway. The
 device gets its own token, stored only in that browser.
@@ -32,20 +47,22 @@ device gets its own token, stored only in that browser.
 ## 1. Local cockpit (same machine) — works now, zero setup
 
 ```bash
-muse cockpit serve
+muse omni
+# or: muse cockpit serve --agent full
 ```
 
-Open `http://127.0.0.1:8765/cockpit/`. The page is served *same-origin* by the
-gateway, so there is no CORS or mixed-content barrier at all. Click **Connect →
-Get code → Pair this device**. You now have the full cockpit wired to your real
-gateway.
+Open `http://127.0.0.1:8765/` (or `/cockpit/`). The page is served *same-origin*
+by the gateway, so there is no CORS or mixed-content barrier at all. Click
+**Connect → Get code → Pair this device**. You now have the full cockpit wired
+to your real gateway.
 
 This is the simplest path and the one to use day-to-day.
 
 ## 2. Public cockpit (musehq.io) → your terminal
 
-The public page is HTTPS; your terminal gateway is HTTP on loopback. Two things
-make the bridge work, and the first is already the default:
+The public **root** page is the Singularity cockpit (HTTPS); your terminal
+gateway is HTTP on loopback. Two things make the bridge work, and the first is
+already the default:
 
 1. **CORS** — the gateway allows the first-party muse origins
    (`https://musehq.io`, `https://www.musehq.io`) to call it **by default**. No
@@ -54,10 +71,14 @@ make the bridge work, and the first is already the default:
    - **Chrome / Edge:** treat `http://localhost` / `http://127.0.0.1` as a
      secure context and honour the gateway's Private Network Access consent, so
      musehq.io can talk to `http://127.0.0.1:8765` **directly** — just run
-     `muse cockpit serve`, open musehq.io, **Connect**, set the gateway URL to
-     `http://127.0.0.1:8765`, and pair.
+     `muse omni` (or `muse cockpit serve --agent full`), open musehq.io,
+     **Connect**, set the gateway URL to `http://127.0.0.1:8765`, and pair.
    - **Firefox / Safari / a phone / another machine:** put the gateway behind an
      **HTTPS tunnel** and point Connect at the tunnel URL (next section).
+
+The OpenCode chat shell at `https://musehq.io/chat/` is a secondary text-chat
+surface; gateway pairing and full ops (jobs, approvals, providers) live on the
+Singularity root, not under `/chat/`.
 
 ### Expose the gateway over an HTTPS tunnel
 
@@ -97,7 +118,7 @@ tunnel URL and pair. The public page now drives your terminal from anywhere.
 Bind the gateway to your LAN IP and allowlist it (fail-closed):
 
 ```bash
-muse cockpit serve \
+muse cockpit serve --agent full \
   --host 192.168.1.50 --allow-external --allow-external-host 192.168.1.50 \
   --cors-origin https://musehq.io
 ```

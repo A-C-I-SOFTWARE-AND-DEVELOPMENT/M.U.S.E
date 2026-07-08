@@ -347,10 +347,13 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   font: inherit;
   font-size: var(--type-body-size);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   transition: color var(--duration-fast) var(--easing-standard),
               background-color var(--duration-fast) var(--easing-standard);
+  box-sizing: border-box;
 }
+a.nav-item { color: var(--signal-mute); }
 .nav-item:hover { color: var(--signal); background: var(--void-2); }
 .nav-item.active { color: var(--signal); background: var(--void-2); }
 /* Active marker: a thin MATTE ring-grad accent bar (no glow). */
@@ -1085,6 +1088,11 @@ body { perspective: 1800px; }
     <sc-for list="{{ nav }}" as="item" hint-placeholder-count="11">
       <sc-if value="{{ item.isSection }}" hint-placeholder-val="{{ false }}">
         <div class="nav-section">{{ item.label }}</div>
+      </sc-if>
+      <sc-if value="{{ item.isExternal }}" hint-placeholder-val="{{ false }}">
+        <a class="{{ item.cls }}" href="{{ item.href }}" target="_blank" rel="noopener" title="{{ item.title }}">
+          <span>{{ item.label }}</span>
+        </a>
       </sc-if>
       <sc-if value="{{ item.isLink }}" hint-placeholder-val="{{ false }}">
         <button type="button" class="{{ item.cls }}" aria-current="{{ item.ariaCurrent }}" onclick="{{ item.onClick }}">
@@ -2715,6 +2723,9 @@ class Component extends DCLogic {
     { id: 'runtimes', label: 'Runtimes', group: 'System' },
     { id: 'runtime', label: 'Health', group: 'System' },
     { id: 'account', label: 'Account', group: 'System' },
+    // External destinations (open in a new tab; not in-app views).
+    { id: 'opencode-chat', label: 'OpenCode chat', group: 'System', href: '/chat/', external: true },
+    { id: 'local-admin', label: 'Local Admin', group: 'System', href: 'http://127.0.0.1:9119/', external: true },
   ];
 
   opModes = [
@@ -4398,18 +4409,35 @@ class Component extends DCLogic {
     let _navGroup = null;
     this.navMeta.forEach(n => {
       if (n.group && n.group !== _navGroup) {
-        nav.push({ isSection: true, isLink: false, label: n.group });
+        nav.push({ isSection: true, isLink: false, isExternal: false, label: n.group });
         _navGroup = n.group;
+      }
+      if (n.external && n.href) {
+        nav.push({
+          ...n,
+          isSection: false,
+          isLink: false,
+          isExternal: true,
+          cls: 'nav-item',
+          href: n.href,
+          title: n.id === 'local-admin'
+            ? 'Opens muse dashboard (config, sessions, kanban) on :9119'
+            : 'Opens the OpenCode chat shell',
+        });
+        return;
       }
       let ext = '';
       if (n.id === 'jobs' && runningCount) ext = String(runningCount);
       if (n.id === 'agents' && workingAgents) ext = String(workingAgents);
       if (n.id === 'approvals' && s.approvalsRaw.length) ext = String(s.approvalsRaw.length);
-      nav.push({ ...n, isSection: false, isLink: true, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), ariaCurrent: (s.activeView === n.id ? 'page' : 'false'), onClick: this.select(n.id), ext });
+      nav.push({ ...n, isSection: false, isLink: true, isExternal: false, cls: 'nav-item' + (s.activeView === n.id ? ' active' : ''), ariaCurrent: (s.activeView === n.id ? 'page' : 'false'), onClick: this.select(n.id), ext });
     });
 
     const show = {};
-    this.navMeta.forEach(n => { show[n.id] = s.activeView === n.id; });
+    this.navMeta.forEach(n => {
+      if (n.external) return;
+      show[n.id] = s.activeView === n.id;
+    });
 
     const jobs = s.jobsRaw.map(j => {
       const phases = this.phaseLabels.map((label, i) => {
