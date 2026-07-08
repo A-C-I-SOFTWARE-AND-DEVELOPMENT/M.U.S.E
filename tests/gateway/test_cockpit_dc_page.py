@@ -74,8 +74,11 @@ def server(home: Path):
 def _get_raw(server, path: str) -> tuple[int, str, bytes]:
     host, port = server.server_address
     req = urllib.request.Request(f"http://{host}:{port}{path}", method="GET")
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        return resp.status, resp.headers.get("Content-Type", ""), resp.read()
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return resp.status, resp.headers.get("Content-Type", ""), resp.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.headers.get("Content-Type", ""), exc.read()
 
 
 # ── serving ──────────────────────────────────────────────────────────────────
@@ -181,6 +184,26 @@ def test_cockpit_is_the_default_at_root(server) -> None:
         assert status == 200 and ctype.startswith("text/html")
         text = body.decode("utf-8")
         assert "<x-dc>" in text and 'src="vendor/dc-runtime.js"' in text, root
+
+
+def test_root_relative_assets_resolve_when_singularity_is_at_slash(server) -> None:
+    """muse omni opens http://host:8765/ — page refs must work without /cockpit/."""
+    for path in (
+        "/vendor/dc-runtime.js",
+        "/vendor/react.production.min.js",
+        "/vendor/react-dom.production.min.js",
+        "/atlas/index.html",
+        "/manifest.webmanifest",
+        "/studio.html",
+        "/observatory.html",
+        "/legacy.html",
+    ):
+        status, _, body = _get_raw(server, path)
+        assert status == 200 and body, f"root asset 404s: {path}"
+    # Unknown root path must still 404 as JSON (not silently become the SPA).
+    status, ctype, body = _get_raw(server, "/no-such-root-asset.js")
+    assert status == 404
+    assert b"unknown route" in body
 
 
 def test_unknown_cockpit_route_falls_back_to_the_cockpit(server) -> None:
