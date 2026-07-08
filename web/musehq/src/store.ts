@@ -73,10 +73,13 @@ export const store = {
     if (r === "needs-key") {
       setState(
         "banner",
-        "Public chat isn't configured on this deployment yet. Add a provider key via Connect, or pair a gateway.",
+        "Public chat isn't configured on this deployment yet. Open Muse Omni (/) to Connect a gateway, or set a server provider key.",
       )
     } else if (r === "none") {
-      setState("banner", "No /api backend detected — pair a muse gateway to chat.")
+      setState(
+        "banner",
+        "No /api backend detected — open Muse Omni (/) and pair a muse gateway to chat.",
+      )
     } else {
       setState("banner", null)
     }

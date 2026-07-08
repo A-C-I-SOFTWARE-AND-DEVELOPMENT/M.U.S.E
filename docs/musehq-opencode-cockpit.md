@@ -1,10 +1,10 @@
-# musehq.io on OpenCode — the chat cockpit
+# musehq.io on OpenCode — the chat shell (`/chat/`)
 
-> **TL;DR** — musehq.io is rebuilt **on top of OpenCode's actual chat code**.
-> We vendor OpenCode's own chat renderer (MIT) and compose it into a MUSE
-> Solid+Vite app, keeping **their chat layout** and applying **the MUSE
-> "Singularity" look**, while preserving every existing cockpit feature. The
-> new app lives in [`web/musehq/`](../web/musehq/).
+> **TL;DR** — The **OpenCode chat shell** lives in [`web/musehq/`](../web/musehq/)
+> and ships on musehq.io under **`/chat/`**. Site root is the Singularity
+> cockpit (Muse Omni) — see [`cockpit-singularity.md`](cockpit-singularity.md).
+> This app vendors OpenCode's chat renderer (MIT), keeps **their chat layout**,
+> and applies the MUSE "Singularity" look.
 
 ## Why this shape
 
@@ -81,29 +81,32 @@ cards) is retained for the richer paired-gateway transport.
 [`scripts/deploy/build_cockpit_vercel.sh`](../scripts/deploy/build_cockpit_vercel.sh)
 (invoked by `vercel.json`) now:
 
-1. Builds `web/musehq` → the site **root** (`index.html` + `assets/` + `sw.js`).
-2. Preserves the previous single-file cockpit **verbatim** at `/legacy.html`
-   (reachable from the rail as "Classic cockpit").
-3. Carries over every cockpit static surface: the 3D **Atlas** (`/atlas/`),
+1. Puts the **Singularity cockpit** (`cockpit.dc.html`) at the site **root**
+   (`index.html`) — Muse Omni with Connect, jobs, approvals, providers.
+2. Builds `web/musehq` into **`/chat/`** (OpenCode chat shell; `MUSEHQ_BASE=/chat/`).
+3. Keeps `/legacy.html` as an alias of the Singularity cockpit for old bookmarks.
+4. Carries over every cockpit static surface: the 3D **Atlas** (`/atlas/`),
    **Studio** (`/studio.html`), **Observatory** (`/observatory.html`), legal
    pages, PWA icons + manifest, `robots.txt`, `sitemap.xml`, `og.png`.
 
+Day-to-day local ops: `muse omni` (full-agent Singularity). Optional admin:
+`muse omni --with-admin` or `muse dashboard`.
+
 ### Service-worker migration
 
-The old cockpit installed a service worker at `/sw.js` that cached its shell.
-The new app ships a **kill-switch** `/sw.js` (`web/musehq/public/sw.js`) that
-deletes old caches, unregisters, and reloads controlled clients — so returning
-PWA visitors migrate to the new app instead of being stuck on the cached shell.
+The Singularity cockpit may install a service worker at `/sw.js`. Returning
+visitors who previously cached the OpenCode-at-root shell should hard-refresh
+once after deploy; `/chat/` is the OpenCode surface going forward.
 
 ## Feature parity
 
-| Kept from the cockpit ("my look") | Kept from OpenCode ("their layout") |
+| Singularity root (Muse Omni) | OpenCode shell (`/chat/`) |
 |---|---|
-| Singularity palette, orb, glass | Message/part chat thread |
-| Atlas / Studio / Observatory | Streaming markdown + syntax highlight |
-| Legal pages, PWA install | Reasoning ("thinking") cards |
-| BYOK + `/api/chat` lanes, honest offline banner | Tool cards (bash/edit/read/grep/… + diffs) |
-| Classic cockpit at `/legacy.html` | Copy-link-to-message, show-more/less |
+| Connect / pairing, jobs, approvals | Message/part chat thread |
+| OMNI providers, autonomy, memory | Streaming markdown + syntax highlight |
+| Atlas / Studio / Observatory (inline + links) | Reasoning ("thinking") cards |
+| Local Admin link → `:9119` | Tool cards (when gateway transport is wired) |
+| Legal pages, PWA install | Copy-link-to-message, show-more/less |
 
 ## Security
 
@@ -118,11 +121,11 @@ with `script-src 'unsafe-inline' 'unsafe-eval'` and `connect-src https:`. That i
 a weak backstop for an origin that can hold a provider key in memory. Promoting
 it to an enforcing `Content-Security-Policy` (nonce/hash instead of
 `'unsafe-inline'`, `connect-src` narrowed to the provider hosts, a `report-to`
-endpoint) is a **follow-up** here because the legacy cockpit, Studio, and
+endpoint) is a **follow-up** here because the Singularity cockpit, Studio, and
 Observatory are inline-script-heavy and would break under a blanket enforcing
 policy — they need a path-scoped policy, which is out of scope for this PR. The
-new app itself already carries **no inline script** (SW registration lives in
-`main.tsx`), so it is ready for a `'self'`-only `script-src`.
+OpenCode app itself already carries **no inline script** (SW registration lives in
+`main.tsx`), so it is ready for a `'self'`-only `script-src` under `/chat/`.
 
 ## Known follow-ups
 
@@ -136,9 +139,12 @@ new app itself already carries **no inline script** (SW registration lives in
   `--*-tool-width` / user-part widths for MUSE.
 - **Multi-session persistence:** the rail lists in-memory sessions; persist to
   the gateway.
+- **Connect UI on `/chat/`:** pairing remains on Singularity root; optional
+  BYOK/Connect dialog for the OpenCode shell is still a follow-up.
 
 ## Owner gate
 
-Changing what musehq.io serves by default is **owner-gated**. This lands as a
-**draft PR**; merge to `main` waits for the owner's explicit
-`Yes, with authorization.`
+Changing what musehq.io serves by default is **owner-gated**. Restoring
+Singularity as the public root (and demoting the incomplete OpenCode shell to
+`/chat/`) is the intentional Muse Omni fix; merge still waits for the owner's
+explicit `Yes, with authorization.` when required by release policy.

@@ -5,8 +5,9 @@ Provides a FastAPI backend serving the Vite/React frontend and REST API
 endpoints for managing configuration, environment variables, and sessions.
 
 Usage:
-    python -m hermes_cli.main web          # Start on http://127.0.0.1:9119
-    python -m hermes_cli.main web --port 8080
+    muse dashboard                        # Start on http://127.0.0.1:9119
+    muse dashboard --port 8080
+    python -m hermes_cli.main dashboard   # equivalent
 """
 
 import asyncio

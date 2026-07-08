@@ -1,9 +1,13 @@
 import { defineConfig } from "vite"
 import solid from "vite-plugin-solid"
 
-// musehq.io front-end. Solid + Vite so we can compose OpenCode's vendored
-// SolidJS chat renderer (vendor/opencode/*) directly, dressed in the MUSE look.
+// musehq.io OpenCode chat shell. Solid + Vite so we can compose OpenCode's
+// vendored SolidJS chat renderer (vendor/opencode/*) dressed in the MUSE look.
+// On Vercel this ships under /chat/ (Singularity cockpit owns site root).
+const base = process.env.MUSEHQ_BASE || "/"
+
 export default defineConfig({
+  base,
   plugins: [solid()],
   build: {
     target: "esnext",

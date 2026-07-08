@@ -8,14 +8,13 @@ interface Destination {
   hint?: string
 }
 
-// Cockpit destinations. These static surfaces ship alongside the app in the
-// Vercel/cockpit output (atlas/, studio.html, observatory.html, legal pages),
-// so we preserve every existing cockpit feature by linking out to them.
+// Cockpit destinations. Singularity (Muse Omni) owns site root; this OpenCode
+// chat shell lives under /chat/ and links out to the shared static surfaces.
 const DESTINATIONS: Destination[] = [
+  { label: "Muse Omni", href: "/", hint: "Full Singularity operations cockpit", icon: IconLegacy },
   { label: "Atlas", href: "/atlas/", hint: "3D systems atlas", icon: IconAtlas },
   { label: "Studio", href: "/studio.html", hint: "Generative studio", icon: IconStudio },
   { label: "Observatory", href: "/observatory.html", hint: "Live telemetry", icon: IconObs },
-  { label: "Classic cockpit", href: "/legacy.html", hint: "The previous single-file cockpit", icon: IconLegacy },
 ]
 
 export function Rail(props: { onNavigate?: () => void }) {
