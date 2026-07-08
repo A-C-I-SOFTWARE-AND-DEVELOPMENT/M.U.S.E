@@ -464,6 +464,37 @@ def _make_handler(
             ".map": "application/json",
             ".txt": "text/plain; charset=utf-8",
         }
+        # When Singularity is served at ``/`` (muse omni), the page uses
+        # root-relative asset refs (``vendor/…``, ``atlas/…``, icons, …).
+        # Those must resolve at the site root — not only under ``/cockpit/``.
+        _ROOT_STATIC_PREFIXES = ("/vendor/", "/atlas/", "/js/", "/styles/")
+        _ROOT_STATIC_EXACT_DIRS = frozenset({"/vendor", "/atlas", "/js", "/styles"})
+        _ROOT_STATIC_FILES = frozenset(
+            {
+                "/studio.html",
+                "/studio-support.js",
+                "/observatory.html",
+                "/observatory.css",
+                "/observatory.js",
+                "/observatory-demo.html",
+                "/observatory-demo.json",
+                "/manifest.webmanifest",
+                "/icon.svg",
+                "/icon-180.png",
+                "/icon-192.png",
+                "/icon-512.png",
+                "/icon-maskable-512.png",
+                "/tokens.css",
+                "/cockpit.css",
+                "/sw.js",
+                "/terms.html",
+                "/privacy.html",
+                "/og.png",
+                "/sitemap.xml",
+                "/robots.txt",
+                "/legacy.html",
+            }
+        )
 
         def _serve_static(self, path: str) -> bool:
             """Serve the bundled browser cockpit. Returns True if it handled the
@@ -473,7 +504,12 @@ def _make_handler(
 
             The default cockpit document is ``cockpit.dc.html`` (the imported
             "Singularity" Claude Design). The prior modular shell stays reachable
-            at ``/cockpit/index.html``; ``/nexus`` is unaffected."""
+            at ``/cockpit/index.html``; ``/nexus`` is unaffected.
+
+            Root-relative static assets (``/vendor/*``, ``/atlas/*``, icons, …)
+            are also served so ``muse omni``'s ``http://127.0.0.1:8765/`` URL
+            boots fully — the HTML references those paths without a ``/cockpit``
+            prefix."""
             root = (Path(__file__).resolve().parent / "static").resolve()
             cockpit_doc = "cockpit.dc.html"
             if path in ("/", "/cockpit", "/cockpit/"):
@@ -488,6 +524,19 @@ def _make_handler(
             elif path.startswith("/nexus/"):
                 rel = path[len("/nexus/"):].lstrip("/") or "index.html"
                 default_doc = "index.html"
+            elif (
+                path.startswith(self._ROOT_STATIC_PREFIXES)
+                or path in self._ROOT_STATIC_EXACT_DIRS
+                or path in self._ROOT_STATIC_FILES
+            ):
+                # Alias /legacy.html → Singularity (same as Vercel assemble).
+                if path == "/legacy.html":
+                    rel = cockpit_doc
+                else:
+                    rel = path.lstrip("/") or cockpit_doc
+                # Exact file only — do not SPA-fallback unknown root assets to
+                # the cockpit HTML (that would mask real 404s).
+                default_doc = ""
             else:
                 return False
             try:
@@ -506,8 +555,14 @@ def _make_handler(
             if suffix and suffix not in self._STATIC_TYPES:
                 return False  # disallowed file type -> 404
             if not target.is_file():
-                target = root / default_doc  # SPA fallback (route or missing)
-                if not target.is_file():
+                # Directory index for /atlas/ etc.
+                if target.is_dir() and (target / "index.html").is_file():
+                    target = target / "index.html"
+                elif default_doc:
+                    target = root / default_doc  # SPA fallback (route or missing)
+                    if not target.is_file():
+                        return False
+                else:
                     return False
             ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
             try:
@@ -594,7 +649,15 @@ def _make_handler(
             # Static cockpit UI shell (the browser app). Unauthenticated — it's
             # just HTML/CSS/JS; every API call it makes carries the bearer token.
             # GET only, path-traversal-safe. Served before the API route table.
-            if method == "GET" and (path == "/" or path.startswith("/cockpit") or path.startswith("/nexus")):
+            # Also covers root-relative assets when Singularity is served at ``/``.
+            if method == "GET" and (
+                path == "/"
+                or path.startswith("/cockpit")
+                or path.startswith("/nexus")
+                or path.startswith(Handler._ROOT_STATIC_PREFIXES)
+                or path in Handler._ROOT_STATIC_EXACT_DIRS
+                or path in Handler._ROOT_STATIC_FILES
+            ):
                 if self._serve_static(path):
                     return
 
