@@ -130,7 +130,12 @@ jobs:
               rm -rf "$WT"; mkdir -p "$WT"; git -C "$WT" init -q -b gh-pages
             fi
             # Replace ONLY the docs-owned paths; leave NEXUS's root files intact.
+            # The root llms*.txt are docs-owned too: delete before the conditional
+            # copies so a build that stops emitting them doesn't leave stale
+            # agent-facing docs served forever (llms generation is non-fatal in
+            # website/scripts/prebuild.mjs, and nexus-pages.yml preserves these).
             rm -rf "$WT/docs"; mkdir -p "$WT/docs"; cp -a "$SRC/docs/." "$WT/docs/"
+            rm -f "$WT/llms.txt" "$WT/llms-full.txt"
             [ -f "$SRC/llms.txt" ] && cp "$SRC/llms.txt" "$WT/llms.txt" || true
             [ -f "$SRC/llms-full.txt" ] && cp "$SRC/llms-full.txt" "$WT/llms-full.txt" || true
             touch "$WT/.nojekyll"
