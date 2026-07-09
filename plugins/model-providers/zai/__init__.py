@@ -6,7 +6,8 @@ from providers.base import ProviderProfile
 zai = ProviderProfile(
     name="zai",
     aliases=("glm", "z-ai", "z.ai", "zhipu"),
-    env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"),
+    # ZHIPU_API_KEY is the Vercel/public-chat alias for the same Zhipu credential.
+    env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY"),
     display_name="Z.AI (GLM)",
     description="Z.AI / GLM — Zhipu AI models",
     signup_url="https://z.ai/",

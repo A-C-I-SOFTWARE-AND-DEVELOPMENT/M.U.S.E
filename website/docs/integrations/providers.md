@@ -1293,7 +1293,15 @@ You can also select named custom providers from the interactive `muse model` men
 
 ### Cookbook: Together AI, Groq, Perplexity
 
-The cloud providers listed in [Other Compatible Providers](#other-compatible-providers) all speak OpenAI's REST dialect, so they wire up the same way under `custom_providers:`. Three worked recipes follow. Each drops into `~/.hermes/config.yaml` and the matching API key goes in `~/.hermes/.env`.
+**Preferred (first-class):** set `GROQ_API_KEY` / `TOGETHER_API_KEY` /
+`FIREWORKS_API_KEY` / `PERPLEXITY_API_KEY` / `MISTRAL_API_KEY` in
+`~/.hermes/.env`, then `muse model` → pick `groq` / `together` / `fireworks` /
+`perplexity` / `mistral`. No `custom_providers` entry is required. Add
+cross-provider failover with `fallback_providers` in `config.yaml`.
+
+The recipes below still work for named `custom_providers:` endpoints if you
+prefer that shape. Each drops into `~/.hermes/config.yaml` and the matching API
+key goes in `~/.hermes/.env`.
 
 #### Together AI
 

@@ -149,6 +149,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     # Owner-gated, opt-in (HERMES_COCKPIT_SECRET_IMPORT=1), loopback-only export of
     # the user's existing ~/.hermes/.env credential keys so NEXUS can import them.
     ("GET", _compile("/v1/cockpit/secrets/import"), h.secrets_import, True),
+    ("GET", _compile("/v1/cockpit/credentials/summary"), h.credentials_summary, True),
     ("GET", _compile("/v1/cockpit/memory"), h.memory_list, True),
     ("POST", _compile("/v1/cockpit/memory"), h.memory_create, True),
     ("DELETE", _compile("/v1/cockpit/memory/{id}"), h.memory_delete, True),

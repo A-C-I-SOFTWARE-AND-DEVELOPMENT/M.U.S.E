@@ -1078,8 +1078,13 @@ async def set_model_assignment(body: ModelAssignment):
                 model_cfg = {}
             model_cfg["provider"] = provider
             model_cfg["default"] = model
-            # Clear stale base_url so the resolver picks the provider's own default.
-            if "base_url" in model_cfg and model_cfg.get("base_url"):
+            # Clear stale base_url for built-in cloud providers so the resolver
+            # picks that provider's own default. Keep base_url when switching to
+            # custom / lmstudio / named custom_providers (those need an endpoint).
+            _keep_base = provider in {"custom", "lmstudio"} or str(provider).startswith(
+                "custom:"
+            )
+            if not _keep_base and "base_url" in model_cfg and model_cfg.get("base_url"):
                 model_cfg["base_url"] = ""
             # Also clear hardcoded context_length override — new model may have
             # a different context window.

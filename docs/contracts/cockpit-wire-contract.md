@@ -46,6 +46,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
 | POST | `/v1/cockpit/coding/plan` | `gateway.cockpit.handlers.coding_plan` | bearer | — | json | Build + validate a bounded coding work packet (stage only, never runs). |
 | GET | `/v1/cockpit/council/dispatch` | `gateway.cockpit.handlers.council_dispatch` | bearer | — | json | Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``. |
+| GET | `/v1/cockpit/credentials/summary` | `gateway.cockpit.handlers.credentials_summary` | bearer | — | json | Read-only multi-provider credential inventory (names + configured yes/no). |
 | GET | `/v1/cockpit/diagnostics` | `gateway.cockpit.handlers.diagnostics` | bearer | — | json | Launch-readiness diagnostics (reuses the JARVIS launch doctor). |
 | POST | `/v1/cockpit/emergency-stop` | `gateway.cockpit.handlers.emergency_stop` | bearer | — | json | Owner panic button: a decisive backend halt. |
 | GET | `/v1/cockpit/events` | `gateway.cockpit.handlers.audit_events` | bearer | — | json | Leveled cockpit events (contract §9) from the structured event log. |

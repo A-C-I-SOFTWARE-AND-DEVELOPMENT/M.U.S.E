@@ -33,7 +33,14 @@ export interface ChatMessage {
 interface ServerProvider {
   id: string;
   baseUrl: string;
+  /** Primary env var name (Hermes-canonical when possible). */
   keyEnv: string;
+  /**
+   * Extra env aliases accepted for the same credential (deploy-doc / Vercel
+   * drift). Hermes core and this Edge table must accept the same names so a
+   * key that works locally also lights public /api/chat.
+   */
+  keyEnvAliases?: string[];
   shape: ProviderShape;
   /** Real default model used when the request asks for 'auto' on this provider. */
   defaultModel: string;
@@ -61,10 +68,26 @@ const SERVER_PROVIDERS: ServerProvider[] = [
   { id: 'groq', baseUrl: 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY', shape: 'openai', free: true, defaultModel: 'llama-3.3-70b-versatile' },
   { id: 'google', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', keyEnv: 'GEMINI_API_KEY', shape: 'gemini-openai', free: true, openrouterPrefix: 'google', defaultModel: 'gemini-2.0-flash' },
   { id: 'cerebras', baseUrl: 'https://api.cerebras.ai/v1', keyEnv: 'CEREBRAS_API_KEY', shape: 'openai', free: true, defaultModel: 'llama-3.3-70b' },
-  { id: 'nim', baseUrl: 'https://integrate.api.nvidia.com/v1', keyEnv: 'NIM_API_KEY', shape: 'openai', free: true, defaultModel: 'meta/llama-3.3-70b-instruct' },
+  {
+    id: 'nim',
+    baseUrl: 'https://integrate.api.nvidia.com/v1',
+    keyEnv: 'NVIDIA_API_KEY',
+    keyEnvAliases: ['NIM_API_KEY', 'NVIDIA_NIM_API_KEY'],
+    shape: 'openai',
+    free: true,
+    defaultModel: 'meta/llama-3.3-70b-instruct',
+  },
   { id: 'huggingface', baseUrl: 'https://router.huggingface.co/v1', keyEnv: 'HF_TOKEN', shape: 'openai', free: true, defaultModel: 'meta-llama/Llama-3.3-70B-Instruct' },
   { id: 'github-models', baseUrl: 'https://models.inference.ai.azure.com', keyEnv: 'GITHUB_TOKEN', shape: 'openai', free: true, openrouterPrefix: 'openai', defaultModel: 'gpt-4o-mini' },
-  { id: 'zhipu', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', keyEnv: 'ZHIPU_API_KEY', shape: 'openai', free: true, defaultModel: 'glm-4-flash' },
+  {
+    id: 'zhipu',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    keyEnv: 'GLM_API_KEY',
+    keyEnvAliases: ['ZHIPU_API_KEY', 'ZAI_API_KEY', 'Z_AI_API_KEY'],
+    shape: 'openai',
+    free: true,
+    defaultModel: 'glm-4-flash',
+  },
   // --- universal router (300+ models behind one key; auto = omni) ---
   { id: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', keyEnv: 'OPENROUTER_API_KEY', shape: 'openai', defaultModel: 'openrouter/auto' },
   // --- paid (or paid-after-trial) direct providers ---
@@ -76,7 +99,14 @@ const SERVER_PROVIDERS: ServerProvider[] = [
   { id: 'together', baseUrl: 'https://api.together.xyz/v1', keyEnv: 'TOGETHER_API_KEY', shape: 'openai', defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' },
   { id: 'novita', baseUrl: 'https://api.novita.ai/v3/openai', keyEnv: 'NOVITA_API_KEY', shape: 'openai', defaultModel: 'meta-llama/llama-3.3-70b-instruct' },
   { id: 'dashscope', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', keyEnv: 'DASHSCOPE_API_KEY', shape: 'openai', openrouterPrefix: 'qwen', defaultModel: 'qwen-max' },
-  { id: 'moonshot', baseUrl: 'https://api.moonshot.ai/v1', keyEnv: 'MOONSHOT_API_KEY', shape: 'openai', defaultModel: 'kimi-latest' },
+  {
+    id: 'moonshot',
+    baseUrl: 'https://api.moonshot.ai/v1',
+    keyEnv: 'KIMI_API_KEY',
+    keyEnvAliases: ['MOONSHOT_API_KEY', 'KIMI_CODING_API_KEY'],
+    shape: 'openai',
+    defaultModel: 'kimi-latest',
+  },
   { id: 'fireworks', baseUrl: 'https://api.fireworks.ai/inference/v1', keyEnv: 'FIREWORKS_API_KEY', shape: 'openai', defaultModel: 'accounts/fireworks/models/llama-v3p3-70b-instruct' },
   { id: 'perplexity', baseUrl: 'https://api.perplexity.ai', keyEnv: 'PERPLEXITY_API_KEY', shape: 'openai', defaultModel: 'sonar' },
 ];
@@ -137,6 +167,17 @@ function envKey(name: string): string {
   return (typeof process !== 'undefined' && process.env && process.env[name]) || '';
 }
 
+/** First non-empty env value among a provider's primary key + aliases. */
+function providerEnvKey(p: ServerProvider): string {
+  const primary = envKey(p.keyEnv);
+  if (primary) return primary;
+  for (const alias of p.keyEnvAliases || []) {
+    const v = envKey(alias);
+    if (v) return v;
+  }
+  return '';
+}
+
 export interface UpstreamPlan {
   /** Fully-built upstream request (URL + RequestInit) ready to fetch(). */
   url: string;
@@ -191,7 +232,7 @@ export function buildUpstream(
   }
 
   const p = providerForModel(model);
-  const directKey = envKey(p.keyEnv);
+  const directKey = providerEnvKey(p);
 
   // Direct upstream when we hold this provider's own key.
   if (directKey) {
@@ -208,7 +249,7 @@ export function buildUpstream(
   }
 
   // Fallback: OpenRouter, if a key exists and the model has an OR vendor slug.
-  const orKey = envKey(OPENROUTER.keyEnv);
+  const orKey = providerEnvKey(OPENROUTER);
   if (orKey && (p.id === 'openrouter' || p.openrouterPrefix)) {
     const orModel = p.id === 'openrouter'
       ? openrouterModelId(model)
@@ -233,7 +274,7 @@ export function buildUpstream(
 
 /** True when at least one supported provider key is present in process.env. */
 export function hasServerKey(): boolean {
-  return SERVER_PROVIDERS.some((p) => !!envKey(p.keyEnv));
+  return SERVER_PROVIDERS.some((p) => !!providerEnvKey(p));
 }
 
 /**
@@ -248,7 +289,7 @@ function pickServerModel(): string {
   // Stable sort (V8) by free-tier first; preserves table order within each group.
   const ordered = [...SERVER_PROVIDERS].sort((a, b) => Number(!!b.free) - Number(!!a.free));
   for (const p of ordered) {
-    if (!envKey(p.keyEnv)) continue;
+    if (!providerEnvKey(p)) continue;
     // OpenRouter's own 'auto' is a real meta-model; others get a real default.
     return p.id === 'openrouter' ? 'openrouter/auto' : `${p.id}/${p.defaultModel}`;
   }

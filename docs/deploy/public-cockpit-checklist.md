@@ -4,23 +4,28 @@ A short, honest checklist for running the public cockpit (e.g. musehq.io) as a
 real product. Items are ordered by impact; the first two are the only ones that
 *must* happen for the public chat to work and be safe.
 
-## 1. Turn the chat on — set ONE provider key (required)
+## 1. Turn the chat on — set provider key(s) (required)
 
-The public chat runs through the server-held provider key in `/api/chat`. Until
-one is set, the cockpit honestly shows **"set a provider key"** and never
-fabricates a reply. It does **not** have to be OpenRouter — any one of the
-supported providers works, and a free-tier key costs nothing:
+The public chat runs through server-held provider keys in `/api/chat`. Until
+at least one is set, the cockpit honestly shows **"set a provider key"** and never
+fabricates a reply. It does **not** have to be OpenRouter — any supported
+provider works, and a free-tier key costs nothing. You can set **multiple**
+keys; free-tier providers win auto-pick order.
 
-| Provider | Env var | Cost |
+| Provider | Env var (aliases) | Cost |
 |----------|---------|------|
 | Groq | `GROQ_API_KEY` | free tier |
-| Google Gemini | `GEMINI_API_KEY` | free tier |
+| Google Gemini | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | free tier |
 | Cerebras | `CEREBRAS_API_KEY` | free tier |
-| NVIDIA NIM | `NIM_API_KEY` | free tier |
+| NVIDIA NIM | `NVIDIA_API_KEY` (`NIM_API_KEY`, `NVIDIA_NIM_API_KEY`) | free tier |
+| Zhipu / GLM | `GLM_API_KEY` (`ZHIPU_API_KEY`, `ZAI_API_KEY`) | free tier |
 | OpenRouter | `OPENROUTER_API_KEY` | free `:free` models + paid |
 | Anthropic / OpenAI / … | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / … | paid |
 
-Set it on the **Production** environment of the Vercel project, then redeploy.
+Hermes local (`~/.hermes/.env`) and Vercel accept the same canonical names and
+aliases, so a key that works with `muse omni` also lights public chat.
+
+Set keys on the **Production** environment of the Vercel project, then redeploy.
 The server prefers a free-tier key automatically (free-first routing).
 
 ## 2. Meter the chat — rate-limit `/api/chat` (strongly recommended)
