@@ -1737,7 +1737,7 @@ body { perspective: 1800px; }
             </div>
             <sc-if value="{{ keyEditorOauth }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-top:1px solid var(--edge); padding-top:10px;">
-                <button type="button" onclick="{{ onOauthConnect }}" class="btn" style="flex:none; border:1px solid var(--ring-1); color:var(--ring-1); background:transparent;">Connect with OAuth</button>
+                <button type="button" onclick="{{ onOauthConnect }}" class="btn" style="flex:none; border:1px solid var(--ring-1); color:var(--ring-1); background:transparent;">Get key ↗</button>
                 <span style="font-size:11px; color:var(--signal-mute);">Authorize on OpenRouter — a key is created and saved here automatically, no copy-paste.</span>
               </div>
             </sc-if>
@@ -2973,7 +2973,6 @@ class Component extends DCLogic {
     // so a one-click link lands straight in a live session (token then scrubbed).
     // Per-provider API keys (browser-only) + finish any OAuth redirect (?code=).
     this._hydrateProvKeys();
-    this._handleOauthCallback();
     this._autoConnectFromUrl();
     // Live data wiring: if we have a token, immediately try gateway and start polling
     this._kickLive();
@@ -3604,42 +3603,14 @@ class Component extends DCLogic {
     for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
     return btoa(s).replace(/[+]/g, '-').replace(/[/]/g, '_').replace(/=+$/, '');
   }
-  oauthConnect = async () => {
+  oauthConnect = () => {
     const id = this.state.keyProvOpen;
-    if (id !== 'openrouter') { this.setState({ keyError: 'One-click OAuth here is available for OpenRouter; for other providers, paste an API key above.' }); return; }
-    try {
-      const arr = new Uint8Array(32); crypto.getRandomValues(arr);
-      const verifier = this._b64url(arr.buffer);
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-      const challenge = this._b64url(digest);
-      localStorage.setItem('muse.oauth.verifier', verifier);
-      localStorage.setItem('muse.oauth.prov', 'openrouter');
-      location.href = 'https://openrouter.ai/auth?callback_url=' + encodeURIComponent(location.origin + '/') + '&code_challenge=' + encodeURIComponent(challenge) + '&code_challenge_method=S256';
-    } catch (e) { this.setState({ keyError: 'Could not start OAuth: ' + ((e && e.message) || e) }); }
-  };
-  _handleOauthCallback = () => {
-    try {
-      const q = new URLSearchParams(location.search || '');
-      const code = q.get('code');
-      const verifier = localStorage.getItem('muse.oauth.verifier') || '';
-      if (!code || !verifier) return;
-      try { history.replaceState(null, '', location.pathname); } catch (e) {}
-      fetch('https://openrouter.ai/api/v1/auth/keys', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, code_verifier: verifier, code_challenge_method: 'S256' })
-      }).then(r => r.json()).then(data => {
-        const key = data && data.key;
-        try { localStorage.removeItem('muse.oauth.verifier'); localStorage.removeItem('muse.oauth.prov'); } catch (e) {}
-        if (key) {
-          const map = { ...(this.state.provKeys || {}), openrouter: key }; this._saveProvKeys(map);
-          try { localStorage.setItem('muse.byok.key', key); localStorage.setItem('muse.byok.prov', 'openrouter'); } catch (e) {}
-          this.setState({ provKeys: map, byokSaved: true, byokProv: 'openrouter', serverChat: 'ready', activeView: 'models', keyProvOpen: 'openrouter',
-            providers: this.state.providers.map(p => p.id === 'openrouter' ? { ...p, connected: true } : p) });
-        } else {
-          this.setState({ activeView: 'models', keyProvOpen: 'openrouter', keyError: 'OAuth did not return a key — try again or paste a key.' });
-        }
-      }).catch(e => { this.setState({ activeView: 'models', keyProvOpen: 'openrouter', keyError: 'OAuth exchange failed: ' + ((e && e.message) || e) }); });
-    } catch (e) {}
+    if (id !== 'openrouter') { this.setState({ keyError: 'Quick key setup here is available for OpenRouter; for other providers, paste an API key above.' }); return; }
+    // Self-containment policy: this static page never fetches remote
+    // endpoints, so a browser-side PKCE code->key exchange is off the
+    // table. Open the key page in a new tab; the user pastes the key.
+    try { window.open('https://openrouter.ai/settings/keys', '_blank', 'noopener'); } catch (e) {}
+    this.setState({ keyError: 'Create a key on the OpenRouter tab that just opened, then paste it above and Save.' });
   };
 
   async _api(path, { method = 'GET', body = null, auth = true } = {}) {
