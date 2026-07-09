@@ -53,7 +53,9 @@ class TestProviderRegistry:
 
     def test_zai_env_vars(self):
         pconfig = PROVIDER_REGISTRY["zai"]
-        assert pconfig.api_key_env_vars == ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY")
+        assert pconfig.api_key_env_vars == (
+            "GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY",
+        )
         assert pconfig.base_url_env_var == "GLM_BASE_URL"
 
     def test_xai_env_vars(self):
@@ -64,7 +66,9 @@ class TestProviderRegistry:
 
     def test_nvidia_env_vars(self):
         pconfig = PROVIDER_REGISTRY["nvidia"]
-        assert pconfig.api_key_env_vars == ("NVIDIA_API_KEY",)
+        assert pconfig.api_key_env_vars == (
+            "NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY",
+        )
         assert pconfig.base_url_env_var == "NVIDIA_BASE_URL"
         assert pconfig.inference_base_url == "https://integrate.api.nvidia.com/v1"
 
@@ -77,9 +81,11 @@ class TestProviderRegistry:
         pconfig = PROVIDER_REGISTRY["kimi-coding"]
         # KIMI_API_KEY is the primary env var; KIMI_CODING_API_KEY is a
         # secondary fallback for Kimi Code sk-kimi- keys so users don't
-        # have to overload the same variable.
+        # have to overload the same variable. MOONSHOT_API_KEY is the
+        # Vercel/public-chat alias.
         assert "KIMI_API_KEY" in pconfig.api_key_env_vars
         assert "KIMI_CODING_API_KEY" in pconfig.api_key_env_vars
+        assert "MOONSHOT_API_KEY" in pconfig.api_key_env_vars
         assert pconfig.base_url_env_var == "KIMI_BASE_URL"
 
     def test_minimax_env_vars(self):
@@ -146,14 +152,18 @@ PROVIDER_ENV_VARS = (
     "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN",
     "CLAUDE_CODE_OAUTH_TOKEN",
     "LM_API_KEY", "LM_BASE_URL",
-    "GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY",
-    "KIMI_API_KEY", "KIMI_BASE_URL", "STEPFUN_API_KEY", "STEPFUN_BASE_URL",
+    "GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY",
+    "KIMI_API_KEY", "KIMI_CODING_API_KEY", "MOONSHOT_API_KEY", "KIMI_BASE_URL",
+    "STEPFUN_API_KEY", "STEPFUN_BASE_URL",
     "MINIMAX_API_KEY", "MINIMAX_CN_API_KEY",
     "AI_GATEWAY_API_KEY", "AI_GATEWAY_BASE_URL",
     "KILOCODE_API_KEY", "KILOCODE_BASE_URL",
     "GMI_API_KEY", "GMI_BASE_URL",
     "DASHSCOPE_API_KEY", "OPENCODE_ZEN_API_KEY", "OPENCODE_GO_API_KEY",
     "NOUS_API_KEY", "GITHUB_TOKEN", "GH_TOKEN",
+    "NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY",
+    "GROQ_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY",
+    "PERPLEXITY_API_KEY", "MISTRAL_API_KEY",
     "OPENAI_BASE_URL", "HERMES_COPILOT_ACP_COMMAND", "COPILOT_CLI_PATH",
     "HERMES_COPILOT_ACP_ARGS", "COPILOT_ACP_BASE_URL",
 )
@@ -306,6 +316,46 @@ class TestResolveProvider:
     def test_auto_detects_hf_token(self, monkeypatch):
         monkeypatch.setenv("HF_TOKEN", "hf_test_token")
         assert resolve_provider("auto") == "huggingface"
+
+    def test_auto_detects_groq_key(self, monkeypatch):
+        monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
+        assert resolve_provider("auto") == "groq"
+
+    def test_auto_detects_together_key(self, monkeypatch):
+        monkeypatch.setenv("TOGETHER_API_KEY", "test-together-key")
+        assert resolve_provider("auto") == "together"
+
+    def test_auto_detects_fireworks_key(self, monkeypatch):
+        monkeypatch.setenv("FIREWORKS_API_KEY", "test-fw-key")
+        assert resolve_provider("auto") == "fireworks"
+
+    def test_auto_detects_perplexity_key(self, monkeypatch):
+        monkeypatch.setenv("PERPLEXITY_API_KEY", "test-pplx-key")
+        assert resolve_provider("auto") == "perplexity"
+
+    def test_auto_detects_mistral_key(self, monkeypatch):
+        monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
+        assert resolve_provider("auto") == "mistral"
+
+    def test_auto_detects_zhipu_alias(self, monkeypatch):
+        monkeypatch.setenv("ZHIPU_API_KEY", "test-zhipu-key")
+        assert resolve_provider("auto") == "zai"
+
+    def test_auto_detects_nim_alias(self, monkeypatch):
+        monkeypatch.setenv("NIM_API_KEY", "test-nim-key")
+        assert resolve_provider("auto") == "nvidia"
+
+    def test_auto_detects_moonshot_alias(self, monkeypatch):
+        monkeypatch.setenv("MOONSHOT_API_KEY", "test-moonshot-key")
+        assert resolve_provider("auto") == "kimi-coding"
+
+    def test_explicit_groq_aliases(self):
+        assert resolve_provider("groq") == "groq"
+        assert resolve_provider("together") == "together"
+        assert resolve_provider("fireworks") == "fireworks"
+        assert resolve_provider("perplexity") == "perplexity"
+        assert resolve_provider("mistral") == "mistral"
+        assert resolve_provider("mistralai") == "mistral"
 
     def test_openrouter_takes_priority_over_glm(self, monkeypatch):
         """OpenRouter API key should win over GLM in auto-detection."""

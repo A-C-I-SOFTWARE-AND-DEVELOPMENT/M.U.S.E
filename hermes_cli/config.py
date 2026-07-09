@@ -1926,7 +1926,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
 
     # Config schema version - bump this when adding new required fields
-    "_config_version": 23,
+    "_config_version": 24,
 }
 
 # =============================================================================
@@ -2510,11 +2510,111 @@ OPTIONAL_ENV_VARS: Dict[str, Dict[str, Any]] = {
         "category": "tool",
     },
     "MISTRAL_API_KEY": {
-        "description": "Mistral API key for Voxtral TTS and transcription (STT)",
+        "description": "Mistral API key for chat (provider: mistral) and Voxtral TTS/STT",
         "prompt": "Mistral API key",
         "url": "https://console.mistral.ai/",
         "password": True,
-        "category": "tool",
+        "category": "provider",
+    },
+    "MISTRAL_BASE_URL": {
+        "description": "Mistral API base URL override",
+        "prompt": "Mistral base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
+    "GROQ_API_KEY": {
+        "description": "Groq API key for chat (provider: groq) and Whisper STT",
+        "prompt": "Groq API key",
+        "url": "https://console.groq.com/keys",
+        "password": True,
+        "category": "provider",
+    },
+    "GROQ_BASE_URL": {
+        "description": "Groq API base URL override",
+        "prompt": "Groq base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
+    "TOGETHER_API_KEY": {
+        "description": "Together AI API key (provider: together)",
+        "prompt": "Together AI API key",
+        "url": "https://api.together.xyz/settings/api-keys",
+        "password": True,
+        "category": "provider",
+    },
+    "TOGETHER_BASE_URL": {
+        "description": "Together AI base URL override",
+        "prompt": "Together base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
+    "FIREWORKS_API_KEY": {
+        "description": "Fireworks AI API key (provider: fireworks)",
+        "prompt": "Fireworks API key",
+        "url": "https://fireworks.ai/api-keys",
+        "password": True,
+        "category": "provider",
+    },
+    "FIREWORKS_BASE_URL": {
+        "description": "Fireworks AI base URL override",
+        "prompt": "Fireworks base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
+    "PERPLEXITY_API_KEY": {
+        "description": "Perplexity API key (provider: perplexity)",
+        "prompt": "Perplexity API key",
+        "url": "https://www.perplexity.ai/settings/api",
+        "password": True,
+        "category": "provider",
+    },
+    "PERPLEXITY_BASE_URL": {
+        "description": "Perplexity API base URL override",
+        "prompt": "Perplexity base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
+    "NIM_API_KEY": {
+        "description": "NVIDIA NIM API key alias (same as NVIDIA_API_KEY)",
+        "prompt": "NVIDIA NIM API key",
+        "url": "https://build.nvidia.com/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "NVIDIA_NIM_API_KEY": {
+        "description": "NVIDIA NIM API key alias (same as NVIDIA_API_KEY)",
+        "prompt": "NVIDIA NIM API key",
+        "url": "https://build.nvidia.com/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "ZHIPU_API_KEY": {
+        "description": "Zhipu / GLM API key alias (same as GLM_API_KEY)",
+        "prompt": "Zhipu API key",
+        "url": "https://open.bigmodel.cn/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "MOONSHOT_API_KEY": {
+        "description": "Moonshot / Kimi API key alias (same as KIMI_API_KEY)",
+        "prompt": "Moonshot API key",
+        "url": "https://platform.moonshot.ai/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
     },
     "GITHUB_TOKEN": {
         "description": "GitHub token for Skills Hub (higher API rate limits, skill publish)",
@@ -4105,6 +4205,30 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                     print(
                         "  ✓ Seeded auxiliary.curator defaults in config.yaml: "
                         f"{', '.join(added_aux)}"
+                    )
+
+    # ── Version 23 → 24: clear stale OpenRouter base_url under provider: auto ──
+    # Older examples pinned model.base_url to openrouter.ai even with
+    # provider: auto, which locked multi-key setups onto OpenRouter's URL.
+    # Built-in providers carry their own defaults; only custom/lmstudio need
+    # an explicit base_url.
+    if current_ver < 24:
+        config = load_config()
+        model_cfg = config.get("model")
+        if isinstance(model_cfg, dict):
+            provider = str(model_cfg.get("provider") or "auto").strip().lower()
+            base_url = str(model_cfg.get("base_url") or "").strip().lower()
+            if provider in {"", "auto"} and "openrouter.ai" in base_url:
+                model_cfg["base_url"] = ""
+                config["model"] = model_cfg
+                save_config(config)
+                results["config_added"].append(
+                    "model.base_url cleared (stale OpenRouter URL under provider: auto)"
+                )
+                if not quiet:
+                    print(
+                        "  ✓ Cleared stale OpenRouter model.base_url so auto "
+                        "can use any configured provider"
                     )
 
     if current_ver < latest_ver and not quiet:

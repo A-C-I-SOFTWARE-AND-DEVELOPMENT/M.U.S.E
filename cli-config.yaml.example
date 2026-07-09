@@ -28,11 +28,19 @@ model:
   #   "xiaomi"       - Xiaomi MiMo (requires: XIAOMI_API_KEY)
   #   "arcee"        - Arcee AI Trinity models (requires: ARCEEAI_API_KEY)
   #   "cerebras"     - Cerebras wafer-scale speed lane (requires: CEREBRAS_API_KEY)
+  #   "groq"         - Groq ultra-fast inference (requires: GROQ_API_KEY)
+  #   "together"     - Together AI (requires: TOGETHER_API_KEY)
+  #   "fireworks"    - Fireworks AI (requires: FIREWORKS_API_KEY)
+  #   "perplexity"   - Perplexity search-augmented chat (requires: PERPLEXITY_API_KEY)
+  #   "mistral"      - Mistral AI / Codestral (requires: MISTRAL_API_KEY)
   #   "ollama-cloud" - Ollama Cloud (requires: OLLAMA_API_KEY — https://ollama.com/settings)
   #   "kilocode"     - KiloCode gateway (requires: KILOCODE_API_KEY)
   #   "ai-gateway"   - Vercel AI Gateway (requires: AI_GATEWAY_API_KEY)
   #   "azure-foundry" - Microsoft Foundry / Azure OpenAI (API key or Entra ID)
   #   "lmstudio"     - LM Studio local server (optional: LM_API_KEY, defaults to http://127.0.0.1:1234/v1)
+  #
+  # Multi-provider: put every key you use in ~/.hermes/.env. Primary is
+  # model.provider below; add failover with fallback_providers (see docs).
   #
   # Local servers (LM Studio, Ollama, vLLM, llama.cpp):
   #   "custom"       - Any other OpenAI-compatible endpoint. Set base_url below.
@@ -48,9 +56,13 @@ model:
   # Can also be overridden with --provider flag or HERMES_INFERENCE_PROVIDER env var.
   provider: "auto"
   
-  # API configuration (falls back to OPENROUTER_API_KEY env var)
+  # API configuration (prefer keys in ~/.hermes/.env — never commit secrets here)
   # api_key: "your-key-here"  # Uncomment to set here instead of .env
-  base_url: "https://openrouter.ai/api/v1"
+  #
+  # base_url is provider-specific. Leave unset for auto / built-in providers so
+  # each provider uses its own default. Only set when using provider: custom
+  # (or a named custom_providers entry) / a non-default endpoint.
+  # base_url: "http://127.0.0.1:11434/v1"
 
   # Azure Foundry keyless auth example:
   # provider: "azure-foundry"

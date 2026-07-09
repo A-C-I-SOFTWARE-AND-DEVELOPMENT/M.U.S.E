@@ -48,7 +48,8 @@ class KimiProfile(ProviderProfile):
 kimi = KimiProfile(
     name="kimi-coding",
     aliases=("kimi", "moonshot", "kimi-for-coding"),
-    env_vars=("KIMI_API_KEY", "KIMI_CODING_API_KEY"),
+    # MOONSHOT_API_KEY is the Vercel/public-chat alias for Moonshot/Kimi keys.
+    env_vars=("KIMI_API_KEY", "KIMI_CODING_API_KEY", "MOONSHOT_API_KEY"),
     base_url="https://api.moonshot.ai/v1",
     fixed_temperature=OMIT_TEMPERATURE,
     default_max_tokens=32000,

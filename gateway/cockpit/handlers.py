@@ -438,6 +438,75 @@ def secrets_import(_req: Request) -> JsonResponse:
     return JsonResponse(200, {"keys": keys, "count": len(keys), "present": True, "source": str(env_path)})
 
 
+def credentials_summary(_req: Request) -> JsonResponse:
+    """Read-only multi-provider credential inventory (names + configured yes/no).
+
+    Never returns secret values. Lets the Omni UI / paired clients show which
+    providers are ready without enabling ``HERMES_COCKPIT_SECRET_IMPORT``.
+    """
+    import os
+
+    from hermes_cli.auth import (
+        PROVIDER_REGISTRY,
+        get_api_key_provider_status,
+        has_usable_secret,
+    )
+
+    providers: list[dict] = []
+    seen: set[str] = set()
+    for pid, pconfig in PROVIDER_REGISTRY.items():
+        if pid in seen or pconfig.id in seen:
+            continue
+        seen.add(pid)
+        seen.add(pconfig.id)
+        if pconfig.auth_type != "api_key":
+            continue
+        status = get_api_key_provider_status(pconfig.id)
+        configured = bool(status.get("configured"))
+        # Mirror resolve_provider("auto"): a bare GITHUB_TOKEN is for Skills Hub
+        # / git tooling and must not advertise Copilot as inference-ready.
+        if pconfig.id == "copilot":
+            configured = any(
+                has_usable_secret(os.getenv(v, ""))
+                for v in ("COPILOT_GITHUB_TOKEN", "GH_TOKEN")
+            )
+        providers.append(
+            {
+                "id": pconfig.id,
+                "name": pconfig.name,
+                "configured": configured,
+                "env_vars": list(pconfig.api_key_env_vars),
+            }
+        )
+
+    # Aggregators / specials not always in PROVIDER_REGISTRY as api_key rows.
+    for pid, env_names in (
+        ("openrouter", ("OPENROUTER_API_KEY", "OPENAI_API_KEY")),
+        ("anthropic", ("ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN")),
+    ):
+        if any(p["id"] == pid for p in providers):
+            continue
+        configured = any(has_usable_secret(os.getenv(v, "")) for v in env_names)
+        providers.append(
+            {
+                "id": pid,
+                "name": pid,
+                "configured": configured,
+                "env_vars": list(env_names),
+            }
+        )
+
+    providers.sort(key=lambda p: (not p["configured"], p["id"]))
+    return JsonResponse(
+        200,
+        {
+            "providers": providers,
+            "configured_count": sum(1 for p in providers if p["configured"]),
+            "total": len(providers),
+        },
+    )
+
+
 def model_route_override(req: Request) -> JsonResponse:
     """Set/clear an owner model override, or flip paid routing (owner-gated).
 

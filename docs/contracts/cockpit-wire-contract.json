@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 123,
+  "handler_count": 124,
   "owner_gated_count": 10,
-  "route_count": 125,
+  "route_count": 126,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -228,6 +228,15 @@
       "path": "/v1/cockpit/council/dispatch",
       "requires_auth": true,
       "summary": "Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.credentials_summary",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/credentials/summary",
+      "requires_auth": true,
+      "summary": "Read-only multi-provider credential inventory (names + configured yes/no)."
     },
     {
       "handler": "gateway.cockpit.handlers.diagnostics",
