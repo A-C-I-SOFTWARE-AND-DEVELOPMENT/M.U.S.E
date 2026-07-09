@@ -102,13 +102,25 @@ def collect_git_diff_evidence(
     repo_root: str,
     allowed_files: Sequence[str] = (),
     protected_files: Sequence[str] = (),
+    *,
+    author_id: str = "",
 ) -> EvidenceArtifact:
-    """Capture the working-tree diff state without mutating the repo."""
+    """Capture the working-tree diff state without mutating the repo.
+
+    ``author_id`` records the AGENT that authored the change under review, in
+    the same identity namespace as a review's ``reviewer_id`` (see
+    ``collect_review_evidence``). Callers that know the acting agent id must
+    pass it so the strict review gate's C19 builder ≠ reviewer check can fire;
+    left blank the gate fails open (see ``strict_review_gate``).
+    """
 
     root = str(repo_root or ".")
+    author = str(author_id or "").strip()
     branch_raw = _git(root, ["rev-parse", "--abbrev-ref", "HEAD"])
     if branch_raw is None:
-        return GitDiffEvidence(repo_root=root, git_available=False).to_artifact()
+        return GitDiffEvidence(
+            repo_root=root, git_available=False, author_id=author
+        ).to_artifact()
 
     branch = branch_raw.strip()
     head = (_git(root, ["rev-parse", "HEAD"]) or "").strip()
@@ -147,6 +159,7 @@ def collect_git_diff_evidence(
         working_tree_clean=not bool(status.strip()),
         diff_check_passed=not bool(diff_check.strip()),
         status_porcelain=status[:_OUTPUT_TAIL],
+        author_id=author,
     ).to_artifact()
 
 
@@ -373,6 +386,48 @@ def collect_review_evidence(
     ).to_artifact()
 
 
+def collect_reviewer_assignment_evidence(
+    reviewer_id: str,
+    diff_hash: str = "",
+) -> Optional[EvidenceArtifact]:
+    """Record the *planned reviewer assignment* as review evidence.
+
+    This exists so the strict review gate's Clause C19 (builder ≠ reviewer)
+    identity check is REACHABLE at assembly time even before a human/agent
+    review has actually run. Assembly sites (``nlp_refine.run_execution_
+    refinement``, ``guardrails_cli._collect``) know only *which* agent is
+    assigned to review — never a real verdict.
+
+    Safety: the verdict is fixed to ``needs_owner`` (a NON-approving, neutral
+    verdict). It can NEVER cause the review gate to PASS — the gate maps
+    ``needs_owner`` to ``NEEDS_OWNER_APPROVAL`` and only an explicit ``approve``
+    verdict passes. So this never fabricates an approval; it only lets C19
+    compare the assigned reviewer against the builder. When ``reviewer_id`` is
+    blank (no reviewer assigned) it returns ``None`` and adds nothing — flows
+    without a reviewer are unchanged.
+
+    A real ``approve``/``request_changes`` verdict must still come from an
+    actual review step via ``collect_review_evidence``; this assignment
+    artifact is deliberately not a substitute for that.
+    """
+
+    reviewer = str(reviewer_id or "").strip()
+    if not reviewer or reviewer.lower() == "unknown":
+        return None
+    summary = (
+        "reviewer assignment recorded (no verdict yet); a real review verdict "
+        "must come from an actual review step"
+    )
+    return ReviewEvidence(
+        reviewer_id=reviewer,
+        verdict="needs_owner",
+        diff_hash=diff_hash or "",
+        review_hash=sha256_hex(summary),
+        summary=summary,
+        contrarian_notes=(),
+    ).to_artifact()
+
+
 # ---------------------------------------------------------------------------
 # Rollback evidence
 # ---------------------------------------------------------------------------
@@ -416,5 +471,6 @@ __all__ = [
     "collect_test_evidence",
     "collect_secret_scan_evidence",
     "collect_review_evidence",
+    "collect_reviewer_assignment_evidence",
     "collect_rollback_evidence",
 ]

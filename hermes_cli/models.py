@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import urllib.request
-import urllib.error
 import urllib.parse
 import time
 from difflib import get_close_matches
@@ -18,6 +16,18 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from hermes_cli import __version__ as _HERMES_VERSION
+
+
+def _load_urllib() -> None:
+    """Bind ``urllib.request``/``urllib.error`` lazily.
+
+    They cost ~14ms at import and this module sits on the CLI startup path;
+    every network-fetch function calls this first, which makes the
+    ``urllib.request.*`` / ``urllib.error.*`` attribute lookups below work
+    (the module-level ``import urllib.parse`` keeps the package name bound).
+    """
+    import urllib.error  # noqa: F401
+    import urllib.request  # noqa: F401
 
 # Identify ourselves so endpoints fronted by Cloudflare's Browser Integrity
 # Check (error 1010) don't reject the default ``Python-urllib/*`` signature.
@@ -332,6 +342,15 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "trinity-large-preview",
         "trinity-mini",
     ],
+    # Cerebras rotates its catalog fast and RETIRES model IDs (a retired ID
+    # 404s → "Cerebras not working"). Keep this fallback minimal — only IDs
+    # kept stable through several deprecation waves. qwen-3-coder-480b (retired
+    # → GLM-4.7) and gemma-4-31b-it (never a Cerebras ID) were removed. The
+    # live /v1/models fetch is authoritative whenever CEREBRAS_API_KEY is set.
+    "cerebras": [
+        "gpt-oss-120b",
+        "zai-glm-4.7",
+    ],
     "gmi": [
         "zai-org/GLM-5.1-FP8",
         "deepseek-ai/DeepSeek-V3.2",
@@ -516,6 +535,7 @@ def fetch_nous_account_tier(access_token: str, portal_base_url: str = "") -> dic
 
     Returns an empty dict on any failure (network, auth, parse).
     """
+    _load_urllib()
     base = (portal_base_url or "https://portal.nousresearch.com").rstrip("/")
     url = f"{base}/api/oauth/account"
     headers = {
@@ -798,6 +818,7 @@ def fetch_nous_recommended_models(
     (network, parse, non-2xx). Callers must treat missing/null fields as
     "no recommendation" and fall back to their own default.
     """
+    _load_urllib()
     base = (portal_base_url or "https://portal.nousresearch.com").rstrip("/")
     now = time.monotonic()
     cached = _nous_recommended_cache.get(base)
@@ -951,6 +972,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("ollama-cloud",   "Ollama Cloud",             "Ollama Cloud (cloud-hosted open models — ollama.com)"),
     ProviderEntry("arcee",          "Arcee AI",                 "Arcee AI (Trinity models — direct API)"),
     ProviderEntry("gmi",            "GMI Cloud",                "GMI Cloud (multi-model direct API)"),
+    ProviderEntry("cerebras",       "Cerebras",                 "Cerebras (wafer-scale inference, ~1,000-3,000 tok/s — the speed lane)"),
     ProviderEntry("kilocode",       "Kilo Code",                "Kilo Code (Kilo Gateway API)"),
     ProviderEntry("opencode-zen",   "OpenCode Zen",             "OpenCode Zen (35+ curated models, pay-as-you-go)"),
     ProviderEntry("opencode-go",    "OpenCode Go",              "OpenCode Go (open models, $10/month subscription)"),
@@ -1006,6 +1028,9 @@ _PROVIDER_ALIASES = {
     "stepfun-coding-plan": "stepfun",
     "arcee-ai": "arcee",
     "arceeai": "arcee",
+    "cerebras-ai": "cerebras",
+    "cerebrasai": "cerebras",
+    "cerebras-cloud": "cerebras",
     "gmi-cloud": "gmi",
     "gmicloud": "gmi",
     "minimax-china": "minimax-cn",
@@ -1122,6 +1147,7 @@ def fetch_openrouter_models(
     force_refresh: bool = False,
 ) -> list[tuple[str, str]]:
     """Return the curated OpenRouter picker list, refreshed from the live catalog when possible."""
+    _load_urllib()
     global _openrouter_catalog_cache
 
     if _openrouter_catalog_cache is not None and not force_refresh:
@@ -1223,6 +1249,7 @@ def fetch_ai_gateway_models(
     force_refresh: bool = False,
 ) -> list[tuple[str, str]]:
     """Return the curated AI Gateway picker list, refreshed from the live catalog when possible."""
+    _load_urllib()
     global _ai_gateway_catalog_cache
 
     if _ai_gateway_catalog_cache is not None and not force_refresh:
@@ -1402,6 +1429,7 @@ def fetch_models_with_pricing(
     Results are cached per *base_url* so repeated calls are free.
     Works with any OpenRouter-compatible endpoint (OpenRouter, Nous Portal).
     """
+    _load_urllib()
     cache_key = (base_url or "").rstrip("/")
     if not force_refresh and cache_key in _pricing_cache:
         return _pricing_cache[cache_key]
@@ -1452,6 +1480,7 @@ def fetch_ai_gateway_pricing(
     ``prompt`` / ``completion``. This translates. Cache read/write field names
     already match.
     """
+    _load_urllib()
     from hermes_constants import AI_GATEWAY_BASE_URL
 
     cache_key = AI_GATEWAY_BASE_URL.rstrip("/")
@@ -1565,6 +1594,7 @@ def _fetch_novita_pricing(
     matching the pattern used by ``fetch_ai_gateway_pricing`` — without this,
     every menu render or pricing lookup re-hits the network.
     """
+    _load_urllib()
     api_key = os.getenv("NOVITA_API_KEY", "").strip()
     if not api_key:
         return {}
@@ -2318,6 +2348,7 @@ def _fetch_anthropic_models(timeout: float = 5.0) -> Optional[list[str]]:
     Uses resolve_anthropic_token() to find credentials (env vars or
     Claude Code auto-discovery).  Returns sorted model IDs or None.
     """
+    _load_urllib()
     try:
         from agent.anthropic_adapter import resolve_anthropic_token, _is_oauth_token
     except ImportError:
@@ -2445,6 +2476,7 @@ def fetch_github_model_catalog(
     api_key: Optional[str] = None, timeout: float = 5.0
 ) -> Optional[list[dict[str, Any]]]:
     """Fetch the live GitHub Copilot model catalog for this account."""
+    _load_urllib()
     attempts: list[dict[str, str]] = []
     if api_key:
         attempts.append({
@@ -2560,6 +2592,7 @@ def _lmstudio_fetch_raw_models(
     Returns the ``models`` list of dicts on success, ``None`` on network
     errors or malformed responses.  Raises ``AuthError`` on HTTP 401/403.
     """
+    _load_urllib()
     server_root = _lmstudio_server_root(base_url)
     if not server_root:
         return None
@@ -2664,6 +2697,7 @@ def ensure_lmstudio_model_loaded(
     at the model's ``max_context_length``. Returns the resolved loaded context
     length, or ``None`` when the probe / load failed.
     """
+    _load_urllib()
     server_root = _lmstudio_server_root(base_url)
     if not server_root:
         return None
@@ -2733,6 +2767,7 @@ def unload_lmstudio_model(
     idempotent). Returns ``False`` on any other error or an empty/invalid base
     URL. Best-effort: never raises.
     """
+    _load_urllib()
     server_root = _lmstudio_server_root(base_url)
     if not server_root:
         return False
@@ -2786,6 +2821,7 @@ def download_lmstudio_model(
     progress with :func:`lmstudio_download_status`. Returns ``None`` on a network
     error or an empty/invalid base URL; never raises.
     """
+    _load_urllib()
     server_root = _lmstudio_server_root(base_url)
     if not server_root:
         return None
@@ -2826,6 +2862,7 @@ def lmstudio_download_status(
     formally document the status response schema), or ``None`` on a network
     error or an empty/invalid base URL / job id. Never raises.
     """
+    _load_urllib()
     server_root = _lmstudio_server_root(base_url)
     if not server_root or not str(job_id or "").strip():
         return None
@@ -3201,6 +3238,7 @@ def probe_api_models(
     ``Authorization: Bearer``.  The response shape (``data[].id``) is
     identical, so the same parser works for both.
     """
+    _load_urllib()
     normalized = (base_url or "").strip().rstrip("/")
     if not normalized:
         return {
@@ -3268,6 +3306,7 @@ def probe_api_models(
 
 def _fetch_ai_gateway_models(timeout: float = 5.0) -> Optional[list[str]]:
     """Fetch available language models with tool-use from AI Gateway."""
+    _load_urllib()
     api_key = os.getenv("AI_GATEWAY_API_KEY", "").strip()
     if not api_key:
         return None

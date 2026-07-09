@@ -80,6 +80,35 @@ export default async function handler(req: Request): Promise<Response> {
   if (!Array.isArray(messages) || messages.length === 0) {
     return json({ error: 'messages required' }, 400);
   }
+
+  // Validate the payload BEFORE spending the (server-held) provider key. Without
+  // this a no-auth caller could forward arbitrarily large or malformed prompts —
+  // burning the key on huge contexts and turning bad bodies into upstream 502s.
+  const MAX_MESSAGES = 200;
+  const MAX_TOTAL_CHARS = 256 * 1024; // ~256 KB of prompt text
+  if (messages.length > MAX_MESSAGES) {
+    return json({ error: 'too many messages' }, 400);
+  }
+  const allowedRoles = new Set(['system', 'user', 'assistant']);
+  let totalChars = 0;
+  for (const m of messages) {
+    if (!m || typeof m !== 'object' || Array.isArray(m)) {
+      return json({ error: 'each message must be an object' }, 400);
+    }
+    const role = (m as ChatMessage).role;
+    const content = (m as ChatMessage).content;
+    if (typeof role !== 'string' || !allowedRoles.has(role)) {
+      return json({ error: 'invalid message role' }, 400);
+    }
+    if (typeof content !== 'string') {
+      return json({ error: 'message content must be a string' }, 400);
+    }
+    totalChars += content.length;
+    if (totalChars > MAX_TOTAL_CHARS) {
+      return json({ error: 'messages too large' }, 413);
+    }
+  }
+
   const model = typeof payload.model === 'string' ? payload.model : 'auto';
 
   const resolved = buildUpstream(model, messages, { clientKey, clientProvider });

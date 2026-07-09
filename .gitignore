@@ -18,6 +18,7 @@ __pycache__/web_tools.cpython-310.pyc
 logs/
 data/
 .pytest_cache/
+.azure/
 tmp/
 temp_vision_images/
 hermes-*/*
@@ -121,3 +122,8 @@ studio_output*/
 
 # Vercel cockpit build output (assembled by scripts/deploy/build_cockpit_vercel.sh)
 cockpit-dist/
+
+# muse Game Studio — these are source files that legitimately match the broad
+# `export*` ignore above; force them back into version control.
+!skills/creative/game-studio/scripts/export_godot_slice.py
+!skills/creative/game-studio/reference-slice/export_presets.cfg

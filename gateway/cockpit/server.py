@@ -40,6 +40,11 @@ from gateway.jarvis_local_http import (
     error,
 )
 
+# Full-agent streaming chat (POST) — served only when the cockpit runs with
+# ``--agent full`` (or HERMES_COCKPIT_AGENT=full); otherwise the route answers
+# 409 with a hint so clients fall back to /v1/jarvis/chat cleanly.
+AGENT_CHAT_PATH = "/v1/agent/chat"
+
 def _nexus_dist_root() -> Optional[Path]:
     """Resolve the built NEXUS PWA directory (``apps/nexus/dist``) so the cockpit
     can serve it *same-origin* at ``/nexus/`` — letting a phone running MUSE in
@@ -63,17 +68,29 @@ def _nexus_dist_root() -> Optional[Path]:
         return None
 
 
-# Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT — the
-# first-party muse cockpit. Defaulting these on means a user can run
-# ``muse cockpit serve`` and reach their gateway from the public cockpit with no
-# extra flags. It is bounded: every sensitive route still requires the bearer
-# token, and device pairing still requires the owner phrase (forced on whenever
-# CORS is enabled). Any OTHER origin is rejected. Extend with --cors-origin /
-# HERMES_COCKPIT_CORS_ORIGINS (CSV), or disable with
+# Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT —
+# the first-party muse cockpit plus the muse desktop app's webview. Defaulting
+# these on means a user can run ``muse cockpit serve`` and reach their gateway
+# from the public cockpit — or install the desktop app and have it connect —
+# with no extra flags. It is bounded: every sensitive route still requires the
+# bearer token, and device pairing on an externally-reachable cockpit still
+# requires the owner phrase. Any OTHER origin is rejected. Extend with
+# --cors-origin / HERMES_COCKPIT_CORS_ORIGINS (CSV), or disable with
 # HERMES_COCKPIT_CORS_ORIGINS=off.
 _DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
     "https://musehq.io",
     "https://www.musehq.io",
+    # The muse desktop shell (Tauri v2 webview). macOS/Linux serve the bundled
+    # UI from the tauri: custom scheme; Windows (WebView2) uses
+    # http(s)://tauri.localhost. Allowing them lets the desktop app talk to
+    # the gateway directly (streaming SSE/NDJSON) instead of via its native
+    # HTTP proxy fallback.
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+    # The desktop UI's Vite dev server (`cargo tauri dev` / `npm run dev`).
+    "http://localhost:1420",
+    "http://127.0.0.1:1420",
 )
 _CORS_OFF_TOKENS = frozenset({"off", "none", "false", "0", "disable", "disabled"})
 
@@ -154,6 +171,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/memory/contradictions/{id}/resolve"), h.memory_contradiction_resolve, True),
     ("GET", _compile("/v1/cockpit/memory/freshness"), h.memory_freshness, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
+    # Read-only summary of recent per-request observability traces
+    # (latency percentiles, tool-failure / fallback rates, endpoint mix).
+    ("GET", _compile("/v1/cockpit/trace"), h.trace_summary, True),
     ("GET", _compile("/v1/cockpit/audit"), h.audit_list, True),
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
     ("GET", _compile("/v1/cockpit/capabilities"), h.capabilities, True),
@@ -197,6 +217,13 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/research/{id}"), h.research_get, True),
     ("GET", _compile("/v1/cockpit/approvals"), h.approvals_list, True),
     ("POST", _compile("/v1/cockpit/approvals/{id}"), h.approvals_decide, True),
+    # Full-agent chat companions (POST /v1/agent/chat streams; these resolve
+    # its owner-approval requests and interrupt an in-flight run).
+    ("POST", _compile("/v1/agent/approvals"), h.agent_approval_decide, True),
+    ("POST", _compile("/v1/agent/stop"), h.agent_stop, True),
+    # Read-only messaging-channel + schedule status (Channels / Schedules views).
+    ("GET", _compile("/v1/cockpit/channels"), h.channels, True),
+    ("GET", _compile("/v1/cockpit/schedules"), h.schedules, True),
     ("GET", _compile("/v1/cockpit/autonomy"), h.autonomy_get, True),
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
@@ -338,6 +365,7 @@ def _make_handler(
     responder,
     stop_event: threading.Event,
     cors_origins: frozenset[str] = frozenset(),
+    agent_mode: str = "jarvis",
 ):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -436,6 +464,37 @@ def _make_handler(
             ".map": "application/json",
             ".txt": "text/plain; charset=utf-8",
         }
+        # When Singularity is served at ``/`` (muse omni), the page uses
+        # root-relative asset refs (``vendor/…``, ``atlas/…``, icons, …).
+        # Those must resolve at the site root — not only under ``/cockpit/``.
+        _ROOT_STATIC_PREFIXES = ("/vendor/", "/atlas/", "/js/", "/styles/")
+        _ROOT_STATIC_EXACT_DIRS = frozenset({"/vendor", "/atlas", "/js", "/styles"})
+        _ROOT_STATIC_FILES = frozenset(
+            {
+                "/studio.html",
+                "/studio-support.js",
+                "/observatory.html",
+                "/observatory.css",
+                "/observatory.js",
+                "/observatory-demo.html",
+                "/observatory-demo.json",
+                "/manifest.webmanifest",
+                "/icon.svg",
+                "/icon-180.png",
+                "/icon-192.png",
+                "/icon-512.png",
+                "/icon-maskable-512.png",
+                "/tokens.css",
+                "/cockpit.css",
+                "/sw.js",
+                "/terms.html",
+                "/privacy.html",
+                "/og.png",
+                "/sitemap.xml",
+                "/robots.txt",
+                "/legacy.html",
+            }
+        )
 
         def _serve_static(self, path: str) -> bool:
             """Serve the bundled browser cockpit. Returns True if it handled the
@@ -445,7 +504,12 @@ def _make_handler(
 
             The default cockpit document is ``cockpit.dc.html`` (the imported
             "Singularity" Claude Design). The prior modular shell stays reachable
-            at ``/cockpit/index.html``; ``/nexus`` is unaffected."""
+            at ``/cockpit/index.html``; ``/nexus`` is unaffected.
+
+            Root-relative static assets (``/vendor/*``, ``/atlas/*``, icons, …)
+            are also served so ``muse omni``'s ``http://127.0.0.1:8765/`` URL
+            boots fully — the HTML references those paths without a ``/cockpit``
+            prefix."""
             root = (Path(__file__).resolve().parent / "static").resolve()
             cockpit_doc = "cockpit.dc.html"
             if path in ("/", "/cockpit", "/cockpit/"):
@@ -460,6 +524,19 @@ def _make_handler(
             elif path.startswith("/nexus/"):
                 rel = path[len("/nexus/"):].lstrip("/") or "index.html"
                 default_doc = "index.html"
+            elif (
+                path.startswith(self._ROOT_STATIC_PREFIXES)
+                or path in self._ROOT_STATIC_EXACT_DIRS
+                or path in self._ROOT_STATIC_FILES
+            ):
+                # Alias /legacy.html → Singularity (same as Vercel assemble).
+                if path == "/legacy.html":
+                    rel = cockpit_doc
+                else:
+                    rel = path.lstrip("/") or cockpit_doc
+                # Exact file only — do not SPA-fallback unknown root assets to
+                # the cockpit HTML (that would mask real 404s).
+                default_doc = ""
             else:
                 return False
             try:
@@ -478,8 +555,14 @@ def _make_handler(
             if suffix and suffix not in self._STATIC_TYPES:
                 return False  # disallowed file type -> 404
             if not target.is_file():
-                target = root / default_doc  # SPA fallback (route or missing)
-                if not target.is_file():
+                # Directory index for /atlas/ etc.
+                if target.is_dir() and (target / "index.html").is_file():
+                    target = target / "index.html"
+                elif default_doc:
+                    target = root / default_doc  # SPA fallback (route or missing)
+                    if not target.is_file():
+                        return False
+                else:
                     return False
             ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
             try:
@@ -566,7 +649,15 @@ def _make_handler(
             # Static cockpit UI shell (the browser app). Unauthenticated — it's
             # just HTML/CSS/JS; every API call it makes carries the bearer token.
             # GET only, path-traversal-safe. Served before the API route table.
-            if method == "GET" and (path == "/" or path.startswith("/cockpit") or path.startswith("/nexus")):
+            # Also covers root-relative assets when Singularity is served at ``/``.
+            if method == "GET" and (
+                path == "/"
+                or path.startswith("/cockpit")
+                or path.startswith("/nexus")
+                or path.startswith(Handler._ROOT_STATIC_PREFIXES)
+                or path in Handler._ROOT_STATIC_EXACT_DIRS
+                or path in Handler._ROOT_STATIC_FILES
+            ):
                 if self._serve_static(path):
                     return
 
@@ -584,6 +675,24 @@ def _make_handler(
                     self._send_json(401, {"error": "missing or invalid bearer token"})
                     return
                 self._stream_chat()
+                return
+
+            # Full-agent streaming chat — POST only, opt-in via --agent full.
+            if method == "POST" and path.rstrip("/") == AGENT_CHAT_PATH:
+                if not self._authed():
+                    self._send_json(401, {"error": "missing or invalid bearer token"})
+                    return
+                if agent_mode != "full":
+                    self._send_json(
+                        409,
+                        {
+                            "error": "full agent mode is not enabled on this gateway",
+                            "hint": "start it with: muse cockpit serve --agent full",
+                            "agent": agent_mode,
+                        },
+                    )
+                    return
+                self._stream_agent_chat()
                 return
 
             # Server-Sent Events live streams — GET only, matched before the
@@ -639,6 +748,51 @@ def _make_handler(
                     self._write_chunk(next(encode_stream([error(str(exc))])))
                     self._write_chunk(b"")
                 except Exception:
+                    pass
+
+        def _stream_agent_chat(self) -> None:
+            """NDJSON stream of one FULL-agent turn (tools, code, sub-agents).
+
+            Body: ``{prompt, history?, session_id?, session_key?}``. The
+            chunk vocabulary is the jarvis one plus ``body_delta`` (token
+            streaming) and ``approval`` (owner gate; resolve via
+            ``POST /v1/agent/approvals``).
+            """
+            from gateway.cockpit.agent_full import full_agent_responder
+
+            payload = self._read_body()
+            prompt = str(payload.get("prompt", ""))
+            history = list(payload.get("history", []) or [])
+            session_id = payload.get("session_id") or None
+            session_key = payload.get("session_key") or None
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.send_header("X-Accel-Buffering", "no")  # defeat proxy buffering
+            self.end_headers()
+            try:
+                stream = encode_stream(
+                    full_agent_responder(
+                        prompt,
+                        history,
+                        session_id=session_id,
+                        session_key=session_key,
+                    )
+                )
+                for line in stream:
+                    self._write_chunk(line)
+                self._write_chunk(b"")
+            except BrokenPipeError:
+                # Expected: the client disconnected mid-stream. The responder's
+                # own GeneratorExit path interrupts the run; nothing to do here.
+                pass
+            except Exception as exc:  # pragma: no cover - defensive
+                try:
+                    self._write_chunk(next(encode_stream([error(str(exc))])))
+                    self._write_chunk(b"")
+                except Exception:
+                    # The client is gone after the primary error too; there is
+                    # nothing further to write.
                     pass
 
         def _write_chunk(self, data: bytes) -> None:
@@ -698,12 +852,19 @@ def _make_handler(
                 pass
 
         def _stream_events(self) -> None:
-            self._sse_headers()
             q = self._query()
             levels = _csv_set(q.get("level"))
             sources = _csv_set(q.get("source"))
             job_id = q.get("job_id") or None
+            # Snapshot the tail offset BEFORE sending response headers. A
+            # client unblocks the moment headers arrive; if the snapshot
+            # happened after (as it used to), an event emitted in that window
+            # landed below the snapshot and was silently lost — the "connect,
+            # then act, then watch for your events" contract broke under
+            # load. _stream_observatory/_stream_actions already snapshot
+            # their cursors pre-headers; this brings events/stream in line.
             offset = event_log.current_offset()
+            self._sse_headers()
             last_beat = time.monotonic()
             started = time.monotonic()
             try:
@@ -898,12 +1059,19 @@ def serve(
     allow_external_hosts: Optional[_Iterable[str]] = None,
     cors_origins: Optional[_Iterable[str]] = None,
     responder=None,
+    agent_mode: Optional[str] = None,
 ) -> ThreadingHTTPServer:
     """Start the cockpit API server in a background thread.
 
     Loopback-only unless ``allow_external=True`` (which also warns). The
     bearer ``token`` defaults to the persisted cockpit token (created on
     first use). ``responder`` overrides the chat responder (tests).
+
+    ``agent_mode`` selects what ``POST /v1/agent/chat`` serves: ``"full"``
+    runs the complete AIAgent (tools, code execution, sub-agents) with
+    streaming + owner approvals; the default ``"jarvis"`` keeps that route
+    answering 409 so existing deployments are byte-for-byte unchanged.
+    Resolution order: explicit arg → ``HERMES_COCKPIT_AGENT`` env → jarvis.
 
     When binding a **non-loopback** host, ``allow_external=True`` is no longer
     sufficient on its own: the host must also appear in ``allow_external_hosts``
@@ -950,6 +1118,33 @@ def serve(
     # Second guard for agentic execute lanes: only loopback cockpits may run
     # them (the owner-phrase gate is the first guard, enforced per-request).
     h.configure_runtime(allow_remote_execute=bool(allow_external))
+    # Resolve the /v1/agent/chat mode: explicit arg → env → jarvis (default,
+    # no behavior change). Anything unrecognized falls back to jarvis.
+    resolved_agent_mode = (
+        (agent_mode or os.environ.get("HERMES_COCKPIT_AGENT") or "jarvis").strip().lower()
+    )
+    if resolved_agent_mode not in ("jarvis", "full"):
+        warnings.warn(
+            f"unknown cockpit agent mode {resolved_agent_mode!r}; using 'jarvis'",
+            stacklevel=2,
+        )
+        resolved_agent_mode = "jarvis"
+    # Loopback gate for the full-agent lane. Unlike the /v1/cockpit execute
+    # lanes (guarded by _ALLOW_REMOTE_EXECUTE), POST /v1/agent/chat drives the
+    # real AIAgent — arbitrary code execution — irrespective of that flag. So
+    # full mode is refused on a non-loopback bind: the hosted pattern is to bind
+    # 127.0.0.1 inside a container/host and expose it via a reverse proxy (see
+    # docs/deploy/hosted-fleet.md). This keeps a network-reachable bind from
+    # ever running code execution directly.
+    if resolved_agent_mode == "full" and not _is_loopback_host(host):
+        raise ValueError(
+            f"refusing to serve --agent full on non-loopback host {host!r}: the "
+            "full-agent lane runs code execution and must bind 127.0.0.1 behind a "
+            "reverse proxy (see docs/deploy/hosted-fleet.md). Bind loopback, or "
+            "use --agent jarvis for a network bind."
+        )
+    h.configure_agent_mode(resolved_agent_mode)
+
     if responder is not None:
         chat_responder = responder
     else:
@@ -963,7 +1158,8 @@ def serve(
 
     stop_event = threading.Event()
     server = _CockpitServer(
-        (host, port), _make_handler(token, chat_responder, stop_event, cors)
+        (host, port),
+        _make_handler(token, chat_responder, stop_event, cors, resolved_agent_mode),
     )
     server._stop_event = stop_event
     thread = threading.Thread(

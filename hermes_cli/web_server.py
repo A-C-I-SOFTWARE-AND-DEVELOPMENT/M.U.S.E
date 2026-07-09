@@ -5,8 +5,9 @@ Provides a FastAPI backend serving the Vite/React frontend and REST API
 endpoints for managing configuration, environment variables, and sessions.
 
 Usage:
-    python -m hermes_cli.main web          # Start on http://127.0.0.1:9119
-    python -m hermes_cli.main web --port 8080
+    muse dashboard                        # Start on http://127.0.0.1:9119
+    muse dashboard --port 8080
+    python -m hermes_cli.main dashboard   # equivalent
 """
 
 import asyncio
@@ -364,6 +365,10 @@ _CATEGORY_MERGE: Dict[str, str] = {
     # with the other messaging-platform config (discord) so it isn't an
     # orphan tab of one field.
     "telegram": "discord",
+    # `observability.request_trace` is the only observability field today —
+    # group it with logging (both are diagnostics/output) so it isn't an
+    # orphan single-field tab.
+    "observability": "logging",
 }
 
 # Display order for tabs — unlisted categories sort alphabetically after these.

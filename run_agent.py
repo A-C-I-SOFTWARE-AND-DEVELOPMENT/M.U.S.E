@@ -636,9 +636,33 @@ class AIAgent:
             if config_context_length is None:
                 config_context_length = getattr(self, "_config_context_length", None)
             target_ctx = max(config_context_length or 0, MINIMUM_CONTEXT_LENGTH)
+            import time as _t
+            from hermes_cli.request_trace import lifecycle_event, probe_vram_mb
+            _vram_before = probe_vram_mb()
+            _load_t0 = _t.monotonic()
             loaded_ctx = ensure_lmstudio_model_loaded(
                 self.model, self.base_url, getattr(self, "api_key", ""), target_ctx,
             )
+            try:
+                lifecycle_event(
+                    "load",
+                    model=self.model,
+                    provider=self.provider,
+                    reason="ensure_loaded",
+                    ok=bool(loaded_ctx),
+                    dur_ms=int((_t.monotonic() - _load_t0) * 1000),
+                    resolved_ctx=loaded_ctx,
+                    base_url=self.base_url,
+                    session_id=getattr(self, "session_id", None),
+                    vram_before_mb=_vram_before,
+                    vram_after_mb=probe_vram_mb(),
+                )
+            except Exception as lifecycle_err:
+                # Observability is best-effort — a trace-emit failure must never
+                # affect model loading. Debug-log for diagnosability only.
+                logger.debug(
+                    "request-trace load lifecycle_event failed: %s", lifecycle_err
+                )
             if loaded_ctx:
                 # Push into the live compressor so the status bar reflects the
                 # real loaded ctx the moment the load resolves, instead of
@@ -4012,6 +4036,15 @@ class AIAgent:
         """Forwarder — see ``agent.agent_runtime_helpers.invoke_tool``."""
         from agent.agent_runtime_helpers import invoke_tool
         return invoke_tool(self, function_name, function_args, effective_task_id, tool_call_id, messages, pre_tool_block_checked)
+
+    def _maybe_broker_block_bypassing_tool(self, function_name: str, function_args: dict,
+                                           effective_task_id: Optional[str],
+                                           tool_call_id: Optional[str]) -> Optional[str]:
+        """Forwarder — see ``agent.agent_runtime_helpers.maybe_broker_block_bypassing_tool``."""
+        from agent.agent_runtime_helpers import maybe_broker_block_bypassing_tool
+        return maybe_broker_block_bypassing_tool(
+            self, function_name, function_args, effective_task_id, tool_call_id
+        )
 
     @staticmethod
     def _wrap_verbose(label: str, text: str, indent: str = "     ") -> str:

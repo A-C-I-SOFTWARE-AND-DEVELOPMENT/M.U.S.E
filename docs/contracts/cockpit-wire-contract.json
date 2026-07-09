@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 118,
+  "handler_count": 123,
   "owner_gated_count": 10,
-  "route_count": 120,
+  "route_count": 125,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -30,6 +30,24 @@
       "path": "/cockpit/{path}",
       "requires_auth": false,
       "summary": "Serve the bundled browser cockpit. Returns True if it handled the"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.agent_approval_decide",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/agent/approvals",
+      "requires_auth": true,
+      "summary": "Resolve a pending owner approval raised by a /v1/agent/chat run."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.agent_stop",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/agent/stop",
+      "requires_auth": true,
+      "summary": "Interrupt the in-flight /v1/agent/chat run for a session."
     },
     {
       "handler": "gateway.cockpit.handlers.approvals_list",
@@ -165,6 +183,15 @@
       "path": "/v1/cockpit/capabilities",
       "requires_auth": true,
       "summary": "Describe what *this backend* can do, for the app to negotiate against."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.channels",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/channels",
+      "requires_auth": true,
+      "summary": "Read-only messaging-channel status (Telegram/Discord/Slack/\u2026)."
     },
     {
       "handler": "gateway.cockpit.handlers.coding_audit",
@@ -824,6 +851,15 @@
       "summary": "Detected worker lanes (Claude Code / Codex) \u2014 detection only, no keys."
     },
     {
+      "handler": "gateway.cockpit.handlers.schedules",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/schedules",
+      "requires_auth": true,
+      "summary": "Read-only list of scheduled (cron) jobs the gateway will run unattended."
+    },
+    {
       "handler": "gateway.cockpit.handlers.second_brain_retrieve",
       "kind": "json",
       "method": "GET",
@@ -876,6 +912,15 @@
       "path": "/v1/cockpit/templates",
       "requires_auth": true,
       "summary": "Owner-defined prompt templates (contract \u00a73) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.trace_summary",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/trace",
+      "requires_auth": true,
+      "summary": "Read-only summary of recent per-request observability traces."
     },
     {
       "handler": "gateway.cockpit.handlers.voice_intake_create",

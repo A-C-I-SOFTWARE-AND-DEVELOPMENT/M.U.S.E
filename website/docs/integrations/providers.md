@@ -26,6 +26,7 @@ You need at least one way to connect to an LLM. Use `muse model` to switch provi
 | **Kimi / Moonshot** | `KIMI_API_KEY` in `~/.hermes/.env` (provider: `kimi-coding`) |
 | **Kimi / Moonshot (China)** | `KIMI_CN_API_KEY` in `~/.hermes/.env` (provider: `kimi-coding-cn`; aliases: `kimi-cn`, `moonshot-cn`) |
 | **Arcee AI** | `ARCEEAI_API_KEY` in `~/.hermes/.env` (provider: `arcee`; aliases: `arcee-ai`, `arceeai`) |
+| **Cerebras** | `CEREBRAS_API_KEY` in `~/.hermes/.env` (provider: `cerebras`; aliases: `cerebras-ai`, `cerebrasai`, `cerebras-cloud` — wafer-scale speed lane) |
 | **GMI Cloud** | `GMI_API_KEY` in `~/.hermes/.env` (provider: `gmi`; aliases: `gmi-cloud`, `gmicloud`) |
 | **MiniMax** | `MINIMAX_API_KEY` in `~/.hermes/.env` (provider: `minimax`) |
 | **MiniMax China** | `MINIMAX_CN_API_KEY` in `~/.hermes/.env` (provider: `minimax-cn`) |
@@ -324,6 +325,10 @@ muse chat --provider tencent-tokenhub --model hy3-preview
 muse chat --provider arcee --model trinity-large-thinking
 # Requires: ARCEEAI_API_KEY in ~/.hermes/.env
 
+# Cerebras (wafer-scale speed lane, ~1,000-3,000 tok/s)
+muse chat --provider cerebras --model zai-glm-4.7
+# Requires: CEREBRAS_API_KEY in ~/.hermes/.env
+
 # GMI Cloud
 # Use the exact model ID returned by GMI's /v1/models endpoint.
 muse chat --provider gmi --model zai-org/GLM-5.1-FP8
@@ -337,7 +342,11 @@ model:
   default: "zai-org/GLM-5.1-FP8"
 ```
 
-Base URLs can be overridden with `NOVITA_BASE_URL`, `GLM_BASE_URL`, `KIMI_BASE_URL`, `MINIMAX_BASE_URL`, `MINIMAX_CN_BASE_URL`, `DASHSCOPE_BASE_URL`, `XIAOMI_BASE_URL`, `GMI_BASE_URL`, or `TOKENHUB_BASE_URL` environment variables.
+Base URLs can be overridden with `NOVITA_BASE_URL`, `GLM_BASE_URL`, `KIMI_BASE_URL`, `MINIMAX_BASE_URL`, `MINIMAX_CN_BASE_URL`, `DASHSCOPE_BASE_URL`, `XIAOMI_BASE_URL`, `CEREBRAS_BASE_URL`, `GMI_BASE_URL`, or `TOKENHUB_BASE_URL` environment variables.
+
+:::tip Cerebras — the speed lane
+Cerebras serves open-weight models on wafer-scale hardware at roughly 1,000–3,000 tokens/second — order-of-magnitude faster than GPU clouds. **Cerebras retires model IDs aggressively**, and a request for a retired ID returns a 404/"model not found" that looks like the provider is broken — so muse always prefers the **live `/v1/models` list** (fetched with your key) over its built-in fallback. Reliably-current picks (July 2026): `gpt-oss-120b` and `zai-glm-4.7` (frontier coding/agent, 131k ctx). IDs that have been **retired — don't use them**: `qwen-3-coder-480b` (→ `zai-glm-4.7`), `llama3.1-8b`, `qwen-3-32b`, `qwen-3-235b-a22b-instruct-2507`, `llama-4-scout-*`; `gemma-4-31b-it` is not a Cerebras-served model. Run `muse model` (or `hermes doctor`) with `CEREBRAS_API_KEY` set to see exactly what your account can serve today. When the key is set, the model catalog's `fast` tier routes to `cerebras/gpt-oss-120b` ahead of other cloud fallbacks (local models still come first).
+:::
 
 :::note Z.AI Endpoint Auto-Detection
 When using the Z.AI / GLM provider, muse automatically probes multiple endpoints (global, China, coding variants) to find one that accepts your API key. You don't need to set `GLM_BASE_URL` manually — the working endpoint is detected and cached automatically.
@@ -850,6 +859,46 @@ Download GGUF models from [Hugging Face](https://huggingface.co/models?library=g
 
 ---
 
+### DSpark — Speculative Decoding, 60–85% Faster Local Inference
+
+[DSpark](https://github.com/deepseek-ai/DeepSpec) (DeepSeek + Peking University, MIT, arXiv:2606.19348) attaches a small draft module to a target model so the target verifies several drafted tokens per forward pass — **60–85% faster generation with identical output quality**. muse ships a `dspark` runtime that plans accelerated serving on top of llama.cpp or vLLM (`hermes_cli/local_models/dspark.py`).
+
+Three ways to get the speedup, fastest-to-adopt first:
+
+**1. DeepSeek API — nothing to install.** `api.deepseek.com` has served V4-Flash/V4-Pro with DSpark server-side since 2026-06-27. If you route to the `deepseek` provider you already have it.
+
+**2. llama.cpp + GGUF draft** (CPU/Metal/consumer GPU):
+
+```bash
+# Download a DSpark draft GGUF (community conversions of the official drafts)
+huggingface-cli download ankk98/dspark-qwen3-8b-block7-Q4_K_M-GGUF
+
+# Serve the target with the draft attached
+llama-server -m qwen3-8b-instruct-Q4_K_M.gguf --port 8080 \
+  --spec-draft-model dspark-qwen3-8b-block7-Q4_K_M.gguf \
+  --spec-draft-n-max 16 --spec-draft-n-min 1 --spec-draft-p-min 0.75
+```
+
+**3. vLLM + speculators draft** (GPU hosts):
+
+```bash
+# Draft-accelerated open model
+vllm serve Qwen/Qwen3-8B \
+  --speculative-config '{"model": "mgoin/Qwen3-8B-speculator.dspark", "num_speculative_tokens": 5}'
+
+# Or the self-contained DSpark checkpoints (draft module already attached;
+# server-class GPUs — V4 is a large MoE family)
+vllm serve deepseek-ai/DeepSeek-V4-Flash-DSpark
+```
+
+Official DeepSpec drafts cover Qwen3 4B/8B/14B and Gemma4-12B; GGUF conversions exist for Qwen3-8B and Gemma4-12B. For other targets, train a custom draft with [DeepSpec](https://github.com/deepseek-ai/DeepSpec). Then point muse at the endpoint as usual (`provider: custom`, `base_url: http://127.0.0.1:8080/v1`) — speculative decoding is transparent to the client: same outputs, faster.
+
+:::tip
+Speculative decoding accelerates *decode-heavy* work most (long generations, agent loops). Draft acceptance drops on heavily out-of-distribution prompts, which lowers — but never reverses — the speedup, and outputs remain exactly the target model's.
+:::
+
+---
+
 ### LM Studio — Desktop App with Local Models
 
 [LM Studio](https://lmstudio.ai/) is a desktop app for running local models with a GUI. Best for: users who prefer a visual interface, quick model testing, developers on macOS/Windows/Linux.
@@ -1133,7 +1182,7 @@ Any service with an OpenAI-compatible API works. Some popular options:
 | [DeepSeek](https://deepseek.com) | `https://api.deepseek.com/v1` | DeepSeek models |
 | [Fireworks AI](https://fireworks.ai) | `https://api.fireworks.ai/inference/v1` | Fast open model hosting |
 | [GMI Cloud](https://www.gmicloud.ai/) | `https://api.gmi-serving.com/v1` | Managed OpenAI-compatible inference |
-| [Cerebras](https://cerebras.ai) | `https://api.cerebras.ai/v1` | Wafer-scale chip inference |
+| [Cerebras](https://cerebras.ai) | `https://api.cerebras.ai/v1` | Wafer-scale chip inference — now first-class: use `--provider cerebras` (see [First-Class API-Key Providers](#first-class-api-key-providers)) |
 | [Mistral AI](https://mistral.ai) | `https://api.mistral.ai/v1` | Mistral models |
 | [OpenAI](https://openai.com) | `https://api.openai.com/v1` | Direct OpenAI access |
 | [Azure OpenAI](https://azure.microsoft.com) | `https://YOUR.openai.azure.com/` | Enterprise OpenAI |
@@ -1466,7 +1515,7 @@ fallback_model:
 
 When activated, the fallback swaps the model and provider mid-session without losing your conversation. The chain is tried entry-by-entry; activation is one-shot per session.
 
-Supported providers: `openrouter`, `nous`, `openai-codex`, `copilot`, `copilot-acp`, `anthropic`, `gemini`, `google-gemini-cli`, `qwen-oauth`, `huggingface`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `deepseek`, `nvidia`, `xai`, `xai-oauth`, `ollama-cloud`, `bedrock`, `ai-gateway`, `azure-foundry`, `opencode-zen`, `opencode-go`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `stepfun`, `lmstudio`, `alibaba`, `alibaba-coding-plan`, `tencent-tokenhub`, `custom`.
+Supported providers: `openrouter`, `nous`, `openai-codex`, `copilot`, `copilot-acp`, `anthropic`, `gemini`, `google-gemini-cli`, `qwen-oauth`, `huggingface`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `deepseek`, `nvidia`, `xai`, `xai-oauth`, `ollama-cloud`, `bedrock`, `ai-gateway`, `azure-foundry`, `opencode-zen`, `opencode-go`, `kilocode`, `xiaomi`, `arcee`, `cerebras`, `gmi`, `stepfun`, `lmstudio`, `alibaba`, `alibaba-coding-plan`, `tencent-tokenhub`, `custom`.
 
 :::tip
 Fallback is configured exclusively through `config.yaml` — or interactively via `muse fallback`. For full details on when it triggers, how the chain advances, and how it interacts with auxiliary tasks and delegation, see [Fallback Providers](/docs/user-guide/features/fallback-providers).

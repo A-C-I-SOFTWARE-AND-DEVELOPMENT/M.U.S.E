@@ -1,0 +1,30 @@
+azure_foundry_agents:
+  project: M.U.S.E
+  project_endpoint: https://echerd27-5762-resource.services.ai.azure.com/api/projects/echerd27-5762
+  model: gpt-5
+  agents:
+    orchestrator:
+      name: MUSE Long-Horizon Orchestrator
+      id: asst_EuCTroV9qZzXIqCL4GUlpkPI
+      purpose: Durable planning, decomposition, execution ledger, resumable long-horizon workflow control.
+    research_synthesizer:
+      name: MUSE Research Synthesizer
+      id: asst_H2MnAGwsjYGwrRSI8kX1HMKI
+      purpose: Evidence gathering, synthesis, uncertainty tracking, recommendation support.
+    build_planner:
+      name: MUSE Build Planner
+      id: asst_I9RB6wCAwYN0hYywvg1OIiiL
+      purpose: Implementation planning, dependency maps, validation gates, deployment steps.
+    quality_verifier:
+      name: MUSE Quality Verifier
+      id: asst_oTcfBh7WCmqpVqGSXyBewQIO
+      purpose: Acceptance checks, correctness/security/reliability review, artifact completeness.
+  interfaces_enabled:
+    - Azure AI Foundry Agent Service
+    - Azure OpenAI Responses API
+    - Azure OpenAI Chat Completions API
+    - Azure AI Foundry project API
+    - Hermes local dashboard / provider routing
+  smoke_test:
+    status: passed
+    expected_reply: MUSE Azure Foundry long-horizon ready.

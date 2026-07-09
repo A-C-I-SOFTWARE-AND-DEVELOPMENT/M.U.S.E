@@ -38,6 +38,8 @@ All variables go in `~/.hermes/.env`. You can also set them with `muse config se
 | `KIMI_CN_API_KEY` | Kimi / Moonshot China API key ([moonshot.cn](https://platform.moonshot.cn)) |
 | `ARCEEAI_API_KEY` | Arcee AI API key ([chat.arcee.ai](https://chat.arcee.ai/)) |
 | `ARCEE_BASE_URL` | Override Arcee base URL (default: `https://api.arcee.ai/api/v1`) |
+| `CEREBRAS_API_KEY` | Cerebras API key ([cloud.cerebras.ai](https://cloud.cerebras.ai/)) — wafer-scale speed lane |
+| `CEREBRAS_BASE_URL` | Override Cerebras base URL (default: `https://api.cerebras.ai/v1`) |
 | `GMI_API_KEY` | GMI Cloud API key ([gmicloud.ai](https://www.gmicloud.ai/)) |
 | `GMI_BASE_URL` | Override GMI Cloud base URL (default: `https://api.gmi-serving.com/v1`) |
 | `MINIMAX_API_KEY` | MiniMax API key — global endpoint ([minimax.io](https://www.minimax.io)). **Not used by `minimax-oauth`** (OAuth path uses browser login instead). |

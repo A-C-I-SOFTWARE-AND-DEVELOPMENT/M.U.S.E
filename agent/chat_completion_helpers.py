@@ -210,7 +210,11 @@ def _ollama_message_to_namespace(message: dict, finish_reason: str):
     if isinstance(raw_tcs, list) and raw_tcs:
         tool_calls_ns = []
         for idx, tc in enumerate(raw_tcs):
-            fn = (tc or {}).get("function", {}) if isinstance(tc, dict) else {}
+            if not isinstance(tc, dict):
+                tc = {}
+            fn = tc.get("function")
+            if not isinstance(fn, dict):
+                fn = {}
             name = fn.get("name", "")
             args = fn.get("arguments", {})
             if not isinstance(args, str):
@@ -218,7 +222,7 @@ def _ollama_message_to_namespace(message: dict, finish_reason: str):
                     args = json.dumps(args)
                 except Exception:
                     args = "{}"
-            tc_id = (tc or {}).get("id") or f"call_{idx}"
+            tc_id = tc.get("id") or f"call_{idx}"
             tool_calls_ns.append(SimpleNamespace(
                 id=tc_id,
                 type="function",
@@ -1184,6 +1188,16 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         if hasattr(agent, "_transport_cache"):
             agent._transport_cache.clear()
         agent._fallback_activated = True
+
+        # Record the fallback outcome on the active request trace (no-op when
+        # tracing is disabled).
+        try:
+            from hermes_cli.request_trace import current as _trace
+            _trace(agent).record_fallback(fb_model, reason)
+        except Exception as trace_err:
+            # Best-effort telemetry — recording the fallback must never break
+            # fallback activation itself. Debug-log instead of silently passing.
+            logger.debug("request-trace record_fallback failed: %s", trace_err)
 
         # Honor per-provider / per-model request_timeout_seconds for the
         # fallback target (same knob the primary client uses).  None = use

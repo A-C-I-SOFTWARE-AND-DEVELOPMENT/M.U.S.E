@@ -1,0 +1,58 @@
+import type { ShareMessages } from "../vendor/opencode/share/common"
+
+/**
+ * String bag consumed by OpenCode's vendored chat renderer
+ * (`vendor/opencode/share/*`). Values are the upstream English defaults with
+ * MUSE-facing product strings rebranded. The renderer only reads flat keys, so
+ * this doubles as the MUSE i18n table for the chat surface.
+ */
+export const MESSAGES: ShareMessages = {
+  locale: "en-US",
+  meta_description: "muse — your local-first AI operating partner.",
+  not_found: "Not found",
+  link_to_message: "Link to this message",
+  copied: "Copied!",
+  copy: "Copy",
+  show_more: "Show more",
+  show_less: "Show less",
+  show_results: "Show results",
+  hide_results: "Hide results",
+  show_details: "Show details",
+  hide_details: "Hide details",
+  show_preview: "Show preview",
+  hide_preview: "Hide preview",
+  show_contents: "Show contents",
+  hide_contents: "Hide contents",
+  show_output: "Show output",
+  hide_output: "Hide output",
+  error: "Error",
+  waiting_for_messages: "Ask muse anything to begin.",
+  status_connected_waiting: "Connected — muse is listening.",
+  status_connecting: "Connecting…",
+  status_disconnected: "Disconnected",
+  status_reconnecting: "Reconnecting…",
+  status_error: "Error",
+  status_unknown: "Unknown",
+  error_id_not_found: "Conversation not found",
+  error_api_url_not_found: "API URL not found",
+  error_connection_failed: "Connection failed",
+  opencode_version: "muse version",
+  opencode_name: "muse",
+  models: "Models",
+  cost: "Cost",
+  input_tokens: "Input Tokens",
+  output_tokens: "Output Tokens",
+  reasoning_tokens: "Reasoning Tokens",
+  scroll_to_bottom: "Scroll to bottom",
+  attachment: "Attachment",
+  thinking: "Thinking",
+  thinking_pending: "Thinking…",
+  creating_plan: "Creating plan",
+  completing_plan: "Completing plan",
+  updating_plan: "Updating plan",
+  match_one: "match",
+  match_other: "matches",
+  result_one: "result",
+  result_other: "results",
+  debug_key: "Key",
+}

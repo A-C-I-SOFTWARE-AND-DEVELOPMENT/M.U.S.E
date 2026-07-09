@@ -58,6 +58,16 @@ def test_resolve_defaults_to_first_party(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "https://www.musehq.io" in origins
 
 
+def test_resolve_defaults_include_desktop_webview(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The muse desktop shell's webview origins are first-party by default."""
+    monkeypatch.delenv("HERMES_COCKPIT_CORS_ORIGINS", raising=False)
+    origins = _resolve_cors_origins()
+    assert "tauri://localhost" in origins  # macOS/Linux webview
+    assert "http://tauri.localhost" in origins  # Windows (WebView2)
+    assert "https://tauri.localhost" in origins
+    assert "http://localhost:1420" in origins  # Vite dev server
+
+
 def test_resolve_env_extends_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HERMES_COCKPIT_CORS_ORIGINS", "https://a.example, https://b.example/")
     origins = _resolve_cors_origins()
@@ -88,6 +98,15 @@ def test_cors_header_for_allowed_origin(home: Path) -> None:
         resp = _request(srv, "/v1/health", origin=ALLOWED)
         assert resp.headers.get("Access-Control-Allow-Origin") == ALLOWED
         assert "Origin" in (resp.headers.get("Vary") or "")
+    finally:
+        srv.shutdown()
+
+
+def test_cors_header_for_desktop_webview_origin(home: Path) -> None:
+    srv = serve(host="127.0.0.1", port=0, token=TOKEN)
+    try:
+        resp = _request(srv, "/v1/health", origin="tauri://localhost")
+        assert resp.headers.get("Access-Control-Allow-Origin") == "tauri://localhost"
     finally:
         srv.shutdown()
 

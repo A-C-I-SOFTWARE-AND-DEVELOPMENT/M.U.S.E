@@ -1196,6 +1196,77 @@ def _load_gateway_config() -> dict:
     return {}
 
 
+def _build_self_audit_footer_line(
+    agent_result: dict | None,
+    user_config: dict | None,
+) -> str:
+    """Return the opt-in self-audit footer for a turn, or ``""``.
+
+    Mirrors ``gateway.runtime_footer.build_footer_line``: gated behind an
+    existing default-OFF flag (``display.self_audit_footer.enabled`` /
+    ``MUSE_SELF_AUDIT_FOOTER``) so the default runtime output is byte-for-byte
+    unchanged. Deterministic and offline — it consumes self-audit dimension
+    scores the turn *already* produced and never calls a model on the hot path.
+
+    Score source: the footer prefers a per-turn self-audit score object already
+    present under ``agent_result["self_audit_scores"]`` (a
+    ``{dimension: DimensionScore}`` mapping or an ``AuditReport``). When the flag
+    is enabled and no such object exists, scores are computed *offline* from the
+    turn's response text via
+    :func:`hermes_cli.jarvis_prime.self_audit.live_scorer.score_response` — a
+    deterministic heuristic approximation (reusing the response-style and
+    challenge-contract detectors) with **no model / network call on the hot
+    path**. A full model-judge scorer remains a future owner-gated upgrade.
+
+    When the flag is OFF (the default) the scorer is never invoked and the
+    default runtime output is byte-for-byte unchanged.
+    """
+    try:
+        from hermes_cli.jarvis_prime.self_audit.footer import (
+            build_self_audit_footer,
+            self_audit_footer_enabled,
+        )
+    except Exception:  # pragma: no cover - self_audit package optional
+        return ""
+
+    # Flag is default-OFF; when disabled, do nothing (default output unchanged).
+    # The offline scorer below is *only* reached past this early return, so with
+    # the flag off it is never called.
+    if not self_audit_footer_enabled(user_config):
+        return ""
+
+    result = agent_result or {}
+    scores = result.get("self_audit_scores")
+    if scores is None:
+        # No precomputed scores -> derive them offline from the response text.
+        # Deterministic heuristic, no model/network call (see live_scorer).
+        try:
+            from hermes_cli.jarvis_prime.self_audit.live_scorer import (
+                score_response,
+            )
+
+            response_text = result.get("final_response") or ""
+            if not str(response_text).strip():
+                return ""
+            scores = score_response(
+                str(response_text),
+                request_text=result.get("request_text"),
+                mode=result.get("mode"),
+                effort_class=result.get("effort_class"),
+            )
+        except Exception:  # pragma: no cover - never break the send path
+            return ""
+
+    try:
+        return build_self_audit_footer(
+            scores,
+            user_config=user_config,
+            effort=result.get("effort_class"),
+        )
+    except Exception:  # pragma: no cover - never break the send path
+        return ""
+
+
 def _resolve_gateway_model(config: dict | None = None) -> str:
     """Read model from config.yaml — single source of truth.
 
@@ -8615,6 +8686,22 @@ class GatewayRunner:
             if _footer_line and response and not agent_result.get("already_sent"):
                 response = f"{response}\n\n{_footer_line}"
 
+            # Self-audit footer — opt-in, default OFF. Rendered only when the
+            # existing default-OFF flag is set AND the turn already produced
+            # self-audit scores (agent_result["self_audit_scores"]); otherwise a
+            # no-op, so the default output is byte-for-byte unchanged. Offline —
+            # no model call on the hot path (see _build_self_audit_footer_line).
+            _self_audit_footer = ""
+            try:
+                _self_audit_footer = _build_self_audit_footer_line(
+                    agent_result, _load_gateway_config(),
+                )
+            except Exception as _sa_err:
+                logger.debug("self_audit_footer build failed: %s", _sa_err)
+                _self_audit_footer = ""
+            if _self_audit_footer and response and not agent_result.get("already_sent"):
+                response = f"{response}\n\n{_self_audit_footer}"
+
             # Emit agent:end hook
             await self.hooks.emit("agent:end", {
                 **hook_ctx,
@@ -8861,6 +8948,19 @@ class GatewayRunner:
                             )
                     except Exception as _e:
                         logger.debug("trailing footer send failed: %s", _e)
+                # Same for the opt-in self-audit footer (default OFF -> empty ->
+                # nothing sent, so the streaming default path is unchanged).
+                if _self_audit_footer:
+                    try:
+                        _sa_adapter = self.adapters.get(source.platform)
+                        if _sa_adapter:
+                            await _sa_adapter.send(
+                                source.chat_id,
+                                _self_audit_footer,
+                                metadata=self._thread_metadata_for_source(source, self._reply_anchor_for_event(event)),
+                            )
+                    except Exception as _e:
+                        logger.debug("trailing self-audit footer send failed: %s", _e)
                 return None
 
             return response
@@ -16924,6 +17024,94 @@ class GatewayRunner:
             
             # Return final response, or a message if something went wrong
             final_response = result.get("final_response")
+
+            # ── MUSE opt-in: bounded validate-then-regenerate enforcement ──
+            # Default OFF. The enabled-check MUST strictly precede ALL new work
+            # (classification, detectors, extra model calls) so the default
+            # path pays ZERO cost and delivers the original final_response
+            # byte-for-byte. Fails open: the last produced reply is always kept.
+            try:
+                # Import ONLY the cheap gate resolver up front; the detectors /
+                # classifiers are imported inside the enabled branch so the
+                # default (flag-off) path pays zero cost.
+                from hermes_cli.jarvis_prime.response_enforcement import (
+                    style_enforcement_enabled,
+                )
+
+                if (
+                    style_enforcement_enabled(user_config)
+                    # Streaming guard: a reply already streamed/previewed to the
+                    # user cannot be re-generated in place — skip the loop.
+                    and _stream_consumer is None
+                    and not result.get("response_previewed")
+                    and final_response
+                ):
+                    from hermes_cli.jarvis_prime.effort_class import (
+                        classify_effort_for_request,
+                    )
+                    from hermes_cli.jarvis_prime.modes import (
+                        ClassifierContext,
+                        ModeClassifier,
+                    )
+                    from hermes_cli.jarvis_prime.response_enforcement import (
+                        evaluate_enforcement,
+                        resolve_max_attempts,
+                        _corrective_nudge,
+                    )
+
+                    _enf_request = message if isinstance(message, str) else ""
+                    # TWO separate deterministic primitives: mode + effort.
+                    _mode_cls = ModeClassifier().classify(
+                        _enf_request,
+                        context=ClassifierContext(surface=platform_key),
+                    )
+                    _enf_mode = _mode_cls.mode if _mode_cls is not None else None
+                    _enf_effort = classify_effort_for_request(
+                        _enf_request, surface=platform_key
+                    )
+
+                    if _enf_mode is not None:
+                        _max_attempts = resolve_max_attempts(user_config)
+                        for _attempt in range(_max_attempts):
+                            _check = evaluate_enforcement(
+                                _enf_mode,
+                                final_response,
+                                request_text=_enf_request,
+                                effort_class=_enf_effort,
+                            )
+                            if _check.ok:
+                                break
+                            if _attempt >= _max_attempts - 1:
+                                # Out of attempts — keep the last reply (fail-open).
+                                break
+                            _nudge = _corrective_nudge(_check)
+                            if not _nudge:
+                                break
+                            logger.debug(
+                                "style_enforcement: regenerating (attempt %d) — %s",
+                                _attempt + 1,
+                                _check.to_dict(),
+                            )
+                            _regen = agent.run_conversation(
+                                _run_message,
+                                system_message=_nudge,
+                                conversation_history=agent_history,
+                                task_id=session_id,
+                            )
+                            _regen_final = _regen.get("final_response")
+                            if _regen_final:
+                                # Adopt the regenerated turn wholesale so the
+                                # returned metadata stays consistent with the
+                                # reply we actually deliver.
+                                result = _regen
+                                result_holder[0] = _regen
+                                final_response = _regen_final
+                            else:
+                                # Regeneration produced nothing usable — keep the
+                                # prior reply (fail-open) and stop.
+                                break
+            except Exception as _enf_exc:  # never raise to the user — fail open
+                logger.debug("style_enforcement: skipped (%s)", _enf_exc)
 
             # Extract actual token counts from the agent instance used for this run
             _last_prompt_toks = 0

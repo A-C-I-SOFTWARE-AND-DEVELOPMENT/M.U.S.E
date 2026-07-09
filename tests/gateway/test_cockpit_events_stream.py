@@ -61,6 +61,54 @@ def test_event_log_normalizes_unknown_level_and_source(home: Path) -> None:
     assert records[0]["source"] == "gateway"
 
 
+def test_event_log_read_tail_matches_full_scan(home: Path) -> None:
+    """read(limit>0) tail-reads backwards; its output must be byte-identical
+    to full-scanning (limit=0) and slicing the last N — across filters,
+    malformed/blank lines, and records larger than the tail block size."""
+    import json as _json
+
+    p = event_log._path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as fh:
+        for i in range(400):
+            if i % 37 == 0:
+                fh.write("{not json]\n")
+            # i == 200 gets a pad larger than the tail block so one record
+            # spans multiple backwards-read blocks.
+            attributes: dict = {"i": i}
+            if i == 200:
+                attributes["pad"] = "y" * (event_log._TAIL_BLOCK * 2 + 17)
+            rec = {
+                "ts": f"2026-07-{(i % 28) + 1:02d}T12:00:00+00:00",
+                "level": ("info", "warn", "error")[i % 3],
+                "source": ("gateway", "worker", "hook", "cron")[i % 4],
+                "job_id": f"j{i % 5}",
+                "message": f"m{i}",
+                "attributes": attributes,
+            }
+            fh.write(_json.dumps(rec) + "\n")
+
+    cases: list = [
+        (10, {}),
+        (50, {"source": "hook"}),
+        (7, {"level": "error,warn", "source": "gateway,worker"}),
+        (5, {"job_id": "j3"}),
+        (30, {"since": "2026-07-15"}),
+        (10_000, {}),  # limit exceeds matches -> everything
+    ]
+    for limit, rest in cases:
+        full = event_log.read(limit=0, **rest)
+        assert event_log.read(limit=limit, **rest) == full[-limit:], (limit, rest)
+
+
+def test_event_log_read_empty_and_missing(home: Path) -> None:
+    assert event_log.read(limit=50) == []  # no file yet
+    p = event_log._path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("", encoding="utf-8")
+    assert event_log.read(limit=50) == []  # empty file
+
+
 # ── integration: the live stream ───────────────────────────────────────────
 
 
@@ -171,3 +219,43 @@ def test_events_list_level_filter(server, home: Path) -> None:
     msgs = [e["message"] for e in body["events"]]
     assert "e1" in msgs
     assert "i1" not in msgs
+
+
+# ── GET /v1/cockpit/trace (request-trace summary) ──────────────────────────
+
+
+def test_trace_summary_requires_auth(server) -> None:
+    host, port = server.server_address
+    req = urllib.request.Request(f"http://{host}:{port}/v1/cockpit/trace")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req, timeout=5)
+    assert exc.value.code == 401
+
+
+def test_trace_summary_honest_empty(server, home: Path) -> None:
+    status, body = _get(server, "/v1/cockpit/trace")
+    assert status == 200
+    assert body["request_count"] == 0
+    assert "generated_at" in body
+
+
+def test_trace_summary_aggregates_emitted_traces(server, home: Path) -> None:
+    event_log.emit(
+        "info", "hook", "request_trace",
+        attributes={
+            "endpoint": "openai_v1_chat_completions", "model": "qwen",
+            "is_remote": False, "first_token_ms": 120, "total_latency_ms": 900,
+            "tool_calls": 3, "tool_parse_errors": 0, "tool_exec_failures": 1,
+            "fallback_used": False,
+        },
+    )
+    event_log.emit(
+        "info", "hook", "model_lifecycle",
+        attributes={"event": "unload", "model": "qwen", "ok": True},
+    )
+    status, body = _get(server, "/v1/cockpit/trace")
+    assert status == 200
+    assert body["request_count"] == 1
+    assert body["endpoints"] == {"openai_v1_chat_completions": 1}
+    assert body["tool_calls"]["failure_rate"] == round(1 / 3, 4)
+    assert body["lifecycle"]["unload_count"] == 1

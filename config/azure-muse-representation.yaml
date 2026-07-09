@@ -1,0 +1,36 @@
+azure_muse_representation:
+  name: M.U.S.E full Azure representation
+  project: M.U.S.E
+  foundry_project_endpoint: https://echerd27-5762-resource.services.ai.azure.com/api/projects/echerd27-5762
+  openai_endpoint: https://echerd27-5762-resource.cognitiveservices.azure.com/openai/v1
+  model: gpt-5
+  auth: Microsoft Entra ID via Azure CLI / managed identity
+  representation_layers:
+    repo_inventory:
+      description: Complete categorized inventory of repository assets.
+      azure_surface: Foundry Agent file + vector store searchable corpus
+    datasets:
+      description: Dataset files, dataset-producing scripts, eval/sample datasets, source-data pointers, and generated dataset manifests.
+      azure_surface: Foundry file_search vector store and dataset registry manifest
+    pipelines:
+      description: CI workflows, orchestration pipelines, studio pipeline, research fabric, Teams pipeline, and Azure sync scripts.
+      azure_surface: Pipeline registry document in vector store
+    karpathy_llm_wiki:
+      description: Karpathy-style compiled markdown knowledge system and wiki/RAG-alternative documentation.
+      azure_surface: Wiki index document in vector store
+    rag:
+      description: Foundry-native file_search vector store attached to every M.U.S.E long-horizon agent.
+      azure_surface: Azure AI Foundry Agent Service vector store
+    agents:
+      description: Orchestrator, research, build planning, and quality verifier agents updated with code interpreter + M.U.S.E RAG.
+      azure_surface: Azure AI Foundry Agent Service
+    hermes_config:
+      description: Hermes provider/fusion/router/Azure project metadata represented as redacted manifests.
+      azure_surface: Config digest in vector store
+  sync_script: scripts/azure/sync_muse_to_foundry.py
+  state_files:
+    local_ignored_state: .azure/muse-foundry-sync.json
+    local_ignored_payload_dir: .azure/sync_payload
+  security:
+    secret_policy: never upload .env files, tokens, keys, credentials, local caches, virtualenvs, node_modules, build artifacts, or git internals
+    pii_policy: inventory paths and public repo docs only by default; no private secret material

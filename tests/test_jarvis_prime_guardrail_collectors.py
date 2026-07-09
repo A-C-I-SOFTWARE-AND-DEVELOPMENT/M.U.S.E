@@ -69,6 +69,29 @@ def test_git_diff_missing_git_is_graceful(tmp_path: Path) -> None:
     assert art.payload["git_available"] is False
 
 
+def test_git_diff_records_author_id_when_provided(git_repo: Path) -> None:
+    # The acting agent id is recorded in the same namespace the C19 gate reads
+    # (payload author_id), not the fixed collector-tool producer.
+    (git_repo / "a.py").write_text("print('changed')\n", encoding="utf-8")
+    art = gc.collect_git_diff_evidence(str(git_repo), author_id="codex")
+    assert art.payload["author_id"] == "codex"
+    # The producer stays the fixed collector literal — never an agent id.
+    assert art.producer == "git_diff_collector"
+
+
+def test_git_diff_author_id_defaults_empty(git_repo: Path) -> None:
+    art = gc.collect_git_diff_evidence(str(git_repo))
+    assert art.payload["author_id"] == ""
+
+
+def test_git_diff_missing_git_still_records_author_id(tmp_path: Path) -> None:
+    art = gc.collect_git_diff_evidence(
+        str(tmp_path / "not_a_repo"), author_id="agent-7"
+    )
+    assert art.payload["git_available"] is False
+    assert art.payload["author_id"] == "agent-7"
+
+
 # --- secret scan -----------------------------------------------------------
 
 

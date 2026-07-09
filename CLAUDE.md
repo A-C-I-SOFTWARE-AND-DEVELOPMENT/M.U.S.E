@@ -261,3 +261,27 @@ never improvise a council member that isn't in the registry.
 The full recovery narrative + Termux install commands live at
 `docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` and
 `docs/aos-recovery/AOS_INSTALLATION_REPORT.md`.
+
+## Game Studio pack
+
+When the user asks to "make a game", "build a game", "build a vertical
+slice", "greybox a level", "prototype a game", or "generate a 3D asset",
+load `skills/creative/game-studio/SKILL.md` first. It is muse's
+engine-agnostic, owner-gated game-production capability: a routing skill
++ a 9-role agent roster (`agents/`) + a staged workflow that reuses the
+existing `agent/studio/` generative DAG, the `ue5-render` skill (Unreal
+Nanite/Lumen — the SOTA-graphics path), `comfyui` (textures/audio), and
+the new `asset3d_generate` tool (text-to-3D meshes via the
+`plugins/asset3d_gen/<backend>/` providers, e.g. Meshy).
+
+Honest framing: one agent turn cannot ship a 100-person AAA title — the
+deliverable is a **playable, runnable vertical slice** plus the pipeline
+that scales toward more. Engines are pluggable worker profiles
+(`game-godot` / `game-ue5` / `game-unity`); **only Godot 4 builds
+headlessly** here, so the reference slice at
+`skills/creative/game-studio/reference-slice/` targets Godot, while UE5 is
+the documented GPU-host SOTA path. Owner gates (require exactly `Yes,
+with authorization.`): **engine spawn** (`MUSE_GAME_ALLOW_SPAWN=1`),
+**paid 3D/GPU spend** (surface `asset3d_generate`'s `est_cost_usd`),
+**asset licensing**, and **publishing a build**. See
+`docs/game-studio/README.md`.

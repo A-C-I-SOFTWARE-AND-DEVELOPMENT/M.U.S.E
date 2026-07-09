@@ -96,6 +96,13 @@ class WorkPacket:
     repo_root: str = ""
     branch: str = ""
     risk_class: str = ""
+    # Identity of the AGENT that authored/acted on the change under review, in
+    # the same namespace as a review's ``reviewer_id`` (see
+    # ``guardrail_collectors.collect_review_evidence``). Optional and empty by
+    # default: guardrail collectors thread it into
+    # ``collect_git_diff_evidence(author_id=...)`` so the strict review gate's
+    # Clause C19 builder != reviewer check can fire. Left blank, C19 fails open.
+    acting_agent_id: str = ""
     allowed_files: list[str] = field(default_factory=list)
     protected_files: list[str] = field(default_factory=list)
     non_goals: list[str] = field(default_factory=list)

@@ -175,6 +175,103 @@ class CouncilSession:
         return "\n".join(lines)
 
 
+# Minimum council floor when the (default-off) effort cap is applied. The cap
+# may never shrink an engaged council to zero members: at least this many of the
+# highest-priority core members are always preserved so a capped session still
+# carries essential decision coverage. Only in force when the flag is enabled.
+_EFFORT_CAP_FLOOR = 1
+
+
+def _effort_cap_enabled(registry: Optional[dict[str, Any]]) -> bool:
+    """Whether the (default-OFF) effort-class council cap is enabled.
+
+    Opt-in only, mirroring the merged effort-class stamping's additive pattern.
+    Resolution order (first True wins), all defaulting to disabled:
+
+    * env ``MUSE_EFFORT_CAP`` set to a truthy value (``1``/``true``/``yes``/``on``);
+    * ``registry["policies"]["effort_cap"]["enabled"] is True`` — Mapping-guarded
+      so a malformed / absent policy block can never raise.
+
+    Any error while reading the flag resolves to ``False`` (fail-open toward the
+    current, uncapped behavior).
+    """
+    try:
+        env = os.getenv("MUSE_EFFORT_CAP")
+        # A present-but-empty env value falls through here (empty string is not a
+        # truthy token) and defers to the registry policy below — first True wins.
+        if env is not None and env.strip().lower() in {"1", "true", "yes", "on"}:
+            return True
+        policies = (registry or {}).get("policies")
+        if not isinstance(policies, dict):
+            return False
+        effort_cap = policies.get("effort_cap")
+        if not isinstance(effort_cap, dict):
+            return False
+        return effort_cap.get("enabled") is True
+    except Exception:
+        return False
+
+
+def _apply_effort_cap(
+    council: list["CouncilMember"],
+    specialists: list["CouncilMember"],
+    effort_class: Optional[str],
+) -> tuple[list["CouncilMember"], list["CouncilMember"]]:
+    """Bound the assembled council to what ``effort_class`` permits.
+
+    Deterministic, never-raise, and cap-only (never enlarges). The cap is a
+    ceiling on the *total* engaged members (council + specialists). Drop order —
+    most-marginal first — is:
+
+    1. drop the lowest-relevance domain specialists (they are already sorted
+       descending by relevance, so we trim from the tail);
+    2. only if the council alone still exceeds the ceiling, trim the
+       lowest-priority tail of the active council — but never below
+       :data:`_EFFORT_CAP_FLOOR` (the highest-priority core members are always
+       preserved).
+
+    On any error, or when ``effort_class`` is unknown / imposes no ceiling
+    (E4/E5), the inputs are returned unchanged (fail-open toward current
+    behavior). ``cap_council_size`` itself is the merged, tested primitive — it
+    is only *consulted* here, never modified.
+    """
+    try:
+        if not effort_class:
+            return council, specialists
+        from hermes_cli.jarvis_prime.effort_class import EffortClass, cap_council_size
+
+        try:
+            cls = EffortClass(effort_class)
+        except ValueError:
+            return council, specialists
+
+        requested = len(council) + len(specialists)
+        ceiling = cap_council_size(cls, requested)
+        # E4/E5 impose no ceiling → cap_council_size returns the request as-is.
+        if ceiling >= requested:
+            return council, specialists
+
+        # Enforce a sane floor so essential core members are never all dropped.
+        if council:
+            ceiling = max(ceiling, _EFFORT_CAP_FLOOR)
+        if ceiling >= requested:
+            return council, specialists
+
+        # Drop most-marginal specialists first (tail of the relevance-sorted list).
+        keep_specialists = max(0, ceiling - len(council))
+        capped_specialists = specialists[:keep_specialists]
+        used = len(capped_specialists)
+
+        # If the council alone still overflows, trim its lowest-priority tail,
+        # never below the floor.
+        keep_council = max(_EFFORT_CAP_FLOOR, ceiling - used) if council else 0
+        capped_council = council[:keep_council]
+        return capped_council, capped_specialists
+    except Exception:
+        # Fail-open: any failure computing the cap leaves the council uncapped.
+        return council, specialists
+
+
 def _keywords(text: str) -> set[str]:
     return {
         w for w in re.split(r"[^a-z0-9]+", (text or "").lower())
@@ -223,8 +320,19 @@ def dispatch(
     *,
     registry: Optional[dict[str, Any]] = None,
     max_council: Optional[int] = None,
+    effort_class: Optional[str] = None,
 ) -> CouncilSession:
-    """Route ``request`` to the active council + matching domain specialists."""
+    """Route ``request`` to the active council + matching domain specialists.
+
+    ``effort_class`` is the smallest-sufficient class already stamped on the
+    :class:`~hermes_cli.jarvis_prime.router.RouteDecision` (e.g. ``"E2"``). It is
+    consulted **only** when the default-OFF effort-cap flag is enabled
+    (:func:`_effort_cap_enabled`). With the flag off — the default — this
+    argument is ignored and the routing outcome is byte-for-byte identical to the
+    prior behavior. When enabled, the assembled council is bounded to
+    ``cap_council_size(effort_class)`` with a documented drop order and floor
+    (see :func:`_apply_effort_cap`); the cap is never raised and fails open.
+    """
     reg = registry or load_registry()
     policies = reg.get("policies", {})
     cap = max_council or int(policies.get("default_slack_council_max", 6))
@@ -240,6 +348,13 @@ def dispatch(
         if use > 0 and use >= avoid:
             scored.append(_specialist_member(s, relevance=use))
     scored.sort(key=lambda m: m.relevance, reverse=True)
+
+    # Default-OFF effort cap. When disabled (the default), the council/specialist
+    # sets above are returned untouched — no consultation of the effort primitive,
+    # so the dispatch outcome is unchanged. Only when the opt-in flag is enabled
+    # is the assembled council bounded to the classified effort class.
+    if _effort_cap_enabled(reg):
+        council, scored = _apply_effort_cap(council, scored, effort_class)
 
     return CouncilSession(
         request=request, council=council, specialists=scored, owner_gate_phrase=phrase
@@ -525,6 +640,7 @@ def unified_dispatch(
     nav_root: Optional[str] = None,
     max_council: Optional[int] = None,
     nav_limit: int = 5,
+    effort_class: Optional[str] = None,
 ) -> DispatchPlan:
     """Unify navigator (where) + council dispatcher (who) into one plan.
 
@@ -552,7 +668,9 @@ def unified_dispatch(
     Navigator for the navigation half, then composes both into a single
     :class:`DispatchPlan` with a generalized :class:`TaskQueue`.
     """
-    session = dispatch(request, registry=registry, max_council=max_council)
+    session = dispatch(
+        request, registry=registry, max_council=max_council, effort_class=effort_class
+    )
 
     navigation: Optional["NavigationResult"] = None
     if navigator is not None:

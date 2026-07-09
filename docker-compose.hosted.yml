@@ -1,0 +1,64 @@
+# docker-compose.hosted.yml — ONE isolated muse cockpit container per hosted user.
+#
+# This is the "commercially available" compute layer: a fleet host (a VPS) runs
+# one of these services per Pro user, each fully isolated, reachable only via the
+# host's reverse proxy (deploy/hosted/Caddyfile). It is deliberately NOT the
+# root docker-compose.yml — that one uses network_mode: host and is single-user.
+#
+# The container IS the sandbox. It runs the full agent (arbitrary code
+# execution), so isolation is load-bearing:
+#   * no network_mode: host — the container gets its own network namespace;
+#   * cap_drop: ALL + no-new-privileges — minimal Linux capabilities;
+#   * NO docker socket mounted — the agent can never reach the host daemon;
+#   * per-user named volume — one user's ~/.hermes never touches another's;
+#   * mem/cpu limits — one runaway run can't starve the box;
+#   * the cockpit binds 127.0.0.1 inside the container (execute lanes stay on),
+#     exposed to a host-loopback published port via socat (start-cockpit.sh).
+#
+# Provision/deprovision a user with scripts/fleet/provision_user.sh, which fills
+# in USER_SLUG + PUB_PORT and brings the service up. See docs/deploy/hosted-fleet.md.
+#
+# Usage (normally driven by the provisioner, not by hand):
+#   USER_SLUG=jeremiah PUB_PORT=8801 \
+#     docker compose -p muse-jeremiah -f docker-compose.hosted.yml up -d
+
+services:
+  cockpit:
+    build: .
+    image: hermes-agent
+    container_name: muse-cockpit-${USER_SLUG:?set USER_SLUG}
+    restart: unless-stopped
+    # Own network namespace (NOT host). Only the published loopback port is
+    # reachable, and only from the host's reverse proxy.
+    ports:
+      - "127.0.0.1:${PUB_PORT:?set PUB_PORT}:8766"
+    volumes:
+      # Per-user data volume — isolated ~/.hermes (config, token, memory, keys).
+      # The compose project name (-p muse-<slug>) prefixes this, so each user's
+      # volume is distinct: `muse-<slug>_data`.
+      - data:/opt/data
+    environment:
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      # Full agent lane on (tools, code execution, sub-agents, owner approvals).
+      - HERMES_COCKPIT_AGENT=full
+      # Wire model routes from ~/.hermes/.env on first boot (idempotent).
+      - HERMES_BOOTSTRAP_MODELS=${HERMES_BOOTSTRAP_MODELS:-1}
+      - COCKPIT_PORT=8765
+      - COCKPIT_PUB_PORT=8766
+    # Run the cockpit (loopback) + socat hop instead of `gateway run`.
+    entrypoint: ["/opt/hermes/docker/entrypoint.sh"]
+    command: ["bash", "/opt/hermes/docker/start-cockpit.sh"]
+    # --- isolation / resource limits ---
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # A hosted agent runs untrusted-ish workloads; bound its blast radius.
+    mem_limit: ${MUSE_MEM_LIMIT:-2g}
+    cpus: ${MUSE_CPUS:-1.5}
+    pids_limit: 512
+    # Explicitly no docker.sock mount — the agent must never reach the host daemon.
+
+volumes:
+  data:

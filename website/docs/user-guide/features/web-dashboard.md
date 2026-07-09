@@ -8,6 +8,17 @@ description: "Browser-based dashboard for managing configuration, API keys, sess
 
 The web dashboard is a browser-based UI for managing your muse installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
 
+## Which UI should I use?
+
+| Surface | Command / URL | What it's for |
+|---------|---------------|---------------|
+| **Muse Omni** (Singularity cockpit) | `muse omni` → `http://127.0.0.1:8765/` | Day-to-day ops: chat, jobs, approvals, providers, atlas, pairing |
+| **Admin dashboard** (this page) | `muse dashboard` → `http://127.0.0.1:9119/` | Config YAML, API keys, sessions, cron, skills, kanban plugin tabs |
+| **Terminal TUI** | `muse --tui` | Full agent in the terminal (also embeddable via `muse dashboard --tui`) |
+| **OpenCode chat shell** | `https://musehq.io/chat/` (public) | Secondary text-chat layout; full ops stay on Muse Omni root |
+
+`muse omni --with-admin` starts both the cockpit and this dashboard. The cockpit System rail includes a **Local Admin** link to `:9119`.
+
 ## Quick Start
 
 ```bash

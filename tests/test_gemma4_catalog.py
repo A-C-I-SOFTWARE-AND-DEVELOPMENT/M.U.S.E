@@ -25,9 +25,10 @@ def test_provider_catalog_has_gemma_and_keeps_llama_fallback() -> None:
     for refs in catalog.defaults.values():
         for ref in refs:
             assert catalog.by_ref(ref) is not None, ref
-    # Gemma locals need no API key.
+    # Gemma locals need no API key. (Cloud gemma — e.g. cerebras/gemma-4-31b-it
+    # — is keyed, so only the local providers are held to this.)
     for m in catalog.models:
-        if m.family == "gemma":
+        if m.family == "gemma" and m.provider in ("ollama-local", "llamacpp-local"):
             assert m.is_ready(env={})
 
 

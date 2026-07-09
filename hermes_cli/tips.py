@@ -377,10 +377,12 @@ TIPS = [
     "HERMES_TUI_THEME=light|dark|<hex> forces the TUI theme on terminals that don't set COLORFGBG.",
     'Ctrl+G or Ctrl+X Ctrl+E in the TUI opens the input buffer in $EDITOR for long multi-line prompts.',
     'The TUI renders LaTeX inline — $E=mc^2$ becomes Unicode math instead of raw TeX.',
-    'hermes dashboard launches a local web UI at 127.0.0.1:9119 — zero data leaves localhost.',
-    'hermes dashboard --tui embeds the full Hermes TUI in your browser via xterm.js and a WebSocket PTY.',
+    'muse omni launches Muse Omni (Singularity cockpit) at 127.0.0.1:8765 in full-agent mode — chat, jobs, approvals, providers.',
+    'muse omni --with-admin also starts the local admin dashboard at 127.0.0.1:9119 (config, sessions, kanban).',
+    'muse dashboard launches the local admin web UI at 127.0.0.1:9119 — zero data leaves localhost.',
+    'muse dashboard --tui embeds the full muse TUI in your browser via xterm.js and a WebSocket PTY.',
     'Drop a YAML in ~/.hermes/dashboard-themes/ with two palette colors to reskin the entire dashboard.',
-    'Dashboard plugins are drop-in: manifest.json + JS bundle in ~/.hermes/dashboard-plugins/ — no npm build required.',
+    'Dashboard plugins are drop-in: put manifest.json + JS under ~/.hermes/plugins/<name>/dashboard/ (served at /dashboard-plugins/<name>/).',
     'layoutVariant: cockpit in a dashboard theme adds a 260px left rail that plugins can populate via the sidebar slot.',
 
     # --- Env Vars & Config Gates ---
@@ -469,7 +471,7 @@ TIPS = [
 
     # --- Misc ---
     'API_SERVER_MODEL_NAME customizes the model name on /v1/models — essential for multi-profile Open WebUI setups.',
-    'Dashboard plugins are served from /dashboard-plugins/<name>/ — drop files into ~/.hermes/dashboard-plugins/.',
+    'Dashboard plugins are served from /dashboard-plugins/<name>/ — drop files into ~/.hermes/plugins/<name>/dashboard/.',
 ]
 
 

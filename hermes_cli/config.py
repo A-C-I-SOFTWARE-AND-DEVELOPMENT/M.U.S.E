@@ -81,6 +81,13 @@ _LAST_EXPANDED_CONFIG_BY_PATH: Dict[str, Any] = {}
 # produces a fresh inode, so stat() sees a new mtime_ns and the next
 # load repopulates automatically — no explicit invalidation hook.
 _LOAD_CONFIG_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
+# Sentinel cache key for "no config file on disk" — lets the defaults-only
+# result be cached too (previously it was rebuilt from DEFAULT_CONFIG on every
+# call, ~1.3 ms each, in the common no-config-file case: fresh installs, Termux,
+# CI, defaults). A real (mtime_ns, size) key can never equal this, so a config
+# file later appearing/disappearing invalidates correctly. mtime_ns/size are
+# always >= 0, so (-1, -1) is unambiguous.
+_MISSING_CONFIG_KEY: Tuple[int, int] = (-1, -1)
 # (path, mtime_ns, size) -> cached raw yaml dict. Same pattern as
 # _LOAD_CONFIG_CACHE but for read_raw_config() — used when callers want
 # the user's on-disk values without defaults merged in.
@@ -455,14 +462,31 @@ def _ensure_default_soul_md(home: Path) -> None:
     _secure_file(soul_path)
 
 
+# Home paths whose directory structure has already been ensured this process.
+# ensure_hermes_home() is called on every config read (~20-50x per agent turn
+# via load_config*), and the full pass costs ~195us in mkdir/chmod/exists
+# syscalls even when everything already exists. Memoizing success — guarded by
+# a single is_dir() stat so a home deleted mid-process is still re-created —
+# drops the repeat cost to ~2us. Keyed on the resolved path so profile
+# switches (which change HERMES_HOME) re-ensure the new location.
+_HERMES_HOME_ENSURED: set = set()
+
+
 def ensure_hermes_home():
     """Ensure ~/.hermes directory structure exists with secure permissions.
 
     In managed mode (NixOS), dirs are created by the activation script with
     setgid + group-writable (2770). We skip mkdir and set umask(0o007) so
     any files created (e.g. SOUL.md) are group-writable (0660).
+
+    Idempotent and memoized: after the first successful pass for a given
+    home path, subsequent calls only pay one ``is_dir()`` stat (which also
+    re-heals the structure if the whole home dir was deleted mid-process).
     """
     home = get_hermes_home()
+    key = str(home)
+    if key in _HERMES_HOME_ENSURED and home.is_dir():
+        return
     if is_managed():
         old_umask = os.umask(0o007)
         try:
@@ -480,6 +504,7 @@ def ensure_hermes_home():
             d.mkdir(parents=True, exist_ok=True)
             _secure_dir(d)
         _ensure_default_soul_md(home)
+    _HERMES_HOME_ENSURED.add(key)
 
 
 def _ensure_hermes_home_managed(home: Path):
@@ -507,6 +532,38 @@ def _ensure_hermes_home_managed(home: Path):
 # =============================================================================
 # Config loading/saving
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# MUSE feature flags (additive, opt-in, default OFF)
+# -----------------------------------------------------------------------------
+# The vNext MUSE control surface is a small set of opt-in flags. They are split
+# across three namespaces for historical reasons and are NOT renamed (renaming
+# would break existing config.yaml files). Each flag defaults OFF, so with no
+# config and no env var the default runtime behavior is byte-for-byte unchanged.
+# Env var wins over config in every case. The single source of truth for this
+# table is the "MUSE feature flags" section of
+# ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``; ``muse_feature_flags()``
+# below enumerates them programmatically.
+#
+#   feature            | config key                            | env var                | default | resolver
+#   -------------------|---------------------------------------|------------------------|---------|-------------------------------------------------
+#   self-audit footer  | display.self_audit_footer.enabled     | MUSE_SELF_AUDIT_FOOTER | False   | self_audit.footer.self_audit_footer_enabled
+#   tool broker        | security.tool_broker.enabled          | MUSE_TOOL_BROKER       | False   | tool_broker.tool_broker_enabled
+#   style enforcement  | response.style_enforcement.enabled    | MUSE_STYLE_ENFORCEMENT | False   | response_enforcement.style_enforcement_enabled
+#   effort-class cap   | registry policies.effort_cap.enabled  | MUSE_EFFORT_CAP        | False   | aos_council.dispatcher._effort_cap_enabled
+#
+# Notes:
+#  * The effort-class cap is gated in the *council registry* (policies.*), NOT in
+#    ``config.yaml`` — so it is intentionally absent from DEFAULT_CONFIG. It is
+#    listed here (and in muse_feature_flags) purely for discoverability.
+#  * The challenge-contract and response-style detectors are *always-inspection*
+#    signal sources with NO gate of their own: they contribute to the self-audit
+#    footer score only when the footer is enabled. There is deliberately no
+#    ``display.challenge_contract`` / ``display.style_validator`` config key.
+#    The opt-in *enforcement* loop that composes those detectors and regenerates
+#    a violating reply is gated separately by ``response.style_enforcement`` (the
+#    ``style_enforcement`` flag above) — it does not reintroduce those dead keys.
+# -----------------------------------------------------------------------------
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "model": "",
@@ -1119,6 +1176,18 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "enabled": False,
             "fields": ["model", "context_pct", "cwd"],  # Order shown; drop any to hide
         },
+        # Opt-in self-audit footer. When enabled, MUSE may append a concise
+        # 3-line footer (Passed / Watch / Improvement) summarizing how a major
+        # turn scored against the Constitution dimensions. Deterministic and
+        # offline — it renders already-available self-audit scores and never
+        # adds a model call to the response path. Disabled by default so the
+        # default runtime output is unchanged. May also be toggled via the
+        # MUSE_SELF_AUDIT_FOOTER environment variable. One of the opt-in MUSE
+        # feature flags — see the "MUSE feature flags" comment above
+        # DEFAULT_CONFIG and ``muse_feature_flags()`` for the full registry.
+        "self_audit_footer": {
+            "enabled": False,
+        },
         "copy_shortcut": "auto",  # "auto" (platform default) | "ctrl_c" | "ctrl_shift_c" | "disabled"
     },
 
@@ -1536,6 +1605,29 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # Or dict format: {"name": {"description": "...", "system_prompt": "...", "tone": "...", "style": "..."}}
     "personalities": {},
 
+    # ── MUSE opt-in: response-style enforcement ─────────────────────────
+    # Additive vNext control surface (P2-7). When enabled, the gateway
+    # response seam runs the EXISTING per-mode style validator
+    # (``hermes_cli/jarvis_prime/response_style.py``) and challenge-contract
+    # detector (``hermes_cli/jarvis_prime/challenge_contract.py``) against a
+    # produced reply and, on a violation, re-invokes the model once (capped
+    # at ``max_attempts``, hard ceiling 2) with a short corrective nudge. It
+    # fails open — the last produced reply is always delivered, never blanked.
+    # Default OFF, so the default response path is byte-for-byte unchanged.
+    # Also toggleable via the MUSE_STYLE_ENFORCEMENT env var (env wins).
+    # Resolved by
+    # ``hermes_cli.jarvis_prime.response_enforcement.style_enforcement_enabled``.
+    # See the "MUSE feature flags" registry in
+    # ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+    "response": {
+        "style_enforcement": {
+            "enabled": False,
+            # Regenerate attempts on a violation; clamped to [1, 2] by the
+            # resolver. 1 = a single corrective retry (the default).
+            "max_attempts": 1,
+        },
+    },
+
     # Pre-exec security scanning via tirith
     "security": {
         "allow_private_urls": False,  # Allow requests to private/internal IPs (for OpenWrt, proxies, VPNs)
@@ -1564,6 +1656,18 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         # for restricted networks, audited environments, or air-gapped
         # systems where any runtime install is unacceptable.
         "allow_lazy_installs": True,
+        # ── MUSE opt-in: capability-scoped tool broker ──────────────────
+        # Additive vNext control surface. When enabled, the ToolBroker
+        # capability firewall
+        # (``hermes_cli/jarvis_prime/tool_broker.py``) mediates tool access
+        # per identity / effort / risk class. Default OFF, so the default
+        # tool-call path is byte-for-byte unchanged. Also toggleable via the
+        # MUSE_TOOL_BROKER env var (env wins). Resolved by
+        # ``tool_broker.tool_broker_enabled``. See the "MUSE feature flags"
+        # registry in ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+        "tool_broker": {
+            "enabled": False,
+        },
     },
 
     "cron": {
@@ -1658,6 +1762,22 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "enabled": True,         # Flip to false to silence the periodic line
             "interval_seconds": 300, # Default: every 5 minutes
         },
+    },
+
+    # ── Observability ─────────────────────────────────────────────────
+    # Thin, opt-in per-request tracing of the agent loop and model
+    # lifecycle (selected model, endpoint, local-vs-remote, first-token &
+    # total latency, tool-call counts, fallback outcome, LM Studio
+    # load/unload events). Off by default — when off the default code path
+    # is unchanged. Traces append to the cockpit event log and surface on
+    # GET /v1/cockpit/events/stream (message "request_trace" /
+    # "model_lifecycle"). The HERMES_REQUEST_TRACE=1 env var overrides this.
+    "observability": {
+        "request_trace": False,
+        # Opt-in, GPU-only: probe used VRAM (nvidia-smi) around LM Studio
+        # load/unload. Separate flag because it spawns a subprocess; requires
+        # request_trace to be on. Overridable via HERMES_REQUEST_TRACE_VRAM=1.
+        "request_trace_vram": False,
     },
 
     # Remotely-hosted model catalog manifest.  When enabled, the CLI fetches
@@ -4350,6 +4470,92 @@ def cfg_get(cfg: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> A
     return node
 
 
+# Discoverability registry for the opt-in MUSE feature flags. Each entry names
+# the feature, its config key path (or the ``registry:`` marker for the
+# council-registry-gated effort cap), its env var, and its default. The keys are
+# intentionally split across three namespaces (``display.*`` / ``security.*`` /
+# registry ``policies.*``) and are NOT renamed. Mirrors the comment block above
+# DEFAULT_CONFIG and the "MUSE feature flags" section of
+# ``docs/jarvis_architecture/MUSE_PRIME_VNEXT.md``.
+_MUSE_FEATURE_FLAGS: Tuple[Dict[str, Any], ...] = (
+    {
+        "feature": "self_audit_footer",
+        "config_key": "display.self_audit_footer.enabled",
+        "env_var": "MUSE_SELF_AUDIT_FOOTER",
+        "default": False,
+        "summary": "Opt-in 3-line self-audit footer on major turns.",
+    },
+    {
+        "feature": "tool_broker",
+        "config_key": "security.tool_broker.enabled",
+        "env_var": "MUSE_TOOL_BROKER",
+        "default": False,
+        "summary": "Capability-scoped tool broker mediating tool access.",
+    },
+    {
+        "feature": "style_enforcement",
+        "config_key": "response.style_enforcement.enabled",
+        "env_var": "MUSE_STYLE_ENFORCEMENT",
+        "default": False,
+        "summary": "Bounded validate-then-regenerate loop on per-mode style / challenge violations.",
+    },
+    {
+        # Gated in the council registry (policies.*), NOT in config.yaml.
+        "feature": "effort_cap",
+        "config_key": "registry:policies.effort_cap.enabled",
+        "env_var": "MUSE_EFFORT_CAP",
+        "default": False,
+        "summary": "Effort-class ceiling on the assembled council size.",
+    },
+)
+
+
+def _flag_truthy_env(env_var: str) -> Optional[bool]:
+    """Resolve an env override for a MUSE flag, or ``None`` if unset.
+
+    A present-but-empty (or whitespace-only) value means "not specified" and
+    returns ``None`` so the config-backed resolvers defer to config instead of
+    silently forcing the feature OFF. Only the config-backed MUSE flags have
+    this empty-value pitfall; env-only resolvers with no config fallback already
+    resolve an empty value to their default with nothing to clobber.
+    """
+    raw = os.environ.get(env_var)
+    if raw is None:
+        return None
+    stripped = raw.strip()
+    if not stripped:  # present-but-empty => not specified; defer to config
+        return None
+    return stripped.lower() in {"1", "true", "yes", "on"}
+
+
+def muse_feature_flags(
+    config: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """Enumerate the opt-in MUSE feature flags and their resolved on/off state.
+
+    Additive, read-only discoverability helper. Returns one dict per flag with:
+    ``feature``, ``config_key``, ``env_var``, ``default``, ``summary``, and the
+    resolved ``enabled`` (env var wins over config; both default OFF).
+
+    ``config`` is an optional loaded config dict; when omitted, only the env var
+    and the built-in default are consulted (so it is safe to call with no I/O).
+    The registry-gated ``effort_cap`` flag has no ``config.yaml`` key, so its
+    ``enabled`` reflects the env var / default only — its registry state is
+    resolved at dispatch time by the council dispatcher.
+    """
+    results: List[Dict[str, Any]] = []
+    for spec in _MUSE_FEATURE_FLAGS:
+        env_val = _flag_truthy_env(str(spec["env_var"]))
+        if env_val is not None:
+            enabled = env_val
+        elif not str(spec["config_key"]).startswith("registry:") and config is not None:
+            keys = str(spec["config_key"]).split(".")
+            enabled = bool(cfg_get(config, *keys, default=spec["default"]))
+        else:
+            enabled = bool(spec["default"])
+        results.append({**spec, "enabled": enabled})
+    return results
+
 
 def read_raw_config() -> Dict[str, Any]:
     """Read ~/.hermes/config.yaml as-is, without merging defaults or migrating.
@@ -4441,8 +4647,12 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
         except FileNotFoundError:
             cache_key = None
 
+        # Effective key folds the "missing file" case into the same cache so the
+        # defaults-only result isn't rebuilt from DEFAULT_CONFIG on every call.
+        effective_key = cache_key if cache_key is not None else _MISSING_CONFIG_KEY
+
         cached = _LOAD_CONFIG_CACHE.get(path_key)
-        if cached is not None and cache_key is not None and cached[:2] == cache_key:
+        if cached is not None and cached[:2] == effective_key:
             return copy.deepcopy(cached[2]) if want_deepcopy else cached[2]
 
         config = copy.deepcopy(DEFAULT_CONFIG)
@@ -4466,25 +4676,22 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
         normalized = _normalize_root_model_keys(_normalize_max_turns_config(config))
         expanded = _expand_env_vars(normalized)
         _LAST_EXPANDED_CONFIG_BY_PATH[path_key] = copy.deepcopy(expanded)
-        if cache_key is not None:
-            # Cache stores a separate deepcopy so subsequent ``load_config()``
-            # (deepcopy=True) callers can mutate freely without affecting the
-            # cached value, and ``load_config_readonly()`` (deepcopy=False)
-            # callers all see the same stable cached object.
-            cached_copy = copy.deepcopy(expanded)
-            _LOAD_CONFIG_CACHE[path_key] = (cache_key[0], cache_key[1], cached_copy)
-            # On the readonly path return the same cached object subsequent
-            # calls will see — keeps "two readonly calls return the same
-            # object" invariant that callers may rely on for identity checks.
-            if not want_deepcopy:
-                return cached_copy
-        else:
-            _LOAD_CONFIG_CACHE.pop(path_key, None)
-        # First-load result is a fresh dict (not aliased to the cache); safe
-        # to return directly. For the deepcopy=True path this is the
-        # canonical "freshly-built mutable result" the function has always
-        # returned. For the deepcopy=False path with no cache (e.g. config
-        # file missing), it's also fine — callers get an isolated object.
+        # Cache in BOTH the file-present and file-missing cases, keyed on
+        # ``effective_key`` (the missing-file sentinel can never collide with a
+        # real (mtime_ns, size), so a file appearing or being deleted later is a
+        # cache miss and rebuilds correctly). The cache stores a separate
+        # deepcopy so ``load_config()`` (deepcopy=True) callers can mutate freely
+        # without affecting it, and ``load_config_readonly()`` (deepcopy=False)
+        # callers all share the same stable object.
+        cached_copy = copy.deepcopy(expanded)
+        _LOAD_CONFIG_CACHE[path_key] = (effective_key[0], effective_key[1], cached_copy)
+        # On the readonly path return the cached object subsequent calls will see
+        # — keeps the "two readonly calls return the same object" invariant that
+        # callers may rely on for identity checks.
+        if not want_deepcopy:
+            return cached_copy
+        # deepcopy=True: return the freshly-built, isolated mutable result the
+        # function has always handed back on a (re)build.
         return expanded
 
 

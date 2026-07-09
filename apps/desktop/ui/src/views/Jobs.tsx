@@ -18,6 +18,7 @@ import { PhaseRail, type PhaseState } from "../components/PhaseRail";
 import {
   getToken,
   subscribeJobs,
+  TOKEN_EVENT,
   type CockpitJob,
 } from "../lib/gateway";
 
@@ -50,9 +51,11 @@ export function Jobs() {
 
   useEffect(() => {
     const refresh = () => setPaired(Boolean(getToken()));
+    window.addEventListener(TOKEN_EVENT, refresh);
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
     return () => {
+      window.removeEventListener(TOKEN_EVENT, refresh);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
     };

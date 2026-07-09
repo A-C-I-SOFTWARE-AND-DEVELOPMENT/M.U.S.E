@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **120 routes** across **118 distinct handlers**
+- **125 routes** across **123 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -24,6 +24,8 @@ helper it calls) compares the request against
 | GET | `/` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
 | GET | `/cockpit` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
 | GET | `/cockpit/{path}` | `gateway.cockpit.server._make_handler.<locals>.Handler._serve_static` | open | — | static | Serve the bundled browser cockpit. Returns True if it handled the |
+| POST | `/v1/agent/approvals` | `gateway.cockpit.handlers.agent_approval_decide` | bearer | — | json | Resolve a pending owner approval raised by a /v1/agent/chat run. |
+| POST | `/v1/agent/stop` | `gateway.cockpit.handlers.agent_stop` | bearer | — | json | Interrupt the in-flight /v1/agent/chat run for a session. |
 | GET | `/v1/cockpit/approvals` | `gateway.cockpit.handlers.approvals_list` | bearer | — | json | The owner-approval queue as canonical ``ApprovalCard``s. |
 | POST | `/v1/cockpit/approvals/{id}` | `gateway.cockpit.handlers.approvals_decide` | bearer | owner-phrase | json | Approve/reject a proposal. Approve requires the exact owner phrase. |
 | GET | `/v1/cockpit/audit` | `gateway.cockpit.handlers.audit_list` | bearer | — | json | Audit records (canonical ``AuditRecord``) from the decision ledger. |
@@ -39,6 +41,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/avatar/room/{id}/place` | `gateway.cockpit.handlers.room_place` | bearer | — | json | Persist a furniture item's normalized (x, y) placement in the room. |
 | GET | `/v1/cockpit/axiom` | `gateway.cockpit.handlers.axiom_panel` | bearer | — | json | Axiom panel: chain audit, recent events, pending improvements. |
 | GET | `/v1/cockpit/capabilities` | `gateway.cockpit.handlers.capabilities` | bearer | — | json | Describe what *this backend* can do, for the app to negotiate against. |
+| GET | `/v1/cockpit/channels` | `gateway.cockpit.handlers.channels` | bearer | — | json | Read-only messaging-channel status (Telegram/Discord/Slack/…). |
 | POST | `/v1/cockpit/coding/audit` | `gateway.cockpit.handlers.coding_audit` | bearer | — | json | Classify + route a plain-English coding request (read-only). |
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
 | POST | `/v1/cockpit/coding/plan` | `gateway.cockpit.handlers.coding_plan` | bearer | — | json | Build + validate a bounded coding work packet (stage only, never runs). |
@@ -112,12 +115,14 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/research/{id}/task` | `gateway.cockpit.handlers.research_create_task` | bearer | — | json | Create a coding task from a research report — via the job queue gate. |
 | GET | `/v1/cockpit/runtime/status` | `gateway.cockpit.handlers.runtime_status` | bearer | — | json | Real runtime status: gateway, host, and live queue snapshot. |
 | GET | `/v1/cockpit/runtime/workers` | `gateway.cockpit.handlers.runtime_workers` | bearer | — | json | Detected worker lanes (Claude Code / Codex) — detection only, no keys. |
+| GET | `/v1/cockpit/schedules` | `gateway.cockpit.handlers.schedules` | bearer | — | json | Read-only list of scheduled (cron) jobs the gateway will run unattended. |
 | GET | `/v1/cockpit/second-brain/retrieve` | `gateway.cockpit.handlers.second_brain_retrieve` | bearer | — | json | Retrieve fused Second Brain context for ``q`` (read-only). |
 | GET | `/v1/cockpit/second-brain/status` | `gateway.cockpit.handlers.second_brain_status` | bearer | — | json | Second Brain availability + non-secret settings (read-only). |
 | GET | `/v1/cockpit/secrets/import` | `gateway.cockpit.handlers.secrets_import` | bearer | — | json | Owner-gated, **opt-in** export of the user's existing credential keys from |
 | GET | `/v1/cockpit/sessions` | `gateway.cockpit.handlers.sessions_list` | bearer | — | json |  |
 | GET | `/v1/cockpit/skills` | `gateway.cockpit.handlers.skills_list` | bearer | — | json | The gateway's real installed skills (read-only). |
 | GET | `/v1/cockpit/templates` | `gateway.cockpit.handlers.templates_list` | bearer | — | json | Owner-defined prompt templates (contract §3) — read-only. |
+| GET | `/v1/cockpit/trace` | `gateway.cockpit.handlers.trace_summary` | bearer | — | json | Read-only summary of recent per-request observability traces. |
 | POST | `/v1/cockpit/voice/intake` | `gateway.cockpit.handlers.voice_intake_create` | bearer | — | json | Open a voice intake from a transcript and return the read-back. |
 | POST | `/v1/cockpit/voice/responses` | `gateway.cockpit.handlers.voice_responses` | bearer | — | json | Synthesize spoken audio for a response string (returned as base64). |
 | POST | `/v1/cockpit/voice/transcribe` | `gateway.cockpit.handlers.voice_transcribe` | bearer | — | json | Transcribe uploaded audio to redacted text (audio is NOT retained). |

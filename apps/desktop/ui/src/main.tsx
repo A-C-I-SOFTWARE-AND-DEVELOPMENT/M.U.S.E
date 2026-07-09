@@ -14,6 +14,7 @@ import "@muse/design-system/dist/tokens.css";
 // Desktop-local token overrides / aliases (motion curves not yet reconciled).
 import "./styles/tokens.css";
 import { App } from "./App";
+import { autoPairLocal } from "./lib/gateway";
 
 // Register the PWA service worker (autoUpdate) — ONLY in a plain browser.
 // Inside the Tauri WebView2 shell the service worker intercepts fetches to
@@ -26,8 +27,19 @@ if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("missing #root element");
 
-createRoot(rootEl).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+function render(): void {
+  createRoot(rootEl!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+// Zero-touch connect: inside the native shell, silently pair with the local
+// gateway BEFORE first paint so the app mounts already-connected (no pairing
+// card flash). Bounded by a short timeout — if the gateway is still booting,
+// render immediately and let the App's health tick finish pairing.
+void Promise.race([
+  autoPairLocal().catch(() => undefined),
+  new Promise((res) => setTimeout(res, 1200)),
+]).finally(render);

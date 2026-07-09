@@ -2,11 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>M.U.S.E — Interactive 3D Atlas</title>
 <meta name="description" content="An interactive, ultra-HD 3D model of M.U.S.E and all its systems, with an animated first-prompt-to-finished-product build pipeline.">
+<meta name="theme-color" content="#050507">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="muse">
 <meta property="og:title" content="M.U.S.E — Interactive 3D Systems Atlas">
 <meta property="og:description" content="Orbit the whole mind: 12 architecture planes, every system, and an animated first-prompt-to-finished-product build pipeline.">
+<meta property="og:url" content="https://musehq.io/atlas/">
+<meta property="og:image" content="https://musehq.io/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="muse — your AI operating partner">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="M.U.S.E — Interactive 3D Systems Atlas">
+<meta name="twitter:description" content="Orbit the whole mind: 12 architecture planes, every system, and an animated first-prompt-to-finished-product build pipeline.">
+<meta name="twitter:image" content="https://musehq.io/og.png">
+<link rel="canonical" href="https://musehq.io/atlas/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='none' stroke='%2336e6f0' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%23eaf4ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -34,12 +48,15 @@
   </svg>
   <div>
     <h1>M.U.S.E<span class="mast-rest"> — 3D Systems Atlas</span><span class="mast-short"> Atlas</span></h1>
-    <div class="sub">Interactive map of the whole mind · drag to orbit · scroll to zoom · click any node</div>
+    <div class="sub">Interactive map of the whole mind · drag to orbit · scroll to zoom · right-drag to pan · click any node</div>
   </div>
 </div>
 
 <!-- top-right controls -->
 <div id="controls">
+  <div class="btnrow">
+    <a class="atlas-back" href="../" target="_top" title="Back to the muse cockpit">↩ Cockpit</a>
+  </div>
   <div class="btnrow">
     <button id="btnPlay" class="ctl primary">▶ Play the build</button>
     <button id="btnReset" class="ctl">⟲ Reset view</button>
@@ -77,7 +94,6 @@
 </div>
 
 <div id="tip"></div>
-<div id="hint" class="">Drag <b>orbit</b> · scroll <b>zoom</b> · right-drag <b>pan</b> · click a node for details</div>
 
 <div id="loader">
   <div class="ring"></div>

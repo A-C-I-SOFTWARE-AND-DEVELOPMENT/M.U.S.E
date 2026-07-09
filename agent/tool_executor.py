@@ -31,6 +31,7 @@ from agent.display import (
     _detect_tool_failure,
 )
 from agent.tool_guardrails import ToolGuardrailDecision
+from hermes_cli.request_trace import current as _trace
 from agent.tool_dispatch_helpers import (
     _is_destructive_command,
     _is_multimodal_tool_result,
@@ -251,6 +252,7 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
     """
     tool_calls = assistant_message.tool_calls
     num_tools = len(tool_calls)
+    _trace(agent).add_tool_calls(num_tools)
 
     # ── Pre-flight: interrupt check ──────────────────────────────────
     if agent._interrupt_requested:
@@ -277,6 +279,7 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
         try:
             function_args = json.loads(tool_call.function.arguments)
         except json.JSONDecodeError:
+            _trace(agent).add_parse_error()
             function_args = {}
         if not isinstance(function_args, dict):
             function_args = {}
@@ -549,6 +552,7 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
                 )
 
             if is_error:
+                _trace(agent).add_exec_failure()
                 _err_text = _multimodal_text_summary(function_result)
                 result_preview = _err_text[:200] if len(_err_text) > 200 else _err_text
                 logger.warning("Tool %s returned error (%.2fs): %s", function_name, tool_duration, result_preview)
@@ -648,6 +652,7 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
 
 def execute_tool_calls_sequential(agent, assistant_message, messages: list, effective_task_id: str, api_call_count: int = 0) -> None:
     """Execute tool calls sequentially (original behavior). Used for single calls or interactive tools."""
+    _trace(agent).add_tool_calls(len(assistant_message.tool_calls))
     for i, tool_call in enumerate(assistant_message.tool_calls, 1):
         # SAFETY: check interrupt BEFORE starting each tool.
         # If the user sent "stop" during a previous tool's execution,
@@ -672,6 +677,7 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
         try:
             function_args = json.loads(tool_call.function.arguments)
         except json.JSONDecodeError as e:
+            _trace(agent).add_parse_error()
             logging.warning(f"Unexpected JSON error after validation: {e}")
             function_args = {}
         if not isinstance(function_args, dict):
@@ -693,7 +699,26 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
             if not guardrail_decision.allows_execution:
                 _guardrail_block_decision = guardrail_decision
 
-        _execution_blocked = _block_msg is not None or _guardrail_block_decision is not None
+        # ToolBroker pre-dispatch choke point (P1-3) for tools that BYPASS
+        # handle_function_call (the special-cased side-effecting/bypassing
+        # tools). Broker OFF (default) →
+        # no-op (returns None), so this dispatch stays byte-for-byte unchanged.
+        # A configured DENY / owner-approval / dry-run returns a structured
+        # block-result string (already JSON, starts with {"error") which is
+        # used verbatim as the tool result — the tool's special-case dispatch is
+        # skipped. Tools that fall through to handle_function_call are evaluated
+        # there instead (no double-evaluation). Fail-safe: errors pass through.
+        _broker_block_msg: Optional[str] = None
+        if _block_msg is None and _guardrail_block_decision is None:
+            _broker_block_msg = agent._maybe_broker_block_bypassing_tool(
+                function_name, function_args, effective_task_id, tool_call.id
+            )
+
+        _execution_blocked = (
+            _block_msg is not None
+            or _guardrail_block_decision is not None
+            or _broker_block_msg is not None
+        )
 
         if _execution_blocked:
             # Tool blocked by plugin or guardrail policy — skip counters,
@@ -770,6 +795,12 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
         if _block_msg is not None:
             # Tool blocked by plugin policy — return error without executing.
             function_result = json.dumps({"error": _block_msg}, ensure_ascii=False)
+            tool_duration = 0.0
+        elif _broker_block_msg is not None:
+            # Tool blocked / owner-gated / dry-run by a configured ToolBroker.
+            # The choke point already returns a structured JSON block-result
+            # (starts with {"error"), so use it verbatim without re-wrapping.
+            function_result = _broker_block_msg
             tool_duration = 0.0
         elif _guardrail_block_decision is not None:
             # Tool blocked by tool-loop guardrail — synthesize exactly one
@@ -982,6 +1013,7 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
                 function_result[:200] if len(function_result) > 200 else function_result
             )
         if _is_error_result:
+            _trace(agent).add_exec_failure()
             logger.warning("Tool %s returned error (%.2fs): %s", function_name, tool_duration, result_preview)
         else:
             logger.info("tool %s completed (%.2fs, %d chars)", function_name, tool_duration, _result_len)

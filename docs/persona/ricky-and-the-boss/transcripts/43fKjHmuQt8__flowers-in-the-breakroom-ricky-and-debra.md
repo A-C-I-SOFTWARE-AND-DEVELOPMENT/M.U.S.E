@@ -1,0 +1,12 @@
+# Flowers in the breakroom! Sounds like no lost love between Ricky and Debra! #rickyandtheboss
+
+- video_id: 43fKjHmuQt8
+- url: https://www.youtube.com/watch?v=43fKjHmuQt8
+- channel: Breadstick Ricky & The Boss
+- published: 2025-02-12
+- length: 02:22
+- views: 436.4K
+
+## Transcript
+
+flowers will be available Friday in the breakroom they're going to set up shop that morning so you have all day to get in there and get your flowers uh just make sure you bring cash cuz that's all they're taking this year does anybody have any questions about that yeah Ricky what you got yeah yeah yeah what are the flowers for again like I don't who died Valentine's Day they're for they're for Valentine's Day Valentine's Day is Friday guys in case nobody remembered that oh that that's right Valentine's Day that dang holiday s sneaks up on me every single year man how does it sneak up on you it's on the same day every year man look the flowers are in there for your convenience guys get in there grab them so none of you have to come up to me and ask me to early out all right Ricky don't forget okay don't forget to get some flowers Friday cuz I don't want you showing up Saturday morning with a black eye and a busted lip cuz you didn't get Deb or nothing don't worry about me okay I'm a grown man I can handle my business and besides me and Deborah we we did it end up splitting up we we just realized we were kind of toxic together and it just wasn't working out oh man I'm sorry I I hate to hear that y'all split up y'all were terrible together but at least it was eventful seeing y'all fight at work I mean what what happened Deborah are you okay yes I'm doing good I mean I think it's for the best it was a mutual breakup we had a tense moment to where I may have yelled deeper and it's it's okay you can tell him in you know when she yelled deeper it did impact me emotionally in a negative way but I know that when I yelled tighter it hit her a lot harder than the deeper comment hit me and we you know just decided at that moment we should probably split up okay okay so that was the absolute worst thing I've heard all day so far yeah I'm going to need to be excused I just th in my mouth a little bit I need to go I need to go get some water Yeah Yeah by by all means I completely understand guys let's never have that conversation again flowers in the break room fellas Friday don't forget I need to go sit in my truck quiet with the radio off for a couple minutes and try and remove that from my memory

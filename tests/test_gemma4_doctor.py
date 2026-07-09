@@ -82,9 +82,15 @@ def test_status_json_lists_configured_and_candidates() -> None:
         rc = gemma_cli.dispatch(argparse.Namespace(gemma_command="status", json=True))
     assert rc == 0
     payload = json.loads(buf.getvalue())
-    # Reconciled catalog: gemma family configured = e2b, e4b, 12b (the phantom
+    # Reconciled catalog: gemma family locals = e2b, e4b, 12b (the phantom
     # gemma4-26b / gemma4-31b were removed; installed gemma4-12b added).
-    assert len(payload["configured"]) == 3
+    # Keyed cloud gemma entries (e.g. cerebras/gemma-4-31b-it) may also
+    # appear, so assert the local set rather than an exact count.
+    assert {
+        "ollama-local/gemma4-e2b",
+        "ollama-local/gemma4-e4b",
+        "ollama-local/gemma4-12b",
+    } <= set(payload["configured"])
     assert len(payload["open_weight_candidates"]) == 4
     assert payload["installed"] is None  # not probed (opt-in)
 

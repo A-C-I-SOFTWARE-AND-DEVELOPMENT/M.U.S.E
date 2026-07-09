@@ -15,6 +15,7 @@ import {
   getApprovals,
   getToken,
   promptOwnerPhrase,
+  TOKEN_EVENT,
   type CockpitApproval,
 } from "../lib/gateway";
 
@@ -48,9 +49,15 @@ export function Approvals() {
 
   useEffect(() => {
     void load();
-    // Refresh on a gentle cadence so decisions made elsewhere reflect here.
+    // Refresh on a gentle cadence so decisions made elsewhere reflect here,
+    // and immediately when this device gains/loses its token (auto-pair).
     const t = setInterval(() => void load(), 12000);
-    return () => clearInterval(t);
+    const refresh = () => void load();
+    window.addEventListener(TOKEN_EVENT, refresh);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener(TOKEN_EVENT, refresh);
+    };
   }, [load]);
 
   const decide = useCallback(

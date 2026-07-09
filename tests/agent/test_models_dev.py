@@ -297,6 +297,56 @@ class TestFetchModelsDev:
         mock_get.assert_called_once()
         assert "anthropic" in result
 
+    @patch("agent.models_dev.requests.get")
+    def test_negative_cache_backs_off_when_air_gapped(self, mock_get):
+        """Fresh/air-gapped install: network down AND no disk cache. The first
+        call attempts the network; subsequent calls within the backoff window
+        must NOT re-issue the 15s-timeout request (previously every consumer
+        lookup stalled 15s)."""
+        import agent.models_dev as md
+        md._models_dev_cache = {}
+        md._models_dev_cache_time = 0
+        md._models_dev_last_failure = 0
+        mock_get.side_effect = ConnectionError("no network")
+        try:
+            with patch.object(md, "_disk_cache_age_seconds", return_value=None), \
+                 patch.object(md, "_load_disk_cache", return_value={}):
+                r1 = fetch_models_dev()
+                r2 = fetch_models_dev()
+                r3 = fetch_models_dev()
+            assert r1 == {} and r2 == {} and r3 == {}
+            # Only the FIRST call hit the network; the backoff suppressed the rest.
+            assert mock_get.call_count == 1
+            assert md._models_dev_last_failure > 0
+        finally:
+            md._models_dev_last_failure = 0
+            md._models_dev_cache = {}
+            md._models_dev_cache_time = 0
+
+    @patch("agent.models_dev.requests.get")
+    def test_negative_cache_does_not_block_force_refresh(self, mock_get):
+        """The backoff must never suppress an explicit force_refresh — the
+        user asked for fresh data, so we always hit the network."""
+        import agent.models_dev as md
+        import time
+        md._models_dev_cache = {}
+        md._models_dev_cache_time = 0
+        md._models_dev_last_failure = time.time()  # inside the backoff window
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = SAMPLE_REGISTRY
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+        try:
+            with patch.object(md, "_save_disk_cache"):
+                result = fetch_models_dev(force_refresh=True)
+            mock_get.assert_called_once()
+            assert "anthropic" in result
+        finally:
+            md._models_dev_last_failure = 0
+            md._models_dev_cache = {}
+            md._models_dev_cache_time = 0
+
 
 # ---------------------------------------------------------------------------
 # get_model_capabilities — vision via modalities.input

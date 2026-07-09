@@ -254,25 +254,46 @@ def test_local_run_command_not_found(repo: Path):
 # ─── concurrency / cancellation ──────────────────────────────────────
 
 
-def test_concurrent_run_finishes_under_sum_of_durations(repo: Path):
+def test_concurrent_run_overlaps_worker_sleeps(repo: Path):
+    """Concurrency proven structurally, not by racing the wall clock.
+
+    The old assertion (`elapsed < 1.0s` vs ~1.2s serial) flaked on loaded CI
+    runners where three interpreter startups alone exceeded the budget
+    (observed: 1.47s with genuinely concurrent workers). Instead, each worker
+    prints its sleep interval; serial execution can never produce overlapping
+    intervals under any load, while concurrency=3 must overlap at least one
+    pair.
+    """
     workers = [
         op.WorkerPlan(
             worker_id=f"w{i}",
             profile="bash",
             mode=op.ExecutionMode.LOCAL_RUN,
-            command=_python_command("import time", "time.sleep(0.4)"),
-            timeout_seconds=5,
+            command=_python_command(
+                "import time",
+                "start = time.time()",
+                "time.sleep(0.4)",
+                "print(start, time.time())",
+            ),
+            timeout_seconds=15,
         )
         for i in range(3)
     ]
     plan = op.ExecutionPlan(job_id="job-c", workers=workers, concurrency=3)
-    start = time.monotonic()
     statuses = op.ParallelRunner(repo, plan, poll_interval=0.05).run()
-    elapsed = time.monotonic() - start
 
     assert all(s.state is op.WorkerState.COMPLETED for s in statuses.values())
-    # sequential would be ~1.2s; concurrent should be well under that
-    assert elapsed < 1.0, f"concurrent run took {elapsed:.2f}s — not concurrent?"
+    intervals = []
+    for s in statuses.values():
+        t0, t1 = Path(s.stdout_path or "").read_text(encoding="utf-8").split()
+        intervals.append((float(t0), float(t1)))
+    intervals.sort()
+    # Sorted by start, an overlap anywhere implies an overlap between some
+    # adjacent pair, so the adjacent check is sufficient.
+    overlaps = sum(
+        1 for (a0, a1), (b0, b1) in zip(intervals, intervals[1:]) if b0 < a1
+    )
+    assert overlaps >= 1, f"no overlapping sleep intervals — serial? {intervals}"
 
 
 def test_sequential_run_is_serial(repo: Path):

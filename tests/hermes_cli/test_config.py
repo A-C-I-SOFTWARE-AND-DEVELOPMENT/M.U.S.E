@@ -12,6 +12,7 @@ from hermes_cli.config import (
     ensure_hermes_home,
     get_compatible_custom_providers,
     load_config,
+    load_config_readonly,
     load_env,
     migrate_config,
     remove_env_value,
@@ -59,6 +60,31 @@ class TestEnsureHermesHome:
             ensure_hermes_home()
             assert soul_path.read_text(encoding="utf-8") == "custom soul"
 
+    def test_memoized_but_reheals_deleted_home(self, tmp_path):
+        """Repeat calls are memoized, but a home deleted mid-process is
+        re-created on the next call (the is_dir() guard on the memo)."""
+        import shutil
+
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            ensure_hermes_home()
+            assert (tmp_path / "cron").is_dir()
+            shutil.rmtree(tmp_path)
+            ensure_hermes_home()
+            assert (tmp_path / "cron").is_dir()
+            assert (tmp_path / "SOUL.md").is_file()
+
+    def test_profile_switch_ensures_new_home(self, tmp_path):
+        """Changing HERMES_HOME (profile switch) ensures the new location
+        even though the old one is memoized."""
+        home_a = tmp_path / "a"
+        home_b = tmp_path / "b"
+        with patch.dict(os.environ, {"HERMES_HOME": str(home_a)}):
+            ensure_hermes_home()
+            assert (home_a / "sessions").is_dir()
+        with patch.dict(os.environ, {"HERMES_HOME": str(home_b)}):
+            ensure_hermes_home()
+            assert (home_b / "sessions").is_dir()
+
 
 class TestLoadConfigDefaults:
     def test_returns_defaults_when_no_file(self, tmp_path):
@@ -79,6 +105,55 @@ class TestLoadConfigDefaults:
             config = load_config()
             assert config["agent"]["max_turns"] == 42
             assert "max_turns" not in config
+
+
+class TestLoadConfigNoFileCaching:
+    """The defaults-only result (no config.yaml on disk) is cached too, but a
+    config file appearing or being deleted must invalidate that cache. This
+    guards the perf fix that stopped rebuilding DEFAULT_CONFIG on every call
+    when no config file exists, without breaking pickup of a new file."""
+
+    def test_readonly_caches_when_no_file(self, tmp_path):
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            from hermes_cli import config as cfg
+            cfg._LOAD_CONFIG_CACHE.clear()
+            first = load_config_readonly()
+            second = load_config_readonly()
+            # Same cached object on the readonly path (no rebuild).
+            assert first is second
+            assert first["agent"]["max_turns"] == DEFAULT_CONFIG["agent"]["max_turns"]
+
+    def test_deepcopy_path_isolated_when_no_file(self, tmp_path):
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            from hermes_cli import config as cfg
+            cfg._LOAD_CONFIG_CACHE.clear()
+            a = load_config()
+            b = load_config()
+            assert a is not b and a == b  # isolated copies, equal values
+
+    def test_file_creation_invalidates_no_file_cache(self, tmp_path):
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            from hermes_cli import config as cfg
+            cfg._LOAD_CONFIG_CACHE.clear()
+            # Prime the no-file cache.
+            assert load_config_readonly()["agent"]["max_turns"] == (
+                DEFAULT_CONFIG["agent"]["max_turns"]
+            )
+            # A file now appears → must be picked up, not served from cache.
+            (tmp_path / "config.yaml").write_text("agent:\n  max_turns: 7\n")
+            assert load_config_readonly()["agent"]["max_turns"] == 7
+
+    def test_file_deletion_falls_back_to_defaults(self, tmp_path):
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            from hermes_cli import config as cfg
+            cfg._LOAD_CONFIG_CACHE.clear()
+            cfgp = tmp_path / "config.yaml"
+            cfgp.write_text("agent:\n  max_turns: 9\n")
+            assert load_config_readonly()["agent"]["max_turns"] == 9
+            cfgp.unlink()
+            assert load_config_readonly()["agent"]["max_turns"] == (
+                DEFAULT_CONFIG["agent"]["max_turns"]
+            )
 
 
 class TestLoadConfigParseFailure:

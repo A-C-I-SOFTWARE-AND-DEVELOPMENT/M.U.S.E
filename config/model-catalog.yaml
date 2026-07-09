@@ -21,9 +21,13 @@ defaults:
     - openrouter/llama-3.3-70b
     - novita/llama-3.3-70b
     - nvidia/llama-3.1-nemotron-70b
+    - cerebras/zai-glm-4.7
   fast:
     - ollama-local/qwen3_5-9b
     - ollama-local/gemma4-12b
+    # Cloud speed lane: wafer-scale Cerebras beats any cloud 8B on latency
+    # AND quality when CEREBRAS_API_KEY is present; stays behind local-first.
+    - cerebras/gpt-oss-120b
     - openrouter/llama-3.1-8b
   local:
     - ollama-local/qwen3_5-9b
@@ -147,6 +151,28 @@ providers:
         params_b: 671
         context: 65536
         tags: [oss, general, coding]
+
+  # Wafer-scale speed lane (~1,000-3,000 tok/s). Cerebras RETIRES model IDs
+  # aggressively (a retired ID 404s), so only IDs kept stable through several
+  # deprecation waves are pre-wired here; `hermes doctor` and the picker probe
+  # the live /v1/models list, which is authoritative. Do NOT re-add
+  # qwen-3-coder-480b (retired → GLM-4.7) or gemma-4-31b-it (not a Cerebras ID).
+  cerebras:
+    requires_env: CEREBRAS_API_KEY
+    plugin: model-providers/cerebras
+    models:
+      - id: gpt-oss-120b
+        model: gpt-oss-120b
+        family: gpt-oss
+        params_b: 120
+        context: 131072
+        tags: [oss, fast, general, reasoning, tools]
+      - id: zai-glm-4.7
+        model: zai-glm-4.7
+        family: glm
+        params_b: 357
+        context: 131072
+        tags: [oss, fast, coding, reasoning, tools]
 
   nvidia:
     requires_env: NVIDIA_API_KEY

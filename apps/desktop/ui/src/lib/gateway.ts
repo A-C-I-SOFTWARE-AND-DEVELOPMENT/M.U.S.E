@@ -24,6 +24,13 @@ const BASE_KEY = "muse.gateway.base";
 export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
 
 /**
+ * Fired on window whenever the stored token changes (pairing, paste, clear).
+ * The `storage` event only fires in OTHER documents, so same-document views
+ * (Home, Chat, Jobs, …) listen for this to flip their paired state live.
+ */
+export const TOKEN_EVENT = "muse:token";
+
+/**
  * Tauri v2 IPC: use window.__TAURI_INTERNALS__.invoke directly.
  * This is the lowest-level API, always available in the Tauri webview.
  * The @tauri-apps/api package wraps this, but we go raw to avoid any
@@ -91,6 +98,22 @@ export function getToken(): string {
 
 export function setToken(token: string): void {
   safeLocalStorageSet(TOKEN_KEY, token.trim());
+  try {
+    window.dispatchEvent(new Event(TOKEN_EVENT));
+  } catch {
+    /* no window (SSR) — nothing to notify */
+  }
+}
+
+/** True iff `base` points at this machine (the local-trust boundary). */
+export function isLoopbackBase(base?: string): boolean {
+  const b = (base ?? getGatewayBase()).toLowerCase();
+  try {
+    const host = new URL(b).hostname;
+    return host === "127.0.0.1" || host === "localhost" || host === "::1" || host === "[::1]";
+  } catch {
+    return false;
+  }
 }
 
 function stripTrailingSlash(s: string): string {
@@ -104,32 +127,39 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   return h;
 }
 
-/** A single authenticated fetch against the gateway. */
+/**
+ * A single authenticated fetch against the gateway.
+ *
+ * Direct fetch first — the gateway allowlists the Tauri webview origins for
+ * CORS, so inside the shell this is the streaming-capable fast path. If the
+ * direct fetch throws (an older gateway without the Tauri origins, a webview
+ * CORS quirk), fall back to the Rust `gateway_proxy` command, which speaks
+ * plain HTTP from the native side (no CORS, but the body arrives buffered).
+ */
 export async function api(path: string, opts?: RequestInit): Promise<Response> {
-  // When inside the Tauri shell, route through the Rust HTTP proxy to
-  // bypass WebView2's cross-origin fetch restriction.
-  if (isTauri()) {
-    try {
-      const method = (opts?.method as string) || "GET";
-      const body = opts?.body ? String(opts.body) : undefined;
-      const token = getToken();
-      const result = await tauriInvoke("gateway_proxy", {
-        method,
-        path,
-        body,
-        authToken: token || undefined,
-      }) as { ok: boolean; status: number; body: string };
-      return new Response(result.body, {
-        status: result.status,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch {
-      // invoke failed — fall through to fetch
-    }
-  }
   const o: RequestInit = { ...(opts || {}) };
   o.headers = authHeaders(o.headers as Record<string, string> | undefined);
-  return fetch(getGatewayBase() + path, o);
+  try {
+    return await fetch(getGatewayBase() + path, o);
+  } catch (err) {
+    if (!isTauri()) throw err;
+  }
+  const method = (opts?.method as string) || "GET";
+  const body = opts?.body ? String(opts.body) : undefined;
+  const token = getToken();
+  const result = (await tauriInvoke("gateway_proxy", {
+    method,
+    path,
+    body,
+    authToken: token || undefined,
+  })) as { ok: boolean; status: number; body: string };
+  // The proxy reports transport failures as status 0; the Response
+  // constructor rejects statuses outside 200–599, so surface those as 503.
+  const status = result.status >= 200 && result.status <= 599 ? result.status : 503;
+  return new Response(result.body, {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 // ---- health ---------------------------------------------------------------
@@ -197,7 +227,9 @@ export type PairConfirmResult = {
 /**
  * POST /v1/cockpit/pair/confirm with the pairing code + owner authorization
  * phrase. On success, mints and returns a per-device token (also persisted).
- * A 403 means the owner authorization was wrong/required.
+ * A 403 means the owner authorization was wrong/required. On a loopback-only
+ * gateway (the default) the server does not require the phrase, so an empty
+ * `authorization` is valid there — that is what zero-touch auto-pairing uses.
  */
 export async function pairConfirm(
   pairingCode: string,
@@ -222,6 +254,84 @@ export async function pairConfirm(
   }
 }
 
+// ---- zero-touch auto-pairing (native shell + loopback gateway) -------------
+
+export type AutoPairOutcome =
+  | "paired" // a fresh per-device token was minted and stored
+  | "already-paired" // a token already exists — nothing to do
+  | "blocked" // the gateway demands the owner phrase (external mode) — manual pairing required
+  | "unavailable"; // gateway unreachable / rate-limited / not applicable — retry later
+
+// Auto-pair bookkeeping: single-flight, spaced attempts (the gateway
+// rate-limits pair/start to one per 30s), and a latch once the server says
+// the owner phrase is required so we never hammer an external-mode gateway.
+let autoPairInFlight: Promise<AutoPairOutcome> | null = null;
+let autoPairLastAttempt = 0;
+let autoPairBlocked = false;
+const AUTO_PAIR_MIN_INTERVAL_MS = 30_000;
+
+/** True iff the server latched auto-pairing off (owner phrase required). */
+export function isAutoPairBlocked(): boolean {
+  return autoPairBlocked;
+}
+
+/**
+ * Zero-touch pairing for the desktop shell: install → open → connected.
+ *
+ * On a loopback-only gateway the server deliberately does NOT require the
+ * owner phrase to confirm a pairing code (anything that can reach 127.0.0.1
+ * is already on this machine — see gateway/cockpit/handlers.py:pair_confirm).
+ * So when the app runs inside the native shell, points at a loopback base and
+ * has no token yet, it silently walks pair/start → pair/confirm and stores
+ * the minted per-device token. Manual pairing (Settings) stays for remote
+ * gateways, where the owner phrase is enforced and this returns "blocked".
+ *
+ * `force` bypasses the shell/interval gates (the Settings "Reconnect" button)
+ * but never the loopback requirement.
+ */
+export function autoPairLocal(opts?: { force?: boolean }): Promise<AutoPairOutcome> {
+  const force = opts?.force === true;
+  if (!force && getToken()) return Promise.resolve("already-paired");
+  if (!isLoopbackBase()) return Promise.resolve("blocked");
+  if (!force) {
+    if (!isTauri()) return Promise.resolve("unavailable");
+    if (autoPairBlocked) return Promise.resolve("blocked");
+    if (Date.now() - autoPairLastAttempt < AUTO_PAIR_MIN_INTERVAL_MS) {
+      return Promise.resolve("unavailable");
+    }
+  }
+  if (autoPairInFlight) return autoPairInFlight;
+  autoPairLastAttempt = Date.now();
+  autoPairInFlight = (async (): Promise<AutoPairOutcome> => {
+    try {
+      const started = await pairStart(defaultDeviceName());
+      if (!started.ok || !started.pairingCode) return "unavailable";
+      const confirmed = await pairConfirm(started.pairingCode, "");
+      if (confirmed.forbidden) {
+        autoPairBlocked = true; // external-mode gateway — owner phrase required
+        return "blocked";
+      }
+      return confirmed.ok ? "paired" : "unavailable";
+    } catch {
+      return "unavailable";
+    } finally {
+      autoPairInFlight = null;
+    }
+  })();
+  return autoPairInFlight;
+}
+
+/** A human-recognizable default device name for auto-pairing. */
+function defaultDeviceName(): string {
+  let platform = "";
+  try {
+    platform = String(navigator.platform || "").trim();
+  } catch {
+    /* navigator unavailable */
+  }
+  return "muse desktop" + (platform ? " (" + platform + ")" : "");
+}
+
 // ---- chat (NDJSON) --------------------------------------------------------
 
 export type ChatTurn = { role: string; content: string };
@@ -242,13 +352,26 @@ export async function chat(
   history: ChatTurn[],
   cb?: ChatCallbacks,
 ): Promise<string> {
-  const r = await api("/v1/jarvis/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, history }),
-  });
+  let r: Response;
+  try {
+    r = await api("/v1/jarvis/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, history }),
+    });
+  } catch {
+    // Transport failure (gateway down / unreachable) — report instead of
+    // rejecting, so the composer never wedges mid-send.
+    cb?.onError?.("Can't reach the gateway — is the brain running? (Settings → Brain)");
+    return "";
+  }
   if (!r.ok || !r.body) {
-    const msg = "error: " + r.status + (r.status === 401 ? " — pair this device" : "");
+    const msg =
+      r.status === 401
+        ? "Not paired — open Settings to connect this device."
+        : r.status === 503
+          ? "Can't reach the gateway — is the brain running? (Settings → Brain)"
+          : "error: " + r.status;
     cb?.onError?.(msg);
     return "";
   }
@@ -256,33 +379,38 @@ export async function chat(
   const dec = new TextDecoder();
   let buf = "";
   let acc = "";
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buf.indexOf("\n")) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      try {
-        const obj = JSON.parse(line) as Record<string, unknown>;
-        if (obj.error) {
-          acc += "\n[error] " + String(obj.error);
-        } else if (obj.role === "assistant" && obj.content != null) {
-          acc += String(obj.content);
-        } else if (
-          obj.content != null &&
-          obj.role !== "user" &&
-          obj.role !== "system"
-        ) {
-          acc += String(obj.content);
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        try {
+          const obj = JSON.parse(line) as Record<string, unknown>;
+          if (obj.error) {
+            acc += "\n[error] " + String(obj.error);
+          } else if (obj.role === "assistant" && obj.content != null) {
+            acc += String(obj.content);
+          } else if (
+            obj.content != null &&
+            obj.role !== "user" &&
+            obj.role !== "system"
+          ) {
+            acc += String(obj.content);
+          }
+        } catch {
+          /* ignore partial / non-JSON lines */
         }
-      } catch {
-        /* ignore partial / non-JSON lines */
+        cb?.onDelta?.(acc);
       }
-      cb?.onDelta?.(acc);
     }
+  } catch {
+    // The stream dropped mid-reply — keep what already arrived.
+    cb?.onError?.(acc ? acc + "\n[connection lost]" : "Connection lost mid-reply — try again.");
   }
   return acc;
 }
@@ -340,17 +468,20 @@ export function subscribeJobs(handlers: JobStreamHandlers): () => void {
   };
 }
 
-async function pollJobsOnce(handlers: JobStreamHandlers): Promise<void> {
-  if (!getToken()) return;
+/** One authenticated poll of GET /v1/cockpit/jobs. True iff data arrived. */
+async function pollJobsOnce(handlers: JobStreamHandlers): Promise<boolean> {
+  if (!getToken()) return false;
   try {
     const r = await api("/v1/cockpit/jobs");
-    if (!r.ok) return;
+    if (!r.ok) return false;
     const d = (await r.json()) as { jobs?: CockpitJob[] };
     if (d && Array.isArray(d.jobs)) {
       d.jobs.forEach((j) => handlers.onUpsert?.(j));
+      return true;
     }
+    return false;
   } catch {
-    /* offline */
+    return false; /* offline */
   }
 }
 
@@ -403,7 +534,16 @@ async function runJobStream(
     } catch {
       if (ctrl.signal.aborted) return; // intentional stop
     }
-    handlers.onLive?.(false);
+    if (ctrl.signal.aborted || !getToken()) {
+      handlers.onLive?.(false);
+      return;
+    }
+    // The stream is down (gateway restarting, or an older gateway whose CORS
+    // allowlist predates the desktop shell). Degrade to polling the snapshot
+    // endpoint so the list keeps updating while we keep retrying the stream;
+    // api() itself falls back to the native proxy when direct fetch is blocked.
+    const polled = await pollJobsOnce(handlers);
+    handlers.onLive?.(polled);
     if (ctrl.signal.aborted || !getToken()) return;
     await new Promise((res) => setTimeout(res, backoff));
     backoff = Math.min(backoff * 2, 8000);

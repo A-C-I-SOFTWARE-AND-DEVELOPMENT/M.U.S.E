@@ -1,0 +1,30 @@
+azure_foundry:
+  project_name: M.U.S.E
+  resource_group: M.U.S.E
+  resource_name: echerd27-5762-resource
+  portal_resource_id: 3V-DMJbcS5a1F76OqO55Gg
+  portal_url: https://ai.azure.com/nextgen/r/3V-DMJbcS5a1F76OqO55Gg,M.U.S.E,,echerd27-5762-resource,echerd27-5762/operate/overview
+  inference:
+    provider: azure-foundry
+    auth_mode: entra_id
+    scope: https://ai.azure.com/.default
+    base_url_env: AZURE_FOUNDRY_BASE_URL
+    api_key_env: AZURE_FOUNDRY_API_KEY
+    default_model_env: AZURE_FOUNDRY_MODEL
+    default_model_fallback: gpt-5
+    base_url: https://echerd27-5762-resource.cognitiveservices.azure.com/openai/v1
+    foundry_api: https://echerd27-5762-resource.services.ai.azure.com/api/projects/echerd27-5762
+  hermes:
+    config_home: C:\Users\Echer\AppData\Local\hermes
+    preserve_current_default_model: true
+    add_aliases:
+    - azure-foundry-muse
+    - azure-muse
+    - foundry-muse
+  deployment:
+    local_dashboard_port: 9119
+    container_image: hermes-agent
+    docker_compose_service: dashboard
+    github_repository: A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+  account_name: echerd27-5762-resource
+  project_resource_name: echerd27-5762

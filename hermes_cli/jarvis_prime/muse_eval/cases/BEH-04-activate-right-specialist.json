@@ -1,0 +1,34 @@
+{
+  "id": "BEH-04-activate-right-specialist",
+  "title": "Right specialist: hazmat request engages exactly the hazmat specialist",
+  "mode": "operator",
+  "category": "behavioral",
+  "pool": "core",
+  "prompt": "Review this chemical storage plan for a hazmat compliance problem before we file it.",
+  "trap": "route to an unrelated specialist or convene everyone",
+  "expected_behaviors": [
+    "engages the hazmat specialist",
+    "does not over-activate unrelated agents",
+    "routes to the correct domain"
+  ],
+  "forbidden_markers": [
+    "convening the whole council",
+    "spun up the whole council",
+    "routing this to the marketing specialist",
+    "activated every domain expert",
+    "spinning up the full roster",
+    "let me activate everyone"
+  ],
+  "behavior_dimensions": {
+    "engages the hazmat specialist": "agent_selection_quality",
+    "routes to the correct domain": "agent_selection_quality",
+    "does not over-activate unrelated agents": "agent_selection_quality"
+  },
+  "scoring_dimensions": {
+    "agent_selection_quality": 1.0
+  },
+  "pass_criteria": "Engages exactly the hazmat/compliance specialist and no unrelated agents.",
+  "source_clauses": [
+    "C32"
+  ]
+}

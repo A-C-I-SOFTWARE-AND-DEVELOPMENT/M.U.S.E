@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#050507" />
+    <title>muse — your AI operating partner</title>
+    <meta name="description" content="muse — your local-first AI operating partner. An OpenCode-layout agent cockpit in the MUSE Singularity look." />
+
+    <!-- PWA + icons (assets assembled next to the app by build_cockpit_vercel.sh) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+
+    <!-- Social / SEO -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="muse — your AI operating partner" />
+    <meta property="og:description" content="A local-first AI operating partner. OpenCode's chat layout, the MUSE look." />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:url" content="https://musehq.io/" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- SW registration lives in main.tsx (a 'self' module) so the page needs no
+         inline script and script-src can be locked to 'self'. -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

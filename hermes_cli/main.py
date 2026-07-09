@@ -2125,6 +2125,8 @@ def select_provider_and_model(args=None):
         _model_flow_google_gemini_cli(config, current_model)
     elif selected_provider == "copilot-acp":
         _model_flow_copilot_acp(config, current_model)
+    elif selected_provider == "opencode":
+        _model_flow_opencode_local(config, current_model)
     elif selected_provider == "copilot":
         _model_flow_copilot(config, current_model)
     elif selected_provider == "custom":
@@ -2162,6 +2164,7 @@ def select_provider_and_model(args=None):
         "minimax",
         "minimax-cn",
         "kilocode",
+        "opencode",
         "opencode-zen",
         "opencode-go",
         "alibaba",
@@ -4603,6 +4606,96 @@ def _model_flow_copilot(config, current_model=""):
         print("No change.")
 
 
+def _discover_opencode_local_models() -> list[str]:
+    """Return all available OpenCode model IDs for the setup picker."""
+    import subprocess
+    import sys
+
+    from hermes_cli.models import _PROVIDER_MODELS
+
+    models: list[str] = []
+    try:
+        # On Windows, opencode is a .cmd file; use cmd /c to run it.
+        # On MSYS/Git Bash, cmd /c also works.
+        cmd = ["cmd", "/c", "opencode", "models"]
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            capture_output=True,
+            timeout=12,
+            check=False,
+        )
+        if proc.returncode == 0:
+            for raw in proc.stdout.splitlines():
+                item = raw.strip()
+                if not item:
+                    continue
+                # Skip Windows version header and CLI help text
+                if item.startswith(("Microsoft Windows", "Commands:", "Usage:", "if __main__")):
+                    continue
+                # Keep full model IDs (provider/model) for all models
+                if item not in models:
+                    models.append(item)
+    except Exception:
+        pass
+
+    for item in _PROVIDER_MODELS.get("opencode", []):
+        if item not in models:
+            models.append(item)
+    return models
+
+def _model_flow_opencode_local(config, current_model=""):
+    """OpenCode local flow: expose all available OpenCode models in muse setup."""
+    from hermes_cli.auth import (
+        PROVIDER_REGISTRY,
+        _prompt_model_selection,
+        _save_model_choice,
+        deactivate_provider,
+    )
+    from hermes_cli.config import load_config, save_config
+
+    provider_id = "opencode"
+    pconfig = PROVIDER_REGISTRY[provider_id]
+    effective_base = pconfig.inference_base_url
+
+    print("  OpenCode local uses your installed `opencode` model list.")
+    print("  This is NOT OpenCode Zen or OpenCode Go; no paid OpenCode cloud setup is used.")
+    print(f"  Endpoint: {effective_base}")
+    print()
+
+    normalized_current = (current_model or "").strip()
+
+    model_list = _discover_opencode_local_models()
+    if model_list:
+        print(f"  Found {len(model_list)} available OpenCode model(s)")
+        selected = _prompt_model_selection(model_list, current_model=normalized_current)
+    else:
+        try:
+            selected = input("Model name: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            selected = None
+
+    if not selected:
+        print("No change.")
+        return
+
+    _save_model_choice(selected)
+
+    cfg = load_config()
+    model = cfg.get("model")
+    if not isinstance(model, dict):
+        model = {"default": model} if model else {}
+        cfg["model"] = model
+    model["provider"] = provider_id
+    model["base_url"] = effective_base
+    model.pop("api_mode", None)
+    model.pop("api_key", None)
+    save_config(cfg)
+    deactivate_provider()
+
+    print(f"Default model set to: {selected} (via {pconfig.name})")
+
+
 def _model_flow_copilot_acp(config, current_model=""):
     """GitHub Copilot ACP flow using the local Copilot CLI."""
     from hermes_cli.auth import (
@@ -5894,6 +5987,82 @@ def cmd_hooks(args):
     hooks_command(args)
 
 
+def cmd_trace(args):
+    """Print a summary of recent per-request observability traces.
+
+    Reads the cockpit event log (``request_trace`` / ``model_lifecycle``
+    records) and prints aggregate latency / tool-failure / fallback / retry /
+    compression stats — the same data served at ``GET /v1/cockpit/trace``, for
+    local-first use without the cockpit HTTP server. Honest-empty when tracing
+    is off. See docs/integrations/request-trace.md.
+    """
+    import json as _json
+
+    try:
+        from gateway.cockpit import event_log
+        from hermes_cli.request_trace import summarize
+
+        limit = max(1, min(5000, int(getattr(args, "limit", 500) or 500)))
+        records = event_log.read(source="hook", limit=limit)
+    except Exception as exc:
+        print(f"trace: unable to read event log: {exc}")
+        return
+
+    if getattr(args, "raw", False):
+        traces = [
+            r for r in records
+            if r.get("message") in ("request_trace", "model_lifecycle")
+        ]
+        if getattr(args, "json", False):
+            print(_json.dumps(traces, indent=2, default=str))
+        else:
+            for r in traces[-50:]:
+                row = {"message": r.get("message"), **(r.get("attributes") or {})}
+                print(_json.dumps(row, default=str))
+        return
+
+    summary = summarize(records)
+    if getattr(args, "json", False):
+        print(_json.dumps(summary, indent=2, default=str))
+        return
+
+    n = summary["request_count"]
+    if n == 0:
+        print("No request traces found.")
+        print(
+            "Enable with HERMES_REQUEST_TRACE=1 (or observability.request_trace: "
+            "true), run some requests, then re-check."
+        )
+        print("Docs: docs/integrations/request-trace.md")
+        return
+
+    lat = summary["latency_ms"]
+    tc = summary["tool_calls"]
+    fb = summary["fallback"]
+    rt = summary["retries"]
+    cp = summary["compression"]
+    print(f"Request traces: {n}")
+    print(
+        f"  first-token ms  p50={lat['first_token_p50']}  "
+        f"p95={lat['first_token_p95']}  (n={lat['first_token_samples']})"
+    )
+    print(f"  total ms        p50={lat['total_p50']}  p95={lat['total_p95']}")
+    print(
+        f"  tool calls      {tc['total']}  exec_failures={tc['exec_failures']}  "
+        f"parse_errors={tc['parse_errors']}  failure_rate={tc['failure_rate']}"
+    )
+    print(f"  fallback        {fb['count']}  rate={fb['rate']}")
+    print(f"  retries         {rt['count']}  reasons={rt['reasons']}")
+    print(
+        f"  compression     passes={cp['passes']}  total_ms={cp['total_ms']}  "
+        f"tokens_saved={cp['tokens_saved']}"
+    )
+    print(f"  endpoints       {summary['endpoints']}")
+    print(f"  models          {summary['models']}")
+    print(f"  local/remote    {summary['remote']}")
+    print(f"  lifecycle       {summary['lifecycle']}")
+
+
 def cmd_doctor(args):
     """Check configuration and dependencies."""
     if getattr(args, "jarvis_launch", False):
@@ -6010,6 +6179,7 @@ def cmd_cockpit(args):
             allow_external=getattr(args, "allow_external", False),
             allow_external_hosts=getattr(args, "allow_external_hosts", None),
             cors_origins=getattr(args, "cors_origins", None),
+            agent_mode=getattr(args, "agent_mode", None),
         )
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
@@ -6018,6 +6188,16 @@ def cmd_cockpit(args):
         _cors_set = _cors(getattr(args, "cors_origins", None))
         _base = f"http://{bound_host}:{bound_port}"
         print(f"muse cockpit API listening on {_base}")
+        _agent_mode = (
+            getattr(args, "agent_mode", None)
+            or os.environ.get("HERMES_COCKPIT_AGENT")
+            or "jarvis"
+        ).strip().lower()
+        if _agent_mode == "full":
+            print(
+                "Full-agent chat enabled: POST /v1/agent/chat streams the real "
+                "agent (tools, code execution, sub-agents, owner approvals)."
+            )
         print(f"Open the browser cockpit: {_base}/cockpit/")
         print(f"Pairing token: {token}")
         # Hands-off connect: open this link and the cockpit goes live with zero
@@ -6044,6 +6224,107 @@ def cmd_cockpit(args):
         raise SystemExit(0)
     print("usage: muse cockpit {serve|token} [options]")
     raise SystemExit(2)
+
+
+def cmd_omni(args):
+    """Day-to-day Muse Omni launcher: full-agent cockpit (+ optional admin dashboard)."""
+    import subprocess
+    import time as _time
+    import webbrowser
+
+    from gateway.cockpit import auth as _auth
+    from gateway.cockpit.server import serve as _serve
+
+    admin_proc = None
+    with_admin = bool(getattr(args, "with_admin", False))
+    no_open = bool(getattr(args, "no_open", False))
+    admin_port = int(getattr(args, "admin_port", 9119) or 9119)
+    host = getattr(args, "host", "127.0.0.1")
+    port = int(getattr(args, "port", 8765) or 8765)
+
+    if with_admin:
+        dash_cmd = [
+            sys.executable,
+            "-m",
+            "hermes_cli.main",
+            "dashboard",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(admin_port),
+            "--no-open",
+        ]
+        if getattr(args, "skip_build", False):
+            dash_cmd.append("--skip-build")
+        print(f"Starting local admin dashboard on http://127.0.0.1:{admin_port} …")
+        admin_proc = subprocess.Popen(
+            dash_cmd,
+            cwd=str(PROJECT_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    # Full-agent lane is the point of `muse omni` — override jarvis default.
+    if not getattr(args, "agent_mode", None):
+        args.agent_mode = "full"
+    if not os.environ.get("HERMES_COCKPIT_AGENT"):
+        os.environ["HERMES_COCKPIT_AGENT"] = "full"
+
+    token = _auth.load_or_create_token()
+    server = _serve(
+        host=host,
+        port=port,
+        token=token,
+        allow_external=getattr(args, "allow_external", False),
+        allow_external_hosts=getattr(args, "allow_external_hosts", None),
+        cors_origins=getattr(args, "cors_origins", None),
+        agent_mode=getattr(args, "agent_mode", "full"),
+    )
+    _addr = server.server_address
+    bound_host, bound_port = _addr[0], _addr[1]
+    _base = f"http://{bound_host}:{bound_port}"
+    cockpit_url = f"{_base}/"
+    one_click = f"{_base}/#gateway={_base}&token={token}"
+
+    print("Muse Omni (Singularity cockpit) ready")
+    print(f"  Cockpit:     {cockpit_url}")
+    print(f"  One-click:   {one_click}")
+    print("  Agent mode:  full (tools, jobs, approvals)")
+    print(f"  Pair token:  {token}")
+    if with_admin:
+        print(f"  Local admin: http://127.0.0.1:{admin_port}/  (config, sessions, kanban)")
+        if admin_proc is not None and admin_proc.poll() is not None:
+            print(
+                "  Warning: admin dashboard process exited early "
+                f"(code {admin_proc.returncode}). Run `muse dashboard` separately."
+            )
+    print("Press Ctrl-C to stop.")
+
+    if not no_open:
+        try:
+            webbrowser.open(one_click)
+            if with_admin:
+                webbrowser.open(f"http://127.0.0.1:{admin_port}/")
+        except Exception:
+            pass
+
+    try:
+        while True:
+            _time.sleep(3600)
+    except KeyboardInterrupt:
+        server.shutdown()
+        if admin_proc is not None and admin_proc.poll() is None:
+            try:
+                admin_proc.terminate()
+                admin_proc.wait(timeout=5)
+            except Exception:
+                try:
+                    admin_proc.kill()
+                except Exception:
+                    pass
+        print("\nMuse Omni stopped")
+    raise SystemExit(0)
 
 
 def cmd_models(args):
@@ -6258,12 +6539,13 @@ def _validate_critical_files_syntax(root) -> tuple[bool, str | None, str | None]
             # Missing file is suspicious but not necessarily fatal — a future
             # refactor may legitimately remove one of these. Skip and move on.
             continue
+        display_path = relpath.replace(os.sep, "/")
         try:
             py_compile.compile(str(path), doraise=True)
         except py_compile.PyCompileError as exc:
-            return False, str(path), str(exc)
+            return False, display_path, str(exc)
         except OSError as exc:
-            return False, str(path), f"could not read: {exc}"
+            return False, display_path, f"could not read: {exc}"
     return True, None, None
 
 
@@ -10712,9 +10994,9 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "guardrails", "hooks", "import", "insights",
         "jarvis", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
-        "model", "models", "pairing", "plugins", "postinstall", "profile", "proxy",
+        "model", "models", "omni", "pairing", "plugins", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
-        "skills", "slack", "status", "sync", "tools", "uninstall", "update",
+        "skills", "slack", "status", "sync", "tools", "trace", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat",
         # Help-ish invocations — plugin commands not being listed in
         # top-level --help is an acceptable trade-off for skipping an
@@ -11849,6 +12131,32 @@ def main():
     doctor_parser.set_defaults(func=cmd_doctor)
 
     # =========================================================================
+    # trace command — local view of per-request observability traces
+    # =========================================================================
+    trace_parser = subparsers.add_parser(
+        "trace",
+        help="Summarize recent per-request observability traces",
+        description=(
+            "Aggregate the request_trace / model_lifecycle records from the "
+            "cockpit event log (latency percentiles, tool-failure / fallback / "
+            "retry rates, compression cost). Enable tracing with "
+            "HERMES_REQUEST_TRACE=1 or observability.request_trace: true."
+        ),
+    )
+    trace_parser.add_argument(
+        "--json", action="store_true", help="Emit the summary as JSON"
+    )
+    trace_parser.add_argument(
+        "--raw", action="store_true",
+        help="Print recent raw trace records instead of the aggregate summary",
+    )
+    trace_parser.add_argument(
+        "--limit", type=int, default=500,
+        help="Number of recent event-log records to scan (default 500)",
+    )
+    trace_parser.set_defaults(func=cmd_trace)
+
+    # =========================================================================
     # jarvis command — free-first muse launch + emergency stop
     # =========================================================================
     jarvis_parser = subparsers.add_parser(
@@ -11947,11 +12255,77 @@ def main():
             "is enabled, device pairing requires the owner phrase."
         ),
     )
+    cockpit_serve.add_argument(
+        "--agent", dest="agent_mode", choices=["jarvis", "full"], default=None,
+        help=(
+            "Chat engine for POST /v1/agent/chat: 'full' streams the complete "
+            "agent (tools, code execution, sub-agents, owner approvals — same "
+            "capabilities as the muse TUI); 'jarvis' (default) keeps the "
+            "lightweight JarvisPrime responder only. Also settable via "
+            "HERMES_COCKPIT_AGENT. /v1/jarvis/chat is unchanged either way."
+        ),
+    )
     cockpit_token = cockpit_sub.add_parser(
         "token", help="Print (or --rotate) the cockpit pairing token"
     )
     cockpit_token.add_argument("--rotate", action="store_true")
     cockpit_parser.set_defaults(func=cmd_cockpit)
+
+    # =========================================================================
+    # omni command — day-to-day Muse Omni (Singularity cockpit) launcher
+    # =========================================================================
+    omni_parser = subparsers.add_parser(
+        "omni",
+        help="Launch Muse Omni (Singularity cockpit) with full-agent mode",
+        description=(
+            "Start the Singularity cockpit gateway in full-agent mode — the "
+            "day-to-day Muse Omni operations UI (chat, jobs, approvals, "
+            "providers, atlas). Optionally also start the local admin "
+            "dashboard (config, sessions, kanban) with --with-admin."
+        ),
+    )
+    omni_parser.add_argument("--host", default="127.0.0.1")
+    omni_parser.add_argument("--port", type=int, default=8765)
+    omni_parser.add_argument(
+        "--with-admin",
+        action="store_true",
+        help="Also start muse dashboard on --admin-port (config, sessions, kanban)",
+    )
+    omni_parser.add_argument(
+        "--admin-port",
+        type=int,
+        default=9119,
+        help="Admin dashboard port when --with-admin is set (default 9119)",
+    )
+    omni_parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Don't open the browser automatically",
+    )
+    omni_parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Pass --skip-build to the admin dashboard subprocess",
+    )
+    omni_parser.add_argument(
+        "--allow-external", dest="allow_external", action="store_true",
+        help="Bind a non-loopback host (exposes the agent endpoint — risky).",
+    )
+    omni_parser.add_argument(
+        "--allow-external-host", dest="allow_external_hosts", action="append",
+        default=None, metavar="HOST/CIDR",
+        help="Allowlist a non-loopback host/CIDR (with --allow-external).",
+    )
+    omni_parser.add_argument(
+        "--cors-origin", dest="cors_origins", action="append", default=None,
+        metavar="ORIGIN",
+        help="Additional browser Origin allowed to call the cockpit API.",
+    )
+    omni_parser.add_argument(
+        "--agent", dest="agent_mode", choices=["jarvis", "full"], default="full",
+        help="Chat engine for /v1/agent/chat (default: full for muse omni).",
+    )
+    omni_parser.set_defaults(func=cmd_omni)
 
     # =========================================================================
     # models command — free-first model bootstrap

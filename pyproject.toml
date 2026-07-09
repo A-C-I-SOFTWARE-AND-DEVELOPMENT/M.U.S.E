@@ -252,14 +252,15 @@ hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 
-# ── Vercel: the public deployment now serves the muse Cockpit, not FastAPI ──
-# The root `vercel.json` drives a single, unambiguous Vite build of the
-# commercial cockpit app (`apps/nexus` → the Singularity cockpit shell) and
-# serves `apps/nexus/dist`, with the Edge API functions under the repo-root
-# `api/`. That is the commercial face of the product, so the FastAPI builder
-# below is intentionally DISABLED: a live `[tool.vercel]` entry makes Vercel
-# prefer its Python/FastAPI builder and serve `vercel_app.py`'s health-landing
-# page at `/` instead of the cockpit (the exact symptom we are fixing).
+# ── Vercel: the public deployment serves Muse Omni (Singularity cockpit) ──
+# The root `vercel.json` runs `scripts/deploy/build_cockpit_vercel.sh`, which
+# puts `gateway/cockpit/static/cockpit.dc.html` at site root and the OpenCode
+# chat shell (`web/musehq`) under `/chat/`, with Edge API functions under the
+# repo-root `api/`. That is the commercial face of the product, so the FastAPI
+# builder below is intentionally DISABLED: a live `[tool.vercel]` entry makes
+# Vercel prefer its Python/FastAPI builder and serve `vercel_app.py`'s
+# health-landing page at `/` instead of the cockpit (the exact symptom we are
+# fixing).
 #
 # `vercel_app.py` is preserved (read-only, public-safe cloud health server) so
 # this is fully reversible — to restore the FastAPI deployment, uncomment the

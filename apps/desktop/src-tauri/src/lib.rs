@@ -191,9 +191,11 @@ fn gateway_url_hint_set(state: tauri::State<UiGatewayHint>, url: String) {
     }
 }
 
-/// The URL the Copy Gateway URL action copies: the UI-reported hint when
-/// present, else the env/default.
-fn effective_gateway_url(app: &tauri::AppHandle) -> String {
+/// The gateway base the shell should treat as authoritative: the UI-reported
+/// hint when present, else the env/default. Feeds the Copy Gateway URL menu
+/// action AND the brain health probe (brain.rs), so a Settings override is
+/// what the shell actually probes/spawns against.
+pub(crate) fn effective_gateway_url(app: &tauri::AppHandle) -> String {
     app.state::<UiGatewayHint>()
         .0
         .lock()

@@ -26,6 +26,7 @@ from typing import Any, Mapping, Optional
 from hermes_cli.jarvis_prime import semantic_frontend as sf
 from hermes_cli.jarvis_prime.guardrail_collectors import (
     collect_git_diff_evidence,
+    collect_reviewer_assignment_evidence,
     collect_secret_scan_evidence,
     collect_test_evidence,
 )
@@ -127,11 +128,33 @@ def run_execution_refinement(
         )
 
     allowed_files = tuple(packet.get("allowed_files", ()) or ())
+    # Acting agent that authored the change, if the packet carries it (same
+    # namespace as a review's reviewer_id, for the C19 builder ≠ reviewer check).
+    # Absent ⇒ C19 fails open with a logged warning (see strict_review_gate);
+    # threading it from the orchestrator is a documented follow-up.
+    author_id = str(packet.get("acting_agent_id") or packet.get("author_id") or "").strip()
+    # Planned reviewer identity (an ASSIGNMENT, not a verdict — no review has run
+    # at refinement time). Same identity namespace as author_id, for the C19
+    # builder ≠ reviewer check.
+    reviewer_id = str(
+        packet.get("reviewer_worker") or packet.get("reviewer_id") or ""
+    ).strip()
     bundle = GuardrailEvidenceBundle(packet_id=packet.get("packet_id", ""))
     for artifact in collect_test_evidence(repo_root, SAFE_COMMANDS, run=run):
         bundle.add(artifact)
-    bundle.add(collect_git_diff_evidence(repo_root, allowed_files))
+    diff_art = collect_git_diff_evidence(repo_root, allowed_files, author_id=author_id)
+    bundle.add(diff_art)
     bundle.add(collect_secret_scan_evidence(repo_root, allowed_files))
+    # When a reviewer is genuinely assigned, record a NON-approving reviewer-
+    # assignment artifact so the strict review gate's Clause C19 identity check
+    # (builder ≠ reviewer) is reachable. It cannot fabricate an approval — the
+    # verdict is fixed to ``needs_owner``, which never passes the review gate. No
+    # reviewer assigned ⇒ nothing is added and behavior is unchanged.
+    review_art = collect_reviewer_assignment_evidence(
+        reviewer_id, diff_hash=str(diff_art.payload.get("head_commit") or "")
+    )
+    if review_art is not None:
+        bundle.add(review_art)
 
     summary = run_gate_summary(packet, evidence_bundle=bundle, strict_evidence=True)
     return RefinementSignal(
