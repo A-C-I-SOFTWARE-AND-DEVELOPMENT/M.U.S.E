@@ -11,6 +11,7 @@ from hermes_cli.orchestrator_trio import (
     EXTENDED_ROLES,
     FULL_ROSTER,
     TRIO_ROLES,
+    export_seat_distributions,
     install_trio,
     trio_status,
 )
@@ -183,6 +184,61 @@ class TestConservativeDefaults:
         pdir = _profile_dir(profile_env, "orchestrator")
         meta = profiles_mod.read_profile_meta(pdir)
         assert meta["description"] == "my own planner blurb"
+
+
+class TestExport:
+    """export_seat_distributions — local staging only, credentials never ship."""
+
+    def test_export_empty_home_skips_everything(self, profile_env):
+        dest = profile_env / "dist"
+
+        result = export_seat_distributions(dest)
+
+        assert result["exported"] == []
+        assert sorted(result["skipped"]) == sorted(r.profile for r in FULL_ROSTER)
+        assert result["dest"] == str(dest.resolve())
+
+    def test_export_full_roster_stages_clean_distributions(self, profile_env):
+        install_trio(extended=True)
+        # Plant credentials in one profile to prove they never ship.
+        exec_dir = _profile_dir(profile_env, "executor")
+        (exec_dir / ".env").write_text(
+            "OPENROUTER_API_KEY=sk-secret\n", encoding="utf-8"
+        )
+        (exec_dir / "auth.json").write_text("{}", encoding="utf-8")
+
+        dest = profile_env / "dist"
+        result = export_seat_distributions(dest, extended=True)
+
+        assert sorted(result["exported"]) == sorted(r.profile for r in FULL_ROSTER)
+        assert result["skipped"] == []
+        for role in FULL_ROSTER:
+            staged = dest / role.profile
+            manifest = yaml.safe_load(
+                (staged / "distribution.yaml").read_text(encoding="utf-8")
+            )
+            assert manifest["name"] == role.profile
+            assert manifest["version"] == "1.0.0"
+            assert manifest["description"] == role.description
+            assert [e["name"] for e in manifest["env_requires"]] == [
+                "OPENROUTER_API_KEY"
+            ]
+            # The manifest's env_requires surface as a fill-in template …
+            assert (staged / ".env.EXAMPLE").is_file()
+            # … and user data stays home.
+            assert not (staged / "memories").exists()
+            assert not (staged / "sessions").exists()
+        # … but no credential file exists anywhere in the staged tree.
+        leaked = [p for p in dest.rglob("*") if p.name in {".env", "auth.json"}]
+        assert leaked == []
+
+    def test_export_core_only_skips_uninstalled_extended_seats(self, profile_env):
+        install_trio()  # core trio only
+
+        result = export_seat_distributions(profile_env / "dist", extended=True)
+
+        assert sorted(result["exported"]) == sorted(r.profile for r in TRIO_ROLES)
+        assert sorted(result["skipped"]) == sorted(r.profile for r in EXTENDED_ROLES)
 
 
 class TestCatalogIntegration:

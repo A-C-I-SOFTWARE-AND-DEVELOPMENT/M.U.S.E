@@ -206,6 +206,71 @@ def trio_status() -> dict:
     return status
 
 
+def export_seat_distributions(
+    dest_dir: Path | str, *, extended: bool = True, version: str = "1.0.0"
+) -> dict:
+    """Stage each installed seat profile as a single-profile distribution.
+
+    Local staging ONLY: writes ``<dest_dir>/<seat>/`` directories, each a
+    ready-to-share profile distribution (``distribution.yaml`` manifest plus
+    the profile payload). Credentials never ship — ``auth.json`` / ``.env`` /
+    ``memories`` / ``sessions`` and every other user-owned path are stripped
+    by the same ``USER_OWNED_EXCLUDE`` machinery ``hermes profile install``
+    protects on update. No git init, no push, no network: publishing a staged
+    distribution anywhere (repo creation, push, package publish) is a
+    separate, owner-gated step.
+
+    One distribution == one profile (the profile-distribution contract), so
+    each seat stages independently under its own directory. Every manifest
+    requires ``OPENROUTER_API_KEY`` — the one key that serves the whole
+    roster — which installers surface via the generated ``.env.EXAMPLE``.
+
+    Seats whose profile isn't installed are skipped, never fabricated.
+    Returns::
+
+        {"exported": [seat, ...], "skipped": [seat, ...], "dest": str}
+    """
+    from hermes_cli import profiles as profiles_mod
+    from hermes_cli.profile_distribution import (
+        DistributionManifest,
+        EnvRequirement,
+        _copy_dist_payload,
+    )
+
+    dest = Path(dest_dir).expanduser().resolve()
+    dest.mkdir(parents=True, exist_ok=True)
+
+    roster = FULL_ROSTER if extended else TRIO_ROLES
+    exported: list[str] = []
+    skipped: list[str] = []
+    for role in roster:
+        profile_dir = profiles_mod.get_profile_dir(role.profile)
+        if not profile_dir.is_dir():
+            skipped.append(role.profile)
+            continue
+        manifest = DistributionManifest(
+            name=role.profile,
+            version=version,
+            description=role.description,
+            env_requires=[
+                EnvRequirement(
+                    name="OPENROUTER_API_KEY",
+                    description="OpenRouter API key — routes every roster seat's model",
+                )
+            ],
+        )
+        # Reuse the distribution copy machinery: it skips every
+        # USER_OWNED_EXCLUDE path (auth.json, .env, memories/, sessions/, …)
+        # at every depth, emits .env.EXAMPLE from env_requires, and writes
+        # the manifest into the staged tree last.
+        _copy_dist_payload(
+            profile_dir, dest / role.profile, manifest, preserve_config=False
+        )
+        exported.append(role.profile)
+
+    return {"exported": exported, "skipped": skipped, "dest": str(dest)}
+
+
 def install_trio(*, force: bool = False, extended: bool = False) -> dict:
     """Install (or repair) the orchestrator-roster profiles and kanban routing.
 

@@ -4176,6 +4176,58 @@ def research_create_task(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Orchestrator seats (the trio / full-roster worker profiles)
+# ---------------------------------------------------------------------------
+
+
+def seats_status(_req: Request) -> JsonResponse:
+    """The orchestrator seat roster — preset vs pinned models, install state.
+
+    Read-only view over ``hermes_cli.orchestrator_trio``: every seat in the
+    full roster (core trio + extended bench) with its preset model, the model
+    the installed profile is actually pinned to, and the kanban routing keys
+    the preset wires up. Honest empty roster / empty routing when a subsystem
+    is unavailable — never fabricated.
+    """
+    kanban = {"orchestrator_profile": "", "default_assignee": ""}
+    try:
+        from hermes_cli.orchestrator_trio import FULL_ROSTER, trio_status
+
+        status = trio_status()
+        seats = []
+        for role in FULL_ROSTER:
+            entry = status.get(role.profile) or {}
+            seats.append(
+                {
+                    "profile": role.profile,
+                    "title": role.title,
+                    "provider": role.provider,
+                    "model_pinned": entry.get("model"),
+                    "model_preset": role.model,
+                    "catalog_ref": role.catalog_ref,
+                    "installed": bool(entry.get("installed")),
+                    "description": role.description,
+                }
+            )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"seats": [], "kanban": kanban, "error": str(exc)})
+
+    # Kanban routing is read defensively on its own: a missing or broken
+    # config degrades to honest empty strings, never a 500 for this panel.
+    try:
+        from hermes_cli.config import load_config_readonly
+
+        raw = load_config_readonly().get("kanban")
+        if isinstance(raw, dict):
+            kanban["orchestrator_profile"] = str(raw.get("orchestrator_profile") or "")
+            kanban["default_assignee"] = str(raw.get("default_assignee") or "")
+    except Exception:  # pragma: no cover - defensive
+        pass
+
+    return JsonResponse(200, {"seats": seats, "kanban": kanban})
+
+
+# ---------------------------------------------------------------------------
 # Re-exports
 # ---------------------------------------------------------------------------
 #

@@ -250,6 +250,8 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/federation/status"), h.federation_status, True),
     ("GET", _compile("/v1/cockpit/council/dispatch"), h.council_dispatch, True),
     ("GET", _compile("/v1/cockpit/sessions"), h.sessions_list, True),
+    # Orchestrator seat roster (trio + extended bench) — read-only status.
+    ("GET", _compile("/v1/cockpit/seats"), h.seats_status, True),
     ("GET", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_get, True),
     ("POST", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_set, True),
     ("GET", _compile("/v1/cockpit/avatar/room"), h.room_list, True),

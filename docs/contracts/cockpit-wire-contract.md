@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **125 routes** across **123 distinct handlers**
+- **126 routes** across **124 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -116,6 +116,7 @@ helper it calls) compares the request against
 | GET | `/v1/cockpit/runtime/status` | `gateway.cockpit.handlers.runtime_status` | bearer | — | json | Real runtime status: gateway, host, and live queue snapshot. |
 | GET | `/v1/cockpit/runtime/workers` | `gateway.cockpit.handlers.runtime_workers` | bearer | — | json | Detected worker lanes (Claude Code / Codex) — detection only, no keys. |
 | GET | `/v1/cockpit/schedules` | `gateway.cockpit.handlers.schedules` | bearer | — | json | Read-only list of scheduled (cron) jobs the gateway will run unattended. |
+| GET | `/v1/cockpit/seats` | `gateway.cockpit.handlers.seats_status` | bearer | — | json | The orchestrator seat roster — preset vs pinned models, install state. |
 | GET | `/v1/cockpit/second-brain/retrieve` | `gateway.cockpit.handlers.second_brain_retrieve` | bearer | — | json | Retrieve fused Second Brain context for ``q`` (read-only). |
 | GET | `/v1/cockpit/second-brain/status` | `gateway.cockpit.handlers.second_brain_status` | bearer | — | json | Second Brain availability + non-secret settings (read-only). |
 | GET | `/v1/cockpit/secrets/import` | `gateway.cockpit.handlers.secrets_import` | bearer | — | json | Owner-gated, **opt-in** export of the user's existing credential keys from |
