@@ -34,9 +34,12 @@ on:
 permissions:
   contents: write
 
+# Shared with deploy-site.yml: both publish to the gh-pages branch and must not
+# run concurrently. cancel-in-progress:false so an in-flight publish is never
+# interrupted mid-push; the retry loop handles any residual race.
 concurrency:
-  group: nexus-pages
-  cancel-in-progress: true
+  group: gh-pages-publish
+  cancel-in-progress: false
 
 jobs:
   build-deploy:
@@ -100,14 +103,43 @@ jobs:
           cp gateway/cockpit/static/atlas/style.css "$CKPT/atlas/"
           cp gateway/cockpit/static/atlas/app.js "$CKPT/atlas/"
           cp gateway/cockpit/static/atlas/architecture_data.js "$CKPT/atlas/"
-      - name: Publish to gh-pages
+      # Publish the NEXUS build to the gh-pages ROOT while PRESERVING the docs
+      # subtree. gh-pages is CO-OWNED: deploy-site.yml publishes the Docusaurus
+      # docs under /docs/ (+ root llms*.txt). A bare orphan force-push here would
+      # wipe those, so we clone the branch, replace everything EXCEPT docs/ and
+      # the root llms*.txt with the fresh NEXUS build, and push — retrying if a
+      # concurrent docs deploy raced us to the branch.
+      - name: Publish to gh-pages (preserve /docs)
         working-directory: apps/nexus/dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git init -q
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Deploy NEXUS ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          SRC="$PWD"
+          publish() {
+            WT="$(mktemp -d)"
+            if ! git clone -q --depth 1 -b gh-pages "$REMOTE" "$WT" 2>/dev/null; then
+              rm -rf "$WT"; mkdir -p "$WT"; git -C "$WT" init -q -b gh-pages
+            fi
+            # Keep the docs-owned paths; clear the rest, then lay down NEXUS.
+            find "$WT" -mindepth 1 -maxdepth 1 \
+              ! -name .git ! -name docs ! -name llms.txt ! -name llms-full.txt \
+              -exec rm -rf {} +
+            cp -a "$SRC/." "$WT/"
+            git -C "$WT" config user.name  "github-actions[bot]"
+            git -C "$WT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$WT" add -A
+            if git -C "$WT" diff --cached --quiet; then
+              echo "NEXUS unchanged; nothing to publish"; rm -rf "$WT"; return 0
+            fi
+            git -C "$WT" commit -q -m "Deploy NEXUS ${GITHUB_SHA::7}"
+            if git -C "$WT" push "$REMOTE" HEAD:gh-pages 2>/dev/null; then
+              rm -rf "$WT"; return 0
+            fi
+            rm -rf "$WT"; return 1
+          }
+          for attempt in 1 2 3 4 5; do
+            if publish; then echo "published NEXUS (attempt $attempt)"; exit 0; fi
+            echo "gh-pages push race on attempt $attempt; retrying"; sleep "$((attempt * 3))"
+          done
+          echo "failed to publish NEXUS after 5 attempts"; exit 1

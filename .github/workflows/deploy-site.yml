@@ -18,8 +18,11 @@ on:
 permissions:
   contents: read
 
+# Shared with nexus-pages.yml: both publish to the gh-pages branch, so they must
+# not run concurrently (each clones→edits its own subtree→pushes). The retry
+# loop in the publish step is the safety net for any residual race.
 concurrency:
-  group: pages
+  group: gh-pages-publish
   cancel-in-progress: false
 
 jobs:
@@ -109,18 +112,47 @@ jobs:
             cp website/build/llms-full.txt _site/llms-full.txt
           fi
 
-      # Publish to the gh-pages branch (this repo's Pages source). A plain git
-      # push with GITHUB_TOKEN — no third-party action to SHA-pin, matching this
-      # workflow's pinned-actions posture. The fresh repo inside _site force-
-      # pushes an orphan snapshot each run, keeping the branch a small artifact.
-      - name: Publish to gh-pages
+      # Publish the docs into the gh-pages /docs/ subtree WITHOUT disturbing the
+      # rest of the branch. gh-pages is CO-OWNED: nexus-pages.yml publishes the
+      # NEXUS PWA (+ /cockpit, /atlas, /observatory) at the root. An orphan
+      # force-push here would wipe the live NEXUS site — so instead we clone the
+      # existing branch, replace only docs/ (+ the root llms*.txt the docs emit),
+      # and push, retrying if a concurrent NEXUS deploy raced us to the branch.
+      - name: Publish docs to gh-pages/docs (preserve NEXUS)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd _site
-          git init -q -b gh-pages
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Deploy docs from ${GITHUB_SHA}"
-          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          SRC="$PWD/_site"
+          publish() {
+            WT="$(mktemp -d)"
+            if ! git clone -q --depth 1 -b gh-pages "$REMOTE" "$WT" 2>/dev/null; then
+              rm -rf "$WT"; mkdir -p "$WT"; git -C "$WT" init -q -b gh-pages
+            fi
+            # Replace ONLY the docs-owned paths; leave NEXUS's root files intact.
+            # The root llms*.txt are docs-owned too: delete before the conditional
+            # copies so a build that stops emitting them doesn't leave stale
+            # agent-facing docs served forever (llms generation is non-fatal in
+            # website/scripts/prebuild.mjs, and nexus-pages.yml preserves these).
+            rm -rf "$WT/docs"; mkdir -p "$WT/docs"; cp -a "$SRC/docs/." "$WT/docs/"
+            rm -f "$WT/llms.txt" "$WT/llms-full.txt"
+            [ -f "$SRC/llms.txt" ] && cp "$SRC/llms.txt" "$WT/llms.txt" || true
+            [ -f "$SRC/llms-full.txt" ] && cp "$SRC/llms-full.txt" "$WT/llms-full.txt" || true
+            touch "$WT/.nojekyll"
+            git -C "$WT" config user.name  "github-actions[bot]"
+            git -C "$WT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$WT" add -A
+            if git -C "$WT" diff --cached --quiet; then
+              echo "docs unchanged; nothing to publish"; rm -rf "$WT"; return 0
+            fi
+            git -C "$WT" commit -q -m "Deploy docs from ${GITHUB_SHA}"
+            if git -C "$WT" push "$REMOTE" HEAD:gh-pages 2>/dev/null; then
+              rm -rf "$WT"; return 0
+            fi
+            rm -rf "$WT"; return 1
+          }
+          for attempt in 1 2 3 4 5; do
+            if publish; then echo "published docs (attempt $attempt)"; exit 0; fi
+            echo "gh-pages push race on attempt $attempt; retrying"; sleep "$((attempt * 3))"
+          done
+          echo "failed to publish docs after 5 attempts"; exit 1
