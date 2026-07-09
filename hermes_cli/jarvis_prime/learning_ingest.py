@@ -10,6 +10,10 @@ collected end-to-end rather than hand-authored:
   :class:`~hermes_cli.jarvis_prime.research_vault.ResearchArtifact` into a
   ``research_answer_trace`` / ``evidence_verification_trace`` carrying the
   artifact's citation + evidence strength as provenance.
+* :func:`from_kanban_outcome` — turns a finished kanban task attempt into a
+  ``coding_task_trace`` (completed) or ``failed_attempt_trace`` (any other
+  terminal outcome, auto-labeled ``negative_example``) — the flywheel half
+  that lets seat profiles learn from their own job history.
 
 Nothing here re-implements trajectory capture or the research vault; it only
 maps their output into validated dataset candidates.
@@ -112,6 +116,83 @@ def from_trajectory_file(
     if created:
         store.save()
     return created
+
+
+def from_kanban_outcome(
+    task_id: str,
+    store: DatasetStore,
+    *,
+    board: Optional[str] = None,
+    quality: Optional[QualityGates] = None,
+) -> Optional[DatasetCandidate]:
+    """Ingest one finished kanban task attempt into the store.
+
+    Reads the task and its latest run from the kanban DB. A ``completed``
+    outcome becomes a ``coding_task_trace`` candidate — but ONLY when the
+    caller supplies real gate evidence via ``quality=`` (tests_passed,
+    reviewer_passed, rollback_available). With gates unmet the store
+    rejects the positive (a "passed" example is never auto-minted) and
+    this returns ``None`` with the reason in ``store.load_diagnostics``.
+    Every other terminal outcome (``blocked`` / ``crashed`` /
+    ``timed_out`` / ``gave_up`` / ``spawn_failed``) becomes a
+    ``failed_attempt_trace`` auto-labeled ``negative_example``. Both halves
+    share ``task_key=<task_id>`` so a later success pairs with the earlier
+    failure as a preference pair.
+
+    Returns ``None`` when the task doesn't exist or has no ended run yet.
+    Hard filters (secret scrub, CoT strip) run inside ``add_candidate``;
+    a rejection lands in ``store.load_diagnostics`` and returns ``None``.
+    """
+    from hermes_cli import kanban_db as kb
+
+    with kb.connect(board=board) as conn:
+        task = kb.get_task(conn, task_id)
+        if task is None:
+            return None
+        run = kb.latest_run(conn, task_id)
+        if run is None or not run.outcome:
+            return None
+        outcome = str(run.outcome)
+        content = {
+            "title": task.title,
+            "body": task.body or "",
+            "assignee": task.assignee or "",
+            "outcome": outcome,
+            "summary": run.summary or "",
+            "error": run.error or "",
+            "result": task.result or "",
+        }
+
+    completed = outcome == "completed"
+    prov = Provenance(
+        source_kind="job",
+        source_uri=f"kanban://{board or 'default'}/{task_id}",
+        job_id=task_id,
+        trust=SourceTrust.REPUTABLE if completed else SourceTrust.COMMUNITY,
+    )
+    if completed:
+        trace_type = TraceType.CODING_TASK
+        labels: tuple[str, ...] = ()
+    else:
+        trace_type = TraceType.FAILED_ATTEMPT
+        labels = (NEGATIVE_EXAMPLE,)
+    q = quality or QualityGates()
+
+    try:
+        candidate = store.add_candidate(
+            trace_type,
+            content,
+            prov,
+            q,
+            labels=labels,
+            task_key=task_id,
+            persist=False,
+        )
+    except RejectedTrace as exc:
+        store.load_diagnostics.append(f"kanban:{task_id}: rejected — {exc}")
+        return None
+    store.save()
+    return candidate
 
 
 def from_research_artifact(

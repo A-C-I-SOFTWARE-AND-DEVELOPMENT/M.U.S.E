@@ -1716,6 +1716,21 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         # assignee to any installed profile. When unset, falls back to the
         # default profile. A task never ends up with assignee=None.
         "default_assignee": "",
+        # Rejection loop (opt-in). When true, a builder's kanban_complete
+        # lands the task in the `review` column instead of `done`; the
+        # dispatcher's review lane then spawns a review agent that either
+        # completes it (approval) or kanban_reject's it back to the builder
+        # with a critique attached. Off by default — completions go
+        # straight to done exactly as before.
+        "review_before_done": False,
+        # Profile that reviews diverted completions. Empty = the task's
+        # own assignee reviews itself (with the sdlc-review skill loaded).
+        # Set to a dedicated reviewer profile (e.g. the `critic` seat from
+        # `hermes setup trio`) to enforce builder != reviewer.
+        "reviewer_profile": "",
+        # After this many review rejections the task parks in `blocked`
+        # (sticky — needs a human) instead of ping-ponging forever.
+        "review_reject_limit": 3,
         # When true, the kanban dispatcher auto-runs the decomposer on
         # tasks that land in Triage (every dispatcher tick). When false,
         # decomposition is manual via `hermes kanban decompose <id>` or

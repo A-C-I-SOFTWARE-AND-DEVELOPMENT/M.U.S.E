@@ -96,6 +96,63 @@ persistence is the improvement loop:
 `<profile>/profile.yaml`) is what the decomposer routes by, so refining
 those descriptions refines the routing.
 
+## The rejection loop
+
+With the seats installed, one config flip closes the plan → build → verify
+loop (off by default — completions go straight to `done` exactly as before):
+
+```yaml
+kanban:
+  review_before_done: true     # builder completions land in `review`, not `done`
+  reviewer_profile: critic     # builder ≠ reviewer, enforced by routing
+  review_reject_limit: 3       # then the task parks in `blocked` for a human
+```
+
+The flow: a builder's `kanban_complete` parks the task in the **review**
+column; the dispatcher's review lane spawns the reviewer (with the
+`sdlc-review` skill loaded), which either completes the task — that IS the
+approval, emitting `review_approved` — or calls **`kanban_reject`** with a
+critique. The critique lands as a comment the builder sees in its context
+on the rework run, the task returns to `ready` under the original builder,
+and children are only promoted on real completion. Every hop is an event
+(`review_requested` / `review_approved` / `review_rejected`), so
+`kanban_db.review_stats()` gives per-profile approve/reject counters and
+`profile_outcome_stats()` gives per-profile run outcomes.
+
+## The improvement flywheel
+
+Each seat compounds across jobs through three additive hooks:
+
+- **Roster descriptions learn from history** — `hermes profile describe
+  --auto` now folds each profile's measured kanban history (run outcomes,
+  review approve/reject counts) into the description prompt, so routing
+  reflects what a seat has actually done, not just its skill list.
+  User-authored descriptions are never overwritten.
+- **Job outcomes feed the learning dataset** —
+  `learning_ingest.from_kanban_outcome(task_id, store)` turns a finished
+  task attempt into a dataset candidate: failures become
+  `negative_example` traces automatically; successes become positive
+  traces **only** with real gate evidence (`quality=QualityGates(...)`) —
+  a "passed" example is never auto-minted, and export stays owner-gated.
+- **Model portfolio proposals** — `python -m hermes_cli.jarvis_prime seats
+  report` shows each seat's pinned model, measured scorecard evidence, and
+  catalog candidates; `seats propose <seat> <candidate_ref>` stages an
+  owner-gated swap proposal (RC2, with rollback) into the standard
+  proposals queue. Nothing is ever applied without the owner's exact
+  `Yes, with authorization.` — vendor benchmarks never promote; only
+  measured scorecards do.
+
+## Going global
+
+- **Cockpit**: `GET /v1/cockpit/seats` reports every seat's installed
+  state, pinned vs preset model, and the kanban routing — the roster is
+  visible from the dashboard and the Android app.
+- **Distribution**: `orchestrator_trio.export_seat_distributions(dest)`
+  stages each installed seat as a single-profile distribution directory
+  (manifest + payload, credentials stripped, `.env.EXAMPLE` generated)
+  ready for `hermes profile install`. Publishing the staged repos
+  anywhere is owner-gated — the export never touches the network.
+
 ## Tuning
 
 - **Swap a model:** `hermes -p executor model` (or edit

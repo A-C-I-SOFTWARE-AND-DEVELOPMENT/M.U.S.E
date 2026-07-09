@@ -549,6 +549,47 @@ def _handle_block(args: dict, **kw) -> str:
         return tool_error(f"kanban_block: {e}")
 
 
+def _handle_reject(args: dict, **kw) -> str:
+    """Review agent rejects the task back to its builder with a critique."""
+    tid = _default_task_id(args.get("task_id"))
+    if not tid:
+        return tool_error(
+            "task_id is required (or set HERMES_KANBAN_TASK in the env)"
+        )
+    ownership_err = _enforce_worker_task_ownership(tid)
+    if ownership_err:
+        return ownership_err
+    critique = args.get("critique")
+    if not critique or not str(critique).strip():
+        return tool_error(
+            "critique is required — tell the builder exactly what to fix"
+        )
+    board = args.get("board")
+    try:
+        kb, conn = _connect(board=board)
+        try:
+            ok = kb.reject_review(
+                conn, tid,
+                critique=str(critique),
+                reviewer=os.environ.get("HERMES_PROFILE"),
+                expected_run_id=_worker_run_id(tid),
+            )
+            if not ok:
+                return tool_error(
+                    f"could not reject {tid} — kanban_reject only applies "
+                    f"to a claimed review run or an unclaimed task in the "
+                    f"review column"
+                )
+            return _ok(task_id=tid)
+        finally:
+            conn.close()
+    except ValueError as e:
+        return tool_error(f"kanban_reject: {e}")
+    except Exception as e:
+        logger.exception("kanban_reject failed")
+        return tool_error(f"kanban_reject: {e}")
+
+
 def _handle_heartbeat(args: dict, **kw) -> str:
     """Signal that the worker is still alive during a long operation.
 
@@ -988,6 +1029,38 @@ KANBAN_BLOCK_SCHEMA = {
     },
 }
 
+KANBAN_REJECT_SCHEMA = {
+    "name": "kanban_reject",
+    "description": (
+        "Review-agent only: reject the task under review and send it "
+        "back to its builder as ready. ``critique`` is attached as a "
+        "comment the builder sees on the follow-up run — be specific "
+        "about what to fix. If you're satisfied instead, call "
+        "kanban_complete (that IS the approval). After the configured "
+        "rejection limit the task parks in blocked for a human."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "task_id": {
+                "type": "string",
+                "description": _DESC_TASK_ID_DEFAULT,
+            },
+            "critique": {
+                "type": "string",
+                "description": (
+                    "What is wrong and what the builder must change, "
+                    "concretely. This is the builder's work order for "
+                    "the rework — file paths and expected behavior beat "
+                    "adjectives."
+                ),
+            },
+            "board": _board_schema_prop(),
+        },
+        "required": ["critique"],
+    },
+}
+
 KANBAN_HEARTBEAT_SCHEMA = {
     "name": "kanban_heartbeat",
     "description": (
@@ -1249,6 +1322,15 @@ registry.register(
     handler=_handle_block,
     check_fn=_check_kanban_mode,
     emoji="⏸",
+)
+
+registry.register(
+    name="kanban_reject",
+    toolset="kanban",
+    schema=KANBAN_REJECT_SCHEMA,
+    handler=_handle_reject,
+    check_fn=_check_kanban_mode,
+    emoji="↩",
 )
 
 registry.register(
