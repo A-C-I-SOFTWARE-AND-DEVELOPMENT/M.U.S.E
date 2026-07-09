@@ -6,7 +6,8 @@ from providers.base import ProviderProfile
 nvidia = ProviderProfile(
     name="nvidia",
     aliases=("nvidia-nim",),
-    env_vars=("NVIDIA_API_KEY",),
+    # NIM_API_KEY / NVIDIA_NIM_API_KEY are aliases used by Vercel/deploy docs.
+    env_vars=("NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY"),
     display_name="NVIDIA NIM",
     description="NVIDIA NIM — accelerated inference",
     signup_url="https://build.nvidia.com/",
