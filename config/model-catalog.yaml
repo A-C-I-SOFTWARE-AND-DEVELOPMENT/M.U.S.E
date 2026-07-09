@@ -98,6 +98,23 @@ providers:
         params_b: 744
         context: 1048576
         tags: [oss, coding, agentic, bug-fix, tools, candidate]
+      # LongCat-2.0 — Meituan's agentic executor family (Multi-Teacher
+      # On-Policy Distill "Agent Experts"; noise-robust tool calling).
+      # Tactical worker model of the orchestrator-trio preset
+      # (`hermes setup trio`). Confirm availability on OpenRouter before spend.
+      - id: longcat-2.0
+        model: meituan/longcat-2.0
+        family: longcat
+        params_b: 560
+        context: 262144
+        tags: [oss, coding, agentic, tools, candidate]
+      # Grok 4.5 — xAI frontier reasoning model. Independent reviewer/critic
+      # of the orchestrator-trio preset. Closed-weight (no `oss` tag).
+      - id: grok-4.5
+        model: x-ai/grok-4.5
+        family: grok
+        context: 262144
+        tags: [reasoning, coding, agentic, tools, candidate]
       - id: kimi-k2
         model: moonshotai/kimi-k2
         family: kimi

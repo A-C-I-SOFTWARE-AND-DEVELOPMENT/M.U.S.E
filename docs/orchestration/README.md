@@ -41,6 +41,7 @@ laptop.
 | If you want to… | Start here |
 |---|---|
 | Run your first orchestrated job | [getting-started.md](getting-started.md) |
+| Install a ready-made planner/executor/critic team | [orchestrator-trio.md](orchestrator-trio.md) |
 | See an end-to-end "prompt → PR" demo | [prompt-to-pr-demo.md](prompt-to-pr-demo.md) |
 | Drive the orchestrator from your phone | [android-termux-demo.md](android-termux-demo.md) |
 | Add a new worker / model / environment | [worker-adapters.md](worker-adapters.md) |

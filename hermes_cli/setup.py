@@ -3148,6 +3148,17 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
 # Main Wizard Orchestrator
 # =============================================================================
 
+def setup_orchestrator_trio(config: dict, *, quick: bool = False):
+    """Offer the GLM-5.2 / LongCat-2.0 / Grok 4.5 orchestrator-trio preset.
+
+    Thin wrapper so ``hermes setup trio`` works; the real logic (profile
+    creation, model pinning, kanban routing) lives in
+    ``hermes_cli.orchestrator_trio``.
+    """
+    from hermes_cli.orchestrator_trio import setup_trio
+    setup_trio(config, quick=quick)
+
+
 SETUP_SECTIONS = [
     ("model", "Model & Provider", setup_model_provider),
     ("tts", "Text-to-Speech", setup_tts),
@@ -3155,6 +3166,7 @@ SETUP_SECTIONS = [
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),
     ("agent", "Agent Settings", setup_agent_settings),
+    ("trio", "Orchestrator Trio (planner/executor/critic)", setup_orchestrator_trio),
 ]
 
 
@@ -3169,6 +3181,7 @@ def run_setup_wizard(args):
       hermes setup gateway   — just messaging platforms
       hermes setup tools     — just tool configuration
       hermes setup agent     — just agent settings
+      hermes setup trio      — just the orchestrator-trio preset
     """
     from hermes_cli.config import is_managed, managed_error
     if is_managed():
@@ -3306,7 +3319,7 @@ def run_setup_wizard(args):
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
         print_info("Tip: jump straight to a section with 'hermes setup model|terminal|")
-        print_info("     gateway|tools|agent', or fill only missing items with --quick.")
+        print_info("     gateway|tools|agent|trio', or fill only missing items with --quick.")
         # Fall through to the "Full Setup — run all sections" block below.
         # --reconfigure is now the default on existing installs; the flag
         # is preserved for backwards compatibility but is a no-op here.
@@ -3368,6 +3381,10 @@ def run_setup_wizard(args):
     # Section 5: Tools
     if not (migration_ran and _skip_configured_section(config, "tools", "Tools")):
         setup_tools(config, first_install=not is_existing)
+
+    # Section 6: Orchestrator Trio (opt-in preset — defaults to skip, so the
+    # flow is unchanged for users who press Enter through the wizard)
+    setup_orchestrator_trio(config)
 
     # Save and show summary
     save_config(config)
