@@ -15,6 +15,11 @@ Subcommands:
   muse self-update proposals. ``approve`` requires the exact
   phrase ``Yes, with authorization.`` Status updates only — execution
   of the proposed change belongs to a future lane.
+- ``seats {report|propose}`` — seat portfolio for the orchestrator roster:
+  ``report [--json]`` shows each seat's pinned model, install state,
+  measured scorecard evidence, and catalog alternatives; ``propose <seat>
+  <candidate_ref> [--dry-run]`` queues an owner-gated model-swap proposal.
+  Proposal-only — never edits a profile's config.yaml or applies a swap.
 - ``registry-update [--check] [--no-refresh] [--json]`` — REG-1: diff the
   live published model catalog against the in-repo registry
   (``config/model-catalog.yaml``) and queue owner-gated proposals for any
@@ -360,6 +365,57 @@ def _cmd_proposals_approve(args: argparse.Namespace) -> int:
 
 def _cmd_proposals_reject(args: argparse.Namespace) -> int:
     return _set_proposal_status(args.proposal_id, "rejected", note="rejected via CLI")
+
+
+# --- seat portfolio (proposal-only; never applies a swap) -------------------
+
+
+def _cmd_seats_report(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.seat_portfolio import seat_report
+
+    report = seat_report()
+    if args.json:
+        _print_json(report)
+        return 0
+    print("Seat portfolio — orchestrator roster")
+    for name, seat in report["seats"].items():
+        glyph = "✓" if seat["installed"] else "·"
+        pinned = seat["pinned_model"] or f"(not installed; preset {seat['preset_model']})"
+        cards = seat["scorecards"]
+        evidence = (
+            f"{cards['samples']} scorecard(s), mean {cards['mean_score']:.2f}"
+            if cards["measured"]
+            else "no measured scorecards"
+        )
+        print(f"{glyph} {name:<13s} {pinned}")
+        print(f"    evidence  : {evidence} [family {cards['family']}]")
+        print(f"    candidates: {', '.join(seat['candidates']) or '(none)'}")
+    print(f"scorecards recorded: {report['scorecards_recorded']}")
+    return 0
+
+
+def _cmd_seats_propose(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.seat_portfolio import (
+        append_seat_proposal,
+        build_seat_swap_proposal,
+    )
+
+    try:
+        proposal = build_seat_swap_proposal(args.seat, args.candidate_ref)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    _print_json(proposal)
+    if args.dry_run:
+        print("(dry-run — proposal NOT written; owner approval required to apply)")
+        return 0
+    if not append_seat_proposal(proposal):
+        print("error: could not write proposal store", file=sys.stderr)
+        return 1
+    print(f"proposal queued for owner approval at {_proposals_store_path()}")
+    print("review via: python -m hermes_cli.jarvis_prime proposals list / approve")
+    return 0
 
 
 def _cmd_registry_update(args: argparse.Namespace) -> int:
@@ -2956,6 +3012,41 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_proposals_reject = p_proposals_sub.add_parser("reject", help="Reject a proposal")
     p_proposals_reject.add_argument("proposal_id")
     p_proposals_reject.set_defaults(func=_cmd_proposals_reject)
+
+    p_seats = sub.add_parser(
+        "seats",
+        help="Seat portfolio: roster report + owner-gated model-swap proposals",
+        description=(
+            "Inspect the orchestrator roster's seat portfolio (pinned model, "
+            "install state, measured scorecard evidence, catalog alternatives) "
+            "and queue owner-gated seat model-swap proposals. Proposal-only: "
+            "it never edits a profile's config.yaml or applies a swap — "
+            "proposals land in ${HERMES_HOME:-~/.hermes}/jarvis_prime/"
+            "proposals.jsonl for 'proposals list/approve/reject' review."
+        ),
+    )
+    p_seats_sub = p_seats.add_subparsers(dest="seats_command", required=True)
+
+    p_seats_report = p_seats_sub.add_parser(
+        "report", help="Report every roster seat: pin, evidence, candidates"
+    )
+    p_seats_report.add_argument("--json", action="store_true")
+    p_seats_report.set_defaults(func=_cmd_seats_report)
+
+    p_seats_propose = p_seats_sub.add_parser(
+        "propose",
+        help="Queue an owner-gated proposal to re-pin a seat to a catalog model",
+    )
+    p_seats_propose.add_argument("seat", help="Roster seat (e.g. executor)")
+    p_seats_propose.add_argument(
+        "candidate_ref", help="Catalog ref (e.g. openrouter/kimi-k2)"
+    )
+    p_seats_propose.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the proposal without writing the proposal store",
+    )
+    p_seats_propose.set_defaults(func=_cmd_seats_propose)
 
     p_registry = sub.add_parser(
         "registry-update",

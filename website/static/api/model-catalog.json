@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-11T16:41:16Z",
+  "updated_at": "2026-07-09T15:46:20Z",
   "metadata": {
     "source": "hermes-agent repo",
     "docs": "https://hermes-agent.nousresearch.com/docs/reference/model-catalog"
@@ -101,12 +101,24 @@
           "description": ""
         },
         {
+          "id": "z-ai/glm-5.2",
+          "description": "orchestrator-trio planner"
+        },
+        {
+          "id": "meituan/longcat-2.0",
+          "description": "orchestrator-trio executor"
+        },
+        {
           "id": "x-ai/grok-4.20",
           "description": ""
         },
         {
           "id": "x-ai/grok-4.3",
           "description": ""
+        },
+        {
+          "id": "x-ai/grok-4.5",
+          "description": "orchestrator-trio critic"
         },
         {
           "id": "nvidia/nemotron-3-super-120b-a12b",

@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 124,
+  "handler_count": 125,
   "owner_gated_count": 10,
-  "route_count": 126,
+  "route_count": 127,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -867,6 +867,15 @@
       "path": "/v1/cockpit/schedules",
       "requires_auth": true,
       "summary": "Read-only list of scheduled (cron) jobs the gateway will run unattended."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.seats_status",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/seats",
+      "requires_auth": true,
+      "summary": "The orchestrator seat roster \u2014 preset vs pinned models, install state."
     },
     {
       "handler": "gateway.cockpit.handlers.second_brain_retrieve",

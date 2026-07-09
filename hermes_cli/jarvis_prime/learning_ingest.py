@@ -10,6 +10,10 @@ collected end-to-end rather than hand-authored:
   :class:`~hermes_cli.jarvis_prime.research_vault.ResearchArtifact` into a
   ``research_answer_trace`` / ``evidence_verification_trace`` carrying the
   artifact's citation + evidence strength as provenance.
+* :func:`from_kanban_outcome` — turns a finished kanban task attempt into a
+  ``coding_task_trace`` (completed) or ``failed_attempt_trace`` (any other
+  terminal outcome, auto-labeled ``negative_example``) — the flywheel half
+  that lets seat profiles learn from their own job history.
 
 Nothing here re-implements trajectory capture or the research vault; it only
 maps their output into validated dataset candidates.
@@ -112,6 +116,113 @@ def from_trajectory_file(
     if created:
         store.save()
     return created
+
+
+def from_kanban_outcome(
+    task_id: str,
+    store: DatasetStore,
+    *,
+    board: Optional[str] = None,
+    quality: Optional[QualityGates] = None,
+) -> Optional[DatasetCandidate]:
+    """Ingest one finished kanban task attempt into the store.
+
+    Reads the task and its latest run from the kanban DB. A ``completed``
+    outcome becomes a ``coding_task_trace`` candidate — but ONLY when the
+    caller supplies real gate evidence via ``quality=`` (tests_passed,
+    reviewer_passed, rollback_available). With gates unmet the store
+    rejects the positive (a "passed" example is never auto-minted) and
+    this returns ``None`` with the reason in ``store.load_diagnostics``.
+    Every other terminal outcome (``blocked`` / ``crashed`` /
+    ``timed_out`` / ``gave_up`` / ``spawn_failed``) becomes a
+    ``failed_attempt_trace`` auto-labeled ``negative_example``. Both halves
+    share ``task_key=<task_id>`` so a later success pairs with the earlier
+    failure as a preference pair.
+
+    A completed RUN is not a completed TASK: a review-rejected task parks
+    in ``blocked`` with its reviewer run closed as ``completed``, and a
+    task awaiting review has a completed builder run. The positive path
+    therefore requires task ``status == "done"`` as well; a completed run
+    on a ``blocked`` task ingests as a negative, and a completed run on a
+    still-in-flight task (e.g. awaiting review) returns ``None``.
+
+    Returns ``None`` when the task doesn't exist or has no ended run yet.
+    Hard filters (secret scrub, CoT strip) run inside ``add_candidate``;
+    a rejection lands in ``store.load_diagnostics`` and returns ``None``.
+    """
+    from hermes_cli import kanban_db as kb
+
+    def _clip(text, cap=4000):
+        return (text or "")[:cap]
+
+    with kb.connect(board=board) as conn:
+        task = kb.get_task(conn, task_id)
+        if task is None:
+            return None
+        run = kb.latest_run(conn, task_id)
+        if run is None or not run.outcome:
+            return None
+        outcome = str(run.outcome)
+        status = str(task.status)
+        content = {
+            "title": task.title,
+            "body": _clip(task.body),
+            "assignee": task.assignee or "",
+            "status": status,
+            "outcome": outcome,
+            "summary": _clip(run.summary),
+            "error": _clip(run.error),
+            "result": _clip(task.result),
+        }
+
+    if outcome in ("reclaimed", "spawn_failed"):
+        # Infrastructure outcomes (lost claim, spawn environment failure)
+        # say nothing about the model's work — never mint a negative
+        # example from them.
+        return None
+    completed = outcome == "completed" and status == "done"
+    if outcome == "completed" and status not in ("done", "blocked", "archived"):
+        # Completed run but the task is still in flight (awaiting review,
+        # re-queued after a rejection, …) — no terminal outcome to learn from.
+        return None
+    # Resolve the actual board name (env / kanban/current pointer) rather
+    # than hardcoding 'default' when the caller passes board=None.
+    try:
+        board_name = board or kb.get_current_board() or "default"
+    except Exception:
+        board_name = board or "default"
+    # First-party provenance: this is the owner's own job history, not
+    # scraped content — REPUTABLE for negatives too, so a large crash log
+    # is not misclassified as bulk-scraped material.
+    prov = Provenance(
+        source_kind="job",
+        source_uri=f"kanban://{board_name}/{task_id}",
+        job_id=task_id,
+        trust=SourceTrust.REPUTABLE,
+    )
+    if completed:
+        trace_type = TraceType.CODING_TASK
+        labels: tuple[str, ...] = ()
+    else:
+        trace_type = TraceType.FAILED_ATTEMPT
+        labels = (NEGATIVE_EXAMPLE,)
+    q = quality or QualityGates()
+
+    try:
+        candidate = store.add_candidate(
+            trace_type,
+            content,
+            prov,
+            q,
+            labels=labels,
+            task_key=task_id,
+            persist=False,
+        )
+    except RejectedTrace as exc:
+        store.load_diagnostics.append(f"kanban:{task_id}: rejected — {exc}")
+        return None
+    store.save()
+    return candidate
 
 
 def from_research_artifact(

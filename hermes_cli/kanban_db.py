@@ -2220,6 +2220,7 @@ def claim_review_task(
     *,
     ttl_seconds: Optional[int] = None,
     claimer: Optional[str] = None,
+    run_profile: Optional[str] = None,
 ) -> Optional[Task]:
     """Atomically transition ``review -> running``.
 
@@ -2231,7 +2232,10 @@ def claim_review_task(
     gate on its original ``todo -> ready -> running`` transition.
 
     Creates a new run entry so the review agent's lifecycle is tracked
-    independently from the original worker run.
+    independently from the original worker run. ``run_profile`` records
+    which profile performs the review on the run row (a dedicated
+    reviewer seat may differ from the task's assignee, which is never
+    reassigned); defaults to the task's assignee.
     """
     now = int(time.time())
     lock = claimer or _claimer_id()
@@ -2267,7 +2271,7 @@ def claim_review_task(
             """,
             (
                 task_id,
-                trow["assignee"] if trow else None,
+                run_profile or (trow["assignee"] if trow else None),
                 trow["current_step_key"] if trow else None,
                 lock,
                 expires,
@@ -2287,6 +2291,83 @@ def claim_review_task(
             run_id=run_id,
         )
         return get_task(conn, task_id)
+
+
+def _review_config() -> tuple[bool, str, int]:
+    """Read the kanban review-routing knobs; defaults keep the loop off.
+
+    Reads the DEFAULT (root) hermes home's config.yaml — NOT the current
+    ``HERMES_HOME`` — because review routing is a board-level policy and
+    dispatcher-spawned workers run with ``HERMES_HOME`` pointed at their
+    own profile dir. Reading per-profile config here would mean the
+    documented root-config flip never engages for spawned workers.
+
+    Hard fallback so kanban_db stays importable (and testable) without a
+    config file. Callers can always override via explicit kwargs — the
+    config is only consulted when a kwarg is None.
+    """
+    try:
+        import yaml
+        from hermes_constants import get_default_hermes_root
+        cfg_path = Path(get_default_hermes_root()) / "config.yaml"
+        if not cfg_path.is_file():
+            return (False, "", DEFAULT_REVIEW_REJECT_LIMIT)
+        loaded = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+        kan = loaded.get("kanban", {}) if isinstance(loaded, dict) else {}
+        if not isinstance(kan, dict):
+            kan = {}
+        limit_raw = kan.get("review_reject_limit", DEFAULT_REVIEW_REJECT_LIMIT)
+        try:
+            limit = int(limit_raw)
+        except (TypeError, ValueError):
+            limit = DEFAULT_REVIEW_REJECT_LIMIT
+        return (
+            bool(kan.get("review_before_done", False)),
+            str(kan.get("reviewer_profile", "") or "").strip(),
+            limit,
+        )
+    except Exception:
+        return (False, "", DEFAULT_REVIEW_REJECT_LIMIT)
+
+
+def _is_review_run(conn: sqlite3.Connection, task_id: str, run_id: int) -> bool:
+    """True when ``run_id`` was claimed from the review column.
+
+    ``claim_review_task`` stamps its ``claimed`` event with
+    ``source_status="review"`` — that's the discriminator between a
+    builder attempt and a review attempt on the same task.
+    """
+    row = conn.execute(
+        "SELECT payload FROM task_events "
+        "WHERE task_id = ? AND run_id = ? AND kind = 'claimed' "
+        "ORDER BY id DESC LIMIT 1",
+        (task_id, int(run_id)),
+    ).fetchone()
+    if not row or not row["payload"]:
+        return False
+    try:
+        payload = json.loads(row["payload"])
+        return isinstance(payload, dict) and payload.get("source_status") == "review"
+    except Exception:
+        return False
+
+
+def _latest_event_payload(
+    conn: sqlite3.Connection, task_id: str, kind: str
+) -> Optional[dict]:
+    """Return the most recent ``kind`` event payload dict, or ``None``."""
+    row = conn.execute(
+        "SELECT payload FROM task_events "
+        "WHERE task_id = ? AND kind = ? ORDER BY id DESC LIMIT 1",
+        (task_id, kind),
+    ).fetchone()
+    if not row or not row["payload"]:
+        return None
+    try:
+        payload = json.loads(row["payload"])
+        return payload if isinstance(payload, dict) else None
+    except Exception:
+        return None
 
 
 def heartbeat_claim(
@@ -2674,8 +2755,22 @@ def complete_task(
     metadata: Optional[dict] = None,
     created_cards: Optional[Iterable[str]] = None,
     expected_run_id: Optional[int] = None,
+    review_before_done: Optional[bool] = None,
+    reviewer_profile: Optional[str] = None,
 ) -> bool:
     """Transition ``running|ready -> done`` and record ``result``.
+
+    Rejection loop (opt-in): when ``kanban.review_before_done`` is enabled
+    (or ``review_before_done=True`` is passed), a builder completion is
+    diverted to the ``review`` column instead of ``done`` — the dispatcher's
+    review lane then spawns a review agent that either completes the task
+    (→ done, emitting ``review_approved``) or calls :func:`reject_review`
+    (→ back to the builder as ``ready`` with the critique attached as a
+    comment). Completions coming from a review run itself (detected via the
+    run's ``source_status="review"`` claim event) always proceed to done.
+    ``kanban.reviewer_profile`` (or ``reviewer_profile=``) reassigns the
+    review to a dedicated reviewer seat; the original builder is recorded on
+    the ``review_requested`` event and restored on approve/reject.
 
     Accepts a task that is merely ``ready`` too, so a manual CLI
     completion (``hermes kanban complete <id>``) works without requiring
@@ -2732,34 +2827,69 @@ def complete_task(
     else:
         verified_cards = []
 
+    # Review routing decision (opt-in; default path untouched). A builder
+    # completion diverts to the review column; a review-run completion is
+    # the approval and proceeds to done.
+    cfg_enabled, cfg_reviewer, _cfg_limit = _review_config()
+    review_enabled = cfg_enabled if review_before_done is None else bool(review_before_done)
+    reviewer = (cfg_reviewer if reviewer_profile is None else (reviewer_profile or "")).strip()
+    completing_run_is_review = False
+    divert_to_review = False
+    if review_enabled:
+        rid = (
+            int(expected_run_id)
+            if expected_run_id is not None
+            else _current_run_id(conn, task_id)
+        )
+        completing_run_is_review = bool(rid) and _is_review_run(conn, task_id, int(rid))
+        # Only worker completions (a run in flight) divert. A manual
+        # completion of a never-claimed task (dashboard "mark done",
+        # `hermes kanban complete`) is a human decision — it goes
+        # straight to done, never silently into the review column.
+        divert_to_review = bool(rid) and not completing_run_is_review
+
+    if divert_to_review:
+        return _divert_completion_to_review(
+            conn, task_id,
+            result=result, summary=summary, metadata=metadata,
+            verified_cards=verified_cards,
+            expected_run_id=expected_run_id,
+            reviewer=reviewer,
+        )
+
+    # A review-approval completion must not clobber the builder's stored
+    # result: the reviewer typically completes with only a summary, and a
+    # bare `result = NULL` would erase the builder's handoff. COALESCE
+    # keeps the existing result when the approval carries none.
+    result_expr = "COALESCE(?, result)" if completing_run_is_review else "?"
     with write_txn(conn):
         if expected_run_id is None:
             cur = conn.execute(
-                """
+                f"""
                 UPDATE tasks
                    SET status       = 'done',
-                       result       = ?,
+                       result       = {result_expr},
                        completed_at = ?,
                        claim_lock   = NULL,
                        claim_expires= NULL,
                        worker_pid   = NULL
                  WHERE id = ?
-                   AND status IN ('running', 'ready', 'blocked')
+                   AND status IN ('running', 'ready', 'blocked', 'review')
                 """,
                 (result, now, task_id),
             )
         else:
             cur = conn.execute(
-                """
+                f"""
                 UPDATE tasks
                    SET status       = 'done',
-                       result       = ?,
+                       result       = {result_expr},
                        completed_at = ?,
                        claim_lock   = NULL,
                        claim_expires= NULL,
                        worker_pid   = NULL
                  WHERE id = ?
-                   AND status IN ('running', 'ready', 'blocked')
+                   AND status IN ('running', 'ready', 'blocked', 'review')
                    AND current_run_id = ?
                 """,
                 (result, now, task_id, int(expected_run_id)),
@@ -2814,6 +2944,25 @@ def complete_task(
             completed_payload,
             run_id=run_id,
         )
+        if review_enabled and completing_run_is_review:
+            # Approval: the task keeps its builder as assignee throughout
+            # the loop (the review lane spawns the reviewer without
+            # reassigning), so attribution is already correct — just
+            # record who approved what.
+            req = _latest_event_payload(conn, task_id, "review_requested") or {}
+            builder = str(req.get("builder") or "").strip()
+            reviewer_name: Optional[str] = None
+            if run_id is not None:
+                prow = conn.execute(
+                    "SELECT profile FROM task_runs WHERE id = ?", (int(run_id),),
+                ).fetchone()
+                if prow and prow["profile"]:
+                    reviewer_name = str(prow["profile"])
+            _append_event(
+                conn, task_id, "review_approved",
+                {"builder": builder or None, "reviewer": reviewer_name},
+                run_id=run_id,
+            )
     # Prose-scan the summary + result for t_<hex> references that do
     # not resolve. Advisory — does not block the completion. Runs in
     # its own txn so the completion itself is already durable by the
@@ -2845,6 +2994,283 @@ def complete_task(
     # Clean up the scratch workspace and any stale tmux session for the worker.
     _cleanup_workspace(conn, task_id)
     return True
+
+
+def _divert_completion_to_review(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    result: Optional[str],
+    summary: Optional[str],
+    metadata: Optional[dict],
+    verified_cards: list,
+    expected_run_id: Optional[int],
+    reviewer: str,
+) -> bool:
+    """Builder half of the rejection loop: ``running|ready -> review``.
+
+    Stores ``result`` and closes the builder run exactly like a normal
+    completion, but parks the task in the review column for the
+    dispatcher's review lane instead of ``done``. Children are NOT
+    promoted (that happens only on the real completion) and the
+    workspace is preserved so the reviewer can inspect artifacts.
+
+    The task's ``assignee`` stays the builder throughout — the review
+    lane spawns the reviewer profile without reassigning, so a crashed
+    or reclaimed review run can never corrupt builder attribution. The
+    reviewer is recorded on the ``review_requested`` event only.
+
+    A ``blocked`` task never diverts (unlike a normal completion, which
+    may close out a blocked task as done): diverting would let a later
+    rejection land the task back in ``ready``, silently defeating a
+    sticky operator block.
+    """
+    now = int(time.time())
+    with write_txn(conn):
+        if expected_run_id is None:
+            cur = conn.execute(
+                """
+                UPDATE tasks
+                   SET status       = 'review',
+                       result       = ?,
+                       claim_lock   = NULL,
+                       claim_expires= NULL,
+                       worker_pid   = NULL
+                 WHERE id = ?
+                   AND status IN ('running', 'ready')
+                """,
+                (result, task_id),
+            )
+        else:
+            cur = conn.execute(
+                """
+                UPDATE tasks
+                   SET status       = 'review',
+                       result       = ?,
+                       claim_lock   = NULL,
+                       claim_expires= NULL,
+                       worker_pid   = NULL
+                 WHERE id = ?
+                   AND status IN ('running', 'ready')
+                   AND current_run_id = ?
+                """,
+                (result, task_id, int(expected_run_id)),
+            )
+        if cur.rowcount != 1:
+            return False
+        arow = conn.execute(
+            "SELECT assignee FROM tasks WHERE id = ?", (task_id,),
+        ).fetchone()
+        builder = str(arow["assignee"] or "") if arow else ""
+        run_id = _end_run(
+            conn, task_id,
+            outcome="completed",
+            summary=summary if summary is not None else result,
+            metadata=metadata,
+        )
+        if run_id is None and (summary or metadata or result):
+            run_id = _synthesize_ended_run(
+                conn, task_id,
+                outcome="completed",
+                summary=summary if summary is not None else result,
+                metadata=metadata,
+            )
+        ev_summary = (summary if summary is not None else result) or ""
+        ev_summary = ev_summary.strip().splitlines()[0][:400] if ev_summary else ""
+        payload: dict = {
+            "builder": builder or None,
+            "reviewer": (reviewer or builder) or None,
+            "summary": ev_summary or None,
+            "result_len": len(result) if result else 0,
+        }
+        if verified_cards:
+            payload["verified_cards"] = verified_cards
+        _append_event(conn, task_id, "review_requested", payload, run_id=run_id)
+    # The build attempt itself succeeded — reset the pathology counter.
+    # Workspace cleanup and child promotion are deliberately deferred to
+    # the real completion (review approval).
+    _clear_failure_counter(conn, task_id)
+    return True
+
+
+def reject_review(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    critique: str,
+    reviewer: Optional[str] = None,
+    expected_run_id: Optional[int] = None,
+    reject_limit: Optional[int] = None,
+) -> bool:
+    """Reviewer half of the rejection loop: bounce the task back to its builder.
+
+    Valid on a claimed review run (``running`` whose current run was claimed
+    from the review column) or an unclaimed ``review`` task (manual
+    orchestrator rejection). The critique is attached as a comment — which
+    :func:`build_worker_context` already surfaces to the builder on the
+    follow-up run — the review run is closed, the original builder is
+    restored as assignee, and the task returns to ``ready``.
+
+    After ``reject_limit`` total rejections (default
+    ``kanban.review_reject_limit`` → :data:`DEFAULT_REVIEW_REJECT_LIMIT`)
+    the task parks in ``blocked`` with a sticky ``blocked`` event instead,
+    so a builder/reviewer disagreement can't ping-pong forever.
+    """
+    if not critique or not critique.strip():
+        raise ValueError("critique is required to reject a review")
+    now = int(time.time())
+    if reject_limit is None:
+        _enabled, _rev, reject_limit = _review_config()
+    limit = int(reject_limit)
+    with write_txn(conn):
+        row = conn.execute(
+            "SELECT status, assignee, current_run_id FROM tasks WHERE id = ?",
+            (task_id,),
+        ).fetchone()
+        if not row:
+            return False
+        status = row["status"]
+        rid = row["current_run_id"]
+        if status == "running":
+            if not rid or not _is_review_run(conn, task_id, int(rid)):
+                return False
+            if expected_run_id is not None and int(expected_run_id) != int(rid):
+                return False
+        elif status == "review":
+            # Honor a stale-run pin even when the claim has already been
+            # released: a reviewer that lost its claim mid-review must not
+            # bounce a task that has since moved on to a newer attempt.
+            if expected_run_id is not None:
+                last = conn.execute(
+                    "SELECT MAX(id) AS rid FROM task_runs WHERE task_id = ?",
+                    (task_id,),
+                ).fetchone()
+                if last and last["rid"] and int(last["rid"]) != int(expected_run_id):
+                    return False
+        else:
+            return False
+        req = _latest_event_payload(conn, task_id, "review_requested") or {}
+        builder = str(req.get("builder") or "").strip() or str(row["assignee"] or "")
+        reviewer_name = (reviewer or "").strip()
+        if not reviewer_name and rid:
+            prow = conn.execute(
+                "SELECT profile FROM task_runs WHERE id = ?", (int(rid),),
+            ).fetchone()
+            if prow and prow["profile"]:
+                reviewer_name = str(prow["profile"])
+        if not reviewer_name:
+            reviewer_name = "reviewer"
+        # Critique comment (inline — add_comment opens its own txn).
+        conn.execute(
+            "INSERT INTO task_comments (task_id, author, body, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (task_id, reviewer_name, critique.strip(), now),
+        )
+        _append_event(
+            conn, task_id, "commented",
+            {"author": reviewer_name, "len": len(critique)},
+        )
+        if status == "running":
+            first_line = critique.strip().splitlines()[0][:200]
+            _end_run(
+                conn, task_id,
+                outcome="completed",
+                summary=f"review: rejected — {first_line}",
+            )
+        # Rejection budget counts only rejections since the last human
+        # unblock — an operator who reads the critiques and unblocks is
+        # granting a fresh budget, not exactly one more review cycle.
+        prior = conn.execute(
+            "SELECT COUNT(*) AS n FROM task_events "
+            "WHERE task_id = ? AND kind = 'review_rejected' "
+            "  AND id > COALESCE((SELECT MAX(id) FROM task_events "
+            "                      WHERE task_id = ? AND kind = 'unblocked'), 0)",
+            (task_id, task_id),
+        ).fetchone()
+        rejections = int(prior["n"] or 0) + 1
+        tripped = limit > 0 and rejections >= limit
+        new_status = "blocked" if tripped else "ready"
+        conn.execute(
+            """
+            UPDATE tasks
+               SET status       = ?,
+                   assignee     = ?,
+                   claim_lock   = NULL,
+                   claim_expires= NULL,
+                   worker_pid   = NULL
+             WHERE id = ?
+            """,
+            (new_status, builder or row["assignee"], task_id),
+        )
+        _append_event(
+            conn, task_id, "review_rejected",
+            {
+                "reviewer": reviewer_name,
+                "builder": builder or None,
+                "rejections": rejections,
+                "critique_preview": critique.strip().splitlines()[0][:400],
+            },
+        )
+        if tripped:
+            _append_event(
+                conn, task_id, "blocked",
+                {
+                    "reason": f"review rejected {rejections}x (limit {limit})",
+                    "source": "review_reject_limit",
+                },
+            )
+    return True
+
+
+def review_stats(conn: sqlite3.Connection) -> dict:
+    """Per-builder-profile review counters, derived from the event log.
+
+    Returns ``{profile: {"submitted": n, "approved": n, "rejected": n}}``.
+    Read-side aggregation only — the task_events log stays the single
+    source of truth (no new table of record).
+    """
+    kind_to_bucket = {
+        "review_requested": "submitted",
+        "review_approved": "approved",
+        "review_rejected": "rejected",
+    }
+    out: dict = {}
+    rows = conn.execute(
+        "SELECT kind, payload FROM task_events "
+        "WHERE kind IN ('review_requested', 'review_approved', 'review_rejected')",
+    ).fetchall()
+    for r in rows:
+        try:
+            payload = json.loads(r["payload"]) if r["payload"] else {}
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        builder = str(payload.get("builder") or "").strip() or "(unknown)"
+        bucket = out.setdefault(
+            builder, {"submitted": 0, "approved": 0, "rejected": 0}
+        )
+        bucket[kind_to_bucket[r["kind"]]] += 1
+    return out
+
+
+def profile_outcome_stats(conn: sqlite3.Connection) -> dict:
+    """Per-profile run-outcome counts (read-side GROUP BY over task_runs).
+
+    Returns ``{profile: {outcome: count}}`` — the raw material for the
+    improvement flywheel (describer enrichment, seat portfolio reports).
+    Profile strings are reported exactly as recorded; unknown profiles
+    surface as-is, never autocorrected.
+    """
+    rows = conn.execute(
+        "SELECT profile, outcome, COUNT(*) AS n FROM task_runs "
+        "WHERE outcome IS NOT NULL AND profile IS NOT NULL "
+        "GROUP BY profile, outcome",
+    ).fetchall()
+    out: dict = {}
+    for r in rows:
+        out.setdefault(str(r["profile"]), {})[str(r["outcome"])] = int(r["n"])
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -3587,6 +4013,10 @@ def schedule_task(
 DEFAULT_FAILURE_LIMIT = 2
 # Legacy alias — callers / tests still reference the old name.
 DEFAULT_SPAWN_FAILURE_LIMIT = DEFAULT_FAILURE_LIMIT
+
+# After this many review rejections the task parks in ``blocked`` (sticky —
+# needs a human unblock) instead of bouncing builder<->reviewer forever.
+DEFAULT_REVIEW_REJECT_LIMIT = 3
 
 # Max bytes to keep in a single worker log file. The dispatcher truncates
 # and rotates on spawn if the file is larger than this at spawn time.
@@ -4569,20 +4999,43 @@ def check_respawn_guard(conn: sqlite3.Connection, task_id: str) -> Optional[str]
     now = int(time.time())
 
     # 2. Completed run within guard window — proof of recent success.
+    # Exemption: a review rejection newer than the completed run means
+    # that "success" was sent back for rework — the builder must respawn
+    # promptly, not sit out the guard window.
     cutoff = now - _RESPAWN_GUARD_SUCCESS_WINDOW
-    if conn.execute(
-        "SELECT id FROM task_runs "
+    comp = conn.execute(
+        "SELECT MAX(ended_at) AS t FROM task_runs "
         "WHERE task_id = ? AND outcome = 'completed' AND ended_at >= ?",
         (task_id, cutoff),
-    ).fetchone():
-        return "recent_success"
+    ).fetchone()
+    if comp and comp["t"]:
+        rej = conn.execute(
+            "SELECT MAX(created_at) AS t FROM task_events "
+            "WHERE task_id = ? AND kind = 'review_rejected'",
+            (task_id,),
+        ).fetchone()
+        if not (rej and rej["t"] and int(rej["t"]) >= int(comp["t"])):
+            return "recent_success"
 
     # 3. GitHub PR URL in a recent comment — prior worker already opened a PR.
+    # Exemption mirrors #2: comments at or before the latest review
+    # rejection don't re-arm the guard — a rejecting critique routinely
+    # cites the PR under review, and freezing the rework for 24h because
+    # of it would deadlock the rejection loop.
+    rej_row = conn.execute(
+        "SELECT MAX(created_at) AS t FROM task_events "
+        "WHERE task_id = ? AND kind = 'review_rejected'",
+        (task_id,),
+    ).fetchone()
+    rejected_at = int(rej_row["t"]) if rej_row and rej_row["t"] else 0
     pr_cutoff = now - _RESPAWN_GUARD_PR_WINDOW
     for c in conn.execute(
-        "SELECT body FROM task_comments WHERE task_id = ? AND created_at >= ?",
+        "SELECT body, created_at FROM task_comments "
+        "WHERE task_id = ? AND created_at >= ?",
         (task_id, pr_cutoff),
     ).fetchall():
+        if int(c["created_at"] or 0) <= rejected_at:
+            continue
         if c["body"] and _RESPAWN_GUARD_PR_URL_RE.search(c["body"]):
             return "active_pr"
 
@@ -4886,25 +5339,41 @@ def dispatch_once(
         "WHERE status = 'review' AND claim_lock IS NULL "
         "ORDER BY priority DESC, created_at ASC"
     ).fetchall()
+    # Dedicated reviewer seat (kanban.reviewer_profile): review runs spawn
+    # under this profile WITHOUT reassigning the task — the assignee stays
+    # the builder for attribution. Falls back to self-review (the task's
+    # own assignee + sdlc-review skill) when unset or not installed, so a
+    # config typo degrades to the old behavior instead of stranding tasks.
+    _, _cfg_reviewer, _ = _review_config()
     for row in review_rows:
         if max_spawn is not None and running_count + spawned >= max_spawn:
             break
-        if not row["assignee"]:
-            result.skipped_unassigned.append(row["id"])
-            continue
         try:
             from hermes_cli.profiles import profile_exists
         except Exception:
             profile_exists = None  # ty: ignore[invalid-assignment]
-        if profile_exists is not None and not profile_exists(row["assignee"]):
+        review_profile = row["assignee"]
+        if _cfg_reviewer and (
+            profile_exists is None or profile_exists(_cfg_reviewer)
+        ):
+            review_profile = _cfg_reviewer
+        if not review_profile:
+            result.skipped_unassigned.append(row["id"])
+            continue
+        if profile_exists is not None and not profile_exists(review_profile):
             result.skipped_nonspawnable.append(row["id"])
             continue
         if dry_run:
-            result.spawned.append((row["id"], row["assignee"], ""))
+            result.spawned.append((row["id"], review_profile, ""))
             continue
-        claimed = claim_review_task(conn, row["id"], ttl_seconds=ttl_seconds)
+        claimed = claim_review_task(
+            conn, row["id"], ttl_seconds=ttl_seconds, run_profile=review_profile
+        )
         if claimed is None:
             continue
+        # Spawn under the reviewer profile; the DB row's assignee is
+        # untouched (builder attribution survives crashes/reclaims).
+        claimed.assignee = review_profile
         try:
             workspace = resolve_workspace(claimed, board=board)
         except Exception as exc:

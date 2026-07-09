@@ -83,6 +83,15 @@ Notable skills (up to {skill_cap}):
 {skill_list}
 """
 
+# Appended to the user prompt only when the profile has measured kanban
+# history. What the profile has actually done (and how it went) is a
+# stronger routing signal than the skill list alone — this is the
+# memory-into-prompt extension the module docstring reserved, wired to
+# job outcomes rather than raw memory.
+_OUTCOMES_TEMPLATE = """Measured job history (kanban):
+{outcome_line}
+{review_line}"""
+
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
@@ -134,6 +143,39 @@ def _collect_skills(profile_dir: Path) -> list[str]:
     step = len(names) / MAX_SKILLS_FOR_PROMPT
     sampled = [names[int(i * step)] for i in range(MAX_SKILLS_FOR_PROMPT)]
     return sampled
+
+
+def _collect_outcome_summary(profile_name: str) -> Optional[str]:
+    """Return a one-block summary of the profile's measured kanban history.
+
+    Soft-fails to ``None`` (no kanban DB, no history for this profile,
+    import failure) — the describer must keep working on installs that
+    have never run a job. Read-side only; nothing is written.
+    """
+    try:
+        from hermes_cli import kanban_db as kb
+        # connect() auto-creates the DB on first touch — honor the
+        # "nothing is written" contract by bailing when no board exists.
+        if not kb.kanban_db_path().exists():
+            return None
+        with kb.connect() as conn:
+            outcomes = kb.profile_outcome_stats(conn).get(profile_name)
+            reviews = kb.review_stats(conn).get(profile_name)
+    except Exception:
+        return None
+    if not outcomes and not reviews:
+        return None
+    outcome_line = "  runs: " + (
+        ", ".join(f"{k}={v}" for k, v in sorted(outcomes.items()))
+        if outcomes else "(none)"
+    )
+    review_line = "  reviews: " + (
+        ", ".join(f"{k}={v}" for k, v in sorted(reviews.items()))
+        if reviews else "(none)"
+    )
+    return _OUTCOMES_TEMPLATE.format(
+        outcome_line=outcome_line, review_line=review_line
+    )
 
 
 def _extract_json_blob(raw: str) -> Optional[dict]:
@@ -236,6 +278,9 @@ def describe_profile(
         skill_cap=MAX_SKILLS_FOR_PROMPT,
         skill_list=skill_list,
     )
+    outcome_summary = _collect_outcome_summary(canon)
+    if outcome_summary:
+        user_msg = f"{user_msg}\n{outcome_summary}\n"
 
     try:
         resp = client.chat.completions.create(

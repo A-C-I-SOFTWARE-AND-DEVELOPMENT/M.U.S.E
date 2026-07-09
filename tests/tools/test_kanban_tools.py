@@ -55,8 +55,8 @@ def test_kanban_tools_visible_with_env_var(monkeypatch, tmp_path):
     names = {s["function"].get("name") for s in schema if "function" in s}
     kanban = {n for n in names if n and n.startswith("kanban_")}
     expected = {
-        "kanban_show", "kanban_complete", "kanban_block", "kanban_heartbeat",
-        "kanban_comment", "kanban_create", "kanban_link",
+        "kanban_show", "kanban_complete", "kanban_block", "kanban_reject",
+        "kanban_heartbeat", "kanban_comment", "kanban_create", "kanban_link",
     }
     assert kanban == expected, f"expected {expected}, got {kanban}"
 
@@ -135,8 +135,8 @@ def test_kanban_tools_visible_with_toolset_config(monkeypatch, tmp_path):
     kanban = {n for n in names if n and n.startswith("kanban_")}
     expected = {
         "kanban_list",
-        "kanban_show", "kanban_complete", "kanban_block", "kanban_heartbeat",
-        "kanban_comment", "kanban_create", "kanban_link",
+        "kanban_show", "kanban_complete", "kanban_block", "kanban_reject",
+        "kanban_heartbeat", "kanban_comment", "kanban_create", "kanban_link",
         "kanban_unblock",
     }
     assert kanban == expected, f"expected {expected}, got {kanban}"

@@ -257,7 +257,7 @@ the full guide, supported languages, and configuration knobs.
 ## `muse setup`
 
 ```bash
-muse setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure]
+muse setup [model|tts|terminal|gateway|tools|agent|trio] [--non-interactive] [--reset] [--quick] [--reconfigure]
 ```
 
 **First run:** launches the first-time wizard.
@@ -273,6 +273,7 @@ Jump into one section instead of the full wizard:
 | `gateway` | Messaging platform setup. |
 | `tools` | Enable/disable tools per platform. |
 | `agent` | Agent behavior settings. |
+| `trio` | Orchestrator seats — install the planner/executor/critic trio or the full six-seat roster. See [orchestrator-trio](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/orchestration/orchestrator-trio.md). |
 
 Options:
 

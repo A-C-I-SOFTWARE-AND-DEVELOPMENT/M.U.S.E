@@ -65,8 +65,11 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     ("stepfun/step-3.5-flash",                 ""),
     ("minimax/minimax-m2.7",                   ""),
     ("z-ai/glm-5.1",                           ""),
+    ("z-ai/glm-5.2",                           "orchestrator-trio planner"),
+    ("meituan/longcat-2.0",                    "orchestrator-trio executor"),
     ("x-ai/grok-4.20",                         ""),
     ("x-ai/grok-4.3",                          ""),
+    ("x-ai/grok-4.5",                          "orchestrator-trio critic"),
     ("nvidia/nemotron-3-super-120b-a12b",      ""),
     ("deepseek/deepseek-v4-pro",               ""),
     # Free tier
