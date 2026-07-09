@@ -139,11 +139,21 @@ def from_kanban_outcome(
     share ``task_key=<task_id>`` so a later success pairs with the earlier
     failure as a preference pair.
 
+    A completed RUN is not a completed TASK: a review-rejected task parks
+    in ``blocked`` with its reviewer run closed as ``completed``, and a
+    task awaiting review has a completed builder run. The positive path
+    therefore requires task ``status == "done"`` as well; a completed run
+    on a ``blocked`` task ingests as a negative, and a completed run on a
+    still-in-flight task (e.g. awaiting review) returns ``None``.
+
     Returns ``None`` when the task doesn't exist or has no ended run yet.
     Hard filters (secret scrub, CoT strip) run inside ``add_candidate``;
     a rejection lands in ``store.load_diagnostics`` and returns ``None``.
     """
     from hermes_cli import kanban_db as kb
+
+    def _clip(text, cap=4000):
+        return (text or "")[:cap]
 
     with kb.connect(board=board) as conn:
         task = kb.get_task(conn, task_id)
@@ -153,22 +163,42 @@ def from_kanban_outcome(
         if run is None or not run.outcome:
             return None
         outcome = str(run.outcome)
+        status = str(task.status)
         content = {
             "title": task.title,
-            "body": task.body or "",
+            "body": _clip(task.body),
             "assignee": task.assignee or "",
+            "status": status,
             "outcome": outcome,
-            "summary": run.summary or "",
-            "error": run.error or "",
-            "result": task.result or "",
+            "summary": _clip(run.summary),
+            "error": _clip(run.error),
+            "result": _clip(task.result),
         }
 
-    completed = outcome == "completed"
+    if outcome in ("reclaimed", "spawn_failed"):
+        # Infrastructure outcomes (lost claim, spawn environment failure)
+        # say nothing about the model's work — never mint a negative
+        # example from them.
+        return None
+    completed = outcome == "completed" and status == "done"
+    if outcome == "completed" and status not in ("done", "blocked", "archived"):
+        # Completed run but the task is still in flight (awaiting review,
+        # re-queued after a rejection, …) — no terminal outcome to learn from.
+        return None
+    # Resolve the actual board name (env / kanban/current pointer) rather
+    # than hardcoding 'default' when the caller passes board=None.
+    try:
+        board_name = board or kb.get_current_board() or "default"
+    except Exception:
+        board_name = board or "default"
+    # First-party provenance: this is the owner's own job history, not
+    # scraped content — REPUTABLE for negatives too, so a large crash log
+    # is not misclassified as bulk-scraped material.
     prov = Provenance(
         source_kind="job",
-        source_uri=f"kanban://{board or 'default'}/{task_id}",
+        source_uri=f"kanban://{board_name}/{task_id}",
         job_id=task_id,
-        trust=SourceTrust.REPUTABLE if completed else SourceTrust.COMMUNITY,
+        trust=SourceTrust.REPUTABLE,
     )
     if completed:
         trace_type = TraceType.CODING_TASK

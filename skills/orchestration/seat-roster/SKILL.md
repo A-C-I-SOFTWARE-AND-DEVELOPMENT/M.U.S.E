@@ -1,6 +1,6 @@
 ---
 name: seat-roster
-description: "Route orchestrated work across the installed orchestrator seats (planner / executor / critic / researcher / operator / scribe)."
+description: "Route orchestrated work across the installed seats."
 version: 1.0.0
 author: Jeremiah Echerd + Hermes Agent
 license: MIT

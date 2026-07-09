@@ -11461,12 +11461,12 @@ def main():
         "setup",
         help="Interactive setup wizard",
         description="Configure muse with an interactive wizard. "
-        "Run a specific section: muse setup model|tts|terminal|gateway|tools|agent",
+        "Run a specific section: muse setup model|tts|terminal|gateway|tools|agent|trio",
     )
     setup_parser.add_argument(
         "section",
         nargs="?",
-        choices=["model", "tts", "terminal", "gateway", "tools", "agent"],
+        choices=["model", "tts", "terminal", "gateway", "tools", "agent", "trio"],
         default=None,
         help="Run a specific setup section instead of the full wizard",
     )

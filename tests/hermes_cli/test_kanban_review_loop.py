@@ -68,7 +68,10 @@ class TestReviewDiversion:
             assert "review_requested" in kinds
             assert "completed" not in kinds
 
-    def test_reviewer_profile_reassigns_and_records_builder(self, kanban_home):
+    def test_reviewer_recorded_without_reassigning_builder(self, kanban_home):
+        """The task keeps its builder as assignee — the reviewer is spawn
+        routing, not ownership. A crashed review run can then never corrupt
+        builder attribution."""
         with kb.connect() as conn:
             task = _make_running_task(conn, assignee="executor")
             kb.complete_task(
@@ -77,10 +80,88 @@ class TestReviewDiversion:
             )
             refreshed = kb.get_task(conn, task.id)
             assert refreshed.status == "review"
-            assert refreshed.assignee == "critic"
+            assert refreshed.assignee == "executor"
             payload = kb._latest_event_payload(conn, task.id, "review_requested")
             assert payload["builder"] == "executor"
             assert payload["reviewer"] == "critic"
+
+    def test_manual_completion_never_diverts(self, kanban_home):
+        """A human 'mark done' on a never-claimed task is a human decision —
+        straight to done even with the loop enabled."""
+        with kb.connect() as conn:
+            task_id = kb.create_task(conn, title="manual", assignee="executor")
+            ok = kb.complete_task(
+                conn, task_id, result="done by operator",
+                review_before_done=True, reviewer_profile="critic",
+            )
+            assert ok is True
+            assert kb.get_task(conn, task_id).status == "done"
+
+    def test_blocked_task_completion_never_diverts(self, kanban_home):
+        """Closing out a blocked task goes straight to done — diverting
+        would let a later rejection defeat the sticky operator block."""
+        with kb.connect() as conn:
+            task = _make_running_task(conn)
+            kb.block_task(conn, task.id, reason="needs human input")
+            ok = kb.complete_task(
+                conn, task.id, result="resolved offline",
+                review_before_done=True,
+            )
+            assert ok is True
+            assert kb.get_task(conn, task.id).status == "done"
+
+    def test_operator_can_force_done_from_review(self, kanban_home):
+        """A task parked in review must have an operator exit: a manual
+        completion (no claim) closes it out."""
+        with kb.connect() as conn:
+            task = _make_running_task(conn)
+            kb.complete_task(
+                conn, task.id, result="attempt", review_before_done=True
+            )
+            assert kb.get_task(conn, task.id).status == "review"
+            ok = kb.complete_task(
+                conn, task.id, result="operator override",
+                review_before_done=True,
+            )
+            assert ok is True
+            assert kb.get_task(conn, task.id).status == "done"
+
+    def test_review_run_records_reviewer_profile(self, kanban_home):
+        with kb.connect() as conn:
+            task = _make_running_task(conn, assignee="executor")
+            kb.complete_task(
+                conn, task.id, result="attempt",
+                review_before_done=True, reviewer_profile="critic",
+            )
+            claimed = kb.claim_review_task(
+                conn, task.id, run_profile="critic"
+            )
+            assert claimed is not None
+            run = kb.latest_run(conn, task.id)
+            assert run.profile == "critic"
+            # Task assignee untouched by the review claim.
+            assert kb.get_task(conn, task.id).assignee == "executor"
+
+    def test_rejected_task_is_not_respawn_guarded(self, kanban_home):
+        """A rejection is an explicit rework instruction — neither the
+        'recent_success' window nor a PR URL in the critique may freeze
+        the builder respawn."""
+        with kb.connect() as conn:
+            task = _make_running_task(conn, assignee="executor")
+            kb.complete_task(
+                conn, task.id, result="attempt",
+                review_before_done=True, reviewer_profile="critic",
+            )
+            assert kb.claim_review_task(conn, task.id) is not None
+            kb.reject_review(
+                conn, task.id, reviewer="critic",
+                critique=(
+                    "tests missing — see "
+                    "https://github.com/o/r/pull/42 for the diff"
+                ),
+            )
+            assert kb.get_task(conn, task.id).status == "ready"
+            assert kb.check_respawn_guard(conn, task.id) is None
 
     def test_children_are_not_promoted_until_real_completion(self, kanban_home):
         with kb.connect() as conn:
@@ -196,6 +277,40 @@ class TestRejectReview:
             kinds = _event_kinds(conn, task.id)
             assert kinds.count("review_rejected") == 2
             assert "blocked" in kinds
+
+    def test_unblock_resets_rejection_budget(self, kanban_home):
+        """An operator unblock grants a fresh rejection budget, not exactly
+        one more review cycle."""
+        with kb.connect() as conn:
+            task = _make_running_task(conn, assignee="executor")
+            for i in range(2):
+                kb.complete_task(
+                    conn, task.id, result=f"attempt {i}",
+                    review_before_done=True, reviewer_profile="critic",
+                )
+                assert kb.claim_review_task(conn, task.id) is not None
+                kb.reject_review(
+                    conn, task.id, critique=f"wrong ({i})",
+                    reviewer="critic", reject_limit=2,
+                )
+                if kb.get_task(conn, task.id).status == "ready":
+                    assert kb.claim_task(conn, task.id) is not None
+            assert kb.get_task(conn, task.id).status == "blocked"
+
+            kb.unblock_task(conn, task.id)
+            assert kb.claim_task(conn, task.id) is not None
+            kb.complete_task(
+                conn, task.id, result="fresh attempt",
+                review_before_done=True, reviewer_profile="critic",
+            )
+            assert kb.claim_review_task(conn, task.id) is not None
+            kb.reject_review(
+                conn, task.id, critique="one more issue",
+                reviewer="critic", reject_limit=2,
+            )
+            # First rejection after the unblock: budget was reset, so the
+            # task returns to ready instead of instantly re-blocking.
+            assert kb.get_task(conn, task.id).status == "ready"
 
     def test_full_loop_reject_then_fix_then_approve(self, kanban_home):
         with kb.connect() as conn:

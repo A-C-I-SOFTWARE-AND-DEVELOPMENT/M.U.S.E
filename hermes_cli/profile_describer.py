@@ -154,6 +154,10 @@ def _collect_outcome_summary(profile_name: str) -> Optional[str]:
     """
     try:
         from hermes_cli import kanban_db as kb
+        # connect() auto-creates the DB on first touch — honor the
+        # "nothing is written" contract by bailing when no board exists.
+        if not kb.kanban_db_path().exists():
+            return None
         with kb.connect() as conn:
             outcomes = kb.profile_outcome_stats(conn).get(profile_name)
             reviews = kb.review_stats(conn).get(profile_name)

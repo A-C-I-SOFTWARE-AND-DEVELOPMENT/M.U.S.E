@@ -266,9 +266,39 @@ def export_seat_distributions(
         _copy_dist_payload(
             profile_dir, dest / role.profile, manifest, preserve_config=False
         )
+        # Second scrub pass: gateway/channel credentials that live under
+        # names USER_OWNED_EXCLUDE doesn't cover (Slack bot tokens,
+        # WhatsApp/Signal session keys, misc *.session / *tokens* files).
+        # A staged distribution must never carry a live credential.
+        _scrub_staged_credentials(dest / role.profile)
         exported.append(role.profile)
 
     return {"exported": exported, "skipped": skipped, "dest": str(dest)}
+
+
+# Channel/gateway credential artifacts stripped from staged distributions
+# in addition to profile_distribution.USER_OWNED_EXCLUDE. Directory names
+# match whole path components; file patterns are glob-matched at any depth.
+_EXPORT_CREDENTIAL_DIRS = frozenset({"whatsapp", "signal", "cookies"})
+_EXPORT_CREDENTIAL_GLOBS = ("*.session", "*tokens*.json", "*_token.json", "*.cookies")
+
+
+def _scrub_staged_credentials(staged_root: Path) -> None:
+    """Remove channel credentials from a staged distribution tree."""
+    import shutil
+
+    if not staged_root.is_dir():
+        return
+    for path in sorted(staged_root.rglob("*"), reverse=True):
+        try:
+            if path.is_dir() and path.name in _EXPORT_CREDENTIAL_DIRS:
+                shutil.rmtree(path, ignore_errors=True)
+            elif path.is_file() and any(
+                path.match(g) for g in _EXPORT_CREDENTIAL_GLOBS
+            ):
+                path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("could not scrub %s from staged export", path)
 
 
 def install_trio(*, force: bool = False, extended: bool = False) -> dict:

@@ -189,6 +189,28 @@ class TestConservativeDefaults:
 class TestExport:
     """export_seat_distributions — local staging only, credentials never ship."""
 
+    def test_export_scrubs_channel_credentials(self, profile_env):
+        """Slack tokens, WhatsApp/Signal sessions, and *.session files are
+        outside USER_OWNED_EXCLUDE — the export's scrub pass must strip
+        them anyway."""
+        install_trio()
+        exec_dir = _profile_dir(profile_env, "executor")
+        (exec_dir / "slack_tokens.json").write_text("{}", encoding="utf-8")
+        (exec_dir / "whatsapp").mkdir()
+        (exec_dir / "whatsapp" / "session").write_text("key", encoding="utf-8")
+        (exec_dir / "telegram.session").write_text("key", encoding="utf-8")
+
+        dest = profile_env / "dist"
+        export_seat_distributions(dest, extended=False)
+
+        staged = dest / "executor"
+        leftovers = [
+            p for p in staged.rglob("*")
+            if p.name in ("slack_tokens.json", "telegram.session")
+            or "whatsapp" in p.parts
+        ]
+        assert leftovers == []
+
     def test_export_empty_home_skips_everything(self, profile_env):
         dest = profile_env / "dist"
 
