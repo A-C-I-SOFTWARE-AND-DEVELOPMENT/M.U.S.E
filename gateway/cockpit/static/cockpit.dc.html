@@ -1709,15 +1709,41 @@ body { perspective: 1800px; }
         <div style="display:flex; align-items:center; margin-bottom:10px;"><span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Providers</span><span class="grow"></span><button type="button" class="btn secondary" onclick="{{ onAddProvider }}">+ Add provider</button></div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px;">
           <sc-for list="{{ providerList }}" as="p" hint-placeholder-count="6">
-            <div class="card" style="padding:14px; display:flex; align-items:center; gap:12px;">
-              <div style="min-width:0;">
+            <div class="card" style="padding:14px; display:flex; align-items:center; gap:10px;">
+              <div style="min-width:0; flex:1;">
                 <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:14px; font-weight:600; color:var(--signal);">{{ p.name }}</span><sc-if value="{{ p.omni }}" hint-placeholder-val="{{ false }}"><span class="pill accent" style="font-size:9px;">OMNI</span></sc-if><sc-if value="{{ p.free }}" hint-placeholder-val="{{ false }}"><span class="pill" style="font-size:9px; color:var(--ring-1); border-color:var(--ring-1);">FREE</span></sc-if></div>
                 <div style="font-size:11px; color:var(--signal-mute);">{{ p.kindLabel }}</div>
               </div>
-              <button type="button" onclick="{{ p.onToggle }}" style="{{ p.trackStyle }}; margin-left:auto;"><span style="{{ p.knobStyle }}"></span></button>
+              <button type="button" onclick="{{ p.onOpenKey() }}" title="API key / OAuth" style="{{ p.keyBtnStyle }}">{{ p.keyBtnLabel }}</button>
+              <button type="button" onclick="{{ p.onToggle() }}" style="{{ p.trackStyle }};"><span style="{{ p.knobStyle }}"></span></button>
             </div>
           </sc-for>
         </div>
+
+        <sc-if value="{{ keyEditorOpen }}" hint-placeholder-val="{{ false }}">
+          <div class="card" style="margin:-12px 0 24px; border:1px solid var(--ring-1); display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:13px; font-weight:600; color:var(--signal);">{{ keyEditorName }} — API key</span>
+              <sc-if value="{{ keyEditorHasKey }}" hint-placeholder-val="{{ false }}"><span class="pill ok" style="font-size:9px;">KEY SET</span></sc-if>
+              <span class="grow"></span>
+              <button type="button" onclick="{{ onCloseProvKey }}" class="btn secondary" style="flex:none; padding:5px 10px;">Close</button>
+            </div>
+            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5;">Stored only in this browser (localStorage) and sent over https per message to the chat endpoint — never saved on our server.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <input type="password" value="{{ keyInput }}" oninput="{{ onProvKeyInput }}" placeholder="Paste API key" autocomplete="off" spellcheck="false" style="flex:1 1 220px; font-family:var(--mono); font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;">
+              <button type="button" onclick="{{ onSaveProvKey }}" class="btn primary" style="flex:none;">Save key</button>
+              <sc-if value="{{ keyEditorHasKey }}" hint-placeholder-val="{{ false }}"><button type="button" onclick="{{ onUseProvForChat }}" class="btn secondary" style="flex:none;">Use for chat</button></sc-if>
+              <sc-if value="{{ keyEditorHasKey }}" hint-placeholder-val="{{ false }}"><button type="button" onclick="{{ onClearProvKey }}" class="btn secondary" style="flex:none;">Clear</button></sc-if>
+            </div>
+            <sc-if value="{{ keyEditorOauth }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-top:1px solid var(--edge); padding-top:10px;">
+                <button type="button" onclick="{{ onOauthConnect }}" class="btn" style="flex:none; border:1px solid var(--ring-1); color:var(--ring-1); background:transparent;">Get key ↗</button>
+                <span style="font-size:11px; color:var(--signal-mute);">Authorize on OpenRouter — a key is created and saved here automatically, no copy-paste.</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ keyEditorError }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger);">{{ keyEditorError }}</div></sc-if>
+          </div>
+        </sc-if>
 
         <div style="display:flex; align-items:center; margin-bottom:10px;"><span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Models</span><span class="grow"></span><button type="button" class="btn primary" onclick="{{ onOpenAddModel }}">+ Add model</button></div>
         <sc-if value="{{ addModelOpen }}" hint-placeholder-val="{{ false }}">
@@ -2337,6 +2363,11 @@ class Component extends DCLogic {
     byokKey: '',
     byokProv: 'openrouter',
     byokSaved: false,
+    // Per-provider API keys (browser-only) + the Models & Providers key editor.
+    provKeys: {},
+    keyProvOpen: '',
+    keyInput: '',
+    keyError: '',
     // Approvals: owner-phrase confirm state for the live gateway decision route.
     approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
     gatewayInfo: null,
@@ -2940,6 +2971,8 @@ class Component extends DCLogic {
     window.addEventListener('keydown', this._onKeyDown);
     // Hands-off connect from the URL hash (#gateway=&token=) before we kick live,
     // so a one-click link lands straight in a live session (token then scrubbed).
+    // Per-provider API keys (browser-only) + finish any OAuth redirect (?code=).
+    this._hydrateProvKeys();
     this._autoConnectFromUrl();
     // Live data wiring: if we have a token, immediately try gateway and start polling
     this._kickLive();
@@ -3526,6 +3559,58 @@ class Component extends DCLogic {
     try { localStorage.removeItem('muse.byok.key'); localStorage.removeItem('muse.byok.prov'); } catch (e) {}
     this.setState({ byokKey: '', byokSaved: false });
     this._probeServerChat();
+  };
+
+  // ---- Per-provider API keys + OAuth. Keys live ONLY in this browser
+  //      (localStorage 'muse.provkeys') and ride the existing /api/chat BYOK
+  //      header path; nothing is ever stored on the server. ----
+  _hydrateProvKeys() {
+    try {
+      const map = JSON.parse(localStorage.getItem('muse.provkeys') || '{}') || {};
+      const ids = Object.keys(map);
+      if (ids.length) this.setState({ provKeys: map,
+        providers: this.state.providers.map(p => ids.indexOf(p.id) !== -1 ? { ...p, connected: true } : p) });
+    } catch (e) {}
+  }
+  _saveProvKeys(map) { try { localStorage.setItem('muse.provkeys', JSON.stringify(map)); } catch (e) {} }
+  openProvKey = (id) => () => this.setState({ keyProvOpen: id, keyInput: '', keyError: '' });
+  closeProvKey = () => this.setState({ keyProvOpen: '', keyInput: '', keyError: '' });
+  onProvKeyInput = (e) => this.setState({ keyInput: e.target.value });
+  saveProvKey = () => {
+    const id = this.state.keyProvOpen; if (!id) return;
+    const key = (this.state.keyInput || '').trim();
+    if (!key) { this.setState({ keyError: 'Paste a key first.' }); return; }
+    const map = { ...this.state.provKeys, [id]: key }; this._saveProvKeys(map);
+    this.setState({ provKeys: map, keyInput: '', keyError: '',
+      providers: this.state.providers.map(p => p.id === id ? { ...p, connected: true } : p) });
+  };
+  clearProvKey = () => {
+    const id = this.state.keyProvOpen; if (!id) return;
+    const map = { ...this.state.provKeys }; delete map[id]; this._saveProvKeys(map);
+    let wasActive = false;
+    try { wasActive = localStorage.getItem('muse.byok.prov') === id; if (wasActive) { localStorage.removeItem('muse.byok.key'); localStorage.removeItem('muse.byok.prov'); } } catch (e) {}
+    this.setState({ provKeys: map, byokSaved: wasActive ? false : this.state.byokSaved,
+      providers: this.state.providers.map(p => p.id === id ? { ...p, connected: false } : p) });
+  };
+  useProvForChat = () => {
+    const id = this.state.keyProvOpen; const key = this.state.provKeys && this.state.provKeys[id];
+    if (!key) { this.setState({ keyError: 'Save a key first.' }); return; }
+    try { localStorage.setItem('muse.byok.key', key); localStorage.setItem('muse.byok.prov', id); } catch (e) {}
+    this.setState({ byokSaved: true, byokProv: id, serverChat: 'ready', keyError: '' });
+  };
+  _b64url(buf) {
+    let s = ''; const b = new Uint8Array(buf);
+    for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return btoa(s).replace(/[+]/g, '-').replace(/[/]/g, '_').replace(/=+$/, '');
+  }
+  oauthConnect = () => {
+    const id = this.state.keyProvOpen;
+    if (id !== 'openrouter') { this.setState({ keyError: 'Quick key setup here is available for OpenRouter; for other providers, paste an API key above.' }); return; }
+    // Self-containment policy: this static page never fetches remote
+    // endpoints, so a browser-side PKCE code->key exchange is off the
+    // table. Open the key page in a new tab; the user pastes the key.
+    try { window.open('https://openrouter.ai/settings/keys', '_blank', 'noopener'); } catch (e) {}
+    this.setState({ keyError: 'Create a key on the OpenRouter tab that just opened, then paste it above and Save.' });
   };
 
   async _api(path, { method = 'GET', body = null, auth = true } = {}) {
@@ -4520,7 +4605,17 @@ class Component extends DCLogic {
     const fuseBtn = on => on
       ? 'padding:6px 12px;border:1px solid var(--ring-1);border-radius:9999px;background:rgba(122,224,255,0.14);color:var(--ring-1);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;'
       : 'padding:6px 12px;border:1px solid var(--edge);border-radius:9999px;background:var(--void-2);color:var(--signal-dim);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;';
-    const providerList = s.providers.map(p => ({ ...p, kindLabel: p.kind, onToggle: this.toggleProvider(p.id), ...sw(p.connected) }));
+    const providerList = s.providers.map(p => {
+      const hasKey = !!(s.provKeys && s.provKeys[p.id]);
+      return { ...p, kindLabel: p.kind, onToggle: this.toggleProvider(p.id), ...sw(p.connected),
+        onOpenKey: this.openProvKey(p.id),
+        keyBtnLabel: hasKey ? 'Key ✓' : 'Key',
+        keyBtnStyle: (hasKey
+          ? 'flex:none;padding:5px 10px;border:1px solid var(--ring-1);border-radius:9999px;background:rgba(122,224,255,0.14);color:var(--ring-1);'
+          : 'flex:none;padding:5px 10px;border:1px solid var(--edge);border-radius:9999px;background:var(--void-2);color:var(--signal-dim);') + 'cursor:pointer;font:inherit;font-size:11px;white-space:nowrap;' };
+    });
+    const _kp = s.keyProvOpen;
+    const _kpProv = _kp ? (s.providers.find(p => p.id === _kp) || {}) : {};
     // Free-tier providers ($0): their models render as "free" so the catalog
     // shows every no-cost option at a glance (any one flips the public chat live).
     const freeProv = new Set(s.providers.filter(p => p.free).map(p => p.id));
@@ -4737,6 +4832,10 @@ class Component extends DCLogic {
       canInstall: s.canInstall, installLabel: s.installLabel, onInstall: this.installApp,
       installHint: s.installHint, onDismissInstallHint: this.dismissInstallHint,
       modelList, providerList, modelsOnlineLabel,
+      keyEditorOpen: !!_kp, keyEditorName: _kpProv.name || '', keyEditorHasKey: !!(s.provKeys && s.provKeys[_kp]),
+      keyEditorOauth: _kp === 'openrouter', keyInput: s.keyInput || '', keyEditorError: s.keyError || '',
+      onProvKeyInput: this.onProvKeyInput, onSaveProvKey: this.saveProvKey, onClearProvKey: this.clearProvKey,
+      onUseProvForChat: this.useProvForChat, onCloseProvKey: this.closeProvKey, onOauthConnect: this.oauthConnect,
       onAddProvider: this.addProvider, onOpenAddModel: this.openAddModel, addModelOpen: s.addModelOpen,
       newModelName: s.newModel.name, newModelProv: s.newModel.prov, newModelCtx: s.newModel.ctx, newModelStrength: s.newModel.strength,
       onNewModelName: this.onNewModelField('name'), onNewModelProv: this.onNewModelField('prov'), onNewModelCtx: this.onNewModelField('ctx'), onNewModelStrength: this.onNewModelField('strength'),
