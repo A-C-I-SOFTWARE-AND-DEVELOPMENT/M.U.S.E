@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **126 routes** across **124 distinct handlers**
+- **127 routes** across **125 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
