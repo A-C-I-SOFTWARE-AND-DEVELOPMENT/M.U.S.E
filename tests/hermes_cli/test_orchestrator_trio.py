@@ -8,6 +8,8 @@ import pytest
 import yaml
 
 from hermes_cli.orchestrator_trio import (
+    EXTENDED_ROLES,
+    FULL_ROSTER,
     TRIO_ROLES,
     install_trio,
     trio_status,
@@ -78,6 +80,33 @@ class TestInstall:
         for role in TRIO_ROLES:
             assert after[role.profile]["installed"] is True
             assert after[role.profile]["model"] == role.model
+
+    def test_core_install_leaves_extended_seats_absent(self, profile_env):
+        install_trio()
+
+        status = trio_status()
+        for role in EXTENDED_ROLES:
+            assert status[role.profile]["installed"] is False
+
+    def test_extended_install_creates_full_roster(self, profile_env):
+        summary = install_trio(extended=True)
+
+        assert sorted(summary["created"]) == sorted(r.profile for r in FULL_ROSTER)
+        for role in EXTENDED_ROLES:
+            pdir = _profile_dir(profile_env, role.profile)
+            model_block = _read_model_block(pdir)
+            assert model_block["provider"] == role.provider
+            assert model_block["default"] == role.model
+            meta = yaml.safe_load((pdir / "profile.yaml").read_text(encoding="utf-8"))
+            assert meta["description"].strip()
+
+    def test_extended_install_is_idempotent(self, profile_env):
+        install_trio(extended=True)
+        summary = install_trio(extended=True)
+
+        assert summary["created"] == []
+        assert sorted(summary["existing"]) == sorted(r.profile for r in FULL_ROSTER)
+        assert summary["models_set"] == []
 
 
 class TestConservativeDefaults:
@@ -157,12 +186,12 @@ class TestConservativeDefaults:
 
 
 class TestCatalogIntegration:
-    def test_trio_models_resolve_in_model_catalog(self):
-        """Every trio catalog_ref must exist in config/model-catalog.yaml."""
+    def test_roster_models_resolve_in_model_catalog(self):
+        """Every roster catalog_ref must exist in config/model-catalog.yaml."""
         from hermes_model_catalog import load_catalog
 
         catalog = load_catalog()
-        for role in TRIO_ROLES:
+        for role in FULL_ROSTER:
             entry = catalog.by_ref(role.catalog_ref)
             assert entry is not None, f"{role.catalog_ref} missing from catalog"
             assert entry.model == role.model

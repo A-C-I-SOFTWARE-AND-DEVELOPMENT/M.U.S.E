@@ -18,13 +18,15 @@ ledger) instead of inventing new machinery:
   preserving the builder ≠ reviewer separation muse already enforces
   (a builder never self-merges).
 
-All three models route through OpenRouter, so one ``OPENROUTER_API_KEY``
-serves the whole trio.
+Beyond the core trio, the preset ships an **extended roster** of three more
+seats — ``researcher``, ``operator``, ``scribe`` — for teams that want the
+full bench. Every model routes through OpenRouter, so one
+``OPENROUTER_API_KEY`` serves the whole roster.
 
 Installed interactively via ``hermes setup trio`` (or offered at the end of
 the full setup wizard). Headless installs call :func:`install_trio` directly::
 
-    python -c "from hermes_cli.orchestrator_trio import install_trio; install_trio()"
+    python -c "from hermes_cli.orchestrator_trio import install_trio; install_trio(extended=True)"
 """
 
 from __future__ import annotations
@@ -93,6 +95,57 @@ TRIO_ROLES: tuple[TrioRole, ...] = (
     ),
 )
 
+# Extended bench: three more seats for teams that want the full roster.
+# Same conservative install semantics as the trio. Models are existing
+# catalog entries (openrouter/kimi-k2, openrouter/deepseek-v4,
+# openrouter/minimax-m2) — candidate-tagged, confirm availability before spend.
+EXTENDED_ROLES: tuple[TrioRole, ...] = (
+    TrioRole(
+        profile="researcher",
+        provider="openrouter",
+        model="moonshotai/kimi-k2",
+        catalog_ref="openrouter/kimi-k2",
+        title="Long-context researcher (Kimi K2)",
+        description=(
+            "Long-context researcher. Gathers sources, reads docs and "
+            "codebases, compares options, and summarizes evidence with "
+            "citations before decisions are made. Route research, "
+            "investigation, comparison, and documentation-reading tasks "
+            "here. Not a builder — no file edits."
+        ),
+    ),
+    TrioRole(
+        profile="operator",
+        provider="openrouter",
+        model="deepseek/deepseek-v4",
+        catalog_ref="openrouter/deepseek-v4",
+        title="Operations & infrastructure seat (DeepSeek-V4)",
+        description=(
+            "Operations seat. Handles environment setup, dependency and "
+            "CI upkeep, release preparation, and long maintenance chores. "
+            "Irreversible actions (deploy, publish, spend) stay behind the "
+            "owner gates. Route ops, environment, CI, and maintenance "
+            "tasks here."
+        ),
+    ),
+    TrioRole(
+        profile="scribe",
+        provider="openrouter",
+        model="minimax/minimax-m2",
+        catalog_ref="openrouter/minimax-m2",
+        title="Documentation & knowledge curator (MiniMax-M2)",
+        description=(
+            "Documentation and knowledge curator. Writes docs, changelogs, "
+            "and job summaries; keeps roster descriptions and the memory "
+            "tree fresh. Route documentation, summarization, and "
+            "knowledge-curation tasks here."
+        ),
+    ),
+)
+
+# The full bench: core trio + extended seats.
+FULL_ROSTER: tuple[TrioRole, ...] = TRIO_ROLES + EXTENDED_ROLES
+
 # Kanban routing the preset wires up: planning goes to the orchestrator,
 # unmatched work lands on the executor.
 _KANBAN_WIRING = {
@@ -133,14 +186,15 @@ def _write_profile_model(profile_dir: Path, provider: str, model: str) -> None:
 
 
 def trio_status() -> dict:
-    """Report which trio roles are installed and what model each is pinned to.
+    """Report which roster seats are installed and what model each is pinned to.
 
-    Returns ``{profile: {"installed": bool, "model": str|None}}``.
+    Covers the full roster (trio + extended seats). Returns
+    ``{profile: {"installed": bool, "model": str|None}}``.
     """
     from hermes_cli import profiles as profiles_mod
 
     status: dict = {}
-    for role in TRIO_ROLES:
+    for role in FULL_ROSTER:
         profile_dir = profiles_mod.get_profile_dir(role.profile)
         model = None
         if profile_dir.is_dir():
@@ -152,8 +206,11 @@ def trio_status() -> dict:
     return status
 
 
-def install_trio(*, force: bool = False) -> dict:
-    """Install (or repair) the orchestrator-trio profiles and kanban routing.
+def install_trio(*, force: bool = False, extended: bool = False) -> dict:
+    """Install (or repair) the orchestrator-roster profiles and kanban routing.
+
+    Installs the core trio by default; pass ``extended=True`` to install the
+    full six-seat roster (trio + researcher/operator/scribe).
 
     Idempotent and conservative by default: existing profiles are kept, a
     profile's model is only written when it has none, descriptions are only
@@ -176,7 +233,8 @@ def install_trio(*, force: bool = False) -> dict:
 
     summary: dict = {"created": [], "existing": [], "models_set": [], "kanban": {}}
 
-    for role in TRIO_ROLES:
+    roster = FULL_ROSTER if extended else TRIO_ROLES
+    for role in roster:
         profile_dir = profiles_mod.get_profile_dir(role.profile)
         if profile_dir.is_dir():
             summary["existing"].append(role.profile)
@@ -233,23 +291,35 @@ def setup_trio(config: dict, *, quick: bool = False) -> None:
         print_header,
         print_info,
         print_success,
-        prompt_yes_no,
     )
+    from hermes_cli.setup import prompt_choice
 
-    print_header("Orchestrator Trio (optional)")
-    print_info("A ready-made planner/executor/critic team for /orchestrate and kanban:")
+    print_header("Orchestrator Seats (optional)")
+    print_info("A ready-made agent team for /orchestrate and kanban. Core trio:")
     for role in TRIO_ROLES:
         print_info(f"   {role.profile:<13s} {role.title}")
-    print_info("Each role is its own hermes profile with its own memory, skills,")
-    print_info("and SOUL.md, so every role keeps improving across jobs.")
-    print_info("All three models route via OpenRouter — one OPENROUTER_API_KEY.")
+    print_info("Extended bench (full roster):")
+    for role in EXTENDED_ROLES:
+        print_info(f"   {role.profile:<13s} {role.title}")
+    print_info("Each seat is its own hermes profile with its own memory, skills,")
+    print_info("and SOUL.md, so every seat keeps improving across jobs.")
+    print_info("All models route via OpenRouter — one OPENROUTER_API_KEY.")
     print()
 
-    if not prompt_yes_no("Install the orchestrator trio now?", False):
+    choice = prompt_choice(
+        "Install the orchestrator seats?",
+        [
+            "Skip for now",
+            "Core trio — orchestrator / executor / critic",
+            "Full roster — trio + researcher / operator / scribe",
+        ],
+        0,
+    )
+    if choice == 0:
         print_info("Skipped — install later with 'hermes setup trio'.")
         return
 
-    summary = install_trio()
+    summary = install_trio(extended=(choice == 2))
 
     # Re-sync the wizard's config dict from disk (install_trio saved kanban
     # routing through its own load/save cycle).

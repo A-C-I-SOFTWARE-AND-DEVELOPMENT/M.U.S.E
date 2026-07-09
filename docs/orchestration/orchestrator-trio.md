@@ -12,23 +12,35 @@ routing config:
 | Tactical executor & tool caller | `executor` | `meituan/longcat-2.0` (OpenRouter) | Distilled "Agent Expert" tuning for tool use and self-correction; recovers well when a command fails or an API errors |
 | Independent reviewer & critic | `critic` | `x-ai/grok-4.5` (OpenRouter) | Frontier reasoning from a third vendor — reviews are independent of both the planner's and the builder's failure modes |
 
-All three route through OpenRouter, so a single `OPENROUTER_API_KEY`
-serves the whole trio. The models carry the `candidate` tag in
+Beyond the trio, the preset ships an **extended bench** for teams that
+want the full six-seat roster:
+
+| Role | Profile | Model |
+|---|---|---|
+| Long-context researcher | `researcher` | `moonshotai/kimi-k2` |
+| Operations & infrastructure | `operator` | `deepseek/deepseek-v4` |
+| Documentation & knowledge curator | `scribe` | `minimax/minimax-m2` |
+
+Everything routes through OpenRouter, so a single `OPENROUTER_API_KEY`
+serves the whole roster. The models carry the `candidate` tag in
 [`config/model-catalog.yaml`](../../config/model-catalog.yaml) — confirm
 availability on OpenRouter's live model list before relying on them for
 spend, and swap any role's model with
-`hermes -p <profile> model` if you prefer a different engine.
+`hermes -p <profile> model` if you prefer a different engine. The
+routing playbook the agent itself follows lives at
+[`skills/orchestration/seat-roster/SKILL.md`](../../skills/orchestration/seat-roster/SKILL.md).
 
 ## Install
 
 ```bash
-hermes setup trio          # interactive, opt-in (defaults to No)
+hermes setup trio          # interactive, opt-in: core trio or full roster
 ```
 
 Headless / scripted installs call the Python API directly:
 
 ```bash
-python -c "from hermes_cli.orchestrator_trio import install_trio; print(install_trio())"
+python -c "from hermes_cli.orchestrator_trio import install_trio; print(install_trio())"                 # core trio
+python -c "from hermes_cli.orchestrator_trio import install_trio; print(install_trio(extended=True))"   # full roster
 ```
 
 The installer is **idempotent and conservative**: existing profiles are
