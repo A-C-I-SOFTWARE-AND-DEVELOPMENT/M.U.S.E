@@ -84,7 +84,7 @@ class TestDoctorCommandInstallation:
 
         out = _run_doctor(fix=False)
         assert "Command Installation" in out
-        assert "Venv entry point exists" in out
+        assert "Venv entry point for hermes exists" in out
         assert "correct target" in out
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Symlink check is Unix-only")
@@ -96,7 +96,7 @@ class TestDoctorCommandInstallation:
 
         out = _run_doctor(fix=False)
         assert "Command Installation" in out
-        assert "Venv entry point exists" in out
+        assert "Venv entry point for hermes exists" in out
         assert "not found" in out
         assert "hermes doctor --fix" in out
 
@@ -114,6 +114,44 @@ class TestDoctorCommandInstallation:
         cmd_link = tmp_path / ".local" / "bin" / "hermes"
         assert cmd_link.is_symlink()
         assert cmd_link.resolve() == hermes_bin.resolve()
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Symlink check is Unix-only")
+    def test_fix_creates_missing_muse_symlink_too(self, monkeypatch, tmp_path):
+        """A lost `muse` launcher (the Termux pkg-upgrade casualty) must be
+        repaired by doctor --fix, not just the legacy `hermes` alias."""
+        home, project, hermes_bin = _setup_doctor_env(monkeypatch, tmp_path)
+        # Venv with a real muse console script.
+        muse_bin = project / "venv" / "bin" / "muse"
+        muse_bin.write_text("#!/usr/bin/env python\n# entry point\n")
+        muse_bin.chmod(0o755)
+        # hermes link exists; muse link is the missing one.
+        cmd_link_dir = tmp_path / ".local" / "bin"
+        cmd_link_dir.mkdir(parents=True)
+        (cmd_link_dir / "hermes").symlink_to(hermes_bin)
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        out = _run_doctor(fix=True)
+        assert "Created symlink" in out
+
+        muse_link = cmd_link_dir / "muse"
+        assert muse_link.is_symlink()
+        assert muse_link.resolve() == muse_bin.resolve()
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="Symlink check is Unix-only")
+    def test_muse_link_falls_back_to_hermes_entry_point(self, monkeypatch, tmp_path):
+        """On venvs that predate the muse console script, the muse link
+        repairs against the hermes entry point (mirrors setup-hermes.sh)."""
+        home, project, hermes_bin = _setup_doctor_env(monkeypatch, tmp_path)
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        out = _run_doctor(fix=True)
+        assert "Created symlink" in out
+
+        muse_link = tmp_path / ".local" / "bin" / "muse"
+        assert muse_link.is_symlink()
+        assert muse_link.resolve() == hermes_bin.resolve()
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Symlink check is Unix-only")
     def test_wrong_target_symlink_shows_warn(self, monkeypatch, tmp_path):
@@ -205,7 +243,7 @@ class TestDoctorCommandInstallation:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         out = _run_doctor(fix=False)
-        assert "Venv entry point exists" in out
+        assert "Venv entry point for hermes exists" in out
         assert ".venv/bin/hermes" in out
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Symlink check is Unix-only")
