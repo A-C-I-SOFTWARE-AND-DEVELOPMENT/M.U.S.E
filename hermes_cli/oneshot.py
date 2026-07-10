@@ -185,6 +185,18 @@ def run_oneshot(
                 toolsets=explicit_toolsets,
                 use_config_toolsets=use_config_toolsets,
             )
+    except Exception as exc:
+        # Everything is redirected to devnull inside the block, so an
+        # unhandled exception here would surface as a raw traceback on the
+        # real stderr — the one thing a fresh phone/Termux install sees
+        # when no provider is configured yet. Print the friendly message
+        # instead (same formatting the interactive CLI uses).
+        from hermes_cli.auth import AuthError, format_auth_error
+
+        if isinstance(exc, AuthError):
+            sys.stderr.write(format_auth_error(exc) + "\n")
+            return 2
+        raise
     finally:
         try:
             devnull.close()
