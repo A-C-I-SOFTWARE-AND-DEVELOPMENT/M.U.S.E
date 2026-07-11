@@ -351,17 +351,25 @@ export async function chat(
   prompt: string,
   history: ChatTurn[],
   cb?: ChatCallbacks,
+  signal?: AbortSignal,
 ): Promise<string> {
-  let r: Response;
-  try {
-    r = await api("/v1/jarvis/chat", {
+  const request = (path: string) =>
+    api(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, history }),
+      signal,
     });
-  } catch {
-    // Transport failure (gateway down / unreachable) — report instead of
-    // rejecting, so the composer never wedges mid-send.
+
+  let r: Response;
+  try {
+    // Prefer the full agent (tools, coding, approvals). A gateway started in
+    // normal JARVIS mode answers 409, in which case the lean responder remains
+    // a transparent fallback rather than breaking desktop chat.
+    r = await request("/v1/agent/chat");
+    if (r.status === 409) r = await request("/v1/jarvis/chat");
+  } catch (error) {
+    if (signal?.aborted) return "";
     cb?.onError?.("Can't reach the gateway — is the brain running? (Settings → Brain)");
     return "";
   }
@@ -375,10 +383,39 @@ export async function chat(
     cb?.onError?.(msg);
     return "";
   }
+
   const reader = r.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
   let acc = "";
+  let sawBodyDelta = false;
+  const consume = (line: string) => {
+    if (!line) return;
+    try {
+      const obj = JSON.parse(line) as Record<string, unknown>;
+      if (obj.type === "error" || obj.error) {
+        cb?.onError?.(String(obj.message ?? obj.error ?? "Agent error"));
+      } else if (obj.type === "body" && obj.text != null) {
+        // Full mode follows token deltas with one canonical final body. Replace
+        // the streamed draft instead of appending it; lean JARVIS mode emits
+        // body chunks only, so those remain additive.
+        const text = String(obj.text);
+        acc = sawBodyDelta ? text : acc + text;
+      } else if (obj.type === "body_delta" && obj.text != null) {
+        sawBodyDelta = true;
+        acc += String(obj.text);
+      } else if (obj.role === "assistant" && obj.content != null) {
+        // Compatibility with OpenAI-shaped NDJSON responders.
+        acc += String(obj.content);
+      } else if (obj.content != null && obj.role !== "user" && obj.role !== "system") {
+        acc += String(obj.content);
+      }
+      cb?.onDelta?.(acc);
+    } catch {
+      // Keep a partial line buffered; malformed completed lines are ignored.
+    }
+  };
+
   try {
     for (;;) {
       const { value, done } = await reader.read();
@@ -386,33 +423,30 @@ export async function chat(
       buf += dec.decode(value, { stream: true });
       let nl: number;
       while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl).trim();
+        consume(buf.slice(0, nl).trim());
         buf = buf.slice(nl + 1);
-        if (!line) continue;
-        try {
-          const obj = JSON.parse(line) as Record<string, unknown>;
-          if (obj.error) {
-            acc += "\n[error] " + String(obj.error);
-          } else if (obj.role === "assistant" && obj.content != null) {
-            acc += String(obj.content);
-          } else if (
-            obj.content != null &&
-            obj.role !== "user" &&
-            obj.role !== "system"
-          ) {
-            acc += String(obj.content);
-          }
-        } catch {
-          /* ignore partial / non-JSON lines */
-        }
-        cb?.onDelta?.(acc);
       }
     }
+    consume((buf + dec.decode()).trim());
   } catch {
-    // The stream dropped mid-reply — keep what already arrived.
-    cb?.onError?.(acc ? acc + "\n[connection lost]" : "Connection lost mid-reply — try again.");
+    if (!signal?.aborted) {
+      cb?.onError?.(acc ? acc + "\n[connection lost]" : "Connection lost mid-reply — try again.");
+    }
   }
   return acc;
+}
+
+/** Interrupt the current full-agent turn. Safe to call against a lean gateway. */
+export async function stopAgent(): Promise<void> {
+  try {
+    await api("/v1/agent/stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch {
+    // The local AbortController still stops rendering if the gateway is gone.
+  }
 }
 
 // ---- jobs (SSE over fetch + ReadableStream) -------------------------------

@@ -344,6 +344,25 @@ pub fn run() {
                 let _ = app.clipboard().write_text(effective_gateway_url(app));
             }
         })
+        // Native updates must never be shadowed by an old PWA service worker.
+        // This hook runs even when a legacy cached JavaScript bundle controls
+        // the first page load, unregisters it from Rust, clears CacheStorage,
+        // and reloads once into the assets bundled with this executable.
+        .on_page_load(|webview, _payload| {
+            let _ = webview.eval(
+                r#"(async()=>{
+                    if(!('serviceWorker' in navigator)) return;
+                    const regs=await navigator.serviceWorker.getRegistrations();
+                    if(!regs.length) return;
+                    await Promise.all(regs.map(r=>r.unregister()));
+                    if('caches' in window){
+                      const keys=await caches.keys();
+                      await Promise.all(keys.map(k=>caches.delete(k)));
+                    }
+                    location.reload();
+                })().catch(()=>{});"#,
+            );
+        })
         .setup(|app| {
             // Clone the handle so the menu/tray builders own an `AppHandle`
             // independent of the `&mut App` borrow that `set_menu` needs.

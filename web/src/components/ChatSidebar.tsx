@@ -34,7 +34,7 @@ import { HERMES_BASE_PATH } from "@/lib/api";
 
 import { cn } from "@/lib/utils";
 import { AlertCircle, ChevronDown, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface SessionInfo {
   cwd?: string;
@@ -89,6 +89,7 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
   const [tools, setTools] = useState<ToolEntry[]>([]);
   const [modelOpen, setModelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toolsEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,6 +274,13 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
     };
   }, [channel, version]);
 
+  // Keep the tools list pinned to the latest entry while the agent is working.
+  useEffect(() => {
+    const el = toolsEndRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [tools]);
+
   const reconnect = useCallback(() => {
     setError(null);
     setTools([]);
@@ -369,6 +377,7 @@ export function ChatSidebar({ channel, className }: ChatSidebarProps) {
           ) : (
             tools.map((t) => <ToolCall key={t.id} tool={t} />)
           )}
+          <div ref={toolsEndRef} aria-hidden="true" />
         </div>
       </Card>
 

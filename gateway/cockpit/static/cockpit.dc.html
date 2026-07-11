@@ -1115,7 +1115,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">Talk to muse</span><h2 class="section-title">Chat with muse</h2></div>
           <div class="trailing"><button type="button" class="pill accent" onclick="{{ onToken }}" title="Connect a gateway or set a provider key" style="cursor:pointer; font:inherit;"><span class="{{ conn.dotCls }}"></span> {{ conn.label }}</button></div>
         </div>
-        <div style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:18px; padding:8px 4px 16px;" role="log" aria-live="polite" aria-label="Conversation with muse" aria-relevant="additions text">
+        <div class="chat-log" style="flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:18px; padding:8px 4px 16px;" role="log" aria-live="polite" aria-label="Conversation with muse" aria-relevant="additions text">
           <sc-for list="{{ chat }}" as="msg" hint-placeholder-count="4">
             <div style="display:flex; gap:12px; max-width:78%; align-self:{{ msg.align }};">
               <sc-if value="{{ msg.isMuse }}" hint-placeholder-val="{{ false }}">
@@ -1138,6 +1138,17 @@ body { perspective: 1800px; }
                 </sc-if>
                 <sc-if value="{{ msg.phaseLabel }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-family:var(--mono); font-size:11px; color:var(--ring-1);"><span class="dot live" style="width:6px; height:6px;"></span> {{ msg.phaseLabel }}</div>
+                </sc-if>
+                <sc-if value="{{ msg.hasThoughts }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:10px; padding:8px 10px; border-radius:8px; background:rgba(122,224,255,0.06); border:1px solid rgba(122,224,255,0.18);">
+                    <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Working</div>
+                    <sc-for list="{{ msg.thoughts }}" as="th" hint-placeholder-count="3">
+                      <div style="display:flex; align-items:flex-start; gap:8px; font-family:var(--mono); font-size:11px; line-height:1.45; color:var(--signal-dim);">
+                        <span class="dot live" style="width:5px; height:5px; flex:none; margin-top:5px;"></span>
+                        <span>{{ th.text }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
                 </sc-if>
                 <div style="font-size:var(--type-body-size); line-height:var(--type-body-line); color:var(--signal); white-space:pre-wrap;">{{ msg.text }}</div>
                 <sc-if value="{{ msg.hasApproval }}" hint-placeholder-val="{{ false }}">
@@ -1172,7 +1183,23 @@ body { perspective: 1800px; }
             </div>
           </sc-if>
         </div>
-        <div style="display:flex; align-items:center; gap:12px; padding-top:14px; border-top:1px solid var(--edge);">
+        <div style="display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid var(--edge); flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--signal-mute);">
+            <span>Model</span>
+            <select class="field" aria-label="Chat model" value="{{ chatModel }}" onchange="{{ onChatModel }}" style="width:auto; min-width:160px; padding:6px 10px; font-size:12px;">
+              <sc-for list="{{ chatModelOptions }}" as="opt" hint-placeholder-count="6">
+                <option value="{{ opt.id }}">{{ opt.label }}</option>
+              </sc-for>
+            </select>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--signal-mute);">
+            <span>Effort</span>
+            <select class="field" aria-label="Reasoning effort" value="{{ chatEffort }}" onchange="{{ onChatEffort }}" style="width:auto; min-width:110px; padding:6px 10px; font-size:12px;">
+              <sc-for list="{{ chatEffortOptions }}" as="opt" hint-placeholder-count="6">
+                <option value="{{ opt.id }}">{{ opt.label }}</option>
+              </sc-for>
+            </select>
+          </label>
           <button type="button" onclick="{{ onToggleFusionMode }}" style="{{ fusionModeStyle }}"><span class="dot live" style="width:6px; height:6px;"></span> Fusion {{ fusionModeLabel }}</button>
           <span style="font-size:11px; color:var(--signal-mute);">{{ fusionModeHint }}</span>
         </div>
@@ -2435,6 +2462,9 @@ class Component extends DCLogic {
     providers: this._defaultProviders(),
     models: this._defaultModels(),
     chatFusion: true,
+    // Default to NVIDIA while OpenRouter is out of credit; Grok stays in the picker.
+    chatModel: 'nvidia/nemotron-3-super-120b-a12b',
+    chatEffort: 'medium',
     addModelOpen: false,
     newModel: { name: '', prov: 'openrouter', ctx: 128, strength: 'Reasoning' },
     sandboxDevice: 'responsive',
@@ -2905,6 +2935,17 @@ class Component extends DCLogic {
     // draw loop and the periodic canvas redraw, rendering a single static frame
     // instead. (CSS animations already stop via the prefers-reduced-motion rules.)
     this._reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // Restore in-chat model / effort / fusion prefs from prior sessions.
+    try {
+      const patch = {};
+      const m = localStorage.getItem('muse.chat.model');
+      const e = localStorage.getItem('muse.chat.effort');
+      const f = localStorage.getItem('muse.chat.fusion');
+      if (m) patch.chatModel = m;
+      if (e) patch.chatEffort = e;
+      if (f === '0' || f === '1') patch.chatFusion = f === '1';
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (err) { /* ignore */ }
     for (let i = 0; i < 40; i++) this._pushSeries(true);
     this.setState({ work: this._seedWork() });
     // Refresh the Releases section from the build-time GitHub snapshot
@@ -3145,34 +3186,47 @@ class Component extends DCLogic {
   ];
   pickExample = (text) => () => this.setState({ composer: text });
 
+  _scrollChatToBottom = () => {
+    try {
+      const log = document.querySelector('.chat-log');
+      if (log) log.scrollTop = log.scrollHeight;
+    } catch (e) { /* ignore */ }
+  };
+
   onComposer = (e) => this.setState({ composer: e.target.value });
   onComposerKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); this.onSend(); } };
   onSend = () => {
     const text = (this.state.composer || '').trim();
     if (!text) return;
+    if (this.state.museThinking) return; // ignore double-sends while a turn is in flight
+    // Pass `chat` explicitly — setState is async via the DC host, so reading
+    // this.state.chat inside the dispatcher would drop the just-added user turn.
     const chat = [...this.state.chat, { who: 'You', isMuse: false, text }];
     this.setState({ chat, composer: '', museThinking: true });
     clearTimeout(this._reply);
-    // Lane 1 — FULL agent (TUI parity): signed in with a bound gateway, OR
-    // device-paired to a gateway that advertises full-agent mode. Streams the
-    // real agent (tools, code execution, sub-agents, owner approvals).
-    if (this._agentLaneReady() || (this._tok() && this._gatewayIsFullAgent())) {
-      this._dispatchAgentChat(text);
+    // Stick the viewport to the latest turn while muse is thinking / streaming.
+    requestAnimationFrame(() => this._scrollChatToBottom());
+    // Lane 1 — FULL agent stream. Prefer this whenever we have a gateway token
+    // OR a signed-in relay. Do NOT wait for gatewayInfo.agent === 'full' — that
+    // field is only populated after an explicit health check, and missing it
+    // used to dump chat into the job queue (jobs stay QUEUED with no worker →
+    // "muse is thinking" forever). /v1/agent/chat returns 409 for jarvis-only
+    // gateways; _dispatchAgentChat falls back to the job lane on 409.
+    if (this._agentLaneReady() || this._tok()) {
+      this._dispatchAgentChat(text, chat);
       return;
     }
-    // Lane 2 — device-paired but jarvis-only gateway: run a real job + poll.
-    if (this._tok()) {
-      this._dispatchLiveJob(text);
-      return;
-    }
-    // Lane 3 — anonymous demo: the deployment's /api/chat (server key or BYOK),
+    // Lane 2 — anonymous demo: the deployment's /api/chat (server key or BYOK),
     // or an honest "sign in / pair a gateway" message. Never fabricates.
-    this._dispatchApiChat(text);
+    this._dispatchApiChat(text, chat);
   };
 
   _gatewayIsFullAgent() {
     const info = this.state.gatewayInfo;
-    return !!(info && info.agent === 'full');
+    // Treat unknown/null as full when a local token exists — muse omni defaults
+    // to --agent full. Explicit 'jarvis' still forces the job lane via 409.
+    if (info && info.agent) return info.agent === 'full';
+    return !!this._tok();
   }
 
   _agentPhaseLabel(p) {
@@ -3180,12 +3234,13 @@ class Component extends DCLogic {
     return map[p] || (p || '').toLowerCase();
   }
 
-  _dispatchApiChat = async (text) => {
+  _dispatchApiChat = async (text, seededChat) => {
     void text;
-    const history = this.state.chat
+    const seed = Array.isArray(seededChat) ? seededChat : this.state.chat;
+    const history = seed
       .filter(m => m && typeof m.text === 'string' && (m.isMuse || m.who === 'You'))
       .map(m => ({ role: m.isMuse ? 'assistant' : 'user', content: m.text }));
-    const base = [...this.state.chat, { who: 'muse', isMuse: true, text: '' }];
+    const base = [...seed, { who: 'muse', isMuse: true, text: '' }];
     const museIdx = base.length - 1;
     let acc = '';
     const render = () => this.setState({ chat: base.map((m, i) => i === museIdx ? { ...m, text: acc } : m) });
@@ -3244,42 +3299,59 @@ class Component extends DCLogic {
     }
   };
 
-  _dispatchLiveJob = async (text) => {
+  _dispatchLiveJob = async (text, seededChat) => {
+    const seed = () => Array.isArray(seededChat) ? seededChat : this.state.chat;
     try {
       const body = { title: text.slice(0, 80), prompt: text, type: this.state.chatFusion ? 'fusion-chat' : 'chat' };
       const r = await this._api('/v1/cockpit/jobs', { method: 'POST', body });
       if (!r.ok || !r.data || !r.data.id) {
-        this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: 'The gateway rejected the job (' + r.status + '). ' + ((r.data && (r.data.error || r.data.hint)) || '') }] });
+        this.setState({ museThinking: false, chat: [...seed(), { who: 'muse', isMuse: true, text: 'The gateway rejected the job (' + r.status + '). ' + ((r.data && (r.data.error || r.data.hint)) || '') }] });
         return;
       }
       const jobId = r.data.id;
-      // Poll the job until it completes or times out
+      // Poll the job until it completes or times out. Chat jobs with no worker
+      // stay QUEUED forever — fail fast and surface that instead of spinning.
       let tries = 0;
+      let sawNonQueued = false;
       const poll = async () => {
         tries++;
         try {
           const s = await this._api('/v1/cockpit/jobs/' + jobId);
           if (s.ok && s.data) {
             const j = s.data;
-            const done = j.status === 'completed' || j.status === 'done' || j.status === 'failed' || j.status === 'error' || j.status === 'cancelled';
+            const st = String(j.status || '').toLowerCase();
+            if (st && st !== 'queued') sawNonQueued = true;
+            const done = st === 'completed' || st === 'done' || st === 'failed' || st === 'error' || st === 'cancelled';
             if (done) {
               const out = j.output || j.result || j.response || j.text || (j.messages && j.messages.length ? j.messages[j.messages.length - 1].text : '') || ('Job ' + jobId + ' finished with status: ' + j.status);
               const msg = { who: 'muse', isMuse: true, text: typeof out === 'string' ? out : JSON.stringify(out, null, 2) };
               if (this.state.chatFusion && j.routing) { msg.routing = j.routing; msg.routingTitle = 'How muse split this task'; }
-              this.setState({ museThinking: false, chat: [...this.state.chat, msg] });
+              this.setState({ museThinking: false, chat: [...seed(), msg] });
               this.pullAll();
+              return;
+            }
+            // Still queued after ~6s with no worker pickup → this lane can't chat.
+            if (!sawNonQueued && tries >= 4) {
+              const withNote = [...seed(), {
+                who: 'muse', isMuse: true,
+                text: 'Chat job ' + jobId + ' is stuck in queue (no worker picked it up). Reconnecting to the full-agent stream…',
+              }];
+              this.setState({ museThinking: false, chat: withNote });
+              // Recover: refresh health then retry via agent chat once.
+              await this._refreshGatewayInfo();
+              this._dispatchAgentChat(text, withNote);
               return;
             }
           }
         } catch (e) { /* keep polling */ }
-        if (tries < 120) this._reply = setTimeout(poll, 1500);
-        else this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: 'Job ' + jobId + ' is still running. Check the Tasks view for live progress.' }] });
+        if (tries < 40) this._reply = setTimeout(poll, 1500);
+        else this.setState({ museThinking: false, chat: [...seed(), { who: 'muse', isMuse: true, text: 'Job ' + jobId + ' is still running. Check the Tasks view for live progress.' }] });
       };
       this._reply = setTimeout(poll, 1000);
       // Refresh the Tasks view immediately so the new job appears
       this.pullJobs();
     } catch (e) {
-      this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: this._reach(e) }] });
+      this.setState({ museThinking: false, chat: [...seed(), { who: 'muse', isMuse: true, text: this._reach(e) }] });
     }
   };
 
@@ -3495,7 +3567,62 @@ class Component extends DCLogic {
     }));
     if (schedules.length) this._setIf({ schedulesLive: schedules });
   };
-  onToggleFusionMode = () => this.setState({ chatFusion: !this.state.chatFusion });
+  onToggleFusionMode = () => {
+    const next = !this.state.chatFusion;
+    this.setState({ chatFusion: next });
+    try { localStorage.setItem('muse.chat.fusion', next ? '1' : '0'); } catch (e) {}
+  };
+  onChatModel = (e) => {
+    const v = e && e.target ? e.target.value : '';
+    this.setState({ chatModel: v });
+    try { localStorage.setItem('muse.chat.model', v); } catch (e) {}
+  };
+  onChatEffort = (e) => {
+    const v = e && e.target ? e.target.value : 'medium';
+    this.setState({ chatEffort: v });
+    try { localStorage.setItem('muse.chat.effort', v); } catch (e) {}
+  };
+  _chatModelOptions() {
+    const curated = [
+      { id: 'nvidia/nemotron-3-super-120b-a12b', label: 'Nemotron Super (NVIDIA)' },
+      { id: 'x-ai/grok-4.5', label: 'Grok 4.5 (OpenRouter)' },
+      { id: 'glm-5.2', label: 'GLM 5.2 (Z.AI)' },
+      { id: 'anthropic/claude-sonnet-4.6', label: 'Claude Sonnet 4.6' },
+      { id: 'openai/gpt-5.5', label: 'GPT-5.5' },
+      { id: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro' },
+      { id: 'LongCat-2.0', label: 'LongCat 2.0' },
+    ];
+    const fromReg = (this.state.models || [])
+      .filter(m => m && m.on && m.model)
+      .map(m => ({ id: m.model, label: (m.name || m.model) + (m.prov ? ' · ' + m.prov : '') }));
+    const seen = new Set();
+    const out = [];
+    for (const o of curated.concat(fromReg)) {
+      if (!o.id || seen.has(o.id)) continue;
+      seen.add(o.id);
+      out.push(o);
+    }
+    return out;
+  }
+  _chatEffortOptions() {
+    return [
+      { id: 'none', label: 'Off' },
+      { id: 'minimal', label: 'Minimal' },
+      { id: 'low', label: 'Low' },
+      { id: 'medium', label: 'Medium' },
+      { id: 'high', label: 'High' },
+      { id: 'xhigh', label: 'Max' },
+    ];
+  }
+  _providerForModel(modelId) {
+    const id = String(modelId || '');
+    if (!id) return '';
+    if (id === 'glm-5.2' || id.startsWith('glm-')) return 'zai';
+    if (id === 'LongCat-2.0' || id.toLowerCase().includes('longcat')) return 'longcat';
+    if (id.startsWith('nvidia/')) return 'nvidia-all';
+    if (id.includes('/')) return 'openrouter-all';
+    return '';
+  }
   onEmergency = () => this.setState({ halted: !this.state.halted });
   _noop = () => {};
 
@@ -3643,23 +3770,26 @@ class Component extends DCLogic {
   // Full-agent chat: stream POST /v1/agent/chat (NDJSON chunk vocabulary) either
   // through the relay (signed-in) or directly (device-paired to a --agent full
   // gateway). Renders body_delta incrementally, tool_call as chips, phase as a
-  // status line, and approval as an inline Approve/Deny card.
-  _dispatchAgentChat = async (text) => {
+  // status line, thought summaries as a live working log, and approval as an
+  // inline Approve/Deny card.
+  _dispatchAgentChat = async (text, seededChat) => {
     const relay = this._agentLaneReady();
     const sessionKey = this._agentSessionKey();
-    const history = this.state.chat
+    // Prefer the chat snapshot from onSend — this.state.chat may still be stale
+    // because DC setState is async through the host wrapper.
+    const prior = Array.isArray(seededChat) ? [...seededChat] : [...this.state.chat];
+    const history = prior
       .filter(m => m && typeof m.text === 'string' && (m.isMuse || m.who === 'You'))
       .map(m => ({ role: m.isMuse ? 'assistant' : 'user', content: m.text }));
     // The muse message is a single mutable accumulator. Every render replaces
     // the chat element at `idx` with a fresh snapshot of the WHOLE accumulator
-    // (text + tools + phase + approval together), so no field is ever dropped
-    // between streamed chunks regardless of render batching.
-    const prior = [...this.state.chat];
+    // (text + tools + phase + thoughts + approval together), so no field is ever
+    // dropped between streamed chunks regardless of render batching.
     const idx = prior.length; // the new muse message goes at the end
-    const acc = { who: 'muse', isMuse: true, text: '', tools: [], phase: '', approval: null, agent: true, sessionKey };
+    const acc = { who: 'muse', isMuse: true, text: '', tools: [], thoughts: [], phase: '', approval: null, agent: true, sessionKey };
     this._activeAgentAcc = acc; // so an approval decision can clear the card
-    const render = () => this.setState({ chat: [...prior, { ...acc, tools: acc.tools.map(t => ({ ...t })), approval: acc.approval ? { ...acc.approval } : null }] });
-    this.setState({ chat: [...prior, { ...acc }], museThinking: true });
+    const render = () => this.setState({ chat: [...prior, { ...acc, tools: acc.tools.map(t => ({ ...t })), thoughts: acc.thoughts.map(t => ({ ...t })), approval: acc.approval ? { ...acc.approval } : null }] }, () => this._scrollChatToBottom());
+    this.setState({ chat: [...prior, { ...acc }], museThinking: true }, () => this._scrollChatToBottom());
     void idx;
 
     const headers = { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' };
@@ -3667,16 +3797,48 @@ class Component extends DCLogic {
     if (relay) { headers['Authorization'] = 'Bearer ' + this.state.auth.access_token; url = '/api/gateway/v1/agent/chat'; }
     else { const t = this._tok(); if (t) headers['Authorization'] = 'Bearer ' + t; url = this._gw() + '/v1/agent/chat'; }
 
+    const chatModel = this.state.chatModel || '';
+    const chatEffort = this.state.chatEffort || 'medium';
+    const body = {
+      prompt: text,
+      history,
+      session_key: sessionKey,
+      fusion: !!this.state.chatFusion,
+      effort: chatEffort,
+    };
+    if (chatModel) {
+      body.model = chatModel;
+      const prov = this._providerForModel(chatModel);
+      if (prov) body.provider = prov;
+    }
+
+    // Abort hung streams so "muse is thinking" cannot spin forever.
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const hangTimer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (e) {} }, 180000);
+
     try {
-      const r = await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ prompt: text, history, session_key: sessionKey }) });
-      if (r.status === 409) { this.setState({ museThinking: false, chat: prior }); this._dispatchLiveJob(text); return; } // gateway not in full mode → job lane
-      if (r.status === 402) { acc.text = 'The full-agent lane needs an active subscription on this account.'; this.setState({ museThinking: false }); render(); return; }
-      if (r.status === 429) { let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' — ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
-      if (!r.ok || !r.body) { let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable — ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
-      this.setState({ museThinking: false });
+      const r = await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify(body), signal: ctrl ? ctrl.signal : undefined });
+      if (r.status === 409) {
+        clearTimeout(hangTimer);
+        this.setState({ museThinking: false, chat: prior });
+        this._dispatchLiveJob(text, prior);
+        return;
+      }
+      if (r.status === 402) { clearTimeout(hangTimer); acc.text = 'The full-agent lane needs an active subscription on this account.'; this.setState({ museThinking: false }); render(); return; }
+      if (r.status === 429) { clearTimeout(hangTimer); let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' — ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
+      if (!r.ok || !r.body) { clearTimeout(hangTimer); let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable — ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
+      // Keep museThinking until the first visible chunk arrives, then swap to
+      // the in-bubble Working log so the screen never looks frozen.
       const reader = r.body.getReader();
       const dec = new TextDecoder();
       let buf = '';
+      let sawVisible = false;
+      const markVisible = () => {
+        if (!sawVisible) {
+          sawVisible = true;
+          this.setState({ museThinking: false });
+        }
+      };
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -3686,23 +3848,50 @@ class Component extends DCLogic {
           const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
           if (!line) continue;
           let c; try { c = JSON.parse(line); } catch (e) { continue; }
-          if (c.type === 'body_delta') { acc.text += (c.text || ''); render(); }
-          else if (c.type === 'body') { if (c.text) acc.text = c.text; render(); }
-          else if (c.type === 'phase') { acc.phase = c.phase || ''; render(); }
+          if (c.type === 'body_delta') { markVisible(); acc.text += (c.text || ''); render(); }
+          else if (c.type === 'body') { markVisible(); if (c.text) acc.text = c.text; render(); }
+          else if (c.type === 'phase') { markVisible(); acc.phase = c.phase || ''; render(); }
+          else if (c.type === 'thought' || c.type === 'working' || c.type === 'detail') {
+            markVisible();
+            const t = (c.text || c.label || '').trim();
+            if (t) {
+              const last = acc.thoughts[acc.thoughts.length - 1];
+              if (!last || last.text !== t) {
+                acc.thoughts.push({ text: t });
+                if (acc.thoughts.length > 8) acc.thoughts = acc.thoughts.slice(-8);
+                render();
+              }
+            }
+          }
+          else if (c.type === 'thinking') {
+            markVisible();
+            if (!acc.thoughts.length) { acc.thoughts.push({ text: 'thinking…' }); render(); }
+          }
           else if (c.type === 'tool_call') {
+            markVisible();
             const existing = acc.tools.find(t => t.id === c.id);
             if (existing) { existing.status = c.status; existing.detail = c.detail || existing.detail; }
             else acc.tools.push({ id: c.id, name: c.name, summary: c.summary, status: c.status, detail: c.detail });
             render();
           }
-          else if (c.type === 'approval') { acc.approval = { id: c.id, sessionKey: c.sessionKey, summary: c.summary, tool: c.tool }; render(); }
-          else if (c.type === 'error') { acc.text = acc.text || ('Error: ' + (c.message || 'the agent run failed')); render(); }
-          else if (c.type === 'done') { acc.phase = ''; render(); this.pullAll(); }
+          else if (c.type === 'approval') { markVisible(); acc.approval = { id: c.id, sessionKey: c.sessionKey, summary: c.summary, tool: c.tool }; render(); }
+          else if (c.type === 'error') { markVisible(); acc.text = acc.text || ('Error: ' + (c.message || 'the agent run failed')); render(); }
+          else if (c.type === 'done') { markVisible(); acc.phase = ''; render(); this.pullAll(); }
         }
       }
+      if (!sawVisible) {
+        acc.text = acc.text || 'The agent returned no output. Try again, or pick a different model above.';
+        render();
+      }
+      this.setState({ museThinking: false });
     } catch (e) {
-      acc.text = acc.text || ('Could not reach the agent (' + ((e && e.message) || e) + ').');
+      const aborted = e && (e.name === 'AbortError' || /aborted/i.test(String(e.message || '')));
+      acc.text = acc.text || (aborted
+        ? 'Timed out waiting for the agent. Check the model picker (OpenRouter may be out of credit) and try NVIDIA / GLM.'
+        : ('Could not reach the agent (' + ((e && e.message) || e) + ').'));
       this.setState({ museThinking: false }); render();
+    } finally {
+      clearTimeout(hangTimer);
     }
   };
 
@@ -3823,10 +4012,26 @@ class Component extends DCLogic {
 
   _kickLive = () => {
     if (!this._tok()) return;
+    // Refresh /v1/health so gatewayInfo.agent is known (full vs jarvis).
+    this._refreshGatewayInfo();
     // Immediately pull everything, then poll on a 4s loop
     this.pullAll();
     clearInterval(this._liveTimer);
     this._liveTimer = setInterval(() => this.pullAll(), 4000);
+  };
+
+  _refreshGatewayInfo = async () => {
+    try {
+      const r = await this._api('/v1/health', { auth: false });
+      if (r.ok && r.data && r.data.ok) {
+        this.setState({
+          gatewayInfo: r.data,
+          connState: this._tok() ? 'live' : (this.state.connState || 'demo'),
+        });
+        return r.data;
+      }
+    } catch (e) { /* keep last known */ }
+    return null;
   };
 
   _autoConnectFromUrl = () => {
@@ -3855,7 +4060,8 @@ class Component extends DCLogic {
       try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
       const url = gw || this._gw();
       if (tok) {
-        // Live immediately; _kickLive() (called next in mount) sees the token.
+        // Live immediately; _kickLive() (called next in mount) sees the token
+        // and refreshes /v1/health so agent mode is known before the first send.
         this.setState({ gatewayUrl: url, deviceId: dev, connState: 'live', connStep: 'connected', connError: '' });
         return true;
       }
@@ -4231,7 +4437,7 @@ class Component extends DCLogic {
       channelOn: { cli: true, telegram: true, discord: true, slack: false, whatsapp: false, signal: false, email: true },
       scheduleOn: { report: true, backup: true, audit: true, radar: false },
       toolsetOn: { files: true, shell: true, web: true, code: true, memory: true, research: true, media: true, comms: true },
-      providers: this._defaultProviders(), models: this._defaultModels(), chatFusion: true, addModelOpen: false,
+      providers: this._defaultProviders(), models: this._defaultModels(), chatFusion: true, chatModel: 'nvidia/nemotron-3-super-120b-a12b', chatEffort: 'medium', addModelOpen: false,
       work: this._seedWork(),
     });
     this._sfx('reset');
@@ -4744,6 +4950,8 @@ class Component extends DCLogic {
           statusLabel: t.status === 'OK' ? 'done' : (t.status === 'FAIL' ? 'failed' : 'running'),
           cls: t.status === 'OK' ? 'pill ok' : (t.status === 'FAIL' ? 'pill warn' : 'pill accent'),
         })),
+        hasThoughts: !!(m.thoughts && m.thoughts.length),
+        thoughts: (m.thoughts || []).map(t => ({ text: t.text || t })),
         phaseLabel: (!m.approval && m.phase && m.phase !== 'FINAL') ? this._agentPhaseLabel(m.phase) : '',
         hasApproval: !!m.approval,
         onApproveOnce: this.decideAgentApproval(mi, 'once'),
@@ -4756,6 +4964,10 @@ class Component extends DCLogic {
       showExamples: s.chat.every(m => m.isMuse),
       examples: this.STARTER_PROMPTS.map(t => ({ text: t, onPick: this.pickExample(t) })),
       onComposer: this.onComposer, onComposerKey: this.onComposerKey, onSend: this.onSend,
+      chatModel: s.chatModel, chatEffort: s.chatEffort,
+      chatModelOptions: this._chatModelOptions(),
+      chatEffortOptions: this._chatEffortOptions(),
+      onChatModel: this.onChatModel, onChatEffort: this.onChatEffort,
       // account
       authEmail: s.authEmail, authPassword: s.authPassword, bindToken: s.bindToken,
       account: {

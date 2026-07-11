@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.aci.muse",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm --prefix ui run dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm --prefix ui run build",
     "frontendDist": "../ui/dist"
   },
   "app": {

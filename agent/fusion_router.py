@@ -50,9 +50,27 @@ Configuration via config.yaml:
 import asyncio
 import json
 import logging
+import threading
 from typing import Any, Optional, Dict, List
 
 logger = logging.getLogger(__name__)
+
+# Per-request fusion override from Muse Omni chat (thread-local so concurrent
+# cockpit runs don't clobber each other). None = honor config.yaml.
+_fusion_override = threading.local()
+
+
+def set_fusion_override(enabled: Optional[bool]) -> None:
+    """Force fusion on/off for the current thread, or clear with None."""
+    if enabled is None:
+        if hasattr(_fusion_override, "enabled"):
+            delattr(_fusion_override, "enabled")
+    else:
+        _fusion_override.enabled = bool(enabled)
+
+
+def get_fusion_override() -> Optional[bool]:
+    return getattr(_fusion_override, "enabled", None)
 
 
 # Default fusion configuration
@@ -97,6 +115,9 @@ def get_fusion_config() -> Dict[str, Any]:
 
 def should_use_fusion() -> bool:
     """Check if fusion mode is active."""
+    override = get_fusion_override()
+    if override is not None:
+        return override
     cfg = get_fusion_config()
     return cfg.get("mode", "fusion") == "fusion"
 

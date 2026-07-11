@@ -55,7 +55,8 @@ export function App() {
   const [activeId, setActiveId] = useState<string>(() => {
     const fromHash = currentHashId();
     if (fromHash && routeList.some((r) => r.id === fromHash)) return fromHash;
-    return routeList[0]?.id ?? "";
+    const chat = routeList.find((r) => r.id === "chat");
+    return chat?.id ?? routeList[0]?.id ?? "";
   });
   const [health, setHealth] = useState<Health>("connecting");
 

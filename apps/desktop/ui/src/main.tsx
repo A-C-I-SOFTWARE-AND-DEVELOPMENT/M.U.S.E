@@ -16,11 +16,31 @@ import "./styles/tokens.css";
 import { App } from "./App";
 import { autoPairLocal } from "./lib/gateway";
 
-// Register the PWA service worker (autoUpdate) — ONLY in a plain browser.
-// Inside the Tauri WebView2 shell the service worker intercepts fetches to
-// the gateway (http://127.0.0.1:8765) and causes "refused to connect"
-// errors, so we skip registration entirely when __TAURI_INTERNALS__ is present.
-if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+// The native shell must never be controlled by a service worker: its assets
+// are versioned inside the executable, while an old PWA cache can survive an
+// installer update and serve stale Chat/Observatory code. Older builds did
+// register one, so actively remove legacy registrations and caches once.
+async function clearLegacyNativePwa(): Promise<boolean> {
+  if (!inTauri || !("serviceWorker" in navigator)) return false;
+  const controlled = Boolean(navigator.serviceWorker.controller);
+  const registrations = await navigator.serviceWorker.getRegistrations().catch(() => []);
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  if ("caches" in window) {
+    const keys = await caches.keys().catch(() => []);
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+  const reloadKey = "muse.native-pwa-cleared";
+  if (controlled && sessionStorage.getItem(reloadKey) !== "1") {
+    sessionStorage.setItem(reloadKey, "1");
+    return true;
+  }
+  sessionStorage.removeItem(reloadKey);
+  return false;
+}
+
+if (!inTauri) {
   registerSW({ immediate: true });
 }
 
@@ -35,11 +55,20 @@ function render(): void {
   );
 }
 
-// Zero-touch connect: inside the native shell, silently pair with the local
-// gateway BEFORE first paint so the app mounts already-connected (no pairing
-// card flash). Bounded by a short timeout — if the gateway is still booting,
-// render immediately and let the App's health tick finish pairing.
-void Promise.race([
-  autoPairLocal().catch(() => undefined),
-  new Promise((res) => setTimeout(res, 1200)),
-]).finally(render);
+async function bootstrap(): Promise<void> {
+  if (await clearLegacyNativePwa()) {
+    window.location.reload();
+    return;
+  }
+  // Zero-touch connect: inside the native shell, silently pair with the local
+  // gateway BEFORE first paint so the app mounts already-connected (no pairing
+  // card flash). Bounded by a short timeout — if the gateway is still booting,
+  // render immediately and let the App's health tick finish pairing.
+  await Promise.race([
+    autoPairLocal().catch(() => undefined),
+    new Promise((res) => setTimeout(res, 1200)),
+  ]);
+  render();
+}
+
+void bootstrap();

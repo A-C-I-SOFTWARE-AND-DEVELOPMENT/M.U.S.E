@@ -256,7 +256,7 @@ async fn start_if_needed(app: &AppHandle) -> Result<(), String> {
     let (mut rx, child) = app
         .shell()
         .command(&bin)
-        .args(["cockpit", "serve"])
+        .args(["cockpit", "serve", "--agent", "full"])
         .spawn()
         .map_err(|e| format!("failed to spawn {}: {e}", bin.display()))?;
     let pid = child.pid();

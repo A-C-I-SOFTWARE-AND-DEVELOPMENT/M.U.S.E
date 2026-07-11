@@ -13,7 +13,7 @@
  * in the shell's CSP (frame-src http://127.0.0.1:8765 http://localhost:8765).
  */
 import { useCallback, useEffect, useState } from "react";
-import { getGatewayBase, getToken, pingHealth } from "../lib/gateway";
+import { getGatewayBase, getToken, pingHealth, TOKEN_EVENT } from "../lib/gateway";
 import { brainAvailable, brainStart } from "../lib/brain";
 
 type Probe = "checking" | "online" | "offline";
@@ -28,14 +28,24 @@ function observatoryUrl(): string {
 
 export function Observatory() {
   const [probe, setProbe] = useState<Probe>("checking");
+  const [token, setToken] = useState(() => getToken());
+  const [frameFailed, setFrameFailed] = useState(false);
 
   const check = useCallback(async () => {
     setProbe("checking");
+    setFrameFailed(false);
     setProbe((await pingHealth()) ? "online" : "offline");
   }, []);
 
   useEffect(() => {
+    const syncToken = () => setToken(getToken());
+    window.addEventListener(TOKEN_EVENT, syncToken);
+    window.addEventListener("storage", syncToken);
     void check();
+    return () => {
+      window.removeEventListener(TOKEN_EVENT, syncToken);
+      window.removeEventListener("storage", syncToken);
+    };
   }, [check]);
 
   return (
@@ -52,14 +62,44 @@ export function Observatory() {
         </span>
       </div>
       {probe === "checking" && <div className="card shimmer observatory-fill" />}
-      {probe === "online" && (
+      {probe === "online" && !token && <ObservatoryPairingCard />}
+      {probe === "online" && token && !frameFailed && (
         <iframe
+          key={`${getGatewayBase()}:${token.slice(-6)}`}
           className="observatory-frame"
           src={observatoryUrl()}
           title="muse Observatory"
+          onError={() => setFrameFailed(true)}
+          allow="fullscreen"
         />
       )}
+      {probe === "online" && token && frameFailed && (
+        <div className="card observatory-fill">
+          <b>Observatory couldn't load</b>
+          <p className="muted">The gateway is online, but its visualization page failed to mount.</p>
+          <button onClick={() => setFrameFailed(false)}>Reload Observatory</button>
+        </div>
+      )}
       {probe === "offline" && <BrainDownCard onRetry={check} />}
+    </div>
+  );
+}
+
+function ObservatoryPairingCard() {
+  return (
+    <div className="card observatory-fill">
+      <div className="row">
+        <b>Pair this device to open Observatory</b>
+        <span className="grow" />
+        <span className="pill">authentication required</span>
+      </div>
+      <p className="muted">
+        The gateway is online. Pair in Settings once; Observatory will open
+        automatically and remain signed in on this device.
+      </p>
+      <button onClick={() => { window.location.hash = "settings"; }}>
+        Open Settings
+      </button>
     </div>
   );
 }

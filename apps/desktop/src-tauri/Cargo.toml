@@ -40,10 +40,6 @@ tauri-plugin-updater = "2"
 # path Tauri injects; it MUST be enabled when building the binary for release.
 custom-protocol = ["tauri/custom-protocol"]
 
-[target.'cfg(debug_assertions)'.dependencies]
-# Web inspector in debug builds only.
-tauri = { version = "2", features = ["devtools"] }
-
 [profile.release]
 panic = "abort"   # smaller binaries; we don't unwind across the FFI boundary
 codegen-units = 1

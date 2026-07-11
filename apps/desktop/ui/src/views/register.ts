@@ -19,8 +19,10 @@ import { Approvals } from "./Approvals";
 import { Autonomy } from "./Autonomy";
 import { Observatory } from "./Observatory";
 import { Settings } from "./Settings";
+import { AgentWorkshop } from "./AgentWorkshop";
 
 registerRoute({ id: "chat", label: "Chat", order: 10, render: () => createElement(Chat) });
+registerRoute({ id: "workshop", label: "Workshop", order: 15, render: () => createElement(AgentWorkshop) });
 registerRoute({ id: "jobs", label: "Jobs", order: 20, render: () => createElement(Jobs) });
 registerRoute({
   id: "approvals",

@@ -768,6 +768,14 @@ def _make_handler(
             history = list(payload.get("history", []) or [])
             session_id = payload.get("session_id") or None
             session_key = payload.get("session_key") or None
+            model = payload.get("model") or None
+            provider = payload.get("provider") or None
+            effort = payload.get("effort") or None
+            fusion = payload.get("fusion")
+            if isinstance(fusion, str):
+                fusion = fusion.strip().lower() in ("1", "true", "yes", "on")
+            elif fusion is not None:
+                fusion = bool(fusion)
             self.send_response(200)
             self.send_header("Content-Type", "application/x-ndjson")
             self.send_header("Transfer-Encoding", "chunked")
@@ -780,6 +788,10 @@ def _make_handler(
                         history,
                         session_id=session_id,
                         session_key=session_key,
+                        model=model,
+                        provider=provider,
+                        effort=effort,
+                        fusion=fusion,
                     )
                 )
                 for line in stream:
