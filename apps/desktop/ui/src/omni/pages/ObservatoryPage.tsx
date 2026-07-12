@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
-import { Galaxy } from '@/components/observatory/Galaxy';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { StationPipeline } from '@/components/observatory/StationPipeline';
 import { BrainLadder } from '@/components/observatory/BrainLadder';
 import { useNexusStore } from '@/store/useNexusStore';
 import { fetchSnapshot, streamObservatory } from '@/adapters/observatory';
 import type { ObsActiveJob, ObsSnapshot, ObsStreamEvent } from '@/lib/types';
+
+const Galaxy = lazy(() => import('@/components/observatory/Galaxy').then((module) => ({ default: module.Galaxy })));
+const GalaxyLoading = ({ height = 420 }: { height?: number }) => (
+  <div className="grid w-full place-items-center text-[11px] text-[var(--ink-dim)]" style={{ height }}>
+    Initializing neural space…
+  </div>
+);
 
 export default function ObservatoryPage() {
   const wallpaper = useNexusStore((s) => s.wallpaper);
@@ -17,6 +23,7 @@ export default function ObservatoryPage() {
   const [queueDepth, setQueueDepth] = useState(0);
   const [gateFlare, setGateFlare] = useState<{ verdict: 'pass' | 'fail' | 'override'; ts: number } | null>(null);
   const [streakTier, setStreakTier] = useState<string | null>(null);
+  const [configEpoch, setConfigEpoch] = useState(0);
   const pulsesRef = useRef(pulses);
   pulsesRef.current = pulses;
 
@@ -28,6 +35,12 @@ export default function ObservatoryPage() {
   };
 
   useEffect(() => {
+    const resync = () => setConfigEpoch((epoch) => epoch + 1);
+    window.addEventListener('nexus:config', resync);
+    return () => window.removeEventListener('nexus:config', resync);
+  }, []);
+
+  useEffect(() => {
     let alive = true;
     setLoading(true);
     fetchSnapshot().then((snap) => {
@@ -36,7 +49,7 @@ export default function ObservatoryPage() {
       setLoading(false);
     });
     return () => { alive = false; };
-  }, []);
+  }, [configEpoch]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -82,7 +95,7 @@ export default function ObservatoryPage() {
       }
     };
     return streamObservatory(onEvent);
-  }, []);
+  }, [configEpoch]);
 
   const dormant = !snapshot || !snapshot.graph.available;
   const status = dormant ? 'DORMANT' : 'LIVE';
@@ -91,7 +104,9 @@ export default function ObservatoryPage() {
   if (wallpaper) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-base)]">
-        <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} height={Math.min(window.innerHeight * 0.74, 520)} />
+        <Suspense fallback={<GalaxyLoading height={Math.min(window.innerHeight * 0.74, 620)} />}>
+          <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} height={Math.min(window.innerHeight * 0.74, 620)} />
+        </Suspense>
         <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+12px)] flex items-center gap-2">
           <span className="mono rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${statusColor}22`, color: statusColor }}>{status}</span>
           <span className="mono text-[10px] text-[var(--ink-dim)]">MUSE · Neural Observatory</span>
@@ -115,7 +130,13 @@ export default function ObservatoryPage() {
       </div>
 
       <div className="glass flex flex-col items-center overflow-hidden px-2 py-3">
-        {loading ? <div className="grid h-[300px] place-items-center text-[12px] text-[var(--ink-dim)]">Reading live observatory…</div> : <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} />}
+        {loading ? (
+          <div className="grid h-[460px] place-items-center text-[12px] text-[var(--ink-dim)]">Reading live observatory…</div>
+        ) : (
+          <Suspense fallback={<GalaxyLoading height={460} />}>
+            <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} height={460} />
+          </Suspense>
+        )}
         {dormant && !loading && (
           <div className="-mt-6 mb-2 text-center">
             <div className="text-[12px] text-[var(--ink-dim)]">Observatory dormant</div>

@@ -188,8 +188,6 @@ export interface ObsSnapshot {
   };
   stations: { nodes: string[]; active_jobs: ObsActiveJob[]; queue_depth: number };
   ladder: { tiers: ObsLadderTier[] };
-  /** True only for the clearly-labeled local sample topology (never real telemetry). */
-  sample?: boolean;
 }
 
 export type ObsStreamEvent =

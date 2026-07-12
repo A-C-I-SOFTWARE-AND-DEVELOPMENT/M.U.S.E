@@ -43,26 +43,64 @@ export async function fetchSnapshot(): Promise<ObsSnapshot | null> {
   }
 }
 
-/** Subscribe to the live delta stream (/stream). Returns an unsubscribe fn. */
-export function streamObservatory(
-  onEvent: (e: ObsStreamEvent) => void,
-): () => void {
-  if (!museBase() || typeof EventSource === 'undefined') return () => {};
-  let es: EventSource | null = null;
-  try {
-    es = new EventSource(obsUrl('/stream'));
-    const handle = (type: ObsStreamEvent['type']) => (ev: MessageEvent) => {
+/** Subscribe to the authenticated live delta stream. Native EventSource cannot
+ * attach the required bearer header, so consume SSE over fetch and reconnect
+ * with bounded backoff. This keeps desktop telemetry genuinely live. */
+export function streamObservatory(onEvent: (e: ObsStreamEvent) => void): () => void {
+  if (!museBase() || typeof fetch === 'undefined') return () => {};
+  const controller = new AbortController();
+  let stopped = false;
+
+  const connect = async () => {
+    let delay = 750;
+    while (!stopped) {
       try {
-        onEvent({ type, ...JSON.parse(ev.data) } as ObsStreamEvent);
-      } catch {
-        /* drop malformed frame, never invent */
+        const response = await fetch(obsUrl('/stream'), {
+          headers: { ...authHeaders(), Accept: 'text/event-stream' },
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        if (!response.ok || !response.body) throw new Error(`observatory stream ${response.status}`);
+        delay = 750;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let eventName = 'message';
+        let dataLines: string[] = [];
+
+        const dispatch = () => {
+          if (!dataLines.length) return;
+          try {
+            const payload = JSON.parse(dataLines.join('\n')) as Record<string, unknown>;
+            const type = (eventName === 'message' ? payload.type : eventName) as ObsStreamEvent['type'];
+            if (type) onEvent({ ...payload, type } as ObsStreamEvent);
+          } catch {
+            /* malformed frames are discarded; telemetry is never invented */
+          }
+          eventName = 'message';
+          dataLines = [];
+        };
+
+        while (!stopped) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line) dispatch();
+            else if (line.startsWith('event:')) eventName = line.slice(6).trim();
+            else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+          }
+        }
+        dispatch();
+      } catch (error) {
+        if (stopped || controller.signal.aborted) break;
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+        delay = Math.min(delay * 1.8, 10_000);
       }
-    };
-    (['job.stage', 'gate.verdict', 'node.activate', 'route.decision', 'resync'] as const).forEach(
-      (t) => es!.addEventListener(t, handle(t)),
-    );
-  } catch {
-    es = null;
-  }
-  return () => es?.close();
+    }
+  };
+  void connect();
+  return () => { stopped = true; controller.abort(); };
 }

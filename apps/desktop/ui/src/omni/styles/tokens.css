@@ -521,3 +521,111 @@ button {
   .omni-workspace .glass::after,
   .omni-workspace .glass-elev::after { display: none; }
 }
+
+/* Neural Observatory — live 3D synaptic galaxy */
+.observatory-galaxy {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+  background: #020205;
+  cursor: grab;
+  isolation: isolate;
+}
+.observatory-galaxy:active { cursor: grabbing; }
+.observatory-galaxy canvas { display: block; width: 100% !important; height: 100% !important; }
+.observatory-galaxy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, transparent 30%, rgba(2,2,5,.24) 68%, rgba(2,2,5,.8) 100%),
+    linear-gradient(180deg, rgba(122,224,255,.025), transparent 22%, transparent 78%, rgba(179,136,255,.025));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), inset 0 0 90px rgba(0,0,0,.38);
+}
+.observatory-galaxy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: .025;
+  background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.9) 0, rgba(255,255,255,.9) 1px, transparent 1px, transparent 4px);
+  mix-blend-mode: soft-light;
+}
+.observatory-galaxy__hud {
+  position: absolute;
+  z-index: 4;
+  inset: 14px 16px auto;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  font: 600 9px/1.2 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: .2em;
+  color: rgba(220,235,255,.48);
+  text-shadow: 0 1px 8px #000;
+}
+.observatory-galaxy__hud span:last-child { color: rgba(122,224,255,.72); }
+.observatory-galaxy[data-live='false'] .observatory-galaxy__hud span:last-child { color: var(--ink-faint); }
+.observatory-galaxy__reticle {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  translate: -50% -50%;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.observatory-galaxy__reticle::before,
+.observatory-galaxy__reticle::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,.11);
+}
+.observatory-galaxy__reticle::before { width: 8px; height: 1px; left: 16px; top: 20px; }
+.observatory-galaxy__reticle::after { width: 1px; height: 8px; left: 20px; top: 16px; }
+.observatory-inspector {
+  position: absolute;
+  z-index: 6;
+  right: 16px;
+  bottom: 16px;
+  width: min(280px, calc(100% - 32px));
+  padding: 16px;
+  border: 1px solid rgba(122,224,255,.22);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(18,21,29,.94), rgba(5,5,7,.9));
+  backdrop-filter: blur(24px) saturate(130%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 22px 60px rgba(0,0,0,.42);
+  animation: omni-materialize 360ms var(--ease-emphasized) both;
+}
+.observatory-inspector > button {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink-dim);
+  background: rgba(255,255,255,.035);
+  font-size: 18px;
+}
+.observatory-inspector h3 { margin: 5px 0 13px; font-size: 17px; line-height: 1.2; }
+.observatory-inspector__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; overflow: hidden; border: 1px solid var(--hairline); border-radius: 8px; background: var(--hairline); }
+.observatory-inspector__grid span { display: flex; flex-direction: column; gap: 2px; padding: 8px 9px; background: rgba(8,10,15,.94); color: var(--ink-faint); font: 9px/1.2 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .1em; }
+.observatory-inspector__grid strong { color: var(--ink); font-size: 12px; letter-spacing: 0; text-transform: none; }
+.observatory-inspector__mix { display: grid; gap: 6px; margin-top: 12px; }
+.observatory-inspector__mix div { position: relative; height: 13px; overflow: hidden; border-radius: 3px; background: rgba(255,255,255,.035); }
+.observatory-inspector__mix span { position: absolute; z-index: 2; left: 6px; top: 1px; color: rgba(255,255,255,.78); font: 8px/11px 'JetBrains Mono', monospace; text-transform: uppercase; }
+.observatory-inspector__mix i { display: block; height: 100%; background: linear-gradient(90deg, rgba(122,224,255,.24), rgba(179,136,255,.38)); transition: width 420ms var(--ease-emphasized); }
+@media (max-width: 640px) {
+  .observatory-galaxy { min-height: 330px; }
+  .observatory-galaxy__hud { inset: 10px 11px auto; font-size: 8px; letter-spacing: .12em; }
+  .observatory-inspector { right: 10px; bottom: 10px; }
+}

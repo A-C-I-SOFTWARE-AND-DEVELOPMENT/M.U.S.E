@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@muse/design-system": "file:../../../design-system",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "@tauri-apps/api": "^2.11.1",
     "autoprefixer": "^10.5.2",
     "framer-motion": "^11.18.2",
@@ -20,6 +22,7 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.30.4",
     "tailwindcss": "^3.4.19",
+    "three": "^0.185.1",
     "zustand": "^4.5.7"
   },
   "devDependencies": {
