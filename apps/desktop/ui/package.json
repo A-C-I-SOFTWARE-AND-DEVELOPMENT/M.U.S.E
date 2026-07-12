@@ -13,8 +13,14 @@
   "dependencies": {
     "@muse/design-system": "file:../../../design-system",
     "@tauri-apps/api": "^2.11.1",
+    "autoprefixer": "^10.5.2",
+    "framer-motion": "^11.18.2",
+    "postcss": "^8.5.17",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^6.30.4",
+    "tailwindcss": "^3.4.19",
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

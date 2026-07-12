@@ -283,6 +283,74 @@ a { color: var(--ring-1); }
   animation: cockpitViewEnter 320ms var(--ease-emphasized) both;
 }
 
+.app-main--omni {
+  grid-area: main;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.app--omni {
+  display: block;
+  height: 100%;
+}
+
+.app--omni > .app-header,
+.app--omni > .app-nav {
+  display: none;
+}
+
+.app--omni .offline-banner {
+  display: none;
+}
+
+.omni-desktop-return {
+  position: fixed;
+  z-index: 100;
+  left: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-color: rgba(122, 224, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(11, 13, 18, 0.88);
+  color: var(--signal-dim);
+  backdrop-filter: blur(18px) saturate(140%);
+  letter-spacing: 0.02em;
+}
+
+.omni-desktop-return:hover {
+  border-color: var(--ring-1);
+  color: var(--core);
+  background: rgba(18, 21, 29, 0.96);
+}
+
+.view--omni {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  animation-duration: 220ms;
+}
+
+.omni-workspace {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--void);
+  isolation: isolate;
+}
+
+/* The native desktop frame already owns the outer chrome. Omni receives the
+ * full remaining canvas and keeps its own command-center navigation intact. */
+.omni-workspace > .flex.h-full {
+  height: 100%;
+}
+
 @keyframes cockpitViewEnter {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }

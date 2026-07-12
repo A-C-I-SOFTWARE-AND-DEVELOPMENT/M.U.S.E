@@ -23,6 +23,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@muse/design-system": resolve(__dirname, "../../../design-system"),
+      "@": resolve(__dirname, "src/omni"),
     },
   },
   plugins: [

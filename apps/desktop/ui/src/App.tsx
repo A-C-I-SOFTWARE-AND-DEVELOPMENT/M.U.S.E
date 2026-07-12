@@ -111,7 +111,7 @@ export function App() {
       {/* Depth pool canvas — fixed behind the app shell, full viewport. */}
       <SacredGeometry width={520} height={480} className="sacred-geometry" />
 
-      <div className="app">
+      <div className={"app" + (active?.id === "omni" ? " app--omni" : "")}>
         {/* Header / lockup */}
         <header className="app-header">
           <span className="brand">
@@ -171,7 +171,13 @@ export function App() {
         </nav>
 
         {/* Main view */}
-        <main className="app-main">
+        <main className={"app-main" + (active?.id === "omni" ? " app-main--omni" : "")}>
+          {active?.id === "omni" && (
+            <button className="omni-desktop-return" onClick={() => select("chat")} aria-label="Return to desktop workspace">
+              <span aria-hidden="true">←</span>
+              Desktop
+            </button>
+          )}
           {health === "offline" && (
             <div className="offline-banner" role="status">
               <span>
@@ -185,11 +191,13 @@ export function App() {
             </div>
           )}
 
-          <section className="view">{active ? active.render() : null}</section>
+          <section className={"view" + (active?.id === "omni" ? " view--omni" : "")}>
+            {active ? active.render() : null}
+          </section>
         </main>
 
-        {/* Global overlay: the movable MUSE dock floats above every surface. */}
-        <Dock />
+        {/* Global overlay: the movable MUSE dock floats above desktop surfaces. */}
+        {active?.id !== "omni" && <Dock />}
       </div>
     </>
   );
