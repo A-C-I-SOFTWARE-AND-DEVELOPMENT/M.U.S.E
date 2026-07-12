@@ -291,6 +291,24 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
 ]
 
 
+_PLUGIN_ROUTES_DISCOVERED = False
+_PLUGIN_ROUTES_LOCK = threading.Lock()
+
+
+def _ensure_plugin_routes_discovered() -> None:
+    """Load plugins only after no core cockpit route has matched."""
+    global _PLUGIN_ROUTES_DISCOVERED
+    if _PLUGIN_ROUTES_DISCOVERED:
+        return
+    with _PLUGIN_ROUTES_LOCK:
+        if _PLUGIN_ROUTES_DISCOVERED:
+            return
+        from hermes_cli.plugins import discover_plugins
+
+        discover_plugins()
+        _PLUGIN_ROUTES_DISCOVERED = True
+
+
 def _match(method: str, path: str):
     clean = path.rstrip("/") or "/"
     for route_method, pattern, handler, requires_auth in _ROUTES:
@@ -299,7 +317,10 @@ def _match(method: str, path: str):
         m = pattern.match(clean)
         if m:
             return handler, requires_auth, m.groupdict()
-    return None
+    _ensure_plugin_routes_discovered()
+    from gateway.cockpit.plugin_routes import match as match_plugin_route
+
+    return match_plugin_route(method, clean)
 
 
 # --- Server-Sent Events (live streams) --------------------------------------
@@ -404,7 +425,7 @@ def _make_handler(
                 self.send_error(501, "Unsupported method ('OPTIONS')")
                 return
             self.send_response(204)
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
             self.send_header("Access-Control-Max-Age", "600")
             # Chrome Private Network Access: a public/HTTPS page reaching this
@@ -1008,6 +1029,9 @@ def _make_handler(
 
         def do_PUT(self):  # noqa: N802
             self._dispatch("PUT")
+
+        def do_PATCH(self):  # noqa: N802
+            self._dispatch("PATCH")
 
         def do_DELETE(self):  # noqa: N802
             self._dispatch("DELETE")

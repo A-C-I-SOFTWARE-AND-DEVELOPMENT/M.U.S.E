@@ -354,6 +354,23 @@ class PluginContext:
             self.manifest.name, name, " (override)" if override else "",
         )
 
+    def register_cockpit_route(
+        self,
+        method: str,
+        path: str,
+        handler: Callable,
+    ) -> None:
+        """Register an authenticated route in this plugin's cockpit namespace."""
+        from gateway.cockpit.plugin_routes import register_route
+
+        register_route(self.manifest.name, method, path, handler, requires_auth=True)
+        logger.debug(
+            "Plugin %s registered cockpit route: %s %s",
+            self.manifest.name,
+            method.upper(),
+            path,
+        )
+
     # -- message injection --------------------------------------------------
 
     def inject_message(self, content: str, role: str = "user") -> bool:

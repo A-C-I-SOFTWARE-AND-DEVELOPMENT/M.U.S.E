@@ -633,6 +633,32 @@ class TestThreadToolWhitelist:
 class TestPluginContext:
     """Tests for the PluginContext facade."""
 
+    def test_register_cockpit_route_registers_authenticated_plugin_handler(self):
+        """PluginContext supplies its manifest name to the cockpit registry."""
+        from gateway.cockpit import handlers as h
+        from gateway.cockpit import plugin_routes
+
+        def handler(_request: h.Request) -> h.JsonResponse:
+            return h.JsonResponse(200, {"ok": True})
+
+        plugin_routes.clear_routes_for_tests()
+        try:
+            ctx = PluginContext(
+                PluginManifest(name="muse-universe", source="user"), PluginManager()
+            )
+            ctx.register_cockpit_route(
+                "GET", "/v1/plugins/muse-universe/status", handler
+            )
+
+            matched = plugin_routes.match("GET", "/v1/plugins/muse-universe/status")
+            assert matched is not None
+            registered, requires_auth, params = matched
+            assert registered is handler
+            assert requires_auth is True
+            assert params == {}
+        finally:
+            plugin_routes.clear_routes_for_tests()
+
     def test_register_tool_adds_to_registry(self, tmp_path, monkeypatch):
         """PluginContext.register_tool() puts the tool in the global registry."""
         plugins_dir = tmp_path / "hermes_test" / "plugins"
