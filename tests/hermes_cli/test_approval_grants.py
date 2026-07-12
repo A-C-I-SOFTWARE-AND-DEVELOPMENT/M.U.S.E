@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from threading import Barrier
 from typing import Any
@@ -75,6 +76,61 @@ def _consume(db_path: Path, approval_id: str, **overrides: object) -> BoundAppro
     }
     values.update(overrides)
     return validate_and_consume_approval(**values)
+
+
+def _replace_with_supersession_chain(
+    db_path: Path,
+    length: int,
+    *,
+    cycle: bool = False,
+) -> None:
+    template = _stage(db_path, approval_id="template")
+    issued_at = template.issued_at
+    expires_at = template.expires_at
+    rows = []
+    for index in range(length):
+        approval_id = f"chain-{index:05d}"
+        is_last = index == length - 1
+        state = (
+            ApprovalState.SUPERSEDED.value
+            if cycle or not is_last
+            else ApprovalState.PENDING.value
+        )
+        superseded_by = (
+            "chain-00000"
+            if cycle and is_last
+            else (f"chain-{index + 1:05d}" if not is_last else None)
+        )
+        rows.append(
+            (
+                approval_id,
+                ACTOR,
+                ACTION,
+                REALM,
+                CORRELATION,
+                template.subject_hash,
+                state,
+                issued_at,
+                expires_at,
+                None,
+                None,
+                None,
+                template.provenance,
+                superseded_by,
+            )
+        )
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DELETE FROM bound_approvals")
+        conn.executemany(
+            """
+            INSERT INTO bound_approvals (
+                approval_id, actor_id, action, realm_id, correlation_id,
+                subject_hash, state, issued_at, expires_at, decided_at,
+                decided_by, consumed_at, provenance, superseded_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
 
 
 def test_stage_persists_canonical_hash_and_lists_immutable_record(tmp_path: Path) -> None:
@@ -155,6 +211,31 @@ def test_stage_rejects_ttl_below_clock_resolution_before_db_write(
         _stage(db_path, ttl_seconds=1)
 
     assert not db_path.exists()
+
+
+def test_stage_captures_issuance_after_transaction_lock(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    original_transaction = grants._write_transaction
+    lock_acquired = False
+
+    @contextmanager
+    def delayed_transaction(path: Path) -> Any:
+        nonlocal lock_acquired
+        with original_transaction(path) as connection:
+            lock_acquired = True
+            yield connection
+
+    monkeypatch.setattr(grants, "_write_transaction", delayed_transaction)
+    monkeypatch.setattr(
+        grants.time, "time", lambda: 200.0 if lock_acquired else 100.0
+    )
+
+    staged = _stage(db_path, ttl_seconds=10)
+
+    assert staged.issued_at == 200.0
+    assert staged.expires_at == 210.0
 
 
 def test_default_path_is_profile_aware(tmp_path: Path) -> None:
@@ -615,6 +696,59 @@ def test_tampered_supersession_relationship_fails_closed(
                 superseded_by=tampered_target,
                 db_path=db_path,
             )
+
+
+def test_long_valid_supersession_chain_avoids_recursion_limit(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    _replace_with_supersession_chain(db_path, 1_100)
+
+    records = list_bound_approvals(db_path=db_path)
+
+    assert len(records) == 1_100
+    assert records[-1].state is ApprovalState.PENDING
+
+
+def test_single_record_long_chain_uses_bounded_iterative_validation(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "grants.db"
+    _replace_with_supersession_chain(db_path, 1_100)
+
+    with pytest.raises(ApprovalStateError):
+        decide_bound_approval(
+            "chain-00000",
+            approve=True,
+            decided_by="reviewer",
+            db_path=db_path,
+        )
+
+
+def test_supersession_cycle_is_domain_corruption(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    _replace_with_supersession_chain(db_path, 3, cycle=True)
+
+    with pytest.raises(ApprovalCorruptionError, match="cycle"):
+        list_bound_approvals(db_path=db_path)
+
+
+def test_list_validates_supersession_graph_with_linear_row_decoding(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    chain_length = 40
+    _replace_with_supersession_chain(db_path, chain_length)
+    original_from_row = grants._from_row
+    decoded = 0
+
+    def counted_from_row(row: sqlite3.Row) -> BoundApproval:
+        nonlocal decoded
+        decoded += 1
+        return original_from_row(row)
+
+    monkeypatch.setattr(grants, "_from_row", counted_from_row)
+
+    assert len(list_bound_approvals(db_path=db_path)) == chain_length
+    assert decoded == chain_length
 
 
 @pytest.mark.parametrize("failure_marker", ["journal_mode=WAL", "CREATE TABLE"])

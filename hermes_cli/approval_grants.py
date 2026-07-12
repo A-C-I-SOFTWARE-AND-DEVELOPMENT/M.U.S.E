@@ -44,6 +44,7 @@ __all__ = [
 _PROVENANCE = "bound-approval-v1"
 _SCHEMA_VERSION = 1
 _BUSY_TIMEOUT_MS = 5_000
+_MAX_SUPERSESSION_HOPS = 10_000
 _LEGACY_V0_COLUMNS = (
     "approval_id",
     "actor_id",
@@ -512,32 +513,70 @@ def _load_record(
     approval_id: str,
 ) -> BoundApproval:
     record = _from_row(_select(connection, approval_id))
-    _validate_supersession_relationship(connection, record, {approval_id})
+    _validate_supersession_chain(connection, record)
     return record
 
 
-def _validate_supersession_relationship(
+def _validate_supersession_chain(
     connection: sqlite3.Connection,
     record: BoundApproval,
-    chain: set[str],
 ) -> None:
-    if record.state is not ApprovalState.SUPERSEDED:
-        return
-    replacement_id = record.superseded_by
-    assert replacement_id is not None
-    if replacement_id in chain:
-        raise ApprovalCorruptionError("supersession relationship contains a cycle")
-    row = connection.execute(
-        "SELECT * FROM bound_approvals WHERE approval_id = ?", (replacement_id,)
-    ).fetchone()
-    if row is None:
-        raise ApprovalCorruptionError("supersession replacement is missing")
-    replacement = _from_row(row)
-    if _binding(record) != _binding(replacement):
-        raise ApprovalCorruptionError("supersession replacement binding is invalid")
-    _validate_supersession_relationship(
-        connection, replacement, chain | {replacement_id}
-    )
+    seen = {record.approval_id}
+    current = record
+    hops = 0
+    while current.state is ApprovalState.SUPERSEDED:
+        if hops >= _MAX_SUPERSESSION_HOPS:
+            raise ApprovalCorruptionError("supersession chain exceeds hop limit")
+        replacement_id = current.superseded_by
+        assert replacement_id is not None
+        if replacement_id in seen:
+            raise ApprovalCorruptionError("supersession relationship contains a cycle")
+        row = connection.execute(
+            "SELECT * FROM bound_approvals WHERE approval_id = ?", (replacement_id,)
+        ).fetchone()
+        if row is None:
+            raise ApprovalCorruptionError("supersession replacement is missing")
+        replacement = _from_row(row)
+        if _binding(current) != _binding(replacement):
+            raise ApprovalCorruptionError(
+                "supersession replacement binding is invalid"
+            )
+        seen.add(replacement_id)
+        current = replacement
+        hops += 1
+
+
+def _validate_supersession_graph(records: dict[str, BoundApproval]) -> None:
+    validated: set[str] = set()
+    for start_id in records:
+        if start_id in validated:
+            continue
+        path: list[str] = []
+        path_positions: dict[str, int] = {}
+        current_id = start_id
+        while current_id not in validated:
+            if current_id in path_positions:
+                raise ApprovalCorruptionError(
+                    "supersession relationship contains a cycle"
+                )
+            if len(path) >= _MAX_SUPERSESSION_HOPS:
+                raise ApprovalCorruptionError("supersession chain exceeds hop limit")
+            current = records[current_id]
+            path_positions[current_id] = len(path)
+            path.append(current_id)
+            if current.state is not ApprovalState.SUPERSEDED:
+                break
+            replacement_id = current.superseded_by
+            assert replacement_id is not None
+            replacement = records.get(replacement_id)
+            if replacement is None:
+                raise ApprovalCorruptionError("supersession replacement is missing")
+            if _binding(current) != _binding(replacement):
+                raise ApprovalCorruptionError(
+                    "supersession replacement binding is invalid"
+                )
+            current_id = replacement_id
+        validated.update(path)
 
 
 def _binding(record: BoundApproval) -> tuple[str, str, str, str, str]:
@@ -580,6 +619,13 @@ def _mark_expired(
     return _load_record(connection, record.approval_id)
 
 
+def _validated_expiry(issued_at: float, ttl: float) -> float:
+    expires_at = issued_at + ttl
+    if not math.isfinite(expires_at) or expires_at <= issued_at:
+        raise ValueError("ttl_seconds is below clock resolution")
+    return expires_at
+
+
 def stage_bound_approval(
     actor_id: str,
     action: str,
@@ -600,10 +646,7 @@ def stage_bound_approval(
     supplied_id = approval_id is not None
     resolved_id = approval_id or f"approval_{uuid.uuid4().hex}"
     _required_text("approval_id", resolved_id)
-    now = time.time()
-    expires_at = now + ttl
-    if not math.isfinite(expires_at) or expires_at <= now:
-        raise ValueError("ttl_seconds is below clock resolution")
+    _validated_expiry(time.time(), ttl)
     with _write_transaction(db_path) as connection:
         existing_row = connection.execute(
             "SELECT * FROM bound_approvals WHERE approval_id = ?", (resolved_id,)
@@ -615,6 +658,8 @@ def stage_bound_approval(
             raise ApprovalConflictError(
                 f"approval id is already bound: {resolved_id}"
             )
+        now = time.time()
+        expires_at = _validated_expiry(now, ttl)
         connection.execute(
             """
             INSERT INTO bound_approvals (
@@ -826,16 +871,12 @@ def list_bound_approvals(
                 now,
             ),
         )
+        rows = connection.execute(
+            "SELECT * FROM bound_approvals ORDER BY issued_at, approval_id"
+        ).fetchall()
+        records = tuple(_from_row(row) for row in rows)
+        records_by_id = {record.approval_id: record for record in records}
+        _validate_supersession_graph(records_by_id)
         if selected_state is None:
-            rows = connection.execute(
-                "SELECT * FROM bound_approvals ORDER BY issued_at, approval_id"
-            ).fetchall()
-        else:
-            rows = connection.execute(
-                """
-                SELECT * FROM bound_approvals
-                WHERE state = ? ORDER BY issued_at, approval_id
-                """,
-                (selected_state.value,),
-            ).fetchall()
-        return tuple(_load_record(connection, row["approval_id"]) for row in rows)
+            return records
+        return tuple(record for record in records if record.state is selected_state)
