@@ -116,6 +116,38 @@ def test_stale_version_conflicts_without_partial_write(
     assert entity(store, "realm", "rlm_local")["version"] == 1
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_store_rejects_non_finite_payload_before_fingerprinting(
+    tmp_path, command_factory: Callable[..., UniverseCommand], value: float
+) -> None:
+    store = UniverseStore(tmp_path / "universe.db")
+    command = command_factory().model_copy(
+        update={"payload": {"name": "Local Realm", "mode": "local", "value": value}}
+    )
+
+    with pytest.raises(ValueError, match="non-finite"):
+        store.append(command, "realm.created")
+
+    assert store.events_since("rlm_local", 0) == []
+    assert store.command_result("rlm_local", "cmd_1") is None
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_universe_models_reject_nested_non_finite_values(
+    command_factory: Callable[..., UniverseCommand], value: float
+) -> None:
+    data = command_factory().model_dump(mode="python")
+    data["payload"]["value"] = value
+
+    with pytest.raises(ValidationError, match="non-finite"):
+        UniverseCommand.model_validate(data)
+
+
+def test_store_canonical_json_rejects_non_finite_values() -> None:
+    with pytest.raises(ValueError):
+        store_module._canonical_json({"value": float("nan")})
+
+
 def test_transaction_appends_related_events_atomically(
     tmp_path, command_factory: Callable[..., UniverseCommand]
 ) -> None:

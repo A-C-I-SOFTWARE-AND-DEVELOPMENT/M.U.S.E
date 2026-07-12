@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import hashlib
 from threading import Barrier
 
 import pytest
@@ -52,6 +53,11 @@ def _vessel_payload(vessel_id: str = "vsl_owner") -> dict[str, object]:
         "path_reachable": True,
         "allowed_licenses": ["MUSE-ORIGINAL-1.0"],
     }
+
+
+def _expected_internal_command_id(purpose: str, external_command_id: str) -> str:
+    digest = hashlib.sha256(external_command_id.encode("utf-8")).hexdigest()
+    return f"__muse_internal__:{purpose}:{digest}"
 
 
 def test_catalog_preserves_cross_runtime_contract_and_is_immutable(
@@ -113,9 +119,16 @@ def test_catalog_preserves_cross_runtime_contract_and_is_immutable(
 def test_every_explicit_command_has_its_own_validator() -> None:
     assert set(VALIDATORS) == set(COMMANDS)
     assert len(set(VALIDATORS.values())) == len(COMMANDS)
-    validators = [getattr(UniverseService, name, None) for name in VALIDATORS.values()]
-    assert all(callable(validator) for validator in validators)
-    assert len({validator.__name__ for validator in validators if validator}) == len(COMMANDS)
+    validators = {
+        command: getattr(UniverseService, name, None)
+        for command, name in VALIDATORS.items()
+    }
+    assert all(callable(validator) for validator in validators.values())
+    assert len(set(validators.values())) == len(COMMANDS)
+    assert all(
+        validator is getattr(UniverseService, VALIDATORS[command])
+        for command, validator in validators.items()
+    )
 
 
 def test_station_create_rejects_atlas_crown_as_network_station(
@@ -158,7 +171,7 @@ def test_operational_and_creator_ledgers_never_mix(
         0,
         "cmd_cr",
     )
-    snapshot = service.snapshot("rlm_local")
+    snapshot = service.snapshot("ply_owner", "rlm_local")
     assert snapshot["operational_ledgers"][0]["id"] == "op_1"
     assert snapshot["creator_ledgers"][0]["id"] == "cr_1"
     with pytest.raises(ValidationError, match="operational"):
@@ -169,6 +182,119 @@ def test_operational_and_creator_ledgers_never_mix(
             {"id": "cr_bad", "asset_id": "ast_1", "quantity": 1, "cost_usd": 5},
             0,
             "cmd_cr_bad",
+        )
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), True])
+def test_workspace_cost_rejects_non_finite_and_boolean_values_before_approval(
+    service: UniverseService, approval_verifier, value: object
+) -> None:
+    service.create_local_realm("ply_owner")
+    approval_verifier.allow("apr_workspace_numeric")
+
+    with pytest.raises((AuthorizationError, ValidationError), match="numeric|finite"):
+        service.execute(
+            "workspace.lease",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "wrk_numeric",
+                "provider": "external",
+                "project_id": "proj_1",
+                "cost_usd": value,
+                "expiry_utc": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                "checkpoint": "chk_1",
+                "signed_preview": "sha256:" + "b" * 64,
+            },
+            0,
+            "cmd_workspace_numeric",
+            approval_id="apr_workspace_numeric",
+        )
+
+    assert approval_verifier.calls == []
+
+
+def test_nested_non_finite_payload_is_rejected_before_sensitive_approval(
+    service: UniverseService, approval_verifier
+) -> None:
+    service.create_local_realm("ply_owner")
+    approval_verifier.allow("apr_workspace_nested_numeric")
+
+    with pytest.raises(ValueError, match="non-finite"):
+        service.execute(
+            "workspace.lease",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "wrk_nested_numeric",
+                "provider": "external",
+                "project_id": "proj_1",
+                "cost_usd": 1.0,
+                "expiry_utc": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                "checkpoint": "chk_1",
+                "signed_preview": "sha256:" + "b" * 64,
+                "telemetry": {"ratio": float("nan")},
+            },
+            0,
+            "cmd_workspace_nested_numeric",
+            approval_id="apr_workspace_nested_numeric",
+        )
+
+    assert approval_verifier.calls == []
+
+
+@pytest.mark.parametrize(
+    "quantity",
+    [float("nan"), float("inf"), float("-inf"), True, 0, -1],
+)
+def test_creator_quantities_are_finite_positive_numbers(
+    service: UniverseService, quantity: object
+) -> None:
+    service.create_local_realm("ply_owner")
+
+    with pytest.raises(ValidationError, match="numeric|finite|positive"):
+        service.execute(
+            "creator_ledger.record",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "cr_numeric",
+                "asset_id": "ast_1",
+                "owner_id": "ply_owner",
+                "quantity": quantity,
+            },
+            0,
+            "cmd_creator_numeric",
+        )
+
+
+def test_creator_transfer_non_finite_quantity_cannot_bypass_balance(
+    service: UniverseService,
+) -> None:
+    service.create_local_realm("ply_owner")
+    service.execute(
+        "creator_ledger.record",
+        "ply_owner",
+        "rlm_local",
+        {"id": "cr_seed", "asset_id": "ast_1", "owner_id": "ply_owner", "quantity": 1},
+        0,
+        "cmd_seed",
+    )
+
+    with pytest.raises(ValidationError, match="finite"):
+        service.execute(
+            "creator_ledger.transfer",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "cr_transfer_nan",
+                "asset_id": "ast_1",
+                "from_id": "ply_owner",
+                "to_id": "ply_other",
+                "quantity": float("nan"),
+            },
+            0,
+            "cmd_transfer_nan",
         )
 
 
@@ -538,23 +664,29 @@ def test_presence_snapshot_is_caller_aware_and_public_is_minimal(
         "cmd_public",
     )
 
-    crew_view = service.snapshot_for("ply_private", "rlm_local")["presences"]
+    with pytest.raises(AuthorizationError, match="caller"):
+        service.snapshot(None, "rlm_local")
+
+    crew_view = service.snapshot("ply_private", "rlm_local")["presences"]
     assert {presence["id"] for presence in crew_view} == {
         "ply_private",
         "ply_crew",
         "ply_other",
     }
-    other_view = service.snapshot_for("ply_other", "rlm_local")["presences"]
+    other_view = service.snapshot("ply_other", "rlm_local")["presences"]
     assert "ply_private" not in {presence["id"] for presence in other_view}
     assert "ply_crew" not in {presence["id"] for presence in other_view}
     public = next(presence for presence in other_view if presence["id"] == "ply_other")
     assert set(public) == {"id", "status", "visibility", "mode"}
-    owner_view = service.snapshot_for("ply_owner", "rlm_local")["presences"]
+    owner_view = service.snapshot("ply_owner", "rlm_local")["presences"]
     assert {presence["id"] for presence in owner_view} == {
         "ply_private",
         "ply_crew",
         "ply_other",
     }
+    assert service.snapshot_for("ply_private", "rlm_local") == service.snapshot(
+        "ply_private", "rlm_local"
+    )
 
 
 def test_governance_rejects_duplicate_and_late_votes(
@@ -857,6 +989,192 @@ def test_shared_building_requires_active_civilization_ownership_scope(
         "cmd_shared_build",
     )
     assert result.entity["owner_id"] == "civ_1"
+
+
+@pytest.mark.parametrize(
+    ("world_simulation", "placement_simulation"),
+    [(True, False), (False, True)],
+)
+def test_building_placement_cannot_cross_world_projection_mode(
+    service: UniverseService,
+    world_simulation: bool,
+    placement_simulation: bool,
+) -> None:
+    service.create_local_realm("ply_owner")
+    service.execute(
+        "world.create",
+        "ply_owner",
+        "rlm_local",
+        {
+            "id": "wld_mode",
+            "owner_id": "ply_owner",
+            "regions": ["buildable"],
+            "performance_budget": {"triangles": 100, "draw_calls": 10},
+            "navigation": {"minimum_clearance": 1.0},
+        },
+        0,
+        "cmd_world_mode",
+        simulation=world_simulation,
+    )
+
+    with pytest.raises(AuthorizationError, match="simulation"):
+        service.execute(
+            "building.place",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "bld_mode",
+                "world_id": "wld_mode",
+                "owner_id": "ply_owner",
+                "expected_world_version": 1,
+                "region_id": "buildable",
+                "transform": {"position": [2, 2, 2]},
+                "collision": {"radius": 1.0},
+                "navigation_clearance": 1.0,
+                "performance_cost": {"triangles": 1, "draw_calls": 1},
+            },
+            0,
+            "cmd_build_mode",
+            simulation=placement_simulation,
+        )
+
+    world = service.entity("world", "wld_mode", "rlm_local")
+    assert world is not None
+    assert world["simulation"] is world_simulation
+    assert world["version"] == 1
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("budget", float("nan")),
+        ("budget", float("inf")),
+        ("bounds", float("inf")),
+        ("bounds", float("nan")),
+    ],
+)
+def test_world_geometry_and_budgets_reject_non_finite_values(
+    service: UniverseService, field: str, value: float
+) -> None:
+    service.create_local_realm("ply_owner")
+    payload: dict[str, object] = {
+        "id": "wld_numeric",
+        "owner_id": "ply_owner",
+        "regions": ["buildable"],
+        "performance_budget": {"triangles": 100, "draw_calls": 10},
+        "navigation": {"minimum_clearance": 1.0},
+    }
+    if field == "budget":
+        payload["performance_budget"] = {"triangles": value, "draw_calls": 10}
+    else:
+        payload["bounds"] = {"min": [0, 0, 0], "max": [value, 10, 10]}
+
+    with pytest.raises(ValidationError, match="finite"):
+        service.execute(
+            "world.create",
+            "ply_owner",
+            "rlm_local",
+            payload,
+            0,
+            "cmd_world_numeric",
+        )
+
+
+def test_building_cost_cannot_be_negative(
+    service: UniverseService,
+) -> None:
+    service.create_local_realm("ply_owner")
+    service.execute(
+        "world.create",
+        "ply_owner",
+        "rlm_local",
+        {
+            "id": "wld_cost",
+            "owner_id": "ply_owner",
+            "regions": ["buildable"],
+            "performance_budget": {"triangles": 100, "draw_calls": 10},
+            "navigation": {"minimum_clearance": 1.0},
+        },
+        0,
+        "cmd_world_cost",
+    )
+
+    with pytest.raises(ValidationError, match="cost"):
+        service.execute(
+            "building.place",
+            "ply_owner",
+            "rlm_local",
+            {
+                "id": "bld_negative_cost",
+                "world_id": "wld_cost",
+                "owner_id": "ply_owner",
+                "expected_world_version": 1,
+                "region_id": "buildable",
+                "transform": {"position": [2, 2, 2]},
+                "collision": {"radius": 1.0},
+                "navigation_clearance": 1.0,
+                "performance_cost": {"triangles": -1, "draw_calls": 1},
+            },
+            0,
+            "cmd_build_negative_cost",
+        )
+
+
+def test_building_related_command_id_cannot_be_preempted_by_user_input(
+    service: UniverseService,
+) -> None:
+    service.create_local_realm("ply_owner")
+    external_command_id = "cmd_build_reserved"
+    related_command_id = _expected_internal_command_id(
+        "building-world", external_command_id
+    )
+    with pytest.raises(ValidationError, match="reserved"):
+        service.execute(
+            "player.create",
+            "ply_owner",
+            "rlm_local",
+            {"id": "ply_preempt", "display_name": "Preempt"},
+            0,
+            related_command_id,
+        )
+
+    service.execute(
+        "world.create",
+        "ply_owner",
+        "rlm_local",
+        {
+            "id": "wld_reserved",
+            "owner_id": "ply_owner",
+            "regions": ["buildable"],
+            "performance_budget": {"triangles": 100, "draw_calls": 10},
+            "navigation": {"minimum_clearance": 1.0},
+        },
+        0,
+        "cmd_world_reserved",
+    )
+    service.execute(
+        "building.place",
+        "ply_owner",
+        "rlm_local",
+        {
+            "id": "bld_reserved",
+            "world_id": "wld_reserved",
+            "owner_id": "ply_owner",
+            "expected_world_version": 1,
+            "region_id": "buildable",
+            "transform": {"position": [2, 2, 2]},
+            "collision": {"radius": 1.0},
+            "navigation_clearance": 1.0,
+            "performance_cost": {"triangles": 1, "draw_calls": 1},
+        },
+        0,
+        external_command_id,
+    )
+
+    related = service.store.command_result("rlm_local", related_command_id)
+    assert related is not None
+    assert related.event.stream_type == "world"
+    assert related.event.correlation_id == external_command_id
 
 
 def test_vessel_module_checks_compatibility_budgets_path_license_and_approval(
@@ -1194,6 +1512,18 @@ def test_evidence_bridge_persists_returned_reference_on_completed_mission(
             expected_version,
             command_id,
         )
+    receipt_command_id = _expected_internal_command_id(
+        "achievement-evidence", "cmd_complete"
+    )
+    with pytest.raises(ValidationError, match="reserved"):
+        service.execute(
+            "player.create",
+            "ply_owner",
+            "rlm_local",
+            {"id": "ply_receipt_preempt", "display_name": "Preempt"},
+            0,
+            receipt_command_id,
+        )
     result = service.execute(
         "mission.transition",
         "ply_owner",
@@ -1227,6 +1557,9 @@ def test_evidence_bridge_persists_returned_reference_on_completed_mission(
         "record_id": "external_1",
         "dedupe_key": "a" * 64,
     }
+    receipt_result = store.command_result("rlm_local", receipt_command_id)
+    assert receipt_result is not None
+    assert receipt_result.event.event_type == "mission.achievement_evidence_recorded"
 
     replay = service.execute(
         "mission.transition",
@@ -1238,6 +1571,7 @@ def test_evidence_bridge_persists_returned_reference_on_completed_mission(
     )
     assert replay.idempotent_replay
     assert len(calls) == 1
+    assert store.command_result("rlm_local", receipt_command_id) == receipt_result
 
 
 def test_concurrent_exact_command_replay_returns_stored_result_before_revalidation(
@@ -1402,7 +1736,7 @@ def test_concurrent_creator_transfers_cannot_double_spend(
     assert sum(isinstance(result, ValidationError) for result in results) == 1
     owner_balance = sum(
         side["quantity"]
-        for entry in service.snapshot("rlm_local")["creator_ledgers"]
+        for entry in service.snapshot("ply_owner", "rlm_local")["creator_ledgers"]
         if entry.get("asset_id") == "ast_1"
         for side in entry.get("entries", [])
         if side.get("owner_id") == "ply_owner"

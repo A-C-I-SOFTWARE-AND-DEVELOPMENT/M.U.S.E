@@ -34,6 +34,7 @@ from .catalog import (
 )
 from .models import CommandResult, ProvenanceRecord, UniverseCommand
 from .store import CommandIdConflictError, UniverseStore, UniverseTransaction
+from .validation import NonFiniteNumberError, validate_finite_numbers
 
 
 class ValidationError(ValueError):
@@ -115,6 +116,7 @@ _UNTRUSTED_METADATA = frozenset(
     }
 )
 _HASH = re.compile(r"^sha256:[0-9a-f]{64}$")
+_INTERNAL_COMMAND_PREFIX = "__muse_internal__:"
 _PUBLICATION_COMMANDS = frozenset(
     {"blueprint.publish", "exchange.listing.publish", "gallery.publish", "asset.register"}
 )
@@ -136,6 +138,7 @@ _PROJECTION_TARGETS: dict[str, tuple[str, str]] = {
     "governance.execute": ("proposal", "proposal_id"),
     "world.region.freeze": ("world", "world_id"),
     "world.region.regenerate": ("world", "world_id"),
+    "building.place": ("world", "world_id"),
     "vessel.module.install": ("vessel", "vessel_id"),
     "vessel.cosmetics.update": ("vessel", "vessel_id"),
     "fleet.assign": ("fleet", "fleet_id"),
@@ -172,14 +175,13 @@ class UniverseService:
     def catalog(self) -> dict[str, Any]:
         return catalog_snapshot()
 
-    def snapshot(self, realm_id: str) -> dict[str, list[dict[str, Any]]]:
-        """Internal authoritative snapshot; caller-facing code uses snapshot_for."""
-
-        return self.store.snapshot(realm_id)
-
-    def snapshot_for(
-        self, actor_id: str, realm_id: str
+    def snapshot(
+        self, actor_id: str | None, realm_id: str
     ) -> dict[str, list[dict[str, Any]]]:
+        """Return a caller-filtered snapshot; raw store snapshots stay internal."""
+
+        if not isinstance(actor_id, str) or not actor_id.strip():
+            raise AuthorizationError("an authoritative caller is required")
         snapshot = self.store.snapshot(realm_id)
         realm = self.store.entity("realm", realm_id, realm_id) or {}
         is_owner = realm.get("owner_id") == actor_id
@@ -214,6 +216,11 @@ class UniverseService:
                 visible.append(_minimal_presence(presence))
         snapshot["presences"] = visible
         return snapshot
+
+    def snapshot_for(
+        self, actor_id: str, realm_id: str
+    ) -> dict[str, list[dict[str, Any]]]:
+        return self.snapshot(actor_id, realm_id)
 
     def entity(
         self, entity_type: str, entity_id: str, realm_id: str | None = None
@@ -261,9 +268,19 @@ class UniverseService:
             raise ValidationError("payload must be a mapping")
         intent_payload = deepcopy(dict(payload))
         _reject_untrusted_metadata(intent_payload, path="payload")
-        if not isinstance(expected_version, int) or expected_version < 0:
+        try:
+            validate_finite_numbers(intent_payload, path="payload")
+        except NonFiniteNumberError as exc:
+            raise ValidationError("payload contains a non-finite number") from exc
+        if (
+            isinstance(expected_version, bool)
+            or not isinstance(expected_version, int)
+            or expected_version < 0
+        ):
             raise ValidationError("expected_version must be a non-negative integer")
         _required_text(command_id, "command_id")
+        if command_id.startswith(_INTERNAL_COMMAND_PREFIX):
+            raise ValidationError("command_id uses the reserved internal namespace")
         intent = _approval_subject(
             command_type,
             actor_id,
@@ -351,6 +368,11 @@ class UniverseService:
         )
         if command_type in _PUBLICATION_COMMANDS:
             self._apply_public_policy(actor_id, realm_id, normalized)
+        stream_type, event_type = COMMANDS[command_type]
+        stream_id = self._stream_id(command_type, realm_id, intent_payload)
+        transaction.assert_stream_version(
+            realm_id, stream_type, stream_id, expected_version
+        )
         if approval_required(command_type, intent_payload):
             self._verify_approval(approval_id, intent)
         if command_type == "mission.transition" and normalized.get("state") == "completed":
@@ -366,8 +388,6 @@ class UniverseService:
         if command_type == "building.place":
             world_payload = normalized.pop("_related_world")
 
-        stream_type, event_type = COMMANDS[command_type]
-        stream_id = self._stream_id(command_type, realm_id, intent_payload)
         command = UniverseCommand(
             command_id=command_id,
             command_type=command_type,
@@ -391,7 +411,7 @@ class UniverseService:
         if command_type == "building.place":
             assert world_payload is not None
             world_command = UniverseCommand(
-                command_id=f"{command_id}:world",
+                command_id=_internal_command_id("building-world", command_id),
                 command_type="world.building.place",
                 realm_id=realm_id,
                 actor_id=actor_id,
@@ -436,7 +456,9 @@ class UniverseService:
             if current is None or current.get("achievement_evidence_receipt") is not None:
                 return
             receipt_command = UniverseCommand(
-                command_id=f"{result.event.correlation_id}:achievement-evidence",
+                command_id=_internal_command_id(
+                    "achievement-evidence", result.event.correlation_id
+                ),
                 command_type="mission.achievement_evidence.record",
                 realm_id=result.event.realm_id,
                 actor_id=result.event.actor_id,
@@ -559,8 +581,7 @@ class UniverseService:
         _required_text(payload.get("name"), "name")
         _required_text(payload.get("charter"), "charter")
         governance = _required_mapping(payload.get("governance"), "governance")
-        if int(governance.get("quorum", 0)) < 1:
-            raise ValidationError("governance quorum must be positive")
+        _positive_integer(governance.get("quorum", 0), "governance quorum")
         return {**payload, "founder_id": actor}
 
     def _validate_membership_invite(
@@ -612,10 +633,9 @@ class UniverseService:
         if forbidden & payload.keys():
             raise ValidationError("presence cannot carry authoritative inventory or capabilities")
         sequence = payload.get("sequence")
-        if not isinstance(sequence, int) or sequence < 1:
-            raise ValidationError("presence sequence must be a positive integer")
+        sequence = _positive_integer(sequence, "presence sequence")
         current = self._reader().entity("presence", actor, realm)
-        now = float(self.clock())
+        now = _number(self.clock(), "server clock")
         if current is not None:
             if sequence <= int(current.get("sequence", 0)):
                 raise ValidationError("presence sequence must increase")
@@ -688,7 +708,10 @@ class UniverseService:
         yes = sum(vote.get("choice") == "yes" for vote in votes)
         no = sum(vote.get("choice") == "no" for vote in votes)
         civilization = self._require_entity("civilization", proposal.get("civilization_id"), realm)
-        quorum = int(civilization.get("governance", {}).get("quorum", 1))
+        quorum = _positive_integer(
+            civilization.get("governance", {}).get("quorum", 1),
+            "governance quorum",
+        )
         if len(votes) < quorum or yes <= no:
             raise ValidationError("governance proposal did not pass")
         return {**proposal, "state": "executed", "executed": True, "outcome": "passed"}
@@ -765,9 +788,10 @@ class UniverseService:
         navigation = _required_mapping(payload.get("navigation"), "navigation")
         if _number(navigation.get("minimum_clearance"), "minimum_clearance") <= 0:
             raise ValidationError("world navigation clearance must be positive")
-        max_occupancy = navigation.get("max_occupancy", 10_000)
-        if not isinstance(max_occupancy, int) or max_occupancy < 1:
-            raise ValidationError("world navigation max_occupancy must be positive")
+        max_occupancy = _positive_integer(
+            navigation.get("max_occupancy", 10_000),
+            "world navigation max_occupancy",
+        )
         bounds = payload.get(
             "bounds",
             {"min": [0.0, 0.0, 0.0], "max": [10_000.0, 10_000.0, 10_000.0]},
@@ -827,7 +851,10 @@ class UniverseService:
         del version, simulation
         _required_text(payload.get("id"), "id")
         world = self._require_entity("world", payload.get("world_id"), realm)
-        if payload.get("expected_world_version") != world.get("version"):
+        expected_world_version = _positive_integer(
+            payload.get("expected_world_version"), "expected_world_version"
+        )
+        if expected_world_version != world.get("version"):
             raise ValidationError("building expected world version is stale")
         owner_id = payload.get("owner_id")
         if owner_id != actor and not self._has_active_civilization_membership(
@@ -847,7 +874,10 @@ class UniverseService:
         budget = world.get("performance_budget", {})
         used = dict(world.get("performance_used", {}))
         for name, value in cost.items():
-            next_value = _number(value, f"performance cost {name}") + _number(
+            cost_value = _number(value, f"performance cost {name}")
+            if cost_value < 0:
+                raise ValidationError("building performance cost cannot be negative")
+            next_value = cost_value + _number(
                 used.get(name, 0), f"performance used {name}"
             )
             if next_value > _number(
@@ -870,7 +900,10 @@ class UniverseService:
         ):
             raise ValidationError("building transform is outside world bounds")
         occupancy = list(world.get("occupancy", []))
-        max_occupancy = int(world.get("navigation", {}).get("max_occupancy", 10_000))
+        max_occupancy = _positive_integer(
+            world.get("navigation", {}).get("max_occupancy", 10_000),
+            "world navigation max_occupancy",
+        )
         if len(occupancy) >= max_occupancy:
             raise ValidationError("building navigation occupancy budget exceeded")
         for occupied in occupancy:
@@ -1270,7 +1303,7 @@ class UniverseService:
                 continue
             for side in entry.get("entries", []):
                 if side.get("owner_id") == owner_id:
-                    total += float(side.get("quantity", 0))
+                    total += _number(side.get("quantity", 0), "creator balance quantity")
         return total
 
     def _validate_logistics_update(
@@ -1411,7 +1444,9 @@ class UniverseService:
         cameras = payload.get("cameras")
         if not isinstance(cameras, list) or not cameras:
             raise ValidationError("cinematic shot requires cameras")
-        _required_mapping(payload.get("lens"), "lens")
+        lens = _required_mapping(payload.get("lens"), "lens")
+        if _number(lens.get("focal_length_mm"), "focal_length_mm") <= 0:
+            raise ValidationError("cinematic focal length must be positive")
         stereo = _required_mapping(payload.get("stereo"), "stereo")
         if _number(stereo.get("interaxial_mm"), "interaxial_mm") <= 0:
             raise ValidationError("cinematic stereo interaxial must be positive")
@@ -1419,6 +1454,16 @@ class UniverseService:
             raise ValidationError("cinematic stereo convergence must be positive")
         render = _required_mapping(payload.get("render_config"), "render_config")
         _required_text(render.get("version"), "render config version")
+        resolution = render.get("resolution")
+        if (
+            not isinstance(resolution, (list, tuple))
+            or len(resolution) != 2
+            or any(
+                _positive_integer(dimension, "render resolution") < 1
+                for dimension in resolution
+            )
+        ):
+            raise ValidationError("render resolution must contain two positive integers")
         return {**payload, "qc_status": "pending"}
 
     def _validate_cinematic_shot_qc(
@@ -1464,7 +1509,16 @@ def _string_list(value: object, field: str) -> list[str]:
 def _number(value: object, field: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValidationError(f"{field} must be numeric")
-    return float(value)
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValidationError(f"{field} must be finite")
+    return number
+
+
+def _positive_integer(value: object, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValidationError(f"{field} must be a positive integer")
+    return value
 
 
 def _vector3(value: object, field: str) -> list[float]:
@@ -1608,8 +1662,19 @@ def _approval_subject(
     }
 
 
+def _internal_command_id(purpose: str, external_command_id: str) -> str:
+    digest = hashlib.sha256(external_command_id.encode("utf-8")).hexdigest()
+    return f"{_INTERNAL_COMMAND_PREFIX}{purpose}:{digest}"
+
+
 def _intent_hash(intent: Mapping[str, Any]) -> str:
-    encoded = json.dumps(intent, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    encoded = json.dumps(
+        intent,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 

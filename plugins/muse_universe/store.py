@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from .models import CommandResult, UniverseCommand, UniverseEvent, utc_now
 from .reducers import reduce_entity
-from .validation import validate_no_secret_fields
+from .validation import validate_finite_numbers, validate_no_secret_fields
 
 
 class ConflictError(RuntimeError):
@@ -118,6 +118,24 @@ class UniverseTransaction:
 
     def append(self, command: UniverseCommand, event_type: str) -> CommandResult:
         return _append_in_transaction(self._connection, command, event_type)
+
+    def assert_stream_version(
+        self,
+        realm_id: str,
+        stream_type: str,
+        stream_id: str,
+        expected_version: int,
+    ) -> None:
+        row = self._connection.execute(
+            """
+            SELECT version FROM entities
+            WHERE realm_id = ? AND entity_type = ? AND entity_id = ?
+            """,
+            (realm_id, stream_type, stream_id),
+        ).fetchone()
+        current_version = 0 if row is None else int(row["version"])
+        if expected_version != current_version:
+            raise ConflictError(expected_version, current_version)
 
     def append_related(
         self, items: Sequence[tuple[UniverseCommand, str]]
@@ -383,6 +401,7 @@ def _append_in_transaction(
 def _canonical_json(value: Any) -> str:
     return json.dumps(
         value,
+        allow_nan=False,
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
@@ -398,6 +417,7 @@ def _command_fingerprint(command: UniverseCommand, event_type: str) -> str:
 
 
 def _validate_command(command: UniverseCommand) -> None:
+    validate_finite_numbers(command.model_dump(mode="python"), path="command")
     validate_no_secret_fields(command.payload, path="payload")
     validate_no_secret_fields(
         command.authorization.model_dump(mode="json"), path="authorization"
@@ -408,6 +428,7 @@ def _validate_command(command: UniverseCommand) -> None:
 
 
 def _validate_result(result: CommandResult) -> None:
+    validate_finite_numbers(result.model_dump(mode="python"), path="result")
     validate_no_secret_fields(result.event.payload, path="event.payload")
     validate_no_secret_fields(
         result.event.authorization.model_dump(mode="json"),

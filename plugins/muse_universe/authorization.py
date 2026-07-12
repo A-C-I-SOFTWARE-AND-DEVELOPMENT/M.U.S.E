@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import math
 from typing import Any, Protocol
 
 from .catalog import MODULES
@@ -106,11 +107,21 @@ def approval_required(command_type: str, payload: Mapping[str, Any]) -> bool:
     if command_type in _PUBLIC_COMMANDS and payload.get("visibility") == "public":
         return True
     if command_type == "workspace.lease":
-        return payload.get("provider") != "local" and float(payload.get("cost_usd", 0)) > 0
+        cost = _finite_number(payload.get("cost_usd", 0), "workspace cost")
+        return payload.get("provider") != "local" and cost > 0
     if command_type == "vessel.module.install":
         module = MODULES.get(str(payload.get("module_id", "")))
         return bool(module and module["capabilities"])
     return False
+
+
+def _finite_number(value: object, field: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise AuthorizationError(f"{field} must be numeric")
+    number = float(value)
+    if not math.isfinite(number):
+        raise AuthorizationError(f"{field} must be finite")
+    return number
 
 
 def authoritative_scopes(

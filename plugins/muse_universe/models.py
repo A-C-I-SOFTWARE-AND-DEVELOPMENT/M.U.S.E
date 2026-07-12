@@ -6,6 +6,8 @@ from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .validation import validate_finite_numbers
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -81,6 +83,7 @@ class UniverseCommand(BaseModel):
     @field_validator("payload", mode="after")
     @classmethod
     def _freeze_payload(cls, value: dict[str, Any]) -> dict[str, Any]:
+        validate_finite_numbers(value, path="payload")
         return deep_freeze(value)
 
 
@@ -108,6 +111,7 @@ class UniverseEvent(BaseModel):
     @field_validator("payload", "rollback", mode="after")
     @classmethod
     def _freeze_mappings(cls, value: dict[str, Any]) -> dict[str, Any]:
+        validate_finite_numbers(value, path="event")
         return deep_freeze(value)
 
 
@@ -121,6 +125,7 @@ class CommandResult(BaseModel):
     @field_validator("entity", mode="after")
     @classmethod
     def _freeze_entity(cls, value: dict[str, Any]) -> dict[str, Any]:
+        validate_finite_numbers(value, path="entity")
         return deep_freeze(value)
 
     @property

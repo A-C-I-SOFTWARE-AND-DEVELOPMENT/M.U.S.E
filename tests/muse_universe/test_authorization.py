@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from threading import Barrier
+from typing import Any
+
 import pytest
 
 from plugins.muse_universe.authorization import AuthorizationError
@@ -401,3 +406,135 @@ def test_consumed_approval_retries_only_the_same_exact_request(tmp_path) -> None
             "cmd_promote",
             approval_id=staged.approval_id,
         )
+
+
+def test_stale_sensitive_race_does_not_consume_losing_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from hermes_cli.approval_grants import (
+        ApprovalState,
+        decide_bound_approval,
+        list_bound_approvals,
+        stage_bound_approval,
+        validate_and_consume_approval,
+    )
+    from plugins.muse_universe.store import ConflictError, UniverseStore
+
+    approval_db = tmp_path / "approvals.db"
+
+    class ScopedVerifier:
+        def validate_and_consume_approval(
+            self,
+            approval_id: str,
+            actor_id: str,
+            action: str,
+            realm_id: str,
+            correlation_id: str,
+            subject: object,
+            *,
+            db_path: Path | str | None = None,
+        ):
+            del db_path
+            return validate_and_consume_approval(
+                approval_id,
+                actor_id,
+                action,
+                realm_id,
+                correlation_id,
+                subject,
+                db_path=approval_db,
+            )
+
+    store = UniverseStore(tmp_path / "universe.db")
+    service = UniverseService(store, approval_verifier=ScopedVerifier())
+    service.create_local_realm("ply_owner")
+    payload: dict[str, Any] = {
+        "id": "wrk_race",
+        "provider": "external",
+        "project_id": "proj_1",
+        "cost_usd": 1.0,
+        "expiry_utc": "2099-01-01T00:00:00+00:00",
+        "checkpoint": "chk_1",
+        "signed_preview": "sha256:" + "b" * 64,
+    }
+
+    def grant(command_id: str, expected_version: int, approval_id: str) -> str:
+        subject = {
+            "command_id": command_id,
+            "command_type": "workspace.lease",
+            "actor_id": "ply_owner",
+            "realm_id": "rlm_local",
+            "expected_version": expected_version,
+            "payload": payload,
+            "simulation": False,
+        }
+        staged = stage_bound_approval(
+            "ply_owner",
+            "workspace.lease",
+            "rlm_local",
+            command_id,
+            subject,
+            approval_id=approval_id,
+            db_path=approval_db,
+        )
+        decide_bound_approval(
+            staged.approval_id,
+            approve=True,
+            decided_by="owner",
+            db_path=approval_db,
+        )
+        return staged.approval_id
+
+    approvals = (
+        grant("cmd_lease_a", 0, "approval_lease_a"),
+        grant("cmd_lease_b", 0, "approval_lease_b"),
+    )
+    barrier = Barrier(2)
+    original_command_result = store.command_result
+
+    def synchronized_command_result(realm_id: str, command_id: str):
+        if command_id in {"cmd_lease_a", "cmd_lease_b"}:
+            result = original_command_result(realm_id, command_id)
+            barrier.wait()
+            return result
+        return original_command_result(realm_id, command_id)
+
+    monkeypatch.setattr(store, "command_result", synchronized_command_result)
+
+    def lease(index: int):
+        try:
+            return service.execute(
+                "workspace.lease",
+                "ply_owner",
+                "rlm_local",
+                payload,
+                0,
+                f"cmd_lease_{'a' if index == 0 else 'b'}",
+                approval_id=approvals[index],
+            )
+        except Exception as exc:  # noqa: BLE001 - race outcome is asserted below
+            return exc
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = tuple(pool.map(lease, range(2)))
+
+    assert sum(not isinstance(result, Exception) for result in results) == 1
+    assert sum(isinstance(result, ConflictError) for result in results) == 1
+    records = {record.approval_id: record for record in list_bound_approvals(db_path=approval_db)}
+    loser = next(index for index, result in enumerate(results) if isinstance(result, ConflictError))
+    winner = 1 - loser
+    assert records[approvals[winner]].state is ApprovalState.CONSUMED
+    assert records[approvals[loser]].state is ApprovalState.GRANTED
+
+    corrected_id = "cmd_lease_corrected"
+    corrected_approval = grant(corrected_id, 1, "approval_lease_corrected")
+    corrected = service.execute(
+        "workspace.lease",
+        "ply_owner",
+        "rlm_local",
+        payload,
+        1,
+        corrected_id,
+        approval_id=corrected_approval,
+    )
+    assert corrected.stream_version == 2
