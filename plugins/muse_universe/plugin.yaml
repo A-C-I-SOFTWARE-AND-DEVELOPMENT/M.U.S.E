@@ -1,0 +1,5 @@
+name: muse_universe
+version: 1.0.0
+description: "Authoritative local contracts and event store for MUSE Universe."
+author: MUSE
+kind: standalone

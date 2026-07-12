@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "AuthorizationDecision": {
+      "properties": {
+        "allowed": {
+          "title": "Allowed",
+          "type": "boolean"
+        },
+        "owner_gate": {
+          "default": "not_required",
+          "title": "Owner Gate",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "scopes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Scopes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "allowed",
+        "reason"
+      ],
+      "title": "AuthorizationDecision",
+      "type": "object"
+    },
+    "ProvenanceRecord": {
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "confidence"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "actor_id": {
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "authorization": {
+      "$ref": "#/$defs/AuthorizationDecision"
+    },
+    "causation_id": {
+      "title": "Causation Id",
+      "type": "string"
+    },
+    "command_id": {
+      "title": "Command Id",
+      "type": "string"
+    },
+    "command_type": {
+      "title": "Command Type",
+      "type": "string"
+    },
+    "correlation_id": {
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "expected_version": {
+      "minimum": 0,
+      "title": "Expected Version",
+      "type": "integer"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceRecord"
+    },
+    "realm_id": {
+      "title": "Realm Id",
+      "type": "string"
+    },
+    "simulation": {
+      "default": false,
+      "title": "Simulation",
+      "type": "boolean"
+    },
+    "stream_id": {
+      "title": "Stream Id",
+      "type": "string"
+    },
+    "stream_type": {
+      "title": "Stream Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command_id",
+    "command_type",
+    "realm_id",
+    "actor_id",
+    "stream_type",
+    "stream_id",
+    "expected_version",
+    "payload",
+    "authorization",
+    "provenance",
+    "causation_id",
+    "correlation_id"
+  ],
+  "title": "UniverseCommand",
+  "type": "object"
+}

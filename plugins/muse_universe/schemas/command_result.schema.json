@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "AuthorizationDecision": {
+      "properties": {
+        "allowed": {
+          "title": "Allowed",
+          "type": "boolean"
+        },
+        "owner_gate": {
+          "default": "not_required",
+          "title": "Owner Gate",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "scopes": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Scopes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "allowed",
+        "reason"
+      ],
+      "title": "AuthorizationDecision",
+      "type": "object"
+    },
+    "ProvenanceRecord": {
+      "properties": {
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "confidence"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    },
+    "UniverseEvent": {
+      "properties": {
+        "actor_id": {
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "authorization": {
+          "$ref": "#/$defs/AuthorizationDecision"
+        },
+        "causation_id": {
+          "title": "Causation Id",
+          "type": "string"
+        },
+        "correlation_id": {
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "title": "Event Type",
+          "type": "string"
+        },
+        "occurred_at": {
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "provenance": {
+          "$ref": "#/$defs/ProvenanceRecord"
+        },
+        "realm_id": {
+          "title": "Realm Id",
+          "type": "string"
+        },
+        "rollback": {
+          "additionalProperties": true,
+          "title": "Rollback",
+          "type": "object"
+        },
+        "schema_version": {
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "sequence": {
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "simulation": {
+          "title": "Simulation",
+          "type": "boolean"
+        },
+        "stream_id": {
+          "title": "Stream Id",
+          "type": "string"
+        },
+        "stream_type": {
+          "title": "Stream Type",
+          "type": "string"
+        },
+        "stream_version": {
+          "title": "Stream Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sequence",
+        "event_id",
+        "event_type",
+        "realm_id",
+        "actor_id",
+        "stream_type",
+        "stream_id",
+        "stream_version",
+        "authorization",
+        "causation_id",
+        "correlation_id",
+        "occurred_at",
+        "payload",
+        "provenance",
+        "simulation",
+        "rollback"
+      ],
+      "title": "UniverseEvent",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "entity": {
+      "additionalProperties": true,
+      "title": "Entity",
+      "type": "object"
+    },
+    "event": {
+      "$ref": "#/$defs/UniverseEvent"
+    },
+    "idempotent_replay": {
+      "default": false,
+      "title": "Idempotent Replay",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "event",
+    "entity"
+  ],
+  "title": "CommandResult",
+  "type": "object"
+}
