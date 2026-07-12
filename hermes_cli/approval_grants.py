@@ -11,6 +11,8 @@ import contextlib
 import enum
 import hashlib
 import json
+import math
+import numbers
 import sqlite3
 import time
 import uuid
@@ -23,9 +25,11 @@ from hermes_constants import get_hermes_home
 __all__ = [
     "ApprovalBindingMismatchError",
     "ApprovalConflictError",
+    "ApprovalCorruptionError",
     "ApprovalExpiredError",
     "ApprovalGrantError",
     "ApprovalNotFoundError",
+    "ApprovalSchemaVersionError",
     "ApprovalState",
     "ApprovalStateError",
     "ApprovalVerifier",
@@ -33,28 +37,55 @@ __all__ = [
     "decide_bound_approval",
     "list_bound_approvals",
     "stage_bound_approval",
+    "supersede_bound_approval",
     "validate_and_consume_approval",
 ]
 
 _PROVENANCE = "bound-approval-v1"
+_SCHEMA_VERSION = 1
 _BUSY_TIMEOUT_MS = 5_000
-_SCHEMA = """
+_SCHEMA_V1 = """
 CREATE TABLE IF NOT EXISTS bound_approvals (
-    approval_id TEXT PRIMARY KEY,
-    actor_id TEXT NOT NULL,
-    action TEXT NOT NULL,
-    realm_id TEXT NOT NULL,
-    correlation_id TEXT NOT NULL,
-    subject_hash TEXT NOT NULL CHECK(length(subject_hash) = 64),
+    approval_id TEXT PRIMARY KEY CHECK(length(approval_id) > 0),
+    actor_id TEXT NOT NULL CHECK(length(actor_id) > 0),
+    action TEXT NOT NULL CHECK(length(action) > 0),
+    realm_id TEXT NOT NULL CHECK(length(realm_id) > 0),
+    correlation_id TEXT NOT NULL CHECK(length(correlation_id) > 0),
+    subject_hash TEXT NOT NULL CHECK(
+        length(subject_hash) = 64
+        AND subject_hash NOT GLOB '*[^0-9a-f]*'
+    ),
     state TEXT NOT NULL CHECK(state IN (
         'pending', 'granted', 'rejected', 'expired', 'consumed', 'superseded'
     )),
     issued_at REAL NOT NULL,
-    expires_at REAL NOT NULL,
+    expires_at REAL NOT NULL CHECK(expires_at > issued_at),
     decided_at REAL,
-    decided_by TEXT,
+    decided_by TEXT CHECK(decided_by IS NULL OR length(decided_by) > 0),
     consumed_at REAL,
-    provenance TEXT NOT NULL
+    provenance TEXT NOT NULL CHECK(provenance = 'bound-approval-v1'),
+    superseded_by TEXT,
+    CHECK(decided_at IS NULL OR (
+        decided_at >= issued_at AND decided_at < expires_at
+    )),
+    CHECK(
+        (state = 'pending' AND decided_at IS NULL AND decided_by IS NULL
+            AND consumed_at IS NULL AND superseded_by IS NULL)
+        OR (state IN ('granted', 'rejected') AND decided_at IS NOT NULL
+            AND decided_by IS NOT NULL AND consumed_at IS NULL
+            AND superseded_by IS NULL)
+        OR (state = 'expired' AND consumed_at IS NULL
+            AND superseded_by IS NULL
+            AND ((decided_at IS NULL AND decided_by IS NULL)
+                OR (decided_at IS NOT NULL AND decided_by IS NOT NULL)))
+        OR (state = 'consumed' AND decided_at IS NOT NULL
+            AND decided_by IS NOT NULL AND consumed_at IS NOT NULL
+            AND consumed_at >= decided_at AND consumed_at < expires_at
+            AND superseded_by IS NULL)
+        OR (state = 'superseded' AND decided_at IS NULL
+            AND decided_by IS NULL AND consumed_at IS NULL
+            AND length(superseded_by) > 0 AND superseded_by != approval_id)
+    )
 )
 """
 
@@ -73,6 +104,14 @@ class ApprovalConflictError(ApprovalGrantError):
 
 class ApprovalBindingMismatchError(ApprovalGrantError):
     """Raised when presented binding data does not match the grant."""
+
+
+class ApprovalCorruptionError(ApprovalGrantError):
+    """Raised when persisted approval data violates trusted invariants."""
+
+
+class ApprovalSchemaVersionError(ApprovalCorruptionError):
+    """Raised when a database schema version is unsupported."""
 
 
 class ApprovalStateError(ApprovalGrantError):
@@ -111,6 +150,7 @@ class BoundApproval:
     decided_by: str | None = None
     consumed_at: float | None = None
     provenance: str = _PROVENANCE
+    superseded_by: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-safe representation containing no source subject."""
@@ -129,6 +169,7 @@ class BoundApproval:
             "decided_by": self.decided_by,
             "consumed_at": self.consumed_at,
             "provenance": self.provenance,
+            "superseded_by": self.superseded_by,
         }
 
 
@@ -161,11 +202,64 @@ def _connect(db_path: Path | str | None) -> sqlite3.Connection:
     path = _database_path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=_BUSY_TIMEOUT_MS / 1_000)
-    connection.row_factory = sqlite3.Row
-    connection.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
-    connection.execute("PRAGMA journal_mode=WAL")
-    connection.execute(_SCHEMA)
-    return connection
+    try:
+        connection.row_factory = sqlite3.Row
+        connection.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
+        connection.execute("PRAGMA journal_mode=WAL")
+        _initialize_schema(connection)
+        return connection
+    except BaseException:
+        connection.close()
+        raise
+
+
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    if version > _SCHEMA_VERSION:
+        raise ApprovalSchemaVersionError(
+            f"unsupported approval schema version: {version}"
+        )
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        if version == 0:
+            exists = connection.execute(
+                """
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table' AND name = 'bound_approvals'
+                """
+            ).fetchone()
+            if exists is not None:
+                connection.execute(
+                    "ALTER TABLE bound_approvals RENAME TO bound_approvals_v0"
+                )
+            connection.execute(_SCHEMA_V1)
+            if exists is not None:
+                connection.execute(
+                    """
+                    INSERT INTO bound_approvals (
+                        approval_id, actor_id, action, realm_id, correlation_id,
+                        subject_hash, state, issued_at, expires_at, decided_at,
+                        decided_by, consumed_at, provenance, superseded_by
+                    )
+                    SELECT approval_id, actor_id, action, realm_id, correlation_id,
+                        subject_hash, state, issued_at, expires_at, decided_at,
+                        decided_by, consumed_at, provenance, NULL
+                    FROM bound_approvals_v0
+                    """
+                )
+                connection.execute("DROP TABLE bound_approvals_v0")
+            connection.execute(f"PRAGMA user_version={_SCHEMA_VERSION}")
+        else:
+            connection.execute(_SCHEMA_V1)
+        connection.commit()
+    except sqlite3.IntegrityError as exc:
+        connection.rollback()
+        raise ApprovalCorruptionError(
+            "legacy approval data violates schema invariants"
+        ) from exc
+    except BaseException:
+        connection.rollback()
+        raise
 
 
 @contextlib.contextmanager
@@ -186,6 +280,7 @@ def _write_transaction(
 
 
 def _canonical_subject_hash(subject: object) -> str:
+    _validate_subject(subject)
     try:
         canonical = json.dumps(
             subject,
@@ -199,6 +294,40 @@ def _canonical_subject_hash(subject: object) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _validate_subject(value: object) -> None:
+    """Require an unambiguous recursive JSON value domain."""
+
+    if value is None or type(value) in {bool, int, str}:
+        return
+    if type(value) is float:
+        if math.isfinite(value):
+            return
+        raise ValueError("subject numbers must be finite")
+    if type(value) is list:
+        for item in value:
+            _validate_subject(item)
+        return
+    if type(value) is dict:
+        for key, item in value.items():
+            if type(key) is not str:
+                raise ValueError("subject mappings must use string keys")
+            _validate_subject(item)
+        return
+    raise ValueError("subject contains an unsupported value type")
+
+
+def _positive_finite_ttl(ttl_seconds: object) -> float:
+    if isinstance(ttl_seconds, bool) or not isinstance(ttl_seconds, numbers.Real):
+        raise ValueError("ttl_seconds must be a real finite positive number")
+    try:
+        value = float(ttl_seconds)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("ttl_seconds must be a real finite positive number") from exc
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("ttl_seconds must be a real finite positive number")
+    return value
+
+
 def _required_text(name: str, value: str) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError(f"{name} must be a non-empty string")
@@ -206,21 +335,110 @@ def _required_text(name: str, value: str) -> str:
 
 
 def _from_row(row: sqlite3.Row) -> BoundApproval:
-    return BoundApproval(
-        approval_id=row["approval_id"],
-        actor_id=row["actor_id"],
-        action=row["action"],
-        realm_id=row["realm_id"],
-        correlation_id=row["correlation_id"],
-        subject_hash=row["subject_hash"],
-        state=ApprovalState(row["state"]),
-        issued_at=row["issued_at"],
-        expires_at=row["expires_at"],
-        decided_at=row["decided_at"],
-        decided_by=row["decided_by"],
-        consumed_at=row["consumed_at"],
-        provenance=row["provenance"],
+    try:
+        state = ApprovalState(row["state"])
+        record = BoundApproval(
+            approval_id=row["approval_id"],
+            actor_id=row["actor_id"],
+            action=row["action"],
+            realm_id=row["realm_id"],
+            correlation_id=row["correlation_id"],
+            subject_hash=row["subject_hash"],
+            state=state,
+            issued_at=row["issued_at"],
+            expires_at=row["expires_at"],
+            decided_at=row["decided_at"],
+            decided_by=row["decided_by"],
+            consumed_at=row["consumed_at"],
+            provenance=row["provenance"],
+            superseded_by=row["superseded_by"],
+        )
+    except (IndexError, KeyError, TypeError, ValueError) as exc:
+        raise ApprovalCorruptionError("invalid persisted approval record") from exc
+    _validate_record(record)
+    return record
+
+
+def _finite_timestamp(name: str, value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, numbers.Real):
+        raise ApprovalCorruptionError(f"invalid {name}")
+    converted = float(value)
+    if not math.isfinite(converted):
+        raise ApprovalCorruptionError(f"invalid {name}")
+    return converted
+
+
+def _validate_record(record: BoundApproval) -> None:
+    for name in (
+        "approval_id",
+        "actor_id",
+        "action",
+        "realm_id",
+        "correlation_id",
+    ):
+        value = getattr(record, name)
+        if not isinstance(value, str) or not value:
+            raise ApprovalCorruptionError(f"invalid persisted {name}")
+    if (
+        not isinstance(record.subject_hash, str)
+        or len(record.subject_hash) != 64
+        or any(char not in "0123456789abcdef" for char in record.subject_hash)
+    ):
+        raise ApprovalCorruptionError("invalid persisted subject_hash")
+    if record.provenance != _PROVENANCE:
+        raise ApprovalCorruptionError("unknown approval provenance")
+
+    issued_at = _finite_timestamp("issued_at", record.issued_at)
+    expires_at = _finite_timestamp("expires_at", record.expires_at)
+    if expires_at <= issued_at:
+        raise ApprovalCorruptionError("approval expiry must follow issuance")
+    decided_at = (
+        None
+        if record.decided_at is None
+        else _finite_timestamp("decided_at", record.decided_at)
     )
+    consumed_at = (
+        None
+        if record.consumed_at is None
+        else _finite_timestamp("consumed_at", record.consumed_at)
+    )
+    if decided_at is not None and not issued_at <= decided_at < expires_at:
+        raise ApprovalCorruptionError("decision timestamp is out of order")
+    decision_pair = (
+        decided_at is not None
+        and isinstance(record.decided_by, str)
+        and bool(record.decided_by)
+    )
+    decision_absent = decided_at is None and record.decided_by is None
+
+    if record.state is ApprovalState.PENDING:
+        valid = decision_absent and consumed_at is None and record.superseded_by is None
+    elif record.state in {ApprovalState.GRANTED, ApprovalState.REJECTED}:
+        valid = decision_pair and consumed_at is None and record.superseded_by is None
+    elif record.state is ApprovalState.EXPIRED:
+        valid = (
+            (decision_pair or decision_absent)
+            and consumed_at is None
+            and record.superseded_by is None
+        )
+    elif record.state is ApprovalState.CONSUMED:
+        valid = (
+            decision_pair
+            and consumed_at is not None
+            and decided_at is not None
+            and decided_at <= consumed_at < expires_at
+            and record.superseded_by is None
+        )
+    else:
+        valid = (
+            decision_absent
+            and consumed_at is None
+            and isinstance(record.superseded_by, str)
+            and bool(record.superseded_by)
+            and record.superseded_by != record.approval_id
+        )
+    if not valid:
+        raise ApprovalCorruptionError("persisted lifecycle metadata is inconsistent")
 
 
 def _select(connection: sqlite3.Connection, approval_id: str) -> sqlite3.Row:
@@ -285,8 +503,7 @@ def stage_bound_approval(
 ) -> BoundApproval:
     """Stage a pending approval bound to an exact caller tuple."""
 
-    if isinstance(ttl_seconds, bool) or ttl_seconds <= 0:
-        raise ValueError("ttl_seconds must be positive")
+    ttl = _positive_finite_ttl(ttl_seconds)
     binding = _presented_binding(
         actor_id, action, realm_id, correlation_id, subject
     )
@@ -317,7 +534,7 @@ def stage_bound_approval(
                 *binding,
                 ApprovalState.PENDING.value,
                 now,
-                now + float(ttl_seconds),
+                now + ttl,
                 _PROVENANCE,
             ),
         )
@@ -333,6 +550,8 @@ def decide_bound_approval(
 ) -> BoundApproval:
     """Grant or reject a pending approval exactly once."""
 
+    if type(approve) is not bool:
+        raise ValueError("approve must be a bool")
     _required_text("approval_id", approval_id)
     _required_text("decided_by", decided_by)
     desired = ApprovalState.GRANTED if approve else ApprovalState.REJECTED
@@ -344,6 +563,10 @@ def decide_bound_approval(
         if record.state is ApprovalState.EXPIRED:
             expired = record
         elif record.state is desired:
+            if record.decided_by != decided_by:
+                raise ApprovalStateError(
+                    f"approval {approval_id} was decided by another identity"
+                )
             return record
         elif record.state is not ApprovalState.PENDING:
             raise ApprovalStateError(
@@ -419,6 +642,73 @@ def validate_and_consume_approval(
             return _from_row(_select(connection, approval_id))
     assert expired is not None
     raise ApprovalExpiredError(f"approval expired: {approval_id}")
+
+
+def supersede_bound_approval(
+    approval_id: str,
+    *,
+    superseded_by: str,
+    db_path: Path | str | None = None,
+) -> BoundApproval:
+    """Atomically supersede a pending approval with another bound request."""
+
+    _required_text("approval_id", approval_id)
+    _required_text("superseded_by", superseded_by)
+    if approval_id == superseded_by:
+        raise ValueError("an approval cannot supersede itself")
+
+    expired_id: str | None = None
+    with _write_transaction(db_path) as connection:
+        original = _mark_expired(
+            connection, _from_row(_select(connection, approval_id)), time.time()
+        )
+        if original.state is ApprovalState.EXPIRED:
+            expired_id = approval_id
+        elif original.state is ApprovalState.SUPERSEDED:
+            if original.superseded_by != superseded_by:
+                raise ApprovalStateError(
+                    f"approval {approval_id} was superseded by another request"
+                )
+            _from_row(_select(connection, superseded_by))
+            return original
+        elif original.state is not ApprovalState.PENDING:
+            raise ApprovalStateError(
+                f"approval {approval_id} cannot be superseded from "
+                f"{original.state.value}"
+            )
+        else:
+            replacement = _mark_expired(
+                connection,
+                _from_row(_select(connection, superseded_by)),
+                time.time(),
+            )
+            if replacement.state is ApprovalState.EXPIRED:
+                expired_id = superseded_by
+            elif replacement.state is not ApprovalState.PENDING:
+                raise ApprovalStateError(
+                    f"replacement {superseded_by} is not pending"
+                )
+            elif _binding(original) != _binding(replacement):
+                raise ApprovalBindingMismatchError(
+                    "replacement approval has a different binding"
+                )
+            else:
+                connection.execute(
+                    """
+                    UPDATE bound_approvals
+                    SET state = ?, superseded_by = ?
+                    WHERE approval_id = ? AND state = ?
+                    """,
+                    (
+                        ApprovalState.SUPERSEDED.value,
+                        superseded_by,
+                        approval_id,
+                        ApprovalState.PENDING.value,
+                    ),
+                )
+                return _from_row(_select(connection, approval_id))
+    assert expired_id is not None
+    raise ApprovalExpiredError(f"approval expired: {expired_id}")
 
 
 def list_bound_approvals(
