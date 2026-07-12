@@ -116,6 +116,69 @@ def test_stale_version_conflicts_without_partial_write(
     assert entity(store, "realm", "rlm_local")["version"] == 1
 
 
+def test_transaction_appends_related_events_atomically(
+    tmp_path, command_factory: Callable[..., UniverseCommand]
+) -> None:
+    store = UniverseStore(tmp_path / "universe.db")
+    realm = command_factory()
+    player = command_factory(
+        command_id="cmd_player",
+        command_type="player.create",
+        stream_type="player",
+        stream_id="ply_1",
+        payload={"id": "ply_1", "display_name": "Player"},
+    )
+
+    with store.transaction() as transaction:
+        results = transaction.append_related(
+            ((realm, "realm.created"), (player, "player.created"))
+        )
+
+    assert [result.event.stream_type for result in results] == ["realm", "player"]
+    assert store.entity("realm", "rlm_local", "rlm_local") is not None
+    assert store.entity("player", "ply_1", "rlm_local") is not None
+
+
+def test_related_append_rolls_back_every_projection_on_conflict(
+    tmp_path, command_factory: Callable[..., UniverseCommand]
+) -> None:
+    store = UniverseStore(tmp_path / "universe.db")
+    store.append(command_factory(), "realm.created")
+    player = command_factory(
+        command_id="cmd_player",
+        command_type="player.create",
+        stream_type="player",
+        stream_id="ply_1",
+        payload={"id": "ply_1", "display_name": "Player"},
+    )
+    stale_realm = command_factory(
+        command_id="cmd_stale",
+        expected_version=0,
+        payload={"name": "Changed", "mode": "local"},
+    )
+
+    with pytest.raises(ConflictError):
+        with store.transaction() as transaction:
+            transaction.append_related(
+                ((player, "player.created"), (stale_realm, "realm.updated"))
+            )
+
+    assert store.entity("player", "ply_1", "rlm_local") is None
+    assert entity(store, "realm", "rlm_local", "rlm_local")["version"] == 1
+
+
+def test_public_projection_and_command_result_reads_need_no_private_connection(
+    tmp_path, command_factory: Callable[..., UniverseCommand]
+) -> None:
+    store = UniverseStore(tmp_path / "universe.db")
+    created = store.append(command_factory(), "realm.created")
+
+    assert store.command_result("rlm_local", "cmd_1") == created
+    assert store.entities("rlm_local", "realm") == [
+        entity(store, "realm", "rlm_local", "rlm_local")
+    ]
+
+
 def test_delete_retains_tombstone_and_event_history(
     tmp_path, command_factory: Callable[..., UniverseCommand]
 ) -> None:

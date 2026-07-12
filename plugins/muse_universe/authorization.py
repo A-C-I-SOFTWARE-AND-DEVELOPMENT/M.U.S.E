@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Protocol
 
 from .catalog import MODULES
 from .models import AuthorizationDecision
-from .store import UniverseStore
+
+
+class ProjectionReader(Protocol):
+    def entity(
+        self, entity_type: str, entity_id: str, realm_id: str | None = None
+    ) -> dict[str, Any] | None: ...
+
+    def entities(
+        self, realm_id: str | None, entity_type: str
+    ) -> list[dict[str, Any]]: ...
+
+    def snapshot(self, realm_id: str) -> dict[str, list[dict[str, Any]]]: ...
 
 
 class AuthorizationError(PermissionError):
@@ -69,11 +80,27 @@ _PUBLIC_COMMANDS = frozenset(
     {"blueprint.publish", "gallery.publish", "asset.register"}
 )
 _SIMULATION_REAL_MUTATIONS = frozenset(
-    {"release.promote", "workspace.lease", "exchange.listing.publish"}
+    {
+        "asset.register",
+        "blueprint.publish",
+        "creator_ledger.record",
+        "creator_ledger.transfer",
+        "exchange.listing.publish",
+        "exchange.listing.remove",
+        "gallery.publish",
+        "marketplace.refund",
+        "operational_ledger.record",
+        "release.promote",
+        "release.stage",
+        "vessel.module.install",
+        "workspace.lease",
+    }
 )
 
 
 def approval_required(command_type: str, payload: Mapping[str, Any]) -> bool:
+    if command_type == "asset.register":
+        return True
     if command_type in _ALWAYS_SENSITIVE:
         return True
     if command_type in _PUBLIC_COMMANDS and payload.get("visibility") == "public":
@@ -87,7 +114,7 @@ def approval_required(command_type: str, payload: Mapping[str, Any]) -> bool:
 
 
 def authoritative_scopes(
-    store: UniverseStore, actor_id: str, realm_id: str
+    store: ProjectionReader, actor_id: str, realm_id: str
 ) -> tuple[str, ...]:
     realm = store.entity("realm", realm_id, realm_id)
     if realm is not None and realm.get("owner_id") == actor_id:
@@ -113,7 +140,7 @@ def authoritative_scopes(
 
 
 def authorize(
-    store: UniverseStore,
+    store: ProjectionReader,
     command_type: str,
     actor_id: str,
     realm_id: str,
@@ -159,7 +186,7 @@ def authorize(
 
 
 def _is_self_membership_action(
-    store: UniverseStore,
+    store: ProjectionReader,
     actor_id: str,
     realm_id: str,
     payload: Mapping[str, Any],
@@ -175,16 +202,9 @@ def _is_self_membership_action(
     )
 
 
-def _realms_with_membership(store: UniverseStore, actor_id: str) -> set[str]:
+def _realms_with_membership(store: ProjectionReader, actor_id: str) -> set[str]:
     realms: set[str] = set()
-    with store._connection() as connection:  # authoritative cross-realm lookup
-        rows = connection.execute(
-            "SELECT realm_id, entity_json FROM entities WHERE entity_type = 'membership'"
-        ).fetchall()
-    import json
-
-    for row in rows:
-        membership = json.loads(row["entity_json"])
+    for membership in store.entities(None, "membership"):
         if membership.get("player_id") == actor_id:
-            realms.add(str(row["realm_id"]))
+            realms.add(str(membership.get("realm_id")))
     return realms

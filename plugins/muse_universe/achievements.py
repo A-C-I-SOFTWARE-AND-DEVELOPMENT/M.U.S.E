@@ -22,8 +22,12 @@ class AchievementBridge:
         self.enabled = enabled
         self.adapter = adapter if adapter is not None else _load_supported_adapter()
 
-    def record_completed_mission(
-        self, mission: Mapping[str, Any]
+    def outbox_for(
+        self,
+        mission: Mapping[str, Any],
+        *,
+        realm_id: str,
+        command_id: str,
     ) -> dict[str, object] | None:
         if not self.enabled or self.adapter is None:
             return None
@@ -37,12 +41,36 @@ class AchievementBridge:
             return None
         if mode not in {"real", "simulation"}:
             return None
-        envelope: dict[str, object] = {
+        outbox: dict[str, object] = {
+            "version": 1,
+            "kind": "mission.completed",
+            "producer": "muse_universe",
             "mission_id": str(mission.get("id", "")),
             "mode": mode,
-            "evidence": tuple(str(item) for item in evidence),
+            "evidence_references": [str(item) for item in evidence],
             "source_type": str(mission.get("source_type", "")),
             "source_id": str(mission.get("source_id", "")),
+            "provenance": {
+                "realm_id": realm_id,
+                "command_id": command_id,
+            },
+        }
+        if mode == "simulation":
+            outbox["simulation_label"] = "simulation"
+        return outbox
+
+    def record_outbox(
+        self, outbox: Mapping[str, Any], *, occurred_at: str
+    ) -> dict[str, object] | None:
+        if not self.enabled or self.adapter is None:
+            return None
+        provenance = outbox.get("provenance")
+        if not isinstance(provenance, Mapping):
+            return None
+        envelope = {
+            **dict(outbox),
+            "evidence_references": list(outbox.get("evidence_references", ())),
+            "provenance": {**dict(provenance), "occurred_at": occurred_at},
         }
         try:
             reference = self.adapter.record(envelope)
@@ -50,15 +78,16 @@ class AchievementBridge:
             return None
         if not isinstance(reference, Mapping):
             return None
+        if set(reference) != {"status", "record_id", "dedupe_key"}:
+            return None
+        if reference.get("status") not in {"accepted", "duplicate"}:
+            return None
         if any(
-            key in reference
-            for key in ("scope", "scopes", "role", "roles", "approval", "capabilities", "tools")
+            not isinstance(reference.get(key), str) or not reference[key]
+            for key in ("record_id", "dedupe_key")
         ):
             return None
-        required = ("session_id", "title", "value")
-        if not all(reference.get(key) is not None for key in required):
-            return None
-        return {key: reference[key] for key in required}
+        return {key: reference[key] for key in ("status", "record_id", "dedupe_key")}
 
 
 class _CallableAdapter:

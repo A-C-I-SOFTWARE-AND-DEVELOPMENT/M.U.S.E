@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 from collections.abc import Callable, Mapping
+from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
@@ -15,6 +17,7 @@ from hermes_cli.approval_grants import ApprovalVerifier
 from .achievements import AchievementBridge
 from .authorization import (
     AuthorizationError,
+    ProjectionReader,
     approval_required,
     authorize,
     authoritative_scopes,
@@ -30,7 +33,7 @@ from .catalog import (
     catalog_snapshot,
 )
 from .models import CommandResult, ProvenanceRecord, UniverseCommand
-from .store import CommandIdConflictError, UniverseStore
+from .store import CommandIdConflictError, UniverseStore, UniverseTransaction
 
 
 class ValidationError(ValueError):
@@ -123,6 +126,25 @@ _MISSION_TRANSITIONS = {
     "completed": set(),
     "cancelled": set(),
 }
+_ACTIVE_READER: ContextVar[ProjectionReader | None] = ContextVar(
+    "muse_universe_projection_reader", default=None
+)
+_PROJECTION_TARGETS: dict[str, tuple[str, str]] = {
+    "membership.accept": ("membership", "id"),
+    "presence.update": ("presence", "id"),
+    "governance.vote": ("proposal", "proposal_id"),
+    "governance.execute": ("proposal", "proposal_id"),
+    "world.region.freeze": ("world", "world_id"),
+    "world.region.regenerate": ("world", "world_id"),
+    "vessel.module.install": ("vessel", "vessel_id"),
+    "vessel.cosmetics.update": ("vessel", "vessel_id"),
+    "fleet.assign": ("fleet", "fleet_id"),
+    "mission.transition": ("mission", "mission_id"),
+    "exchange.listing.remove": ("exchange_listing", "listing_id"),
+    "marketplace.refund": ("creator_ledger", "transfer_id"),
+    "release.promote": ("release", "release_id"),
+    "cinematic_shot.qc": ("cinematic_shot", "shot_id"),
+}
 
 
 class UniverseService:
@@ -151,7 +173,47 @@ class UniverseService:
         return catalog_snapshot()
 
     def snapshot(self, realm_id: str) -> dict[str, list[dict[str, Any]]]:
+        """Internal authoritative snapshot; caller-facing code uses snapshot_for."""
+
         return self.store.snapshot(realm_id)
+
+    def snapshot_for(
+        self, actor_id: str, realm_id: str
+    ) -> dict[str, list[dict[str, Any]]]:
+        snapshot = self.store.snapshot(realm_id)
+        realm = self.store.entity("realm", realm_id, realm_id) or {}
+        is_owner = realm.get("owner_id") == actor_id
+        memberships = self.store.entities(realm_id, "membership")
+        active_civilizations = {
+            membership.get("civilization_id")
+            for membership in memberships
+            if membership.get("player_id") == actor_id
+            and membership.get("status") == "active"
+        }
+        member_civilizations: dict[str, set[object]] = {}
+        for membership in memberships:
+            if membership.get("status") == "active":
+                member_civilizations.setdefault(
+                    str(membership.get("player_id")), set()
+                ).add(membership.get("civilization_id"))
+
+        visible: list[dict[str, Any]] = []
+        for presence in snapshot.get("presences", []):
+            subject_id = str(presence.get("id"))
+            visibility = presence.get("visibility", "realm")
+            if visibility == "public":
+                visible.append(_minimal_presence(presence))
+            elif subject_id == actor_id or is_owner:
+                visible.append(presence)
+            elif visibility == "private":
+                continue
+            elif visibility == "crew":
+                if active_civilizations & member_civilizations.get(subject_id, set()):
+                    visible.append(_minimal_presence(presence))
+            elif visibility == "realm" and active_civilizations:
+                visible.append(_minimal_presence(presence))
+        snapshot["presences"] = visible
+        return snapshot
 
     def entity(
         self, entity_type: str, entity_id: str, realm_id: str | None = None
@@ -213,11 +275,63 @@ class UniverseService:
         )
         signature = _intent_hash(intent)
 
+        stored = self.store.command_result(realm_id, command_id)
+        if stored is not None:
+            if stored.event.provenance.signature != signature:
+                raise CommandIdConflictError(command_id)
+            replay = stored.model_copy(update={"idempotent_replay": True})
+            self._deliver_achievement_evidence(replay)
+            return replay
+
+        with self.store.transaction() as transaction:
+            token = _ACTIVE_READER.set(transaction)
+            try:
+                stored = transaction.command_result(realm_id, command_id)
+                if stored is not None:
+                    if stored.event.provenance.signature != signature:
+                        raise CommandIdConflictError(command_id)
+                    result = stored.model_copy(update={"idempotent_replay": True})
+                else:
+                    result = self._execute_new_command(
+                        transaction=transaction,
+                        command_type=command_type,
+                        actor_id=actor_id,
+                        realm_id=realm_id,
+                        intent_payload=intent_payload,
+                        expected_version=expected_version,
+                        command_id=command_id,
+                        approval_id=approval_id,
+                        simulation=simulation,
+                        intent=intent,
+                        signature=signature,
+                    )
+            finally:
+                _ACTIVE_READER.reset(token)
+
+        self._deliver_achievement_evidence(result)
+        return result
+
+    def _execute_new_command(
+        self,
+        *,
+        transaction: UniverseTransaction,
+        command_type: str,
+        actor_id: str,
+        realm_id: str,
+        intent_payload: dict[str, Any],
+        expected_version: int,
+        command_id: str,
+        approval_id: str | None,
+        simulation: bool,
+        intent: dict[str, Any],
+        signature: str,
+    ) -> CommandResult:
+
         provisional_approval = approval_id
         if provisional_approval is None and approval_required(command_type, intent_payload):
             provisional_approval = "validation-pending"
         decision = authorize(
-            self.store,
+            transaction,
             command_type,
             actor_id,
             realm_id,
@@ -226,13 +340,9 @@ class UniverseService:
             simulation=simulation,
         )
 
-        stored = self._stored_result(realm_id, command_id)
-        if stored is not None:
-            if approval_required(command_type, intent_payload):
-                self._verify_approval(approval_id, intent)
-            if stored.event.provenance.signature != signature:
-                raise CommandIdConflictError(command_id)
-            return stored.model_copy(update={"idempotent_replay": True})
+        self._validate_projection_mode(
+            command_type, realm_id, intent_payload, simulation
+        )
 
         validator_name = VALIDATORS[command_type]
         validator = getattr(self, validator_name)
@@ -244,9 +354,17 @@ class UniverseService:
         if approval_required(command_type, intent_payload):
             self._verify_approval(approval_id, intent)
         if command_type == "mission.transition" and normalized.get("state") == "completed":
-            reference = self.achievement_bridge.record_completed_mission(normalized)
-            if reference is not None:
-                normalized = {**normalized, "achievement_evidence": reference}
+            outbox = self.achievement_bridge.outbox_for(
+                normalized,
+                realm_id=realm_id,
+                command_id=command_id,
+            )
+            if outbox is not None:
+                normalized = {**normalized, "achievement_evidence_outbox": outbox}
+
+        world_payload = None
+        if command_type == "building.place":
+            world_payload = normalized.pop("_related_world")
 
         stream_type, event_type = COMMANDS[command_type]
         stream_id = self._stream_id(command_type, realm_id, intent_payload)
@@ -270,7 +388,77 @@ class UniverseService:
             correlation_id=command_id,
             simulation=simulation,
         )
-        return self.store.append(command, event_type)
+        if command_type == "building.place":
+            assert world_payload is not None
+            world_command = UniverseCommand(
+                command_id=f"{command_id}:world",
+                command_type="world.building.place",
+                realm_id=realm_id,
+                actor_id=actor_id,
+                stream_type="world",
+                stream_id=_required_text(intent_payload.get("world_id"), "world_id"),
+                expected_version=int(intent_payload["expected_world_version"]),
+                payload=world_payload,
+                authorization=decision,
+                provenance=command.provenance,
+                causation_id=command_id,
+                correlation_id=command_id,
+                simulation=simulation,
+            )
+            return transaction.append_related(
+                (
+                    (world_command, "world.building_placed"),
+                    (command, event_type),
+                )
+            )[1]
+        return transaction.append(command, event_type)
+
+    def _deliver_achievement_evidence(self, result: CommandResult) -> None:
+        if result.event.event_type != "mission.transitioned":
+            return
+        outbox = result.event.payload.get("achievement_evidence_outbox")
+        if not isinstance(outbox, Mapping):
+            return
+        current = self.store.entity(
+            "mission", result.event.stream_id, result.event.realm_id
+        )
+        if current is None or current.get("achievement_evidence_receipt") is not None:
+            return
+        receipt = self.achievement_bridge.record_outbox(
+            outbox, occurred_at=result.event.occurred_at
+        )
+        if receipt is None:
+            return
+        try:
+            current = self.store.entity(
+                "mission", result.event.stream_id, result.event.realm_id
+            )
+            if current is None or current.get("achievement_evidence_receipt") is not None:
+                return
+            receipt_command = UniverseCommand(
+                command_id=f"{result.event.correlation_id}:achievement-evidence",
+                command_type="mission.achievement_evidence.record",
+                realm_id=result.event.realm_id,
+                actor_id=result.event.actor_id,
+                stream_type="mission",
+                stream_id=result.event.stream_id,
+                expected_version=int(current["version"]),
+                payload={"achievement_evidence_receipt": receipt},
+                authorization=result.event.authorization,
+                provenance=ProvenanceRecord(
+                    source="universe_achievement_bridge",
+                    evidence=(f"event:{result.event.event_id}",),
+                    confidence=1.0,
+                ),
+                causation_id=result.event.event_id,
+                correlation_id=result.event.correlation_id,
+                simulation=result.event.simulation,
+            )
+            self.store.append(
+                receipt_command, "mission.achievement_evidence_recorded"
+            )
+        except Exception:
+            return
 
     def _verify_approval(
         self, approval_id: str | None, subject: dict[str, Any]
@@ -289,13 +477,8 @@ class UniverseService:
         except Exception as exc:
             raise AuthorizationError("owner approval verification failed") from exc
 
-    def _stored_result(self, realm_id: str, command_id: str) -> CommandResult | None:
-        with self.store._connection() as connection:
-            row = connection.execute(
-                "SELECT result_json FROM command_results WHERE realm_id = ? AND command_id = ?",
-                (realm_id, command_id),
-            ).fetchone()
-        return None if row is None else CommandResult.model_validate_json(row["result_json"])
+    def _reader(self) -> ProjectionReader:
+        return _ACTIVE_READER.get() or self.store
 
     def _stream_id(
         self, command_type: str, realm_id: str, payload: dict[str, Any]
@@ -304,6 +487,24 @@ class UniverseService:
         if command_type == "realm.create":
             return realm_id
         return _required_text(payload.get(field), field)
+
+    def _validate_projection_mode(
+        self,
+        command_type: str,
+        realm_id: str,
+        payload: Mapping[str, Any],
+        simulation: bool,
+    ) -> None:
+        target = _PROJECTION_TARGETS.get(command_type)
+        if target is None:
+            return
+        entity_type, field = target
+        entity_id = payload.get(field)
+        if not isinstance(entity_id, str):
+            return
+        projection = self._reader().entity(entity_type, entity_id, realm_id)
+        if projection is not None and bool(projection.get("simulation")) != simulation:
+            raise AuthorizationError("simulation and real projections cannot be mixed")
 
     def _apply_public_policy(
         self, actor_id: str, realm_id: str, payload: dict[str, Any]
@@ -322,7 +523,7 @@ class UniverseService:
         self, entity_type: str, entity_id: object, realm_id: str
     ) -> dict[str, Any]:
         identifier = _required_text(entity_id, f"{entity_type}_id")
-        entity = self.store.entity(entity_type, identifier, realm_id)
+        entity = self._reader().entity(entity_type, identifier, realm_id)
         if entity is None:
             raise ValidationError(f"{entity_type} does not exist")
         return entity
@@ -371,7 +572,7 @@ class UniverseService:
         civilization_id = _required_text(payload.get("civilization_id"), "civilization_id")
         self._require_entity("civilization", civilization_id, realm)
         scopes = _string_list(payload.get("scopes", []), "scopes")
-        inviter_scopes = authoritative_scopes(self.store, actor, realm)
+        inviter_scopes = authoritative_scopes(self._reader(), actor, realm)
         if "*" not in inviter_scopes and not set(scopes).issubset(inviter_scopes):
             raise AuthorizationError("cannot grant membership scopes the actor lacks")
         normalized = {
@@ -413,7 +614,7 @@ class UniverseService:
         sequence = payload.get("sequence")
         if not isinstance(sequence, int) or sequence < 1:
             raise ValidationError("presence sequence must be a positive integer")
-        current = self.store.entity("presence", actor, realm)
+        current = self._reader().entity("presence", actor, realm)
         now = float(self.clock())
         if current is not None:
             if sequence <= int(current.get("sequence", 0)):
@@ -434,9 +635,15 @@ class UniverseService:
     def _validate_governance_propose(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
-        self._require_entity("civilization", payload.get("civilization_id"), realm)
+        civilization_id = _required_text(
+            payload.get("civilization_id"), "civilization_id"
+        )
+        self._require_entity("civilization", civilization_id, realm)
+        self._require_civilization_scope(
+            actor, realm, civilization_id, "governance:propose"
+        )
         _required_text(payload.get("title"), "title")
         _required_mapping(payload.get("action"), "action")
         deadline = _utc_datetime(payload.get("deadline_utc"), "deadline_utc")
@@ -451,14 +658,9 @@ class UniverseService:
         proposal = self._require_entity("proposal", payload.get("proposal_id"), realm)
         if proposal.get("state") != "open":
             raise ValidationError("governance proposal is closed")
-        realm_entity = self._require_entity("realm", realm, realm)
-        if realm_entity.get("owner_id") != actor and not self._has_active_civilization_membership(
-            actor,
-            realm,
-            proposal.get("civilization_id"),
-            "governance:vote",
-        ):
-            raise AuthorizationError("governance voter is outside the civilization")
+        self._require_civilization_scope(
+            actor, realm, proposal.get("civilization_id"), "governance:vote"
+        )
         if datetime.now(timezone.utc) >= _utc_datetime(proposal.get("deadline_utc"), "deadline_utc"):
             raise ValidationError("governance vote deadline has closed")
         choice = payload.get("choice")
@@ -473,8 +675,11 @@ class UniverseService:
     def _validate_governance_execute(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, version, simulation
+        del version, simulation
         proposal = self._require_entity("proposal", payload.get("proposal_id"), realm)
+        self._require_civilization_scope(
+            actor, realm, proposal.get("civilization_id"), "governance:execute"
+        )
         if proposal.get("executed"):
             raise ValidationError("governance proposal was already executed")
         if datetime.now(timezone.utc) < _utc_datetime(proposal.get("deadline_utc"), "deadline_utc"):
@@ -532,9 +737,9 @@ class UniverseService:
         del version, simulation
         _required_text(payload.get("id"), "id")
         station_type = _required_text(payload.get("station_type"), "station_type")
-        station_ids = {station["id"] for station in STATIONS} | {"atlas_crown"}
+        station_ids = {station["id"] for station in STATIONS}
         if station_type not in station_ids:
-            raise ValidationError("station type is not in the authoritative catalog")
+            raise ValidationError("station type is not in the authoritative network catalog")
         owner_id = _required_text(payload.get("owner_id"), "owner_id")
         if owner_id != actor:
             self._require_entity("civilization", owner_id, realm)
@@ -560,7 +765,27 @@ class UniverseService:
         navigation = _required_mapping(payload.get("navigation"), "navigation")
         if _number(navigation.get("minimum_clearance"), "minimum_clearance") <= 0:
             raise ValidationError("world navigation clearance must be positive")
-        return {**payload, "regions": regions, "frozen_regions": []}
+        max_occupancy = navigation.get("max_occupancy", 10_000)
+        if not isinstance(max_occupancy, int) or max_occupancy < 1:
+            raise ValidationError("world navigation max_occupancy must be positive")
+        bounds = payload.get(
+            "bounds",
+            {"min": [0.0, 0.0, 0.0], "max": [10_000.0, 10_000.0, 10_000.0]},
+        )
+        bounds_map = _required_mapping(bounds, "bounds")
+        lower = _vector3(bounds_map.get("min"), "bounds.min")
+        upper = _vector3(bounds_map.get("max"), "bounds.max")
+        if any(low >= high for low, high in zip(lower, upper)):
+            raise ValidationError("world bounds are invalid")
+        return {
+            **payload,
+            "regions": regions,
+            "frozen_regions": [],
+            "bounds": {"min": lower, "max": upper},
+            "navigation": {**navigation, "max_occupancy": max_occupancy},
+            "occupancy": [],
+            "performance_used": {name: 0.0 for name in budgets},
+        }
 
     def _validate_world_region_freeze(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
@@ -612,8 +837,6 @@ class UniverseService:
         region = _required_text(payload.get("region_id"), "region_id")
         if region not in world.get("regions", []) or region in world.get("frozen_regions", []):
             raise ValidationError("building region is unavailable")
-        if payload.get("collision_valid") is not True:
-            raise ValidationError("building collision validation failed")
         minimum = _number(
             world.get("navigation", {}).get("minimum_clearance"),
             "world navigation clearance",
@@ -622,12 +845,62 @@ class UniverseService:
             raise ValidationError("building navigation budget exceeded")
         cost = _required_mapping(payload.get("performance_cost"), "performance_cost")
         budget = world.get("performance_budget", {})
+        used = dict(world.get("performance_used", {}))
         for name, value in cost.items():
-            if _number(value, f"performance cost {name}") > _number(
+            next_value = _number(value, f"performance cost {name}") + _number(
+                used.get(name, 0), f"performance used {name}"
+            )
+            if next_value > _number(
                 budget.get(name, 0), f"performance budget {name}"
             ):
                 raise ValidationError("building performance budget exceeded")
-        return payload
+            used[name] = next_value
+        transform = _required_mapping(payload.get("transform"), "transform")
+        position = _vector3(transform.get("position"), "transform.position")
+        collision = _required_mapping(payload.get("collision"), "collision")
+        radius = _number(collision.get("radius"), "collision.radius")
+        if radius <= 0:
+            raise ValidationError("building collision radius must be positive")
+        bounds = world.get("bounds", {})
+        lower = _vector3(bounds.get("min"), "world bounds.min")
+        upper = _vector3(bounds.get("max"), "world bounds.max")
+        if any(
+            coordinate - radius < low or coordinate + radius > high
+            for coordinate, low, high in zip(position, lower, upper)
+        ):
+            raise ValidationError("building transform is outside world bounds")
+        occupancy = list(world.get("occupancy", []))
+        max_occupancy = int(world.get("navigation", {}).get("max_occupancy", 10_000))
+        if len(occupancy) >= max_occupancy:
+            raise ValidationError("building navigation occupancy budget exceeded")
+        for occupied in occupancy:
+            other_position = _vector3(occupied.get("position"), "occupied position")
+            other_radius = _number(occupied.get("radius"), "occupied radius")
+            distance = math.sqrt(
+                sum((left - right) ** 2 for left, right in zip(position, other_position))
+            )
+            if distance < radius + other_radius:
+                raise ValidationError("building collision overlaps existing occupancy")
+        occupancy.append(
+            {
+                "building_id": payload["id"],
+                "position": position,
+                "radius": radius,
+                "navigation_clearance": payload["navigation_clearance"],
+            }
+        )
+        normalized = dict(payload)
+        normalized.pop("collision_valid", None)
+        normalized["collision_check"] = "passed"
+        normalized["transform"] = {**transform, "position": position}
+        normalized["collision"] = {**collision, "radius": radius}
+        normalized["_related_world"] = {
+            **world,
+            "occupancy": occupancy,
+            "performance_used": used,
+            "last_building_id": payload["id"],
+        }
+        return normalized
 
     def _validate_vessel_create(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
@@ -649,8 +922,10 @@ class UniverseService:
             if _number(budgets.get(name), f"vessel {name} budget") < 0:
                 raise ValidationError("vessel budgets cannot be negative")
         modules = _string_list(payload.get("installed_modules", []), "installed_modules")
-        if any(module_id not in MODULES for module_id in modules):
-            raise ValidationError("vessel contains an unknown module")
+        if modules:
+            raise ValidationError(
+                "installed_modules must be empty; install modules through vessel.module.install"
+            )
         licenses = _string_list(payload.get("allowed_licenses"), "allowed_licenses")
         return {
             **payload,
@@ -671,7 +946,7 @@ class UniverseService:
         if module is None:
             raise ValidationError("vessel module is not in the authoritative catalog")
         if vessel.get("owner_id") != actor:
-            scopes = authoritative_scopes(self.store, actor, realm)
+            scopes = authoritative_scopes(self._reader(), actor, realm)
             if "vessel:configure:any" not in scopes and "*" not in scopes:
                 raise AuthorizationError("vessel module scope does not cover this vessel")
         attachment = _required_text(payload.get("attachment_type"), "attachment_type")
@@ -694,7 +969,7 @@ class UniverseService:
         for name, value in usage.items():
             if value > _number(vessel.get("budgets", {}).get(name), f"vessel {name} budget"):
                 raise ValidationError(f"vessel module {name} budget exceeded")
-        scopes = authoritative_scopes(self.store, actor, realm)
+        scopes = authoritative_scopes(self._reader(), actor, realm)
         if "*" not in scopes and not set(module["capabilities"]).issubset(scopes):
             raise AuthorizationError("vessel module capability scope is missing")
         installed.append(module_id)
@@ -811,33 +1086,46 @@ class UniverseService:
     def _validate_blueprint_publish(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, realm, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
-        _validate_creator_package(payload)
+        _reject_echoed_rights(payload)
+        asset = self._asset_for_use(actor, realm, payload.get("asset_id"))
         dependencies = payload.get("dependencies", [])
         if not isinstance(dependencies, list):
             raise ValidationError("blueprint dependencies must be a list")
         compatibility = payload.get("compatibility", {})
         if not isinstance(compatibility, Mapping):
             raise ValidationError("blueprint compatibility must be a mapping")
-        return {**payload, "published": True}
+        return {
+            **payload,
+            **_stored_rights(asset),
+            "owner_id": asset["owner_id"],
+            "published": True,
+        }
 
     def _validate_exchange_listing_publish(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
+        _reject_echoed_rights(payload)
         subject_type = payload.get("subject_type")
         if subject_type not in {"asset", "blueprint"}:
             raise ValidationError("exchange listing subject type is invalid")
         subject_id = _required_text(payload.get("subject_id"), "subject_id")
-        self._require_entity(subject_type, subject_id, realm)
+        subject = self._require_entity(subject_type, subject_id, realm)
+        self._authorize_owned_projection(actor, realm, subject)
         if _number(payload.get("quantity"), "listing quantity") <= 0:
             raise ValidationError("exchange listing quantity must be positive")
         if _number(payload.get("price", 0), "listing price") < 0:
             raise ValidationError("exchange listing price cannot be negative")
-        _validate_creator_package(payload)
-        return {**payload, "visibility": "public", "status": "active"}
+        return {
+            **payload,
+            **_stored_rights(subject),
+            "owner_id": subject["owner_id"],
+            "visibility": "public",
+            "status": "active",
+        }
 
     def _validate_exchange_listing_remove(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
@@ -853,11 +1141,12 @@ class UniverseService:
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
         del actor, version, simulation
+        _reject_operational_creator_fields(payload)
         _required_text(payload.get("id"), "id")
         transfer = self._require_entity("creator_ledger", payload.get("transfer_id"), realm)
         if transfer.get("transaction_type") != "transfer":
             raise ValidationError("marketplace refund requires a creator transfer")
-        prior_refunds = self.store.snapshot(realm).get("creator_ledgers", [])
+        prior_refunds = self._reader().snapshot(realm).get("creator_ledgers", [])
         if transfer.get("refunded") or any(
             item.get("transaction_type") == "refund"
             and item.get("transfer_id") == transfer.get("id")
@@ -882,18 +1171,35 @@ class UniverseService:
     def _validate_gallery_publish(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, realm, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
-        _validate_creator_package(payload)
-        return {**payload, "published": True}
+        _reject_echoed_rights(payload)
+        asset = self._asset_for_use(actor, realm, payload.get("asset_id"))
+        return {
+            **payload,
+            **_stored_rights(asset),
+            "owner_id": asset["owner_id"],
+            "published": True,
+        }
 
     def _validate_asset_register(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, realm, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
+        if self._reader().entity("asset", str(payload["id"]), realm) is not None:
+            raise ValidationError("registered asset rights are immutable")
+        claimed_owner = payload.get("owner_id", actor)
+        if claimed_owner != actor:
+            raise AuthorizationError("asset owner must match actor")
         _validate_creator_package(payload)
-        return {**payload, "registered": True}
+        provenance = _required_mapping(payload.get("provenance"), "provenance")
+        return {
+            **payload,
+            "owner_id": actor,
+            "source": provenance["source"],
+            "registered": True,
+        }
 
     def _validate_operational_ledger_record(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
@@ -913,14 +1219,13 @@ class UniverseService:
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
         del realm, version, simulation
+        _reject_operational_creator_fields(payload)
         _required_text(payload.get("id"), "id")
         _required_text(payload.get("asset_id"), "asset_id")
         owner = _required_text(payload.get("owner_id", actor), "owner_id")
         quantity = _number(payload.get("quantity"), "creator quantity")
         if quantity <= 0:
             raise ValidationError("creator quantity must be positive")
-        if {"provider", "compute_seconds", "cost_usd", "storage_bytes"} & payload.keys():
-            raise ValidationError("creator ledger cannot contain operational fields")
         return {
             **payload,
             "owner_id": owner,
@@ -934,6 +1239,7 @@ class UniverseService:
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
         del version, simulation
+        _reject_operational_creator_fields(payload)
         _required_text(payload.get("id"), "id")
         asset_id = _required_text(payload.get("asset_id"), "asset_id")
         source = _required_text(payload.get("from_id"), "from_id")
@@ -959,7 +1265,7 @@ class UniverseService:
 
     def _creator_balance(self, realm: str, owner_id: str, asset_id: str) -> float:
         total = 0.0
-        for entry in self.store.snapshot(realm).get("creator_ledgers", []):
+        for entry in self._reader().snapshot(realm).get("creator_ledgers", []):
             if entry.get("asset_id") != asset_id:
                 continue
             for side in entry.get("entries", []):
@@ -1009,7 +1315,7 @@ class UniverseService:
         civilization_id: object,
         required_scope: str,
     ) -> bool:
-        for membership in self.store.snapshot(realm_id).get("memberships", []):
+        for membership in self._reader().snapshot(realm_id).get("memberships", []):
             if (
                 membership.get("player_id") == actor_id
                 and membership.get("civilization_id") == civilization_id
@@ -1019,18 +1325,70 @@ class UniverseService:
                 return True
         return False
 
+    def _require_civilization_scope(
+        self,
+        actor_id: str,
+        realm_id: str,
+        civilization_id: object,
+        required_scope: str,
+    ) -> None:
+        realm = self._require_entity("realm", realm_id, realm_id)
+        if realm.get("owner_id") == actor_id:
+            return
+        if self._has_active_civilization_membership(
+            actor_id, realm_id, civilization_id, required_scope
+        ):
+            return
+        raise AuthorizationError("actor is outside the target civilization")
+
     def _validate_release_stage(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
     ) -> dict[str, Any]:
-        del actor, realm, version, simulation
+        del version, simulation
         _required_text(payload.get("id"), "id")
-        _required_text(payload.get("artifact_id"), "artifact_id")
+        artifact_id = _required_text(payload.get("artifact_id"), "artifact_id")
+        artifact = self._reader().entity("asset", artifact_id, realm)
+        if artifact is None:
+            artifact = self._reader().entity("blueprint", artifact_id, realm)
+        if artifact is None:
+            raise ValidationError("release asset or package does not exist")
+        self._authorize_owned_projection(actor, realm, artifact)
+        content_hash = _required_text(payload.get("content_hash"), "content_hash")
+        if content_hash != artifact.get("content_hash"):
+            raise ValidationError("release content hash does not match stored asset")
         _required_text(payload.get("target"), "target")
         verification = _required_mapping(payload.get("verification"), "verification")
         if verification.get("status") != "passed" or not verification.get("evidence"):
             raise ValidationError("release verification evidence must pass")
         _required_mapping(payload.get("rollback"), "rollback")
-        return {**payload, "status": "staged"}
+        return {
+            **payload,
+            **_stored_rights(artifact),
+            "owner_id": artifact["owner_id"],
+            "status": "staged",
+        }
+
+    def _asset_for_use(
+        self, actor_id: str, realm_id: str, asset_id: object
+    ) -> dict[str, Any]:
+        asset = self._require_entity("asset", asset_id, realm_id)
+        self._authorize_owned_projection(actor_id, realm_id, asset)
+        return asset
+
+    def _authorize_owned_projection(
+        self, actor_id: str, realm_id: str, projection: Mapping[str, Any]
+    ) -> None:
+        owner_id = projection.get("owner_id")
+        if owner_id == actor_id:
+            return
+        for membership in self._reader().snapshot(realm_id).get("memberships", []):
+            if (
+                membership.get("player_id") == actor_id
+                and membership.get("civilization_id") == owner_id
+                and membership.get("status") == "active"
+            ):
+                return
+        raise AuthorizationError("asset owner does not authorize this actor")
 
     def _validate_release_promote(
         self, actor: str, realm: str, payload: dict[str, Any], version: int, simulation: bool
@@ -1109,6 +1467,12 @@ def _number(value: object, field: str) -> float:
     return float(value)
 
 
+def _vector3(value: object, field: str) -> list[float]:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        raise ValidationError(f"{field} must contain three coordinates")
+    return [_number(coordinate, field) for coordinate in value]
+
+
 def _utc_datetime(value: object, field: str) -> datetime:
     text = _required_text(value, field)
     try:
@@ -1138,6 +1502,35 @@ def _validate_creator_package(payload: Mapping[str, Any]) -> None:
     moderation = _required_mapping(payload.get("moderation"), "moderation")
     if moderation.get("status") != "approved":
         raise ValidationError("moderation must approve creator content")
+
+
+_RIGHTS_FIELDS = frozenset(
+    {"content_hash", "license", "moderation", "owner_id", "provenance", "source", "verification"}
+)
+_OPERATIONAL_LEDGER_FIELDS = frozenset(
+    {"compute_seconds", "cost_usd", "provider", "quota", "storage_bytes"}
+)
+
+
+def _reject_operational_creator_fields(payload: Mapping[str, Any]) -> None:
+    if _OPERATIONAL_LEDGER_FIELDS & payload.keys():
+        raise ValidationError("creator ledger cannot contain operational fields")
+
+
+def _reject_echoed_rights(payload: Mapping[str, Any]) -> None:
+    echoed = _RIGHTS_FIELDS & payload.keys()
+    if echoed:
+        raise ValidationError("publication must use stored rights metadata")
+
+
+def _stored_rights(projection: Mapping[str, Any]) -> dict[str, Any]:
+    missing = [field for field in _RIGHTS_FIELDS - {"source", "owner_id"} if field not in projection]
+    if missing:
+        raise ValidationError("stored rights metadata is incomplete")
+    return {
+        field: deepcopy(projection[field])
+        for field in ("content_hash", "license", "provenance", "verification", "moderation")
+    }
 
 
 def _module_usage(module_ids: list[str]) -> dict[str, float]:
@@ -1218,3 +1611,12 @@ def _approval_subject(
 def _intent_hash(intent: Mapping[str, Any]) -> str:
     encoded = json.dumps(intent, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _minimal_presence(presence: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "id": presence.get("id"),
+        "status": presence.get("status"),
+        "visibility": presence.get("visibility"),
+        "mode": presence.get("mode"),
+    }

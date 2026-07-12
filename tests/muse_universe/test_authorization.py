@@ -4,6 +4,18 @@ import pytest
 
 from plugins.muse_universe.authorization import AuthorizationError
 from plugins.muse_universe.service import UniverseService
+from plugins.muse_universe.store import CommandIdConflictError
+
+
+def _asset_payload(asset_id: str = "ast_1") -> dict[str, object]:
+    return {
+        "id": asset_id,
+        "content_hash": "sha256:" + "a" * 64,
+        "license": "MUSE-ORIGINAL-1.0",
+        "provenance": {"source": "owner", "evidence": ["source:1"]},
+        "verification": {"status": "passed", "evidence": ["scan:1"]},
+        "moderation": {"status": "approved", "case_id": "mod_1"},
+    }
 
 
 def _invite_and_accept(
@@ -186,6 +198,17 @@ def test_sensitive_request_uses_exact_trusted_approval_binding(
         )
     assert approval_verifier.calls == []
 
+    approval_verifier.allow("apr_asset")
+    service.execute(
+        "asset.register",
+        "ply_owner",
+        "rlm_local",
+        _asset_payload(),
+        0,
+        "cmd_asset",
+        approval_id="apr_asset",
+    )
+    approval_verifier.calls.clear()
     service.execute(
         "release.stage",
         "ply_owner",
@@ -193,6 +216,7 @@ def test_sensitive_request_uses_exact_trusted_approval_binding(
         {
             "id": "rel_1",
             "artifact_id": "ast_1",
+            "content_hash": "sha256:" + "a" * 64,
             "target": "production",
             "verification": {"status": "passed", "evidence": ["test:1"]},
             "rollback": {"release_id": "rel_previous"},
@@ -282,6 +306,34 @@ def test_consumed_approval_retries_only_the_same_exact_request(tmp_path) -> None
 
     service = UniverseService(UniverseStore(tmp_path / "retry.db"))
     service.create_local_realm("ply_owner")
+    asset_payload = _asset_payload()
+    asset_subject = {
+        "command_id": "cmd_asset",
+        "command_type": "asset.register",
+        "actor_id": "ply_owner",
+        "realm_id": "rlm_local",
+        "expected_version": 0,
+        "payload": asset_payload,
+        "simulation": False,
+    }
+    asset_approval = stage_bound_approval(
+        "ply_owner",
+        "asset.register",
+        "rlm_local",
+        "cmd_asset",
+        asset_subject,
+        approval_id="approval_asset_retry",
+    )
+    decide_bound_approval(asset_approval.approval_id, approve=True, decided_by="owner")
+    service.execute(
+        "asset.register",
+        "ply_owner",
+        "rlm_local",
+        asset_payload,
+        0,
+        "cmd_asset",
+        approval_id=asset_approval.approval_id,
+    )
     service.execute(
         "release.stage",
         "ply_owner",
@@ -289,6 +341,7 @@ def test_consumed_approval_retries_only_the_same_exact_request(tmp_path) -> None
         {
             "id": "rel_1",
             "artifact_id": "ast_1",
+            "content_hash": "sha256:" + "a" * 64,
             "target": "production",
             "verification": {"status": "passed", "evidence": ["test:1"]},
             "rollback": {"release_id": "rel_previous"},
@@ -338,7 +391,7 @@ def test_consumed_approval_retries_only_the_same_exact_request(tmp_path) -> None
     assert replay.event.causation_id == "cmd_promote"
     assert replay.event.correlation_id == "cmd_promote"
 
-    with pytest.raises(AuthorizationError, match="approval"):
+    with pytest.raises(CommandIdConflictError):
         service.execute(
             "release.promote",
             "ply_owner",
