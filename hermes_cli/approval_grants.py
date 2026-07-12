@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import numbers
+import re
 import sqlite3
 import time
 import uuid
@@ -34,7 +35,9 @@ __all__ = [
     "ApprovalStateError",
     "ApprovalVerifier",
     "BoundApproval",
+    "bound_approval_exists",
     "decide_bound_approval",
+    "is_legacy_approval_id",
     "list_bound_approvals",
     "stage_bound_approval",
     "supersede_bound_approval",
@@ -45,6 +48,7 @@ _PROVENANCE = "bound-approval-v1"
 _SCHEMA_VERSION = 1
 _BUSY_TIMEOUT_MS = 5_000
 _MAX_SUPERSESSION_HOPS = 10_000
+_LEGACY_APPROVAL_ID = re.compile(r"[0-9a-f]{10}\Z")
 _LEGACY_V0_COLUMNS = (
     "approval_id",
     "actor_id",
@@ -212,6 +216,76 @@ def _database_path(db_path: Path | str | None) -> Path:
     if db_path is not None:
         return Path(db_path)
     return get_hermes_home() / "approvals" / "grants.db"
+
+
+def is_legacy_approval_id(approval_id: object) -> bool:
+    """Return whether an ID belongs to the legacy proposal namespace."""
+
+    return (
+        isinstance(approval_id, str)
+        and _LEGACY_APPROVAL_ID.fullmatch(approval_id) is not None
+    )
+
+
+def bound_approval_exists(
+    approval_id: str,
+    *,
+    db_path: Path | str | None = None,
+) -> bool:
+    """Check ID presence without creating, migrating, or mutating the store."""
+
+    _required_text("approval_id", approval_id)
+    path = _database_path(db_path)
+    if not path.is_file():
+        return False
+    try:
+        connection = sqlite3.connect(
+            f"{path.resolve().as_uri()}?mode=ro",
+            uri=True,
+            timeout=_BUSY_TIMEOUT_MS / 1_000,
+        )
+    except (OSError, ValueError, sqlite3.DatabaseError) as exc:
+        raise ApprovalCorruptionError("approval store read failed") from exc
+    try:
+        version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        if version > _SCHEMA_VERSION:
+            raise ApprovalSchemaVersionError(
+                f"unsupported approval schema version: {version}"
+            )
+        exists = connection.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'bound_approvals'
+            """
+        ).fetchone()
+        if exists is None:
+            if version == 0:
+                return False
+            raise ApprovalCorruptionError("approval schema table is missing")
+        if version == 0:
+            columns = tuple(
+                row[1]
+                for row in connection.execute("PRAGMA table_info(bound_approvals)")
+            )
+            if columns != _LEGACY_V0_COLUMNS:
+                raise ApprovalCorruptionError(
+                    "legacy approval schema has an invalid layout"
+                )
+        else:
+            _validate_current_schema(connection)
+        return (
+            connection.execute(
+                "SELECT 1 FROM bound_approvals WHERE approval_id = ?",
+                (approval_id,),
+            ).fetchone()
+            is not None
+        )
+    except ApprovalGrantError:
+        raise
+    except (OverflowError, TypeError, ValueError, sqlite3.DatabaseError) as exc:
+        raise ApprovalCorruptionError("approval store read failed") from exc
+    finally:
+        connection.close()
 
 
 def _connect(db_path: Path | str | None) -> sqlite3.Connection:
@@ -437,6 +511,10 @@ def _validate_record(record: BoundApproval) -> None:
         value = getattr(record, name)
         if not isinstance(value, str) or not value:
             raise ApprovalCorruptionError(f"invalid persisted {name}")
+    if is_legacy_approval_id(record.approval_id):
+        raise ApprovalCorruptionError(
+            "bound approval id uses the legacy approval namespace"
+        )
     if (
         not isinstance(record.subject_hash, str)
         or len(record.subject_hash) != 64
@@ -663,6 +741,8 @@ def stage_bound_approval(
     supplied_id = approval_id is not None
     resolved_id = approval_id or f"approval_{uuid.uuid4().hex}"
     _required_text("approval_id", resolved_id)
+    if supplied_id and is_legacy_approval_id(resolved_id):
+        raise ValueError("approval_id uses the legacy approval namespace")
     _validated_expiry(time.time(), ttl)
     with _write_transaction(db_path) as connection:
         existing_row = connection.execute(

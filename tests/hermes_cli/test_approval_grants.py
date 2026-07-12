@@ -253,6 +253,84 @@ def test_default_path_is_profile_aware(tmp_path: Path) -> None:
     assert list_bound_approvals(db_path=expected) == (staged,)
 
 
+def test_read_only_existence_check_does_not_create_absent_store(tmp_path: Path) -> None:
+    db_path = tmp_path / "missing" / "grants.db"
+
+    assert grants.bound_approval_exists("approval_missing", db_path=db_path) is False
+
+    assert not db_path.exists()
+    assert not db_path.parent.exists()
+
+
+def test_read_only_existence_check_returns_only_presence_without_mutation(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "grants.db"
+    staged = _stage(db_path, approval_id="approval_read_only")
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "UPDATE bound_approvals SET issued_at = 0, expires_at = 1 "
+            "WHERE approval_id = ?",
+            (staged.approval_id,),
+        )
+    before = db_path.read_bytes()
+    before_files = tuple(sorted(path.name for path in tmp_path.iterdir()))
+
+    assert grants.bound_approval_exists(staged.approval_id, db_path=db_path) is True
+    assert grants.bound_approval_exists("approval_missing", db_path=db_path) is False
+
+    assert db_path.read_bytes() == before
+    assert tuple(sorted(path.name for path in tmp_path.iterdir())) == before_files
+    with sqlite3.connect(db_path) as connection:
+        state = connection.execute(
+            "SELECT state FROM bound_approvals WHERE approval_id = ?",
+            (staged.approval_id,),
+        ).fetchone()[0]
+    assert state == ApprovalState.PENDING.value
+
+
+def test_read_only_existence_check_maps_schema_failure_to_domain_error(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "grants.db"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("PRAGMA user_version=999")
+
+    with pytest.raises(ApprovalSchemaVersionError):
+        grants.bound_approval_exists("approval_any", db_path=db_path)
+
+
+def test_read_only_existence_check_does_not_migrate_legacy_v0(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE bound_approvals (
+                approval_id TEXT, actor_id TEXT, action TEXT, realm_id TEXT,
+                correlation_id TEXT, subject_hash TEXT, state TEXT,
+                issued_at REAL, expires_at REAL, decided_at REAL,
+                decided_by TEXT, consumed_at REAL, provenance TEXT
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO bound_approvals (approval_id) VALUES (?)",
+            ("abcdef1234",),
+        )
+    before = db_path.read_bytes()
+
+    assert grants.bound_approval_exists("abcdef1234", db_path=db_path) is True
+
+    assert db_path.read_bytes() == before
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 0
+        columns = tuple(
+            row[1]
+            for row in connection.execute("PRAGMA table_info(bound_approvals)")
+        )
+    assert columns == grants._LEGACY_V0_COLUMNS
+
+
 def test_legacy_v0_database_migrates_without_losing_valid_grant(tmp_path: Path) -> None:
     db_path = tmp_path / "grants.db"
     subject_hash = hashlib.sha256(b'{"legacy":true}').hexdigest()
@@ -490,6 +568,31 @@ def test_caller_supplied_id_is_idempotent_for_same_binding(tmp_path: Path) -> No
 
     assert second == first
     assert list_bound_approvals(db_path=db_path) == (first,)
+
+
+@pytest.mark.parametrize("approval_id", ["0123456789", "abcdef1234"])
+def test_caller_supplied_id_cannot_enter_legacy_namespace(
+    tmp_path: Path, approval_id: str
+) -> None:
+    db_path = tmp_path / "grants.db"
+
+    with pytest.raises(ValueError, match="legacy approval namespace"):
+        _stage(db_path, approval_id=approval_id)
+
+    assert not db_path.exists()
+
+
+def test_loaded_legacy_shaped_bound_id_is_corruption(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    staged = _stage(db_path, approval_id="approval_tampered")
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "UPDATE bound_approvals SET approval_id = ? WHERE approval_id = ?",
+            ("abcdef1234", staged.approval_id),
+        )
+
+    with pytest.raises(ApprovalCorruptionError, match="legacy approval namespace"):
+        list_bound_approvals(db_path=db_path)
 
 
 @pytest.mark.parametrize(

@@ -11,7 +11,9 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from typing import Any
 
 import pytest
@@ -421,6 +423,24 @@ def _http_error_json(error: urllib.error.HTTPError) -> dict:
     return json.loads(error.read())
 
 
+def _tamper_bound_id_into_legacy_namespace(
+    home: Path, approval_id: str, *, expired: bool = False
+) -> None:
+    import sqlite3
+
+    staged = _stage_bound(home, approval_id="approval_tampered_collision")
+    assignments = "approval_id = ?"
+    values: list[Any] = [approval_id]
+    if expired:
+        assignments += ", issued_at = 0, expires_at = 1"
+    values.append(staged.approval_id)
+    with sqlite3.connect(home / "approvals" / "grants.db") as connection:
+        connection.execute(
+            f"UPDATE bound_approvals SET {assignments} WHERE approval_id = ?",
+            values,
+        )
+
+
 def test_approvals_list_canonical_cards(server, home: Path) -> None:
     pid = _seed_proposal(home)
     _, payload = _get(server, "/v1/cockpit/approvals")
@@ -488,6 +508,70 @@ def test_bound_approval_list_is_sanitized_and_preserves_legacy_card(
         "owner_phrase",
         "db_path",
     } & bound.keys()
+
+
+def test_bound_approval_cards_map_every_lifecycle_state(server, home: Path) -> None:
+    import time
+
+    from hermes_cli.approval_grants import (
+        decide_bound_approval,
+        supersede_bound_approval,
+        validate_and_consume_approval,
+    )
+
+    pending = _stage_bound(home, approval_id="approval_card_pending")
+    granted = _stage_bound(home, approval_id="approval_card_granted")
+    rejected = _stage_bound(home, approval_id="approval_card_rejected")
+    expired = _stage_bound(
+        home, approval_id="approval_card_expired", ttl_seconds=0.01
+    )
+    consumed = _stage_bound(home, approval_id="approval_card_consumed")
+    superseded = _stage_bound(home, approval_id="approval_card_superseded")
+    replacement = _stage_bound(home, approval_id="approval_card_replacement")
+    decide_bound_approval(granted.approval_id, approve=True, decided_by="reviewer")
+    decide_bound_approval(rejected.approval_id, approve=False, decided_by="reviewer")
+    decide_bound_approval(consumed.approval_id, approve=True, decided_by="reviewer")
+    validate_and_consume_approval(
+        consumed.approval_id,
+        "plugin-actor-secret",
+        consumed.action,
+        consumed.realm_id,
+        "correlation-secret",
+        {"raw_secret": "subject-secret"},
+    )
+    supersede_bound_approval(
+        superseded.approval_id,
+        superseded_by=replacement.approval_id,
+    )
+    time.sleep(0.02)
+
+    _, payload = _get(server, "/v1/cockpit/approvals")
+    cards = {item["id"]: item for item in payload["approvals"]}
+
+    assert (cards[pending.approval_id]["state"], cards[pending.approval_id]["status"]) == (
+        "pending",
+        "PENDING",
+    )
+    assert (cards[granted.approval_id]["state"], cards[granted.approval_id]["status"]) == (
+        "granted",
+        "APPROVED",
+    )
+    assert (cards[rejected.approval_id]["state"], cards[rejected.approval_id]["status"]) == (
+        "rejected",
+        "REJECTED",
+    )
+    assert (cards[expired.approval_id]["state"], cards[expired.approval_id]["status"]) == (
+        "expired",
+        "EXPIRED",
+    )
+    assert (cards[consumed.approval_id]["state"], cards[consumed.approval_id]["status"]) == (
+        "consumed",
+        "APPROVED",
+    )
+    assert (
+        cards[superseded.approval_id]["state"],
+        cards[superseded.approval_id]["status"],
+    ) == ("superseded", "REJECTED")
 
 
 @pytest.mark.parametrize("authorization", [None, "yes go ahead"])
@@ -610,7 +694,17 @@ def test_bound_repeat_decision_is_safe_and_opposite_decision_conflicts(
 
 def test_ambiguous_bound_and_legacy_id_fails_closed(server, home: Path) -> None:
     proposal_id = _seed_proposal(home)
-    _stage_bound(home, approval_id=proposal_id)
+    _tamper_bound_id_into_legacy_namespace(home, proposal_id, expired=True)
+    proposal_path = home / "jarvis_prime" / "proposals.jsonl"
+    proposal_before = proposal_path.read_bytes()
+    import sqlite3
+
+    with sqlite3.connect(home / "approvals" / "grants.db") as connection:
+        bound_before = connection.execute(
+            "SELECT state, issued_at, expires_at FROM bound_approvals "
+            "WHERE approval_id = ?",
+            (proposal_id,),
+        ).fetchone()
 
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(
@@ -621,6 +715,77 @@ def test_ambiguous_bound_and_legacy_id_fails_closed(server, home: Path) -> None:
 
     assert exc.value.code == 409
     assert _http_error_json(exc.value) == {"error": "ambiguous approval identifier"}
+    assert proposal_path.read_bytes() == proposal_before
+    with sqlite3.connect(home / "approvals" / "grants.db") as connection:
+        bound_after = connection.execute(
+            "SELECT state, issued_at, expires_at FROM bound_approvals "
+            "WHERE approval_id = ?",
+            (proposal_id,),
+        ).fetchone()
+    assert bound_after == bound_before
+
+
+def test_public_staging_cannot_race_into_legacy_decision_namespace(
+    server, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gateway.cockpit import handlers
+    from hermes_cli.approval_grants import stage_bound_approval
+
+    proposal_id = _seed_proposal(home)
+    save_entered = Event()
+    release_save = Event()
+    original_save = handlers._save_proposals
+
+    def blocking_save(items: list[dict[str, Any]]) -> None:
+        save_entered.set()
+        assert release_save.wait(timeout=5)
+        original_save(items)
+
+    monkeypatch.setattr(handlers, "_save_proposals", blocking_save)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        decision = pool.submit(
+            _post,
+            server,
+            f"/v1/cockpit/approvals/{proposal_id}",
+            {"decision": "reject"},
+        )
+        assert save_entered.wait(timeout=5)
+        with pytest.raises(ValueError, match="legacy approval namespace"):
+            stage_bound_approval(
+                "actor",
+                "plugin.command.publish",
+                "realm",
+                "correlation",
+                {"resource": "subject"},
+                approval_id=proposal_id,
+            )
+        release_save.set()
+        status, raw = decision.result(timeout=5)
+
+    assert status == 200
+    assert json.loads(raw)["status"] == "reject"
+    assert not (home / "approvals" / "grants.db").exists()
+
+
+def test_bound_decision_does_not_read_legacy_store(
+    server, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from gateway.cockpit import handlers
+
+    pending = _stage_bound(home, approval_id="approval_structural_route")
+
+    def fail_legacy_read() -> list[dict[str, Any]]:
+        raise AssertionError("bound routing touched the legacy store")
+
+    monkeypatch.setattr(handlers, "_load_proposals", fail_legacy_read)
+    status, raw = _post(
+        server,
+        f"/v1/cockpit/approvals/{pending.approval_id}",
+        {"decision": "reject"},
+    )
+
+    assert status == 200
+    assert json.loads(raw)["state"] == "rejected"
 
 
 def test_bound_not_found_is_safe_404(server) -> None:
@@ -705,6 +870,57 @@ def test_bound_schema_error_never_leaks_version_or_path(server, home: Path) -> N
     serialized = json.dumps(error)
     assert "999" not in serialized
     assert str(home) not in serialized
+
+
+@pytest.mark.parametrize("failure", ["schema", "record"])
+def test_bound_post_errors_never_leak_internal_values(
+    server, home: Path, failure: str
+) -> None:
+    import sqlite3
+
+    approval_id = "approval_post_failure"
+    db_path = home / "approvals" / "grants.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    if failure == "schema":
+        with sqlite3.connect(db_path) as connection:
+            connection.execute("PRAGMA user_version=999")
+    else:
+        _stage_bound(
+            home,
+            approval_id=approval_id,
+            actor_id="actor-binding-secret",
+            correlation_id="correlation-binding-secret",
+            subject={"raw_secret": "subject-binding-secret"},
+        )
+        with sqlite3.connect(db_path) as connection:
+            connection.execute("PRAGMA ignore_check_constraints=ON")
+            connection.execute(
+                "UPDATE bound_approvals SET subject_hash = ? WHERE approval_id = ?",
+                ("subject-corruption-secret", approval_id),
+            )
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{approval_id}",
+            {"decision": "approve", "authorization": "Yes, with authorization."},
+        )
+
+    assert exc.value.code == 500
+    error = _http_error_json(exc.value)
+    assert error == {"error": "approval store unavailable"}
+    serialized = json.dumps(error).lower()
+    for forbidden in (
+        "traceback",
+        "sqlite",
+        "yes, with authorization.",
+        "actor-binding-secret",
+        "correlation-binding-secret",
+        "subject-binding-secret",
+        "subject-corruption-secret",
+        str(home).lower(),
+    ):
+        assert forbidden not in serialized
 
 
 def test_proposals_native_view(server, home: Path) -> None:

@@ -3171,30 +3171,23 @@ def approvals_decide(req: Request) -> JsonResponse:
             # Owner-gate contract: exact phrase required. Never bypass.
             return JsonResponse(403, {"error": "owner authorization required"})
 
-    items = _load_proposals()
-    legacy_matches = [p for p in items if _proposal_id(p) == approval_id]
-    bound = _load_bound_approvals_for_cockpit()
-    if isinstance(bound, JsonResponse):
-        return bound
-    bound_matches = [record for record in bound if record.approval_id == approval_id]
-    if legacy_matches and bound_matches:
-        return JsonResponse(409, {"error": "ambiguous approval identifier"})
-    if len(legacy_matches) > 1 or len(bound_matches) > 1:
-        return JsonResponse(409, {"error": "ambiguous approval identifier"})
-    if bound_matches:
+    try:
+        from hermes_cli.approval_grants import (
+            ApprovalCorruptionError,
+            ApprovalExpiredError,
+            ApprovalGrantError,
+            ApprovalNotFoundError,
+            ApprovalStateError,
+            bound_approval_exists,
+            decide_bound_approval,
+            is_legacy_approval_id,
+        )
+    except Exception:
+        return JsonResponse(500, {"error": "approval store unavailable"})
+
+    if not is_legacy_approval_id(approval_id):
         if set(req.body) - {"decision", "authorization"}:
             return JsonResponse(400, {"error": "unsupported approval fields"})
-        try:
-            from hermes_cli.approval_grants import (
-                ApprovalCorruptionError,
-                ApprovalExpiredError,
-                ApprovalGrantError,
-                ApprovalNotFoundError,
-                ApprovalStateError,
-                decide_bound_approval,
-            )
-        except Exception:
-            return JsonResponse(500, {"error": "approval store unavailable"})
         try:
             decided = decide_bound_approval(
                 approval_id,
@@ -3214,6 +3207,19 @@ def approvals_decide(req: Request) -> JsonResponse:
         except Exception:
             return JsonResponse(500, {"error": "approval store unavailable"})
         return JsonResponse(200, _bound_decision_payload(decided))
+
+    try:
+        if bound_approval_exists(approval_id):
+            return JsonResponse(409, {"error": "ambiguous approval identifier"})
+    except ApprovalGrantError:
+        return JsonResponse(500, {"error": "approval store unavailable"})
+    except Exception:
+        return JsonResponse(500, {"error": "approval store unavailable"})
+
+    items = _load_proposals()
+    legacy_matches = [p for p in items if _proposal_id(p) == approval_id]
+    if len(legacy_matches) > 1:
+        return JsonResponse(409, {"error": "ambiguous approval identifier"})
     if not legacy_matches:
         return JsonResponse(404, {"error": "approval not found"})
     matched = legacy_matches[0]
