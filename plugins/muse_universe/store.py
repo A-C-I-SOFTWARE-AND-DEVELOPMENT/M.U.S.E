@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from .models import CommandResult, UniverseCommand, UniverseEvent, utc_now
 from .reducers import reduce_entity
+from .validation import validate_no_secret_fields
 
 
 class ConflictError(RuntimeError):
@@ -28,6 +29,14 @@ class CommandIdConflictError(ValueError):
         super().__init__(f"command_id {command_id!r} was reused with different content")
 
 
+class AmbiguousEntityError(LookupError):
+    def __init__(self, entity_type: str, entity_id: str) -> None:
+        super().__init__(
+            f"entity {entity_type!r}/{entity_id!r} exists in multiple realms; "
+            "realm_id is required"
+        )
+
+
 class UniverseStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -43,11 +52,14 @@ class UniverseStore:
                     stream_id TEXT NOT NULL,
                     stream_version INTEGER NOT NULL,
                     event_json TEXT NOT NULL,
-                    UNIQUE (stream_type, stream_id, stream_version)
+                    UNIQUE (realm_id, stream_type, stream_id, stream_version)
                 );
 
                 CREATE INDEX IF NOT EXISTS events_realm_sequence
                     ON events (realm_id, sequence);
+
+                CREATE INDEX IF NOT EXISTS events_realm_stream_sequence
+                    ON events (realm_id, stream_type, stream_id, sequence);
 
                 CREATE TABLE IF NOT EXISTS entities (
                     entity_type TEXT NOT NULL,
@@ -55,14 +67,16 @@ class UniverseStore:
                     realm_id TEXT NOT NULL,
                     version INTEGER NOT NULL,
                     entity_json TEXT NOT NULL,
-                    PRIMARY KEY (entity_type, entity_id)
+                    PRIMARY KEY (realm_id, entity_type, entity_id)
                 );
 
                 CREATE TABLE IF NOT EXISTS command_results (
-                    command_id TEXT PRIMARY KEY,
+                    realm_id TEXT NOT NULL,
+                    command_id TEXT NOT NULL,
                     command_fingerprint TEXT NOT NULL,
                     event_id TEXT NOT NULL,
                     result_json TEXT NOT NULL,
+                    PRIMARY KEY (realm_id, command_id),
                     FOREIGN KEY (event_id) REFERENCES events(event_id)
                 );
                 """
@@ -85,6 +99,7 @@ class UniverseStore:
             connection.close()
 
     def append(self, command: UniverseCommand, event_type: str) -> CommandResult:
+        _validate_command(command)
         fingerprint = _command_fingerprint(command, event_type)
         connection = self._connect()
         try:
@@ -93,14 +108,15 @@ class UniverseStore:
                 """
                 SELECT command_fingerprint, result_json
                 FROM command_results
-                WHERE command_id = ?
+                WHERE realm_id = ? AND command_id = ?
                 """,
-                (command.command_id,),
+                (command.realm_id, command.command_id),
             ).fetchone()
             if stored is not None:
                 if stored["command_fingerprint"] != fingerprint:
                     raise CommandIdConflictError(command.command_id)
                 result = CommandResult.model_validate_json(stored["result_json"])
+                _validate_result(result)
                 connection.commit()
                 return result.model_copy(update={"idempotent_replay": True})
 
@@ -108,9 +124,9 @@ class UniverseStore:
                 """
                 SELECT version, entity_json
                 FROM entities
-                WHERE entity_type = ? AND entity_id = ?
+                WHERE realm_id = ? AND entity_type = ? AND entity_id = ?
                 """,
-                (command.stream_type, command.stream_id),
+                (command.realm_id, command.stream_type, command.stream_id),
             ).fetchone()
             current_version = 0 if current_row is None else int(current_row["version"])
             if command.expected_version != current_version:
@@ -121,6 +137,7 @@ class UniverseStore:
                 if current_row is None
                 else json.loads(current_row["entity_json"])
             )
+            validate_no_secret_fields(current or {}, path="rollback")
             sequence = int(
                 connection.execute(
                     "SELECT COALESCE(MAX(sequence), 0) + 1 FROM events"
@@ -145,7 +162,9 @@ class UniverseStore:
                 rollback=current or {},
             )
             entity = reduce_entity(current, event)
+            validate_no_secret_fields(entity, path="entity")
             result = CommandResult(event=event, entity=entity)
+            _validate_result(result)
 
             connection.execute(
                 """
@@ -169,8 +188,7 @@ class UniverseStore:
                 INSERT INTO entities (
                     entity_type, entity_id, realm_id, version, entity_json
                 ) VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(entity_type, entity_id) DO UPDATE SET
-                    realm_id = excluded.realm_id,
+                ON CONFLICT(realm_id, entity_type, entity_id) DO UPDATE SET
                     version = excluded.version,
                     entity_json = excluded.entity_json
                 """,
@@ -185,10 +203,11 @@ class UniverseStore:
             connection.execute(
                 """
                 INSERT INTO command_results (
-                    command_id, command_fingerprint, event_id, result_json
-                ) VALUES (?, ?, ?, ?)
+                    realm_id, command_id, command_fingerprint, event_id, result_json
+                ) VALUES (?, ?, ?, ?, ?)
                 """,
                 (
+                    command.realm_id,
                     command.command_id,
                     fingerprint,
                     event.event_id,
@@ -203,16 +222,35 @@ class UniverseStore:
         finally:
             connection.close()
 
-    def entity(self, entity_type: str, entity_id: str) -> dict[str, Any] | None:
+    def entity(
+        self,
+        entity_type: str,
+        entity_id: str,
+        realm_id: str | None = None,
+    ) -> dict[str, Any] | None:
         with self._connection() as connection:
-            row = connection.execute(
+            if realm_id is not None:
+                row = connection.execute(
+                    """
+                    SELECT entity_json FROM entities
+                    WHERE realm_id = ? AND entity_type = ? AND entity_id = ?
+                    """,
+                    (realm_id, entity_type, entity_id),
+                ).fetchone()
+                return None if row is None else json.loads(row["entity_json"])
+
+            rows = connection.execute(
                 """
                 SELECT entity_json FROM entities
                 WHERE entity_type = ? AND entity_id = ?
+                ORDER BY realm_id
+                LIMIT 2
                 """,
                 (entity_type, entity_id),
-            ).fetchone()
-        return None if row is None else json.loads(row["entity_json"])
+            ).fetchall()
+        if len(rows) > 1:
+            raise AmbiguousEntityError(entity_type, entity_id)
+        return None if not rows else json.loads(rows[0]["entity_json"])
 
     def events_since(self, realm_id: str, sequence: int) -> list[UniverseEvent]:
         with self._connection() as connection:
@@ -253,3 +291,27 @@ def _command_fingerprint(command: UniverseCommand, event_type: str) -> str:
         "event_type": event_type,
     }
     return hashlib.sha256(_canonical_json(content).encode("utf-8")).hexdigest()
+
+
+def _validate_command(command: UniverseCommand) -> None:
+    validate_no_secret_fields(command.payload, path="payload")
+    validate_no_secret_fields(
+        command.authorization.model_dump(mode="json"), path="authorization"
+    )
+    validate_no_secret_fields(
+        command.provenance.model_dump(mode="json"), path="provenance"
+    )
+
+
+def _validate_result(result: CommandResult) -> None:
+    validate_no_secret_fields(result.event.payload, path="event.payload")
+    validate_no_secret_fields(
+        result.event.authorization.model_dump(mode="json"),
+        path="event.authorization",
+    )
+    validate_no_secret_fields(
+        result.event.provenance.model_dump(mode="json"),
+        path="event.provenance",
+    )
+    validate_no_secret_fields(result.event.rollback, path="event.rollback")
+    validate_no_secret_fields(result.entity, path="result.entity")

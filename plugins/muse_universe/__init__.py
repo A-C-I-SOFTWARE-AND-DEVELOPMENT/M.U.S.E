@@ -7,10 +7,16 @@ from .models import (
     UniverseCommand,
     UniverseEvent,
 )
-from .store import CommandIdConflictError, ConflictError, UniverseStore
+from .store import (
+    AmbiguousEntityError,
+    CommandIdConflictError,
+    ConflictError,
+    UniverseStore,
+)
 
 __all__ = [
     "AuthorizationDecision",
+    "AmbiguousEntityError",
     "CommandIdConflictError",
     "CommandResult",
     "ConflictError",
