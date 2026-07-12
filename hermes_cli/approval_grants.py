@@ -44,6 +44,21 @@ __all__ = [
 _PROVENANCE = "bound-approval-v1"
 _SCHEMA_VERSION = 1
 _BUSY_TIMEOUT_MS = 5_000
+_LEGACY_V0_COLUMNS = (
+    "approval_id",
+    "actor_id",
+    "action",
+    "realm_id",
+    "correlation_id",
+    "subject_hash",
+    "state",
+    "issued_at",
+    "expires_at",
+    "decided_at",
+    "decided_by",
+    "consumed_at",
+    "provenance",
+)
 _SCHEMA_V1 = """
 CREATE TABLE IF NOT EXISTS bound_approvals (
     approval_id TEXT PRIMARY KEY CHECK(length(approval_id) > 0),
@@ -205,7 +220,7 @@ def _connect(db_path: Path | str | None) -> sqlite3.Connection:
     try:
         connection.row_factory = sqlite3.Row
         connection.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
-        connection.execute("PRAGMA journal_mode=WAL")
+        _enable_wal(connection)
         _initialize_schema(connection)
         return connection
     except BaseException:
@@ -213,14 +228,26 @@ def _connect(db_path: Path | str | None) -> sqlite3.Connection:
         raise
 
 
+def _enable_wal(connection: sqlite3.Connection) -> None:
+    deadline = time.monotonic() + (_BUSY_TIMEOUT_MS / 1_000)
+    while True:
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+            return
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower() or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
 def _initialize_schema(connection: sqlite3.Connection) -> None:
-    version = int(connection.execute("PRAGMA user_version").fetchone()[0])
-    if version > _SCHEMA_VERSION:
-        raise ApprovalSchemaVersionError(
-            f"unsupported approval schema version: {version}"
-        )
     try:
         connection.execute("BEGIN IMMEDIATE")
+        version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        if version > _SCHEMA_VERSION:
+            raise ApprovalSchemaVersionError(
+                f"unsupported approval schema version: {version}"
+            )
         if version == 0:
             exists = connection.execute(
                 """
@@ -229,6 +256,16 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
                 """
             ).fetchone()
             if exists is not None:
+                columns = tuple(
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(bound_approvals)"
+                    )
+                )
+                if columns != _LEGACY_V0_COLUMNS:
+                    raise ApprovalCorruptionError(
+                        "legacy approval schema has an invalid layout"
+                    )
                 connection.execute(
                     "ALTER TABLE bound_approvals RENAME TO bound_approvals_v0"
                 )
@@ -249,17 +286,37 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
                 )
                 connection.execute("DROP TABLE bound_approvals_v0")
             connection.execute(f"PRAGMA user_version={_SCHEMA_VERSION}")
-        else:
-            connection.execute(_SCHEMA_V1)
+        _validate_current_schema(connection)
         connection.commit()
-    except sqlite3.IntegrityError as exc:
+    except ApprovalGrantError:
+        connection.rollback()
+        raise
+    except sqlite3.DatabaseError as exc:
         connection.rollback()
         raise ApprovalCorruptionError(
-            "legacy approval data violates schema invariants"
+            "approval schema initialization failed"
         ) from exc
     except BaseException:
         connection.rollback()
         raise
+
+
+def _normalize_schema_sql(sql: str) -> str:
+    normalized = "".join(sql.lower().split())
+    return normalized.replace("ifnotexists", "")
+
+
+def _validate_current_schema(connection: sqlite3.Connection) -> None:
+    row = connection.execute(
+        """
+        SELECT sql FROM sqlite_master
+        WHERE type = 'table' AND name = 'bound_approvals'
+        """
+    ).fetchone()
+    if row is None or not isinstance(row[0], str):
+        raise ApprovalCorruptionError("approval schema table is missing")
+    if _normalize_schema_sql(row[0]) != _normalize_schema_sql(_SCHEMA_V1):
+        raise ApprovalCorruptionError("approval schema structure is invalid")
 
 
 @contextlib.contextmanager
@@ -450,6 +507,39 @@ def _select(connection: sqlite3.Connection, approval_id: str) -> sqlite3.Row:
     return row
 
 
+def _load_record(
+    connection: sqlite3.Connection,
+    approval_id: str,
+) -> BoundApproval:
+    record = _from_row(_select(connection, approval_id))
+    _validate_supersession_relationship(connection, record, {approval_id})
+    return record
+
+
+def _validate_supersession_relationship(
+    connection: sqlite3.Connection,
+    record: BoundApproval,
+    chain: set[str],
+) -> None:
+    if record.state is not ApprovalState.SUPERSEDED:
+        return
+    replacement_id = record.superseded_by
+    assert replacement_id is not None
+    if replacement_id in chain:
+        raise ApprovalCorruptionError("supersession relationship contains a cycle")
+    row = connection.execute(
+        "SELECT * FROM bound_approvals WHERE approval_id = ?", (replacement_id,)
+    ).fetchone()
+    if row is None:
+        raise ApprovalCorruptionError("supersession replacement is missing")
+    replacement = _from_row(row)
+    if _binding(record) != _binding(replacement):
+        raise ApprovalCorruptionError("supersession replacement binding is invalid")
+    _validate_supersession_relationship(
+        connection, replacement, chain | {replacement_id}
+    )
+
+
 def _binding(record: BoundApproval) -> tuple[str, str, str, str, str]:
     return (
         record.actor_id,
@@ -487,7 +577,7 @@ def _mark_expired(
         "UPDATE bound_approvals SET state = ? WHERE approval_id = ?",
         (ApprovalState.EXPIRED.value, record.approval_id),
     )
-    return _from_row(_select(connection, record.approval_id))
+    return _load_record(connection, record.approval_id)
 
 
 def stage_bound_approval(
@@ -511,12 +601,15 @@ def stage_bound_approval(
     resolved_id = approval_id or f"approval_{uuid.uuid4().hex}"
     _required_text("approval_id", resolved_id)
     now = time.time()
+    expires_at = now + ttl
+    if not math.isfinite(expires_at) or expires_at <= now:
+        raise ValueError("ttl_seconds is below clock resolution")
     with _write_transaction(db_path) as connection:
         existing_row = connection.execute(
             "SELECT * FROM bound_approvals WHERE approval_id = ?", (resolved_id,)
         ).fetchone()
         if existing_row is not None:
-            existing = _from_row(existing_row)
+            existing = _load_record(connection, resolved_id)
             if supplied_id and _binding(existing) == binding:
                 return existing
             raise ApprovalConflictError(
@@ -534,11 +627,11 @@ def stage_bound_approval(
                 *binding,
                 ApprovalState.PENDING.value,
                 now,
-                now + ttl,
+                expires_at,
                 _PROVENANCE,
             ),
         )
-        return _from_row(_select(connection, resolved_id))
+        return _load_record(connection, resolved_id)
 
 
 def decide_bound_approval(
@@ -557,9 +650,8 @@ def decide_bound_approval(
     desired = ApprovalState.GRANTED if approve else ApprovalState.REJECTED
     expired: BoundApproval | None = None
     with _write_transaction(db_path) as connection:
-        record = _mark_expired(
-            connection, _from_row(_select(connection, approval_id)), time.time()
-        )
+        now = time.time()
+        record = _mark_expired(connection, _load_record(connection, approval_id), now)
         if record.state is ApprovalState.EXPIRED:
             expired = record
         elif record.state is desired:
@@ -573,7 +665,6 @@ def decide_bound_approval(
                 f"approval {approval_id} cannot be decided from {record.state.value}"
             )
         else:
-            now = time.time()
             connection.execute(
                 """
                 UPDATE bound_approvals
@@ -588,7 +679,7 @@ def decide_bound_approval(
                     ApprovalState.PENDING.value,
                 ),
             )
-            return _from_row(_select(connection, approval_id))
+            return _load_record(connection, approval_id)
     assert expired is not None
     raise ApprovalExpiredError(f"approval expired: {approval_id}")
 
@@ -611,12 +702,13 @@ def validate_and_consume_approval(
     )
     expired: BoundApproval | None = None
     with _write_transaction(db_path) as connection:
-        record = _from_row(_select(connection, approval_id))
+        now = time.time()
+        record = _load_record(connection, approval_id)
         if _binding(record) != presented:
             raise ApprovalBindingMismatchError(
                 f"approval binding mismatch: {approval_id}"
             )
-        record = _mark_expired(connection, record, time.time())
+        record = _mark_expired(connection, record, now)
         if record.state is ApprovalState.EXPIRED:
             expired = record
         elif record.state is ApprovalState.CONSUMED:
@@ -634,12 +726,12 @@ def validate_and_consume_approval(
                 """,
                 (
                     ApprovalState.CONSUMED.value,
-                    time.time(),
+                    now,
                     approval_id,
                     ApprovalState.GRANTED.value,
                 ),
             )
-            return _from_row(_select(connection, approval_id))
+            return _load_record(connection, approval_id)
     assert expired is not None
     raise ApprovalExpiredError(f"approval expired: {approval_id}")
 
@@ -659,8 +751,9 @@ def supersede_bound_approval(
 
     expired_id: str | None = None
     with _write_transaction(db_path) as connection:
+        now = time.time()
         original = _mark_expired(
-            connection, _from_row(_select(connection, approval_id)), time.time()
+            connection, _load_record(connection, approval_id), now
         )
         if original.state is ApprovalState.EXPIRED:
             expired_id = approval_id
@@ -669,7 +762,6 @@ def supersede_bound_approval(
                 raise ApprovalStateError(
                     f"approval {approval_id} was superseded by another request"
                 )
-            _from_row(_select(connection, superseded_by))
             return original
         elif original.state is not ApprovalState.PENDING:
             raise ApprovalStateError(
@@ -679,8 +771,8 @@ def supersede_bound_approval(
         else:
             replacement = _mark_expired(
                 connection,
-                _from_row(_select(connection, superseded_by)),
-                time.time(),
+                _load_record(connection, superseded_by),
+                now,
             )
             if replacement.state is ApprovalState.EXPIRED:
                 expired_id = superseded_by
@@ -706,7 +798,7 @@ def supersede_bound_approval(
                         ApprovalState.PENDING.value,
                     ),
                 )
-                return _from_row(_select(connection, approval_id))
+                return _load_record(connection, approval_id)
     assert expired_id is not None
     raise ApprovalExpiredError(f"approval expired: {expired_id}")
 
@@ -746,4 +838,4 @@ def list_bound_approvals(
                 """,
                 (selected_state.value,),
             ).fetchall()
-        return tuple(_from_row(row) for row in rows)
+        return tuple(_load_record(connection, row["approval_id"]) for row in rows)

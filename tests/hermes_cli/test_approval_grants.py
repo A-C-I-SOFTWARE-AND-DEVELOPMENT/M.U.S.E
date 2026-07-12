@@ -145,6 +145,18 @@ def test_stage_rejects_non_real_non_finite_or_non_positive_ttl(
     assert list_bound_approvals(db_path=db_path) == ()
 
 
+def test_stage_rejects_ttl_below_clock_resolution_before_db_write(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants.time, "time", lambda: 1e20)
+
+    with pytest.raises(ValueError, match="ttl_seconds"):
+        _stage(db_path, ttl_seconds=1)
+
+    assert not db_path.exists()
+
+
 def test_default_path_is_profile_aware(tmp_path: Path) -> None:
     profile_home = tmp_path / "profiles" / "reviewer"
     token = set_hermes_home_override(profile_home)
@@ -243,6 +255,97 @@ def test_claimed_v1_schema_missing_required_column_is_corruption(tmp_path: Path)
 
     with pytest.raises(ApprovalCorruptionError):
         list_bound_approvals(db_path=db_path)
+
+
+def test_empty_claimed_v1_schema_is_validated_exactly(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE bound_approvals (
+                approval_id TEXT PRIMARY KEY,
+                actor_id TEXT,
+                action TEXT,
+                realm_id TEXT,
+                correlation_id TEXT,
+                subject_hash TEXT,
+                state TEXT,
+                issued_at REAL,
+                expires_at REAL,
+                decided_at REAL,
+                decided_by TEXT,
+                consumed_at REAL,
+                provenance TEXT,
+                superseded_by TEXT
+            )
+            """
+        )
+        conn.execute("PRAGMA user_version=1")
+
+    with pytest.raises(ApprovalCorruptionError):
+        list_bound_approvals(db_path=db_path)
+
+
+def test_malformed_legacy_v0_layout_maps_to_domain_corruption(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE bound_approvals (approval_id TEXT PRIMARY KEY)")
+
+    with pytest.raises(ApprovalCorruptionError):
+        list_bound_approvals(db_path=db_path)
+
+
+def test_schema_version_is_read_under_write_lock(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    original_connect = sqlite3.connect
+    raw_connection = original_connect(tmp_path / "grants.db")
+    version_read_lock_states: list[bool] = []
+
+    class ObservedConnection:
+        @property
+        def row_factory(self) -> object:
+            return raw_connection.row_factory
+
+        @row_factory.setter
+        def row_factory(self, value: object) -> None:
+            raw_connection.row_factory = value  # ty: ignore[invalid-assignment]
+
+        def execute(self, sql: str, parameters: Any = ()) -> sqlite3.Cursor:
+            if sql.strip() == "PRAGMA user_version":
+                version_read_lock_states.append(raw_connection.in_transaction)
+            return raw_connection.execute(sql, parameters)
+
+        def commit(self) -> None:
+            raw_connection.commit()
+
+        def rollback(self) -> None:
+            raw_connection.rollback()
+
+        def close(self) -> None:
+            raw_connection.close()
+
+    observed = ObservedConnection()
+    monkeypatch.setattr(grants.sqlite3, "connect", lambda *args, **kwargs: observed)
+
+    assert list_bound_approvals(db_path=tmp_path / "grants.db") == ()
+    assert version_read_lock_states == [True]
+
+
+def test_concurrent_initializers_converge_on_one_valid_schema(tmp_path: Path) -> None:
+    db_path = tmp_path / "grants.db"
+    barrier = Barrier(4)
+
+    def initialize() -> tuple[BoundApproval, ...]:
+        barrier.wait()
+        return list_bound_approvals(db_path=db_path)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = tuple(pool.map(lambda _: initialize(), range(4)))
+
+    assert results == ((), (), (), ())
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
 
 
 @pytest.mark.parametrize("entrypoint", ["list", "decide", "consume"])
@@ -469,6 +572,51 @@ def test_only_pending_approval_can_be_superseded(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.parametrize("relationship", ["dangling", "mismatched"])
+@pytest.mark.parametrize("entrypoint", ["list", "decide", "consume", "supersede"])
+def test_tampered_supersession_relationship_fails_closed(
+    tmp_path: Path, relationship: str, entrypoint: str
+) -> None:
+    db_path = tmp_path / "grants.db"
+    original = _stage(db_path, approval_id="original")
+    replacement = _stage(db_path, approval_id="replacement")
+    mismatched = _stage(db_path, approval_id="mismatched", actor_id="other-actor")
+    supersede_bound_approval(
+        original.approval_id,
+        superseded_by=replacement.approval_id,
+        db_path=db_path,
+    )
+    tampered_target = (
+        "missing-replacement"
+        if relationship == "dangling"
+        else mismatched.approval_id
+    )
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "UPDATE bound_approvals SET superseded_by = ? WHERE approval_id = ?",
+            (tampered_target, original.approval_id),
+        )
+
+    with pytest.raises(ApprovalCorruptionError):
+        if entrypoint == "list":
+            list_bound_approvals(db_path=db_path)
+        elif entrypoint == "decide":
+            decide_bound_approval(
+                original.approval_id,
+                approve=True,
+                decided_by="reviewer",
+                db_path=db_path,
+            )
+        elif entrypoint == "consume":
+            _consume(db_path, original.approval_id)
+        else:
+            supersede_bound_approval(
+                original.approval_id,
+                superseded_by=tampered_target,
+                db_path=db_path,
+            )
+
+
 @pytest.mark.parametrize("failure_marker", ["journal_mode=WAL", "CREATE TABLE"])
 def test_connection_closes_when_initialization_fails(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure_marker: str
@@ -505,7 +653,12 @@ def test_connection_closes_when_initialization_fails(
     failing = FailingConnection()
     monkeypatch.setattr(grants.sqlite3, "connect", lambda *args, **kwargs: failing)
 
-    with pytest.raises(sqlite3.OperationalError, match="injected"):
+    expected_error = (
+        sqlite3.OperationalError
+        if failure_marker == "journal_mode=WAL"
+        else ApprovalCorruptionError
+    )
+    with pytest.raises(expected_error):
         list_bound_approvals(db_path=tmp_path / "grants.db")
 
     assert failing.closed
@@ -529,6 +682,26 @@ def test_decision_rejects_non_bool_without_mutation(
     assert list_bound_approvals(db_path=db_path) == (pending,)
 
 
+def test_decision_uses_one_logical_clock_instant(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants.time, "time", lambda: 100.0)
+    pending = _stage(db_path, ttl_seconds=10)
+    clock = iter((109.9, 110.1))
+    monkeypatch.setattr(grants.time, "time", lambda: next(clock))
+
+    decided = decide_bound_approval(
+        pending.approval_id,
+        approve=True,
+        decided_by="reviewer",
+        db_path=db_path,
+    )
+
+    assert decided.decided_at == 109.9
+    assert next(clock) == 110.1
+
+
 def test_pending_approval_cannot_be_consumed(tmp_path: Path) -> None:
     db_path = tmp_path / "grants.db"
     pending = _stage(db_path)
@@ -537,6 +710,28 @@ def test_pending_approval_cannot_be_consumed(tmp_path: Path) -> None:
         _consume(db_path, pending.approval_id)
 
     assert list_bound_approvals(db_path=db_path) == (pending,)
+
+
+def test_consume_uses_one_logical_clock_instant(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants.time, "time", lambda: 100.0)
+    pending = _stage(db_path, ttl_seconds=10)
+    monkeypatch.setattr(grants.time, "time", lambda: 105.0)
+    granted = decide_bound_approval(
+        pending.approval_id,
+        approve=True,
+        decided_by="reviewer",
+        db_path=db_path,
+    )
+    clock = iter((109.9, 110.1))
+    monkeypatch.setattr(grants.time, "time", lambda: next(clock))
+
+    consumed = _consume(db_path, granted.approval_id)
+
+    assert consumed.consumed_at == 109.9
+    assert next(clock) == 110.1
 
 
 def test_pending_and_granted_requests_expire(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
