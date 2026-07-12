@@ -547,25 +547,24 @@ def _validate_supersession_chain(
 
 
 def _validate_supersession_graph(records: dict[str, BoundApproval]) -> None:
-    validated: set[str] = set()
+    edge_depths: dict[str, int] = {}
     for start_id in records:
-        if start_id in validated:
+        if start_id in edge_depths:
             continue
         path: list[str] = []
         path_positions: dict[str, int] = {}
         current_id = start_id
-        while current_id not in validated:
+        while current_id not in edge_depths:
             if current_id in path_positions:
                 raise ApprovalCorruptionError(
                     "supersession relationship contains a cycle"
                 )
-            if len(path) >= _MAX_SUPERSESSION_HOPS:
-                raise ApprovalCorruptionError("supersession chain exceeds hop limit")
             current = records[current_id]
+            if current.state is not ApprovalState.SUPERSEDED:
+                edge_depths[current_id] = 0
+                break
             path_positions[current_id] = len(path)
             path.append(current_id)
-            if current.state is not ApprovalState.SUPERSEDED:
-                break
             replacement_id = current.superseded_by
             assert replacement_id is not None
             replacement = records.get(replacement_id)
@@ -576,7 +575,25 @@ def _validate_supersession_graph(records: dict[str, BoundApproval]) -> None:
                     "supersession replacement binding is invalid"
                 )
             current_id = replacement_id
-        validated.update(path)
+        depth = edge_depths[current_id]
+        for path_id in reversed(path):
+            depth += 1
+            if depth > _MAX_SUPERSESSION_HOPS:
+                raise ApprovalCorruptionError("supersession chain exceeds hop limit")
+            edge_depths[path_id] = depth
+
+
+def _load_validated_graph(
+    connection: sqlite3.Connection,
+) -> tuple[BoundApproval, ...]:
+    rows = connection.execute(
+        "SELECT * FROM bound_approvals ORDER BY issued_at, approval_id"
+    ).fetchall()
+    records = tuple(_from_row(row) for row in rows)
+    _validate_supersession_graph(
+        {record.approval_id: record for record in records}
+    )
+    return records
 
 
 def _binding(record: BoundApproval) -> tuple[str, str, str, str, str]:
@@ -843,7 +860,12 @@ def supersede_bound_approval(
                         ApprovalState.PENDING.value,
                     ),
                 )
-                return _load_record(connection, approval_id)
+                records = _load_validated_graph(connection)
+                return next(
+                    record
+                    for record in records
+                    if record.approval_id == approval_id
+                )
     assert expired_id is not None
     raise ApprovalExpiredError(f"approval expired: {expired_id}")
 
@@ -871,12 +893,7 @@ def list_bound_approvals(
                 now,
             ),
         )
-        rows = connection.execute(
-            "SELECT * FROM bound_approvals ORDER BY issued_at, approval_id"
-        ).fetchall()
-        records = tuple(_from_row(row) for row in rows)
-        records_by_id = {record.approval_id: record for record in records}
-        _validate_supersession_graph(records_by_id)
+        records = _load_validated_graph(connection)
         if selected_state is None:
             return records
         return tuple(record for record in records if record.state is selected_state)

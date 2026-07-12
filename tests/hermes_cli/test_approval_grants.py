@@ -751,6 +751,68 @@ def test_list_validates_supersession_graph_with_linear_row_decoding(
     assert decoded == chain_length
 
 
+def test_exact_supersession_edge_bound_is_accepted_by_both_read_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants, "_MAX_SUPERSESSION_HOPS", 2)
+    _replace_with_supersession_chain(db_path, 3)
+
+    assert len(list_bound_approvals(db_path=db_path)) == 3
+    with pytest.raises(ApprovalStateError):
+        decide_bound_approval(
+            "chain-00000",
+            approve=True,
+            decided_by="reviewer",
+            db_path=db_path,
+        )
+
+
+def test_supersession_bound_plus_one_is_rejected_by_both_read_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants, "_MAX_SUPERSESSION_HOPS", 2)
+    _replace_with_supersession_chain(db_path, 4)
+
+    with pytest.raises(ApprovalCorruptionError, match="hop limit"):
+        list_bound_approvals(db_path=db_path)
+    with pytest.raises(ApprovalCorruptionError, match="hop limit"):
+        decide_bound_approval(
+            "chain-00000",
+            approve=True,
+            decided_by="reviewer",
+            db_path=db_path,
+        )
+
+
+def test_public_supersession_rolls_back_graph_over_edge_bound(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "grants.db"
+    monkeypatch.setattr(grants, "_MAX_SUPERSESSION_HOPS", 1)
+    first = _stage(db_path, approval_id="first")
+    middle = _stage(db_path, approval_id="middle")
+    last = _stage(db_path, approval_id="last")
+    supersede_bound_approval(
+        first.approval_id,
+        superseded_by=middle.approval_id,
+        db_path=db_path,
+    )
+
+    with pytest.raises(ApprovalCorruptionError, match="hop limit"):
+        supersede_bound_approval(
+            middle.approval_id,
+            superseded_by=last.approval_id,
+            db_path=db_path,
+        )
+
+    records = {item.approval_id: item for item in list_bound_approvals(db_path=db_path)}
+    assert records[first.approval_id].superseded_by == middle.approval_id
+    assert records[middle.approval_id].state is ApprovalState.PENDING
+    assert records[last.approval_id].state is ApprovalState.PENDING
+
+
 @pytest.mark.parametrize("failure_marker", ["journal_mode=WAL", "CREATE TABLE"])
 def test_connection_closes_when_initialization_fails(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure_marker: str
