@@ -78,7 +78,7 @@ class Adapter(abc.ABC):
         }
         fname = f"{self.capability}_{int(time.time()*1000)}.json"
         out = workdir / fname
-        out.write_text(json.dumps(manifest, indent=2))
+        out.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         return [str(out)], f"stub manifest ({self.provider.value})"
 
     @abc.abstractmethod
