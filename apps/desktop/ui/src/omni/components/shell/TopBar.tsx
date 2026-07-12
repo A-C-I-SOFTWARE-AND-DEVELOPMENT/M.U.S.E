@@ -3,14 +3,26 @@ import { useLinkState } from '@/lib/health';
 import { Dot } from './StatusDot';
 
 const TITLES: Record<string, string> = {
-  '/': 'CONSOLE',
+  '/': 'NEURAL CONVERSATION',
+  '/chat': 'NEURAL CONVERSATION',
+  '/console': 'MISSION CONTROL',
+  '/fusion': 'FUSION CHAMBER',
   '/steer': 'AGENT OPTIMIZATION CONTROL',
   '/axiom': 'AXIOM GATE · FUSION',
-  '/observatory': 'NEURAL OBSERVATORY',
-  '/agents': 'AGENTS',
-  '/activity': 'ACTIVITY',
-  '/settings': 'SETTINGS',
+  '/forge': 'CREATION FORGE',
+  '/fleet': 'AGENT FLEET',
+  '/agents': 'AGENT WORKSHOP',
+  '/council': 'COUNCIL CHAMBER',
   '/studio': 'AAA STUDIO',
+  '/repo': 'REPOSITORY MATRIX',
+  '/models': 'MODEL ARSENAL',
+  '/second-brain': 'SECOND BRAIN',
+  '/observatory': 'NEURAL OBSERVATORY',
+  '/championship': 'CHAMPIONSHIP ARENA',
+  '/federation': 'FEDERATION',
+  '/activity': 'ACTIVITY PULSE',
+  '/share': 'SIGNAL BROADCAST',
+  '/settings': 'SYSTEM CORE',
 };
 
 // Live-link → cockpit status pill. The pill is a tonal chip (never a bloom); its

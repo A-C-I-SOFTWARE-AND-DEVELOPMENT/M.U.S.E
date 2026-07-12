@@ -629,3 +629,82 @@ button {
   .observatory-galaxy__hud { inset: 10px 11px auto; font-size: 8px; letter-spacing: .12em; }
   .observatory-inspector { right: 10px; bottom: 10px; }
 }
+
+/* Route-aware 3D worlds — one cinematic environment for every navigation tab. */
+.omni-cinematic-world {
+  position: fixed;
+  inset: 54px 0 0 240px;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: .46;
+  mask-image: radial-gradient(ellipse 74% 70% at 72% 48%, #000 5%, rgba(0,0,0,.88) 52%, transparent 100%);
+  transition: opacity 500ms var(--ease-emphasized);
+}
+.omni-cinematic-world canvas { width: 100% !important; height: 100% !important; filter: saturate(.86) contrast(1.06); }
+.omni-world-label {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  opacity: .72;
+  text-shadow: 0 2px 12px #000;
+}
+.omni-world-label span { color: rgba(238,246,255,.68); font: 600 10px/1 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .2em; text-transform: uppercase; }
+.omni-world-label small { color: rgba(170,178,196,.5); font: 9px/1.2 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .08em; }
+
+/* Keep every workflow crystal clear above its world. Content columns gain a
+   subtle local scrim while empty regions reveal the scene's depth. */
+.omni-workspace > div > header,
+.omni-workspace > div > div,
+.omni-workspace > div > nav { position: relative; z-index: 3; }
+.omni-workspace main { position: relative; z-index: 2; }
+.omni-workspace main > div > div[class*='px-'],
+.omni-workspace main > div > section,
+.omni-workspace main > div > form {
+  position: relative;
+}
+
+/* High-quality interaction language shared by every page: directional lift,
+   crisp focus, and a short luminance response instead of distracting bounce. */
+.omni-workspace .nexus-nav-item {
+  transform-origin: left center;
+  transition: transform 220ms var(--ease-emphasized), background-color 220ms var(--ease-standard), color 220ms var(--ease-standard);
+}
+.omni-workspace .nexus-nav-item:hover { transform: translate3d(3px, 0, 8px); }
+.omni-workspace .nexus-nav-item:active { transform: translate3d(1px, 0, 2px) scale(.985); }
+.omni-workspace .nexus-nav-icon { transition: transform 260ms var(--ease-emphasized), color 220ms var(--ease-standard); }
+.omni-workspace .nexus-nav-item:hover .nexus-nav-icon { transform: scale(1.12) rotate(-3deg); }
+
+/* Data tables and dense lists receive sticky spatial legibility globally. */
+.omni-workspace table { border-collapse: separate; border-spacing: 0; }
+.omni-workspace thead { position: sticky; top: 0; z-index: 3; backdrop-filter: blur(18px); }
+.omni-workspace tbody tr { transition: background-color 180ms var(--ease-standard), transform 180ms var(--ease-standard); }
+.omni-workspace tbody tr:hover { background: rgba(255,255,255,.025); }
+
+/* Ambient edge response on primary controls. */
+.omni-workspace button:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(160px circle at 50% 130%, rgba(122,224,255,.09), transparent 62%);
+  opacity: 0;
+  transition: opacity 220ms var(--ease-standard);
+}
+.omni-workspace button:not(:disabled):hover::after { opacity: 1; }
+.omni-workspace button:disabled { cursor: not-allowed; filter: saturate(.5); }
+
+@media (max-width: 767px) {
+  .omni-cinematic-world { inset: 52px 0 var(--tab-h) 0; opacity: .28; mask-image: linear-gradient(to bottom, rgba(0,0,0,.6), transparent 92%); }
+  .omni-world-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .omni-cinematic-world { opacity: .24; }
+  .omni-workspace .nexus-nav-item:hover,
+  .omni-workspace .nexus-nav-item:active { transform: none; }
+}

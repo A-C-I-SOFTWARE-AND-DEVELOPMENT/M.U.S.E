@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
 import { SideNav } from './components/shell/SideNav';
@@ -35,6 +35,7 @@ import StudioPage from './pages/StudioPage';
 // it resolves cleanly once the sibling task lands its page.
 // @ts-ignore -- ./pages/SignInPage is provided by a sibling task
 const SignInPage = lazy(() => import('./pages/SignInPage'));
+const CinematicWorld = lazy(() => import('./components/shell/CinematicWorld'));
 
 // Apple/Google-grade page transition: a quick, springy fade + lift. Respects
 // prefers-reduced-motion via the CSS media query in tokens.css (transforms are
@@ -91,15 +92,15 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <CinematicBackdrop />
+      <Suspense fallback={null}><CinematicWorld pathname={location.pathname} /></Suspense>
       <ConnectWizard open={wizard} onClose={closeWizard} />
       <CommandPalette />
       <TopBar />
       <div className="flex min-h-0 flex-1">
         <SideNav />
         <main className="scroll-area flex-1 pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))] md:pb-0">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Page><ChatPage /></Page>} />
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Page><ChatPage /></Page>} />
             <Route path="/chat" element={<Navigate to="/" replace />} />
             <Route path="/console" element={<Page><ConsolePage /></Page>} />
             <Route
@@ -129,7 +130,6 @@ export default function App() {
             <Route path="/studio" element={<Page><StudioPage /></Page>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </AnimatePresence>
         </main>
       </div>
       <TabBar />
