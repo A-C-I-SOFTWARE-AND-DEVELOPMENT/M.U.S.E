@@ -12,6 +12,7 @@ import json
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -29,6 +30,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # HERMES_ORCHESTRATOR_HOME (the JobQueue keys off its own env, else cwd).
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
+    monkeypatch.setenv("OLLAMA_HOST", "http://127.0.0.1:1")
     return tmp_path
 
 
@@ -399,6 +401,26 @@ def _seed_proposal(home: Path) -> str:
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
 
+def _stage_bound(home: Path, **overrides: object):
+    from hermes_cli.approval_grants import stage_bound_approval
+
+    values: dict[str, Any] = {
+        "actor_id": "plugin-actor-secret",
+        "action": "plugin.command.publish",
+        "realm_id": "realm-safe",
+        "correlation_id": "correlation-secret",
+        "subject": {"raw_secret": "subject-secret"},
+        "approval_id": "bound-http-approval",
+        "db_path": home / "approvals" / "grants.db",
+    }
+    values.update(overrides)
+    return stage_bound_approval(**values)
+
+
+def _http_error_json(error: urllib.error.HTTPError) -> dict:
+    return json.loads(error.read())
+
+
 def test_approvals_list_canonical_cards(server, home: Path) -> None:
     pid = _seed_proposal(home)
     _, payload = _get(server, "/v1/cockpit/approvals")
@@ -411,6 +433,278 @@ def test_approvals_list_canonical_cards(server, home: Path) -> None:
     assert card["title"].startswith("Self-update")
     assert card["proposed_action"]
     assert card["expires_at"] is None
+
+
+def test_bound_approvals_require_bearer_auth(server, home: Path) -> None:
+    pending = _stage_bound(home)
+
+    with pytest.raises(urllib.error.HTTPError) as list_exc:
+        _get(server, "/v1/cockpit/approvals", token=None)
+    assert list_exc.value.code == 401
+
+    with pytest.raises(urllib.error.HTTPError) as decide_exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{pending.approval_id}",
+            {"decision": "reject"},
+            token=None,
+        )
+    assert decide_exc.value.code == 401
+
+
+def test_bound_approval_list_is_sanitized_and_preserves_legacy_card(
+    server, home: Path
+) -> None:
+    proposal_id = _seed_proposal(home)
+    pending = _stage_bound(home)
+
+    _, payload = _get(server, "/v1/cockpit/approvals")
+
+    legacy = next(item for item in payload["approvals"] if item["id"] == proposal_id)
+    assert "kind" not in legacy
+    assert legacy["summary"] == "improve"
+    bound = next(item for item in payload["approvals"] if item["id"] == pending.approval_id)
+    assert bound["kind"] == "bound_grant"
+    assert bound["action"] == pending.action
+    assert bound["realm_id"] == pending.realm_id
+    assert bound["state"] == "pending"
+    assert bound["expires_at"] == pending.expires_at
+    assert bound["subject_hash"] == pending.subject_hash
+    serialized = json.dumps(bound, sort_keys=True)
+    for secret in (
+        "plugin-actor-secret",
+        "correlation-secret",
+        "subject-secret",
+        "Yes, with authorization.",
+        str(home),
+    ):
+        assert secret not in serialized
+    assert not {
+        "actor_id",
+        "correlation_id",
+        "decided_by",
+        "subject",
+        "authorization",
+        "owner_phrase",
+        "db_path",
+    } & bound.keys()
+
+
+@pytest.mark.parametrize("authorization", [None, "yes go ahead"])
+def test_bound_approve_requires_exact_phrase_without_echoing_it(
+    server, home: Path, authorization: str | None
+) -> None:
+    from hermes_cli.approval_grants import list_bound_approvals
+
+    pending = _stage_bound(home)
+    body = {"decision": "approve"}
+    if authorization is not None:
+        body["authorization"] = authorization
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/approvals/{pending.approval_id}", body)
+
+    assert exc.value.code == 403
+    error = _http_error_json(exc.value)
+    assert error == {"error": "owner authorization required"}
+    assert "Yes, with authorization." not in json.dumps(error)
+    assert list_bound_approvals(db_path=home / "approvals" / "grants.db")[0].state.value == "pending"
+
+
+def test_bound_approve_uses_only_persisted_binding(server, home: Path) -> None:
+    from hermes_cli.approval_grants import list_bound_approvals
+
+    pending = _stage_bound(home)
+    status, raw = _post(
+        server,
+        f"/v1/cockpit/approvals/{pending.approval_id}",
+        {"decision": "approve", "authorization": "Yes, with authorization."},
+    )
+
+    assert status == 200
+    payload = json.loads(raw)
+    assert payload == {
+        "id": pending.approval_id,
+        "kind": "bound_grant",
+        "action": pending.action,
+        "realm_id": pending.realm_id,
+        "state": "granted",
+        "expires_at": pending.expires_at,
+        "subject_hash": pending.subject_hash,
+    }
+    stored = list_bound_approvals(db_path=home / "approvals" / "grants.db")[0]
+    assert stored.actor_id == "plugin-actor-secret"
+    assert stored.correlation_id == "correlation-secret"
+    assert stored.state.value == "granted"
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["actor_id", "action", "realm_id", "correlation_id", "subject", "decided_by"],
+)
+def test_bound_decision_rejects_request_binding_fields(
+    server, home: Path, field: str
+) -> None:
+    from hermes_cli.approval_grants import list_bound_approvals
+
+    pending = _stage_bound(home)
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{pending.approval_id}",
+            {
+                "decision": "approve",
+                "authorization": "Yes, with authorization.",
+                field: "attacker-supplied",
+            },
+        )
+
+    assert exc.value.code == 400
+    assert _http_error_json(exc.value) == {"error": "unsupported approval fields"}
+    assert list_bound_approvals(db_path=home / "approvals" / "grants.db")[0].state.value == "pending"
+
+
+def test_bound_reject_needs_no_phrase_and_cannot_validate(server, home: Path) -> None:
+    from hermes_cli.approval_grants import (
+        ApprovalStateError,
+        validate_and_consume_approval,
+    )
+
+    pending = _stage_bound(home)
+    status, raw = _post(
+        server,
+        f"/v1/cockpit/approvals/{pending.approval_id}",
+        {"decision": "reject"},
+    )
+
+    assert status == 200
+    assert json.loads(raw)["state"] == "rejected"
+    with pytest.raises(ApprovalStateError):
+        validate_and_consume_approval(
+            pending.approval_id,
+            "plugin-actor-secret",
+            pending.action,
+            pending.realm_id,
+            "correlation-secret",
+            {"raw_secret": "subject-secret"},
+            db_path=home / "approvals" / "grants.db",
+        )
+
+
+def test_bound_repeat_decision_is_safe_and_opposite_decision_conflicts(
+    server, home: Path
+) -> None:
+    pending = _stage_bound(home)
+    path = f"/v1/cockpit/approvals/{pending.approval_id}"
+    body = {"decision": "approve", "authorization": "Yes, with authorization."}
+
+    assert _post(server, path, body)[0] == 200
+    status, raw = _post(server, path, body)
+    assert status == 200
+    assert json.loads(raw)["state"] == "granted"
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, path, {"decision": "reject"})
+    assert exc.value.code == 409
+    assert _http_error_json(exc.value) == {"error": "approval cannot be decided"}
+
+
+def test_ambiguous_bound_and_legacy_id_fails_closed(server, home: Path) -> None:
+    proposal_id = _seed_proposal(home)
+    _stage_bound(home, approval_id=proposal_id)
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{proposal_id}",
+            {"decision": "reject"},
+        )
+
+    assert exc.value.code == 409
+    assert _http_error_json(exc.value) == {"error": "ambiguous approval identifier"}
+
+
+def test_bound_not_found_is_safe_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/approvals/missing-bound-id",
+            {"decision": "reject"},
+        )
+
+    assert exc.value.code == 404
+    assert _http_error_json(exc.value) == {"error": "approval not found"}
+
+
+def test_bound_expired_and_superseded_decisions_have_stable_statuses(
+    server, home: Path
+) -> None:
+    import time
+
+    from hermes_cli.approval_grants import supersede_bound_approval
+
+    expired = _stage_bound(home, approval_id="expired-http", ttl_seconds=0.01)
+    original = _stage_bound(home, approval_id="superseded-http")
+    replacement = _stage_bound(home, approval_id="replacement-http")
+    supersede_bound_approval(
+        original.approval_id,
+        superseded_by=replacement.approval_id,
+        db_path=home / "approvals" / "grants.db",
+    )
+    time.sleep(0.02)
+
+    with pytest.raises(urllib.error.HTTPError) as expired_exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{expired.approval_id}",
+            {"decision": "reject"},
+        )
+    assert expired_exc.value.code == 410
+    assert _http_error_json(expired_exc.value) == {"error": "approval expired"}
+
+    with pytest.raises(urllib.error.HTTPError) as superseded_exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{original.approval_id}",
+            {"decision": "reject"},
+        )
+    assert superseded_exc.value.code == 409
+    assert _http_error_json(superseded_exc.value) == {
+        "error": "approval cannot be decided"
+    }
+
+
+def test_bound_store_corruption_never_leaks_sqlite_details(server, home: Path) -> None:
+    db_path = home / "approvals" / "grants.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db_path.write_bytes(b"not a sqlite database: secret-storage-marker")
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/approvals")
+
+    assert exc.value.code == 500
+    error = _http_error_json(exc.value)
+    assert error == {"error": "approval store unavailable"}
+    assert "sqlite" not in json.dumps(error).lower()
+    assert "secret-storage-marker" not in json.dumps(error)
+
+
+def test_bound_schema_error_never_leaks_version_or_path(server, home: Path) -> None:
+    import sqlite3
+
+    db_path = home / "approvals" / "grants.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("PRAGMA user_version=999")
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/approvals")
+
+    assert exc.value.code == 500
+    error = _http_error_json(exc.value)
+    assert error == {"error": "approval store unavailable"}
+    serialized = json.dumps(error)
+    assert "999" not in serialized
+    assert str(home) not in serialized
 
 
 def test_proposals_native_view(server, home: Path) -> None:
@@ -434,6 +728,9 @@ def test_approve_requires_exact_owner_phrase(server, home: Path) -> None:
             {"decision": "approve", "authorization": "yes go ahead"},
         )
     assert exc.value.code == 403
+    error = _http_error_json(exc.value)
+    assert error == {"error": "owner authorization required"}
+    assert "Yes, with authorization." not in json.dumps(error)
     # Exact phrase → approved.
     status, raw = _post(
         server,

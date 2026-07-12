@@ -2559,6 +2559,58 @@ def _save_proposals(items: list[dict[str, Any]]) -> None:
     _os.replace(tmp, path)
 
 
+def _bound_approval_card(record: Any) -> dict[str, Any]:
+    """Project a bound grant using only cockpit-safe persisted metadata."""
+    status = {
+        "pending": "PENDING",
+        "granted": "APPROVED",
+        "rejected": "REJECTED",
+        "expired": "EXPIRED",
+        "consumed": "APPROVED",
+        "superseded": "REJECTED",
+    }[record.state.value]
+    return {
+        "id": record.approval_id,
+        "kind": "bound_grant",
+        "title": "Bound plugin action",
+        "summary": record.action,
+        "requester": record.realm_id,
+        "tier": "RISKY",
+        "status": status,
+        "created_at": None,
+        "expires_at": record.expires_at,
+        "proposed_action": record.action,
+        "edited_note": None,
+        "action": record.action,
+        "realm_id": record.realm_id,
+        "state": record.state.value,
+        "subject_hash": record.subject_hash,
+    }
+
+
+def _bound_decision_payload(record: Any) -> dict[str, Any]:
+    """Return the deliberately narrow response for a bound-grant decision."""
+    return {
+        "id": record.approval_id,
+        "kind": "bound_grant",
+        "action": record.action,
+        "realm_id": record.realm_id,
+        "state": record.state.value,
+        "expires_at": record.expires_at,
+        "subject_hash": record.subject_hash,
+    }
+
+
+def _load_bound_approvals_for_cockpit() -> tuple[Any, ...] | JsonResponse:
+    """Load validated grants without exposing persistence-layer failures."""
+    try:
+        from hermes_cli.approval_grants import list_bound_approvals
+
+        return list_bound_approvals()
+    except Exception:
+        return JsonResponse(500, {"error": "approval store unavailable"})
+
+
 def approvals_list(_req: Request) -> JsonResponse:
     """The owner-approval queue as canonical ``ApprovalCard``s.
 
@@ -2571,6 +2623,10 @@ def approvals_list(_req: Request) -> JsonResponse:
         contract.approval_card(p, approval_id=_proposal_id(p))
         for p in _load_proposals()
     ]
+    bound = _load_bound_approvals_for_cockpit()
+    if isinstance(bound, JsonResponse):
+        return bound
+    cards.extend(_bound_approval_card(record) for record in bound)
     return JsonResponse(200, {"approvals": cards})
 
 
@@ -3101,8 +3157,8 @@ def _after_bound(ts: str, until: str) -> bool:
 
 
 def approvals_decide(req: Request) -> JsonResponse:
-    """Approve/reject a proposal. Approve requires the exact owner phrase."""
-    proposal_id = req.path_params.get("id", "")
+    """Approve/reject a legacy proposal or a persisted bound grant."""
+    approval_id = req.path_params.get("id", "")
     decision = str(req.body.get("decision", "")).lower().strip()
     if decision not in ("approve", "reject"):
         return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
@@ -3113,22 +3169,54 @@ def approvals_decide(req: Request) -> JsonResponse:
         phrase = str(req.body.get("authorization", "")).strip()
         if phrase != AUTHORIZATION_PHRASE:
             # Owner-gate contract: exact phrase required. Never bypass.
-            return JsonResponse(
-                403,
-                {
-                    "error": "owner authorization required",
-                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
-                },
-            )
+            return JsonResponse(403, {"error": "owner authorization required"})
 
     items = _load_proposals()
-    matched = None
-    for p in items:
-        if _proposal_id(p) == proposal_id:
-            matched = p
-            break
-    if matched is None:
-        return JsonResponse(404, {"error": f"unknown proposal: {proposal_id}"})
+    legacy_matches = [p for p in items if _proposal_id(p) == approval_id]
+    bound = _load_bound_approvals_for_cockpit()
+    if isinstance(bound, JsonResponse):
+        return bound
+    bound_matches = [record for record in bound if record.approval_id == approval_id]
+    if legacy_matches and bound_matches:
+        return JsonResponse(409, {"error": "ambiguous approval identifier"})
+    if len(legacy_matches) > 1 or len(bound_matches) > 1:
+        return JsonResponse(409, {"error": "ambiguous approval identifier"})
+    if bound_matches:
+        if set(req.body) - {"decision", "authorization"}:
+            return JsonResponse(400, {"error": "unsupported approval fields"})
+        try:
+            from hermes_cli.approval_grants import (
+                ApprovalCorruptionError,
+                ApprovalExpiredError,
+                ApprovalGrantError,
+                ApprovalNotFoundError,
+                ApprovalStateError,
+                decide_bound_approval,
+            )
+        except Exception:
+            return JsonResponse(500, {"error": "approval store unavailable"})
+        try:
+            decided = decide_bound_approval(
+                approval_id,
+                approve=decision == "approve",
+                decided_by="cockpit-owner",
+            )
+        except ApprovalNotFoundError:
+            return JsonResponse(404, {"error": "approval not found"})
+        except ApprovalExpiredError:
+            return JsonResponse(410, {"error": "approval expired"})
+        except ApprovalCorruptionError:
+            return JsonResponse(500, {"error": "approval store unavailable"})
+        except ApprovalStateError:
+            return JsonResponse(409, {"error": "approval cannot be decided"})
+        except (ApprovalGrantError, ValueError):
+            return JsonResponse(409, {"error": "approval decision rejected"})
+        except Exception:
+            return JsonResponse(500, {"error": "approval store unavailable"})
+        return JsonResponse(200, _bound_decision_payload(decided))
+    if not legacy_matches:
+        return JsonResponse(404, {"error": "approval not found"})
+    matched = legacy_matches[0]
 
     # Sprint 9 race rules: a proposal is decided once. A duplicate decide
     # returns the existing decision (idempotent) instead of re-deciding, and
@@ -3151,7 +3239,7 @@ def approvals_decide(req: Request) -> JsonResponse:
     }.get(str(matched.get("status", "")).lower(), ApprovalState.PENDING)
     _exp = matched.get("expires_at")
     record = ApprovalRecord(
-        approval_id=proposal_id,
+        approval_id=approval_id,
         state=_state,
         expires_at=_exp if isinstance(_exp, (int, float)) else None,
         decided_at=0.0 if matched.get("resolved_at") else None,
@@ -3161,12 +3249,12 @@ def approvals_decide(req: Request) -> JsonResponse:
     if outcome.result is DecisionResult.ALREADY_DECIDED:
         return JsonResponse(
             200,
-            {"id": proposal_id, "status": matched.get("status"), "idempotent": True},
+            {"id": approval_id, "status": matched.get("status"), "idempotent": True},
         )
     if outcome.result in (DecisionResult.EXPIRED, DecisionResult.SUPERSEDED):
         return JsonResponse(
             409,
-            {"error": outcome.result.value, "detail": outcome.detail, "id": proposal_id},
+            {"error": outcome.result.value, "detail": outcome.detail, "id": approval_id},
         )
 
     matched["status"] = "approved" if decision == "approve" else "rejected"
@@ -3182,11 +3270,11 @@ def approvals_decide(req: Request) -> JsonResponse:
     try:
         from . import notify
 
-        notify.resolve_and_notify(proposal_id, decision=decision)
+        notify.resolve_and_notify(approval_id, decision=decision)
     except Exception:  # pragma: no cover - notify is best-effort
         pass
 
-    return JsonResponse(200, {"id": proposal_id, "status": decision})
+    return JsonResponse(200, {"id": approval_id, "status": decision})
 
 
 # ---------------------------------------------------------------------------
