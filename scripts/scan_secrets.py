@@ -77,6 +77,13 @@ ALLOWLIST_PRAGMA = "pragma: allowlist secret"
 # positives that turned PR checks red (muse-desktop-release.yml, PR #423).
 ACTIONS_EXPR_VALUE_PATTERN = re.compile(r"^\s*\$\{\{[^}]*\}\}\s*$")
 
+# A shell/compose interpolation as the *entire* assigned value — e.g.
+# ``POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}`` or ``TOKEN: ${TOKEN:-}``.
+# Same reasoning as the Actions expression above: the line passes a secret
+# *by reference* to the runtime environment; no credential material is on
+# the line (docker-compose.yml env passthroughs were the recurring case).
+COMPOSE_INTERPOLATION_VALUE_PATTERN = re.compile(r"^\s*\$\{[^}]+\}\s*$")
+
 # Mirrors the env-style assignment shape that the canonical ``env_name``
 # detector in ``hermes_cli.secrets_policy.scan_text`` matches, so we can
 # re-extract the assigned value for the Actions-expression check above.
@@ -190,6 +197,18 @@ def _is_actions_expression_assignment(text: str) -> bool:
     return bool(m and ACTIONS_EXPR_VALUE_PATTERN.match(m.group(2)))
 
 
+def _is_interpolation_assignment(text: str) -> bool:
+    """True if ``text`` assigns a pure ``${VAR}`` interpolation to a name.
+
+    ``NAME: ${NAME}`` / ``NAME=${NAME:-default}`` pass secrets *by
+    reference* (compose/shell interpolation); no credential material is on
+    the line. Anything beyond the lone interpolation (e.g.
+    ``NAME: hunter2-${SALT}``) does not match and still flags.
+    """
+    m = _ENV_ASSIGNMENT_PATTERN.match(text)
+    return bool(m and COMPOSE_INTERPOLATION_VALUE_PATTERN.match(m.group(2)))
+
+
 def _scan_line(path: str, lineno: int, text: str) -> list[Hit]:
     """Run the canonical detector on one line; suppress pragma lines."""
     if ALLOWLIST_PRAGMA in text:
@@ -199,6 +218,10 @@ def _scan_line(path: str, lineno: int, text: str) -> list[Hit]:
         if f.kind == "env_name" and _is_actions_expression_assignment(text):
             # A workflow-expression reference, not a value — see
             # ACTIONS_EXPR_VALUE_PATTERN above.
+            continue
+        if f.kind == "env_name" and _is_interpolation_assignment(text):
+            # A compose/shell interpolation reference, not a value — see
+            # COMPOSE_INTERPOLATION_VALUE_PATTERN above.
             continue
         hits.append(Hit(path=path, line=lineno, kind=f.kind, excerpt=f.excerpt))
     return hits

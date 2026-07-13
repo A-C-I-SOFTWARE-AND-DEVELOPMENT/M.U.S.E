@@ -358,7 +358,13 @@ redundant-cast = "ignore"
 preview = true  # required for PLW1514 (unspecified-encoding) — preview rule
 # Vendored byte-identical upstream payloads are never linted (do-not-edit rule;
 # see hermes_cli/jarvis_prime/research_fabric/autoresearch/VENDOR.md).
-extend-exclude = ["hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor"]
+# recovered-agent-sources/ is the byte-preserved archival snapshot of the
+# 2026-07-12 device-consolidation recovery (historical evidence, not live
+# code) — including an intentionally broken prototype; never linted.
+extend-exclude = [
+    "hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor",
+    "recovered-agent-sources",
+]
 
 [tool.ruff.lint]
 # All other lints are intentionally disabled (see comment history on this

@@ -4,9 +4,9 @@
 #include "MuseUniverseMath.h"
 #include "MuseUniverseTypes.generated.h"
 
-// These records freeze schema-major 1 fields used by the client. Unknown fields
-// are intentionally ignored for forward compatibility; a higher schema major
-// is rejected before any projection is applied.
+// These records freeze schema-major 1 fields used by the client.
+// Unknown fields are intentionally ignored for forward compatibility; a
+// higher schema major is rejected before any projection is applied.
 
 UENUM(BlueprintType)
 enum class EMuseUniverseConnectionState : uint8

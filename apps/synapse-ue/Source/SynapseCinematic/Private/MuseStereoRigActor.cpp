@@ -66,7 +66,7 @@ bool AMuseStereoRigActor::ApplyShotMetadata(
 		OutDiagnostic = TEXT("stereo geometry and display metadata must be positive");
 		return false;
 	}
-	if (Metadata.StereoPolicy == EMuseStereoPolicy::SymmetricOffAxis)
+	if (Metadata.StereoPolicy != EMuseStereoPolicy::SymmetricToeIn)
 	{
 		OutDiagnostic = TEXT(
 			"off-axis stereo requires a verified projection-matrix extension; use symmetric toe-in until that environment gate closes");

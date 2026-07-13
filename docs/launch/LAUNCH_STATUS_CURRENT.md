@@ -61,6 +61,30 @@ matrix acceptance, owner-gated signing/updater keys, and CI runs of
 `muse-desktop.yml` / `muse-desktop-release.yml`. Installers remain unsigned by
 design until the owner provisions signing.
 
+## Update — 2026-07-13 (authorized verification run, Linux container)
+
+The first release blocker above — **"authorized Python/source/self-check and
+security runs"** — is now closed. A fresh Linux container executed every
+verification command the 2026-07-12 streams were prohibited from running,
+against PR #629 (`claude/desktop-ui-verification`, checkpoint `78793725b` +
+game-slice `8096e73da`). Full command/result table, the five defects the
+first run surfaced (2 spec-test failures, cockpit contract drift, lint vs the
+recovery archive, 8 secret-scan false positives — all fixed in the follow-up
+commit, no credential material found), and the unchanged open gates:
+[`../audits/2026-07-13-authorized-verification-run.md`](../audits/2026-07-13-authorized-verification-run.md).
+
+Headline results: universe/studio/cockpit suites **332 passed**; planned
+asset/source/self-check specs **55 passed, 1 skipped** (after fixes);
+gateway suite **6,321 passed, 74 skipped**; collection **31,384 tests, zero
+errors**; `ruff check .` green; `ty` **no new diagnostics vs base** (−163);
+both no-engine C++ self-checks green under clang 18; Atlas Crown provenance
+validator green; secret scan green after false-positive hardening.
+
+CI caveat: GitHub Actions is org-locked ("account is locked due to a billing
+issue"), so all hosted-runner jobs — including on `main` — fail in seconds
+with no runner until the owner unlocks billing. UE 5.6 / GPU / Windows /
+signing / third-party gates are unchanged by this update.
+
 ## Historical 2026-06-20 baseline verdict
 
 **🟢 GREEN on everything runnable in-repo; 🟡 YELLOW pending CI-only Android

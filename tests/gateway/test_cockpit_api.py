@@ -231,7 +231,7 @@ def test_memory_rejects_secret(server) -> None:
         _post(
             server,
             "/v1/cockpit/memory",
-            {"key": "leak", "value": "api_key=sk-secret-value-1234567890"},
+            {"key": "leak", "value": "api_key=sk-secret-value-1234567890"},  # pragma: allowlist secret
         )
     assert exc.value.code == 422  # rejected, not stored, not faked
 

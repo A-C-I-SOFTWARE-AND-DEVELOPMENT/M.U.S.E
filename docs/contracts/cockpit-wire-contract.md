@@ -27,7 +27,7 @@ helper it calls) compares the request against
 | POST | `/v1/agent/approvals` | `gateway.cockpit.handlers.agent_approval_decide` | bearer | — | json | Resolve a pending owner approval raised by a /v1/agent/chat run. |
 | POST | `/v1/agent/stop` | `gateway.cockpit.handlers.agent_stop` | bearer | — | json | Interrupt the in-flight /v1/agent/chat run for a session. |
 | GET | `/v1/cockpit/approvals` | `gateway.cockpit.handlers.approvals_list` | bearer | — | json | The owner-approval queue as canonical ``ApprovalCard``s. |
-| POST | `/v1/cockpit/approvals/{id}` | `gateway.cockpit.handlers.approvals_decide` | bearer | owner-phrase | json | Approve/reject a proposal. Approve requires the exact owner phrase. |
+| POST | `/v1/cockpit/approvals/{id}` | `gateway.cockpit.handlers.approvals_decide` | bearer | owner-phrase | json | Approve/reject a legacy proposal or a persisted bound grant. |
 | GET | `/v1/cockpit/audit` | `gateway.cockpit.handlers.audit_list` | bearer | — | json | Audit records (canonical ``AuditRecord``) from the decision ledger. |
 | GET | `/v1/cockpit/audit/{id}/proof` | `gateway.cockpit.handlers.audit_proof` | bearer | — | json | Full proof bundle (canonical ``ProofRecord``) for one audit id. |
 | GET | `/v1/cockpit/autonomy` | `gateway.cockpit.handlers_autonomy.autonomy_get` | bearer | — | json | Current autonomy level, workspace scope, and capability list. |
