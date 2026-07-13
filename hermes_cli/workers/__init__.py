@@ -68,6 +68,7 @@ def builtin_worker_classes() -> list:
     from hermes_cli.workers.claude_handoff import ClaudeExecuteWorker, ClaudeHandoffWorker
     from hermes_cli.workers.codex_handoff import CodexExecuteWorker, CodexHandoffWorker
     from hermes_cli.workers.goose_handoff import GooseExecuteWorker, GooseHandoffWorker
+    from hermes_cli.workers.llm_jepa import LlmJepaWorker
     from hermes_cli.workers.local_planner import LocalPlannerWorker
     from hermes_cli.workers.sia import SiaWorker
 
@@ -83,6 +84,7 @@ def builtin_worker_classes() -> list:
         ClaudeExecuteWorker,
         SiaWorker,
         AutoresearchWorker,
+        LlmJepaWorker,
     ]
 
 
