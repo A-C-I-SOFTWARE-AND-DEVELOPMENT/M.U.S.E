@@ -116,6 +116,27 @@ def test_stale_version_conflicts_without_partial_write(
     assert entity(store, "realm", "rlm_local")["version"] == 1
 
 
+@pytest.mark.parametrize("value", [True, "1", -1, 1.0])
+def test_command_model_requires_exact_non_negative_integer_version(
+    command_factory: Callable[..., UniverseCommand], value: object
+) -> None:
+    with pytest.raises(ValidationError, match="expected_version"):
+        command_factory(expected_version=value)
+
+
+@pytest.mark.parametrize("value", [True, "1", -1, 1.0])
+def test_store_rejects_constructed_invalid_expected_version(
+    tmp_path, command_factory: Callable[..., UniverseCommand], value: object
+) -> None:
+    store = UniverseStore(tmp_path / "universe.db")
+    command = command_factory().model_copy(update={"expected_version": value})
+
+    with pytest.raises(ValueError, match="exact non-negative integer"):
+        store.append(command, "realm.created")
+
+    assert store.events_since("rlm_local", 0) == []
+
+
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
 def test_store_rejects_non_finite_payload_before_fingerprinting(
     tmp_path, command_factory: Callable[..., UniverseCommand], value: float

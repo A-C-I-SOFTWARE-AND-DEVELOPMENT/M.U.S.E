@@ -417,6 +417,8 @@ def _command_fingerprint(command: UniverseCommand, event_type: str) -> str:
 
 
 def _validate_command(command: UniverseCommand) -> None:
+    if type(command.expected_version) is not int or command.expected_version < 0:
+        raise ValueError("expected_version must be an exact non-negative integer")
     validate_finite_numbers(command.model_dump(mode="python"), path="command")
     validate_no_secret_fields(command.payload, path="payload")
     validate_no_secret_fields(

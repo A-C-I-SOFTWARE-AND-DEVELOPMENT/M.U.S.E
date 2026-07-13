@@ -180,8 +180,7 @@ class UniverseService:
     ) -> dict[str, list[dict[str, Any]]]:
         """Return a caller-filtered snapshot; raw store snapshots stay internal."""
 
-        if not isinstance(actor_id, str) or not actor_id.strip():
-            raise AuthorizationError("an authoritative caller is required")
+        actor_id = _authoritative_caller(actor_id)
         snapshot = self.store.snapshot(realm_id)
         realm = self.store.entity("realm", realm_id, realm_id) or {}
         is_owner = realm.get("owner_id") == actor_id
@@ -223,8 +222,28 @@ class UniverseService:
         return self.snapshot(actor_id, realm_id)
 
     def entity(
-        self, entity_type: str, entity_id: str, realm_id: str | None = None
+        self,
+        actor_id: str | None,
+        entity_type: str,
+        entity_id: str,
+        realm_id: str | None = None,
     ) -> dict[str, Any] | None:
+        actor_id = _authoritative_caller(actor_id)
+        if entity_type == "presence":
+            if realm_id is None:
+                raise AuthorizationError(
+                    "presence lookup requires an authoritative realm"
+                )
+            return next(
+                (
+                    presence
+                    for presence in self.snapshot(actor_id, realm_id).get(
+                        "presences", []
+                    )
+                    if presence.get("id") == entity_id
+                ),
+                None,
+            )
         return self.store.entity(entity_type, entity_id, realm_id)
 
     def create_local_realm(
@@ -1487,6 +1506,12 @@ class UniverseService:
 def _required_text(value: object, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValidationError(f"{field} is required")
+    return value.strip()
+
+
+def _authoritative_caller(value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise AuthorizationError("an authoritative caller is required")
     return value.strip()
 
 

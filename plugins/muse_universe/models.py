@@ -80,6 +80,15 @@ class UniverseCommand(BaseModel):
     correlation_id: str
     simulation: bool = False
 
+    @field_validator("expected_version", mode="before")
+    @classmethod
+    def _validate_expected_version(cls, value: object) -> int:
+        if type(value) is not int or value < 0:
+            raise ValueError(
+                "expected_version must be an exact non-negative integer"
+            )
+        return value
+
     @field_validator("payload", mode="after")
     @classmethod
     def _freeze_payload(cls, value: dict[str, Any]) -> dict[str, Any]:

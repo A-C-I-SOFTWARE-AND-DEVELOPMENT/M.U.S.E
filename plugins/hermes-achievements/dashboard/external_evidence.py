@@ -131,7 +131,7 @@ def _validate_envelope(envelope: Mapping[str, Any]) -> dict[str, Any]:
     allowed = _REQUIRED_TOP_LEVEL | {"simulation_label"}
     if set(envelope) - allowed or _REQUIRED_TOP_LEVEL - set(envelope):
         raise ValueError("external evidence envelope fields are invalid")
-    if envelope.get("version") != 1:
+    if type(envelope.get("version")) is not int or envelope["version"] != 1:
         raise ValueError("external evidence version must be 1")
     if envelope.get("kind") != "mission.completed":
         raise ValueError("external evidence kind is invalid")

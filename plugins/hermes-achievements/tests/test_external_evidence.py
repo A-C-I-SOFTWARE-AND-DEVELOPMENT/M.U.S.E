@@ -65,6 +65,9 @@ def test_external_evidence_is_deduplicated_and_returns_safe_receipt(
 @pytest.mark.parametrize(
     "overrides",
     [
+        {"version": True},
+        {"version": 1.0},
+        {"version": "1"},
         {"mode": "simulation"},
         {"kind": "achievement.unlocked"},
         {"producer": "client"},

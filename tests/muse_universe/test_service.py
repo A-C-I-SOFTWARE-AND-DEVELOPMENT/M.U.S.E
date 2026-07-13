@@ -687,6 +687,22 @@ def test_presence_snapshot_is_caller_aware_and_public_is_minimal(
     assert service.snapshot_for("ply_private", "rlm_local") == service.snapshot(
         "ply_private", "rlm_local"
     )
+    with pytest.raises(AuthorizationError, match="caller"):
+        service.entity(None, "presence", "ply_private", "rlm_local")
+    assert (
+        service.entity("ply_other", "presence", "ply_private", "rlm_local")
+        is None
+    )
+    crew_presence = service.entity(
+        "ply_private", "presence", "ply_crew", "rlm_local"
+    )
+    assert crew_presence is not None
+    assert set(crew_presence) == {"id", "status", "visibility", "mode"}
+    owner_presence = service.entity(
+        "ply_owner", "presence", "ply_private", "rlm_local"
+    )
+    assert owner_presence is not None
+    assert "sequence" in owner_presence
 
 
 def test_governance_rejects_duplicate_and_late_votes(
@@ -1038,7 +1054,7 @@ def test_building_placement_cannot_cross_world_projection_mode(
             simulation=placement_simulation,
         )
 
-    world = service.entity("world", "wld_mode", "rlm_local")
+    world = service.entity("ply_owner", "world", "wld_mode", "rlm_local")
     assert world is not None
     assert world["simulation"] is world_simulation
     assert world["version"] == 1
@@ -1199,7 +1215,7 @@ def test_vessel_module_checks_compatibility_budgets_path_license_and_approval(
         "cmd_module",
         approval_id="apr_module",
     )
-    vessel = service.entity("vessel", "vsl_owner", "rlm_local")
+    vessel = service.entity("ply_owner", "vessel", "vsl_owner", "rlm_local")
     assert vessel is not None
     assert vessel["installed_modules"] == ["mod_sensor_research"]
 
@@ -1550,7 +1566,7 @@ def test_evidence_bridge_persists_returned_reference_on_completed_mission(
             },
         }
     ]
-    stored = service.entity("mission", "mis_1", "rlm_local")
+    stored = service.entity("ply_owner", "mission", "mis_1", "rlm_local")
     assert stored is not None
     assert stored["achievement_evidence_receipt"] == {
         "status": "accepted",
@@ -1919,7 +1935,7 @@ def test_concurrent_buildings_atomically_advance_world_and_budget(
 
     assert sum(not isinstance(result, Exception) for result in results) == 1
     assert sum(isinstance(result, (ValidationError, Exception)) for result in results) == 1
-    world = service.entity("world", "wld_race", "rlm_local")
+    world = service.entity("ply_owner", "world", "wld_race", "rlm_local")
     assert world is not None
     assert world["version"] == 2
     assert world["performance_used"]["triangles"] == 60
