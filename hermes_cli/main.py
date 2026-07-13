@@ -6226,6 +6226,56 @@ def cmd_cockpit(args):
     raise SystemExit(2)
 
 
+def _ensure_omni_ui_build(*, skip_build: bool = False):
+    """Resolve (building on demand) the new Atlas Omni UI for ``muse omni``.
+
+    Returns the dist directory to serve at the cockpit root, or ``None`` to
+    fall back to the bundled Singularity shell. Honors an explicit
+    ``MUSE_OMNI_DIST_DIR`` (authoritative — never builds over it). The build
+    is best-effort: a missing npm or a failed build only means fallback,
+    never a dead ``muse omni``.
+    """
+    import shutil as _shutil
+    import subprocess
+
+    override = os.environ.get("MUSE_OMNI_DIST_DIR")
+    if override:
+        p = Path(override)
+        return p if (p / "index.html").is_file() else None
+
+    ui_dir = PROJECT_ROOT / "apps" / "desktop" / "ui"
+    dist = ui_dir / "dist"
+    if (dist / "index.html").is_file():
+        return dist
+    if skip_build or not (ui_dir / "package.json").is_file():
+        return None
+    npm = _shutil.which("npm")
+    if npm is None:
+        print("Atlas Omni UI: no build found and npm is unavailable — "
+              "serving the classic Singularity shell instead.")
+        return None
+    try:
+        if not (ui_dir / "node_modules").is_dir():
+            print("Atlas Omni UI: installing dependencies (first run) …")
+            subprocess.run(
+                [npm, "ci", "--no-audit", "--no-fund"],
+                cwd=str(ui_dir), check=True, timeout=900,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        print("Atlas Omni UI: building (vite) …")
+        subprocess.run(
+            [npm, "run", "build"],
+            cwd=str(ui_dir), check=True, timeout=900,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except Exception as exc:  # noqa: BLE001 — fallback, never a dead launcher
+        print(f"Atlas Omni UI build failed ({exc}); serving the classic "
+              "Singularity shell instead. Re-run after fixing, or use "
+              "--skip-build to silence this attempt.")
+        return None
+    return dist if (dist / "index.html").is_file() else None
+
+
 def cmd_omni(args):
     """Day-to-day Muse Omni launcher: full-agent cockpit (+ optional admin dashboard)."""
     import subprocess
@@ -6271,6 +6321,13 @@ def cmd_omni(args):
     if not os.environ.get("HERMES_COCKPIT_AGENT"):
         os.environ["HERMES_COCKPIT_AGENT"] = "full"
 
+    # The new Atlas Omni UI owns the cockpit root when a build exists (built
+    # on demand here); otherwise the bundled Singularity shell serves as
+    # before, and stays reachable at /cockpit/ either way.
+    omni_ui = _ensure_omni_ui_build(skip_build=getattr(args, "skip_build", False))
+    if omni_ui is not None:
+        os.environ["MUSE_OMNI_DIST_DIR"] = str(omni_ui)
+
     token = _auth.load_or_create_token()
     server = _serve(
         host=host,
@@ -6287,11 +6344,18 @@ def cmd_omni(args):
     cockpit_url = f"{_base}/"
     one_click = f"{_base}/#gateway={_base}&token={token}"
 
-    print("Muse Omni (Singularity cockpit) ready")
+    ui_label = (
+        "Atlas (new Omni universe UI)" if omni_ui is not None
+        else "Singularity (classic — no Atlas build present)"
+    )
+    print("Muse Omni ready")
     print(f"  Cockpit:     {cockpit_url}")
     print(f"  One-click:   {one_click}")
+    print(f"  Omni UI:     {ui_label}")
     print("  Agent mode:  full (tools, jobs, approvals)")
     print(f"  Pair token:  {token}")
+    if omni_ui is not None:
+        print("  Classic UI:  /cockpit/ (Singularity remains available)")
     if with_admin:
         print(f"  Local admin: http://127.0.0.1:{admin_port}/  (config, sessions, kanban)")
         if admin_proc is not None and admin_proc.poll() is not None:
@@ -12276,11 +12340,13 @@ def main():
     # =========================================================================
     omni_parser = subparsers.add_parser(
         "omni",
-        help="Launch Muse Omni (Singularity cockpit) with full-agent mode",
+        help="Launch Muse Omni (new Atlas universe UI) with full-agent mode",
         description=(
-            "Start the Singularity cockpit gateway in full-agent mode — the "
-            "day-to-day Muse Omni operations UI (chat, jobs, approvals, "
-            "providers, atlas). Optionally also start the local admin "
+            "Start the cockpit gateway in full-agent mode and launch the new "
+            "Atlas Omni universe UI (apps/desktop/ui — built on demand) at "
+            "the root; the classic Singularity shell stays at /cockpit/. "
+            "Day-to-day Muse Omni operations: chat, jobs, approvals, "
+            "providers, atlas. Optionally also start the local admin "
             "dashboard (config, sessions, kanban) with --with-admin."
         ),
     )
@@ -12305,7 +12371,11 @@ def main():
     omni_parser.add_argument(
         "--skip-build",
         action="store_true",
-        help="Pass --skip-build to the admin dashboard subprocess",
+        help=(
+            "Skip UI builds: don't build the Atlas Omni UI on demand (serve "
+            "the classic shell or an existing build) and pass --skip-build "
+            "to the admin dashboard subprocess"
+        ),
     )
     omni_parser.add_argument(
         "--allow-external", dest="allow_external", action="store_true",
