@@ -60,7 +60,7 @@ export default function ModelsPage() {
 
       {providers.length === 0 ? (
         <div className="glass px-4 py-8 text-center">
-          <div className="text-[12px] text-[var(--ink-dim)]">No providers connected</div>
+          <div className="text-[12px] text-[var(--ink-dim)]">No providers configured</div>
           <div className="mt-1 text-[10px] text-[var(--ink-faint)]">Add a provider key in Settings, then your models appear here.</div>
           <button onClick={() => navigate('/settings')} className="mt-3 rounded-md px-3 py-1.5 text-[11px] font-semibold text-black" style={{ background: 'var(--octa-glow)' }}>Open Settings</button>
         </div>

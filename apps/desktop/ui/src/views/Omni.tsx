@@ -9,7 +9,7 @@ import "../omni/styles/index.css";
 let omniStarted = false;
 
 /**
- * The complete MUSE Omni command center, bundled natively inside the desktop
+ * The complete MUSE Atlas command center, bundled natively inside the desktop
  * webview. MemoryRouter keeps its twenty internal destinations isolated from
  * the desktop shell's hash route while preserving every Omni workflow.
  */
@@ -46,7 +46,7 @@ export function Omni() {
   }, []);
 
   return (
-    <div className="omni-workspace" aria-label="MUSE Omni command center">
+    <div className="omni-workspace" aria-label="MUSE Atlas command center">
       <MemoryRouter initialEntries={["/"]}>
         <AuthProvider>
           <OmniApp />

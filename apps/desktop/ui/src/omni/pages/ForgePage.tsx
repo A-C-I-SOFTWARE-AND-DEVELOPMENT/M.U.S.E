@@ -19,6 +19,7 @@ import {
   type StoredDoc,
 } from '@/lib/localStore';
 import { cockpit, cockpitConfigured } from '@/adapters/cockpit';
+import { useLinkState } from '@/lib/health';
 
 const LS = 'nexus.forge.v1';
 type DocMeta = Omit<StoredDoc, 'blob'>;
@@ -48,6 +49,7 @@ export default function ForgePage() {
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [usage, setUsage] = useState(0);
   const [trainMsg, setTrainMsg] = useState<Record<string, string>>({});
+  const gatewayConnected = useLinkState() === 'gateway';
   const update = (s: ForgeState) => { setState(s); save(s); };
 
   const agent = state.agents.find((a) => a.id === sel) ?? null;
@@ -90,7 +92,15 @@ export default function ForgePage() {
 
   const trainAdapter = async () => {
     if (!adapter || !pack) return;
-    update({ ...state, adapters: state.adapters.map((a) => (a.id === adapter.id ? { ...a, status: 'training' } : a)) });
+    if (state.target === 'gateway' && !gatewayConnected) {
+      setTrainMsg((messages) => ({ ...messages, [adapter.id]: 'Requires a reachable gateway.' }));
+      return;
+    }
+    const setAdapterStatus = (status: AdapterRef['status']) => update({
+      ...state,
+      adapters: state.adapters.map((entry) => (entry.id === adapter.id ? { ...entry, status } : entry)),
+    });
+    setAdapterStatus('training');
     if (state.target === 'local') {
       // Local training: data never leaves the device. POST the manifest to a
       // local trainer daemon the user runs (honest — the browser can't run QLoRA).
@@ -100,13 +110,16 @@ export default function ForgePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ adapter_id: adapter.id, base_model: adapter.baseModel, method: 'qlora', rank: adapter.rank, pack: pack.name, docs: docs.map((d) => d.name) }),
         });
-        setTrainMsg((m) => ({ ...m, [adapter.id]: res.ok ? 'Local trainer accepted the job' : `Local trainer ${res.status} — or export JSONL and train offline` }));
+        setAdapterStatus(res.ok ? 'training' : 'error');
+        setTrainMsg((m) => ({ ...m, [adapter.id]: res.ok ? 'Local trainer acknowledged the job; completion is not yet reported.' : `Local trainer ${res.status} — or export JSONL and train offline` }));
       } catch {
+        setAdapterStatus('error');
         setTrainMsg((m) => ({ ...m, [adapter.id]: `No local trainer at ${state.localTrainerUrl} — export the JSONL and run QLoRA/Unsloth locally` }));
       }
     } else {
       const r = await cockpit.rawPost('/learning', { type: 'adapter', adapter_id: adapter.id, method: 'qlora', rank: adapter.rank });
-      setTrainMsg((m) => ({ ...m, [adapter.id]: r ? 'Training job submitted to gateway' : cockpitConfigured() ? 'Submit failed' : 'Requires gateway' }));
+      setAdapterStatus(r ? 'training' : 'error');
+      setTrainMsg((m) => ({ ...m, [adapter.id]: r ? 'Gateway acknowledged the training request; completion is not yet reported.' : cockpitConfigured() ? 'The gateway did not acknowledge the request.' : 'Requires gateway' }));
     }
   };
 

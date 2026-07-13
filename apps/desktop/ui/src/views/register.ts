@@ -23,7 +23,7 @@ import { AgentWorkshop } from "./AgentWorkshop";
 import { Omni } from "./Omni";
 
 registerRoute({ id: "chat", label: "Chat", order: 10, render: () => createElement(Chat) });
-registerRoute({ id: "omni", label: "Omni", order: 12, render: () => createElement(Omni) });
+registerRoute({ id: "omni", label: "Atlas", order: 12, render: () => createElement(Omni) });
 registerRoute({ id: "workshop", label: "Workshop", order: 15, render: () => createElement(AgentWorkshop) });
 registerRoute({ id: "jobs", label: "Jobs", order: 20, render: () => createElement(Jobs) });
 registerRoute({

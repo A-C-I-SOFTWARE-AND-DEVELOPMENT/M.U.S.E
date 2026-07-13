@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cockpit, cockpitConfigured, type CockpitJob } from '@/adapters/cockpit';
+import { cockpit, type CockpitJob } from '@/adapters/cockpit';
 import { checkBudget, concurrencyCeiling, planFanout, reduceTiers, type SiloedTask } from '@/lib/fleet';
+import { useLinkState } from '@/lib/health';
+import { VesselHud } from '@/universe/components/VesselHud';
+import { MissionPanel } from '@/universe/components/MissionPanel';
+import { useUniverseStore } from '@/universe/store';
 
 export default function FleetPage() {
   const navigate = useNavigate();
@@ -13,18 +17,41 @@ export default function FleetPage() {
   const [loaded, setLoaded] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [msg, setMsg] = useState('');
-  const connected = cockpitConfigured();
+  const [loadError, setLoadError] = useState(false);
+  const link = useLinkState();
+  const connected = link === 'gateway';
+  const snapshot = useUniverseStore((state) => state.snapshot);
+  const selected = useUniverseStore((state) => state.selected);
+  const select = useUniverseStore((state) => state.select);
+  const vessels = Array.isArray(snapshot?.vessels) ? snapshot.vessels : [];
+  const missions = Array.isArray(snapshot?.missions) ? snapshot.missions : [];
+  const vessel = vessels.find((entry) => entry.id === selected) ?? vessels[0] ?? null;
 
-  const refresh = () =>
-    cockpit
+  const refresh = () => {
+    if (!connected) {
+      setJobs([]);
+      setLoadError(false);
+      setLoaded(true);
+      return Promise.resolve();
+    }
+    return cockpit
       .jobs()
-      .then((r: any) => setJobs(Array.isArray(r) ? r : r?.jobs ?? []))
+      .then((result) => {
+        if (result == null) {
+          setJobs([]);
+          setLoadError(true);
+          return;
+        }
+        setJobs(Array.isArray(result) ? result : result.jobs ?? []);
+        setLoadError(false);
+      })
       .finally(() => setLoaded(true));
+  };
   useEffect(() => {
     refresh();
     const id = window.setInterval(refresh, 5000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [connected]);
 
   const ceiling = concurrencyCeiling(mode);
   const tasks: SiloedTask[] = Array.from({ length: count }, (_, i) => ({ id: `t${i}`, instruction: goal, timeoutSec: 60, verifier: 'schema' }));
@@ -36,13 +63,13 @@ export default function FleetPage() {
     if (!budget.allowed) return;
     const r = await cockpit.rawPost('/orchestrate', { goal, fanout: { count, concurrency: plan.concurrency, budgetUsd: capUsd, verifier: 'schema' } });
     setConfirming(false);
-    setMsg(r ? `Fan-out submitted: ${count} siloed tasks` : cockpitConfigured() ? 'Submit failed' : 'Requires gateway + orchestrator (Hatchet)');
+    setMsg(r ? `Gateway acknowledged ${count} siloed tasks.` : connected ? 'The gateway did not acknowledge the fan-out.' : 'Requires a reachable M.U.S.E. gateway and orchestrator.');
     refresh();
   };
 
   const killAll = async () => {
-    await cockpit.emergencyStop();
-    setMsg('Emergency stop engaged.');
+    const result = await cockpit.emergencyStop();
+    setMsg(result ? 'Gateway acknowledged the emergency stop.' : 'Emergency stop was not acknowledged.');
     refresh();
   };
 
@@ -51,10 +78,37 @@ export default function FleetPage() {
       <div className="glass mb-3 flex items-center justify-between px-3 py-2.5">
         <div>
           <div className="text-[13px] font-semibold">The Fleet</div>
-          <div className="mono text-[10px] text-[var(--ink-dim)]">massive 1-minute siloed fan-out</div>
+          <div className="mono text-[10px] text-[var(--ink-dim)]">bounded fan-out · explicit cost and concurrency review</div>
         </div>
-        <button onClick={killAll} className="rounded-md px-3 py-1.5 text-[11px] font-bold text-white" style={{ background: 'var(--state-error)' }}>⏹ Kill all</button>
+        <button onClick={killAll} disabled={!connected} className="rounded-md px-3 py-1.5 text-[11px] font-bold text-white" style={{ background: 'var(--state-error)' }}>Emergency stop</button>
       </div>
+
+      {vessels.length > 0 && (
+        <section className="vessel-roster mb-3" aria-label="Reported vessel roster">
+          {vessels.map((entry) => (
+            <button
+              type="button"
+              key={entry.id}
+              aria-pressed={vessel?.id === entry.id}
+              onClick={() => select(entry.id)}
+            >
+              <span><strong>{entry.cosmetics?.name ?? entry.name ?? entry.id}</strong><small>{entry.vessel_class ?? entry.class ?? 'class not reported'} · v{entry.version}</small></span>
+              <span className={`universe-chip universe-chip--${entry.simulation ? 'simulated' : 'observed'}`}>{entry.simulation ? 'Simulation' : 'Reported'}</span>
+            </button>
+          ))}
+        </section>
+      )}
+
+      <div className="mb-3">
+        <VesselHud vessel={vessel} onBoard={(entry) => { select(entry.id); navigate('/agents'); }} onCustomize={(entry) => { select(entry.id); navigate('/shipyard'); }} />
+      </div>
+
+      {missions.length > 0 && (
+        <section className="mb-3">
+          <div className="hud-label mb-2">Authoritative missions · {missions.length}</div>
+          <div className="mission-grid">{missions.slice(0, 6).map((mission) => <MissionPanel key={mission.id} mission={mission} />)}</div>
+        </section>
+      )}
 
       {/* Launcher */}
       <div className="glass mb-3 px-3 py-3">
@@ -87,7 +141,7 @@ export default function FleetPage() {
         {!budget.allowed && <div className="mono mt-1 text-[10px] text-[var(--state-error)]">{budget.reason}</div>}
 
         {!confirming ? (
-          <button onClick={() => setConfirming(true)} disabled={!goal.trim() || !budget.allowed} className="mt-2 w-full rounded-md px-3 py-2.5 text-[12px] font-semibold text-black disabled:opacity-40" style={{ background: 'var(--octa-glow)' }}>
+          <button onClick={() => setConfirming(true)} disabled={!connected || !goal.trim() || !budget.allowed} className="mt-2 w-full rounded-md px-3 py-2.5 text-[12px] font-semibold text-black disabled:opacity-40" style={{ background: 'var(--octa-glow)' }}>
             Review &amp; launch
           </button>
         ) : (
@@ -99,13 +153,14 @@ export default function FleetPage() {
             </div>
           </div>
         )}
+        {!connected && <div className="mono mt-2 text-[9px] text-[var(--ink-faint)]">A reachable gateway is required before launch review.</div>}
         {msg && <div className="mono mt-2 text-[10px]" style={{ color: 'var(--octa-glow)' }}>{msg}</div>}
       </div>
 
       {/* Live grid + mirror link */}
       <div className="mb-2 flex items-center justify-between">
         <div className="hud-label">In-flight · {jobs.length}</div>
-        <button onClick={() => navigate('/observatory')} className="mono text-[10px] text-[var(--octa-glow)]">live galaxy →</button>
+        <button onClick={() => navigate('/observatory')} className="mono text-[10px] text-[var(--octa-glow)]">open observatory →</button>
       </div>
       {!loaded && connected ? (
         <div className="glass px-4 py-6 text-center">
@@ -113,15 +168,15 @@ export default function FleetPage() {
         </div>
       ) : jobs.length === 0 ? (
         <div className="glass px-4 py-6 text-center">
-          <div className="text-[12px] text-[var(--ink-dim)]">{connected ? 'No jobs in flight' : 'Not connected'}</div>
-          <div className="mt-1 text-[10px] text-[var(--ink-faint)]">{connected ? 'Launch a fan-out above.' : 'Requires gateway to mirror live jobs.'}</div>
+          <div className="text-[12px] text-[var(--ink-dim)]">{!connected ? 'Not connected to the gateway' : loadError ? 'Gateway jobs could not be read' : 'No jobs in flight'}</div>
+          <div className="mt-1 text-[10px] text-[var(--ink-faint)]">{connected && !loadError ? 'Launch a fan-out above.' : 'No running state is inferred without a gateway response.'}</div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {jobs.slice(0, 60).map((j) => (
             <div key={j.id} className="glass px-2.5 py-2">
               <div className="mono truncate text-[10px] text-[var(--ink)]">{j.id}</div>
-              <div className="mono text-[9px] text-[var(--ink-faint)]">{j.state ?? j.status ?? 'running'}</div>
+              <div className="mono text-[9px] text-[var(--ink-faint)]">{j.state ?? j.status ?? 'state not reported'}</div>
             </div>
           ))}
         </div>

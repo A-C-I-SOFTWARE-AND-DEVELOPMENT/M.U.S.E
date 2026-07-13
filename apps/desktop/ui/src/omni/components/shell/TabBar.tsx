@@ -15,13 +15,12 @@ const I = (path: ReactNode) => (
 );
 
 const TABS: Tab[] = [
-  { to: '/', label: 'Chat', icon: I(<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />) },
-  { to: '/console', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
-  { to: '/fusion', label: 'Fusion', icon: I(<><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2.4" /><path d="M7 6.5l10 4.5M7 17.5l10-4.5" /></>) },
-  { to: '/steer', label: 'Steer', icon: I(<><polygon points="12,2 19,6 19,14 12,18 5,14 5,6" /><circle cx="12" cy="10" r="2.4" /></>) },
-  { to: '/axiom', label: 'Axiom', icon: I(<><path d="M12 3l8 5v8l-8 5-8-5V8z" /><path d="M12 8l4 2.5v0L12 13l-4-2.5z" /></>) },
+  { to: '/atlas', label: 'Atlas', icon: I(<><circle cx="12" cy="12" r="3" /><ellipse cx="12" cy="12" rx="9" ry="5" /></>) },
+  { to: '/stations', label: 'Stations', icon: I(<><circle cx="12" cy="12" r="2" /><circle cx="12" cy="12" r="7" /></>) },
+  { to: '/fleet', label: 'Fleet', icon: I(<><circle cx="6" cy="7" r="2.5" /><circle cx="18" cy="7" r="2.5" /><circle cx="12" cy="17" r="2.5" /><path d="M6 9.5v3l6 2 6-2v-3" /></>) },
+  { to: '/fabrication', label: 'Build', icon: I(<><path d="M5 4h14v16H5zM8 8h8M8 12h5" /></>) },
+  { to: '/civilizations', label: 'People', icon: I(<><circle cx="8" cy="9" r="3" /><circle cx="17" cy="7" r="2" /><path d="M3 20a5 5 0 0 1 10 0M14 20a4 4 0 0 1 7-2" /></>) },
   { to: '/observatory', label: 'Observ.', icon: I(<><circle cx="12" cy="12" r="2.4" /><ellipse cx="12" cy="12" rx="9" ry="3.6" /><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)" /></>) },
-  { to: '/models', label: 'Models', icon: I(<><rect x="3" y="4" width="18" height="4" rx="1" /><rect x="3" y="10" width="18" height="4" rx="1" /><rect x="3" y="16" width="12" height="4" rx="1" /></>) },
   { to: '/settings', label: 'Settings', icon: I(<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></>) },
 ];
 

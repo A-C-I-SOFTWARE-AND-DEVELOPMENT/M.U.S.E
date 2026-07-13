@@ -61,7 +61,7 @@ export default function AxiomGatePage() {
     if (lastVector) {
       out.push({
         id: 'octagon',
-        label: 'Octagon (live)',
+        label: 'Octagon (current local vector)',
         kind: 'manual',
         weights: lastVector.weights,
         contribution: sourceContrib['octagon'] ?? 0.6,

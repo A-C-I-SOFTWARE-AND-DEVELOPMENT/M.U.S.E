@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Capability } from '@/lib/capabilities';
-import { cockpit, cockpitConfigured } from '@/adapters/cockpit';
+import { cockpit } from '@/adapters/cockpit';
+import { useLinkState } from '@/lib/health';
 
 interface Props {
   capability: Capability | null;
@@ -11,7 +12,8 @@ interface Props {
 const REPO = 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/';
 
 function GatewayBadge() {
-  return cockpitConfigured() ? (
+  const connected = useLinkState() === 'gateway';
+  return connected ? (
     <span className="mono rounded-full px-2 py-0.5 text-[9px]" style={{ background: 'rgba(52,229,200,0.16)', color: 'var(--state-running)' }}>
       gateway connected
     </span>
@@ -23,10 +25,11 @@ function GatewayBadge() {
 }
 
 function Json({ data }: { data: unknown }) {
+  const connected = useLinkState() === 'gateway';
   if (data == null)
     return (
       <div className="glass px-3 py-4 text-center text-[11px] text-[var(--ink-dim)]">
-        {cockpitConfigured() ? 'No data returned' : 'Set VITE_MUSE_BASE_URL to load live data'}
+        {connected ? 'The gateway returned no data' : 'A reachable gateway is required for live data'}
       </div>
     );
   return (
@@ -40,19 +43,25 @@ function Json({ data }: { data: unknown }) {
 function Fetcher({ label, load }: { label: string; load: () => Promise<unknown> }) {
   const [data, setData] = useState<unknown>(undefined);
   const [loading, setLoading] = useState(true);
+  const connected = useLinkState() === 'gateway';
   const run = () => {
+    if (!connected) {
+      setData(undefined);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     load().then((d) => {
       setData(d);
       setLoading(false);
     });
   };
-  useEffect(() => { run(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { run(); /* eslint-disable-next-line */ }, [connected]);
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="hud-label">{label}</span>
-        <button onClick={run} className="mono text-[10px] text-[var(--octa-glow)]">↻ refresh</button>
+        <button onClick={run} disabled={!connected} className="mono text-[10px] text-[var(--octa-glow)] disabled:cursor-not-allowed disabled:opacity-40">↻ refresh</button>
       </div>
       {loading ? <div className="py-4 text-center text-[11px] text-[var(--ink-dim)]">Loading…</div> : <Json data={data} />}
     </div>
@@ -69,7 +78,9 @@ function QueryPanel({
   const [q, setQ] = useState('');
   const [data, setData] = useState<unknown>(undefined);
   const [busy, setBusy] = useState(false);
+  const connected = useLinkState() === 'gateway';
   const go = async () => {
+    if (!connected) return;
     setBusy(true);
     setData(await run(q));
     setBusy(false);
@@ -84,10 +95,11 @@ function QueryPanel({
           placeholder={placeholder}
           className="flex-1 rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-2.5 py-2 text-[12px] text-[var(--ink)]"
         />
-        <button onClick={go} disabled={busy} className="rounded-md px-3 py-2 text-[12px] font-semibold text-black disabled:opacity-40" style={{ background: 'var(--octa-glow)' }}>
+        <button onClick={go} disabled={busy || !connected || !q.trim()} className="rounded-md px-3 py-2 text-[12px] font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40" style={{ background: 'var(--octa-glow)' }}>
           {busy ? '…' : 'Run'}
         </button>
       </div>
+      {!connected && <div className="text-[10px] text-[var(--ink-faint)]">Connect a reachable gateway to run this query.</div>}
       {data !== undefined && <Json data={data} />}
     </div>
   );
@@ -116,6 +128,7 @@ function PanelBody({ cap }: { cap: Capability }) {
   const [goal, setGoal] = useState('');
   const [jobMsg, setJobMsg] = useState('');
   const [scope, setScope] = useState('local');
+  const connected = useLinkState() === 'gateway';
 
   switch (panel) {
     case 'emergency':
@@ -128,9 +141,10 @@ function PanelBody({ cap }: { cap: Capability }) {
           <button
             onClick={async () => {
               const r = await cockpit.emergencyStop();
-              setEmergencyMsg(r ? 'Emergency stop engaged.' : cockpitConfigured() ? 'Request failed.' : 'No gateway configured.');
+              setEmergencyMsg(r ? 'The gateway acknowledged the emergency-stop request.' : connected ? 'The gateway did not acknowledge the request.' : 'No gateway connected.');
             }}
-            className="rounded-md px-3 py-3 text-[13px] font-bold text-white"
+            disabled={!connected}
+            className="rounded-md px-3 py-3 text-[13px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: 'var(--state-error)' }}
           >
             ⏹ Engage emergency stop
@@ -148,7 +162,7 @@ function PanelBody({ cap }: { cap: Capability }) {
           <Fetcher label="Autonomy state" load={() => cockpit.autonomy()} />
           <div className="flex gap-2">
             {['B0', 'B1', 'B2', 'B3'].map((b) => (
-              <button key={b} onClick={() => cockpit.setAutonomy(b)} className="flex-1 rounded-md border border-[var(--hairline)] py-2 text-[11px] font-medium">
+              <button key={b} onClick={() => cockpit.setAutonomy(b)} disabled={!connected} className="flex-1 rounded-md border border-[var(--hairline)] py-2 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40">
                 {b}
               </button>
             ))}
@@ -170,10 +184,11 @@ function PanelBody({ cap }: { cap: Capability }) {
           <button
             onClick={async () => {
               const r = await cockpit.orchestrate(goal);
-              setJobMsg(r ? `Started job ${(r as any).id ?? (r as any).job_id ?? ''}` : cockpitConfigured() ? 'Failed to start' : 'No gateway configured');
+              const jobId = r && ((r as any).id ?? (r as any).job_id);
+              setJobMsg(jobId ? `Gateway acknowledged job ${jobId}` : r ? 'Gateway acknowledged the request; no job ID was reported.' : connected ? 'The gateway did not acknowledge the request.' : 'No gateway connected.');
             }}
-            disabled={!goal.trim()}
-            className="rounded-md px-3 py-2.5 text-[12px] font-semibold text-black disabled:opacity-40"
+            disabled={!goal.trim() || !connected}
+            className="rounded-md px-3 py-2.5 text-[12px] font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: 'var(--octa-glow)' }}
           >
             Orchestrate → Goal to PR
@@ -267,14 +282,15 @@ function PanelBody({ cap }: { cap: Capability }) {
 function ApprovalsPanel() {
   const [list, setList] = useState<any[] | null>(null);
   const [phrase, setPhrase] = useState('');
-  const load = () => cockpit.approvals().then((r: any) => setList(Array.isArray(r) ? r : (r?.approvals ?? [])));
-  useEffect(() => { load(); }, []);
+  const connected = useLinkState() === 'gateway';
+  const load = () => connected ? cockpit.approvals().then((r: any) => setList(Array.isArray(r) ? r : (r?.approvals ?? []))) : Promise.resolve(setList(null));
+  useEffect(() => { void load(); }, [connected]);
   const exact = phrase.trim() === 'Yes, with authorization.';
   return (
     <div className="flex flex-col gap-2">
       {!list || list.length === 0 ? (
         <div className="glass px-3 py-4 text-center text-[11px] text-[var(--ink-dim)]">
-          {cockpitConfigured() ? 'No pending owner-gated actions' : 'Requires gateway'}
+          {connected ? 'No pending owner-gated actions were reported' : 'Requires a reachable gateway'}
         </div>
       ) : (
         <>

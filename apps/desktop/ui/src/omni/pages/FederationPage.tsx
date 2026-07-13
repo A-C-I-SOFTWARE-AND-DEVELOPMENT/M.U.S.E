@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchFederationStatus, type FederationStatus } from '@/lib/federation';
-import { museBase } from '@/lib/config';
+import { useLinkState } from '@/lib/health';
 
 /** Federation — this node's PUBLIC identity + known peers (read-only). The
  *  gateway never returns private key material, so neither does this view. */
@@ -9,7 +9,7 @@ export default function FederationPage() {
   const navigate = useNavigate();
   const [st, setSt] = useState<FederationStatus | null>(null);
   const [loading, setLoading] = useState(false);
-  const connected = !!museBase();
+  const connected = useLinkState() === 'gateway';
 
   useEffect(() => {
     if (!connected) return;
@@ -24,10 +24,11 @@ export default function FederationPage() {
   return (
     <div className="px-4 pb-6">
       <div className="glass mb-3 px-3 py-2.5">
-        <div className="text-[13px] font-semibold">Federation</div>
-        <div className="mono text-[10px] text-[var(--ink-dim)]">
-          Sovereign-node identity + peers. Public material only — keys never leave the node.
-        </div>
+          <div className="text-[13px] font-semibold">Relay Embassy · Federation identity</div>
+          <div className="mono text-[10px] text-[var(--ink-dim)]">
+          Sovereign-node identity + peers remain read-only and separate from civilization membership. Public material only — keys never leave the node.
+          </div>
+          <Link className="mt-2 inline-flex text-[10px]" to="/civilizations">Open players & civilizations →</Link>
       </div>
 
       {!connected ? (

@@ -21,10 +21,10 @@ function AddOnCard({ a, onRemove }: { a: AddOn; onRemove?: () => void }) {
     <div className="glass overflow-hidden">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between px-3 py-2.5 text-left">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ background: on ? 'var(--state-running)' : 'var(--ink-faint)' }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: on ? 'var(--state-auth)' : 'var(--ink-faint)' }} />
           <div>
             <div className="text-[12px] font-semibold">{a.label}{a.custom ? ' ·' : ''}<span className="text-[var(--ink-faint)]">{a.custom ? ' custom' : ''}</span></div>
-            <div className="text-[9px] text-[var(--ink-faint)]">{a.blurb}</div>
+            <div className="text-[9px] text-[var(--ink-faint)]">{a.blurb}{on ? ' · configured, not health-checked' : ''}</div>
           </div>
         </div>
         <span className="mono text-[12px] text-[var(--ink-dim)]">{open ? '−' : '+'}</span>

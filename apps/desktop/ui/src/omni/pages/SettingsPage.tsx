@@ -16,6 +16,8 @@ import {
   ttsSupported,
   type VoiceSession,
 } from '@/lib/voice';
+import { useUniverseStore } from '@/universe/store';
+import type { FidelityPreference } from '@/universe/fidelity';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -25,6 +27,11 @@ export default function SettingsPage() {
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState('');
   const voiceRef = useRef<VoiceSession | null>(null);
+  const universeConnection = useUniverseStore((state) => state.connection);
+  const universeProblem = useUniverseStore((state) => state.problem);
+  const preferences = useUniverseStore((state) => state.preferences);
+  const setPreferences = useUniverseStore((state) => state.setPreferences);
+  const diagnostics = useUniverseStore((state) => state.diagnostics);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -85,13 +92,46 @@ export default function SettingsPage() {
           className="mb-2 w-full rounded-md px-3 py-2 text-[12px] font-semibold text-black"
           style={{ background: 'var(--octa-glow)' }}
         >
-          ⚡ Install & connect everything
+          Install & connect everything
         </button>
         <Row label="M.U.S.E. gateway" value={museBase || 'Not configured'} />
-        <Row label="Device token" value={getConfig().museToken ? 'Paired ✓' : 'Not paired'} />
-        <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
+        <Row label="Device token" value={getConfig().museToken ? 'Pairing credential stored' : 'Not paired'} />
+        <Row label="Atlas universe" value={universeConnection} />
+        {universeProblem && <div className="universe-error-copy mt-2">{universeProblem.message}{universeProblem.correlationId ? ` · ${universeProblem.correlationId}` : ''}</div>}
+        <Row label="Supabase" value={supabaseConfigured() ? 'Configured · reachability not probed' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />
+      </Section>
+
+      <Section title="Atlas rendering & comfort">
+        <div className="settings-control-grid">
+          <label>Fidelity tier<select value={preferences.fidelity} onChange={(event) => setPreferences({ fidelity: event.target.value as FidelityPreference })}><option value="auto">Automatic</option><option value="cinema">Cinema</option><option value="ultra">Ultra</option><option value="high">High</option><option value="balanced">Balanced</option><option value="accessible-2d">Accessible 2D</option></select></label>
+          <label>Depth strength <output>{Math.round(preferences.depthStrength * 100)}%</output><input type="range" min={0} max={1} step={0.05} value={preferences.depthStrength} onChange={(event) => setPreferences({ depthStrength: Number(event.target.value) })} /></label>
+          <label>Particle density <output>{Math.round(preferences.particleDensity * 100)}%</output><input type="range" min={0} max={1} step={0.05} value={preferences.particleDensity} onChange={(event) => setPreferences({ particleDensity: Number(event.target.value) })} /></label>
+          <label>Comfort vignette <output>{Math.round(preferences.comfortVignette * 100)}%</output><input type="range" min={0} max={1} step={0.05} value={preferences.comfortVignette} onChange={(event) => setPreferences({ comfortVignette: Number(event.target.value) })} /></label>
+          <label>Text scale <output>{Math.round(preferences.textScale * 100)}%</output><input type="range" min={0.9} max={1.35} step={0.05} value={preferences.textScale} onChange={(event) => setPreferences({ textScale: Number(event.target.value) })} /></label>
+        </div>
+        <div className="settings-toggle-grid">
+          <label><input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => setPreferences({ reducedMotion: event.target.checked })} /> Reduced motion</label>
+          <label><input type="checkbox" checked={preferences.twoDOnly} onChange={(event) => setPreferences({ twoDOnly: event.target.checked })} /> 2D-only controls</label>
+          <label><input type="checkbox" checked={preferences.captions} onChange={(event) => setPreferences({ captions: event.target.checked })} /> Captions and text cues</label>
+          <label><input type="checkbox" checked={preferences.colorSafe} onChange={(event) => setPreferences({ colorSafe: event.target.checked })} /> Color-safe status palette</label>
+        </div>
+      </Section>
+
+      <Section title="Atlas diagnostics">
+        <div role="status" aria-live="polite" className="sr-only">Rendering tier {diagnostics.tier}</div>
+        <div className="diagnostics-grid">
+          <Row label="Tier" value={diagnostics.tier} />
+          <Row label="Device pixel ratio" value={diagnostics.dpr == null ? 'Not measured' : String(diagnostics.dpr)} />
+          <Row label="Frame time average" value={diagnostics.frameTimeMs == null ? 'Not measured' : `${diagnostics.frameTimeMs} ms`} />
+          <Row label="Draw calls" value={diagnostics.drawCalls == null ? 'Not measured' : diagnostics.drawCalls.toLocaleString()} />
+          <Row label="Triangles" value={diagnostics.triangles == null ? 'Not measured' : diagnostics.triangles.toLocaleString()} />
+          <Row label="Texture memory estimate" value={diagnostics.textureMemoryMb == null ? 'Not measured' : `~${diagnostics.textureMemoryMb} MB`} />
+          <Row label="Graph nodes" value={diagnostics.graphNodeCount == null ? 'Not measured' : diagnostics.graphNodeCount.toLocaleString()} />
+          <Row label="Last event cursor" value={String(diagnostics.lastEventCursor)} />
+        </div>
+        <div className="mono mt-2 text-[10px] text-[var(--ink-faint)]">Degraded reasons: {diagnostics.degradedReasons.join(', ') || 'None reported'}</div>
       </Section>
 
       <Section title="MUSE repo — synced to main">
@@ -100,7 +140,7 @@ export default function SettingsPage() {
           onClick={() => navigate('/repo')}
           className="mt-2 w-full rounded-md border border-[var(--hairline)] px-3 py-2 text-[11px] font-medium text-[var(--ink)]"
         >
-          Browse the full live mirror →
+          Browse the repository mirror →
         </button>
       </Section>
 
@@ -171,7 +211,7 @@ export default function SettingsPage() {
             className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-black disabled:opacity-40"
             style={{ background: listening ? 'var(--state-error)' : 'var(--octa-glow)' }}
           >
-            {listening ? 'Stop' : '🎤 Listen'}
+            {listening ? 'Stop capture' : 'Start voice capture'}
           </button>
           <button
             onClick={() => speak('MUSE voice bridge online.')}
@@ -191,7 +231,7 @@ export default function SettingsPage() {
       </Section>
 
       <div className="mono mt-6 text-center text-[9px] text-[var(--ink-faint)]">
-        NEXUS · Unified Agent Command Console · v0.1.0
+        MUSE ATLAS · Unified Agent Command Console · v0.1.0
       </div>
     </div>
   );

@@ -20,14 +20,15 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [providers, setProviders] = useState<Record<string, boolean> | null>(null);
+  const [acknowledgedTransport, setAcknowledgedTransport] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const transport = effectiveTransport(cfg);
-  // 'server' routes to the app's own /api/chat — we can always attempt it; the
-  // edge function answers an honest 501 ('server chat not configured') if the
-  // server holds no key, which surfaces as an error/disconnected state on send.
-  const ready = transport === 'server' ? true : transport === 'direct' ? hasDirectKey() : !!providers;
+  const canAttempt = transport === 'server' || (transport === 'direct' ? hasDirectKey() : !!providers);
+  const transportVerified = transport === 'gateway'
+    ? Boolean(providers)
+    : acknowledgedTransport === transport;
   // Honest, granular label for the selected model's actual route. The old code
   // hardcoded "direct · OpenRouter", which mislabels Anthropic/Gemini/Groq/etc.
   // direct routes now that the multi-provider transport layer exists.
@@ -44,7 +45,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (transport === 'gateway') gatewayHealth(cfg.baseUrl).then(setProviders);
     else setProviders(null);
-  }, [cfg.baseUrl, transport]);
+    setAcknowledgedTransport(null);
+  }, [cfg.baseUrl, cfg.model, transport]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -67,7 +69,9 @@ export default function ChatPage() {
           return copy;
         });
       }, abortRef.current.signal);
+      setAcknowledgedTransport(transport);
     } catch (e) {
+      setAcknowledgedTransport(null);
       setErr(String((e as Error).message ?? e));
       setMessages((m) => m.slice(0, -1)); // drop the empty assistant bubble
     } finally {
@@ -114,15 +118,15 @@ export default function ChatPage() {
         <span
           className="h-2 w-2 rounded-full"
           title={
-            ready
-              ? transport === 'server'
-                ? 'hosted server chat · keys held on the server'
-                : transportLabel
-              : transport === 'direct'
-                ? 'add a provider or OpenRouter key in Settings'
-                : 'gateway offline'
+            transportVerified
+              ? `${transportLabel} · acknowledged`
+              : canAttempt
+                ? `${transportLabel} · not yet verified`
+                : transport === 'direct'
+                  ? 'add a provider or OpenRouter key in Settings'
+                  : 'gateway offline'
           }
-          style={{ background: ready ? 'var(--state-running)' : 'var(--ink-faint)' }}
+          style={{ background: transportVerified ? 'var(--state-running)' : 'var(--ink-faint)' }}
         />
       </div>
 
@@ -162,10 +166,13 @@ export default function ChatPage() {
                   instantly with no gateway at all.
                 </div>
               )}
-              {!ready && (
+              {!canAttempt && (
                 <div className="mono mt-3 text-[10px] text-[var(--state-auth)]">
                   {transport === 'direct' ? 'Add an OpenRouter key in Settings → Credentials' : `Gateway not reachable at ${cfg.baseUrl}`}
                 </div>
+              )}
+              {canAttempt && !transportVerified && (
+                <div className="mono mt-3 text-[10px] text-[var(--ink-faint)]">Route availability is unverified until a health probe or completion succeeds.</div>
               )}
             </div>
           </div>

@@ -51,7 +51,7 @@ function Field({ f }: { f: CredField }) {
           autoCapitalize="off"
           spellCheck={false}
           className="flex-1 rounded-md border px-2.5 py-2 text-[12px] text-[var(--ink)]"
-          style={{ borderColor: saved ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
+          style={{ borderColor: saved ? 'var(--state-auth)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
         />
         {isSecret && (
           <button onClick={() => setReveal((r) => !r)} className="rounded-md border border-[var(--hairline)] px-2 text-[11px] text-[var(--ink-dim)]">
@@ -71,10 +71,10 @@ function IntegrationCard({ integ }: { integ: Integration }) {
     <div className="glass overflow-hidden">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between px-3 py-2.5 text-left">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ background: filled ? 'var(--state-running)' : 'var(--ink-faint)' }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: filled ? 'var(--state-auth)' : 'var(--ink-faint)' }} />
           <div>
             <div className="text-[12px] font-semibold">{integ.label}</div>
-            <div className="text-[9px] text-[var(--ink-faint)]">{integ.usage === 'local' ? 'used by the app' : 'applied on the gateway'}</div>
+            <div className="text-[9px] text-[var(--ink-faint)]">{integ.usage === 'local' ? 'used by the app' : 'applied on the gateway'}{filled ? ' · credential stored, not health-checked' : ''}</div>
           </div>
         </div>
         <span className="mono text-[12px] text-[var(--ink-dim)]">{open ? '−' : '+'}</span>

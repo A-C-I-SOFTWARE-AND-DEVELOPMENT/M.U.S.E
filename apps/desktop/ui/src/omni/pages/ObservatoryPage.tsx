@@ -1,159 +1,117 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { StationPipeline } from '@/components/observatory/StationPipeline';
-import { BrainLadder } from '@/components/observatory/BrainLadder';
+import { useMemo, useState } from 'react';
+import { routeForPath } from '@/universe/catalog';
+import { EvidencePanel } from '@/universe/components/EvidencePanel';
+import { MissionPanel } from '@/universe/components/MissionPanel';
+import { NeuralCoreHud } from '@/universe/components/NeuralCoreHud';
+import { UniversePage } from '@/universe/components/UniversePage';
+import { UniverseStatusBoundary } from '@/universe/components/UniverseStatusBoundary';
+import { projectUniverseGraph, type SemanticLevel } from '@/universe/semanticZoom';
+import { useUniverseStore } from '@/universe/store';
+import type { Mission, UniverseEntity } from '@/universe/types';
 import { useNexusStore } from '@/store/useNexusStore';
-import { fetchSnapshot, streamObservatory } from '@/adapters/observatory';
-import type { ObsActiveJob, ObsSnapshot, ObsStreamEvent } from '@/lib/types';
-
-const Galaxy = lazy(() => import('@/components/observatory/Galaxy').then((module) => ({ default: module.Galaxy })));
-const GalaxyLoading = ({ height = 420 }: { height?: number }) => (
-  <div className="grid w-full place-items-center text-[11px] text-[var(--ink-dim)]" style={{ height }}>
-    Initializing neural space…
-  </div>
-);
 
 export default function ObservatoryPage() {
-  const wallpaper = useNexusStore((s) => s.wallpaper);
-  const setWallpaper = useNexusStore((s) => s.setWallpaper);
-  const [snapshot, setSnapshot] = useState<ObsSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [pulses, setPulses] = useState<Record<string, number>>({});
-  const [queuePulse, setQueuePulse] = useState(0);
-  const [activeJobs, setActiveJobs] = useState<ObsActiveJob[]>([]);
-  const [queueDepth, setQueueDepth] = useState(0);
-  const [gateFlare, setGateFlare] = useState<{ verdict: 'pass' | 'fail' | 'override'; ts: number } | null>(null);
-  const [streakTier, setStreakTier] = useState<string | null>(null);
-  const [configEpoch, setConfigEpoch] = useState(0);
-  const pulsesRef = useRef(pulses);
-  pulsesRef.current = pulses;
-
-  const applySnapshot = (snap: ObsSnapshot | null) => {
-    setSnapshot(snap);
-    setActiveJobs(snap?.stations.active_jobs ?? []);
-    setQueueDepth(snap?.stations.queue_depth ?? 0);
-    setQueuePulse(Math.min(1, (snap?.stations.queue_depth ?? 0) / 6));
+  const route = routeForPath('/observatory');
+  const wallpaper = useNexusStore((state) => state.wallpaper);
+  const setWallpaper = useNexusStore((state) => state.setWallpaper);
+  const snapshot = useUniverseStore((state) => state.snapshot);
+  const connection = useUniverseStore((state) => state.connection);
+  const cursor = useUniverseStore((state) => state.cursor);
+  const lastAcknowledgedAt = useUniverseStore((state) => state.lastAcknowledgedAt);
+  const refresh = useUniverseStore((state) => state.refresh);
+  const [semanticLevel, setSemanticLevel] = useState<SemanticLevel>('orbital');
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const graph = useMemo(() => projectUniverseGraph(snapshot), [snapshot]);
+  const missions = (Array.isArray(snapshot?.missions) ? snapshot.missions : []) as Mission[];
+  const stations = (Array.isArray(snapshot?.stations) ? snapshot.stations : []) as UniverseEntity[];
+  const loading = connection === 'idle' || connection === 'loading';
+  const graphEvidence: Record<string, unknown> = {
+    node_count: graph.nodes.length,
+    explicit_edge_count: graph.edges.length,
+    cursor,
+    last_acknowledged_at: lastAcknowledgedAt,
   };
 
-  useEffect(() => {
-    const resync = () => setConfigEpoch((epoch) => epoch + 1);
-    window.addEventListener('nexus:config', resync);
-    return () => window.removeEventListener('nexus:config', resync);
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    fetchSnapshot().then((snap) => {
-      if (!alive) return;
-      applySnapshot(snap);
-      setLoading(false);
-    });
-    return () => { alive = false; };
-  }, [configEpoch]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setPulses((prev) => {
-        const next: Record<string, number> = {};
-        let changed = false;
-        for (const [key, value] of Object.entries(prev)) {
-          const decayed = value * 0.88;
-          if (decayed > 0.02) next[key] = decayed;
-          changed = true;
-        }
-        return changed ? next : prev;
-      });
-    }, 80);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const onEvent = (event: ObsStreamEvent) => {
-      switch (event.type) {
-        case 'node.activate':
-          setPulses((current) => ({ ...current, [event.cluster_id]: Math.min(1, (current[event.cluster_id] ?? 0) + event.weight) }));
-          break;
-        case 'job.stage':
-          setQueueDepth(event.queue_depth);
-          setQueuePulse(Math.min(1, event.queue_depth / 6));
-          setActiveJobs((jobs) => {
-            const others = jobs.filter((job) => job.job_id !== event.job_id);
-            if (event.stage === 'done' || event.stage === 'failed') return others;
-            return [...others, { job_id: event.job_id, task_class: event.task_class, stage: event.stage, stage_entered_at: event.ts, queue_pos: null }];
-          });
-          break;
-        case 'gate.verdict':
-          setGateFlare({ verdict: event.verdict, ts: Date.now() });
-          break;
-        case 'route.decision':
-          setStreakTier(event.tier);
-          window.setTimeout(() => setStreakTier(null), 1000);
-          break;
-        case 'resync':
-          void fetchSnapshot().then(applySnapshot);
-          break;
-      }
-    };
-    return streamObservatory(onEvent);
-  }, [configEpoch]);
-
-  const dormant = !snapshot || !snapshot.graph.available;
-  const status = dormant ? 'DORMANT' : 'LIVE';
-  const statusColor = dormant ? 'var(--ink-faint)' : 'var(--state-running)';
+  const inspector = (
+    <NeuralCoreHud
+      nodes={graph.nodes}
+      edges={graph.edges}
+      selectedId={selectedNode}
+      level={semanticLevel}
+      onSelect={setSelectedNode}
+      onLevel={setSemanticLevel}
+    />
+  );
 
   if (wallpaper) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-base)]">
-        <Suspense fallback={<GalaxyLoading height={Math.min(window.innerHeight * 0.74, 620)} />}>
-          <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} height={Math.min(window.innerHeight * 0.74, 620)} />
-        </Suspense>
-        <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+12px)] flex items-center gap-2">
-          <span className="mono rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${statusColor}22`, color: statusColor }}>{status}</span>
-          <span className="mono text-[10px] text-[var(--ink-dim)]">MUSE · Neural Observatory</span>
-        </div>
-        <button onClick={() => setWallpaper(false)} className="absolute right-4 top-[calc(env(safe-area-inset-top)+10px)] rounded-full border border-[var(--hairline)] px-3 py-1.5 text-[11px]">Exit wallpaper</button>
-        {dormant && <div className="mono mt-3 text-[11px] text-[var(--ink-dim)]">Observatory dormant — awaiting live graph telemetry</div>}
+      <div className="fixed inset-0 z-50 overflow-auto p-4" style={{ background: 'rgba(2,3,6,.68)' }}>
+        <header className="mx-auto mb-3 flex w-full max-w-[1120px] items-center justify-between gap-4">
+          <div>
+            <p className="universe-eyebrow">Shared authenticated projection</p>
+            <h1 className="m-0 text-[20px] font-semibold">Muse Neural Core</h1>
+            <p className="mono m-0 text-[9px] text-[var(--ink-faint)]">{connection} · cursor {cursor} · {graph.edges.length} explicit edges</p>
+          </div>
+          <button type="button" onClick={() => setWallpaper(false)} className="universe-button">Exit focus view</button>
+        </header>
+        <div className="mx-auto w-full max-w-[1120px]">{inspector}</div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-6">
-      <div className="glass mb-3 flex items-center justify-between px-3 py-2.5">
-        <div>
-          <div className="text-[13px] font-semibold">Neural Observatory</div>
-          <div className="mono text-[10px] text-[var(--ink-dim)]">
-            {dormant ? 'live system mirror · no graph telemetry available' : `live system mirror · ${snapshot?.graph.node_count?.toLocaleString() ?? 0} nodes`}
-          </div>
+    <UniversePage
+      route={route}
+      eyebrow="Muse Neural Core"
+      title="Neural Observatory"
+      description="The spatial Core and accessible hierarchy share one authenticated Universe snapshot. Only reported graph edges appear; proximity never becomes an invented relationship."
+      actions={
+        <>
+          <button type="button" className="universe-button" onClick={() => setWallpaper(true)}>Focus view</button>
+          <button type="button" className="universe-button" disabled={loading} onClick={() => void refresh()}>{loading ? 'Reading…' : 'Refresh from cursor'}</button>
+        </>
+      }
+    >
+      <UniverseStatusBoundary>
+        <div className="production-grid">
+          <EvidencePanel
+            title="Projection evidence"
+            eyebrow="Same state as the spatial Core"
+            record={graphEvidence}
+            fields={[
+              { label: 'Reported nodes', path: 'node_count' },
+              { label: 'Explicit edges', path: 'explicit_edge_count' },
+              { label: 'Reconnect cursor', path: 'cursor' },
+              { label: 'Last acknowledgement', path: 'last_acknowledged_at' },
+            ]}
+          />
+          <EvidencePanel
+            title="Station signal"
+            eyebrow="Authoritative station projection"
+            record={(stations[0] as Record<string, unknown> | undefined) ?? null}
+            fields={[
+              { label: 'Station', path: 'name' },
+              { label: 'Identifier', path: 'id' },
+              { label: 'State', path: 'status' },
+              { label: 'Observed', path: 'updated_at' },
+            ]}
+          />
         </div>
-        <span className="mono rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: `${statusColor}22`, color: statusColor }}>{status}</span>
-      </div>
 
-      <div className="glass flex flex-col items-center overflow-hidden px-2 py-3">
-        {loading ? (
-          <div className="grid h-[460px] place-items-center text-[12px] text-[var(--ink-dim)]">Reading live observatory…</div>
-        ) : (
-          <Suspense fallback={<GalaxyLoading height={460} />}>
-            <Galaxy snapshot={snapshot} pulses={pulses} queuePulse={queuePulse} height={460} />
-          </Suspense>
-        )}
-        {dormant && !loading && (
-          <div className="-mt-6 mb-2 text-center">
-            <div className="text-[12px] text-[var(--ink-dim)]">Observatory dormant</div>
-            <div className="text-[10px] text-[var(--ink-faint)]">Connect the gateway to render the live knowledge graph and execution stream.</div>
+        <div className="mt-3">{inspector}</div>
+
+        <section className="mt-3" aria-labelledby="observatory-missions">
+          <div className="mb-2 flex items-center justify-between">
+            <div><p className="universe-eyebrow">Execution signals</p><h2 id="observatory-missions" className="m-0 text-[16px]">Reported missions</h2></div>
+            <span className="universe-chip">{missions.length} records</span>
           </div>
-        )}
-      </div>
-
-      <div className="mt-3 flex gap-2">
-        <button onClick={() => setWallpaper(true)} className="flex-1 rounded-md px-3 py-2 text-[12px] font-semibold text-black" style={{ background: 'var(--octa-glow)' }}>Wallpaper mode</button>
-        <button onClick={() => void fetchSnapshot().then(applySnapshot)} className="rounded-md border border-[var(--hairline)] px-4 py-2 text-[12px] font-medium">Refresh live data</button>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-3">
-        <StationPipeline nodes={snapshot?.stations.nodes ?? []} activeJobs={activeJobs} queueDepth={queueDepth} gateFlare={gateFlare} />
-        <BrainLadder tiers={snapshot?.ladder.tiers ?? []} streakTier={streakTier} />
-      </div>
-    </div>
+          {missions.length > 0 ? (
+            <div className="mission-grid">{missions.slice(0, 6).map((mission) => <MissionPanel key={mission.id} mission={mission} />)}</div>
+          ) : (
+            <div className="universe-panel universe-empty-copy">No mission records were reported by the current snapshot.</div>
+          )}
+        </section>
+      </UniverseStatusBoundary>
+    </UniversePage>
   );
 }

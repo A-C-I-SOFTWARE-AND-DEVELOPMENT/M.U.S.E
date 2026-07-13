@@ -1,24 +1,33 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { StatusDot } from '@/components/shell/StatusDot';
 import { surfaces } from '@/adapters';
-import { museBase } from '@/lib/config';
+import { useLinkState } from '@/lib/health';
 import type { AgentSummary } from '@/lib/types';
+import { VesselHud } from '@/universe/components/VesselHud';
+import { useUniverseStore } from '@/universe/store';
 
 export default function AgentsPage() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
-  const museConnected = !!museBase();
+  const [loadError, setLoadError] = useState(false);
+  const link = useLinkState();
+  const museConnected = link === 'gateway';
+  const snapshot = useUniverseStore((state) => state.snapshot);
+  const selected = useUniverseStore((state) => state.selected);
+  const select = useUniverseStore((state) => state.select);
+  const vessels = Array.isArray(snapshot?.vessels) ? snapshot.vessels : [];
+  const vessel = vessels.find((entry) => entry.id === selected) ?? vessels[0] ?? null;
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    Promise.all(surfaces.map((s) => s.listAgents().catch(() => [])))
-      .then((lists) => {
-        if (alive) setAgents(lists.flat());
-      })
-      .catch(() => {
-        if (alive) setAgents([]);
+    Promise.allSettled(surfaces.map((s) => s.listAgents()))
+      .then((results) => {
+        if (!alive) return;
+        setAgents(results.flatMap((result) => result.status === 'fulfilled' ? result.value : []));
+        setLoadError(results.some((result) => result.status === 'rejected'));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -36,35 +45,13 @@ export default function AgentsPage() {
 
   return (
     <div className="px-4 pb-6">
-      {/* M.U.S.E. embedded panel — user controls the CSP, so it embeds in-app. */}
-      <div className="hud-label mb-2 mt-1">M.U.S.E. · embedded</div>
-      <div className="glass overflow-hidden">
-        {embedUrl ? (
-          <iframe
-            title="M.U.S.E."
-            src={embedUrl}
-            className="h-[320px] w-full border-0 bg-black"
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-            <div className="text-[12px] text-[var(--ink-dim)]">
-              M.U.S.E. gateway panel (embeddable — CSP owned by you)
-            </div>
-            <button
-              onClick={() =>
-                setEmbedUrl((import.meta.env.VITE_MUSE_BASE_URL ?? '') || null)
-              }
-              className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-black"
-              style={{ background: 'var(--octa-glow)' }}
-            >
-              Load gateway
-            </button>
-            <div className="text-[10px] text-[var(--ink-faint)]">
-              Requires VITE_MUSE_BASE_URL.
-            </div>
-          </div>
-        )}
-      </div>
+      <div className="hud-label mb-2 mt-1">Boardable agent vessel</div>
+      <VesselHud
+        vessel={vessel}
+        onBoard={(entry) => { select(entry.id); }}
+        onCustomize={(entry) => { select(entry.id); navigate('/shipyard'); }}
+      />
+      {loadError && <div className="universe-error-copy mt-3" role="status">One or more agent surfaces could not be read. No unavailable agent is shown as idle or connected.</div>}
 
       <AgentGroup
         title="M.U.S.E. agents"
@@ -72,6 +59,7 @@ export default function AgentsPage() {
         controllable
         loading={loading}
         emptyLabel={museConnected ? 'No agents reported by the gateway' : 'Requires gateway — connect M.U.S.E. to list agents'}
+        onControl={() => navigate('/console')}
       />
       <AgentGroup
         title="Antigravity"
@@ -96,6 +84,7 @@ function AgentGroup({
   loading,
   emptyLabel,
   onOpen,
+  onControl,
 }: {
   title: string;
   items: AgentSummary[];
@@ -103,6 +92,7 @@ function AgentGroup({
   loading?: boolean;
   emptyLabel?: string;
   onOpen?: () => void;
+  onControl?: (agent: AgentSummary) => void;
 }) {
   return (
     <>
@@ -128,7 +118,7 @@ function AgentGroup({
               <div className="flex items-center gap-3">
                 <StatusDot state={a.state} withLabel />
                 {controllable ? (
-                  <span className="mono text-[10px] text-[var(--octa-glow)]">control →</span>
+                  <button type="button" onClick={() => onControl?.(a)} className="mono text-[10px] text-[var(--octa-glow)]">control →</button>
                 ) : (
                   <button
                     onClick={onOpen}

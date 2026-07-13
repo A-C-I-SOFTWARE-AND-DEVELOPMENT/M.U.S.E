@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
 import { SideNav } from './components/shell/SideNav';
 import { TopBar } from './components/shell/TopBar';
@@ -9,7 +9,7 @@ import { CommandPalette } from './components/shell/CommandPalette';
 import { ConnectWizard } from './components/setup/ConnectWizard';
 import { isConfigured } from './lib/config';
 import { anyProviderReady } from './lib/directProvider';
-import { useNexusStore } from './store/useNexusStore';
+import { useUniverseStore } from './universe/store';
 import ConsolePage from './pages/ConsolePage';
 import SteerPage from './pages/SteerPage';
 import ForgePage from './pages/ForgePage';
@@ -29,6 +29,14 @@ import ChatPage from './pages/ChatPage';
 import AxiomGatePage from './pages/AxiomGatePage';
 import FusionPage from './pages/FusionPage';
 import StudioPage from './pages/StudioPage';
+import AtlasPage from './universe/pages/AtlasPage';
+import StationsPage from './universe/pages/StationsPage';
+import ShipyardPage from './universe/pages/ShipyardPage';
+import CivilizationsPage from './universe/pages/CivilizationsPage';
+import FabricationPage from './universe/pages/FabricationPage';
+import GameFoundryPage from './universe/pages/GameFoundryPage';
+import CinemaStagePage from './universe/pages/CinemaStagePage';
+import ReleaseDockPage from './universe/pages/ReleaseDockPage';
 // SignInPage is imported lazily below so it stays code-split off the shell.
 // code-split off the shell. The module may not be on disk yet at the moment
 // this file is integrated, so the missing-module diagnostic is suppressed —
@@ -57,7 +65,23 @@ const ONBOARD_KEY = 'nexus.onboarded';
 
 export default function App() {
   const location = useLocation();
-  const wallpaper = useNexusStore((s) => s.wallpaper);
+  const connectUniverse = useUniverseStore((state) => state.connect);
+  const disconnectUniverse = useUniverseStore((state) => state.disconnect);
+  const preferences = useUniverseStore((state) => state.preferences);
+  const setPreferences = useUniverseStore((state) => state.setPreferences);
+
+  useEffect(() => {
+    void connectUniverse();
+    const reconnect = () => void connectUniverse();
+    const webglFailed = () => setPreferences({ twoDOnly: true });
+    window.addEventListener('nexus:config', reconnect);
+    window.addEventListener('universe:webgl-failed', webglFailed);
+    return () => {
+      window.removeEventListener('nexus:config', reconnect);
+      window.removeEventListener('universe:webgl-failed', webglFailed);
+      disconnectUniverse();
+    };
+  }, [connectUniverse, disconnectUniverse, setPreferences]);
 
   // First-run: auto-open the connect wizard only when there's nothing to go on —
   // no gateway AND no provider key. If either is present we auto go online and use
@@ -86,13 +110,19 @@ export default function App() {
     setWizard(false);
   };
 
-  // Wallpaper ("mirror") mode renders the Observatory full-bleed with no chrome.
-  if (wallpaper) return <ObservatoryPage />;
-
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="flex h-full flex-col"
+      data-universe-motion={preferences.reducedMotion ? 'reduced' : 'full'}
+      data-universe-palette={preferences.colorSafe ? 'color-safe' : 'spectral'}
+      style={{
+        '--universe-text-scale': preferences.textScale,
+        '--universe-depth-strength': preferences.depthStrength,
+        '--universe-comfort-vignette': preferences.comfortVignette,
+      } as CSSProperties}
+    >
       <CinematicBackdrop />
-      <Suspense fallback={null}><CinematicWorld pathname={location.pathname} /></Suspense>
+      <Suspense fallback={<div className="universe-2d-fallback" aria-hidden="true" />}><CinematicWorld pathname={location.pathname} /></Suspense>
       <ConnectWizard open={wizard} onClose={closeWizard} />
       <CommandPalette />
       <TopBar />
@@ -106,7 +136,7 @@ export default function App() {
             <Route
               path="/signin"
               element={
-                <Suspense fallback={null}>
+                <Suspense fallback={<div className="universe-route-loading" role="status">Loading identity controls…</div>}>
                   <Page><SignInPage /></Page>
                 </Suspense>
               }
@@ -128,6 +158,15 @@ export default function App() {
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />
             <Route path="/settings" element={<Page><SettingsPage /></Page>} />
             <Route path="/studio" element={<Page><StudioPage /></Page>} />
+            <Route path="/atlas" element={<Page><AtlasPage /></Page>} />
+            <Route path="/stations" element={<Page><StationsPage /></Page>} />
+            <Route path="/stations/:stationId" element={<Page><StationsPage /></Page>} />
+            <Route path="/shipyard" element={<Page><ShipyardPage /></Page>} />
+            <Route path="/civilizations" element={<Page><CivilizationsPage /></Page>} />
+            <Route path="/fabrication" element={<Page><FabricationPage /></Page>} />
+            <Route path="/game-foundry" element={<Page><GameFoundryPage /></Page>} />
+            <Route path="/cinema" element={<Page><CinemaStagePage /></Page>} />
+            <Route path="/release" element={<Page><ReleaseDockPage /></Page>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

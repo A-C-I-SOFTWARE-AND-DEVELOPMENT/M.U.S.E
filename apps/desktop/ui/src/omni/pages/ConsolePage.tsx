@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { StatusDot } from '@/components/shell/StatusDot';
 import { CapabilityDrawer } from '@/components/muse/CapabilityDrawer';
 import { antigravitySurface, aiStudioSurface, museSurface } from '@/adapters';
-import { cockpit, cockpitConfigured, type RuntimeStatus } from '@/adapters/cockpit';
+import { cockpit, type RuntimeStatus } from '@/adapters/cockpit';
 import { CAPABILITIES, PLANES, type Capability } from '@/lib/capabilities';
+import { useLinkState } from '@/lib/health';
 import type { AgentRunState, AgentSummary } from '@/lib/types';
 
 interface Tile {
@@ -23,11 +24,16 @@ export default function ConsolePage() {
   const [runtime, setRuntime] = useState<RuntimeStatus | null>(null);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState<Capability | null>(null);
+  const gatewayConnected = useLinkState() === 'gateway';
 
   useEffect(() => {
     museSurface.listAgents().then(setAgents).catch(() => setAgents([]));
-    cockpit.runtimeStatus().then((r) => setRuntime(r as RuntimeStatus | null));
-  }, []);
+    if (gatewayConnected) {
+      cockpit.runtimeStatus().then((r) => setRuntime(r as RuntimeStatus | null));
+    } else {
+      setRuntime(null);
+    }
+  }, [gatewayConnected]);
 
   const tiles: Tile[] = [
     { id: 'muse', title: 'M.U.S.E.', subtitle: 'Your local-first operating partner', accent: 'var(--acc-coding)', glyph: 'M', embed: true, onOpen: () => navigate('/agents') },
@@ -52,18 +58,19 @@ export default function ConsolePage() {
       {/* Runtime + emergency banner */}
       <div className="glass mb-3 flex items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ background: cockpitConfigured() ? 'var(--state-running)' : 'var(--ink-faint)', boxShadow: cockpitConfigured() ? '0 0 8px var(--state-running)' : undefined }} />
+          <span className="h-2 w-2 rounded-full" style={{ background: gatewayConnected && runtime?.state === 'running' ? 'var(--state-running)' : 'var(--ink-faint)' }} />
           <div>
             <div className="text-[12px] font-semibold">MUSE runtime</div>
             <div className="mono text-[9px] text-[var(--ink-dim)]">
-              {cockpitConfigured() ? (runtime?.state ?? 'connected') : 'gateway not configured'}
+              {gatewayConnected ? (runtime?.state ?? 'status not reported') : 'gateway not connected'}
               {runtime?.workers != null ? ` · ${runtime.workers} workers` : ''}
             </div>
           </div>
         </div>
         <button
           onClick={() => setActive(CAPABILITIES.find((c) => c.id === 'emergency')!)}
-          className="rounded-md px-3 py-1.5 text-[11px] font-bold text-white"
+          disabled={!gatewayConnected}
+          className="rounded-md px-3 py-1.5 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
           style={{ background: 'var(--state-error)' }}
         >
           ⏹ Stop

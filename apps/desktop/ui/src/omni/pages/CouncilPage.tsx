@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dispatchCouncil, type CouncilSession, type CouncilMember } from '@/lib/council';
-import { museBase } from '@/lib/config';
+import { useLinkState } from '@/lib/health';
 
 /** AOS Council Dispatch — route a request to the active council + matching
  *  domain specialists (the executable council runtime, via the gateway). */
@@ -10,7 +10,7 @@ export default function CouncilPage() {
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [session, setSession] = useState<CouncilSession | null>(null);
-  const connected = !!museBase();
+  const connected = useLinkState() === 'gateway';
 
   const run = async () => {
     const request = q.trim();

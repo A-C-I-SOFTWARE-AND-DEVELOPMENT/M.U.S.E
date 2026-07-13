@@ -1,6 +1,7 @@
 import { useLocation, Link } from 'react-router-dom';
 import { useLinkState } from '@/lib/health';
 import { Dot } from './StatusDot';
+import { useUniverseStore, type UniverseConnection } from '@/universe/store';
 
 const TITLES: Record<string, string> = {
   '/': 'NEURAL CONVERSATION',
@@ -23,6 +24,14 @@ const TITLES: Record<string, string> = {
   '/activity': 'ACTIVITY PULSE',
   '/share': 'SIGNAL BROADCAST',
   '/settings': 'SYSTEM CORE',
+  '/atlas': 'ATLAS CROWN · NEURAL CORE',
+  '/stations': 'CELESTIAL STATION NETWORK',
+  '/shipyard': 'NEURAL SHIPYARD',
+  '/civilizations': 'RELAY EMBASSY · CIVILIZATIONS',
+  '/fabrication': 'LIVE SOURCE FABRICATION',
+  '/game-foundry': 'AAA GAME FOUNDRY',
+  '/cinema': 'NATIVE-STEREO CINEMA STAGE',
+  '/release': 'VERIFIED RELEASE DOCK',
 };
 
 // Live-link → cockpit status pill. The pill is a tonal chip (never a bloom); its
@@ -35,6 +44,18 @@ const LINK_META = {
   connecting: { dot: 'warn', label: 'Connecting' },
   offline: { dot: 'off', label: 'Offline' },
 } as const;
+
+const UNIVERSE_META: Record<UniverseConnection, { dot: 'ok' | 'warn' | 'danger' | 'live' | 'off'; label: string }> = {
+  idle: { dot: 'off', label: 'Atlas idle' },
+  loading: { dot: 'warn', label: 'Atlas loading' },
+  online: { dot: 'live', label: 'Atlas live' },
+  empty: { dot: 'ok', label: 'Atlas empty' },
+  offline: { dot: 'off', label: 'Atlas stale' },
+  denied: { dot: 'warn', label: 'Atlas denied' },
+  conflict: { dot: 'warn', label: 'Atlas conflict' },
+  degraded: { dot: 'warn', label: 'Atlas degraded' },
+  error: { dot: 'danger', label: 'Atlas error' },
+};
 
 // The brand glyph: a WHITE CORE that blooms via stacked cool-white radial halos
 // behind a thin MATTE spectral ring (cyan #7ae0ff → violet #b388ff). The bloom
@@ -96,8 +117,11 @@ function BrandGlyph() {
 
 export function TopBar() {
   const { pathname } = useLocation();
+  const title = TITLES[pathname] ?? (pathname.startsWith('/stations/') ? 'CELESTIAL STATION INTERIOR' : 'Multi-Use Synaptic Entity');
   const link = useLinkState();
   const meta = LINK_META[link];
+  const universe = useUniverseStore((state) => state.connection);
+  const universeMeta = UNIVERSE_META[universe];
   return (
     <header
       className="flex items-center justify-between px-4 backdrop-blur-xl"
@@ -133,7 +157,7 @@ export function TopBar() {
               className="hidden truncate text-[10px] uppercase leading-none sm:inline"
               style={{ color: 'var(--signal-mute)', letterSpacing: '0.4px' }}
             >
-              {TITLES[pathname] ?? 'Multi-Use Synaptic Entity'}
+              {title}
             </span>
           </div>
         </div>
@@ -160,6 +184,13 @@ export function TopBar() {
       >
         <Dot state={meta.dot} />
         {meta.label}
+      </span>
+      <span
+        className="hud-label hidden items-center gap-1.5 rounded-full px-2 py-1 text-[10px] sm:inline-flex"
+        style={{ background: 'var(--void-2)', border: '1px solid var(--edge)', color: 'var(--signal-dim)' }}
+      >
+        <Dot state={universeMeta.dot} />
+        {universeMeta.label}
       </span>
       </div>
     </header>

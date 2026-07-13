@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchForgeLeaderboard, type ForgeLeaderboard } from '@/lib/forgeArena';
-import { museBase } from '@/lib/config';
+import { useLinkState } from '@/lib/health';
 
 /** The tournament/championship Forge (Glicko-2 + MAP-Elites) — distinct from the
  *  per-agent-knowledge "Forge" tab. Read-only standings over the gateway. */
@@ -9,7 +9,7 @@ export default function ChampionshipPage() {
   const navigate = useNavigate();
   const [lb, setLb] = useState<ForgeLeaderboard | null>(null);
   const [loading, setLoading] = useState(false);
-  const connected = !!museBase();
+  const connected = useLinkState() === 'gateway';
 
   useEffect(() => {
     if (!connected) return;

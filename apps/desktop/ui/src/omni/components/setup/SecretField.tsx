@@ -28,7 +28,7 @@ export function SecretField({ f }: { f: FieldSpec }) {
           autoCapitalize="off"
           spellCheck={false}
           className="flex-1 rounded-md border px-2.5 py-2 text-[12px] text-[var(--ink)]"
-          style={{ borderColor: saved ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
+          style={{ borderColor: saved ? 'var(--state-auth)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
         />
         {secret && (
           <button onClick={() => setReveal((r) => !r)} className="rounded-md border border-[var(--hairline)] px-2 text-[11px] text-[var(--ink-dim)]">

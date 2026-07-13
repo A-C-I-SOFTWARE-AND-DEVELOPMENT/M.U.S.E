@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "test": "node --test src/omni/universe/**/*.test.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, type ReactNode } from 'react';
 
-// Full navigation — every destination the app has (18), so the web app exposes
+// Full navigation — every destination the app has, so the web app exposes
 // the whole MUSE surface on BOTH desktop and mobile, not just the 7 quick tabs.
 // Desktop: a persistent left rail (the "PC version"). Mobile: the same list as a
 // slide-over drawer opened from the TopBar hamburger, so the phone reaches
@@ -21,6 +21,8 @@ const GROUPS: Group[] = [
   {
     heading: 'Command',
     items: [
+      { to: '/atlas', label: 'Atlas Crown', icon: I(<><circle cx="12" cy="12" r="3" /><ellipse cx="12" cy="12" rx="9" ry="5" /><path d="M12 3v18M3 12h18" /></>) },
+      { to: '/stations', label: 'Stations', icon: I(<><circle cx="12" cy="12" r="2" /><circle cx="12" cy="12" r="7" /><path d="M12 2v3M22 12h-3M12 22v-3M2 12h3" /></>) },
       { to: '/', label: 'Chat', icon: I(<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" />) },
       { to: '/console', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
       { to: '/fusion', label: 'Fusion', icon: I(<><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2.4" /><path d="M7 6.5l10 4.5M7 17.5l10-4.5" /></>) },
@@ -31,11 +33,15 @@ const GROUPS: Group[] = [
   {
     heading: 'Build',
     items: [
+      { to: '/shipyard', label: 'Shipyard', icon: I(<><path d="M4 17h16M6 17l2-9h8l2 9M9 8V5h6v3" /><circle cx="12" cy="13" r="2" /></>) },
       { to: '/forge', label: 'Forge', icon: I(<><path d="M14 7l6 6M3 21l4-1 11-11-3-3L4 17z" /></>) },
       { to: '/fleet', label: 'Fleet', icon: I(<><circle cx="6" cy="7" r="2.5" /><circle cx="18" cy="7" r="2.5" /><circle cx="12" cy="17" r="2.5" /><path d="M6 9.5v3l6 2 6-2v-3" /></>) },
       { to: '/agents', label: 'Agents', icon: I(<><circle cx="12" cy="8" r="3.2" /><path d="M4 20a8 8 0 0 1 16 0" /></>) },
-      { to: '/council', label: 'Council', icon: I(<><circle cx="7" cy="9" r="2" /><circle cx="17" cy="9" r="2" /><circle cx="12" cy="7" r="2.2" /><path d="M3 19a4 4 0 0 1 8 0M13 19a4 4 0 0 1 8 0" /></>) },
       { to: '/studio', label: 'Studio', icon: I(<><path d="M3 9l9-6 9 6v10l-9 4-9-4z" /><path d="M12 3v20M3 9l9 4 9-4" /></>) },
+      { to: '/fabrication', label: 'Fabrication', icon: I(<><path d="M5 4h14v16H5zM8 8h8M8 12h5M8 16h7" /></>) },
+      { to: '/game-foundry', label: 'Game Foundry', icon: I(<><path d="M7 8h10l3 9-3 2-3-3h-4l-3 3-3-2z" /><path d="M8 12h4M10 10v4M16 12h.01" /></>) },
+      { to: '/cinema', label: 'Cinema Stage', icon: I(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M8 5l3 5M14 5l3 5M3 10h18" /></>) },
+      { to: '/release', label: 'Release Dock', icon: I(<><path d="M12 3v12M8 7l4-4 4 4M5 14v6h14v-6" /></>) },
       { to: '/repo', label: 'Repo', icon: I(<><path d="M6 3v12M6 15a3 3 0 0 0 3 3h6M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /></>) },
     ],
   },
@@ -46,11 +52,18 @@ const GROUPS: Group[] = [
       { to: '/second-brain', label: 'Second Brain', icon: I(<><path d="M9 3a4 4 0 0 0-4 4 4 4 0 0 0-1 7 3.5 3.5 0 0 0 3 5h2V3zM15 3a4 4 0 0 1 4 4 4 4 0 0 1 1 7 3.5 3.5 0 0 1-3 5h-2V3z" /></>) },
       { to: '/observatory', label: 'Observatory', icon: I(<><circle cx="12" cy="12" r="2.4" /><ellipse cx="12" cy="12" rx="9" ry="3.6" /><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)" /></>) },
       { to: '/championship', label: 'Championship', icon: I(<><path d="M7 4h10v4a5 5 0 0 1-10 0zM5 4h2v2a2 2 0 0 1-2 2zM19 4h-2v2a2 2 0 0 0 2 2zM9 13h6l-1 4h-4z" /></>) },
+    ],
+  },
+  {
+    heading: 'Governance',
+    items: [
+      { to: '/civilizations', label: 'Civilizations', icon: I(<><circle cx="8" cy="9" r="3" /><circle cx="17" cy="7" r="2" /><path d="M3 20a5 5 0 0 1 10 0M14 20a4 4 0 0 1 7-2" /></>) },
+      { to: '/council', label: 'Council', icon: I(<><circle cx="7" cy="9" r="2" /><circle cx="17" cy="9" r="2" /><circle cx="12" cy="7" r="2.2" /><path d="M3 19a4 4 0 0 1 8 0M13 19a4 4 0 0 1 8 0" /></>) },
       { to: '/federation', label: 'Federation', icon: I(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></>) },
     ],
   },
   {
-    heading: 'System',
+    heading: 'Systems',
     items: [
       { to: '/activity', label: 'Activity', icon: I(<path d="M3 12h4l3 8 4-16 3 8h4" />) },
       { to: '/share', label: 'Share', icon: I(<><circle cx="18" cy="5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="19" r="2.5" /><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6" /></>) },

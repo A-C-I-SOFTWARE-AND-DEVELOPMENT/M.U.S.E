@@ -6,7 +6,7 @@ import {
   type SecondBrainResult,
   type SecondBrainStatus,
 } from '@/lib/secondBrain';
-import { museBase } from '@/lib/config';
+import { useLinkState } from '@/lib/health';
 
 export default function SecondBrainPage() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function SecondBrainPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SecondBrainResult | null>(null);
 
-  const connected = !!museBase();
+  const connected = useLinkState() === 'gateway';
 
   useEffect(() => {
     if (!connected) return;
