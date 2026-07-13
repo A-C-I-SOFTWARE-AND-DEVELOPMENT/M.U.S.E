@@ -1,0 +1,293 @@
+<!-- @dsCard group="Composed" name="Cockpit shell" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cockpit shell — muse Cockpit Design System</title>
+  <!-- Shared design-system CSS (relative — resolves to .design-sync/*.css) -->
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors.
+       The void is the field; we frame each composed specimen as documentation. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-stack {
+      display: grid;
+      gap: var(--space-12);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .specimen { display: grid; gap: var(--space-3); }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+    }
+    /* Frame: a hairline-edged window so the full shell reads as one specimen.
+       Tonal only — the .app inside keeps its own void field, no drop shadow. */
+    .shell-frame {
+      border: 1px solid var(--edge);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    /* Inside the frame the shell relaxes from min-height:100vh to its content,
+       and the sticky header/nav resolve against this scroll container. */
+    .shell-frame .app { min-height: 0; }
+    .shell-frame .app-header { position: static; }
+    .shell-frame .app-nav { position: static; height: auto; }
+    .shell-frame .app-main { padding: var(--space-6); }
+    .shell-frame .view { display: block; max-width: none; margin: 0; }
+
+    /* Job card internals — pure layout scaffolding, no component restyle. */
+    .job-card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    .job-card-head .job-meta { display: grid; gap: var(--space-1); min-width: 0; }
+    .job-card-head .job-title {
+      font-size: var(--type-body-size);
+      font-weight: var(--type-title-weight);
+      color: var(--signal);
+    }
+    .job-card-head .job-sub {
+      font-size: var(--type-label-size);
+      color: var(--signal-mute);
+    }
+    .job-card-head .job-status { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+  </style>
+</head>
+<body>
+  <main class="preview-stack">
+
+    <!-- ================================================================= -->
+    <!-- Variant 1 — Full cockpit: header + nav rail + a populated Jobs view -->
+    <!-- ================================================================= -->
+    <section class="specimen">
+      <div class="caption">Composed shell — header, 11-destination nav rail, Jobs view (Jobs active)</div>
+      <div class="shell-frame">
+        <div class="app">
+
+          <!-- ==================== Header (sticky) ==================== -->
+          <header class="app-header">
+            <span class="lockup">
+              <!-- Brand glyph: white core in the void + one thin MATTE spectral
+                   ring, single gap, round caps, rotated -32deg, cyan->violet,
+                   slow ~8.5s linear spin. Bloom is on the core ONLY. -->
+              <span class="glyph spin">
+                <svg viewBox="0 0 48 48" width="30" height="30" aria-label="muse">
+                  <defs>
+                    <linearGradient id="ring-grad-a" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stop-color="#7ae0ff" />
+                      <stop offset="1" stop-color="#b388ff" />
+                    </linearGradient>
+                  </defs>
+                  <g transform="rotate(-32 24 24)">
+                    <circle cx="24" cy="24" r="15" fill="none" stroke="url(#ring-grad-a)"
+                            stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round" />
+                  </g>
+                  <circle cx="24" cy="24" r="3.1" fill="#ffffff" />
+                </svg>
+              </span>
+              <span class="wordmark">muse</span>
+              <span class="expansion">Multi-Use Synaptic Entity</span>
+            </span>
+
+            <span class="grow"></span>
+
+            <span class="header-status">
+              <span class="dot live"></span>
+              <span class="status-text">connected</span>
+            </span>
+            <span class="header-actions">
+              <button type="button" class="btn secondary" title="Set the cockpit pairing token">Token</button>
+              <button type="button" class="btn danger" title="Stop all jobs and latch read-only">Emergency stop</button>
+            </span>
+          </header>
+
+          <!-- ==================== Left nav rail ==================== -->
+          <nav class="app-nav" aria-label="Cockpit destinations">
+            <button type="button" class="nav-item">Chat</button>
+            <button type="button" class="nav-item active">Jobs</button>
+            <button type="button" class="nav-item">Approvals</button>
+            <button type="button" class="nav-item">Routes</button>
+            <button type="button" class="nav-item">Autonomy</button>
+            <button type="button" class="nav-item">Observatory</button>
+            <button type="button" class="nav-item">Memory</button>
+            <button type="button" class="nav-item">Evidence</button>
+            <button type="button" class="nav-item">Graph</button>
+            <button type="button" class="nav-item">Learning</button>
+            <button type="button" class="nav-item">Runtime</button>
+          </nav>
+
+          <!-- ==================== Main: the Jobs view ==================== -->
+          <main class="app-main">
+            <section class="view active">
+
+              <div class="section-header">
+                <div class="heads">
+                  <span class="eyebrow">Orchestration</span>
+                  <h2 class="section-title">Active jobs</h2>
+                </div>
+                <div class="trailing">
+                  <span class="pill accent">2 running</span>
+                  <button type="button" class="btn primary">New job</button>
+                </div>
+              </div>
+
+              <!-- Job 1 — building (active shimmer rail) -->
+              <div class="card interactive">
+                <div class="job-card-head">
+                  <div class="job-meta">
+                    <span class="job-title">Add OAuth device-pairing flow</span>
+                    <span class="job-sub mono">job-7c1f · builder · main</span>
+                  </div>
+                  <div class="job-status">
+                    <span class="dot live"></span>
+                    <span class="pill accent">Building</span>
+                  </div>
+                </div>
+                <div class="phaserail">
+                  <div class="segments">
+                    <div class="phase done"><div class="bar"></div><div class="label">Clone</div></div>
+                    <div class="phase done"><div class="bar"></div><div class="label">Deps</div></div>
+                    <div class="phase active"><div class="bar"></div><div class="label">Build</div></div>
+                    <div class="phase"><div class="bar"></div><div class="label">Test</div></div>
+                    <div class="phase"><div class="bar"></div><div class="label">Ship</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Job 2 — review (all phases done, awaiting owner) -->
+              <div class="card interactive">
+                <div class="job-card-head">
+                  <div class="job-meta">
+                    <span class="job-title">Migrate ledger writes to single-writer</span>
+                    <span class="job-sub mono">job-3a90 · refactor · claude/fu-12</span>
+                  </div>
+                  <div class="job-status">
+                    <span class="dot ok"></span>
+                    <span class="pill ok">In review</span>
+                  </div>
+                </div>
+                <div class="phaserail">
+                  <div class="segments">
+                    <div class="phase done"><div class="bar"></div><div class="label">Clone</div></div>
+                    <div class="phase done"><div class="bar"></div><div class="label">Deps</div></div>
+                    <div class="phase done"><div class="bar"></div><div class="label">Build</div></div>
+                    <div class="phase done"><div class="bar"></div><div class="label">Test</div></div>
+                    <div class="phase done"><div class="bar"></div><div class="label">Ship</div></div>
+                  </div>
+                </div>
+              </div>
+
+            </section>
+          </main>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- Variant 2 — Same shell, Approvals active, an EmptyState main view  -->
+    <!-- ================================================================= -->
+    <section class="specimen">
+      <div class="caption">Composed shell — EmptyState main view (Approvals active, idle dot)</div>
+      <div class="shell-frame">
+        <div class="app">
+
+          <header class="app-header">
+            <span class="lockup">
+              <span class="glyph spin">
+                <svg viewBox="0 0 48 48" width="30" height="30" aria-label="muse">
+                  <defs>
+                    <linearGradient id="ring-grad-b" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stop-color="#7ae0ff" />
+                      <stop offset="1" stop-color="#b388ff" />
+                    </linearGradient>
+                  </defs>
+                  <g transform="rotate(-32 24 24)">
+                    <circle cx="24" cy="24" r="15" fill="none" stroke="url(#ring-grad-b)"
+                            stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round" />
+                  </g>
+                  <circle cx="24" cy="24" r="3.1" fill="#ffffff" />
+                </svg>
+              </span>
+              <span class="wordmark">muse</span>
+              <span class="expansion">Multi-Use Synaptic Entity</span>
+            </span>
+
+            <span class="grow"></span>
+
+            <span class="header-status">
+              <span class="dot off"></span>
+              <span class="status-text">idle</span>
+            </span>
+            <span class="header-actions">
+              <button type="button" class="btn secondary" title="Set the cockpit pairing token">Token</button>
+              <button type="button" class="btn danger" title="Stop all jobs and latch read-only">Emergency stop</button>
+            </span>
+          </header>
+
+          <nav class="app-nav" aria-label="Cockpit destinations">
+            <button type="button" class="nav-item">Chat</button>
+            <button type="button" class="nav-item">Jobs</button>
+            <button type="button" class="nav-item active">Approvals</button>
+            <button type="button" class="nav-item">Routes</button>
+            <button type="button" class="nav-item">Autonomy</button>
+            <button type="button" class="nav-item">Observatory</button>
+            <button type="button" class="nav-item">Memory</button>
+            <button type="button" class="nav-item">Evidence</button>
+            <button type="button" class="nav-item">Graph</button>
+            <button type="button" class="nav-item">Learning</button>
+            <button type="button" class="nav-item">Runtime</button>
+          </nav>
+
+          <main class="app-main">
+            <section class="view active">
+              <div class="empty">
+                <!-- Dimmed glyph, no spin (EmptyState convention). Bloom on core only. -->
+                <span class="glyph">
+                  <svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="ring-grad-empty" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#7ae0ff" />
+                        <stop offset="1" stop-color="#b388ff" />
+                      </linearGradient>
+                    </defs>
+                    <g transform="rotate(-32 24 24)">
+                      <circle cx="24" cy="24" r="15" fill="none" stroke="url(#ring-grad-empty)"
+                              stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round" />
+                    </g>
+                    <circle cx="24" cy="24" r="3.1" fill="#ffffff" />
+                  </svg>
+                </span>
+                <h2 class="empty-title">Nothing waiting on you</h2>
+                <p class="empty-body">
+                  Approvals appear here when a job hits an owner gate — spend, deploy,
+                  publish, or a merge to main. The queue is clear.
+                </p>
+                <div class="row" style="justify-content:center">
+                  <button type="button" class="btn secondary">View ledger</button>
+                  <button type="button" class="btn primary">Start a job</button>
+                </div>
+              </div>
+            </section>
+          </main>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

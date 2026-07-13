@@ -1,0 +1,102 @@
+<!-- @dsCard group="Components" name="StatusDot" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StatusDot — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--space-6);
+      max-width: 760px;
+    }
+    .preview-cell {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .type-label {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      color: var(--signal-mute);
+    }
+    .preview-title {
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-spacing);
+      line-height: var(--type-title-line);
+      color: var(--core);
+      margin: 0 0 var(--space-2);
+    }
+    .preview-lede {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: 0 0 var(--space-8);
+      max-width: 56ch;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="preview-title">StatusDot</h1>
+  <p class="preview-lede">
+    The <code>.dot</code> indicator pairs a tonal dot with adjacent status text,
+    exactly as in the cockpit header. Each UI state maps to a status token; the
+    live variant pulses opacity (pure CSS).
+  </p>
+
+  <div class="preview-grid">
+    <div class="preview-cell">
+      <span class="type-label">ok</span>
+      <div class="header-status">
+        <span class="dot ok"></span>
+        <span class="status-text">Online</span>
+      </div>
+    </div>
+
+    <div class="preview-cell">
+      <span class="type-label">warn</span>
+      <div class="header-status">
+        <span class="dot warn"></span>
+        <span class="status-text">Degraded</span>
+      </div>
+    </div>
+
+    <div class="preview-cell">
+      <span class="type-label">danger</span>
+      <div class="header-status">
+        <span class="dot danger"></span>
+        <span class="status-text">Offline</span>
+      </div>
+    </div>
+
+    <div class="preview-cell">
+      <span class="type-label">signal-mute (idle / off)</span>
+      <div class="header-status">
+        <span class="dot off"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </div>
+
+    <div class="preview-cell">
+      <span class="type-label">live (pulsing)</span>
+      <div class="header-status">
+        <span class="dot live"></span>
+        <span class="status-text">Streaming</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Beautiful Mustang-Inspired Interactive Model</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol"}
+  #hud{position:fixed;left:1rem;top:1rem;z-index:5;width:min(480px,calc(100vw - 2rem));background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:1rem;padding:1rem 1.2rem;backdrop-filter:blur(12px)}
+  h1{margin:0 0 .5rem;font-size:1.25rem}.sub{font-size:.875rem;color:#ccc;line-height:1.4;margin:.25rem 0}
+  #status{position:fixed;right:1rem;bottom:1rem;z-index:5;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);padding:.5rem .75rem;border-radius:.75rem;font-size:.75rem}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>Beautiful Mustang-Inspired Fastback</h1>
+  <div class="sub">Photorealistic rendering with HDRI lighting, PBR materials, post-processing bloom, and cinematic tone mapping.</div>
+</div>
+<div id="status">Loading...</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const status = document.getElementById('status');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(5.5, 2.5, 5.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 0.8, 0);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.4, 0.85);
+composer.addPass(bloomPass);
+
+new RGBELoader().load('studio_small_03_1k.hdr', (texture) => {
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  scene.background = texture;
+  scene.environment = texture;
+  status.textContent = 'Ready';
+});
+
+const paint = new THREE.MeshPhysicalMaterial({ color:0x0a3a22, roughness:0.1, metalness:0.9, clearcoat:1, clearcoatRoughness:0.1 });
+const chrome = new THREE.MeshPhysicalMaterial({ color:0xffffff, metalness:1, roughness:0.1 });
+const glass = new THREE.MeshPhysicalMaterial({ color:0xffffff, transmission:1, transparent:true, roughness:0, metalness:0, ior:1.5 });
+const rubber = new THREE.MeshPhysicalMaterial({ color:0x020202, roughness:0.8 });
+const redGlass = new THREE.MeshPhysicalMaterial({ color:0xff0000, emissive:0x880000, roughness:0.1, transmission:0.5, transparent:true });
+
+const body = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 2), paint);
+body.position.y = 0.6;
+scene.add(body);
+
+const roof = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 1.8), paint);
+roof.position.y = 1.5;
+roof.position.x = 0.5;
+scene.add(roof);
+
+for (let i = 0; i < 4; i++) {
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 32), rubber);
+  wheel.position.set((i < 2 ? -1.5 : 1.5), 0.4, (i % 2 === 0 ? -1.1 : 1.1));
+  scene.add(wheel);
+}
+
+const windshield = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.8), glass);
+windshield.position.set(-0.75, 1.5, 0);
+windshield.rotation.y = Math.PI / 2;
+scene.add(windshield);
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  composer.render();
+}
+animate();
+</script>
+</body>
+</html>

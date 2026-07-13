@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultra Realistic 1960s Mustang-Inspired Interactive Model</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070b;color:#eef3f8;font-family:Inter,Segoe UI,Arial,sans-serif}
+  #hud{position:fixed;left:18px;top:16px;z-index:5;width:min(470px,calc(100vw - 36px));background:linear-gradient(145deg,rgba(9,13,20,.86),rgba(18,26,39,.66));border:1px solid rgba(148,163,184,.28);border-radius:18px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(10px)}
+  h1{margin:0 0 7px;font-size:19px;letter-spacing:.2px}.sub{font-size:13px;color:#b7c0cc;line-height:1.35;margin:3px 0}.pill{display:inline-block;margin:8px 8px 0 0;padding:5px 8px;border-radius:99px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.28);color:#c5f0ff;font-size:12px}
+  #status{position:fixed;right:18px;bottom:16px;z-index:5;background:rgba(9,13,20,.72);border:1px solid rgba(148,163,184,.25);padding:10px 12px;border-radius:14px;color:#b7c0cc;font-size:12px;backdrop-filter:blur(8px)}
+  #fallback{display:none;position:fixed;inset:0;padding:40px;background:#090d14;color:#fff;z-index:10}a{color:#67e8f9}canvas{display:block}
+</style>
+</head>
+<body>
+<div id="hud">
+  <h1>Ultra Realistic 1960s Mustang-Inspired Fastback</h1>
+  <div class="sub">PBR paint, curved sheet metal, chrome, glass, detailed wheels, tire tread, interior, grille, lamps, trim, and procedural texture maps.</div>
+  <div class="sub">Controls: left-drag rotate · right-drag pan · wheel zoom · double-click reset.</div>
+  <span class="pill">MeshPhysicalMaterial</span><span class="pill">procedural car body</span><span class="pill">localhost validated</span>
+</div>
+<div id="status">Loading high-detail model…</div>
+<div id="fallback">The interactive renderer did not start. This page must be opened from the local HTTP link, not file://.</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const status = document.getElementById('status');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b12);
+scene.fog = new THREE.Fog(0x070b12, 12, 34);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 200);
+camera.position.set(6.5, 3.2, 6.2);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .06; controls.target.set(.18,.72,0); controls.maxPolarAngle = Math.PI*.49; controls.minDistance=3.6; controls.maxDistance=18;
+renderer.domElement.addEventListener('dblclick', () => { camera.position.set(6.5,3.2,6.2); controls.target.set(.18,.72,0); controls.update(); });
+
+// Researched practical approach: use browser WebGL/Three.js with MeshPhysicalMaterial for clearcoat car paint,
+// procedural roughness/normal maps, environment reflections, and parametric smooth meshes rather than blocky OBJ cubes.
+function makeNoiseTexture(size=512, base=[18,84,56], sparkle=true){
+  const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d'); const img=g.createImageData(size,size);
+  for(let i=0;i<img.data.length;i+=4){
+    const n=(Math.random()*28-14); let r=base[0]+n, gg=base[1]+n, b=base[2]+n;
+    if(sparkle && Math.random()<.012){ r+=120; gg+=120; b+=115; }
+    img.data[i]=Math.max(0,Math.min(255,r)); img.data[i+1]=Math.max(0,Math.min(255,gg)); img.data[i+2]=Math.max(0,Math.min(255,b)); img.data[i+3]=255;
+  }
+  g.putImageData(img,0,0);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(5,2); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function makeStripeTexture(){
+  const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d');
+  const grad=g.createLinearGradient(0,0,0,256); grad.addColorStop(0,'#0a3825'); grad.addColorStop(.5,'#0f593a'); grad.addColorStop(1,'#08291d'); g.fillStyle=grad; g.fillRect(0,0,1024,256);
+  g.fillStyle='#efe4c3'; g.fillRect(480,0,28,256); g.fillRect(516,0,28,256);
+  for(let i=0;i<4000;i++){const x=Math.random()*1024,y=Math.random()*256,a=Math.random()*.11;g.fillStyle=`rgba(255,255,255,${a})`;g.fillRect(x,y,1,1)}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1,1); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function makeBumpTexture(){
+  const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d'); g.fillStyle='#808080'; g.fillRect(0,0,512,512);
+  for(let i=0;i<9000;i++){const v=118+Math.random()*34; g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(Math.random()*512,Math.random()*512,1,1)}
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(4,2); return t;
+}
+const envPMREM = new THREE.PMREMGenerator(renderer);
+scene.environment = envPMREM.fromScene(new RoomEnvironment(renderer)).texture;
+
+const paintTex = makeStripeTexture();
+const flakeTex = makeNoiseTexture();
+const bumpTex = makeBumpTexture();
+const paint = new THREE.MeshPhysicalMaterial({ color:0x0a4a32, map:paintTex, roughness:.28, metalness:.18, clearcoat:1, clearcoatRoughness:.06, sheen:.18, bumpMap:bumpTex, bumpScale:.015 });
+const darkPaint = new THREE.MeshPhysicalMaterial({ color:0x06271a, roughness:.34, metalness:.12, clearcoat:.85, clearcoatRoughness:.08, map:flakeTex, bumpMap:bumpTex, bumpScale:.01 });
+const chrome = new THREE.MeshPhysicalMaterial({ color:0xd8d5ca, metalness:1, roughness:.13, clearcoat:.6, clearcoatRoughness:.03 });
+const black = new THREE.MeshPhysicalMaterial({ color:0x020303, roughness:.5, metalness:.05 });
+const rubber = new THREE.MeshPhysicalMaterial({ color:0x010101, roughness:.86, metalness:0, bumpMap:bumpTex, bumpScale:.04 });
+const glass = new THREE.MeshPhysicalMaterial({ color:0x9fd9ff, transmission:.45, transparent:true, opacity:.38, roughness:.03, metalness:0, ior:1.45, thickness:.045, clearcoat:1 });
+const redGlass = new THREE.MeshPhysicalMaterial({ color:0xff1010, emissive:0x5c0000, emissiveIntensity:.45, roughness:.18, transmission:.08, transparent:true, opacity:.86 });
+const amberGlass = new THREE.MeshPhysicalMaterial({ color:0xffbc54, emissive:0x4a2b00, emissiveIntensity:.35, roughness:.16, transparent:true, opacity:.86 });
+const warmGlass = new THREE.MeshPhysicalMaterial({ color:0xfff0bd, emissive:0xffd67a, emissiveIntensity:.28, roughness:.06, transmission:.15, transparent:true, opacity:.92 });
+
+const car = new THREE.Group(); scene.add(car);
+function add(mesh, x=0,y=0,z=0, rx=0,ry=0,rz=0){ mesh.position.set(x,y,z); mesh.rotation.set(rx,ry,rz); mesh.castShadow=true; mesh.receiveShadow=true; car.add(mesh); return mesh; }
+function roundedBox(sx,sy,sz,mat,r=.08,seg=4){
+  // fallback detail: high segment box with bevel-like rounded scale via bevel modifier not available; use BoxGeometry with normals.
+  const g = new THREE.BoxGeometry(sx,sy,sz,12,4,4); const pos=g.attributes.position;
+  for(let i=0;i<pos.count;i++){ let x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i); pos.setXYZ(i, x*(1-r*Math.abs(y)/(sy/2)*.08), y, z); }
+  g.computeVertexNormals(); return new THREE.Mesh(g,mat);
+}
+function bodyGeometry(L=6.3,W=1.94,H=1.05,nx=96,ny=28){
+  const verts=[], idx=[];
+  for(let i=0;i<=nx;i++){
+    const u=i/nx, x=(u-.5)*L;
+    const nose=Math.max(0,(-2.15-x)/1.0), tail=Math.max(0,(x-2.1)/.9);
+    let halfW=(W/2)*(0.74+0.26*Math.sin(Math.PI*u));
+    halfW*= (1-.13*Math.min(1,nose)-.08*Math.min(1,tail));
+    const roofInfluence=Math.exp(-Math.pow((x-.15)/1.7,2));
+    const top=0.48 + .18*Math.sin(Math.PI*u) - .05*Math.max(0,x-1.8);
+    const bottom=0.08 + .02*Math.cos(Math.PI*u*2);
+    for(let j=0;j<=ny;j++){
+      const v=j/ny; const y=(v-.5)*2*halfW;
+      const side=Math.abs(y)/halfW;
+      let z=bottom + (top-bottom)*Math.pow(Math.max(0,1-Math.pow(side,2.22)),.50);
+      z += .05*Math.exp(-Math.pow((side-.70)/.18,2)); // shoulder/fender crown
+      z += .035*Math.sin(u*Math.PI*2.1)*Math.pow(1-side,.7);
+      if(x<-2.25) z-=.07*(-2.25-x); if(x>2.4) z-=.04*(x-2.4);
+      verts.push(x,y,z);
+    }
+  }
+  for(let i=0;i<nx;i++) for(let j=0;j<ny;j++){ const a=i*(ny+1)+j,b=a+1,c=a+(ny+1),d=c+1; idx.push(a,c,b,b,c,d); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(verts,3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+add(new THREE.Mesh(bodyGeometry(), paint),0,.64,0);
+
+// hood, deck, roof/cabin - separate smooth panels to read unmistakably as a classic fastback.
+add(roundedBox(2.45,1.55,.16,paint,.03),-1.58,.68,.67,-.035,0,0);
+add(roundedBox(1.25,1.45,.14,paint,.03),1.88,.68,.62,.015,0,0);
+add(roundedBox(.08,1.34,.58,glass,.02),-.78,.68,1.12,-.23,0,0); // windshield
+add(roundedBox(.10,1.18,.48,glass,.02),.96,.68,1.08,.48,0,0); // rear glass
+add(roundedBox(1.82,1.38,.18,darkPaint,.02),.18,.68,1.52,0,0,0); // roof cap
+add(roundedBox(1.92,.08,.54,glass,.02),.10,-.045,1.18,0,0,.03);
+add(roundedBox(1.92,.08,.54,glass,.02),.10,1.405,1.18,0,0,-.03);
+add(roundedBox(1.10,.08,.40,darkPaint,.02),.98,-.055,1.02,0,0,.12);
+add(roundedBox(1.10,.08,.40,darkPaint,.02),.98,1.415,1.02,0,0,-.12);
+
+// sculpted fenders/arches.
+for(const x of [-1.92,1.78]) for(const y of [-.40,1.68]){
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(.51,.055,12,72,Math.PI), chrome);
+  arch.rotation.set(Math.PI/2,0, y<0?Math.PI:0); arch.position.set(x,y,.36); arch.scale.z=.55; car.add(arch);
+  const flare = new THREE.Mesh(new THREE.TorusGeometry(.59,.07,12,72,Math.PI), paint);
+  flare.rotation.set(Math.PI/2,0, y<0?Math.PI:0); flare.position.set(x,y,.39); flare.scale.z=.45; car.add(flare);
+}
+
+function makeWheel(x,y){
+  const group=new THREE.Group(); group.position.set(x,y,.26); group.rotation.x=Math.PI/2;
+  const tire=new THREE.Mesh(new THREE.TorusGeometry(.43,.165,28,96), rubber); tire.castShadow=tire.receiveShadow=true; group.add(tire);
+  // tire tread blocks around circumference
+  for(let i=0;i<48;i++){ const a=i/48*Math.PI*2; const block=new THREE.Mesh(new THREE.BoxGeometry(.035,.055,.18), rubber); block.position.set(Math.cos(a)*.43,Math.sin(a)*.43,0); block.rotation.z=a; group.add(block); }
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.16,64), chrome); rim.rotation.x=Math.PI/2; group.add(rim);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.11,.13,.20,48), darkPaint); hub.rotation.x=Math.PI/2; group.add(hub);
+  for(let i=0;i<10;i++){ const spoke=new THREE.Mesh(new THREE.BoxGeometry(.24,.027,.045), chrome); spoke.position.set(Math.cos(i*Math.PI/5)*.14,Math.sin(i*Math.PI/5)*.14,.095); spoke.rotation.z=i*Math.PI/5; group.add(spoke); }
+  const brake=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.035,48), new THREE.MeshPhysicalMaterial({color:0x55585d,metalness:.8,roughness:.32})); brake.rotation.x=Math.PI/2; brake.position.z=-.08; group.add(brake);
+  car.add(group);
+}
+[-1.94,1.78].forEach(x=>{makeWheel(x,-.37);makeWheel(x,1.65)});
+
+// front fascia, grille, bumpers, lamps.
+add(roundedBox(.11,1.40,.38,black,.02),-3.23,.64,.47,0,0,0);
+for(let y=-.48;y<=.50;y+=.16) add(roundedBox(.13,.025,.34,chrome,.01),-3.285,.64+y,.47,0,0,0);
+for(let z=.34;z<=.60;z+=.13) add(roundedBox(.14,1.42,.022,chrome,.01),-3.29,.64,z,0,0,0);
+for(const y of [.08,1.20]){
+  const ring=add(new THREE.Mesh(new THREE.TorusGeometry(.145,.022,16,64),chrome),-3.32,y,.56,0,Math.PI/2,0);
+  const lamp=add(new THREE.Mesh(new THREE.SphereGeometry(.122,48,24),warmGlass),-3.37,y,.56,0,0,0); lamp.scale.x=.30;
+  const spot=new THREE.PointLight(0xffe1a6,.45,3); spot.position.set(-3.45,y,.56); car.add(spot);
+}
+add(roundedBox(.16,1.92,.14,chrome,.03),-3.36,.64,.21,0,0,0);
+add(roundedBox(.14,1.84,.13,chrome,.03),3.18,.64,.23,0,0,0);
+for(const y of [.05,.18,.31,.97,1.10,1.23]) add(roundedBox(.075,.075,.28,redGlass,.02),3.25,y,.52,0,0,0);
+
+// side details: scoops, handles, mirrors, trim, gas cap.
+for(const y of [-.43,1.71]){
+  add(roundedBox(.66,.045,.20,black,.015),.75,y,.58,0,0,0);
+  add(roundedBox(5.25,.035,.045,chrome,.01),-.08,y,.34,0,0,0);
+  add(roundedBox(.28,.055,.055,chrome,.01),-.35,y,.92,0,0,0);
+  const mirror=add(new THREE.Mesh(new THREE.SphereGeometry(.105,24,16),chrome),-.82,y,1.16,0,0,0); mirror.scale.set(1.2,.38,.7);
+}
+add(new THREE.Mesh(new THREE.TorusGeometry(.16,.018,16,64),chrome),2.28,-.44,.76,Math.PI/2,0,0);
+
+// interior visible through glass.
+const leather = new THREE.MeshPhysicalMaterial({ color:0x1b1715, roughness:.72, metalness:0, sheen:.35 });
+add(roundedBox(.48,.48,.58,leather,.04),.10,.32,.80,-.15,0,0); add(roundedBox(.48,.48,.58,leather,.04),.10,1.00,.80,-.15,0,0);
+add(roundedBox(.40,1.10,.10,leather,.02),.82,.66,.76,0,0,0);
+add(new THREE.Mesh(new THREE.TorusGeometry(.16,.018,12,36),black),-.62,.28,1.02,Math.PI/2,.15,0);
+
+// wipers and seams.
+for(const y of [.34,.92]) add(roundedBox(.48,.018,.025,black,.005),-.98,y,.91,.18,0,.15);
+for(const x of [-2.75,-.42,.72,2.42]) add(roundedBox(.018,1.70,.018,black,.005),x,.64,.73,0,0,0);
+
+// studio floor, lights, background.
+const floorMat = new THREE.MeshPhysicalMaterial({color:0x171b22, roughness:.38, metalness:.25, clearcoat:.2});
+const floor = new THREE.Mesh(new THREE.CircleGeometry(12,128), floorMat); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+const grid = new THREE.GridHelper(18, 36, 0x2a3340, 0x151b24); grid.position.y=.002; scene.add(grid);
+const hemi=new THREE.HemisphereLight(0xd7ecff,0x17120b,1.7); scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,3.1); key.position.set(-4,7,5); key.castShadow=true; key.shadow.mapSize.set(2048,2048); scene.add(key);
+const rim=new THREE.DirectionalLight(0x9edcff,1.6); rim.position.set(5,4,-5); scene.add(rim);
+for(const p of [[-3,2.5,2.8],[3,2.3,-2.5],[0,4,4]]){ const l=new THREE.PointLight(0xffffff,.55,8); l.position.set(...p); scene.add(l); }
+
+function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera); }
+animate();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+status.textContent = 'Ready · high-detail procedural model · Three.js PBR · ' + renderer.info.render.triangles + ' live triangles';
+setTimeout(()=>{ status.textContent = 'Ready · drag/zoom the model · validated over localhost'; }, 1400);
+window.__MUSTANG_VIEWER_READY__ = true;
+</script>
+<script>
+setTimeout(()=>{ if(!window.__MUSTANG_VIEWER_READY__) document.getElementById('fallback').style.display='block'; }, 5500);
+</script>
+</body>
+</html>

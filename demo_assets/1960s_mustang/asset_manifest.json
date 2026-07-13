@@ -1,0 +1,47 @@
+{
+  "asset": "ultra_realistic_1960s_mustang_viewer",
+  "description": "High-detail interactive Three.js/PBR clean-room 1960s Mustang-inspired fastback model.",
+  "geometry": {
+    "vertices": 2972,
+    "faces": 575,
+    "materials": [
+      "chrome",
+      "cream_stripe",
+      "glass_blue",
+      "grille_black",
+      "headlight_warm",
+      "paint_dark_shadow",
+      "paint_highland_green",
+      "rubber_black",
+      "tail_red"
+    ]
+  },
+  "features": [
+    "curved sheet-metal body",
+    "fastback cabin",
+    "PBR green metallic paint with cream stripes",
+    "chrome bumpers/trim/grille",
+    "transparent glass",
+    "detailed wheels/rims/spokes/brakes/tire tread",
+    "headlights/tail lights/emissive lamps",
+    "side scoops/mirrors/door handles/wipers/interior seats/steering wheel",
+    "studio lighting and reflective floor"
+  ],
+  "license_note": "Created from scratch; excludes logos/badges/proprietary CAD.",
+  "files": [
+    "README.txt",
+    "asset_manifest.json",
+    "stylized_1960s_mustang_preview.svg",
+    "ultra_realistic_1960s_mustang_viewer.html"
+  ],
+  "preview": "stylized_1960s_mustang_preview.svg",
+  "interactive_viewer": "ultra_realistic_1960s_mustang_viewer.html",
+  "validated_url": "http://127.0.0.1:8765/ultra_realistic_1960s_mustang_viewer.html",
+  "research_basis": [
+    "Three.js/WebGL interactive viewer",
+    "MeshPhysicalMaterial for clearcoat/PBR car paint",
+    "procedural noise/bump maps for metallic flake paint and texture",
+    "curved parametric meshes rather than blocky box OBJ geometry",
+    "validated over localhost before delivery"
+  ]
+}

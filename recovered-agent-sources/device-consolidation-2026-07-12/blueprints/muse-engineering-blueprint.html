@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M.U.S.E Engineering Blueprint</title>
+<style>
+:root { --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --panel:#ffffff; --bg:#f8fafc; --accent:#2563eb; --accent2:#7c3aed; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif; color:var(--ink); background:linear-gradient(180deg,#f8fafc,#eef2ff 45%,#fff); line-height:1.55; }
+.wrapper { max-width: 1120px; margin: 0 auto; padding: 42px 24px 80px; }
+.hero { padding: 38px; border:1px solid var(--line); background:linear-gradient(135deg,#ffffff,#eef2ff); border-radius:28px; box-shadow:0 18px 50px rgba(15,23,42,.08); }
+.kicker { text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-weight:800; font-size:12px; }
+h1 { margin:10px 0 12px; font-size:44px; line-height:1.05; letter-spacing:-.04em; }
+h2 { margin:40px 0 14px; font-size:26px; letter-spacing:-.02em; }
+h3 { margin:24px 0 8px; }
+.lede { font-size:18px; color:var(--muted); max-width:850px; }
+.badges { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+.badge { padding:8px 12px; border-radius:999px; border:1px solid #c7d2fe; background:#eef2ff; color:#312e81; font-weight:700; font-size:13px; }
+.card { margin:24px 0; padding:24px; background:rgba(255,255,255,.9); border:1px solid var(--line); border-radius:22px; box-shadow:0 8px 28px rgba(15,23,42,.055); }
+.grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:18px; }
+@media (max-width: 850px) { .grid { grid-template-columns:1fr; } h1 { font-size:34px; } }
+ul { padding-left:22px; }
+pre { overflow:auto; background:#0f172a; color:#e2e8f0; padding:18px; border-radius:16px; font-size:13px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+table { border-collapse:collapse; width:100%; margin:14px 0; background:#fff; border-radius:14px; overflow:hidden; }
+th, td { border:1px solid var(--line); padding:11px 12px; text-align:left; vertical-align:top; }
+th { background:#f1f5f9; font-size:13px; text-transform:uppercase; letter-spacing:.04em; }
+.diagram { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; overflow:auto; }
+.diagram svg { max-width:100%; height:auto; display:block; margin:auto; }
+.callout { border-left:5px solid var(--accent); background:#eff6ff; padding:16px 18px; border-radius:14px; color:#1e3a8a; }
+.footer { color:var(--muted); font-size:13px; margin-top:48px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+<section class="hero">
+<div class="kicker">Architecture Blueprint</div>
+<h1>M.U.S.E Engineering Plan</h1>
+<p class="lede">A structured, professionally diagrammed implementation guide for <strong>A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E</strong>, organized around repo assimilation, operating architecture, workflows, verification gates, remote workers, cognition pipelines, and owner-governed execution.</p>
+<div class="badges"><span class="badge">Local-first</span><span class="badge">Governed Autonomy</span><span class="badge">GraphRAG</span><span class="badge">Goal-to-PR</span><span class="badge">Owner Gates</span><span class="badge">Remote Workers</span></div>
+</section>
+
+<section class="card">
+<h2>1. Executive Summary</h2>
+<p>M.U.S.E should be represented as a governed AI operating layer: Hermes is the command center, Jarvis Prime is the runtime, the cognition plane provides memory/research/context compilation, and the orchestrator turns high-level goals into auditable worker tasks. The platform should be documented as a set of bounded, reversible pipelines rather than as unconstrained autonomy.</p>
+<div class="callout"><strong>Engineering stance:</strong> plan autonomously, propose safely, verify locally, preserve provenance, stop before high-impact actions, and make every important decision inspectable.</div>
+</section>
+
+<section class="card">
+<h2>2. Clone + Developer Start</h2>
+<pre><code>gh repo clone A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
+cd M.U.S.E
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[all,dev]'
+muse doctor
+muse</code></pre>
+</section>
+<section class="card"><h2>System Context</h2><div class="diagram"><svg width="2497pt" height="403pt"
+ viewBox="0.00 0.00 2497.20 403.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 381.6)">
+<title>muse_context</title>
+<text text-anchor="middle" x="1227" y="-341.6" font-family="Inter,Arial" font-size="18.00">M.U.S.E System Context</text>
+<g id="clust1" class="cluster">
+<title>cluster_surfaces</title>
+<path fill="transparent" stroke="#cbd5e1" d="M20,-8C20,-8 215,-8 215,-8 221,-8 227,-14 227,-20 227,-20 227,-312 227,-312 227,-318 221,-324 215,-324 215,-324 20,-324 20,-324 14,-324 8,-318 8,-312 8,-312 8,-20 8,-20 8,-14 14,-8 20,-8"/>
+<text text-anchor="middle" x="117.5" y="-305.6" font-family="Inter,Arial" font-size="18.00">Human Surfaces</text>
+</g>
+<!-- cli -->
+<g id="node1" class="node">
+<title>cli</title>
+<path fill="#f7fafc" stroke="#243447" d="M145,-288C145,-288 90,-288 90,-288 84,-288 78,-282 78,-276 78,-276 78,-262 78,-262 78,-256 84,-250 90,-250 90,-250 145,-250 145,-250 151,-250 157,-256 157,-262 157,-262 157,-276 157,-276 157,-282 151,-288 145,-288"/>
+<text text-anchor="middle" x="117.5" y="-272.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">CLI / REPL</text>
+<text text-anchor="middle" x="117.5" y="-259.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">`muse`</text>
+</g>
+<!-- hermes -->
+<g id="node5" class="node">
+<title>hermes</title>
+<path fill="#e0f2fe" stroke="#243447" d="M456,-171C456,-171 290,-171 290,-171 284,-171 278,-165 278,-159 278,-159 278,-145 278,-145 278,-139 284,-133 290,-133 290,-133 456,-133 456,-133 462,-133 468,-139 468,-145 468,-145 468,-159 468,-159 468,-165 462,-171 456,-171"/>
+<text text-anchor="middle" x="373" y="-155.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Hermes Command Center</text>
+<text text-anchor="middle" x="373" y="-142.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">conversation + execution shell</text>
+</g>
+<!-- cli&#45;&gt;hermes -->
+<g id="edge1" class="edge">
+<title>cli&#45;&gt;hermes</title>
+<path fill="none" stroke="#4b5563" d="M157.14,-269C228.91,-269 373,-269 373,-269 373,-269 373,-179.06 373,-179.06"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="375.8,-179.06 373,-171.06 370.2,-179.06 375.8,-179.06"/>
+</g>
+<!-- tui -->
+<g id="node2" class="node">
+<title>tui</title>
+<path fill="#f7fafc" stroke="#243447" d="M147.5,-210C147.5,-210 87.5,-210 87.5,-210 81.5,-210 75.5,-204 75.5,-198 75.5,-198 75.5,-184 75.5,-184 75.5,-178 81.5,-172 87.5,-172 87.5,-172 147.5,-172 147.5,-172 153.5,-172 159.5,-178 159.5,-184 159.5,-184 159.5,-198 159.5,-198 159.5,-204 153.5,-210 147.5,-210"/>
+<text text-anchor="middle" x="117.5" y="-194.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Full TUI</text>
+<text text-anchor="middle" x="117.5" y="-181.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">`muse &#45;&#45;tui`</text>
+</g>
+<!-- tui&#45;&gt;hermes -->
+<g id="edge2" class="edge">
+<title>tui&#45;&gt;hermes</title>
+<path fill="none" stroke="#4b5563" d="M118,-172C118,-164.81 118,-158.33 118,-158.33 118,-158.33 269.68,-158.33 269.68,-158.33"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="269.68,-161.13 277.68,-158.33 269.68,-155.53 269.68,-161.13"/>
+</g>
+<!-- gateway -->
+<g id="node3" class="node">
+<title>gateway</title>
+<path fill="#f7fafc" stroke="#243447" d="M207,-132C207,-132 28,-132 28,-132 22,-132 16,-126 16,-120 16,-120 16,-106 16,-106 16,-100 22,-94 28,-94 28,-94 207,-94 207,-94 213,-94 219,-100 219,-106 219,-106 219,-120 219,-120 219,-126 213,-132 207,-132"/>
+<text text-anchor="middle" x="117.5" y="-116.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Gateway DMs</text>
+<text text-anchor="middle" x="117.5" y="-103.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Telegram / Discord / Slack / etc.</text>
+</g>
+<!-- gateway&#45;&gt;hermes -->
+<g id="edge3" class="edge">
+<title>gateway&#45;&gt;hermes</title>
+<path fill="none" stroke="#4b5563" d="M190,-132C190,-139.19 190,-145.67 190,-145.67 190,-145.67 269.75,-145.67 269.75,-145.67"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="269.75,-148.47 277.75,-145.67 269.75,-142.87 269.75,-148.47"/>
+</g>
+<!-- android -->
+<g id="node4" class="node">
+<title>android</title>
+<path fill="#f7fafc" stroke="#243447" d="M166,-54C166,-54 69,-54 69,-54 63,-54 57,-48 57,-42 57,-42 57,-28 57,-28 57,-22 63,-16 69,-16 69,-16 166,-16 166,-16 172,-16 178,-22 178,-28 178,-28 178,-42 178,-42 178,-48 172,-54 166,-54"/>
+<text text-anchor="middle" x="117.5" y="-38.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Android Cockpit</text>
+<text text-anchor="middle" x="117.5" y="-25.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Kotlin + Compose</text>
+</g>
+<!-- android&#45;&gt;hermes -->
+<g id="edge4" class="edge">
+<title>android&#45;&gt;hermes</title>
+<path fill="none" stroke="#4b5563" d="M178.05,-35C253.6,-35 373,-35 373,-35 373,-35 373,-124.94 373,-124.94"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="370.2,-124.94 373,-132.94 375.8,-124.94 370.2,-124.94"/>
+</g>
+<!-- jp -->
+<g id="node6" class="node">
+<title>jp</title>
+<path fill="#dbeafe" stroke="#243447" d="M712,-171C712,-171 539,-171 539,-171 533,-171 527,-165 527,-159 527,-159 527,-145 527,-145 527,-139 533,-133 539,-133 539,-133 712,-133 712,-133 718,-133 724,-139 724,-145 724,-145 724,-159 724,-159 724,-165 718,-171 712,-171"/>
+<text text-anchor="middle" x="625.5" y="-155.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Jarvis Prime Runtime</text>
+<text text-anchor="middle" x="625.5" y="-142.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">modes + gates + owner control</text>
+</g>
+<!-- hermes&#45;&gt;jp -->
+<g id="edge5" class="edge">
+<title>hermes&#45;&gt;jp</title>
+<path fill="none" stroke="#4b5563" d="M468.1,-152C468.1,-152 518.7,-152 518.7,-152"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="518.7,-154.8 526.7,-152 518.7,-149.2 518.7,-154.8"/>
+</g>
+<!-- cog -->
+<g id="node7" class="node">
+<title>cog</title>
+<path fill="#dcfce7" stroke="#243447" d="M2442,-171C2442,-171 2120,-171 2120,-171 2114,-171 2108,-165 2108,-159 2108,-159 2108,-145 2108,-145 2108,-139 2114,-133 2120,-133 2120,-133 2442,-133 2442,-133 2448,-133 2454,-139 2454,-145 2454,-145 2454,-159 2454,-159 2454,-165 2448,-171 2442,-171"/>
+<text text-anchor="middle" x="2281" y="-155.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Cognition Plane</text>
+<text text-anchor="middle" x="2281" y="-142.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Memory Tree + Research Vault + TokenJuice + GraphRAG</text>
+</g>
+<!-- jp&#45;&gt;cog -->
+<g id="edge6" class="edge">
+<title>jp&#45;&gt;cog</title>
+<path fill="none" stroke="#4b5563" d="M659,-171C659,-178.19 659,-184.67 659,-184.67 659,-184.67 2224,-184.67 2224,-184.67 2224,-184.67 2224,-179 2224,-179"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="2226.8,-179 2224,-171 2221.2,-179 2226.8,-179"/>
+<text text-anchor="middle" x="1420.5" y="-249" font-family="Inter,Arial" font-size="10.00" fill="#374151">context + evidence</text>
+</g>
+<!-- orch -->
+<g id="node8" class="node">
+<title>orch</title>
+<path fill="#fef3c7" stroke="#243447" d="M1076,-171C1076,-171 843,-171 843,-171 837,-171 831,-165 831,-159 831,-159 831,-145 831,-145 831,-139 837,-133 843,-133 843,-133 1076,-133 1076,-133 1082,-133 1088,-139 1088,-145 1088,-145 1088,-159 1088,-159 1088,-165 1082,-171 1076,-171"/>
+<text text-anchor="middle" x="959.5" y="-155.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Goal&#45;to&#45;PR Orchestrator</text>
+<text text-anchor="middle" x="959.5" y="-142.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Job → Worker → Model → Gate → Ledger</text>
+</g>
+<!-- jp&#45;&gt;orch -->
+<g id="edge7" class="edge">
+<title>jp&#45;&gt;orch</title>
+<path fill="none" stroke="#4b5563" d="M724.36,-152C724.36,-152 822.82,-152 822.82,-152"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="822.82,-154.8 830.82,-152 822.82,-149.2 822.82,-154.8"/>
+<text text-anchor="middle" x="777.5" y="-155" font-family="Inter,Arial" font-size="10.00" fill="#374151">task graph</text>
+</g>
+<!-- cog&#45;&gt;jp -->
+<g id="edge11" class="edge">
+<title>cog&#45;&gt;jp</title>
+<path fill="none" stroke="#4b5563" d="M2339,-171.23C2339,-183.58 2339,-197.33 2339,-197.33 2339,-197.33 593,-197.33 593,-197.33 593,-197.33 593,-179.23 593,-179.23"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="595.8,-179.23 593,-171.23 590.2,-179.23 595.8,-179.23"/>
+<text text-anchor="middle" x="1420.5" y="-75" font-family="Inter,Arial" font-size="10.00" fill="#374151">retrieval packs</text>
+</g>
+<!-- tools -->
+<g id="node9" class="node">
+<title>tools</title>
+<path fill="#fce7f3" stroke="#243447" d="M1574,-166C1574,-166 1267,-166 1267,-166 1261,-166 1255,-160 1255,-154 1255,-154 1255,-140 1255,-140 1255,-134 1261,-128 1267,-128 1267,-128 1574,-128 1574,-128 1580,-128 1586,-134 1586,-140 1586,-140 1586,-154 1586,-154 1586,-160 1580,-166 1574,-166"/>
+<text text-anchor="middle" x="1420.5" y="-150.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Tool / Provider Layer</text>
+<text text-anchor="middle" x="1420.5" y="-137.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">local, Docker, SSH, Modal, Daytona, Vercel, ACP, MCP</text>
+</g>
+<!-- orch&#45;&gt;tools -->
+<g id="edge8" class="edge">
+<title>orch&#45;&gt;tools</title>
+<path fill="none" stroke="#4b5563" d="M1088.22,-149.5C1088.22,-149.5 1246.99,-149.5 1246.99,-149.5"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1246.99,-152.3 1254.99,-149.5 1246.99,-146.7 1246.99,-152.3"/>
+<text text-anchor="middle" x="1171.5" y="-152" font-family="Inter,Arial" font-size="10.00" fill="#374151">bounded work packets</text>
+</g>
+<!-- ext -->
+<g id="node10" class="node">
+<title>ext</title>
+<path fill="#f7fafc" stroke="#243447" d="M1977,-171C1977,-171 1736,-171 1736,-171 1730,-171 1724,-165 1724,-159 1724,-159 1724,-145 1724,-145 1724,-139 1730,-133 1736,-133 1736,-133 1977,-133 1977,-133 1983,-133 1989,-139 1989,-145 1989,-145 1989,-159 1989,-159 1989,-165 1983,-171 1977,-171"/>
+<text text-anchor="middle" x="1856.5" y="-155.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">External + Local Runtimes</text>
+<text text-anchor="middle" x="1856.5" y="-142.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">LLMs, GitHub, APIs, local models, terminals</text>
+</g>
+<!-- tools&#45;&gt;ext -->
+<g id="edge9" class="edge">
+<title>tools&#45;&gt;ext</title>
+<path fill="none" stroke="#4b5563" d="M1586.27,-149.5C1586.27,-149.5 1715.88,-149.5 1715.88,-149.5"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1715.88,-152.3 1723.88,-149.5 1715.88,-146.7 1715.88,-152.3"/>
+<text text-anchor="middle" x="1655" y="-152" font-family="Inter,Arial" font-size="10.00" fill="#374151">calls + execution</text>
+</g>
+<!-- ext&#45;&gt;cog -->
+<g id="edge10" class="edge">
+<title>ext&#45;&gt;cog</title>
+<path fill="none" stroke="#4b5563" d="M1989.07,-152C1989.07,-152 2099.75,-152 2099.75,-152"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="2099.75,-154.8 2107.75,-152 2099.75,-149.2 2099.75,-154.8"/>
+<text text-anchor="middle" x="2048.5" y="-155" font-family="Inter,Arial" font-size="10.00" fill="#374151">observations</text>
+</g>
+</g>
+</svg>
+</div></section>
+<section class="card"><h2>Repository Assimilation Pipeline</h2><div class="diagram"><svg width="2017pt" height="109pt"
+ viewBox="0.00 0.00 2017.20 109.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 87.6)">
+<title>assimilation_pipeline</title>
+<text text-anchor="middle" x="987" y="-47.6" font-family="Inter,Arial" font-size="18.00">Repository Assimilation Pipeline</text>
+<!-- clone -->
+<g id="node1" class="node">
+<title>clone</title>
+<path fill="#eef2ff" stroke="#243447" d="M157,-38C157,-38 12,-38 12,-38 6,-38 0,-32 0,-26 0,-26 0,-12 0,-12 0,-6 6,0 12,0 12,0 157,0 157,0 163,0 169,-6 169,-12 169,-12 169,-26 169,-26 169,-32 163,-38 157,-38"/>
+<text text-anchor="middle" x="84.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Clone Repository</text>
+<text text-anchor="middle" x="84.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">`gh repo clone .../M.U.S.E`</text>
+</g>
+<!-- env -->
+<g id="node2" class="node">
+<title>env</title>
+<path fill="#f8fafc" stroke="#243447" d="M433,-38C433,-38 239,-38 239,-38 233,-38 227,-32 227,-26 227,-26 227,-12 227,-12 227,-6 233,0 239,0 239,0 433,0 433,0 439,0 445,-6 445,-12 445,-12 445,-26 445,-26 445,-32 439,-38 433,-38"/>
+<text text-anchor="middle" x="336" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Create Reproducible Dev Env</text>
+<text text-anchor="middle" x="336" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Python 3.11+, venv/uv, pinned deps</text>
+</g>
+<!-- clone&#45;&gt;env -->
+<g id="edge1" class="edge">
+<title>clone&#45;&gt;env</title>
+<path fill="none" stroke="#4b5563" d="M169.3,-19C169.3,-19 218.59,-19 218.59,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="218.59,-21.8 226.59,-19 218.59,-16.2 218.59,-21.8"/>
+</g>
+<!-- inventory -->
+<g id="node3" class="node">
+<title>inventory</title>
+<path fill="#eef2ff" stroke="#243447" d="M672,-38C672,-38 515,-38 515,-38 509,-38 503,-32 503,-26 503,-26 503,-12 503,-12 503,-6 509,0 515,0 515,0 672,0 672,0 678,0 684,-6 684,-12 684,-12 684,-26 684,-26 684,-32 678,-38 672,-38"/>
+<text text-anchor="middle" x="593.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Inventory Files</text>
+<text text-anchor="middle" x="593.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">folders, entry points, configs</text>
+</g>
+<!-- env&#45;&gt;inventory -->
+<g id="edge2" class="edge">
+<title>env&#45;&gt;inventory</title>
+<path fill="none" stroke="#4b5563" d="M445.2,-19C445.2,-19 494.79,-19 494.79,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="494.79,-21.8 502.79,-19 494.79,-16.2 494.79,-21.8"/>
+</g>
+<!-- static -->
+<g id="node4" class="node">
+<title>static</title>
+<path fill="#f8fafc" stroke="#243447" d="M901,-38C901,-38 754,-38 754,-38 748,-38 742,-32 742,-26 742,-26 742,-12 742,-12 742,-6 748,0 754,0 754,0 901,0 901,0 907,0 913,-6 913,-12 913,-12 913,-26 913,-26 913,-32 907,-38 901,-38"/>
+<text text-anchor="middle" x="827.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Static Analysis</text>
+<text text-anchor="middle" x="827.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">AST, imports, call surfaces</text>
+</g>
+<!-- inventory&#45;&gt;static -->
+<g id="edge3" class="edge">
+<title>inventory&#45;&gt;static</title>
+<path fill="none" stroke="#4b5563" d="M684.31,-19C684.31,-19 733.73,-19 733.73,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="733.73,-21.8 741.73,-19 733.73,-16.2 733.73,-21.8"/>
+</g>
+<!-- graph -->
+<g id="node5" class="node">
+<title>graph</title>
+<path fill="#eef2ff" stroke="#243447" d="M1150,-38C1150,-38 983,-38 983,-38 977,-38 971,-32 971,-26 971,-26 971,-12 971,-12 971,-6 977,0 983,0 983,0 1150,0 1150,0 1156,0 1162,-6 1162,-12 1162,-12 1162,-26 1162,-26 1162,-32 1156,-38 1150,-38"/>
+<text text-anchor="middle" x="1066.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Graph Model</text>
+<text text-anchor="middle" x="1066.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">module DAG + ownership map</text>
+</g>
+<!-- static&#45;&gt;graph -->
+<g id="edge4" class="edge">
+<title>static&#45;&gt;graph</title>
+<path fill="none" stroke="#4b5563" d="M913.11,-19C913.11,-19 962.94,-19 962.94,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="962.94,-21.8 970.94,-19 962.94,-16.2 962.94,-21.8"/>
+</g>
+<!-- gates -->
+<g id="node6" class="node">
+<title>gates</title>
+<path fill="#f8fafc" stroke="#243447" d="M1423,-38C1423,-38 1232,-38 1232,-38 1226,-38 1220,-32 1220,-26 1220,-26 1220,-12 1220,-12 1220,-6 1226,0 1232,0 1232,0 1423,0 1423,0 1429,0 1435,-6 1435,-12 1435,-12 1435,-26 1435,-26 1435,-32 1429,-38 1423,-38"/>
+<text text-anchor="middle" x="1327.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Gate Map</text>
+<text text-anchor="middle" x="1327.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">planning/build/review/test/security</text>
+</g>
+<!-- graph&#45;&gt;gates -->
+<g id="edge5" class="edge">
+<title>graph&#45;&gt;gates</title>
+<path fill="none" stroke="#4b5563" d="M1162.2,-19C1162.2,-19 1211.9,-19 1211.9,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1211.9,-21.8 1219.9,-19 1211.9,-16.2 1211.9,-21.8"/>
+</g>
+<!-- registry -->
+<g id="node7" class="node">
+<title>registry</title>
+<path fill="#eef2ff" stroke="#243447" d="M1696,-38C1696,-38 1505,-38 1505,-38 1499,-38 1493,-32 1493,-26 1493,-26 1493,-12 1493,-12 1493,-6 1499,0 1505,0 1505,0 1696,0 1696,0 1702,0 1708,-6 1708,-12 1708,-12 1708,-26 1708,-26 1708,-32 1702,-38 1696,-38"/>
+<text text-anchor="middle" x="1600.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Registry Package</text>
+<text text-anchor="middle" x="1600.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">components, APIs, risks, runbooks</text>
+</g>
+<!-- gates&#45;&gt;registry -->
+<g id="edge6" class="edge">
+<title>gates&#45;&gt;registry</title>
+<path fill="none" stroke="#4b5563" d="M1435,-19C1435,-19 1484.65,-19 1484.65,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1484.65,-21.8 1492.65,-19 1484.65,-16.2 1484.65,-21.8"/>
+</g>
+<!-- brief -->
+<g id="node8" class="node">
+<title>brief</title>
+<path fill="#f8fafc" stroke="#243447" d="M1962,-38C1962,-38 1778,-38 1778,-38 1772,-38 1766,-32 1766,-26 1766,-26 1766,-12 1766,-12 1766,-6 1772,0 1778,0 1778,0 1962,0 1962,0 1968,0 1974,-6 1974,-12 1974,-12 1974,-26 1974,-26 1974,-32 1968,-38 1962,-38"/>
+<text text-anchor="middle" x="1870" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Owner Brief</text>
+<text text-anchor="middle" x="1870" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">what changed, risks, next actions</text>
+</g>
+<!-- registry&#45;&gt;brief -->
+<g id="edge7" class="edge">
+<title>registry&#45;&gt;brief</title>
+<path fill="none" stroke="#4b5563" d="M1708.18,-19C1708.18,-19 1757.57,-19 1757.57,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1757.57,-21.8 1765.57,-19 1757.57,-16.2 1757.57,-21.8"/>
+</g>
+</g>
+</svg>
+</div></section>
+<section class="card"><h2>Goal-to-PR Workflow</h2><div class="diagram"><svg width="2248pt" height="127pt"
+ viewBox="0.00 0.00 2248.20 127.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 105.6)">
+<title>orchestration</title>
+<text text-anchor="middle" x="1102.5" y="-65.6" font-family="Inter,Arial" font-size="18.00">Goal&#45;to&#45;PR Workflow</text>
+<!-- goal -->
+<g id="node1" class="node">
+<title>goal</title>
+<path fill="#f7fafc" stroke="#243447" d="M78,-56C78,-56 12,-56 12,-56 6,-56 0,-50 0,-44 0,-44 0,-30 0,-30 0,-24 6,-18 12,-18 12,-18 78,-18 78,-18 84,-18 90,-24 90,-30 90,-30 90,-44 90,-44 90,-50 84,-56 78,-56"/>
+<text text-anchor="middle" x="45" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Owner Goal</text>
+<text text-anchor="middle" x="45" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">plain English</text>
+</g>
+<!-- packet -->
+<g id="node2" class="node">
+<title>packet</title>
+<path fill="#f7fafc" stroke="#243447" d="M399,-56C399,-56 161,-56 161,-56 155,-56 149,-50 149,-44 149,-44 149,-30 149,-30 149,-24 155,-18 161,-18 161,-18 399,-18 399,-18 405,-18 411,-24 411,-30 411,-30 411,-44 411,-44 411,-50 405,-56 399,-56"/>
+<text text-anchor="middle" x="280" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Natural&#45;Language Coder</text>
+<text text-anchor="middle" x="280" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">work packet: scope, risk, files, acceptance</text>
+</g>
+<!-- goal&#45;&gt;packet -->
+<g id="edge1" class="edge">
+<title>goal&#45;&gt;packet</title>
+<path fill="none" stroke="#4b5563" d="M90.03,-37C90.03,-37 140.99,-37 140.99,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="140.99,-39.8 148.99,-37 140.99,-34.2 140.99,-39.8"/>
+</g>
+<!-- plan -->
+<g id="node3" class="node">
+<title>plan</title>
+<path fill="#f7fafc" stroke="#243447" d="M624,-56C624,-56 482,-56 482,-56 476,-56 470,-50 470,-44 470,-44 470,-30 470,-30 470,-24 476,-18 482,-18 482,-18 624,-18 624,-18 630,-18 636,-24 636,-30 636,-30 636,-44 636,-44 636,-50 630,-56 624,-56"/>
+<text text-anchor="middle" x="553" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Planning Gate</text>
+<text text-anchor="middle" x="553" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">mission clear + non&#45;goals</text>
+</g>
+<!-- packet&#45;&gt;plan -->
+<g id="edge2" class="edge">
+<title>packet&#45;&gt;plan</title>
+<path fill="none" stroke="#4b5563" d="M411.3,-37C411.3,-37 461.87,-37 461.87,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="461.87,-39.8 469.87,-37 461.87,-34.2 461.87,-39.8"/>
+</g>
+<!-- dag -->
+<g id="node4" class="node">
+<title>dag</title>
+<path fill="#f7fafc" stroke="#243447" d="M826,-56C826,-56 707,-56 707,-56 701,-56 695,-50 695,-44 695,-44 695,-30 695,-30 695,-24 701,-18 707,-18 707,-18 826,-18 826,-18 832,-18 838,-24 838,-30 838,-30 838,-44 838,-44 838,-50 832,-56 826,-56"/>
+<text text-anchor="middle" x="766.5" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Task Graph</text>
+<text text-anchor="middle" x="766.5" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Job DAG + specialists</text>
+</g>
+<!-- plan&#45;&gt;dag -->
+<g id="edge3" class="edge">
+<title>plan&#45;&gt;dag</title>
+<path fill="none" stroke="#4b5563" d="M636.16,-37C636.16,-37 686.66,-37 686.66,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="686.66,-39.8 694.66,-37 686.66,-34.2 686.66,-39.8"/>
+</g>
+<!-- worker -->
+<g id="node5" class="node">
+<title>worker</title>
+<path fill="#e0f2fe" stroke="#243447" d="M1109,-56C1109,-56 909,-56 909,-56 903,-56 897,-50 897,-44 897,-44 897,-30 897,-30 897,-24 903,-18 909,-18 909,-18 1109,-18 1109,-18 1115,-18 1121,-24 1121,-30 1121,-30 1121,-44 1121,-44 1121,-50 1115,-56 1109,-56"/>
+<text text-anchor="middle" x="1009" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Worker Execution</text>
+<text text-anchor="middle" x="1009" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Claude Code / Codex / local worker</text>
+</g>
+<!-- dag&#45;&gt;worker -->
+<g id="edge4" class="edge">
+<title>dag&#45;&gt;worker</title>
+<path fill="none" stroke="#4b5563" d="M838.27,-37C838.27,-37 888.93,-37 888.93,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="888.93,-39.8 896.93,-37 888.93,-34.2 888.93,-39.8"/>
+</g>
+<!-- verify -->
+<g id="node6" class="node">
+<title>verify</title>
+<path fill="#dcfce7" stroke="#243447" d="M1442,-56C1442,-56 1226,-56 1226,-56 1220,-56 1214,-50 1214,-44 1214,-44 1214,-30 1214,-30 1214,-24 1220,-18 1226,-18 1226,-18 1442,-18 1442,-18 1448,-18 1454,-24 1454,-30 1454,-30 1454,-44 1454,-44 1454,-50 1448,-56 1442,-56"/>
+<text text-anchor="middle" x="1334" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Verification Bundle</text>
+<text text-anchor="middle" x="1334" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">diff, review, tests, secret scan, rollback</text>
+</g>
+<!-- worker&#45;&gt;verify -->
+<g id="edge5" class="edge">
+<title>worker&#45;&gt;verify</title>
+<path fill="none" stroke="#4b5563" d="M1121.3,-30.67C1121.3,-30.67 1205.94,-30.67 1205.94,-30.67"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1205.94,-33.47 1213.94,-30.67 1205.94,-27.87 1205.94,-33.47"/>
+</g>
+<!-- verify&#45;&gt;worker -->
+<g id="edge9" class="edge">
+<title>verify&#45;&gt;worker</title>
+<path fill="none" stroke="#4b5563" d="M1213.91,-43.33C1213.91,-43.33 1129.06,-43.33 1129.06,-43.33"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1129.06,-40.53 1121.06,-43.33 1129.06,-46.13 1129.06,-40.53"/>
+<text text-anchor="middle" x="1167.5" y="-3" font-family="Inter,Arial" font-size="10.00" fill="#374151">fix loop</text>
+</g>
+<!-- ledger -->
+<g id="node7" class="node">
+<title>ledger</title>
+<path fill="#fef3c7" stroke="#243447" d="M1650,-56C1650,-56 1525,-56 1525,-56 1519,-56 1513,-50 1513,-44 1513,-44 1513,-30 1513,-30 1513,-24 1519,-18 1525,-18 1525,-18 1650,-18 1650,-18 1656,-18 1662,-24 1662,-30 1662,-30 1662,-44 1662,-44 1662,-50 1656,-56 1650,-56"/>
+<text text-anchor="middle" x="1587.5" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Decision Ledger</text>
+<text text-anchor="middle" x="1587.5" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">hash&#45;chained evidence</text>
+</g>
+<!-- verify&#45;&gt;ledger -->
+<g id="edge6" class="edge">
+<title>verify&#45;&gt;ledger</title>
+<path fill="none" stroke="#4b5563" d="M1454.07,-37C1454.07,-37 1504.99,-37 1504.99,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1504.99,-39.8 1512.99,-37 1504.99,-34.2 1504.99,-39.8"/>
+</g>
+<!-- owner -->
+<g id="node8" class="node">
+<title>owner</title>
+<path fill="#fee2e2" stroke="#243447" d="M1920,-56C1920,-56 1733,-56 1733,-56 1727,-56 1721,-50 1721,-44 1721,-44 1721,-30 1721,-30 1721,-24 1727,-18 1733,-18 1733,-18 1920,-18 1920,-18 1926,-18 1932,-24 1932,-30 1932,-30 1932,-44 1932,-44 1932,-50 1926,-56 1920,-56"/>
+<text text-anchor="middle" x="1826.5" y="-40.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Owner Approval</text>
+<text text-anchor="middle" x="1826.5" y="-27.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">nonce&#45;bound for high&#45;risk actions</text>
+</g>
+<!-- ledger&#45;&gt;owner -->
+<g id="edge7" class="edge">
+<title>ledger&#45;&gt;owner</title>
+<path fill="none" stroke="#4b5563" d="M1662.14,-37C1662.14,-37 1712.9,-37 1712.9,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1712.9,-39.8 1720.9,-37 1712.9,-34.2 1712.9,-39.8"/>
+</g>
+<!-- publish -->
+<g id="node9" class="node">
+<title>publish</title>
+<path fill="#f7fafc" stroke="#243447" d="M2193,-55C2193,-55 2003,-55 2003,-55 1997,-55 1991,-49 1991,-43 1991,-43 1991,-31 1991,-31 1991,-25 1997,-19 2003,-19 2003,-19 2193,-19 2193,-19 2199,-19 2205,-25 2205,-31 2205,-31 2205,-43 2205,-43 2205,-49 2199,-55 2193,-55"/>
+<text text-anchor="middle" x="2098" y="-33.9" font-family="Inter,Arial" font-size="12.00" fill="#111827">Publish / PR / File / Gateway Reply</text>
+</g>
+<!-- owner&#45;&gt;publish -->
+<g id="edge8" class="edge">
+<title>owner&#45;&gt;publish</title>
+<path fill="none" stroke="#4b5563" d="M1932.25,-37C1932.25,-37 1982.75,-37 1982.75,-37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1982.75,-39.8 1990.75,-37 1982.75,-34.2 1982.75,-39.8"/>
+</g>
+</g>
+</svg>
+</div></section>
+<section class="card"><h2>Cognition + GraphRAG Dataflow</h2><div class="diagram"><svg width="1549pt" height="248pt"
+ viewBox="0.00 0.00 1549.20 248.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 226.6)">
+<title>memory_graph</title>
+<text text-anchor="middle" x="753" y="-186.6" font-family="Inter,Arial" font-size="18.00">Cognition + GraphRAG Dataflow</text>
+<!-- event -->
+<g id="node1" class="node">
+<title>event</title>
+<path fill="#f7fafc" stroke="#243447" d="M137,-42C137,-42 12,-42 12,-42 6,-42 0,-36 0,-30 0,-30 0,-16 0,-16 0,-10 6,-4 12,-4 12,-4 137,-4 137,-4 143,-4 149,-10 149,-16 149,-16 149,-30 149,-30 149,-36 143,-42 137,-42"/>
+<text text-anchor="middle" x="74.5" y="-26.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Session Events</text>
+<text text-anchor="middle" x="74.5" y="-13.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">chat, tools, code, docs</text>
+</g>
+<!-- source -->
+<g id="node2" class="node">
+<title>source</title>
+<path fill="#f7fafc" stroke="#243447" d="M359,-99C359,-99 220,-99 220,-99 214,-99 208,-93 208,-87 208,-87 208,-73 208,-73 208,-67 214,-61 220,-61 220,-61 359,-61 359,-61 365,-61 371,-67 371,-73 371,-73 371,-87 371,-87 371,-93 365,-99 359,-99"/>
+<text text-anchor="middle" x="289.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Source Normalizer</text>
+<text text-anchor="middle" x="289.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">provenance + confidence</text>
+</g>
+<!-- event&#45;&gt;source -->
+<g id="edge1" class="edge">
+<title>event&#45;&gt;source</title>
+<path fill="none" stroke="#4b5563" d="M75,-42.3C75,-58.83 75,-80 75,-80 75,-80 199.79,-80 199.79,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="199.79,-82.8 207.79,-80 199.79,-77.2 199.79,-82.8"/>
+</g>
+<!-- mem -->
+<g id="node3" class="node">
+<title>mem</title>
+<path fill="#f7fafc" stroke="#243447" d="M576,-177C576,-177 442,-177 442,-177 436,-177 430,-171 430,-165 430,-165 430,-151 430,-151 430,-145 436,-139 442,-139 442,-139 576,-139 576,-139 582,-139 588,-145 588,-151 588,-151 588,-165 588,-165 588,-171 582,-177 576,-177"/>
+<text text-anchor="middle" x="509" y="-161.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Memory Tree</text>
+<text text-anchor="middle" x="509" y="-148.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">working/session/durable</text>
+</g>
+<!-- source&#45;&gt;mem -->
+<g id="edge2" class="edge">
+<title>source&#45;&gt;mem</title>
+<path fill="none" stroke="#4b5563" d="M290,-99.28C290,-122.38 290,-158 290,-158 290,-158 421.94,-158 421.94,-158"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="421.94,-160.8 429.94,-158 421.94,-155.2 421.94,-160.8"/>
+</g>
+<!-- vault -->
+<g id="node4" class="node">
+<title>vault</title>
+<path fill="#f7fafc" stroke="#243447" d="M569.5,-99C569.5,-99 448.5,-99 448.5,-99 442.5,-99 436.5,-93 436.5,-87 436.5,-87 436.5,-73 436.5,-73 436.5,-67 442.5,-61 448.5,-61 448.5,-61 569.5,-61 569.5,-61 575.5,-61 581.5,-67 581.5,-73 581.5,-73 581.5,-87 581.5,-87 581.5,-93 575.5,-99 569.5,-99"/>
+<text text-anchor="middle" x="509" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Research Vault</text>
+<text text-anchor="middle" x="509" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">source&#45;cited evidence</text>
+</g>
+<!-- source&#45;&gt;vault -->
+<g id="edge3" class="edge">
+<title>source&#45;&gt;vault</title>
+<path fill="none" stroke="#4b5563" d="M371.23,-80C371.23,-80 428.24,-80 428.24,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="428.24,-82.8 436.24,-80 428.24,-77.2 428.24,-82.8"/>
+</g>
+<!-- graph -->
+<g id="node5" class="node">
+<title>graph</title>
+<path fill="#f7fafc" stroke="#243447" d="M846,-99C846,-99 659,-99 659,-99 653,-99 647,-93 647,-87 647,-87 647,-73 647,-73 647,-67 653,-61 659,-61 659,-61 846,-61 846,-61 852,-61 858,-67 858,-73 858,-73 858,-87 858,-87 858,-93 852,-99 846,-99"/>
+<text text-anchor="middle" x="752.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">GraphRAG Index</text>
+<text text-anchor="middle" x="752.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">code + docs + ledgers + memory</text>
+</g>
+<!-- mem&#45;&gt;graph -->
+<g id="edge4" class="edge">
+<title>mem&#45;&gt;graph</title>
+<path fill="none" stroke="#4b5563" d="M588.22,-158C659.47,-158 753,-158 753,-158 753,-158 753,-107.28 753,-107.28"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="755.8,-107.28 753,-99.28 750.2,-107.28 755.8,-107.28"/>
+</g>
+<!-- vault&#45;&gt;graph -->
+<g id="edge5" class="edge">
+<title>vault&#45;&gt;graph</title>
+<path fill="none" stroke="#4b5563" d="M581.73,-80C581.73,-80 638.83,-80 638.83,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="638.83,-82.8 646.83,-80 638.83,-77.2 638.83,-82.8"/>
+</g>
+<!-- juice -->
+<g id="node6" class="node">
+<title>juice</title>
+<path fill="#f7fafc" stroke="#243447" d="M1098,-99C1098,-99 929,-99 929,-99 923,-99 917,-93 917,-87 917,-87 917,-73 917,-73 917,-67 923,-61 929,-61 929,-61 1098,-61 1098,-61 1104,-61 1110,-67 1110,-73 1110,-73 1110,-87 1110,-87 1110,-93 1104,-99 1098,-99"/>
+<text text-anchor="middle" x="1013.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">TokenJuice</text>
+<text text-anchor="middle" x="1013.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">secret&#45;screened context packs</text>
+</g>
+<!-- graph&#45;&gt;juice -->
+<g id="edge6" class="edge">
+<title>graph&#45;&gt;juice</title>
+<path fill="none" stroke="#4b5563" d="M858.28,-80C858.28,-80 908.83,-80 908.83,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="908.83,-82.8 916.83,-80 908.83,-77.2 908.83,-82.8"/>
+</g>
+<!-- router -->
+<g id="node7" class="node">
+<title>router</title>
+<path fill="#f7fafc" stroke="#243447" d="M1310,-99C1310,-99 1181,-99 1181,-99 1175,-99 1169,-93 1169,-87 1169,-87 1169,-73 1169,-73 1169,-67 1175,-61 1181,-61 1181,-61 1310,-61 1310,-61 1316,-61 1322,-67 1322,-73 1322,-73 1322,-87 1322,-87 1322,-93 1316,-99 1310,-99"/>
+<text text-anchor="middle" x="1245.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Model Router</text>
+<text text-anchor="middle" x="1245.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">scorecards + task class</text>
+</g>
+<!-- juice&#45;&gt;router -->
+<g id="edge7" class="edge">
+<title>juice&#45;&gt;router</title>
+<path fill="none" stroke="#4b5563" d="M1110.21,-80C1110.21,-80 1160.72,-80 1160.72,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1160.72,-82.8 1168.72,-80 1160.72,-77.2 1160.72,-82.8"/>
+</g>
+<!-- agent -->
+<g id="node8" class="node">
+<title>agent</title>
+<path fill="#f7fafc" stroke="#243447" d="M1494,-42C1494,-42 1393,-42 1393,-42 1387,-42 1381,-36 1381,-30 1381,-30 1381,-16 1381,-16 1381,-10 1387,-4 1393,-4 1393,-4 1494,-4 1494,-4 1500,-4 1506,-10 1506,-16 1506,-16 1506,-30 1506,-30 1506,-36 1500,-42 1494,-42"/>
+<text text-anchor="middle" x="1443.5" y="-26.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Jarvis / Workers</text>
+<text text-anchor="middle" x="1443.5" y="-13.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">answer, plan, build</text>
+</g>
+<!-- router&#45;&gt;agent -->
+<g id="edge8" class="edge">
+<title>router&#45;&gt;agent</title>
+<path fill="none" stroke="#4b5563" d="M1322.25,-80C1378.1,-80 1444,-80 1444,-80 1444,-80 1444,-50.3 1444,-50.3"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1446.8,-50.3 1444,-42.3 1441.2,-50.3 1446.8,-50.3"/>
+</g>
+<!-- agent&#45;&gt;event -->
+<g id="edge9" class="edge">
+<title>agent&#45;&gt;event</title>
+<path fill="none" stroke="#4b5563" d="M1380.67,-23C1380.67,-23 157.03,-23 157.03,-23"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="157.03,-20.2 149.03,-23 157.03,-25.8 157.03,-20.2"/>
+<text text-anchor="middle" x="752.5" y="-3" font-family="Inter,Arial" font-size="10.00" fill="#374151">new observations</text>
+</g>
+</g>
+</svg>
+</div></section>
+<section class="card"><h2>Remote Worker Contract</h2><div class="diagram"><svg width="2281pt" height="188pt"
+ viewBox="0.00 0.00 2281.20 188.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 166.6)">
+<title>remote_worker</title>
+<text text-anchor="middle" x="1119" y="-126.6" font-family="Inter,Arial" font-size="18.00">Remote Windows Worker Contract</text>
+<!-- muse -->
+<g id="node1" class="node">
+<title>muse</title>
+<path fill="#f7fafc" stroke="#243447" d="M115,-99C115,-99 12,-99 12,-99 6,-99 0,-93 0,-87 0,-87 0,-73 0,-73 0,-67 6,-61 12,-61 12,-61 115,-61 115,-61 121,-61 127,-67 127,-73 127,-73 127,-87 127,-87 127,-93 121,-99 115,-99"/>
+<text text-anchor="middle" x="63.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">M.U.S.E Bridge</text>
+<text text-anchor="middle" x="63.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">prepare + dispatch</text>
+</g>
+<!-- manifest -->
+<g id="node2" class="node">
+<title>manifest</title>
+<path fill="#f7fafc" stroke="#243447" d="M425,-99C425,-99 198,-99 198,-99 192,-99 186,-93 186,-87 186,-87 186,-73 186,-73 186,-67 192,-61 198,-61 198,-61 425,-61 425,-61 431,-61 437,-67 437,-73 437,-73 437,-87 437,-87 437,-93 431,-99 425,-99"/>
+<text text-anchor="middle" x="311.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Job Folder</text>
+<text text-anchor="middle" x="311.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">manifest.json + prompt.md + cancel.json</text>
+</g>
+<!-- muse&#45;&gt;manifest -->
+<g id="edge1" class="edge">
+<title>muse&#45;&gt;manifest</title>
+<path fill="none" stroke="#4b5563" d="M127.04,-80C127.04,-80 177.89,-80 177.89,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="177.89,-82.8 185.89,-80 177.89,-77.2 177.89,-82.8"/>
+</g>
+<!-- collect -->
+<g id="node8" class="node">
+<title>collect</title>
+<path fill="#f7fafc" stroke="#243447" d="M2226,-99C2226,-99 2090,-99 2090,-99 2084,-99 2078,-93 2078,-87 2078,-87 2078,-73 2078,-73 2078,-67 2084,-61 2090,-61 2090,-61 2226,-61 2226,-61 2232,-61 2238,-67 2238,-73 2238,-73 2238,-87 2238,-87 2238,-93 2232,-99 2226,-99"/>
+<text text-anchor="middle" x="2158" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">M.U.S.E Collect</text>
+<text text-anchor="middle" x="2158" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">audit log + owner review</text>
+</g>
+<!-- muse&#45;&gt;collect -->
+<g id="edge8" class="edge">
+<title>muse&#45;&gt;collect</title>
+<path fill="none" stroke="#4b5563" d="M64,-99.37C64,-108.32 64,-117 64,-117 64,-117 2158,-117 2158,-117 2158,-117 2158,-107.37 2158,-107.37"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="2160.8,-107.37 2158,-99.37 2155.2,-107.37 2160.8,-107.37"/>
+<text text-anchor="middle" x="1087.5" y="-3" font-family="Inter,Arial" font-size="10.00" fill="#374151">audit trail</text>
+</g>
+<!-- poller -->
+<g id="node3" class="node">
+<title>poller</title>
+<path fill="#f7fafc" stroke="#243447" d="M614,-99C614,-99 508,-99 508,-99 502,-99 496,-93 496,-87 496,-87 496,-73 496,-73 496,-67 502,-61 508,-61 508,-61 614,-61 614,-61 620,-61 626,-67 626,-73 626,-73 626,-87 626,-87 626,-93 620,-99 614,-99"/>
+<text text-anchor="middle" x="561" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Windows Daemon</text>
+<text text-anchor="middle" x="561" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">poll jobs every 1&#45;5s</text>
+</g>
+<!-- manifest&#45;&gt;poller -->
+<g id="edge2" class="edge">
+<title>manifest&#45;&gt;poller</title>
+<path fill="none" stroke="#4b5563" d="M437.35,-80C437.35,-80 487.78,-80 487.78,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="487.78,-82.8 495.78,-80 487.78,-77.2 487.78,-82.8"/>
+</g>
+<!-- auth -->
+<g id="node4" class="node">
+<title>auth</title>
+<path fill="#f7fafc" stroke="#243447" d="M1025,-99C1025,-99 697,-99 697,-99 691,-99 685,-93 685,-87 685,-87 685,-73 685,-73 685,-67 691,-61 697,-61 697,-61 1025,-61 1025,-61 1031,-61 1037,-67 1037,-73 1037,-73 1037,-87 1037,-87 1037,-93 1031,-99 1025,-99"/>
+<text text-anchor="middle" x="861" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Safety Checks</text>
+<text text-anchor="middle" x="861" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">schema, command allowlist, approval, device ID, repo root</text>
+</g>
+<!-- poller&#45;&gt;auth -->
+<g id="edge3" class="edge">
+<title>poller&#45;&gt;auth</title>
+<path fill="none" stroke="#4b5563" d="M626.1,-80C626.1,-80 676.77,-80 676.77,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="676.77,-82.8 684.77,-80 676.77,-77.2 676.77,-82.8"/>
+</g>
+<!-- run -->
+<g id="node5" class="node">
+<title>run</title>
+<path fill="#f7fafc" stroke="#243447" d="M1289,-99C1289,-99 1150,-99 1150,-99 1144,-99 1138,-93 1138,-87 1138,-87 1138,-73 1138,-73 1138,-67 1144,-61 1150,-61 1150,-61 1289,-61 1289,-61 1295,-61 1301,-67 1301,-73 1301,-73 1301,-87 1301,-87 1301,-93 1295,-99 1289,-99"/>
+<text text-anchor="middle" x="1219.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Worker Command</text>
+<text text-anchor="middle" x="1219.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">claude &#45;&#45;print prompt.md</text>
+</g>
+<!-- auth&#45;&gt;run -->
+<g id="edge4" class="edge">
+<title>auth&#45;&gt;run</title>
+<path fill="none" stroke="#4b5563" d="M1037.1,-80C1037.1,-80 1129.85,-80 1129.85,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1129.85,-82.8 1137.85,-80 1129.85,-77.2 1129.85,-82.8"/>
+</g>
+<!-- artifacts -->
+<g id="node6" class="node">
+<title>artifacts</title>
+<path fill="#f7fafc" stroke="#243447" d="M1709,-99C1709,-99 1372,-99 1372,-99 1366,-99 1360,-93 1360,-87 1360,-87 1360,-73 1360,-73 1360,-67 1366,-61 1372,-61 1372,-61 1709,-61 1709,-61 1715,-61 1721,-67 1721,-73 1721,-73 1721,-87 1721,-87 1721,-93 1715,-99 1709,-99"/>
+<text text-anchor="middle" x="1540.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">Artifacts</text>
+<text text-anchor="middle" x="1540.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">output.md, patch.diff, changed&#45;files.txt, validation&#45;output.txt</text>
+</g>
+<!-- run&#45;&gt;artifacts -->
+<g id="edge5" class="edge">
+<title>run&#45;&gt;artifacts</title>
+<path fill="none" stroke="#4b5563" d="M1301.33,-80C1301.33,-80 1351.97,-80 1351.97,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1351.97,-82.8 1359.97,-80 1351.97,-77.2 1351.97,-82.8"/>
+</g>
+<!-- status -->
+<g id="node7" class="node">
+<title>status</title>
+<path fill="#f7fafc" stroke="#243447" d="M2007,-99C2007,-99 1792,-99 1792,-99 1786,-99 1780,-93 1780,-87 1780,-87 1780,-73 1780,-73 1780,-67 1786,-61 1792,-61 1792,-61 2007,-61 2007,-61 2013,-61 2019,-67 2019,-73 2019,-73 2019,-87 2019,-87 2019,-93 2013,-99 2007,-99"/>
+<text text-anchor="middle" x="1899.5" y="-83.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">status.json</text>
+<text text-anchor="middle" x="1899.5" y="-70.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">running/completed/failed + token echo</text>
+</g>
+<!-- artifacts&#45;&gt;status -->
+<g id="edge6" class="edge">
+<title>artifacts&#45;&gt;status</title>
+<path fill="none" stroke="#4b5563" d="M1721.05,-80C1721.05,-80 1771.74,-80 1771.74,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1771.74,-82.8 1779.74,-80 1771.74,-77.2 1771.74,-82.8"/>
+</g>
+<!-- status&#45;&gt;collect -->
+<g id="edge7" class="edge">
+<title>status&#45;&gt;collect</title>
+<path fill="none" stroke="#4b5563" d="M2019.29,-80C2019.29,-80 2069.74,-80 2069.74,-80"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="2069.74,-82.8 2077.74,-80 2069.74,-77.2 2069.74,-82.8"/>
+</g>
+</g>
+</svg>
+</div></section>
+<section class="card"><h2>Eight-Gate Control Chain</h2><div class="diagram"><svg width="1754pt" height="109pt"
+ viewBox="0.00 0.00 1754.20 109.20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(21.6 87.6)">
+<title>gates</title>
+<text text-anchor="middle" x="855.5" y="-47.6" font-family="Inter,Arial" font-size="18.00">Eight&#45;Gate Control Chain</text>
+<!-- planning -->
+<g id="node1" class="node">
+<title>planning</title>
+<path fill="#eef2ff" stroke="#243447" d="M180,-38C180,-38 12,-38 12,-38 6,-38 0,-32 0,-26 0,-26 0,-12 0,-12 0,-6 6,0 12,0 12,0 180,0 180,0 186,0 192,-6 192,-12 192,-12 192,-26 192,-26 192,-32 186,-38 180,-38"/>
+<text text-anchor="middle" x="96" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">1. Planning</text>
+<text text-anchor="middle" x="96" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">goal, repo, scope, acceptance</text>
+</g>
+<!-- build -->
+<g id="node2" class="node">
+<title>build</title>
+<path fill="#e0f2fe" stroke="#243447" d="M401,-38C401,-38 262,-38 262,-38 256,-38 250,-32 250,-26 250,-26 250,-12 250,-12 250,-6 256,0 262,0 262,0 401,0 401,0 407,0 413,-6 413,-12 413,-12 413,-26 413,-26 413,-32 407,-38 401,-38"/>
+<text text-anchor="middle" x="331.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">2. Build</text>
+<text text-anchor="middle" x="331.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">allowed files + no secrets</text>
+</g>
+<!-- planning&#45;&gt;build -->
+<g id="edge1" class="edge">
+<title>planning&#45;&gt;build</title>
+<path fill="none" stroke="#4b5563" d="M192.13,-19C192.13,-19 241.99,-19 241.99,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="241.99,-21.8 249.99,-19 241.99,-16.2 241.99,-21.8"/>
+</g>
+<!-- review -->
+<g id="node3" class="node">
+<title>review</title>
+<path fill="#dcfce7" stroke="#243447" d="M614,-38C614,-38 483,-38 483,-38 477,-38 471,-32 471,-26 471,-26 471,-12 471,-12 471,-6 477,0 483,0 483,0 614,0 614,0 620,0 626,-6 626,-12 626,-12 626,-26 626,-26 626,-32 620,-38 614,-38"/>
+<text text-anchor="middle" x="548.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">3. Review</text>
+<text text-anchor="middle" x="548.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">severity&#45;ranked findings</text>
+</g>
+<!-- build&#45;&gt;review -->
+<g id="edge2" class="edge">
+<title>build&#45;&gt;review</title>
+<path fill="none" stroke="#4b5563" d="M413.23,-19C413.23,-19 462.79,-19 462.79,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="462.79,-21.8 470.79,-19 462.79,-16.2 462.79,-21.8"/>
+</g>
+<!-- test -->
+<g id="node4" class="node">
+<title>test</title>
+<path fill="#fef3c7" stroke="#243447" d="M811,-38C811,-38 696,-38 696,-38 690,-38 684,-32 684,-26 684,-26 684,-12 684,-12 684,-6 690,0 696,0 696,0 811,0 811,0 817,0 823,-6 823,-12 823,-12 823,-26 823,-26 823,-32 817,-38 811,-38"/>
+<text text-anchor="middle" x="753.5" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">4. Test</text>
+<text text-anchor="middle" x="753.5" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">commands + outputs</text>
+</g>
+<!-- review&#45;&gt;test -->
+<g id="edge3" class="edge">
+<title>review&#45;&gt;test</title>
+<path fill="none" stroke="#4b5563" d="M626,-19C626,-19 675.97,-19 675.97,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="675.97,-21.8 683.97,-19 675.97,-16.2 675.97,-21.8"/>
+</g>
+<!-- security -->
+<g id="node5" class="node">
+<title>security</title>
+<path fill="#fee2e2" stroke="#243447" d="M1073,-38C1073,-38 893,-38 893,-38 887,-38 881,-32 881,-26 881,-26 881,-12 881,-12 881,-6 887,0 893,0 893,0 1073,0 1073,0 1079,0 1085,-6 1085,-12 1085,-12 1085,-26 1085,-26 1085,-32 1079,-38 1073,-38"/>
+<text text-anchor="middle" x="983" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">5. Security</text>
+<text text-anchor="middle" x="983" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">secret/supply&#45;chain/network risk</text>
+</g>
+<!-- test&#45;&gt;security -->
+<g id="edge4" class="edge">
+<title>test&#45;&gt;security</title>
+<path fill="none" stroke="#4b5563" d="M823.29,-19C823.29,-19 872.98,-19 872.98,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="872.98,-21.8 880.98,-19 872.98,-16.2 872.98,-21.8"/>
+</g>
+<!-- release -->
+<g id="node6" class="node">
+<title>release</title>
+<path fill="#fce7f3" stroke="#243447" d="M1289,-38C1289,-38 1155,-38 1155,-38 1149,-38 1143,-32 1143,-26 1143,-26 1143,-12 1143,-12 1143,-6 1149,0 1155,0 1155,0 1289,0 1289,0 1295,0 1301,-6 1301,-12 1301,-12 1301,-26 1301,-26 1301,-32 1295,-38 1289,-38"/>
+<text text-anchor="middle" x="1222" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">6. Release</text>
+<text text-anchor="middle" x="1222" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">changed files + PR body</text>
+</g>
+<!-- security&#45;&gt;release -->
+<g id="edge5" class="edge">
+<title>security&#45;&gt;release</title>
+<path fill="none" stroke="#4b5563" d="M1085.05,-19C1085.05,-19 1134.7,-19 1134.7,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1134.7,-21.8 1142.7,-19 1134.7,-16.2 1134.7,-21.8"/>
+</g>
+<!-- owner -->
+<g id="node7" class="node">
+<title>owner</title>
+<path fill="#ffedd5" stroke="#243447" d="M1477,-38C1477,-38 1371,-38 1371,-38 1365,-38 1359,-32 1359,-26 1359,-26 1359,-12 1359,-12 1359,-6 1365,0 1371,0 1371,0 1477,0 1477,0 1483,0 1489,-6 1489,-12 1489,-12 1489,-26 1489,-26 1489,-32 1483,-38 1477,-38"/>
+<text text-anchor="middle" x="1424" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">7. Owner Approval</text>
+<text text-anchor="middle" x="1424" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">high&#45;impact actions</text>
+</g>
+<!-- release&#45;&gt;owner -->
+<g id="edge6" class="edge">
+<title>release&#45;&gt;owner</title>
+<path fill="none" stroke="#4b5563" d="M1301.26,-19C1301.26,-19 1350.98,-19 1350.98,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1350.98,-21.8 1358.98,-19 1350.98,-16.2 1350.98,-21.8"/>
+</g>
+<!-- rollback -->
+<g id="node8" class="node">
+<title>rollback</title>
+<path fill="#f1f5f9" stroke="#243447" d="M1699,-38C1699,-38 1559,-38 1559,-38 1553,-38 1547,-32 1547,-26 1547,-26 1547,-12 1547,-12 1547,-6 1553,0 1559,0 1559,0 1699,0 1699,0 1705,0 1711,-6 1711,-12 1711,-12 1711,-26 1711,-26 1711,-32 1705,-38 1699,-38"/>
+<text text-anchor="middle" x="1629" y="-22.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">8. Rollback</text>
+<text text-anchor="middle" x="1629" y="-9.4" font-family="Inter,Arial" font-size="12.00" fill="#111827">revert path + residual risk</text>
+</g>
+<!-- owner&#45;&gt;rollback -->
+<g id="edge7" class="edge">
+<title>owner&#45;&gt;rollback</title>
+<path fill="none" stroke="#4b5563" d="M1489.14,-19C1489.14,-19 1538.71,-19 1538.71,-19"/>
+<polygon fill="#4b5563" stroke="#4b5563" points="1538.71,-21.8 1546.71,-19 1538.71,-16.2 1538.71,-21.8"/>
+</g>
+</g>
+</svg>
+</div></section>
+
+<section class="card">
+<h2>3. Workstream Plan</h2>
+<table>
+<tr><th>Workstream</th><th>Objective</th><th>Primary Areas</th><th>Deliverables</th></tr>
+<tr><td>Repo Assimilation</td><td>Make the codebase inspectable</td><td>root scripts, hermes_cli, agent, tools, gateway, docs</td><td>file inventory, dependency graph, component registry</td></tr>
+<tr><td>Operating Layer</td><td>Stabilize the M.U.S.E runtime</td><td>jarvis_prime, CLI modes, docs</td><td>mode map, gate map, owner-control runbook</td></tr>
+<tr><td>Orchestration</td><td>Goal-to-PR execution</td><td>orchestration docs, kanban plugin, workers</td><td>task DAG template, validation bundle</td></tr>
+<tr><td>Cognition</td><td>Provenance-first memory/research</td><td>Memory Tree, Research Vault, GraphRAG, TokenJuice</td><td>dataflow map, provenance schema, retrieval tests</td></tr>
+<tr><td>Gateway UX</td><td>Multi-surface command center</td><td>gateway, TUI, Android, Slack/Termux</td><td>surface matrix, event schema, safety affordances</td></tr>
+<tr><td>Worker Bridge</td><td>Remote execution without credential leakage</td><td>remote worker docs, Claude/Codex lanes</td><td>daemon contract, manifest schema, hardening checklist</td></tr>
+<tr><td>Security/Release</td><td>Prevent unsafe autonomy</td><td>verification gates, evidence ledger, owner gates</td><td>gate evidence matrix, rollback template, release checklist</td></tr>
+</table>
+</section>
+
+<section class="card">
+<h2>4. Component Registry Template</h2>
+<pre><code>{
+  "schema": "muse.component_registry.v1",
+  "repo": "A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+  "component_id": "jarvis_prime_runtime",
+  "entrypoints": ["muse", "/jarvis", "/orchestrate"],
+  "capabilities": [
+    "mode_routing",
+    "owner_authorization",
+    "verification_gates",
+    "memory_context_compilation",
+    "worker_orchestration"
+  ],
+  "security_boundaries": {
+    "owner_gated_actions": ["deploy", "publish", "merge", "credential_change", "spend_money"],
+    "remote_execution": "allowlisted_commands_only",
+    "secret_handling": "screened_context_and_no_env_transfer_by_default"
+  }
+}</code></pre>
+</section>
+
+<section class="card">
+<h2>5. Implementation Backlog</h2>
+<h3>Phase A — Architecture Inventory</h3>
+<ul><li>Generate repo tree and module ownership map.</li><li>Identify runtime entrypoints: CLI, gateway, TUI, Android, ACP, cron, workers.</li><li>Map protected zones: secrets, release, deployment, credentials, default-agent registry.</li></ul>
+<h3>Phase B — Registry + Evidence</h3>
+<ul><li>Create component registry and dataflow docs.</li><li>Bind high-risk workflows to verification evidence bundles.</li><li>Define rollback plans per component.</li></ul>
+<h3>Phase C — Workflow Hardening</h3>
+<ul><li>Standardize work packet schema.</li><li>Standardize remote worker manifest/status schema.</li><li>Add owner approval examples and failure-mode playbooks.</li></ul>
+<h3>Phase D — Visual Documentation</h3>
+<ul><li>Commit context, orchestration, cognition, gates, remote worker, and model-routing diagrams.</li><li>Add an architecture one-pager for new contributors.</li></ul>
+</section>
+
+<div class="footer">Generated as a structured engineering blueprint for M.U.S.E. Review against the live repository before committing.</div>
+</div>
+</body>
+</html>

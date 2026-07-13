@@ -1,0 +1,123 @@
+<!-- @dsCard group="Components" name="PhaseRail" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PhaseRail — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-stack {
+      display: grid;
+      gap: var(--space-12);
+      max-width: 720px;
+    }
+    .variant {
+      display: grid;
+      gap: var(--space-3);
+    }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      color: var(--signal-mute);
+    }
+  </style>
+</head>
+<body>
+  <main class="preview-stack">
+
+    <!-- Healthy in-progress job: done → done → active → pending → pending -->
+    <section class="variant">
+      <div class="caption">In progress — clone done, deps done, building (shimmer), tests + ship pending</div>
+      <div class="phaserail">
+        <div class="segments">
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Clone</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Deps</div>
+          </div>
+          <div class="phase active">
+            <div class="bar"></div>
+            <div class="label">Build</div>
+          </div>
+          <div class="phase">
+            <div class="bar"></div>
+            <div class="label">Test</div>
+          </div>
+          <div class="phase">
+            <div class="bar"></div>
+            <div class="label">Ship</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Failed job: done → done → failed → pending -->
+    <section class="variant">
+      <div class="caption">Failed — tests broke the run, remaining phases never started</div>
+      <div class="phaserail">
+        <div class="segments">
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Clone</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Build</div>
+          </div>
+          <div class="phase failed">
+            <div class="bar"></div>
+            <div class="label">Test</div>
+          </div>
+          <div class="phase">
+            <div class="bar"></div>
+            <div class="label">Ship</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Complete job: every phase done -->
+    <section class="variant">
+      <div class="caption">Complete — all phases done (matte ring-1)</div>
+      <div class="phaserail">
+        <div class="segments">
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Clone</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Deps</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Build</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Test</div>
+          </div>
+          <div class="phase done">
+            <div class="bar"></div>
+            <div class="label">Ship</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

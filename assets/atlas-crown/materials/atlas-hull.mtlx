@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<materialx version="1.38">
+  <geominfo name="GI_AtlasMetric">
+    <geomprop name="asset_scale" type="float" value="1.0" />
+    <geomprop name="asset_units" type="string" value="meter" />
+  </geominfo>
+
+  <noise3d name="NG_micrometeor_wear" type="float">
+    <input name="amplitude" type="float" value="0.11" />
+    <input name="pivot" type="float" value="0.48" />
+  </noise3d>
+  <noise3d name="NG_brushed_micrograin" type="float">
+    <input name="amplitude" type="float" value="0.08" />
+  </noise3d>
+  <add name="NG_alloy_roughness" type="float">
+    <input name="in1" type="float" nodename="NG_brushed_micrograin" />
+    <input name="in2" type="float" value="0.28" />
+  </add>
+  <add name="NG_composite_roughness" type="float">
+    <input name="in1" type="float" nodename="NG_micrometeor_wear" />
+    <input name="in2" type="float" value="0.38" />
+  </add>
+  <constant name="NG_repair_marking_mask" type="float">
+    <input name="value" type="float" value="0.0" />
+  </constant>
+
+  <standard_surface name="SS_BrushedAlloy" type="surfaceshader">
+    <input name="base" type="float" value="1.0" />
+    <input name="base_color" type="color3" value="0.19, 0.205, 0.22" />
+    <input name="metalness" type="float" value="0.86" />
+    <input name="specular" type="float" value="0.48" />
+    <input name="specular_roughness" type="float" nodename="NG_alloy_roughness" />
+    <input name="coat" type="float" value="0.04" />
+    <input name="coat_roughness" type="float" value="0.42" />
+  </standard_surface>
+  <surfacematerial name="MAT_BrushedAlloy" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_BrushedAlloy" />
+  </surfacematerial>
+
+  <standard_surface name="SS_LayeredComposite" type="surfaceshader">
+    <input name="base" type="float" value="1.0" />
+    <input name="base_color" type="color3" value="0.055, 0.063, 0.071" />
+    <input name="metalness" type="float" value="0.12" />
+    <input name="specular" type="float" value="0.36" />
+    <input name="specular_roughness" type="float" nodename="NG_composite_roughness" />
+    <input name="coat" type="float" value="0.12" />
+    <input name="coat_roughness" type="float" value="0.29" />
+    <input name="sheen" type="float" value="0.08" />
+  </standard_surface>
+  <surfacematerial name="MAT_LayeredComposite" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_LayeredComposite" />
+  </surfacematerial>
+
+  <standard_surface name="SS_ThermalBlanket" type="surfaceshader">
+    <input name="base" type="float" value="1.0" />
+    <input name="base_color" type="color3" value="0.74, 0.69, 0.52" />
+    <input name="metalness" type="float" value="0.52" />
+    <input name="specular" type="float" value="0.32" />
+    <input name="specular_roughness" type="float" value="0.62" />
+    <input name="sheen" type="float" value="0.22" />
+    <input name="sheen_color" type="color3" value="0.82, 0.76, 0.58" />
+  </standard_surface>
+  <surfacematerial name="MAT_ThermalBlanket" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_ThermalBlanket" />
+  </surfacematerial>
+
+  <standard_surface name="SS_RepairMarking" type="surfaceshader">
+    <input name="base" type="float" value="1.0" />
+    <input name="base_color" type="color3" value="0.48, 0.13, 0.055" />
+    <input name="metalness" type="float" value="0.36" />
+    <input name="specular_roughness" type="float" value="0.58" />
+    <input name="emission" type="float" value="0.02" />
+    <input name="emission_color" type="color3" value="0.7, 0.18, 0.04" />
+  </standard_surface>
+  <surfacematerial name="MAT_RepairMarking" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_RepairMarking" />
+  </surfacematerial>
+
+  <look name="AtlasHullLook">
+    <materialassign name="MA_Alloy" material="MAT_BrushedAlloy" geom="/AtlasCrown/AxialSpine" />
+    <materialassign name="MA_Composite" material="MAT_LayeredComposite" geom="/AtlasCrown/Sectors" />
+    <materialassign name="MA_Thermal" material="MAT_ThermalBlanket" geom="/AtlasCrown/Radiators" />
+  </look>
+</materialx>

@@ -1,0 +1,164 @@
+<!-- @dsCard group="Components" name="Card" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Card — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-title {
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-spacing);
+      line-height: var(--type-title-line);
+      color: var(--core);
+      margin: 0 0 var(--space-2);
+    }
+    .preview-lede {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: 0 0 var(--space-8);
+      max-width: 60ch;
+    }
+    .group-label {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+      margin: var(--space-8) 0 var(--space-4);
+    }
+    .group-label:first-of-type { margin-top: 0; }
+    .specimen {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      max-width: 560px;
+    }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      line-height: var(--type-label-line);
+      color: var(--signal-mute);
+    }
+    /* In-card content rhythm — layout only, inherits component colors. */
+    .card-body {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: var(--space-3) 0 var(--space-4);
+    }
+    .card .row + .row { margin-top: var(--space-3); }
+  </style>
+</head>
+<body>
+  <h1 class="preview-title">Card</h1>
+  <p class="preview-lede">
+    The card surface lifts on tonal elevation alone — void-3 fill, a single 1px
+    hairline edge, radius-md corners, and no drop shadow. Hierarchy comes from
+    value, not effects. Two stacked cards sit at the canonical gap.
+  </p>
+
+  <div class="group-label">Surface</div>
+  <div class="specimen">
+    <div class="card">
+      <div class="section-header" style="margin-top: 0;">
+        <div class="heads">
+          <span class="eyebrow">Orchestration</span>
+          <h2 class="section-title">Prompt to PR</h2>
+        </div>
+        <div class="trailing">
+          <span class="pill accent"><span class="dot live"></span>Running</span>
+        </div>
+      </div>
+      <p class="card-body">
+        Decompose a goal into a validated, audited task graph. Each grain runs
+        in its own isolated worktree with a specialized model, then merges only
+        behind the owner gate.
+      </p>
+      <div class="row">
+        <span class="pill neutral">12 grains</span>
+        <span class="pill ok">9 merged</span>
+        <span class="pill warn">1 in review</span>
+      </div>
+      <div class="row" style="margin-top: var(--space-4);">
+        <button class="btn primary" type="button">Open job</button>
+        <button class="btn secondary" type="button">View graph</button>
+        <button class="btn ghost" type="button">Dismiss</button>
+      </div>
+    </div>
+    <div class="caption">.card — void-3 fill, 1px .edge, radius-md, tonal elevation (no shadow)</div>
+  </div>
+
+  <div class="group-label">Stacked — canonical gap</div>
+  <div class="specimen">
+    <div class="card">
+      <div class="section-header" style="margin-top: 0;">
+        <div class="heads">
+          <span class="eyebrow">Worker</span>
+          <h2 class="section-title">Builder · grain 07</h2>
+        </div>
+        <div class="trailing">
+          <span class="pill ok"><span class="dot ok"></span>Done</span>
+        </div>
+      </div>
+      <p class="card-body">
+        Disjoint file ownership, branched from main in a dedicated worktree.
+        Validation passed before the pull request opened.
+      </p>
+      <div class="row">
+        <button class="btn secondary" type="button">Snapshot</button>
+        <button class="btn ghost" type="button">Logs</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header" style="margin-top: 0;">
+        <div class="heads">
+          <span class="eyebrow">Worker</span>
+          <h2 class="section-title">Builder · grain 08</h2>
+        </div>
+        <div class="trailing">
+          <span class="pill danger"><span class="dot danger"></span>Failed</span>
+        </div>
+      </div>
+      <p class="card-body">
+        Validation gate reported new diagnostics versus base. The grain stops
+        and records the collision before any rebase.
+      </p>
+      <div class="row">
+        <button class="btn secondary" type="button">Retry</button>
+        <button class="btn danger" type="button">Stop</button>
+      </div>
+    </div>
+    <div class="caption">.card + .card — margin-top: var(--space-3) (the canonical stack gap)</div>
+  </div>
+
+  <div class="group-label">Interactive</div>
+  <div class="specimen">
+    <div class="card interactive">
+      <div class="row">
+        <span class="dot live"></span>
+        <strong style="color: var(--signal);">Live tile</strong>
+        <span class="grow"></span>
+        <span class="pill accent">Hover</span>
+      </div>
+      <p class="card-body" style="margin-bottom: 0;">
+        The .interactive modifier lifts the surface tone on hover (void-3 to
+        void-2) — still a tonal shift, never a glow or shadow.
+      </p>
+    </div>
+    <div class="caption">.card.interactive — tonal hover lift</div>
+  </div>
+</body>
+</html>

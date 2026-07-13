@@ -1,0 +1,394 @@
+# Base44 No-Mock Full Build Paste Order
+
+Goal: build the Hermes/JARVIS command cockpit as a fully functional Base44 application with no mock data, no seeded fake records, and no pretend Hermes calls.
+
+Paste order:
+1. 01_MASTER_PROMPT_NO_MOCK_FULL_BUILD.txt
+2. 02_DATA_SOURCE_AND_SYNC_CONTRACT.txt
+3. 03_ENTITY_SCHEMA_NO_MOCK.txt
+4. 04_ALL_9_PAGES_ACCEPTANCE_CRITERIA.txt
+5. 05_HERMES_LOCAL_BRIDGE_API_CONTRACT.txt
+6. 06_NO_MOCK_QA_AND_REJECTION_RULES.txt
+
+After each paste, tell Base44:
+"Apply this context without deleting prior work. Confirm which files/entities/pages changed and whether any mock/seed/fake data remains."
+# MASTER PROMPT — Hermes/JARVIS Base44 Cockpit, No Mock Data, Full Build
+
+Build a complete single-owner Base44 command cockpit for the Hermes/JARVIS local AI runtime.
+
+Hard requirement: NO MOCK DATA.
+Do not create sample cards, fake memory nodes, fake task packets, fake gate results, fake Android contracts, fake research records, or placeholder dashboard content. The app must be fully built, but it should show an empty/needs-connection state until real data is imported or synced from the Hermes local bridge.
+
+Architecture:
+- Hermes remains the canonical Python/Android/local runtime.
+- Base44 is the owner's control cockpit and review UI.
+- Base44 persists structured cockpit records only.
+- Base44 must not replace Hermes, execute Android taps, store secrets, store raw camera/audio frames, or invent live endpoints.
+- Owner role only: Jeremiah. No multi-user RBAC.
+- Owner authorization is active by default, but Android capability status is separate.
+
+Build all 9 pages:
+1. Owner Brief Dashboard
+2. JARVIS Mode Router
+3. Memory Tree Browser
+4. Natural Language Coding Packetizer
+5. Verification Gate Console
+6. Avatar / Companion Presence Console
+7. Android Action Broker Console
+8. Research Vault
+9. Settings / Authority
+
+Data behavior:
+- On first load, show a fully designed empty state, not fake content.
+- Provide import actions for JSON files/pasted JSON for every entity.
+- Provide sync controls that call a configured Hermes local bridge only after the owner sets a bridge URL in Settings.
+- If bridge URL is missing, show "Hermes bridge not configured".
+- If bridge call fails, show real failure status, not fallback mock data.
+- All CRUD actions must work on real Base44 entities.
+- All generated task packets, mode routes, avatar contracts, and gate results must be persisted as real records.
+
+Design:
+- Midnight Slate / pro aesthetic.
+- Background #0D1117.
+- Sidebar #161B22 frosted-glass style.
+- Accent ice blue #60A5FA.
+- Card border #30363D.
+- Pill badges: green active/pass, amber pending/warning, red blocked/fail, gray offline.
+- Clean Inter/system sans-serif hierarchy.
+- No decorative animation; only subtle state transitions.
+
+Do not ask me whether to use mock data. Do not seed sample data. Build real empty-state + import/sync-driven app.
+# Data Source and Sync Contract — No Mock Policy
+
+Data sources, in priority order:
+1. Real Base44 entity records created by the owner inside the cockpit.
+2. Imported JSON/pasted JSON from Hermes local export files.
+3. Hermes Local Bridge API, only when configured in Settings.
+
+Forbidden:
+- mock data
+- demo data
+- sample seeded records
+- fake status indicators
+- fake bridge responses
+- hardcoded sample memory trees
+- hardcoded sample research artifacts
+- hardcoded Android package/capability results except enum defaults
+
+Allowed empty-state copy:
+- "No memory nodes imported yet. Import a Hermes memory export or configure local bridge."
+- "No active task packets. Generate a packet or import from Hermes."
+- "Hermes bridge not configured. Set local bridge URL in Settings."
+- "No Android capability report available. Sync from Hermes Android app."
+
+Every fetch-like adapter must follow this rule:
+- If settings.hermesBridgeUrl is empty, return structured error: bridge_not_configured.
+- If network call fails, return structured error: bridge_unreachable with real error message.
+- If bridge returns empty list, display empty list.
+- Never inject fake records to make the dashboard look populated.
+
+First-load dashboard should be useful by showing:
+- connection status cards
+- import buttons
+- sync buttons disabled until configured
+- setup checklist
+- empty record counters
+- next real action: "Configure bridge or import Hermes export"
+
+This is a full build, not a prototype. Empty state is acceptable; fake state is not.
+# Entity Schema — No Mock Build
+
+Create these Base44 entities with real persistence and CRUD screens/actions where relevant.
+
+1. OwnerBrief
+Fields:
+- title: string
+- generatedAt: datetime
+- jarvisMode: enum companion|strategy|critic|operator|builder|mobile_voice
+- activeGoal: string
+- readinessScore: number 0-100
+- blockers: array string
+- nextAction: string
+- latestMemoryNodeIds: array string
+- latestTaskPacketIds: array string
+- avatarStateId: string
+- source: enum imported|bridge|manual
+- sourceRef: string
+- createdAt, updatedAt
+
+2. JarvisModeRoute
+Fields:
+- intent: string
+- riskClass: enum RC0|RC1|RC2|RC3|RC4
+- surface: enum desktop|slack|termux|android|voice
+- selectedMode: enum companion|strategy|critic|operator|builder|mobile_voice
+- routeTarget: string
+- worker: string
+- reviewer: string
+- reason: string
+- generatedTaskPacketId: string optional
+- source: enum generated|imported|bridge
+- createdAt, updatedAt
+
+3. MemoryNode
+Fields:
+- namespace: enum owner/profile|owner/preferences|hermes/runtime|hermes/codebase|jarvis/strategy|jarvis/memory|jarvis/avatar|jarvis/android-actions|research/oss|research/model-routing|research/natural-language-coding|failures/lessons|evaluations
+- title: string
+- summary: string
+- parentId: string optional
+- source: string
+- sourceType: enum manual|imported|bridge|research|repo|user
+- sourceRef: string
+- confidence: number 0-1
+- freshness: enum fresh|aging|stale|unknown
+- approvalState: enum candidate|approved|rejected|superseded|contested
+- contradictionState: enum none|possible|active|resolved
+- tags: array string
+- citations: array string
+- createdAt, updatedAt
+
+4. TaskPacket
+Fields:
+- title: string
+- mission: string
+- repoRoot: string
+- branchName: string
+- riskClass: enum RC0|RC1|RC2|RC3|RC4
+- surface: enum desktop|slack|termux|android|voice
+- allowedFiles: array string
+- forbiddenFiles: array string
+- nonGoals: array string
+- acceptanceCriteria: array string
+- verificationPlan: array string
+- rollbackPlan: string
+- builder: string
+- reviewer: string
+- status: enum draft|ready_for_gate|blocked|approved|sent_to_bridge|completed|failed
+- source: enum generated|manual|imported|bridge
+- createdAt, updatedAt
+
+5. VerificationGateResult
+Fields:
+- taskPacketId: string
+- gateName: enum planning|build|review|test|security|release|owner_approval|rollback
+- status: enum pass|fail|pending|needs_owner_approval|skipped
+- reason: string
+- findings: array string
+- evidenceRefs: array string
+- createdAt, updatedAt
+
+6. AvatarState
+Fields:
+- avatarName: string
+- style: string
+- sizeMode: enum full|mini|ambient
+- state: enum idle|listening|watching|thinking|working|moving_to_target|tapping_target|turning_page|waiting_for_approval|blocked|offline|emergency_stop
+- emotionHint: string
+- currentTask: string
+- animationBeats: array string
+- attentionSignal: enum unknown|not_available|looking|speaking|idle
+- source: enum manual|bridge|imported
+- createdAt, updatedAt
+
+7. AndroidActionContract
+Fields:
+- command: string
+- ownerAuthorized: boolean default true
+- targetPackage: string
+- targetAppLabel: string
+- requiredCapabilities: array string
+- missingCapabilities: array string
+- executionMode: enum direct_execute|blocked_missing_capability|execute_with_pause_point|blocked_policy|preview_only
+- highConsequence: boolean
+- pauseReason: string
+- avatarBeats: array string
+- contractJson: json/string
+- status: enum draft|ready|sent_to_bridge|completed|failed|blocked
+- source: enum generated|imported|bridge
+- createdAt, updatedAt
+
+8. ResearchArtifact
+Fields:
+- title: string
+- topic: enum openhuman_memory_tree|tokenjuice|hermes_orchestration|self_efficient_coder|natural_language_coding|android_overlay|android_accessibility|avatar_attention|model_routing|security_privacy
+- summary: string
+- sourceUrl: string
+- sourceType: enum official_doc|github|paper|internal_note|repo_audit|manual
+- licenseNotes: string
+- implementationRelevance: string
+- status: enum raw|reviewed|approved|rejected|superseded
+- confidence: number 0-1
+- tags: array string
+- createdAt, updatedAt
+
+9. SettingsAuthority
+Fields:
+- ownerAuthorizationMode: enum active|paused|emergency_stop
+- highConsequencePauseActions: array string
+- allowedPackages: array string
+- blockedPackages: array string
+- telemetryPrivacyMode: enum local_only|minimal|off
+- localOnlyMode: boolean default true
+- hermesBridgeUrl: string
+- bridgeEnabled: boolean default false
+- androidCapabilityStatus: enum unknown|not_configured|partial|ready|blocked
+- createdAt, updatedAt
+# All 9 Pages — No Mock Acceptance Criteria
+
+1. Owner Brief Dashboard
+- Shows connection/setup panel if no OwnerBrief exists.
+- Shows real OwnerBrief when imported/generated/synced.
+- Shows counts from real entity tables only.
+- No fake cards.
+- Has buttons: Import Brief JSON, Sync from Hermes Bridge, Create Manual Brief.
+
+2. JARVIS Mode Router
+- Form: intent, risk class, surface.
+- Deterministic local routing helper generates JarvisModeRoute from form input.
+- Persist route as real record.
+- Generate TaskPacket from route and persist it.
+- No fake prior routes.
+
+3. Memory Tree Browser
+- Shows real MemoryNode tree/list only.
+- Filters by namespace, confidence, freshness, approvalState, contradictionState.
+- Detail panel supports approve/reject/supersede/contest.
+- Import JSON supports array of MemoryNode objects.
+
+4. Natural Language Coding Packetizer
+- Form: plain-English task, repoRoot, riskClass, allowedFiles, forbiddenFiles, nonGoals.
+- Generates real TaskPacket record.
+- Branch name generated deterministically from task title + date.
+- Can send packet to Verification Gate Console by creating pending gate rows.
+
+5. Verification Gate Console
+- Select real TaskPacket.
+- Shows exactly 8 gate cards for that packet.
+- If no gate rows exist, user can initialize pending gate rows.
+- Overall result computed from actual gate statuses.
+- No fake pass/fail statuses.
+
+6. Avatar / Companion Presence Console
+- Shows real AvatarState records only.
+- Lets owner create/edit avatar name, style, size mode.
+- Supports animation beat timeline editor.
+- Empty state says no avatar state synced/created yet.
+
+7. Android Action Broker Console
+- Form: natural-language command.
+- Creates AndroidActionContract with ownerAuthorized=true.
+- Computes highConsequence from command keywords: send, post, buy, delete, password, share private data, transfer, submit.
+- executionMode rules:
+  - missingCapabilities non-empty => blocked_missing_capability
+  - highConsequence true => execute_with_pause_point
+  - otherwise => direct_execute
+- Does not execute Android actions inside Base44.
+- Can send to bridge only if bridge configured.
+
+8. Research Vault
+- Shows real ResearchArtifact records only.
+- Import/edit/filter by status/topic/confidence.
+- Must include fields for license notes and implementation relevance.
+- No preseeded research cards unless imported by owner.
+
+9. Settings / Authority
+- Owner authorization mode visible and editable.
+- Bridge URL and bridge enabled controls.
+- High-consequence pause action list editable.
+- Allowed/blocked packages editable.
+- Disclaimer: local/private testing; no secrets in Base44; real Android execution lives in Hermes Android app.
+- Provides Export All Data and Import All Data actions if Base44 supports it.
+# Hermes Local Bridge API Contract — Real Sync Only
+
+Build Base44 adapter functions around this contract, but do not call them until SettingsAuthority.bridgeEnabled is true and hermesBridgeUrl is non-empty.
+
+Base URL example:
+http://127.0.0.1:8765
+or Android/local network address configured by owner.
+
+Endpoints to support later:
+GET /health
+Response:
+{ "ok": true, "runtime": "hermes", "version": "...", "jarvis_prime": true }
+
+GET /owner-brief
+Response:
+OwnerBrief JSON object or null.
+
+GET /memory-nodes
+Response:
+{ "items": [MemoryNode objects] }
+
+GET /task-packets
+Response:
+{ "items": [TaskPacket objects] }
+
+POST /task-packets
+Body:
+TaskPacket object
+Response:
+{ "ok": true, "id": "...", "status": "accepted" }
+
+GET /verification-gates?taskPacketId=...
+Response:
+{ "items": [VerificationGateResult objects] }
+
+GET /avatar-state
+Response:
+AvatarState JSON object or null.
+
+POST /android-action-contracts
+Body:
+AndroidActionContract object
+Response:
+{ "ok": true, "id": "...", "status": "accepted|blocked|completed", "message": "..." }
+
+GET /research-artifacts
+Response:
+{ "items": [ResearchArtifact objects] }
+
+Adapter behavior:
+- Missing bridge URL => bridge_not_configured.
+- bridgeEnabled false => bridge_disabled.
+- HTTP/network failure => bridge_unreachable.
+- Non-2xx response => bridge_error with status code.
+- Empty response => show empty state.
+- Never create fake fallback records.
+
+Security:
+- Do not store API keys/secrets in Base44.
+- If bridge requires auth later, use local one-time pairing flow in Hermes, not hardcoded tokens.
+# No-Mock QA and Rejection Rules
+
+Before considering the app complete, scan all pages, functions, and data initializers for banned patterns.
+
+Reject build if any appear:
+- "mock"
+- "demo"
+- "sample"
+- "seed"
+- hardcoded MemoryNode arrays
+- hardcoded ResearchArtifact arrays
+- fake OwnerBrief on first load
+- fake AvatarState on first load
+- fake AndroidActionContract on first load
+- fake bridge response
+- fallback records after failed fetch
+
+Allowed terms only inside this QA document or explicit "no mock data" warning copy.
+
+Completion criteria:
+- All 9 pages exist and are navigable.
+- All 9 entities exist and persist real records.
+- First load contains zero fake records.
+- Empty states tell the owner how to import/sync real data.
+- Mode Router creates real JarvisModeRoute and TaskPacket records from owner input.
+- Packetizer creates real TaskPacket records from owner input.
+- Verification Console creates/updates real VerificationGateResult rows.
+- Avatar Console creates/updates real AvatarState rows.
+- Android Broker creates real AndroidActionContract rows.
+- Research Vault imports/edits real ResearchArtifact rows.
+- Settings stores bridge URL and authority controls.
+- Bridge adapter refuses to fake success when Hermes is unreachable.
+
+Tell the owner exactly what is complete and what remains. Do not claim real Hermes sync works until the local Hermes bridge exists and has been connected.

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1572" font-family="DejaVu Sans, Arial, sans-serif">
+<defs>
+<radialGradient id="bg" cx="30%" cy="10%" r="120%"><stop offset="0" stop-color="#0a1024"/><stop offset="1" stop-color="#05070f"/></radialGradient>
+<linearGradient id="e_flow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37d0d6" stop-opacity="0.35"/><stop offset="1" stop-color="#37d0d6" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_branch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4c95d" stop-opacity="0.35"/><stop offset="1" stop-color="#f4c95d" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_loop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity="0.35"/><stop offset="1" stop-color="#f59e0b" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_compensate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b6b" stop-opacity="0.35"/><stop offset="1" stop-color="#ff6b6b" stop-opacity="1"/></linearGradient>
+</defs>
+<rect width="1180" height="1572" fill="url(#bg)"/>
+<circle cx="676" cy="369" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="684" cy="35" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="469" cy="875" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="177" cy="904" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="438" cy="310" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="388" cy="721" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="442" cy="218" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="963" cy="478" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1096" cy="155" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="1123" cy="460" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="693" cy="567" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="714" cy="1043" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="979" cy="1032" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="437" cy="63" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="40" cy="896" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="981" cy="609" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="11" cy="1087" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="868" cy="1423" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="417" cy="419" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="793" cy="29" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="972" cy="462" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1172" cy="680" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="1139" cy="8" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="170" cy="562" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="75" cy="1550" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="558" cy="1548" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="312" cy="352" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="1079" cy="433" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="559" cy="1442" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="769" cy="1258" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="203" cy="1113" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="271" cy="954" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="25" cy="1320" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="432" cy="256" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="353" cy="1283" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="467" cy="1226" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="401" cy="1150" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="306" cy="1564" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="50" cy="110" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="694" cy="705" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="256" cy="1340" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="899" cy="1528" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="841" cy="883" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="456" cy="735" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="536" cy="1397" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="1146" cy="432" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="149" cy="863" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="592" cy="1187" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="864" cy="1189" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="596" cy="319" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1057" cy="1361" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="447" cy="1384" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="323" cy="25" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="347" cy="1278" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="202" cy="936" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="216" cy="297" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="407" cy="1156" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="571" cy="1263" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="181" cy="922" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="107" cy="410" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="296" cy="943" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="1079" cy="1537" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="672" cy="1370" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="156" cy="607" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="203" cy="555" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="728" cy="1059" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="165" cy="152" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="497" cy="292" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="581" cy="10" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1105" cy="365" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="405" cy="1530" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="344" cy="1055" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="901" cy="641" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="806" cy="1524" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="684" cy="932" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="867" cy="407" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="604" cy="146" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="865" cy="1037" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="557" cy="961" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="445" cy="437" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="435" cy="70" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="766" cy="1193" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="664" cy="355" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="1040" cy="27" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="964" cy="1050" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="702" cy="19" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="655" cy="777" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="298" cy="116" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="328" cy="877" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="932" cy="991" r="1.3" fill="#9fc0ff" opacity="0.6"/>
+<text x="70" y="56" fill="#ff7ad9" font-size="15" font-weight="700" letter-spacing="4">A1 · writing.essay</text>
+<text x="70" y="92" fill="#eef3ff" font-size="30" font-weight="700">Long-form Essay/Article</text>
+<text x="70" y="118" fill="#9fb0d6" font-size="14" font-style="italic">“Write a 3000-word essay on [topic] for [audience]”</text>
+<text x="1110" y="56" text-anchor="end" fill="#37d0d6" font-size="13" font-weight="600" letter-spacing="1">15-45 min | ~$0.50-2.00 | 15k-50k tokens</text>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,318) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,486) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,654) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,822) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,990) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M322,1043.0 C432,1043.0 432,875.0 322,875.0" fill="none" stroke="#f59e0b" stroke-width="11" opacity="0.14"/>
+<path d="M322,1043.0 C432,1043.0 432,875.0 322,875.0" fill="none" stroke="url(#e_loop)" stroke-width="3.4" opacity="0.95" stroke-dasharray="2 8"/>
+<g transform="translate(322,875.0) rotate(180)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#f59e0b"/></g>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1158) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1326) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<rect x="54" y="134" width="284" height="138" rx="34" fill="#dfe8ff" opacity="0.1"/>
+<rect x="61" y="141" width="270" height="124" rx="27" fill="#dfe8ff" opacity="0.16"/>
+<path d="M322,164 L337,181 L337,273 L85,273 L322,256 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="150" width="8" height="106" rx="4" fill="#dfe8ff"/>
+<circle cx="100" cy="176" r="7" fill="#dfe8ff"/>
+<text x="116" y="181" fill="#dfe8ff" font-size="12.5" font-weight="600" letter-spacing="1">ENTRY</text>
+<text x="90" y="212" fill="#eef3ff" font-size="20" font-weight="700">Prompt</text>
+<text x="90" y="236" fill="#9fb0d6" font-size="13">Write a 3000-word essay on [topic…</text>
+<rect x="54" y="302" width="284" height="138" rx="34" fill="#37d0d6" opacity="0.1"/>
+<rect x="61" y="309" width="270" height="124" rx="27" fill="#37d0d6" opacity="0.16"/>
+<path d="M322,332 L337,349 L337,441 L85,441 L322,424 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="318" width="8" height="106" rx="4" fill="#37d0d6"/>
+<circle cx="100" cy="344" r="7" fill="#37d0d6"/>
+<text x="116" y="349" fill="#37d0d6" font-size="12.5" font-weight="600" letter-spacing="1">RESEARCH · PARALLEL</text>
+<text x="90" y="380" fill="#eef3ff" font-size="20" font-weight="700">Research</text>
+<text x="90" y="404" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="470" width="284" height="138" rx="34" fill="#8ab4ff" opacity="0.1"/>
+<rect x="61" y="477" width="270" height="124" rx="27" fill="#8ab4ff" opacity="0.16"/>
+<path d="M322,500 L337,517 L337,609 L85,609 L322,592 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="486" width="8" height="106" rx="4" fill="#8ab4ff"/>
+<circle cx="100" cy="512" r="7" fill="#8ab4ff"/>
+<text x="116" y="517" fill="#8ab4ff" font-size="12.5" font-weight="600" letter-spacing="1">PLAN</text>
+<text x="90" y="548" fill="#eef3ff" font-size="20" font-weight="700">Outline Generation</text>
+<text x="90" y="572" fill="#9fb0d6" font-size="13">creative.writer</text>
+<rect x="54" y="638" width="284" height="138" rx="34" fill="#a78bfa" opacity="0.1"/>
+<rect x="61" y="645" width="270" height="124" rx="27" fill="#a78bfa" opacity="0.16"/>
+<path d="M322,668 L337,685 L337,777 L85,777 L322,760 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="654" width="8" height="106" rx="4" fill="#a78bfa"/>
+<circle cx="100" cy="680" r="7" fill="#a78bfa"/>
+<text x="116" y="685" fill="#a78bfa" font-size="12.5" font-weight="600" letter-spacing="1">AGENT · PARALLEL</text>
+<text x="90" y="716" fill="#eef3ff" font-size="20" font-weight="700">Section Drafting</text>
+<text x="90" y="740" fill="#9fb0d6" font-size="13">creative.writer</text>
+<rect x="54" y="806" width="284" height="138" rx="34" fill="#a78bfa" opacity="0.1"/>
+<rect x="61" y="813" width="270" height="124" rx="27" fill="#a78bfa" opacity="0.16"/>
+<path d="M322,836 L337,853 L337,945 L85,945 L322,928 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="822" width="8" height="106" rx="4" fill="#a78bfa"/>
+<circle cx="100" cy="848" r="7" fill="#a78bfa"/>
+<text x="116" y="853" fill="#a78bfa" font-size="12.5" font-weight="600" letter-spacing="1">AGENT</text>
+<text x="90" y="884" fill="#eef3ff" font-size="20" font-weight="700">Assembly</text>
+<text x="90" y="908" fill="#9fb0d6" font-size="13">creative.writer</text>
+<rect x="54" y="974" width="284" height="138" rx="34" fill="#f59e0b" opacity="0.1"/>
+<rect x="61" y="981" width="270" height="124" rx="27" fill="#f59e0b" opacity="0.16"/>
+<path d="M322,1004 L337,1021 L337,1113 L85,1113 L322,1096 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="990" width="8" height="106" rx="4" fill="#f59e0b"/>
+<circle cx="100" cy="1016" r="7" fill="#f59e0b"/>
+<text x="116" y="1021" fill="#f59e0b" font-size="12.5" font-weight="600" letter-spacing="1">REVIEW · LOOP</text>
+<text x="90" y="1052" fill="#eef3ff" font-size="20" font-weight="700">Self Critique</text>
+<text x="90" y="1076" fill="#9fb0d6" font-size="13">creative.critic</text>
+<rect x="54" y="1142" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1149" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1172 L337,1189 L337,1281 L85,1281 L322,1264 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1158" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1184" r="7" fill="#56d364"/>
+<text x="116" y="1189" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">OUTPUT</text>
+<text x="90" y="1220" fill="#eef3ff" font-size="20" font-weight="700">Format &amp; Export</text>
+<text x="90" y="1244" fill="#9fb0d6" font-size="13">creative.formatter</text>
+<rect x="54" y="1310" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1317" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1340 L337,1357 L337,1449 L85,1449 L322,1432 Z" fill="#592a4b" opacity="0.9"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="none" stroke="#ff7ad9" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1326" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1352" r="7" fill="#56d364"/>
+<text x="116" y="1357" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">DONE</text>
+<text x="90" y="1388" fill="#eef3ff" font-size="20" font-weight="700">Delivery</text>
+<text x="90" y="1412" fill="#9fb0d6" font-size="13">canvas · files · KG</text>
+<text x="70" y="1520" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">NODE</text>
+<circle cx="122" cy="1516" r="6" fill="#dfe8ff"/><text x="134" y="1520" fill="#9fb0d6" font-size="12">entry</text>
+<circle cx="191" cy="1516" r="6" fill="#a78bfa"/><text x="203" y="1520" fill="#9fb0d6" font-size="12">agent</text>
+<circle cx="260" cy="1516" r="6" fill="#37d0d6"/><text x="272" y="1520" fill="#9fb0d6" font-size="12">research</text>
+<circle cx="353" cy="1516" r="6" fill="#f59e0b"/><text x="365" y="1520" fill="#9fb0d6" font-size="12">review</text>
+<circle cx="430" cy="1516" r="6" fill="#f4c95d"/><text x="442" y="1520" fill="#9fb0d6" font-size="12">gate</text>
+<circle cx="490" cy="1516" r="6" fill="#56d364"/><text x="502" y="1520" fill="#9fb0d6" font-size="12">output</text>
+<circle cx="567" cy="1516" r="6" fill="#56d364"/><text x="579" y="1520" fill="#9fb0d6" font-size="12">done</text>
+<circle cx="627" cy="1516" r="6" fill="#ff6b6b"/><text x="639" y="1520" fill="#9fb0d6" font-size="12">fail</text>
+<text x="70" y="1544" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">EDGE</text>
+<line x1="122" y1="1540" x2="144" y2="1540" stroke="#37d0d6" stroke-width="3"/><text x="150" y="1544" fill="#9fb0d6" font-size="12">flow</text>
+<line x1="206" y1="1540" x2="228" y2="1540" stroke="#f4c95d" stroke-width="3"/><text x="234" y="1544" fill="#9fb0d6" font-size="12">branch</text>
+<line x1="307" y1="1540" x2="329" y2="1540" stroke="#f59e0b" stroke-width="3"/><text x="335" y="1544" fill="#9fb0d6" font-size="12">loop</text>
+<line x1="391" y1="1540" x2="413" y2="1540" stroke="#ff6b6b" stroke-width="3"/><text x="419" y="1544" fill="#9fb0d6" font-size="12">compensate</text>
+</svg>

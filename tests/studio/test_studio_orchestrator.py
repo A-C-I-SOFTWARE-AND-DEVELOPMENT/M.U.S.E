@@ -61,7 +61,10 @@ def test_film_pipeline_runs_end_to_end(studio):
     assert (m.workdir / "manifest.txt").exists()
 
 
-def test_game_pipeline_runs_end_to_end(studio):
+def test_game_pipeline_runs_end_to_end(studio, monkeypatch):
+    # Hermetic: a host Unreal install must not change the scaffold default.
+    import agent.studio.adapters as _adapters
+    monkeypatch.setattr(_adapters, "discover_unreal", lambda preferred=None: None)
     brief = GameBrief(
         title="Aetherbound",
         genre="action-RPG",
@@ -90,7 +93,14 @@ def test_game_pipeline_runs_end_to_end(studio):
     uproject = Path(engine_stage.artifacts[0]) / "Project.uproject"
     assert uproject.exists()
     data = json.loads(uproject.read_text())
-    assert data["EngineAssociation"] == "5.5"
+    assert data["EngineAssociation"] == "5.6"
+    engine_manifest = json.loads(
+        (Path(engine_stage.artifacts[0]) / "studio-engine-manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert engine_manifest["compiled"] is False
+    assert engine_manifest["playable"] is False
 
 
 def test_quality_levels_change_video_resolution(studio, tmp_path):

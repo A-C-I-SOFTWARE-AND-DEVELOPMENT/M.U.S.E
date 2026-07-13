@@ -1,0 +1,60 @@
+# Hermes Local Bridge API Contract — Real Sync Only
+
+Build Base44 adapter functions around this contract, but do not call them until SettingsAuthority.bridgeEnabled is true and hermesBridgeUrl is non-empty.
+
+Base URL example:
+http://127.0.0.1:8765
+or Android/local network address configured by owner.
+
+Endpoints to support later:
+GET /health
+Response:
+{ "ok": true, "runtime": "hermes", "version": "...", "jarvis_prime": true }
+
+GET /owner-brief
+Response:
+OwnerBrief JSON object or null.
+
+GET /memory-nodes
+Response:
+{ "items": [MemoryNode objects] }
+
+GET /task-packets
+Response:
+{ "items": [TaskPacket objects] }
+
+POST /task-packets
+Body:
+TaskPacket object
+Response:
+{ "ok": true, "id": "...", "status": "accepted" }
+
+GET /verification-gates?taskPacketId=...
+Response:
+{ "items": [VerificationGateResult objects] }
+
+GET /avatar-state
+Response:
+AvatarState JSON object or null.
+
+POST /android-action-contracts
+Body:
+AndroidActionContract object
+Response:
+{ "ok": true, "id": "...", "status": "accepted|blocked|completed", "message": "..." }
+
+GET /research-artifacts
+Response:
+{ "items": [ResearchArtifact objects] }
+
+Adapter behavior:
+- Missing bridge URL => bridge_not_configured.
+- bridgeEnabled false => bridge_disabled.
+- HTTP/network failure => bridge_unreachable.
+- Non-2xx response => bridge_error with status code.
+- Empty response => show empty state.
+- Never create fake fallback records.
+
+Security:
+- Do not store API keys/secrets in Base44.
+- If bridge requires auth later, use local one-time pairing flow in Hermes, not hardcoded tokens.

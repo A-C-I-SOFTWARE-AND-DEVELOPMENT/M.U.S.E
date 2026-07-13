@@ -1,0 +1,854 @@
+{
+  "name": "MUSE \u00b7 Global Pipeline (chat AI agent \u2192 Atlas \u2192 n8n)",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 1760,
+        "height": 300,
+        "content": "## MUSE \u00b7 Global Pipeline \u2014 chat AI agent \u2192 Atlas \u2192 n8n\nFull end-to-end mirror of one MUSE turn. A chat message enters at the Atlas **Neural Conversation** (`/chat`, Crown deck) and flows through the runtime pipeline:\n\n**perceive \u2192 recollect \u2192 classify \u2192 build_prompt \u2192 decide \u2192 gate (AXIOM) \u2192 delegate \u2192 speak**\n\nThe atomic turn runs server-side in `runtime.py::JarvisPrime.handle()` behind `POST /v1/jarvis/chat`. n8n mirrors every stage, reads the Atlas evidence surfaces live, enforces the owner gate, and performs the **delegate** hop to the connector layer.\n\n**Invariant:** *Intelligence proposes; the verifier disposes.* n8n is the **execution + connector** layer, never the verifier \u2014 the AXIOM gate stays in MUSE.\nSet n8n env vars `MUSE_COCKPIT_URL` (default `http://host.docker.internal:8765`), `MUSE_COCKPIT_TOKEN`, `MUSE_N8N_BASE` (default `http://localhost:5678`).",
+        "color": 4
+      },
+      "id": "715b1113-2abf-47a4-81c3-93a2f6e7923e",
+      "name": "hdr",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 220,
+        "height": 520,
+        "content": "### \u25b2 CROWN DECK\nCommand \u00b7 governance \u00b7 integrity.\nStations: Atlas Crown `/atlas`, Neural Conversation `/chat`, Quarantine Moon `/axiom`, Steering `/steer`.\nEntry, gate, owner-gate, ledger, speak.",
+        "color": 5
+      },
+      "id": "32a7fed5-06db-49cc-8afd-821359eb9920",
+      "name": "crown",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "muse-global-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8377abee-9fc7-4888-a8d6-046456540c0e",
+      "name": "Chat AI Agent (Atlas /chat)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        320
+      ],
+      "webhookId": "muse-global-chat"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// RECEIVING \u2014 normalize inbound chat from the Atlas /chat surface.\nconst body = $json.body ?? $json;\nconst headers = $json.headers ?? {};\nconst prompt = body.prompt ?? body.message ?? body.text ?? '';\nconst history = body.history ?? [];\nconst idempotency_key = headers['idempotency-key'] || body.idempotency_key || $execution.id || (''+Date.now());\nconst authorization = body.authorization ?? headers['x-owner-authorization'] ?? '';\nconst cockpitBase = $env.MUSE_COCKPIT_URL || 'http://host.docker.internal:8765';\nconst connectorBase = $env.MUSE_N8N_BASE || 'http://localhost:5678';\nreturn [{ json: { phase:'RECEIVING', prompt, history, idempotency_key, authorization,\n  session_key: body.session_key ?? null, cockpitBase, connectorBase,\n  received_at: new Date().toISOString() } }];"
+      },
+      "id": "177a259d-016c-4b13-9aec-f5fb11f72d33",
+      "name": "RECEIVING - normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.cockpitBase }}/v1/jarvis/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: $json.prompt, history: $json.history }) }}"
+      },
+      "id": "613763b4-3788-4310-ac97-a7381edfc1fe",
+      "name": "TURN - POST /v1/jarvis/chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "width": 320,
+        "height": 150,
+        "content": "**perceive\u2192classify\u2192decide\u2192gate\u2192speak** all happen inside this one streamed call (`gateway/cockpit/agent.py::jarvis_responder` \u2192 `JarvisPrime.handle`). Response is NDJSON (`phase, body, body_delta, detail, approval, evidence, ledger, done`).",
+        "color": 6
+      },
+      "id": "7190d728-c2b6-465c-9e81-d5d066410898",
+      "name": "turnnote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        360,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse the NDJSON turn stream and fold the wire vocabulary into a summary.\nconst inItem = $input.first().json;\nconst raw = inItem.data ?? inItem.body ?? inItem ?? '';\nconst text = (typeof raw === 'string') ? raw : JSON.stringify(raw);\nconst lines = text.split(/\\r?\\n/).map(l => l.trim()).filter(Boolean);\nlet speak='', ownerReq=false, done=false, err=null;\nconst phases=[], details=[], evidenceRefs=[], ledgerRefs=[], approvals=[];\nfor (const line of lines){ let c; try{ c=JSON.parse(line); }catch(e){ continue; }\n  switch(c.type){\n    case 'phase': phases.push(c.phase ?? c.value); break;\n    case 'body': speak = c.text ?? c.value ?? speak; break;\n    case 'body_delta': speak += (c.text ?? c.value ?? ''); break;\n    case 'detail': { const d=c.text ?? c.value ?? ''; details.push(d);\n        if(/owner approval required/i.test(d)) ownerReq=true; break; }\n    case 'approval': approvals.push(c); ownerReq=true; break;\n    case 'evidence': evidenceRefs.push(c.id ?? c.ref ?? c.value); break;\n    case 'ledger': ledgerRefs.push(c.id ?? c.ref ?? c.value); break;\n    case 'done': done=true; break;\n    case 'error': err = c.error ?? c.message ?? c.value ?? 'error'; break;\n  } }\nconst ctx = $('RECEIVING - normalize').first().json;\nreturn [{ json: { ...ctx, phase:'PARSED', speak, phases, details, evidenceRefs, ledgerRefs,\n  owner_approval_required: ownerReq, approvals, done, error: err, raw_chunk_count: lines.length } }];"
+      },
+      "id": "42c90dcf-2493-4214-ae4f-068d7579ad2e",
+      "name": "Parse NDJSON turn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1180,
+        "height": 240,
+        "content": "### \u25c6 OBSERVATORY DECK \u2014 Atlas read-back (live cockpit reads mirror the internal stages)\n`GET /v1/cockpit/axiom` gate+hash-chain \u00b7 `GET /v1/cockpit/ledger` delegation ledger \u00b7 `GET /v1/cockpit/memory/tree` recollect \u00b7 `GET /v1/cockpit/evidence` retrieve\u2192rank\u2192cite\u2192verify \u00b7 `GET /v1/cockpit/autonomy` steering \u00b7 `GET /v1/cockpit/approvals` owner queue.\nThe six disabled nodes below document each endpoint/station; the **Atlas read-back** Code node calls them all live.",
+        "color": 3
+      },
+      "id": "fa89e993-7e79-485f-8f77-23c039446d24",
+      "name": "obs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Atlas read-back \u2014 mirror each internal stage by reading the live cockpit surfaces.\nconst ctx = $input.first().json;\nconst base = ctx.cockpitBase || ($env.MUSE_COCKPIT_URL || 'http://host.docker.internal:8765');\nconst token = $env.MUSE_COCKPIT_TOKEN || '';\nconst H = { Authorization: 'Bearer ' + token };\nconst self = this;\nasync function get(path){\n  try { return await self.helpers.httpRequest({ method:'GET', url: base+path, headers:H, json:true, timeout:8000 }); }\n  catch(e){ return { _error: String(e).slice(0,200), _path: path }; }\n}\nconst [axiom, ledger, memory, evidence, autonomy, approvals] = await Promise.all([\n  get('/v1/cockpit/axiom'), get('/v1/cockpit/ledger'), get('/v1/cockpit/memory/tree'),\n  get('/v1/cockpit/evidence'), get('/v1/cockpit/autonomy'), get('/v1/cockpit/approvals') ]);\nconst chain_valid = (axiom && axiom.audit) ? axiom.audit.chain_valid : null;\nconst ledger_latest_hash = (axiom && axiom.audit) ? (axiom.audit.tip ?? null) : null;\nreturn [{ json: { ...ctx, atlas: { axiom, ledger, memory, evidence, autonomy, approvals },\n  chain_valid, ledger_latest_hash } }];"
+      },
+      "id": "55de0e70-40b1-4638-b478-4cd25da2ba9a",
+      "name": "Atlas read-back (cockpit)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/axiom",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2af1396d-06ff-481a-b601-0f08dcc726c3",
+      "name": "read: GET /v1/cockpit/axiom  (Quarantine Moon /axiom)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/ledger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "984ee31d-f7ab-4d70-9a3e-488a44abd8de",
+      "name": "read: GET /v1/cockpit/ledger  (Crown ledger)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        855,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/memory/tree",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "1e2b8b84-3a89-409e-b062-d3ee198afdfb",
+      "name": "read: GET /v1/cockpit/memory/tree  (Memory Archive /second-brain)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1050,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/evidence",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "66d21223-1353-4fd3-a09e-d8aba2518aae",
+      "name": "read: GET /v1/cockpit/evidence  (Deep Observatory /observatory)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1245,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/autonomy",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d3b777a7-b1b5-4324-9cdc-c56177a76fc7",
+      "name": "read: GET /v1/cockpit/autonomy  (Steering Core /steer)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.cockpitBase }}/v1/cockpit/approvals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b8e9e579-666b-474e-bd3f-9aa1fb917e3e",
+      "name": "read: GET /v1/cockpit/approvals  (owner gate queue)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1635,
+        860
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Gate mirror \u2014 surface all 8 verification gates with authoritative signals.\n// Real gating ran server-side; chain_valid comes from GET /v1/cockpit/axiom.\n// Risk->profile mirrors GATE_PROFILES (hermes_cli/jarvis_prime/axiom_bridge.py).\nconst ctx = $input.first().json;\nconst t = (ctx.prompt || '').toLowerCase();\nlet risk='LOW';\nif(/(deploy|publish|release|push|dns|secret|credential|oauth|spend|pay|charge|package|app store|production)/.test(t)) risk='HIGH';\nelse if(/(edit|refactor|write|change|migrate|install|build|fix|implement|create|update)/.test(t)) risk='MED';\nconst ALL=['planning','build','review','test','security','release','owner_approval','rollback'];\nconst PROFILE={ LOW:['build','test'],\n  MED:['planning','build','review','test','security','rollback'], HIGH: ALL };\nconst active=PROFILE[risk];\nconst cv=ctx.chain_valid;\nconst ownerReq=!!ctx.owner_approval_required || risk==='HIGH';\nconst gates=ALL.map(name=>{ let outcome=active.includes(name)?'pass':'skipped';\n  if(name==='owner_approval'&&active.includes(name)) outcome=ownerReq?'needs_owner_approval':'pass';\n  if(name==='release'&&active.includes(name)&&cv===false) outcome='fail';\n  return { gate:name, outcome, active:active.includes(name) }; });\nconst all_gates_pass=gates.every(g=>g.outcome!=='fail');\nconst needs_owner_approval=gates.some(g=>g.outcome==='needs_owner_approval')||ownerReq;\nreturn [{ json: { ...ctx, risk, gate_profile:active, gates, all_gates_pass, needs_owner_approval } }];"
+      },
+      "id": "bdc9df68-d8e1-41a5-9915-d76cab17cc4c",
+      "name": "Gate mirror (8 gates)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "width": 360,
+        "height": 150,
+        "content": "**8 gates** (`hermes_cli/jarvis_prime/gates.py`): planning \u00b7 build \u00b7 review \u00b7 test \u00b7 security \u00b7 release \u00b7 owner_approval \u00b7 rollback. Profiles: LOW\u2192build,test \u00b7 MED\u21926 \u00b7 HIGH\u2192all 8. Release gate also fails if the AXIOM chain is invalid.",
+        "color": 5
+      },
+      "id": "fa712c2b-f177-4c0c-9494-c6479d14ab41",
+      "name": "gatenote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "dd54fea3-e44c-428c-b3e7-60eda25b248d",
+              "leftValue": "={{ $json.all_gates_pass }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "41259100-6a74-4e6e-9a47-5729f27653a2",
+      "name": "Gate: all pass?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status:'blocked', station:'/axiom (Quarantine Moon)', reason:'verification gate failed', risk:$json.risk, gates:$json.gates, all_gates_pass:$json.all_gates_pass, speak:$json.speak }) }}",
+        "options": {}
+      },
+      "id": "c9f8257d-98af-4c93-b425-7db08551a1e3",
+      "name": "HOLD - gate blocked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f8d1b483-bdbb-458b-a592-8d46f4f999f4",
+              "leftValue": "={{ $json.needs_owner_approval }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "8ea3f799-0ea6-4cfb-8f9e-dea9dd715897",
+      "name": "Owner gate required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "258653bc-2866-4c4b-b561-73eac461e3fa",
+              "leftValue": "={{ $json.authorization }}",
+              "rightValue": "Yes, with authorization.",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "a3e41dc9-700b-4c34-be3a-8f068641f5b2",
+      "name": "Owner phrase valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "width": 360,
+        "height": 170,
+        "content": "**Owner gate** (`owner_auth.py`). Exact phrase: `Yes, with authorization.` OWNER_GATED_ACTIONS: spend_money, post_publicly, create_third_party_account, oauth_change, credential_change, production_deploy, dns_change, force_push, package_publish, app_store_submission, modify_secrets, regulated_claim, \u2026\nNo phrase \u21d2 HOLD, never auto-execute.",
+        "color": 5
+      },
+      "id": "c6eb3b83-f88a-4512-8c6e-691e2cdd8cae",
+      "name": "ownernote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1930,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status:'pending_owner_approval', station:'/axiom (Quarantine Moon)', required_phrase:'Yes, with authorization.', owner_gated_actions:['spend_money','post_publicly','create_third_party_account','oauth_change','credential_change','production_deploy','dns_change','force_push','package_publish','app_store_submission','modify_secrets','regulated_claim'], speak:$json.speak }) }}",
+        "options": {}
+      },
+      "id": "9d7a903a-0d3e-4036-9fe2-744e8afde1fc",
+      "name": "HOLD - owner approval required",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cd6e09b2-dbda-4e0e-bb4e-eec08a78e531",
+              "leftValue": "={{ /\\\\b(send|email|gmail|slack|post|message|notify|create|schedule|call|webhook|dm)\\\\b/i.test($json.prompt) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "716974a2-98ed-4af1-a432-a718d954f8a1",
+      "name": "Delegation needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "width": 820,
+        "height": 220,
+        "content": "### \u2726 FLIGHT / FOUNDRY / EMBASSY decks (delegate targets)\n**Flight** \u2014 delegate_to workers/agents (fleet fan-out). **Foundry** \u2014 release gate `/release`, fabrication. **Embassy** \u2014 `post_publicly` / Signal Broadcast `/share` is owner-gated.\nThe DELEGATE hop mirrors `JarvisPrime.delegate()` and the `N8nBridge` contract: `{ idempotency_key, verified_by, payload }` + `Idempotency-Key` header, ret/backoff, ledger append.",
+        "color": 6
+      },
+      "id": "87abe90a-38ce-4387-b03b-c61b98eff4fe",
+      "name": "flight",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Mirror JarvisPrime.delegate() envelope (runtime.py) and map action -> connector path.\nconst ctx = $input.first().json;\nconst p = (ctx.prompt||'').toLowerCase();\nlet connector='generic', action='delegate';\nif(/email|gmail|inbox/.test(p)){ connector='gmail-send'; action='send_email'; }\nelse if(/slack|channel|dm|message|notify|post/.test(p)){ connector='slack-post'; action='post_message'; }\nconst envelope = { target:'n8n', delegate_to:connector, action,\n  rationale:'AXIOM-gated action delegated to the n8n connector layer',\n  packet_id: ctx.idempotency_key, idempotency_key: ctx.idempotency_key,\n  verified_by: ctx.ledger_latest_hash || 'axiom-tip-unavailable',\n  requires_owner_authorization: !!ctx.needs_owner_approval,\n  ledger_latest_hash: ctx.ledger_latest_hash || null,\n  payload: { prompt: ctx.prompt, speak: ctx.speak },\n  connector_path: 'muse-connector-' + connector };\nreturn [{ json: { ...ctx, envelope, connector_path: envelope.connector_path } }];"
+      },
+      "id": "086e61af-1fb9-4d32-a6ae-2f62137ff440",
+      "name": "Build delegation envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.connectorBase }}/webhook/{{ $json.connector_path }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ idempotency_key: $json.idempotency_key, verified_by: $json.envelope.verified_by, payload: $json.envelope.payload }) }}"
+      },
+      "id": "2a15b20a-fc76-47d6-a723-169b6c066af2",
+      "name": "DELEGATE - connector webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2740,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// GuardrailLedger-shaped record. The hash-chained append is HOST-SIDE\n// (GuardrailLedger.append -> $HERMES_HOME/jarvis_prime/guardrail_ledger.jsonl, 0600, O_APPEND).\n// n8n cannot write the host chain; it emits the record for the host dispatcher.\nconst ctx = $('Build delegation envelope').first().json;\nconst resp = $input.first().json;\nconst record = { event:'n8n_delegation', kind:'n8n_delegation', subject: ctx.connector_path,\n  payload: { webhook_path: ctx.connector_path, idempotency_key: ctx.idempotency_key,\n    verified_by: ctx.envelope ? ctx.envelope.verified_by : null,\n    ok: !(resp && resp._error), connector_response: resp } };\nreturn [{ json: { ...ctx, delegation_result: resp, ledger_record: record } }];"
+      },
+      "id": "c92c33d5-a018-4f30-9349-e8be86f7b3af",
+      "name": "Delegation ledger record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// SPEAK \u2014 assemble the final envelope for the Atlas /chat surface.\nfunction safe(fn,d){ try{ return fn(); }catch(e){ return d; } }\nconst base = $input.first().json;\nconst gm = safe(()=>$('Gate mirror (8 gates)').first().json, {});\nconst del = safe(()=>$('Delegation ledger record').first().json, null);\nconst out = { phase:'FINAL', speak: base.speak ?? gm.speak ?? '',\n  turn: { risk: gm.risk, phases: gm.phases, done: gm.done, error: gm.error },\n  gates: gm.gates, all_gates_pass: gm.all_gates_pass,\n  owner_approval_required: gm.needs_owner_approval ?? base.owner_approval_required,\n  delegation: del ? del.delegation_result : null,\n  ledger_record: del ? del.ledger_record : null,\n  evidence_refs: gm.evidenceRefs ?? base.evidenceRefs ?? [],\n  ledger_refs: gm.ledgerRefs ?? base.ledgerRefs ?? [],\n  chain_valid: gm.chain_valid ?? base.chain_valid ?? null,\n  idempotency_key: base.idempotency_key ?? gm.idempotency_key,\n  atlas_station:'/chat (Atlas Crown \u00b7 Neural Conversation)', done:true };\nreturn [{ json: out }];"
+      },
+      "id": "6686efd3-7853-4919-a4b0-6b0bab53c843",
+      "name": "Assemble SPEAK envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3260,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "2bc7bda5-5a97-4a64-a08c-5efc1ed8be91",
+      "name": "SPEAK - respond to /chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "Chat AI Agent (Atlas /chat)": {
+      "main": [
+        [
+          {
+            "node": "RECEIVING - normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RECEIVING - normalize": {
+      "main": [
+        [
+          {
+            "node": "TURN - POST /v1/jarvis/chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TURN - POST /v1/jarvis/chat": {
+      "main": [
+        [
+          {
+            "node": "Parse NDJSON turn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse NDJSON turn": {
+      "main": [
+        [
+          {
+            "node": "Atlas read-back (cockpit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atlas read-back (cockpit)": {
+      "main": [
+        [
+          {
+            "node": "Gate mirror (8 gates)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate mirror (8 gates)": {
+      "main": [
+        [
+          {
+            "node": "Gate: all pass?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate: all pass?": {
+      "main": [
+        [
+          {
+            "node": "Owner gate required?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HOLD - gate blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner gate required?": {
+      "main": [
+        [
+          {
+            "node": "Owner phrase valid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delegation needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner phrase valid?": {
+      "main": [
+        [
+          {
+            "node": "Delegation needed?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HOLD - owner approval required",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delegation needed?": {
+      "main": [
+        [
+          {
+            "node": "Build delegation envelope",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Assemble SPEAK envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build delegation envelope": {
+      "main": [
+        [
+          {
+            "node": "DELEGATE - connector webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELEGATE - connector webhook": {
+      "main": [
+        [
+          {
+            "node": "Delegation ledger record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delegation ledger record": {
+      "main": [
+        [
+          {
+            "node": "Assemble SPEAK envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble SPEAK envelope": {
+      "main": [
+        [
+          {
+            "node": "SPEAK - respond to /chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "f260c6f996454e7e",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -102,7 +102,24 @@ TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UmuseGatewayClient::CreateAuthoriz
 {
 	// Thin public wrapper over the private factory: one place builds
 	// authorized requests; consumers never touch the token file themselves.
-	return MakeGetRequest(Path, /*bWithAuth=*/true);
+	return CreateAuthorizedJsonRequest(Path, TEXT("GET"));
+}
+
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UmuseGatewayClient::CreateAuthorizedJsonRequest(
+	const FString& Path,
+	const FString& Verb,
+	const FString& Body) const
+{
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request =
+		MakeGetRequest(Path, /*bWithAuth=*/true);
+	Request->SetVerb(Verb.IsEmpty() ? TEXT("GET") : Verb.ToUpper());
+	Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	if (!Body.IsEmpty())
+	{
+		Request->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+		Request->SetContentAsString(Body);
+	}
+	return Request;
 }
 
 void UmuseGatewayClient::CheckHealth()

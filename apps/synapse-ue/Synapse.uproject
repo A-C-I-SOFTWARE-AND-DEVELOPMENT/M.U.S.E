@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.6",
 	"Category": "Game",
-	"Description": "SYNAPSE — A muse Game. Staged scaffold: SynapseCore + SynapseNet (muse gateway client over the frozen cockpit wire contract) + SynapseObservatory (/v1/observatory/* typed client).",
+	"Description": "SYNAPSE — the UE 5.6 M.U.S.E. universe runtime: authoritative gateway projections, original metric Atlas Crown and agent vessels, native stereo cinema, OpenXR, and private-by-default Pixel Streaming 2.",
 	"Modules": [
 		{
 			"Name": "SynapseCore",
@@ -37,11 +37,50 @@
 				"Engine",
 				"Niagara"
 			]
+		},
+		{
+			"Name": "SynapseUniverse",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"HTTP",
+				"Json",
+				"SynapseNet"
+			]
+		},
+		{
+			"Name": "SynapseCinematic",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CinematicCamera",
+				"LevelSequence",
+				"MovieRenderPipelineCore",
+				"SynapseUniverse"
+			]
 		}
 	],
 	"Plugins": [
 		{
 			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "OpenXR",
+			"Enabled": true
+		},
+		{
+			"Name": "MovieRenderPipeline",
+			"Enabled": true
+		},
+		{
+			"Name": "USDImporter",
+			"Enabled": true
+		},
+		{
+			"Name": "PixelStreaming2",
 			"Enabled": true
 		}
 	]

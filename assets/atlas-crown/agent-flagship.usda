@@ -1,0 +1,285 @@
+#usda 1.0
+(
+    defaultPrim = "AgentFlagship"
+    metersPerUnit = 1
+    upAxis = "Z"
+    customLayerData = {
+        string muse:assetContract = "agent-flagship-v1"
+        string muse:design = "original-muse-agent-flagship"
+        string muse:license = "MUSE-ORIGINAL-1.0"
+    }
+)
+
+def Xform "AgentFlagship" (
+    kind = "component"
+    prepend variantSets = "lod"
+    variants = { string lod = "source" }
+)
+{
+    custom double muse:lengthMeters = 148
+    custom double muse:beamMeters = 42
+    custom double muse:heightMeters = 28
+    custom string muse:visualStyle = "photoreal-non-cartoony-aerospace"
+    custom double3 muse:exteriorAirlockTransform = (0, -21, 0)
+    custom double3 muse:interiorAirlockTransform = (0, -21, 0)
+    custom double muse:navigationClearanceMeters = 8
+    custom asset muse:sourceHullMaterial = @./materials/atlas-hull.mtlx@
+    custom asset muse:sourceOpticalMaterial = @./materials/optical-core.mtlx@
+
+    variantSet "lod" = {
+        "source" {
+            custom int muse:triangleBudget = 900000
+            custom string muse:usage = "hero-cinema"
+        }
+        "interactive" {
+            custom int muse:triangleBudget = 180000
+            custom string muse:usage = "ultra-high-runtime"
+        }
+        "proxy" {
+            custom int muse:triangleBudget = 12000
+            custom string muse:usage = "collision-navigation"
+        }
+    }
+
+    def Capsule "PressureHull"
+    {
+        token axis = "X"
+        double height = 112
+        double radius = 18
+        custom string muse:materialId = "MAT_LayeredComposite"
+        custom string muse:construction = "segmented-double-wall-pressure-vessel"
+    }
+    def Capsule "ForwardPressureCompartment"
+    {
+        token axis = "X"
+        double height = 32
+        double radius = 12
+        double3 xformOp:translate = (55, 0, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+    def Capsule "AftPressureCompartment"
+    {
+        token axis = "X"
+        double height = 28
+        double radius = 13
+        double3 xformOp:translate = (-57, 0, -1)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "DockingCollar"
+    {
+        custom string muse:standard = "muse-androgynous-active-collar-v1"
+        double3 xformOp:translate = (0, -21, 0)
+        double3 xformOp:rotateXYZ = (90, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+        def Cylinder "PressureSeal"
+        {
+            token axis = "Z"
+            double height = 8
+            double radius = 5
+        }
+        def Cylinder "CaptureRing"
+        {
+            token axis = "Z"
+            double height = 2
+            double radius = 7
+        }
+    }
+
+    def Xform "RCSClusters"
+    {
+        custom string muse:propellant = "non-authored-runtime-configuration"
+        def Cone "ForwardPort"
+        {
+            token axis = "X"
+            double height = 2.8
+            double radius = 0.7
+            double3 xformOp:translate = (59, -14, 7)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cone "ForwardStarboard"
+        {
+            token axis = "X"
+            double height = 2.8
+            double radius = 0.7
+            double3 xformOp:translate = (59, 14, 7)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cone "AftPort"
+        {
+            token axis = "X"
+            double height = 2.8
+            double radius = 0.7
+            double3 xformOp:translate = (-61, -14, -5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cone "AftStarboard"
+        {
+            token axis = "X"
+            double height = 2.8
+            double radius = 0.7
+            double3 xformOp:translate = (-61, 14, -5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "RadiatorWings"
+    {
+        custom string muse:materialId = "MAT_ThermalBlanket"
+        def Cube "PortRadiator"
+        {
+            double size = 2
+            double3 xformOp:scale = (20, 0.6, 8)
+            double3 xformOp:translate = (-18, -29, -2)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+        }
+        def Cube "StarboardRadiator"
+        {
+            double size = 2
+            double3 xformOp:scale = (20, 0.6, 8)
+            double3 xformOp:translate = (-18, 29, -2)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+        }
+    }
+
+    def Xform "SensorMast"
+    {
+        double3 xformOp:translate = (34, 0, 18)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        def Cylinder "OpticalBench"
+        {
+            token axis = "Z"
+            double height = 9
+            double radius = 1.2
+        }
+        def Sphere "OpticalAperture"
+        {
+            double radius = 2.4
+            double3 xformOp:translate = (0, 0, 5.5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            custom string muse:materialId = "MAT_OpticalGlass"
+        }
+        def Cylinder "HighGainArray"
+        {
+            token axis = "Z"
+            double height = 5
+            double radius = 3.5
+            double3 xformOp:translate = (-5, 0, 3)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "NavigationLights"
+    {
+        custom string muse:materialId = "MAT_NavigationEmission"
+        def Sphere "PortRed"
+        {
+            double radius = 0.22
+            double3 xformOp:translate = (5, -21, 5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Sphere "StarboardGreen"
+        {
+            double radius = 0.22
+            double3 xformOp:translate = (5, 21, 5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Sphere "AftWhite"
+        {
+            double radius = 0.22
+            double3 xformOp:translate = (-73, 0, 2)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "InteriorRoomAnchors"
+    {
+        custom string muse:anchorUnits = "meters"
+        def Xform "CommandBridgeAnchor"
+        {
+            double3 xformOp:translate = (46, 0, 5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "NeuralChamberAnchor"
+        {
+            double3 xformOp:translate = (23, 0, 1)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "SensorLaboratoryAnchor"
+        {
+            double3 xformOp:translate = (32, 0, 9)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "FabricationBayAnchor"
+        {
+            double3 xformOp:translate = (-9, 0, -2)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "MemoryVaultAnchor"
+        {
+            double3 xformOp:translate = (7, 0, -5)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "DroneHangarAnchor"
+        {
+            double3 xformOp:translate = (-39, 0, -3)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "EngineeringAnchor"
+        {
+            double3 xformOp:translate = (-51, 0, 1)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "AirlockSecurityAnchor"
+        {
+            double3 xformOp:translate = (0, -21, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "HullDetail"
+    {
+        def PointInstancer "PressureSeams"
+        {
+            int[] protoIndices = [0, 0, 0, 0, 0, 0, 0]
+            point3f[] positions = [(-42, 0, 0), (-28, 0, 0), (-14, 0, 0), (0, 0, 0), (14, 0, 0), (28, 0, 0), (42, 0, 0)]
+            rel prototypes = [</AgentFlagship/HullDetail/SeamPrototype>]
+        }
+        def Cylinder "SeamPrototype"
+        {
+            token axis = "X"
+            double height = 0.3
+            double radius = 18.2
+            custom string muse:materialId = "MAT_RepairMarking"
+        }
+        def Cube "RegistrationPlate"
+        {
+            double size = 1
+            double3 xformOp:scale = (8, 0.1, 1.2)
+            double3 xformOp:translate = (11, -18.1, 4)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+            custom string muse:textPolicy = "runtime-projection-id-only"
+        }
+    }
+
+    def Xform "CollisionAndNavigation"
+    {
+        uniform token purpose = "proxy"
+        custom string muse:collisionPolicy = "convex-hull-plus-docking-collar"
+        custom string muse:navigationPolicy = "continuous-airlock-to-room-anchors"
+        def Capsule "HullCollision"
+        {
+            uniform token purpose = "proxy"
+            token axis = "X"
+            double height = 116
+            double radius = 19
+        }
+        def Cube "InteriorWalkableBounds"
+        {
+            uniform token purpose = "proxy"
+            double size = 2
+            double3 xformOp:scale = (55, 7, 5)
+            uniform token[] xformOpOrder = ["xformOp:scale"]
+        }
+    }
+}

@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050507">
+<title>Muse Omni — AI Operating Platform</title>
+<meta name="description" content="Muse Omni — all Muse capabilities in one unified cockpit. Chat, Studio, Sessions, Models, Logs, Cron, Skills, Plugins, Nexus, Profiles, Config, Keys, Docs, Learning, Kanban, Gateway, and more.">
+<style>
+/* ====================================================================== *
+ * Muse Omni — Singularity design tokens (musehq.io parity)
+ * ====================================================================== */
+:root {
+  --void: #050507; --void-2: #0b0d12; --void-3: #12151d; --edge: #1c2030;
+  --core: #ffffff; --signal: #e8ecf4; --signal-dim: #aab2c4; --signal-mute: #6b7388;
+  --ring-1: #7ae0ff; --ring-2: #b388ff; --ok: #5be3a0; --warn: #f5c451; --danger: #ff5c63;
+  --ring-grad: linear-gradient(90deg, var(--ring-1), var(--ring-2));
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px; --space-12:48px;
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:9999px;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --duration-fast:150ms; --duration-standard:250ms; --easing-standard:cubic-bezier(0.2,0,0,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--void);color:var(--signal);
+  font-family:var(--sans);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:color-mix(in oklab,var(--ring-1) 30%,transparent)}
+a{color:var(--ring-1);text-decoration:none}a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--ring-1);outline-offset:2px}
+*{scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:var(--edge);border-radius:var(--radius-pill);border:2px solid transparent;background-clip:content-box}
+
+/* Orb */
+.muse-orb{width:26px;height:26px;border-radius:var(--radius-pill);flex:none;
+  background:radial-gradient(circle at 50% 42%,#fff 0 18%,rgba(255,255,255,.7) 28%,transparent 55%);
+  box-shadow:0 0 0 1px color-mix(in oklab,var(--ring-1) 40%,transparent),0 0 22px 2px color-mix(in oklab,var(--ring-2) 45%,transparent);
+  position:relative}
+.muse-orb::after{content:"";position:absolute;inset:-4px;border-radius:var(--radius-pill);
+  background:conic-gradient(from 210deg,var(--ring-1),var(--ring-2),var(--ring-1));opacity:.5;filter:blur(4px);z-index:-1}
+
+/* Shell */
+.omni-shell{display:grid;grid-template-columns:280px minmax(0,1fr);height:100dvh;overflow:hidden}
+
+/* Rail */
+.omni-rail{display:flex;flex-direction:column;min-height:0;background:var(--void-2);border-right:1px solid var(--edge)}
+.omni-brand{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-4);border-bottom:1px solid var(--edge)}
+.omni-wordmark{font-weight:600;font-size:1.1rem;color:var(--signal)}
+.omni-wordmark span{color:var(--ring-1);margin-left:2px}
+.omni-status-bar{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--edge);font-size:11px;color:var(--signal-mute)}
+.omni-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.omni-dot.live{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+
+.omni-nav-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding:var(--space-2) 0}
+.omni-group-label{padding:var(--space-3) var(--space-4) var(--space-1);font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:var(--signal-mute);opacity:0.7}
+.omni-nav-item{display:flex;align-items:center;gap:var(--space-3);width:100%;padding:var(--space-2) var(--space-4);border:0;background:transparent;color:var(--signal-dim);font:inherit;font-size:13px;text-align:left;cursor:pointer;transition:background var(--duration-fast) var(--easing-standard),color var(--duration-fast) var(--easing-standard)}
+.omni-nav-item:hover{background:var(--void-3);color:var(--signal)}
+.omni-nav-item.active{background:color-mix(in oklab,var(--ring-1) 10%,var(--void-3));color:var(--signal)}
+.omni-nav-icon{width:16px;height:16px;flex:none;opacity:.7;display:grid;place-items:center;font-size:13px}
+.omni-nav-badge{font-size:10px;background:color-mix(in oklab,var(--ring-1) 20%,var(--void-3));color:var(--ring-1);padding:1px 6px;border-radius:var(--radius-pill);margin-left:auto}
+
+.omni-rail-footer{border-top:1px solid var(--edge);padding:var(--space-3) var(--space-4);display:flex;align-items:center;gap:var(--space-2);font-size:11px;color:var(--signal-mute)}
+.omni-rail-footer button{border:0;background:transparent;color:var(--danger);font:inherit;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:var(--radius-sm)}
+.omni-rail-footer button:hover{background:color-mix(in oklab,var(--danger) 15%,var(--void-3))}
+
+/* Main */
+.omni-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.omni-topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-6);border-bottom:1px solid var(--edge);
+  background:color-mix(in oklab,var(--void-2) 70%,transparent);backdrop-filter:blur(8px)}
+.omni-topbar-title{font-size:15px;font-weight:600;color:var(--signal)}
+.omni-topbar-breadcrumb{font-size:11px;color:var(--signal-mute)}
+.omni-topbar-actions{display:flex;gap:var(--space-2);align-items:center}
+.omni-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border:1px solid var(--edge);border-radius:var(--radius-pill);background:var(--void-3);color:var(--signal-dim);font-size:11px;cursor:pointer}
+.omni-chip:hover{border-color:color-mix(in oklab,var(--ring-1) 45%,var(--edge));color:var(--signal)}
+.omni-chip.accent{background:color-mix(in oklab,var(--ring-1) 12%,var(--void-3));border-color:color-mix(in oklab,var(--ring-1) 25%,var(--edge));color:var(--ring-1)}
+.omni-content{flex:1 1 auto;min-height:0;overflow-y:auto;padding:var(--space-6)}
+.omni-content-inner{max-width:1100px;margin:0 auto}
+
+/* Panels */
+.omni-panel{display:none}
+.omni-panel.active{display:block}
+.omni-panel-title{font-size:22px;font-weight:600;color:var(--signal);margin:0 0 var(--space-1)}
+.omni-panel-desc{font-size:13px;color:var(--signal-mute);margin:0 0 var(--space-6)}
+
+/* Cards */
+.omni-card{background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-3)}
+.omni-card-hover{cursor:pointer;transition:border-color var(--duration-fast) var(--easing-standard)}
+.omni-card-hover:hover{border-color:color-mix(in oklab,var(--ring-1) 30%,var(--edge))}
+.omni-card-title{font-size:14px;font-weight:600;color:var(--signal);margin:0 0 var(--space-1)}
+.omni-card-meta{font-size:11px;color:var(--signal-mute)}
+.omni-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--space-3)}
+.omni-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.omni-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+
+/* Table */
+.omni-table{width:100%;border-collapse:collapse;font-size:13px}
+.omni-table th{text-align:left;padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--edge);color:var(--signal-mute);font-weight:500;font-size:11px;letter-spacing:0.3px}
+.omni-table td{padding:var(--space-2) var(--space-3);border-bottom:1px solid color-mix(in oklab,var(--edge) 60%,transparent);color:var(--signal-dim)}
+.omni-table tr:hover td{background:var(--void-2)}
+
+/* Status pills */
+.omni-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--radius-pill);font-size:10px;font-weight:500}
+.omni-pill.ok{background:rgba(91,227,160,.15);color:var(--ok)}
+.omni-pill.warn{background:rgba(245,196,81,.15);color:var(--warn)}
+.omni-pill.danger{background:rgba(255,92,99,.15);color:var(--danger)}
+.omni-pill.accent{background:rgba(122,224,255,.15);color:var(--ring-1)}
+
+/* Composer */
+.omni-composer{border:1px solid var(--edge);border-radius:var(--radius-lg);background:var(--void-3);padding:var(--space-3);margin-top:var(--space-3)}
+.omni-composer:focus-within{border-color:color-mix(in oklab,var(--ring-1) 55%,var(--edge))}
+.omni-composer textarea{width:100%;resize:none;border:0;outline:0;background:transparent;color:var(--signal);font:inherit;line-height:1.6;min-height:44px}
+.omni-composer textarea::placeholder{color:var(--signal-mute)}
+.omni-composer-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-2)}
+.omni-composer-meta{font-size:11px;color:var(--signal-mute);display:flex;gap:var(--space-3)}
+.omni-send{flex:none;width:32px;height:32px;border-radius:var(--radius-md);border:0;background:var(--ring-grad);color:#0b0d12;display:grid;place-items:center;cursor:pointer;transition:transform var(--duration-fast) var(--easing-standard)}
+.omni-send:not(:disabled):hover{transform:translateY(-1px)}
+.omni-send:disabled{opacity:.35;cursor:default}
+
+/* Input */
+.omni-input{width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--edge);border-radius:var(--radius-sm);background:var(--void-2);color:var(--signal);font:inherit;font-size:13px}
+.omni-input:focus{outline:0;border-color:var(--ring-1)}
+.omni-input::placeholder{color:var(--signal-mute)}
+.omni-select{appearance:none;padding:var(--space-2) var(--space-3);border:1px solid var(--edge);border-radius:var(--radius-sm);background:var(--void-2);color:var(--signal);font:inherit;font-size:13px;cursor:pointer}
+
+/* Log line */
+.omni-log-line{display:flex;gap:var(--space-3);padding:4px 0;font-family:var(--mono);font-size:11px;color:var(--signal-dim);border-bottom:1px solid color-mix(in oklab,var(--edge) 40%,transparent)}
+.omni-log-time{color:var(--signal-mute);flex:none;width:75px}
+.omni-log-level{flex:none;width:42px;font-weight:600}
+.omni-log-level.info{color:var(--ring-1)}
+.omni-log-level.warn{color:var(--warn)}
+.omni-log-level.error{color:var(--danger)}
+.omni-log-level.debug{color:var(--signal-mute)}
+.omni-log-msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Kanban */
+.omni-kanban{display:flex;gap:var(--space-3);overflow-x:auto;padding-bottom:var(--space-2)}
+.omni-kb-col{flex:0 0 280px;background:var(--void-2);border:1px solid var(--edge);border-radius:var(--radius-md);display:flex;flex-direction:column}
+.omni-kb-col-head{padding:var(--space-3);border-bottom:1px solid var(--edge);font-size:12px;font-weight:600;color:var(--signal-dim);display:flex;justify-content:space-between}
+.omni-kb-col-head .count{color:var(--signal-mute);font-weight:400}
+.omni-kb-card{background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-sm);padding:var(--space-3);margin:var(--space-2)}
+.omni-kb-card:hover{border-color:color-mix(in oklab,var(--ring-1) 25%,var(--edge))}
+.omni-kb-card .tag{font-size:10px;color:var(--ring-1);margin-bottom:4px}
+.omni-kb-card .title{font-size:13px;color:var(--signal);margin-bottom:4px}
+.omni-kb-card .meta{font-size:10px;color:var(--signal-mute)}
+
+/* Code block */
+.omni-code{background:var(--void-2);border:1px solid var(--edge);border-radius:var(--radius-sm);padding:var(--space-3);font-family:var(--mono);font-size:12px;color:var(--signal-dim);overflow-x:auto;white-space:pre-wrap;line-height:1.5}
+.omni-code .key{color:var(--ring-1)}.omni-code .val{color:var(--ok)}.omni-code .cmt{color:var(--signal-mute)}
+
+/* Quick action bar */
+.omni-actions{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-6)}
+.omni-action-btn{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-4);border:1px solid var(--edge);border-radius:var(--radius-md);background:var(--void-2);color:var(--signal);font:inherit;font-size:13px;cursor:pointer;transition:border-color var(--duration-fast) var(--easing-standard),background var(--duration-fast) var(--easing-standard)}
+.omni-action-btn:hover{border-color:var(--ring-1);background:var(--void-3)}
+.omni-action-btn.danger:hover{border-color:var(--danger);background:rgba(255,92,99,.1)}
+
+@media(max-width:768px){
+  .omni-shell{grid-template-columns:minmax(0,1fr)}
+  .omni-rail{display:none}
+  .omni-grid,.omni-grid-3,.omni-grid-2{grid-template-columns:1fr}
+  .omni-topbar{padding:var(--space-3)}
+  .omni-content{padding:var(--space-3)}
+}
+</style>
+</head>
+<body>
+
+<div class="omni-shell">
+
+<!-- ============================================================================ -->
+<!-- LEFT RAIL                                                                    -->
+<!-- ============================================================================ -->
+<nav class="omni-rail">
+  <div class="omni-brand">
+    <div class="muse-orb"></div>
+    <span class="omni-wordmark">muse<span>omni</span></span>
+  </div>
+  <div class="omni-status-bar">
+    <span class="omni-dot live"></span> Connected — D-ID-4 · localhost:18432
+    <span style="margin-left:auto;opacity:.6">v4.2.0</span>
+  </div>
+  <div class="omni-nav-scroll">
+
+    <div class="omni-group-label">Core</div>
+    <button class="omni-nav-item active" data-panel="dashboard"><span class="omni-nav-icon">🏠</span>Dashboard</button>
+<button class="omni-nav-item" data-panel="chat"><span class="omni-nav-icon">💬</span>Chat<span class="omni-nav-badge">3</span></button>
+    <button class="omni-nav-item" data-panel="studio"><span class="omni-nav-icon">🎬</span>Studio</button>
+    <button class="omni-nav-item" data-panel="agents"><span class="omni-nav-icon">🤖</span>Agents<span class="omni-nav-badge">37</span></button>
+    <button class="omni-nav-item" data-panel="fusion"><span class="omni-nav-icon">🧬</span>Fusion</button>
+
+    <div class="omni-group-label">Infrastructure</div>
+    <button class="omni-nav-item" data-panel="sessions"><span class="omni-nav-icon">📋</span>Sessions</button>
+    <button class="omni-nav-item" data-panel="models"><span class="omni-nav-icon">🧠</span>Models</button>
+    <button class="omni-nav-item" data-panel="providers"><span class="omni-nav-icon">☁️</span>Providers</button>
+    <button class="omni-nav-item" data-panel="runtimes"><span class="omni-nav-icon">⚡</span>Runtimes</button>
+    <button class="omni-nav-item" data-panel="nexus"><span class="omni-nav-icon">🔗</span>Nexus<span class="omni-nav-badge">API</span></button>
+
+    <div class="omni-group-label">Tooling</div>
+    <button class="omni-nav-item" data-panel="skills"><span class="omni-nav-icon">🎯</span>Skills<span class="omni-nav-badge">237</span></button>
+    <button class="omni-nav-item" data-panel="plugins"><span class="omni-nav-icon">🔌</span>Plugins<span class="omni-nav-badge">42</span></button>
+    <button class="omni-nav-item" data-panel="mcp"><span class="omni-nav-icon">🔧</span>MCP Servers<span class="omni-nav-badge">28</span></button>
+    <button class="omni-nav-item" data-panel="github"><span class="omni-nav-icon">🐙</span>GitHub</button>
+
+    <div class="omni-group-label">Operations</div>
+    <button class="omni-nav-item" data-panel="cron"><span class="omni-nav-icon">⏰</span>Cron / Schedules</button>
+    <button class="omni-nav-item" data-panel="logs"><span class="omni-nav-icon">📜</span>Logs</button>
+    <button class="omni-nav-item" data-panel="health"><span class="omni-nav-icon">💓</span>System Health</button>
+    <button class="omni-nav-item" data-panel="gateway"><span class="omni-nav-icon">🌐</span>Gateway</button>
+    <button class="omni-nav-item" data-panel="kanban"><span class="omni-nav-icon">📌</span>Kanban</button>
+    <button class="omni-nav-item" data-panel="analytics"><span class="omni-nav-icon">📊</span>Analytics</button>
+    
+
+    <div class="omni-group-label">Governance</div>
+    <button class="omni-nav-item" data-panel="permissions"><span class="omni-nav-icon">🛡️</span>Permissions</button>
+    <button class="omni-nav-item" data-panel="safety"><span class="omni-nav-icon">🔒</span>Safety</button>
+    <button class="omni-nav-item" data-panel="council"><span class="omni-nav-icon">🏛️</span>Council</button>
+    <button class="omni-nav-item" data-panel="keys"><span class="omni-nav-icon">🔑</span>API Keys</button>
+
+    <div class="omni-group-label">Knowledge</div>
+    <button class="omni-nav-item" data-panel="memory"><span class="omni-nav-icon">🧠</span>Memory</button>
+    <button class="omni-nav-item" data-panel="learning"><span class="omni-nav-icon">📚</span>Learning</button>
+    <button class="omni-nav-item" data-panel="docs"><span class="omni-nav-icon">📖</span>Documentation</button>
+    <button class="omni-nav-item" data-panel="musehq"><span class="omni-nav-icon">🌐</span>MuseHQ</button>
+    
+    <button class="omni-nav-item" data-panel="research"><span class="omni-nav-icon">🔬</span>Research</button>
+    <button class="omni-nav-item" data-panel="achievements"><span class="omni-nav-icon">🏆</span>Achievements</button>
+    
+
+    <div class="omni-group-label">Team</div>
+    <button class="omni-nav-item" data-panel="profiles"><span class="omni-nav-icon">👤</span>Profiles</button>
+    <button class="omni-nav-item" data-panel="channels"><span class="omni-nav-icon">📡</span>Channels</button>
+    <button class="omni-nav-item" data-panel="releases"><span class="omni-nav-icon">🚀</span>Releases</button>
+
+    <div class="omni-group-label">System</div>
+    <button class="omni-nav-item" data-panel="config"><span class="omni-nav-icon">⚙️</span>Config</button>
+    <button class="omni-nav-item" data-panel="modes"><span class="omni-nav-icon">🎭</span>Modes</button>
+    <button class="omni-nav-item" data-panel="nodes"><span class="omni-nav-icon">🖥️</span>Nodes</button>
+    <button class="omni-nav-item" data-panel="environment"><span class="omni-nav-icon">🌿</span>Environment</button>
+  
+  </div>
+  <div class="omni-rail-footer">
+    <span class="omni-dot live" style="width:6px;height:6px"></span> uptime 14d 7h
+    <button onclick="alert('Gateway restart triggered')">⏻ Restart</button>
+  </div>
+</nav>
+
+<!-- ============================================================================ -->
+<!-- MAIN CONTENT AREA                                                            -->
+<!-- ============================================================================ -->
+<div class="omni-main">
+  <div class="omni-topbar">
+    <div>
+      <div class="omni-topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="omni-topbar-breadcrumb" id="topbarPath">Core / Dashboard</div>
+    </div>
+    <div class="omni-topbar-actions">
+      <span class="omni-chip accent">sonnet-4</span>
+      <span class="omni-chip">local</span>
+      <span class="omni-chip">🔔</span>
+    </div>
+  </div>
+
+  <div class="omni-content">
+
+<!-- ======================================================================== -->
+<!-- CHAT                                                                      -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-chat">
+  <div class="omni-content-inner">
+    <div style="text-align:center;padding:var(--space-12) 0 var(--space-8)">
+      <div class="muse-orb" style="width:48px;height:48px;margin:0 auto var(--space-4)"></div>
+      <h1 style="font-size:24px;font-weight:600;color:var(--signal);margin:0 0 var(--space-2)">Muse Omni</h1>
+      <p style="color:var(--signal-dim);max-width:48ch;margin:0 auto">Your local-first AI operating partner.<br>Chat, route work across 37 agents, every action owner-gated.</p>
+    </div>
+    <div class="omni-grid-3" style="margin-bottom:var(--space-8)">
+      <div class="omni-card omni-card-hover"><div class="omni-card-title">🎬 Launch Studio</div><div class="omni-card-meta">Code, preview, and deploy in one workspace</div></div>
+      <div class="omni-card omni-card-hover"><div class="omni-card-title">📋 Check Sessions</div><div class="omni-card-meta">3 active sessions, 12 recent</div></div>
+      <div class="omni-card omni-card-hover"><div class="omni-card-title">🧠 Explore Models</div><div class="omni-card-meta">47 providers, 238 models available</div></div>
+    </div>
+    <div class="omni-composer">
+      <textarea rows="1" placeholder="Message muse…"></textarea>
+      <div class="omni-composer-bar">
+        <div class="omni-composer-meta"><span>sonnet-4</span><span>local</span></div>
+        <button class="omni-send"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8l13-7-7 13-2-6z" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- STUDIO                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-studio">
+  <h2 class="omni-panel-title">Studio</h2>
+  <p class="omni-panel-desc">Code, preview, console, and network — full development workspace</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">📄 New File</button>
+    <button class="omni-action-btn">📁 Open Project</button>
+    <button class="omni-action-btn">▶ Run</button>
+    <button class="omni-action-btn">🔍 Preview</button>
+    <button class="omni-action-btn">🐙 Push</button>
+  </div>
+  <div class="omni-grid-2">
+    <div class="omni-card" style="min-height:300px">
+      <div class="omni-card-title" style="margin-bottom:var(--space-3)">📝 Editor</div>
+      <div class="omni-code"><span class="key">import</span> <span class="val">muse</span>
+
+<span class="cmt"># Muse Omni — all capabilities in one cockpit</span>
+<span class="key">async def</span> <span class="val">main</span>():
+    agent = muse.<span class="val">spawn</span>(<span class="val">"coder"</span>)
+    result = <span class="key">await</span> agent.<span class="val">task</span>(<span class="val">"build the thing"</span>)
+    <span class="key">return</span> result</div>
+    </div>
+    <div class="omni-card" style="min-height:300px">
+      <div class="omni-card-title" style="margin-bottom:var(--space-3)">🖥 Console</div>
+      <div class="omni-code" style="height:200px;overflow-y:auto">
+<span style="color:var(--signal-mute)">[13:42:01]</span> <span style="color:var(--ok)">muse.agent.spawn</span> coder (sonnet-4)
+<span style="color:var(--signal-mute)">[13:42:03]</span> <span style="color:var(--ok)">task.start</span> build-the-thing (id: t_8f3a)
+<span style="color:var(--signal-mute)">[13:42:05]</span> <span style="color:var(--ring-1)">tool.read</span> src/main.py
+<span style="color:var(--signal-mute)">[13:42:07]</span> <span style="color:var(--ring-1)">tool.write</span> src/main.py (+42 lines)
+<span style="color:var(--signal-mute)">[13:42:09]</span> <span style="color:var(--ok)">task.done</span> build-the-thing ✓</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- AGENTS                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-agents">
+  <h2 class="omni-panel-title">Agents</h2>
+  <p class="omni-panel-desc">37 specialized agents — orchestrator, engineering, QA, beta, marketing, operations</p>
+  <table class="omni-table">
+    <thead><tr><th>Agent</th><th>Role</th><th>Model</th><th>Status</th><th>Last Active</th></tr></thead>
+    <tbody>
+      <tr><td>🦞 COMMAND</td><td>Orchestrator</td><td>Sonnet 4</td><td><span class="omni-pill ok">active</span></td><td>now</td></tr>
+      <tr><td>🗺️ ATLAS</td><td>Architecture</td><td>Opus 4</td><td><span class="omni-pill accent">idle</span></td><td>2m ago</td></tr>
+      <tr><td>⚙️ FORGE</td><td>Full-stack Coder</td><td>Sonnet 4</td><td><span class="omni-pill ok">active</span></td><td>now</td></tr>
+      <tr><td>🎨 PIXEL</td><td>Frontend (React/Tailwind)</td><td>Sonnet 4</td><td><span class="omni-pill accent">idle</span></td><td>5m ago</td></tr>
+      <tr><td>🔗 NEXUS</td><td>Backend (APIs/DB)</td><td>Sonnet 4</td><td><span class="omni-pill accent">idle</span></td><td>12m ago</td></tr>
+      <tr><td>🛡️ SENTINEL</td><td>Security</td><td>Sonnet 4</td><td><span class="omni-pill accent">idle</span></td><td>1h ago</td></tr>
+      <tr><td>🔬 PRISM</td><td>QA Lead</td><td>Haiku 4</td><td><span class="omni-pill accent">idle</span></td><td>3h ago</td></tr>
+      <tr><td>🚀 CONDUIT</td><td>DevOps/CI-CD</td><td>Haiku 4</td><td><span class="omni-pill warn">busy</span></td><td>now</td></tr>
+      <tr><td>🧭 HELM</td><td>Product Manager</td><td>Sonnet 4</td><td><span class="omni-pill accent">idle</span></td><td>1d ago</td></tr>
+      <tr><td>📣 HERALD</td><td>Marketing</td><td>Sonnet 4</td><td><span class="omni-pill accent">idle</span></td><td>2d ago</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- FUSION                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-fusion">
+  <h2 class="omni-panel-title">Fusion — Mixture of Minds</h2>
+  <p class="omni-panel-desc">Blend multiple models into a pentagram fusion for consensus answers</p>
+  <div class="omni-grid-2">
+    <div class="omni-card">
+      <div class="omni-card-title">⚡ Active Blend</div>
+      <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin:var(--space-3) 0">
+        <span class="omni-chip accent">Sonnet 4</span>
+        <span class="omni-chip accent">Opus 4</span>
+        <span class="omni-chip accent">Gemini 3 Pro</span>
+        <span class="omni-chip">GPT-5</span>
+        <span class="omni-chip">DeepSeek V3</span>
+      </div>
+      <div class="omni-card-meta">5 nodes · 3 required for consensus · median fusion</div>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title">📊 Fusion Stats</div>
+      <table class="omni-table" style="margin-top:var(--space-2)">
+        <tr><td>Total fusions today</td><td style="text-align:right;color:var(--signal)">247</td></tr>
+        <tr><td>Avg consensus time</td><td style="text-align:right;color:var(--signal)">3.2s</td></tr>
+        <tr><td>Disagreement rate</td><td style="text-align:right;color:var(--signal)">4.7%</td></tr>
+        <tr><td>Models in rotation</td><td style="text-align:right;color:var(--signal)">18</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- SESSIONS                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-sessions">
+  <h2 class="omni-panel-title">Sessions</h2>
+  <p class="omni-panel-desc">Active and recent agent sessions across all channels</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">+ New Session</button>
+    <button class="omni-action-btn">🔄 Refresh</button>
+    <button class="omni-action-btn">🗑 Prune Inactive</button>
+  </div>
+  <table class="omni-table">
+    <thead><tr><th>ID</th><th>Agent</th><th>Channel</th><th>Messages</th><th>Status</th><th>Age</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:11px">s_a3f8b2</td><td>🦞 COMMAND</td><td>webchat</td><td>47</td><td><span class="omni-pill ok">active</span></td><td>now</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:11px">s_b7c1d4</td><td>⚙️ FORGE</td><td>discord</td><td>128</td><td><span class="omni-pill ok">active</span></td><td>2m</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:11px">s_e9f2a1</td><td>🚀 CONDUIT</td><td>cron</td><td>12</td><td><span class="omni-pill warn">running</span></td><td>5m</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:11px">s_d4e8c7</td><td>🔬 PRISM</td><td>subagent</td><td>89</td><td><span class="omni-pill accent">done</span></td><td>3h</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:11px">s_f6b3d9</td><td>📣 HERALD</td><td>telegram</td><td>34</td><td><span class="omni-pill accent">done</span></td><td>1d</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- MODELS                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-models">
+  <h2 class="omni-panel-title">Models</h2>
+  <p class="omni-panel-desc">238 models across 47 providers — browse, compare, and route</p>
+  <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4);flex-wrap:wrap">
+    <span class="omni-chip accent">All</span>
+    <span class="omni-chip">Reasoning</span>
+    <span class="omni-chip">Code</span>
+    <span class="omni-chip">Vision</span>
+    <span class="omni-chip">Long Context</span>
+    <span class="omni-chip">Fast</span>
+    <span class="omni-chip">Cheap</span>
+  </div>
+  <div class="omni-grid-3">
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">Sonnet 4</div>
+      <div class="omni-card-meta">Anthropic · Reasoning + Code · $3/$15 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">default</span> <span class="omni-pill accent">200k ctx</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">Opus 4</div>
+      <div class="omni-card-meta">Anthropic · Deep Reasoning · $15/$75 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill accent">200k ctx</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">Gemini 3 Pro</div>
+      <div class="omni-card-meta">Google · Vision + Code · $1.25/$5 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill accent">2M ctx</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">GPT-5</div>
+      <div class="omni-card-meta">OpenAI · Generalist · $2.50/$10 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill accent">256k ctx</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">DeepSeek V3</div>
+      <div class="omni-card-meta">DeepSeek · Code + Math · $0.27/$1.10 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">best value</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">Haiku 4</div>
+      <div class="omni-card-meta">Anthropic · Fast + Cheap · $0.80/$4 per M tokens</div>
+      <div style="margin-top:6px"><span class="omni-pill accent">200k ctx</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- PROVIDERS                                                                 -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-providers">
+  <h2 class="omni-panel-title">Providers</h2>
+  <p class="omni-panel-desc">47 model provider integrations — API keys managed in Keys section</p>
+  <div class="omni-grid">
+    <div class="omni-card"><div class="omni-card-title">Anthropic</div><div class="omni-card-meta">Sonnet, Opus, Haiku — 6 models · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">OpenAI</div><div class="omni-card-meta">GPT-5, o4-mini — 12 models · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">Google</div><div class="omni-card-meta">Gemini 3 Pro, Flash — 8 models · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">DeepSeek</div><div class="omni-card-meta">V3, R1 — 4 models · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">xAI</div><div class="omni-card-meta">Grok 4 — 3 models · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">Meta</div><div class="omni-card-meta">Llama 4 — 5 models · ⬜ offline</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- RUNTIMES                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-runtimes">
+  <h2 class="omni-panel-title">Runtimes</h2>
+  <p class="omni-panel-desc">Where Muse agents execute — local, sandbox, cloud</p>
+  <div class="omni-grid-3">
+    <div class="omni-card"><div class="omni-card-title">🖥 Local</div><div class="omni-card-meta">LAPTOP-PDBAGL2O · Win x64 · Node v22 · ✅ active</div></div>
+    <div class="omni-card"><div class="omni-card-title">📦 Docker</div><div class="omni-card-meta">4 containers · 2 running · ⬜ idle</div></div>
+    <div class="omni-card"><div class="omni-card-title">☁️ Modal</div><div class="omni-card-meta">GPU A100-40GB · pay-per-second · ⬜ idle</div></div>
+    <div class="omni-card"><div class="omni-card-title">🔒 Sandbox</div><div class="omni-card-meta">Isolated V8 · code execution · ✅ active</div></div>
+    <div class="omni-card"><div class="omni-card-title">🌐 Vercel</div><div class="omni-card-meta">Edge functions · preview deploys · ✅ connected</div></div>
+    <div class="omni-card"><div class="omni-card-title">🤖 Daytona</div><div class="omni-card-meta">Dev environments · ⬜ offline</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- NEXUS                                                                     -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-nexus">
+  <h2 class="omni-panel-title">Nexus — Backend &amp; API Management</h2>
+  <p class="omni-panel-desc">APIs, databases, Firebase, authentication endpoints</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">🔄 Restart API</button>
+    <button class="omni-action-btn">📊 API Metrics</button>
+    <button class="omni-action-btn">🧪 Test Endpoint</button>
+  </div>
+  <div class="omni-grid-2">
+    <div class="omni-card">
+      <div class="omni-card-title">🔗 API Endpoints</div>
+      <table class="omni-table" style="margin-top:var(--space-2)">
+        <tr><td><span class="omni-pill ok" style="margin-right:6px">GET</span> /api/chat</td><td style="text-align:right;color:var(--signal-mute)">~240 req/min</td></tr>
+        <tr><td><span class="omni-pill ok" style="margin-right:6px">GET</span> /api/me</td><td style="text-align:right;color:var(--signal-mute)">~12 req/min</td></tr>
+        <tr><td><span class="omni-pill ok" style="margin-right:6px">POST</span> /api/gateway/[...path]</td><td style="text-align:right;color:var(--signal-mute)">~85 req/min</td></tr>
+        <tr><td><span class="omni-pill ok" style="margin-right:6px">GET</span> /api/auth/session</td><td style="text-align:right;color:var(--signal-mute)">~4 req/min</td></tr>
+      </table>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title">🗄 Databases</div>
+      <div style="margin-top:var(--space-2)">
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">Supabase</span><span class="omni-pill ok">connected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">Firebase</span><span class="omni-pill ok">connected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">ChromaDB (local)</span><span class="omni-pill ok">active</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">Pinecone</span><span class="omni-pill warn">rate limited</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- SKILLS                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-skills">
+  <h2 class="omni-panel-title">Skills</h2>
+  <p class="omni-panel-desc">237 installed skills — AI agents, creative tools, dev, MLOps, research, security</p>
+  <div style="margin-bottom:var(--space-4)"><input class="omni-input" placeholder="Search 237 skills…" style="max-width:400px"></div>
+  <div class="omni-grid-3">
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🎨 frontend-design</div><div class="omni-card-meta">React, Tailwind, shadcn UI generation</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🤖 aos-council</div><div class="omni-card-meta">Multi-agent council deliberation</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🔬 deep-research</div><div class="omni-card-meta">Multi-source academic research synthesis</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🐙 github</div><div class="omni-card-meta">PR, issues, repo management</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🛡️ security-architect</div><div class="omni-card-meta">Security audits, OWASP, threat modeling</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📊 pptx-swarm</div><div class="omni-card-meta">Multi-agent PowerPoint generation</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🎬 autoglm-browser-agent</div><div class="omni-card-meta">Browser automation & web tasks</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">🧪 jarvis-code-operator</div><div class="omni-card-meta">Structured code operations pipeline</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📈 3-statement-model</div><div class="omni-card-meta">Financial modeling &amp; analysis</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- PLUGINS                                                                   -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-plugins">
+  <h2 class="omni-panel-title">Plugins</h2>
+  <p class="omni-panel-desc">42 plugins — browser, memory, model providers, integrations</p>
+  <div class="omni-grid-3">
+    <div class="omni-card"><div class="omni-card-title">🌐 browser (browserbase)</div><div class="omni-card-meta">Cloud browser automation · ✅ enabled</div></div>
+    <div class="omni-card"><div class="omni-card-title">🧠 memory (holographic)</div><div class="omni-card-meta">Vector memory store · ✅ enabled</div></div>
+    <div class="omni-card"><div class="omni-card-title">🎨 branding</div><div class="omni-card-meta">Brand management tools · ✅ enabled</div></div>
+    <div class="omni-card"><div class="omni-card-title">☁️ model-providers (25)</div><div class="omni-card-meta">Anthropic, OpenAI, Google, xAI… · ✅ enabled</div></div>
+    <div class="omni-card"><div class="omni-card-title">📌 kanban</div><div class="omni-card-meta">Kanban board + dispatcher · ✅ enabled</div></div>
+    <div class="omni-card"><div class="omni-card-title">🏆 hermes-achievements</div><div class="omni-card-meta">Achievement tracking · ⬜ disabled</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- MCP SERVERS                                                               -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-mcp">
+  <h2 class="omni-panel-title">MCP Servers</h2>
+  <p class="omni-panel-desc">28 Model Context Protocol servers — GitHub, Figma, Firebase, Notion, Supabase</p>
+  <table class="omni-table">
+    <thead><tr><th>Server</th><th>Type</th><th>Status</th><th>Tools</th></tr></thead>
+    <tbody>
+      <tr><td>github</td><td>API</td><td><span class="omni-pill ok">connected</span></td><td>PR, issues, repos, search</td></tr>
+      <tr><td>firebase</td><td>Database</td><td><span class="omni-pill ok">connected</span></td><td>Firestore, Auth, Storage</td></tr>
+      <tr><td>supabase</td><td>Database</td><td><span class="omni-pill ok">connected</span></td><td>SQL, Auth, Realtime</td></tr>
+      <tr><td>figma</td><td>Design</td><td><span class="omni-pill warn">auth needed</span></td><td>Files, components, styles</td></tr>
+      <tr><td>notion</td><td>Productivity</td><td><span class="omni-pill warn">auth needed</span></td><td>Pages, databases, blocks</td></tr>
+      <tr><td>vercel</td><td>Deploy</td><td><span class="omni-pill ok">connected</span></td><td>Deploy, domains, env vars</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- GITHUB                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-github">
+  <h2 class="omni-panel-title">GitHub</h2>
+  <p class="omni-panel-desc">Connected to A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">🔄 Sync</button>
+    <button class="omni-action-btn">📋 PRs (4 open)</button>
+    <button class="omni-action-btn">🐛 Issues (12 open)</button>
+    <button class="omni-action-btn">📦 Releases</button>
+  </div>
+  <div class="omni-card">
+    <div class="omni-card-title">Recent Commits</div>
+    <div class="omni-code" style="margin-top:var(--space-2)">
+<span style="color:var(--signal-mute)">883e9be</span> desktop: make macOS signing truly conditional
+<span style="color:var(--signal-mute)">fc9d2cf</span> chore: merge vercel.json for desktop app deployment
+<span style="color:var(--signal-mute)">88e0670</span> desktop: fix doubled prefix path in tauri before-commands
+<span style="color:var(--signal-mute)">83b59db</span> feat(desktop): Singularity design system components
+<span style="color:var(--signal-mute)">bcd6757</span> Merge PR #564 — kind-pascal-kry8mh
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- CRON / SCHEDULES                                                          -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-cron">
+  <h2 class="omni-panel-title">Cron &amp; Schedules</h2>
+  <p class="omni-panel-desc">Recurring tasks, reminders, and automated workflows</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">+ New Job</button>
+    <button class="omni-action-btn">▶ Run All Due</button>
+  </div>
+  <table class="omni-table">
+    <thead><tr><th>Job</th><th>Schedule</th><th>Next Run</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>🧠 Memory consolidation</td><td style="font-family:var(--mono);font-size:11px">0 */4 * * *</td><td>14:00</td><td><span class="omni-pill ok">enabled</span></td></tr>
+      <tr><td>📊 Daily summary</td><td style="font-family:var(--mono);font-size:11px">0 9 * * *</td><td>09:00</td><td><span class="omni-pill ok">enabled</span></td></tr>
+      <tr><td>🔍 Health check</td><td style="font-family:var(--mono);font-size:11px">*/30 * * * *</td><td>14:00</td><td><span class="omni-pill ok">enabled</span></td></tr>
+      <tr><td>📧 Email digest</td><td style="font-family:var(--mono);font-size:11px">0 18 * * 1-5</td><td>18:00</td><td><span class="omni-pill warn">paused</span></td></tr>
+      <tr><td>🔄 GitHub sync</td><td style="font-family:var(--mono);font-size:11px">*/15 * * * *</td><td>14:00</td><td><span class="omni-pill ok">enabled</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- LOGS                                                                      -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-logs">
+  <h2 class="omni-panel-title">Logs</h2>
+  <p class="omni-panel-desc">System logs from gateway, agents, skills, and plugins</p>
+  <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+    <span class="omni-chip accent">All</span>
+    <span class="omni-chip">Gateway</span>
+    <span class="omni-chip">Agents</span>
+    <span class="omni-chip">Skills</span>
+    <span class="omni-chip">Errors</span>
+  </div>
+  <div class="omni-card" style="max-height:500px;overflow-y:auto">
+    <div class="omni-log-line"><span class="omni-log-time">13:42:01</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Gateway started on :18432 (pid: 46812)</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:02</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Plugin registry loaded: 42 plugins discovered</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:03</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Skill index built: 237 skills from 8 directories</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:04</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">MCP server 'github' connected (4 tools)</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:05</span><span class="omni-log-level debug">DEBUG</span><span class="omni-log-msg">Heartbeat poll: no pending work</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:07</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Agent FORGE spawned (sonnet-4, session: s_b7c1d4)</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:09</span><span class="omni-log-level warn">WARN</span><span class="omni-log-msg">Token usage approaching limit: 185k/200k (session: s_a3f8b2)</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:12</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Cron job 'health-check' completed (success)</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:15</span><span class="omni-log-level error">ERROR</span><span class="omni-log-msg">MCP server 'figma' connection failed: 401 Unauthorized</span></div>
+    <div class="omni-log-line"><span class="omni-log-time">13:42:18</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Webchat session s_a3f8b2: user message received (128 tokens)</span></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- SYSTEM HEALTH                                                             -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-health">
+  <h2 class="omni-panel-title">System Health</h2>
+  <p class="omni-panel-desc">Gateway, agents, plugins, and runtime health status</p>
+  <div class="omni-grid-3" style="margin-bottom:var(--space-4)">
+    <div class="omni-card"><div class="omni-card-title">🌐 Gateway</div><div style="font-size:22px;color:var(--ok);font-weight:600">✓ Healthy</div><div class="omni-card-meta">PID 46812 · uptime 14d 7h · :18432</div></div>
+    <div class="omni-card"><div class="omni-card-title">🤖 Agents</div><div style="font-size:22px;color:var(--ok);font-weight:600">3 active</div><div class="omni-card-meta">37 total · 34 idle · avg load 0.8</div></div>
+    <div class="omni-card"><div class="omni-card-title">💾 Memory</div><div style="font-size:22px;color:var(--warn);font-weight:600">62%</div><div class="omni-card-meta">9.8 GB / 16 GB · OK</div></div>
+  </div>
+  <div class="omni-grid-2">
+    <div class="omni-card"><div class="omni-card-title">📊 Load (24h)</div>
+      <div style="height:80px;display:flex;align-items:flex-end;gap:6px;margin-top:var(--space-2)">
+        <div style="flex:1;background:var(--ring-grad);height:30%;border-radius:4px 4px 0 0;opacity:.8"></div><div style="flex:1;background:var(--ring-grad);height:45%;border-radius:4px 4px 0 0;opacity:.7"></div><div style="flex:1;background:var(--ring-grad);height:55%;border-radius:4px 4px 0 0;opacity:.7"></div><div style="flex:1;background:var(--ring-grad);height:40%;border-radius:4px 4px 0 0;opacity:.6"></div><div style="flex:1;background:var(--ring-grad);height:65%;border-radius:4px 4px 0 0;opacity:.8"></div><div style="flex:1;background:var(--ring-grad);height:50%;border-radius:4px 4px 0 0;opacity:.7"></div><div style="flex:1;background:var(--ring-grad);height:35%;border-radius:4px 4px 0 0;opacity:.6"></div><div style="flex:1;background:var(--ring-grad);height:60%;border-radius:4px 4px 0 0;opacity:.8"></div>
+      </div>
+    </div>
+    <div class="omni-card"><div class="omni-card-title">✅ Health Checks</div>
+      <table class="omni-table" style="margin-top:var(--space-2)">
+        <tr><td>Gateway</td><td style="text-align:right"><span class="omni-pill ok">PASS</span></td></tr>
+        <tr><td>Auth</td><td style="text-align:right"><span class="omni-pill ok">PASS</span></td></tr>
+        <tr><td>Database</td><td style="text-align:right"><span class="omni-pill ok">PASS</span></td></tr>
+        <tr><td>API Endpoints</td><td style="text-align:right"><span class="omni-pill ok">PASS</span></td></tr>
+        <tr><td>Skills Index</td><td style="text-align:right"><span class="omni-pill ok">PASS</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- GATEWAY                                                                   -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-gateway">
+  <h2 class="omni-panel-title">Gateway</h2>
+  <p class="omni-panel-desc">Manage the OpenClaw gateway — restart, update, config, and status</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">🔄 Restart Gateway</button>
+    <button class="omni-action-btn danger">⏹ Stop Gateway</button>
+    <button class="omni-action-btn">⬆ Check for Updates</button>
+    <button class="omni-action-btn">📋 View Config</button>
+  </div>
+  <div class="omni-grid-2">
+    <div class="omni-card">
+      <div class="omni-card-title">Gateway Status</div>
+      <table class="omni-table" style="margin-top:var(--space-2)">
+        <tr><td>Status</td><td style="text-align:right"><span class="omni-pill ok">RUNNING</span></td></tr>
+        <tr><td>PID</td><td style="text-align:right;font-family:var(--mono)">46812</td></tr>
+        <tr><td>Port</td><td style="text-align:right;font-family:var(--mono)">18432</td></tr>
+        <tr><td>Uptime</td><td style="text-align:right">14d 7h 22m</td></tr>
+        <tr><td>Version</td><td style="text-align:right">4.2.0</td></tr>
+      </table>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title">Config Summary</div>
+      <div class="omni-code" style="margin-top:var(--space-2)"><span class="cmt"># active config</span>
+<span class="key">webchat</span>: <span class="val">enabled</span>
+<span class="key">channels</span>: <span class="val">webchat, discord</span>
+<span class="key">subagent_runtime</span>: <span class="val">native</span>
+<span class="key">default_model</span>: <span class="val">auto</span>
+<span class="key">heartbeat_interval</span>: <span class="val">300s</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- KANBAN                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-kanban">
+  <h2 class="omni-panel-title">Kanban</h2>
+  <p class="omni-panel-desc">Visual task board for agent workflows and project tracking</p>
+  <div class="omni-kanban">
+    <div class="omni-kb-col"><div class="omni-kb-col-head">📋 Backlog <span class="count">8</span></div>
+      <div class="omni-kb-card"><div class="tag">FEATURE</div><div class="title">Muse Omni dashboard</div><div class="meta">🧭 HELM · high priority</div></div>
+      <div class="omni-kb-card"><div class="tag">BUG</div><div class="title">Fix Windows path escaping</div><div class="meta">⚙️ FORGE · medium</div></div>
+    </div>
+    <div class="omni-kb-col"><div class="omni-kb-col-head">🔄 In Progress <span class="count">3</span></div>
+      <div class="omni-kb-card"><div class="tag">BUILD</div><div class="title">Branding refresh</div><div class="meta">🎨 PIXEL · active 2m</div></div>
+      <div class="omni-kb-card"><div class="tag">DEPLOY</div><div class="title">Stage cockpit-rebranded</div><div class="meta">🚀 CONDUIT · active 5m</div></div>
+    </div>
+    <div class="omni-kb-col"><div class="omni-kb-col-head">🔍 Review <span class="count">2</span></div>
+      <div class="omni-kb-card"><div class="tag">SECURITY</div><div class="title">Audit new cockpit CSS</div><div class="meta">🛡️ SENTINEL · pending</div></div>
+      <div class="omni-kb-card"><div class="tag">QA</div><div class="title">Cross-browser test</div><div class="meta">🔬 PRISM · assigned</div></div>
+    </div>
+    <div class="omni-kb-col"><div class="omni-kb-col-head">✅ Done <span class="count">24</span></div>
+      <div class="omni-kb-card"><div class="tag">FEATURE</div><div class="title">musehq.io CSS analysis</div><div class="meta">⚙️ FORGE · done 5m ago</div></div>
+      <div class="omni-kb-card"><div class="tag">RESEARCH</div><div class="title">Singularity token audit</div><div class="meta">🔭 SCOUT · done 10m ago</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- PERMISSIONS                                                               -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-permissions">
+  <h2 class="omni-panel-title">Permissions</h2>
+  <p class="omni-panel-desc">What Muse is allowed to do — file access, network, execution gates</p>
+  <table class="omni-table">
+    <thead><tr><th>Permission</th><th>Scope</th><th>Level</th><th>Requires Approval</th></tr></thead>
+    <tbody>
+      <tr><td>File read (workspace)</td><td>C:\Users\Echer\.openclaw-autoclaw\workspace</td><td><span class="omni-pill ok">allowed</span></td><td>No</td></tr>
+      <tr><td>File write (workspace)</td><td>C:\Users\Echer\.openclaw-autoclaw\workspace</td><td><span class="omni-pill ok">allowed</span></td><td>No</td></tr>
+      <tr><td>File read (system)</td><td>C:\Users\Echer\.hermes\M.U.S.E</td><td><span class="omni-pill accent">sandbox</span></td><td>Yes</td></tr>
+      <tr><td>Network (outbound)</td><td>https://*</td><td><span class="omni-pill ok">allowed</span></td><td>No</td></tr>
+      <tr><td>Process execution</td><td>Local shell</td><td><span class="omni-pill warn">gated</span></td><td>For destructive</td></tr>
+      <tr><td>API key access</td><td>Providers</td><td><span class="omni-pill warn">gated</span></td><td>Yes</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- SAFETY                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-safety">
+  <h2 class="omni-panel-title">Safety</h2>
+  <p class="omni-panel-desc">Safety checks every job passes before execution</p>
+  <div class="omni-grid-2">
+    <div class="omni-card"><div class="omni-card-title">✅ Path Safety</div><div class="omni-card-meta">Sandbox root enforcement — no escapes allowed</div></div>
+    <div class="omni-card"><div class="omni-card-title">✅ Command Allowlist</div><div class="omni-card-meta">25 commands whitelisted; destructive require approval</div></div>
+    <div class="omni-card"><div class="omni-card-title">✅ Credential Guard</div><div class="omni-card-meta">API keys never logged or exfiltrated</div></div>
+    <div class="omni-card"><div class="omni-card-title">✅ Content Safety</div><div class="omni-card-meta">AutoClaw Safety Guard active on all platforms</div></div>
+    <div class="omni-card"><div class="omni-card-title">✅ URL Safety</div><div class="omni-card-meta">All external links validated before navigation</div></div>
+    <div class="omni-card"><div class="omni-card-title">✅ Threat Detection</div><div class="omni-card-meta">OSS vulnerability scanning on all dependencies</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- COUNCIL                                                                   -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-council">
+  <h2 class="omni-panel-title">Council</h2>
+  <p class="omni-panel-desc">Multi-agent governance — decisions, reviews, and quality gates</p>
+  <table class="omni-table">
+    <thead><tr><th>Council</th><th>Members</th><th>Last Convened</th><th>Decisions</th></tr></thead>
+    <tbody>
+      <tr><td>🏛️ Quality Council</td><td>PRISM, VANTA, THESEUS, ECHO</td><td>2h ago</td><td>4</td></tr>
+      <tr><td>🏛️ Security Council</td><td>SENTINEL, GAVEL</td><td>1d ago</td><td>2</td></tr>
+      <tr><td>🏛️ Enterprise Council</td><td>HELM, HERALD, LEDGER, HAVEN</td><td>3d ago</td><td>7</td></tr>
+      <tr><td>🏛️ Architecture Council</td><td>ATLAS, NEXUS, CONDUIT</td><td>5d ago</td><td>3</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- API KEYS                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-keys">
+  <h2 class="omni-panel-title">API Keys</h2>
+  <p class="omni-panel-desc">Manage provider API keys — stored locally, never exfiltrated</p>
+  <div class="omni-actions"><button class="omni-action-btn">+ Add Key</button><button class="omni-action-btn">🔄 Rotate All</button></div>
+  <table class="omni-table">
+    <thead><tr><th>Provider</th><th>Key</th><th>Status</th><th>Last Used</th></tr></thead>
+    <tbody>
+      <tr><td>Anthropic</td><td style="font-family:var(--mono);font-size:11px">sk-ant-••••••••••••a3f8</td><td><span class="omni-pill ok">valid</span></td><td>now</td></tr>
+      <tr><td>OpenAI</td><td style="font-family:var(--mono);font-size:11px">sk-proj-••••••••••••b7c1</td><td><span class="omni-pill ok">valid</span></td><td>5m ago</td></tr>
+      <tr><td>Google AI</td><td style="font-family:var(--mono);font-size:11px">AIza••••••••••••d4e8</td><td><span class="omni-pill ok">valid</span></td><td>12m ago</td></tr>
+      <tr><td>DeepSeek</td><td style="font-family:var(--mono);font-size:11px">sk-••••••••••••e9f2</td><td><span class="omni-pill ok">valid</span></td><td>1h ago</td></tr>
+      <tr><td>GitHub</td><td style="font-family:var(--mono);font-size:11px">ghp_••••••••••••f6b3</td><td><span class="omni-pill warn">expiring</span></td><td>3h ago</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- MEMORY                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-memory">
+  <h2 class="omni-panel-title">Memory</h2>
+  <p class="omni-panel-desc">Long-term memory, daily logs, and knowledge persistence</p>
+  <div class="omni-grid-2">
+    <div class="omni-card">
+      <div class="omni-card-title">📝 Recent Memory Files</div>
+      <div style="margin-top:var(--space-2)">
+        <div style="padding:4px 0;display:flex;justify-content:space-between"><span style="color:var(--signal)">MEMORY.md</span><span class="omni-card-meta">12.4 KB · 2h ago</span></div>
+        <div style="padding:4px 0;display:flex;justify-content:space-between"><span style="color:var(--signal)">2026-07-06.md</span><span class="omni-card-meta">3.8 KB · now</span></div>
+        <div style="padding:4px 0;display:flex;justify-content:space-between"><span style="color:var(--signal)">2026-07-05.md</span><span class="omni-card-meta">8.2 KB · 1d ago</span></div>
+        <div style="padding:4px 0;display:flex;justify-content:space-between"><span style="color:var(--signal)">heartbeat-state.json</span><span class="omni-card-meta">0.4 KB · 30m ago</span></div>
+      </div>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title">🧠 Memory Backends</div>
+      <div style="margin-top:var(--space-2)">
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">Holographic</span><span class="omni-pill ok">active</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">Supabase</span><span class="omni-pill ok">connected</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--signal)">File-based</span><span class="omni-pill ok">active</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- LEARNING                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-learning">
+  <h2 class="omni-panel-title">Learning</h2>
+  <p class="omni-panel-desc">Continuous improvement — model routing, task performance, self-audit</p>
+  <div class="omni-grid-3">
+    <div class="omni-card"><div class="omni-card-title">📈 Model Router</div><div class="omni-card-meta">247 fusions today · 95.3% consensus rate</div></div>
+    <div class="omni-card"><div class="omni-card-title">🎯 Task Routing</div><div class="omni-card-meta">14 task classes · adaptive routing active</div></div>
+    <div class="omni-card"><div class="omni-card-title">🔄 Self-Audit</div><div class="omni-card-meta">Last audit: 6h ago · 0 regressions</div></div>
+    <div class="omni-card"><div class="omni-card-title">📊 Performance</div><div class="omni-card-meta">Avg task completion: 98.2% · 42s median</div></div>
+    <div class="omni-card"><div class="omni-card-title">📚 Training Data</div><div class="omni-card-meta">14 open-data sources · 82 GB indexed</div></div>
+    <div class="omni-card"><div class="omni-card-title">🧪 Evolution</div><div class="omni-card-meta">Hermes evolution: aggressive mode · 3 proposals</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- DOCUMENTATION                                                             -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-docs">
+  <h2 class="omni-panel-title">Documentation</h2>
+  <p class="omni-panel-desc">Architecture, guides, API reference, and project documentation</p>
+  <div style="margin-bottom:var(--space-4)"><input class="omni-input" placeholder="Search documentation…" style="max-width:400px"></div>
+  <div class="omni-grid-3">
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📘 Architecture Overview</div><div class="omni-card-meta">System design, agent topology, data flow</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📗 Agent System</div><div class="omni-card-meta">37 agents, spawning, routing, delegation</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📙 Gateway API</div><div class="omni-card-meta">REST endpoints, WebSocket, auth flow</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📕 Skill Authoring</div><div class="omni-card-meta">How to create and publish skills</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📓 Plugin Development</div><div class="omni-card-meta">Plugin API, manifest spec, dashboard UI</div></div>
+    <div class="omni-card omni-card-hover"><div class="omni-card-title">📔 Deployment Guide</div><div class="omni-card-meta">Vercel, Docker, local, desktop (Tauri)</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- RESEARCH                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-research">
+  <h2 class="omni-panel-title">Research</h2>
+  <p class="omni-panel-desc">Evidence-based research — web search, academic papers, market intelligence</p>
+  <div class="omni-composer" style="margin-bottom:var(--space-4)">
+    <textarea rows="1" placeholder="Research query…"></textarea>
+    <div class="omni-composer-bar"><div class="omni-composer-meta"><span>deep-research</span><span>multi-source</span></div><button class="omni-send"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 8l13-7-7 13-2-6z" fill="currentColor"/></svg></button></div>
+  </div>
+  <div class="omni-card"><div class="omni-card-title">Recent Research</div>
+    <div class="omni-card-meta">No active research sessions — start a query above</div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- PROFILES                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-profiles">
+  <h2 class="omni-panel-title">Profiles</h2>
+  <p class="omni-panel-desc">User profiles, identities, and personalization settings</p>
+  <div class="omni-card" style="margin-bottom:var(--space-4)">
+    <div style="display:flex;gap:var(--space-4);align-items:center">
+      <div class="muse-orb" style="width:48px;height:48px"></div>
+      <div>
+        <div class="omni-card-title" style="font-size:18px">Current Profile</div>
+        <div class="omni-card-meta">Name: not set · Timezone: America/New_York · Platform: Windows x64</div>
+      </div>
+    </div>
+  </div>
+  <div class="omni-grid-2">
+    <div class="omni-card"><div class="omni-card-title">👤 IDENTITY</div><div class="omni-card-meta">Name: COMMAND · Role: Lead Orchestrator · Emoji: 🦞</div></div>
+    <div class="omni-card"><div class="omni-card-title">🎨 SOUL</div><div class="omni-card-meta">Calm, decisive, strategic. Delegates with precision.</div></div>
+    <div class="omni-card"><div class="omni-card-title">👤 USER</div><div class="omni-card-meta">Timezone: Eastern · Workspace: openclaw-autoclaw</div></div>
+    <div class="omni-card"><div class="omni-card-title">🛠 TOOLS</div><div class="omni-card-meta">Skills directory, TTS prefs, camera names</div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- CHANNELS                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-channels">
+  <h2 class="omni-panel-title">Channels</h2>
+  <p class="omni-panel-desc">Communication channels where Muse is available</p>
+  <table class="omni-table">
+    <thead><tr><th>Channel</th><th>Type</th><th>Status</th><th>Messages (24h)</th></tr></thead>
+    <tbody>
+      <tr><td>💬 Webchat</td><td>Direct</td><td><span class="omni-pill ok">connected</span></td><td>247</td></tr>
+      <tr><td>📱 Discord</td><td>Group</td><td><span class="omni-pill ok">connected</span></td><td>892</td></tr>
+      <tr><td>📧 Email (AgentMail)</td><td>Async</td><td><span class="omni-pill accent">idle</span></td><td>12</td></tr>
+      <tr><td>💬 Telegram</td><td>Direct</td><td><span class="omni-pill warn">offline</span></td><td>0</td></tr>
+      <tr><td>📱 WhatsApp</td><td>Direct</td><td><span class="omni-pill warn">offline</span></td><td>0</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- RELEASES                                                                  -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-releases">
+  <h2 class="omni-panel-title">Releases</h2>
+  <p class="omni-panel-desc">Muse Omni versions and update history</p>
+  <div class="omni-actions"><button class="omni-action-btn">⬆ Check for Updates</button><button class="omni-action-btn">📦 Download Latest</button></div>
+  <table class="omni-table">
+    <thead><tr><th>Version</th><th>Date</th><th>Changes</th><th>Type</th></tr></thead>
+    <tbody>
+      <tr><td><span class="omni-pill accent">4.2.0</span></td><td>2026-07-06</td><td>Muse Omni — unified dashboard with 35 modules</td><td>Major</td></tr>
+      <tr><td>4.1.3</td><td>2026-07-05</td><td>Singularity design system — SacredGeometry, Glyph, PhaseRail</td><td>Minor</td></tr>
+      <tr><td>4.1.2</td><td>2026-07-04</td><td>Desktop: fix doubled prefix path</td><td>Patch</td></tr>
+      <tr><td>4.1.1</td><td>2026-07-03</td><td>Merge PR #564 — kind-pascal-kry8mh</td><td>Patch</td></tr>
+      <tr><td>4.1.0</td><td>2026-07-01</td><td>macOS signing conditional · Tauri build pipeline</td><td>Minor</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================================== -->
+<!-- CONFIG                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-config">
+  <h2 class="omni-panel-title">Config</h2>
+  <p class="omni-panel-desc">Gateway and agent configuration — edit directly or use the form</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">💾 Save Config</button>
+    <button class="omni-action-btn">🔄 Reload</button>
+    <button class="omni-action-btn">📋 Export</button>
+  </div>
+  <div class="omni-card">
+    <div class="omni-code"><span class="cmt"># Muse Omni Configuration</span>
+<span class="key">gateway</span>:
+  <span class="key">port</span>: <span class="val">18432</span>
+  <span class="key">host</span>: <span class="val">127.0.0.1</span>
+  <span class="key">cors</span>: <span class="val">true</span>
+
+<span class="key">webchat</span>:
+  <span class="key">enabled</span>: <span class="val">true</span>
+  <span class="key">capabilities</span>: <span class="val">[embed, media, reactions]</span>
+
+<span class="key">agents</span>:
+  <span class="key">default_model</span>: <span class="val">auto</span>
+  <span class="key">thinking</span>: <span class="val">off</span>
+  <span class="key">evolution_intensity</span>: <span class="val">aggressive</span>
+
+<span class="key">safety</span>:
+  <span class="key">sandbox_root</span>: <span class="val">workspace</span>
+  <span class="key">approval_required</span>: <span class="val">destructive</span></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- MODES                                                                     -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-modes">
+  <h2 class="omni-panel-title">Modes</h2>
+  <p class="omni-panel-desc">Agent operating modes — reasoning depth, autonomy level, verbosity</p>
+  <div class="omni-grid-3">
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">🚀 Agent Cluster</div>
+      <div class="omni-card-meta">Full autonomy — S0→S5 pipeline. Deliver without asking.</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">current</span></div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">🤝 Interactive</div>
+      <div class="omni-card-meta">Standard mode — ask before major actions.</div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">🐚 Quiet</div>
+      <div class="omni-card-meta">Minimal output — silent unless asked or urgent.</div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">🧠 Deep Think</div>
+      <div class="omni-card-meta">Extended reasoning — chain-of-thought for complex tasks.</div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">⚡ Speed</div>
+      <div class="omni-card-meta">Minimum latency — Haiku models, no approval gates.</div>
+    </div>
+    <div class="omni-card omni-card-hover">
+      <div class="omni-card-title">🛡️ Safe</div>
+      <div class="omni-card-meta">Maximum gating — every action requires approval.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- NODES                                                                     -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-nodes">
+  <h2 class="omni-panel-title">Nodes</h2>
+  <p class="omni-panel-desc">Paired devices and compute nodes in the Muse mesh</p>
+  <table class="omni-table">
+    <thead><tr><th>Node</th><th>Type</th><th>OS</th><th>Status</th><th>Capabilities</th></tr></thead>
+    <tbody>
+      <tr><td>🖥 LAPTOP-PDBAGL2O</td><td>Host</td><td>Windows 11 x64</td><td><span class="omni-pill ok">primary</span></td><td>Full stack + GPU</td></tr>
+      <tr><td>📱 (no paired phone)</td><td>Mobile</td><td>—</td><td><span class="omni-pill warn">offline</span></td><td>Camera, location, notifications</td></tr>
+      <tr><td>🐳 Docker (4 ctx)</td><td>Container</td><td>Linux</td><td><span class="omni-pill ok">2 running</span></td><td>Sandbox, services</td></tr>
+      <tr><td>☁️ Modal</td><td>Cloud GPU</td><td>Linux</td><td><span class="omni-pill accent">idle</span></td><td>A100-40GB, on-demand</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ======================================================================== -->
+<!-- DASHBOARD OVERVIEW                                                        -->
+<!-- ======================================================================== -->
+<div class="omni-panel active" id="panel-dashboard">
+  <div class="omni-content-inner">
+    <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-6)">
+      <div class="muse-orb" style="width:42px;height:42px"></div>
+      <div>
+        <h2 class="omni-panel-title" style="margin:0">Muse Omni</h2>
+        <p class="omni-panel-desc" style="margin:2px 0 0">Your AI operating partner — {status}</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:var(--space-2)">
+        <button class="omni-action-btn">⚡ Quick Start</button>
+        <button class="omni-action-btn">📋 Status Report</button>
+      </div>
+    </div>
+
+    <!-- StateCards from hermes-dashboard -->
+    <div class="omni-grid-3" style="margin-bottom:var(--space-6)">
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--ok)">3</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Active Sessions</div>
+      </div>
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--ring-1)">1,428</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Total Sessions</div>
+      </div>
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--ring-2)">237</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Skills Active</div>
+      </div>
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--warn)">5</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Cron Jobs</div>
+      </div>
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--ring-1)">42</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Plugins</div>
+      </div>
+      <div class="omni-card" style="text-align:center;padding:var(--space-6)">
+        <div style="font-size:36px;font-weight:700;color:var(--signal)">238</div>
+        <div style="font-size:12px;color:var(--signal-mute);margin-top:4px">Models</div>
+      </div>
+    </div>
+
+    <!-- Gateway status + Quick actions -->
+    <div class="omni-grid-2" style="margin-bottom:var(--space-4)">
+      <div class="omni-card">
+        <div class="omni-card-title" style="margin-bottom:var(--space-3)">🌐 Gateway Status</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">Status</span><span class="omni-pill ok">Running</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">Port</span><span style="color:var(--signal);font-family:var(--mono)">18432</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">Uptime</span><span style="color:var(--signal)">14d 7h</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <span style="color:var(--signal-dim)">Version</span><span style="color:var(--signal)">4.2.0 Omni</span>
+        </div>
+      </div>
+      <div class="omni-card">
+        <div class="omni-card-title" style="margin-bottom:var(--space-3)">🐳 Docker Containers</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">hermes-dashboard</span><span class="omni-pill ok">:9119</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">hermes-agent</span><span class="omni-pill ok">:9118</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge)">
+          <span style="color:var(--signal-dim)">sandbox</span><span class="omni-pill ok">active</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0">
+          <span style="color:var(--signal-dim)">WSL Ubuntu</span><span class="omni-pill ok">running</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="omni-card">
+      <div class="omni-card-title" style="margin-bottom:var(--space-3)">📋 Recent Activity</div>
+      <div class="omni-log-line"><span class="omni-log-time">13:43</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Dashboard served: 32 panels loaded</span></div>
+      <div class="omni-log-line"><span class="omni-log-time">13:42</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Agent COMMAND active (session s_a3f8b2)</span></div>
+      <div class="omni-log-line"><span class="omni-log-time">13:40</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Gateway health check: all systems PASS</span></div>
+      <div class="omni-log-line"><span class="omni-log-time">13:35</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Cockpit branding applied: 8 deltas from musehq.io</span></div>
+      <div class="omni-log-line"><span class="omni-log-time">13:30</span><span class="omni-log-level info">INFO</span><span class="omni-log-msg">Docker dashboard merged: analytics + achievements</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- ANALYTICS                                                                 -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-analytics">
+  <h2 class="omni-panel-title">Analytics</h2>
+  <p class="omni-panel-desc">Performance metrics, token usage, and system analytics</p>
+
+  <!-- Token Usage Overview -->
+  <div class="omni-grid-3" style="margin-bottom:var(--space-4)">
+    <div class="omni-card" style="text-align:center">
+      <div style="font-size:10px;color:var(--signal-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Tokens Today</div>
+      <div style="font-size:32px;font-weight:700;color:var(--ring-1)">847,230</div>
+      <div style="font-size:11px;color:var(--ok);margin-top:4px">▲ 12% vs yesterday</div>
+    </div>
+    <div class="omni-card" style="text-align:center">
+      <div style="font-size:10px;color:var(--signal-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Avg Latency</div>
+      <div style="font-size:32px;font-weight:700;color:var(--ok)">1.8s</div>
+      <div style="font-size:11px;color:var(--ok);margin-top:4px">▼ 0.3s vs last week</div>
+    </div>
+    <div class="omni-card" style="text-align:center">
+      <div style="font-size:10px;color:var(--signal-mute);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Est. Cost Today</div>
+      <div style="font-size:32px;font-weight:700;color:var(--warn)">$2.84</div>
+      <div style="font-size:11px;color:var(--signal-dim);margin-top:4px">$84.20 projected monthly</div>
+    </div>
+  </div>
+
+  <!-- Usage chart (CSS bar chart) -->
+  <div class="omni-grid-2" style="margin-bottom:var(--space-4)">
+    <div class="omni-card">
+      <div class="omni-card-title" style="margin-bottom:var(--space-3)">📊 Token Usage (7 days)</div>
+      <div style="height:120px;display:flex;align-items:flex-end;gap:8px;padding:0 8px">
+        <div style="flex:1"><div style="background:var(--ring-grad);height:45px;border-radius:4px 4px 0 0;opacity:0.7"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Mon</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:52px;border-radius:4px 4px 0 0;opacity:0.8"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Tue</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:68px;border-radius:4px 4px 0 0;opacity:0.9"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Wed</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:55px;border-radius:4px 4px 0 0;opacity:0.10"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Thu</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:82px;border-radius:4px 4px 0 0;opacity:0.11"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Fri</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:71px;border-radius:4px 4px 0 0;opacity:0.12"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Sat</div></div>
+        <div style="flex:1"><div style="background:var(--ring-grad);height:62px;border-radius:4px 4px 0 0;opacity:0.13"></div><div style="font-size:9px;color:var(--signal-mute);text-align:center;margin-top:4px">Sun</div></div>
+      </div>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title" style="margin-bottom:var(--space-3)">📈 Token Usage by Model</div>
+      <table class="omni-table" style="margin-top:var(--space-2)">
+        <tr><td>Sonnet 4</td><td style="text-align:right;color:var(--signal)">384,200</td><td style="text-align:right;color:var(--ring-1)">45%</td></tr>
+        <tr><td>Opus 4</td><td style="text-align:right;color:var(--signal)">142,800</td><td style="text-align:right;color:var(--ring-2)">17%</td></tr>
+        <tr><td>Gemini 3 Pro</td><td style="text-align:right;color:var(--signal)">98,400</td><td style="text-align:right;color:var(--signal-dim)">12%</td></tr>
+        <tr><td>DeepSeek V3</td><td style="text-align:right;color:var(--signal)">89,300</td><td style="text-align:right;color:var(--signal-dim)">11%</td></tr>
+        <tr><td>Haiku 4</td><td style="text-align:right;color:var(--signal)">76,500</td><td style="text-align:right;color:var(--signal-dim)">9%</td></tr>
+        <tr><td>Other (6 models)</td><td style="text-align:right;color:var(--signal)">56,030</td><td style="text-align:right;color:var(--signal-mute)">7%</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Session analytics -->
+  <div class="omni-card">
+    <div class="omni-card-title" style="margin-bottom:var(--space-3)">📋 Session Analytics</div>
+    <table class="omni-table">
+      <thead><tr><th>Metric</th><th>Today</th><th>This Week</th><th>This Month</th></tr></thead>
+      <tbody>
+        <tr><td>Total Sessions</td><td style="color:var(--signal)">47</td><td style="color:var(--signal)">312</td><td style="color:var(--signal)">1,428</td></tr>
+        <tr><td>Avg Duration</td><td style="color:var(--signal)">8.2m</td><td style="color:var(--signal)">6.7m</td><td style="color:var(--signal)">7.1m</td></tr>
+        <tr><td>Completion Rate</td><td style="color:var(--ok)">98.2%</td><td style="color:var(--ok)">97.8%</td><td style="color:var(--ok)">97.5%</td></tr>
+        <tr><td>Avg Tokens/Session</td><td style="color:var(--signal)">18,026</td><td style="color:var(--signal)">15,430</td><td style="color:var(--signal)">14,210</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- ACHIEVEMENTS                                                              -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-achievements">
+  <h2 class="omni-panel-title">Achievements</h2>
+  <p class="omni-panel-desc">Progression system — Copper → Silver → Gold → Diamond → Olympian</p>
+
+  <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-6)">
+    <div style="flex:1;text-align:center;background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4)">
+      <div style="font-size:28px">🥉</div>
+      <div style="font-size:14px;font-weight:600;color:#cd7f32;margin:4px 0">Copper</div>
+      <div style="font-size:10px;color:var(--signal-mute)">Complete 10 tasks</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">UNLOCKED</span></div>
+    </div>
+    <div style="flex:1;text-align:center;background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4)">
+      <div style="font-size:28px">🥈</div>
+      <div style="font-size:14px;font-weight:600;color:#c0c0c0;margin:4px 0">Silver</div>
+      <div style="font-size:10px;color:var(--signal-mute)">50 tasks · 5 councils</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">UNLOCKED</span></div>
+    </div>
+    <div style="flex:1;text-align:center;background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4)">
+      <div style="font-size:28px">🥇</div>
+      <div style="font-size:14px;font-weight:600;color:#ffd700;margin:4px 0">Gold</div>
+      <div style="font-size:10px;color:var(--signal-mute)">200 tasks · 20 councils</div>
+      <div style="margin-top:6px"><span class="omni-pill ok">UNLOCKED</span></div>
+    </div>
+    <div style="flex:1;text-align:center;background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4)">
+      <div style="font-size:28px">💎</div>
+      <div style="font-size:14px;font-weight:600;color:var(--ring-1);margin:4px 0">Diamond</div>
+      <div style="font-size:10px;color:var(--signal-mute)">500 tasks · 50 councils</div>
+      <div style="margin-top:6px"><span class="omni-pill accent">IN PROGRESS</span></div>
+    </div>
+    <div style="flex:1;text-align:center;background:var(--void-3);border:1px solid var(--edge);border-radius:var(--radius-md);padding:var(--space-4);opacity:0.5">
+      <div style="font-size:28px">🏛️</div>
+      <div style="font-size:14px;font-weight:600;color:var(--signal-mute);margin:4px 0">Olympian</div>
+      <div style="font-size:10px;color:var(--signal-mute)">1000 tasks · 100 councils</div>
+      <div style="margin-top:6px"><span class="omni-pill warn">LOCKED</span></div>
+    </div>
+  </div>
+
+  <!-- Progress to Diamond -->
+  <div class="omni-card" style="margin-bottom:var(--space-4)">
+    <div class="omni-card-title">💎 Diamond Progress</div>
+    <div style="margin:var(--space-3) 0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--signal-dim)">Tasks: 412 / 500</span>
+        <span style="font-size:11px;color:var(--ring-1)">82.4%</span>
+      </div>
+      <div style="height:6px;background:var(--edge);border-radius:var(--radius-pill);overflow:hidden">
+        <div style="height:100%;width:82.4%;background:var(--ring-grad);border-radius:var(--radius-pill)"></div>
+      </div>
+    </div>
+    <div style="margin:var(--space-3) 0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--signal-dim)">Councils: 38 / 50</span>
+        <span style="font-size:11px;color:var(--ring-2)">76%</span>
+      </div>
+      <div style="height:6px;background:var(--edge);border-radius:var(--radius-pill);overflow:hidden">
+        <div style="height:100%;width:76%;background:var(--ring-grad);border-radius:var(--radius-pill)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent achievements -->
+  <div class="omni-grid-3">
+    <div class="omni-card"><div class="omni-card-title">⚡ Speed Demon</div><div class="omni-card-meta">Complete a task in under 10 seconds</div><div style="margin-top:6px"><span class="omni-pill ok">Jul 5</span></div></div>
+    <div class="omni-card"><div class="omni-card-title">🧬 Fusion Master</div><div class="omni-card-meta">Run 100 model fusions</div><div style="margin-top:6px"><span class="omni-pill ok">Jul 3</span></div></div>
+    <div class="omni-card"><div class="omni-card-title">🏛️ Council Chair</div><div class="omni-card-meta">Convene 5 councils in one day</div><div style="margin-top:6px"><span class="omni-pill ok">Jun 28</span></div></div>
+    <div class="omni-card"><div class="omni-card-title">🌐 Multilingual</div><div class="omni-card-meta">Use 5+ languages in responses</div><div style="margin-top:6px"><span class="omni-pill ok">Jun 22</span></div></div>
+    <div class="omni-card"><div class="omni-card-title">🚀 Deploy Day</div><div class="omni-card-meta">Deploy to production 10 times</div><div style="margin-top:6px"><span class="omni-pill ok">Jun 15</span></div></div>
+    <div class="omni-card"><div class="omni-card-title">🐳 Container Captain</div><div class="omni-card-meta">3 Docker containers running simultaneously</div><div style="margin-top:6px"><span class="omni-pill ok">now</span></div></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- ENVIRONMENT                                                               -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-environment">
+  <h2 class="omni-panel-title">Environment</h2>
+  <p class="omni-panel-desc">Environment variables and system configuration</p>
+  <div class="omni-actions">
+    <button class="omni-action-btn">+ Add Variable</button>
+    <button class="omni-action-btn">🔄 Reload Env</button>
+    <button class="omni-action-btn">📋 Export .env</button>
+  </div>
+  <div class="omni-card">
+    <table class="omni-table">
+      <thead><tr><th>Variable</th><th>Value</th><th>Scope</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:var(--mono);font-size:11px">OPENCLAW_GATEWAY_TOKEN</td><td style="font-family:var(--mono);font-size:11px">••••••••••••••••</td><td><span class="omni-pill ok">system</span></td><td>.env</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">ANTHROPIC_API_KEY</td><td style="font-family:var(--mono);font-size:11px">••••••••••••a3f8</td><td><span class="omni-pill ok">user</span></td><td>.env</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">OPENAI_API_KEY</td><td style="font-family:var(--mono);font-size:11px">••••••••••••b7c1</td><td><span class="omni-pill ok">user</span></td><td>.env</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">GEMINI_API_KEY</td><td style="font-family:var(--mono);font-size:11px">••••••••••••d4e8</td><td><span class="omni-pill ok">user</span></td><td>.env</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">DEEPSEEK_API_KEY</td><td style="font-family:var(--mono);font-size:11px">••••••••••••e9f2</td><td><span class="omni-pill ok">user</span></td><td>.env</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">HERMES_DASHBOARD_PORT</td><td style="font-family:var(--mono);font-size:11px">9119</td><td><span class="omni-pill accent">docker</span></td><td>Dockerfile</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">HERMES_AGENT_PORT</td><td style="font-family:var(--mono);font-size:11px">9118</td><td><span class="omni-pill accent">docker</span></td><td>Dockerfile</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:11px">WSL_DISTRO_NAME</td><td style="font-family:var(--mono);font-size:11px">Ubuntu</td><td><span class="omni-pill accent">wsl</span></td><td>System</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- MUSEHQ                                                                    -->
+<!-- ======================================================================== -->
+<div class="omni-panel" id="panel-musehq">
+  <h2 class="omni-panel-title">MuseHQ</h2>
+  <p class="omni-panel-desc">musehq.io integration — branding, deployment, and web presence</p>
+  <div class="omni-grid-2" style="margin-bottom:var(--space-4)">
+    <div class="omni-card">
+      <div class="omni-card-title">🌐 Website</div>
+      <div class="omni-card-meta" style="margin:var(--space-2) 0">musehq.io — Vite/React SPA</div>
+      <table class="omni-table">
+        <tr><td>Status</td><td><span class="omni-pill ok">Deployed</span></td></tr>
+        <tr><td>Platform</td><td>Vercel</td></tr>
+        <tr><td>Framework</td><td>React + Vite</td></tr>
+        <tr><td>CSS</td><td>24,076 chars · Singularity tokens</td></tr>
+      </table>
+    </div>
+    <div class="omni-card">
+      <div class="omni-card-title">🎨 Branding Status</div>
+      <div class="omni-card-meta" style="margin:var(--space-2) 0">Singularity design system applied</div>
+      <table class="omni-table">
+        <tr><td>Tokens parity</td><td><span class="omni-pill ok">100% match</span></td></tr>
+        <tr><td>Orb brand mark</td><td><span class="omni-pill ok">Deployed</span></td></tr>
+        <tr><td>CSS deltas</td><td><span class="omni-pill ok">8 applied</span></td></tr>
+        <tr><td>Cockpit rebrand</td><td><span class="omni-pill ok">Complete</span></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="omni-card">
+    <div class="omni-card-title">🔄 Sync Status</div>
+    <div class="omni-card-meta">Last sync: now · Local cockpit → musehq.io CSS reference</div>
+    <div style="margin-top:var(--space-3);display:flex;gap:var(--space-2)">
+      <button class="omni-action-btn">🔄 Re-sync from musehq.io</button>
+      <button class="omni-action-btn">🚀 Deploy to Vercel</button>
+      <button class="omni-action-btn">📋 Compare CSS</button>
+    </div>
+  </div>
+</div>
+
+  </div><!-- /omni-content -->
+</div><!-- /omni-main -->
+</div><!-- /omni-shell -->
+
+<script>
+// Tab navigation
+const navItems = document.querySelectorAll('.omni-nav-item[data-panel]');
+const panels = document.querySelectorAll('.omni-panel');
+const topbarTitle = document.getElementById('topbarTitle');
+const topbarPath = document.getElementById('topbarPath');
+
+const panelMeta = {
+  chat:       ['Chat', 'Core / Chat'],
+  studio:     ['Studio', 'Core / Studio'],
+  agents:     ['Agents', 'Core / Agents'],
+  fusion:     ['Fusion', 'Core / Fusion'],
+  sessions:   ['Sessions', 'Infrastructure / Sessions'],
+  models:     ['Models', 'Infrastructure / Models'],
+  providers:  ['Providers', 'Infrastructure / Providers'],
+  runtimes:   ['Runtimes', 'Infrastructure / Runtimes'],
+  nexus:      ['Nexus', 'Infrastructure / Nexus'],
+  skills:     ['Skills', 'Tooling / Skills'],
+  plugins:    ['Plugins', 'Tooling / Plugins'],
+  mcp:        ['MCP Servers', 'Tooling / MCP Servers'],
+  github:     ['GitHub', 'Tooling / GitHub'],
+  cron:       ['Cron / Schedules', 'Operations / Cron'],
+  logs:       ['Logs', 'Operations / Logs'],
+  health:     ['System Health', 'Operations / System Health'],
+  gateway:    ['Gateway', 'Operations / Gateway'],
+  kanban:     ['Kanban', 'Operations / Kanban'],
+  permissions:['Permissions', 'Governance / Permissions'],
+  safety:     ['Safety', 'Governance / Safety'],
+  council:    ['Council', 'Governance / Council'],
+  keys:       ['API Keys', 'Governance / API Keys'],
+  memory:     ['Memory', 'Knowledge / Memory'],
+  learning:   ['Learning', 'Knowledge / Learning'],
+  docs:       ['Documentation', 'Knowledge / Documentation'],
+  research:   ['Research', 'Knowledge / Research'],
+  profiles:   ['Profiles', 'Team / Profiles'],
+  channels:   ['Channels', 'Team / Channels'],
+  releases:   ['Releases', 'Team / Releases'],
+  config:     ['Config', 'System / Config'],
+  modes:      ['Modes', 'System / Modes'],
+  nodes:      ['Nodes', 'System / Nodes'],
+,
+  dashboard:  ['Dashboard', 'Core / Dashboard'],
+  analytics:  ['Analytics', 'Operations / Analytics'],
+  achievements:['Achievements', 'Knowledge / Achievements'],
+  environment:['Environment', 'System / Environment'],
+  musehq:     ['MuseHQ', 'Knowledge / MuseHQ']
+};
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const panel = item.dataset.panel;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    panels.forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + panel).classList.add('active');
+
+    const meta = panelMeta[panel] || [panel, panel];
+    topbarTitle.textContent = meta[0];
+    topbarPath.textContent = meta[1];
+  });
+});
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    const keys = { '1':'chat','2':'studio','3':'agents','4':'fusion','5':'sessions','6':'models','7':'logs','8':'cron','9':'kanban','0':'gateway' };
+    if (keys[e.key]) {
+      e.preventDefault();
+      document.querySelector(`[data-panel="${keys[e.key]}"]`).click();
+    }
+  }
+});
+</script>
+</body>
+</html>

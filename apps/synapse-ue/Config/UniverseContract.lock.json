@@ -1,0 +1,25 @@
+{
+  "contract": "muse-universe",
+  "engine_association": "5.6",
+  "routes": {
+    "commands": "/v1/plugins/muse-universe/commands",
+    "events": "/v1/plugins/muse-universe/events",
+    "snapshot": "/v1/plugins/muse-universe/snapshot"
+  },
+  "schema_major": 1,
+  "schemas": {
+    "command_result.schema.json": {
+      "path": "plugins/muse_universe/schemas/command_result.schema.json",
+      "sha256": "a3ad85551525d7cc690d496ebf2f5dace63837c3505fe3f47d6c4d34962359d2"
+    },
+    "universe_command.schema.json": {
+      "path": "plugins/muse_universe/schemas/universe_command.schema.json",
+      "sha256": "2522144cc6714a9da985bc01014ddd5f47ad5c40a6ed1d61f075ae4cf59b1d26"
+    },
+    "universe_event.schema.json": {
+      "path": "plugins/muse_universe/schemas/universe_event.schema.json",
+      "sha256": "d34f8324853640a1f7f2d9651115e5b1679597e894ede076e699d70d82ac2ebe"
+    }
+  }
+}
+

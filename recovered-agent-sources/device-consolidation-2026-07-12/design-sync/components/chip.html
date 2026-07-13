@@ -1,0 +1,133 @@
+<!-- @dsCard group="Components" name="Chip / StatusPill" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chip / StatusPill — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-title {
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-spacing);
+      line-height: var(--type-title-line);
+      color: var(--core);
+      margin: 0 0 var(--space-2);
+    }
+    .preview-lede {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: 0 0 var(--space-8);
+      max-width: 60ch;
+    }
+    .specimen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: var(--space-6);
+      align-items: start;
+    }
+    .specimen {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .specimen-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      min-height: 28px;
+    }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      line-height: var(--type-label-line);
+      color: var(--signal-mute);
+    }
+    .group-label {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+      margin: var(--space-8) 0 var(--space-4);
+    }
+  </style>
+</head>
+<body>
+  <h1 class="preview-title">Chip / StatusPill</h1>
+  <p class="preview-lede">
+    Compact status tokens at pill radius. Status hues (ok / warn / danger) are
+    UI-only; the accent chip uses the matte cyan ring stop, and the selected
+    filter inverts to the white core with void text.
+  </p>
+
+  <div class="group-label">States</div>
+  <div class="specimen-grid">
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill neutral">Neutral</span>
+      </div>
+      <div class="caption">.pill.neutral</div>
+    </div>
+
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill ok"><span class="dot ok"></span>Online</span>
+      </div>
+      <div class="caption">.pill.ok — online</div>
+    </div>
+
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill warn"><span class="dot warn"></span>Pending</span>
+      </div>
+      <div class="caption">.pill.warn — pending</div>
+    </div>
+
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill danger"><span class="dot danger"></span>Danger</span>
+      </div>
+      <div class="caption">.pill.danger</div>
+    </div>
+
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill accent"><span class="dot live"></span>Active</span>
+      </div>
+      <div class="caption">.pill.accent — active</div>
+    </div>
+
+    <div class="specimen">
+      <div class="specimen-row">
+        <span class="pill selected">Selected</span>
+      </div>
+      <div class="caption">.pill.selected — filter</div>
+    </div>
+  </div>
+
+  <div class="group-label">Filter row (in context)</div>
+  <div class="specimen">
+    <div class="specimen-row">
+      <span class="pill selected">All</span>
+      <span class="pill neutral">Queued</span>
+      <span class="pill neutral">Running</span>
+      <span class="pill neutral">Done</span>
+      <span class="pill neutral">Failed</span>
+    </div>
+    <div class="caption">.pill.selected + .pill.neutral — single-select filter set</div>
+  </div>
+</body>
+</html>

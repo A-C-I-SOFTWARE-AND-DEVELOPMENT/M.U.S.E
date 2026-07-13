@@ -1,0 +1,66 @@
+<!-- @dsCard group="Components" name="SectionHeader" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SectionHeader — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview {
+      display: grid;
+      gap: var(--space-8);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .specimen { display: grid; gap: var(--space-2); }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+    }
+  </style>
+</head>
+<body>
+  <main class="preview">
+
+    <!-- Variant 1 — eyebrow + title + trailing ghost button -->
+    <section class="specimen">
+      <div class="caption">Variant — eyebrow + title + trailing ghost button</div>
+      <div class="section-header">
+        <div class="heads">
+          <span class="eyebrow">Orchestration</span>
+          <h2 class="section-title">Active jobs</h2>
+        </div>
+        <div class="trailing">
+          <button type="button" class="btn ghost">View all</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant 2 — eyebrow only (no title) + trailing chip -->
+    <section class="specimen">
+      <div class="caption">Variant — eyebrow only + trailing chip</div>
+      <div class="section-header">
+        <div class="heads">
+          <span class="eyebrow">Decision ledger</span>
+        </div>
+        <div class="trailing">
+          <span class="pill accent">12 entries</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

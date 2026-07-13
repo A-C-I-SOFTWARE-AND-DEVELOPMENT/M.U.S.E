@@ -1,0 +1,340 @@
+{
+  "name": "MUSE \u00b7 Delegate Connectors (AXIOM-gated targets)",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 1000,
+        "height": 240,
+        "content": "## MUSE \u00b7 Delegate Connectors \u2014 outbound targets\nEach connector is a webhook the **delegate** hop calls following the `N8nBridge` contract:\n`POST /webhook/muse-connector-<name>  { idempotency_key, verified_by, payload }` + `Idempotency-Key` header.\n\n**Reached only AFTER the AXIOM gate approves.** Idempotency guard dedupes retries. Replace each **NoOp** with the real Gmail/Slack node + credentials \u2014 connecting a 3rd-party account is **owner-gated**.",
+        "color": 4
+      },
+      "id": "1364273a-5a61-469f-9038-084f33984594",
+      "name": "h",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "muse-connector-gmail-send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ad6722f0-6e29-4b38-b03f-0063b19e0ef5",
+      "name": "Connector: gmail-send",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        140
+      ],
+      "webhookId": "muse-connector-gmail-send"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const body=$json.body??$json;\nconst key=body.idempotency_key || ($json.headers && $json.headers['idempotency-key']) || '';\nconst store=$getWorkflowStaticData('global'); store.seen=store.seen||{};\nconst duplicate = !!(key && store.seen[key]);\nif(key && !duplicate) store.seen[key]=Date.now();\nreturn [{json:{ok:true,duplicate,idempotency_key:key,connector:'gmail-send',verified_by:body.verified_by??null,payload:body.payload??{}}}];"
+      },
+      "id": "8648c640-4ae9-4518-b638-a5685c4e2fec",
+      "name": "Idempotency guard (gmail)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "de8ef816-50b5-4c81-90a9-88c93638639d",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "a1f7f4be-54d7-494a-93ce-d8ad6791ead9",
+      "name": "Duplicate? (gmail)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        140
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b099dbff-d204-4a73-a4e4-4da3f5c4e4fa",
+      "name": "Gmail: Send  (insert real Gmail node)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, connector:'gmail-send', idempotency_key:$json.idempotency_key, executed:true, note:'placeholder \u2014 insert n8n Gmail node + credentials' }) }}",
+        "options": {}
+      },
+      "id": "8cbdec98-0685-4b55-bbfd-b6d2ed2b954b",
+      "name": "gmail sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, connector:'gmail-send', idempotency_key:$json.idempotency_key, duplicate:true }) }}",
+        "options": {}
+      },
+      "id": "4f96bb3f-936c-44ea-9402-972ccdb9e913",
+      "name": "gmail duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "muse-connector-slack-post",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "47197b54-6343-4bad-81ac-4268e62b7500",
+      "name": "Connector: slack-post",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        520
+      ],
+      "webhookId": "muse-connector-slack-post"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const body=$json.body??$json;\nconst key=body.idempotency_key || ($json.headers && $json.headers['idempotency-key']) || '';\nconst store=$getWorkflowStaticData('global'); store.seen=store.seen||{};\nconst duplicate = !!(key && store.seen[key]);\nif(key && !duplicate) store.seen[key]=Date.now();\nreturn [{json:{ok:true,duplicate,idempotency_key:key,connector:'slack-post',verified_by:body.verified_by??null,payload:body.payload??{}}}];"
+      },
+      "id": "516da44c-9379-4edd-8590-f1a1c40e83dc",
+      "name": "Idempotency guard (slack)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "7e45b7f2-db3d-4b42-b8c1-613e1bbe8f4d",
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      },
+      "id": "ae4c1e9e-fde4-49ad-bde8-245071f54ab6",
+      "name": "Duplicate? (slack)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        520
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "851d7f1c-7af3-455a-b21d-a3f7b0dd5b6b",
+      "name": "Slack: Post  (insert real Slack node)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, connector:'slack-post', idempotency_key:$json.idempotency_key, executed:true, note:'placeholder \u2014 insert n8n Slack node + credentials' }) }}",
+        "options": {}
+      },
+      "id": "572ade39-fa9e-469c-b835-f4bbc8a273de",
+      "name": "slack sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:true, connector:'slack-post', idempotency_key:$json.idempotency_key, duplicate:true }) }}",
+        "options": {}
+      },
+      "id": "9b76ede1-fd95-4039-b644-8c2943b3e45d",
+      "name": "slack duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        620
+      ]
+    }
+  ],
+  "connections": {
+    "Connector: gmail-send": {
+      "main": [
+        [
+          {
+            "node": "Idempotency guard (gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Idempotency guard (gmail)": {
+      "main": [
+        [
+          {
+            "node": "Duplicate? (gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate? (gmail)": {
+      "main": [
+        [
+          {
+            "node": "gmail duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail: Send  (insert real Gmail node)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Send  (insert real Gmail node)": {
+      "main": [
+        [
+          {
+            "node": "gmail sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connector: slack-post": {
+      "main": [
+        [
+          {
+            "node": "Idempotency guard (slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Idempotency guard (slack)": {
+      "main": [
+        [
+          {
+            "node": "Duplicate? (slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate? (slack)": {
+      "main": [
+        [
+          {
+            "node": "slack duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Post  (insert real Slack node)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Post  (insert real Slack node)": {
+      "main": [
+        [
+          {
+            "node": "slack sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "18adc607df624834",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

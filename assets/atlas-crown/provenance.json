@@ -1,0 +1,80 @@
+{
+  "assets": [
+    {
+      "allowed_uses": [
+        "M.U.S.E. application and promotional rendering",
+        "OpenUSD, MaterialX, glTF, and Unreal derivatives with provenance retained",
+        "private and commercial distribution by the rights holder"
+      ],
+      "creator": "A-C-I Software & Development with OpenAI Codex assistance",
+      "path": "agent-flagship.usda",
+      "sha256": "5c74a04d0eed7cb755f2b07dc68e7d2fb84d0e432992f8ff8f671d21ade17881",
+      "transformation_history": [
+        "Clean-room metric USDA authored from the owner-approved M.U.S.E. specification",
+        "No third-party geometry or texture source imported"
+      ]
+    },
+    {
+      "allowed_uses": [
+        "M.U.S.E. application and promotional rendering",
+        "OpenUSD, MaterialX, glTF, and Unreal derivatives with provenance retained",
+        "private and commercial distribution by the rights holder"
+      ],
+      "creator": "A-C-I Software & Development with OpenAI Codex assistance",
+      "path": "atlas-crown.usda",
+      "sha256": "4dcc9e62f3cfa32263e0c3a8a771a5ad9756ccbecaf8f29d810109e5d4f74a52",
+      "transformation_history": [
+        "Clean-room metric USDA authored from the owner-approved M.U.S.E. specification",
+        "Local legacy marketing supplied palette restraint only, not geometry"
+      ]
+    },
+    {
+      "allowed_uses": [
+        "M.U.S.E. station and vessel material translation",
+        "Renderer-native derivatives with source IDs and provenance retained"
+      ],
+      "creator": "A-C-I Software & Development with OpenAI Codex assistance",
+      "path": "materials/atlas-hull.mtlx",
+      "sha256": "a476cfbadd15e44bf745e55b1bcf05670310d7f86dc7a31a1473a083835662bf",
+      "transformation_history": [
+        "Original procedural MaterialX network authored without external image files"
+      ]
+    },
+    {
+      "allowed_uses": [
+        "M.U.S.E. station and vessel material translation",
+        "Renderer-native derivatives with source IDs and provenance retained"
+      ],
+      "creator": "A-C-I Software & Development with OpenAI Codex assistance",
+      "path": "materials/optical-core.mtlx",
+      "sha256": "23efec2e1811960927ff52989af8c53914f173d46a1e2f0807dca59158dfa7d2",
+      "transformation_history": [
+        "Original procedural MaterialX network authored without external image files"
+      ]
+    }
+  ],
+  "created_at": "2026-07-12T00:00:00Z",
+  "design": "original-muse-atlas-crown",
+  "generator": {
+    "model": "GPT-5 Codex runtime",
+    "name": "OpenAI Codex",
+    "prompt_summary": "Author original photoreal aerospace station and flagship source contracts with metric geometry, physical materials, LODs, collision, navigation, and provenance."
+  },
+  "license": "MUSE-ORIGINAL-1.0",
+  "research_references": [
+    {
+      "allowed_influence": "aerospace construction principles and scale cues only",
+      "source": "Owner-approved M.U.S.E. Atlas Crown design specification"
+    },
+    {
+      "allowed_influence": "palette restraint and Singularity identity only",
+      "source": "assets/marketing/muse-2026-legacy"
+    },
+    {
+      "allowed_influence": "procedural PBR authoring pattern only",
+      "source": "demo_assets/1960s_mustang/asset_manifest.json"
+    }
+  ],
+  "third_party_geometry": [],
+  "third_party_textures": []
+}

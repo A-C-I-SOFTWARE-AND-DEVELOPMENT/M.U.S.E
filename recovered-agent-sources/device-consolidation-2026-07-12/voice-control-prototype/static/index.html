@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>MUSE Voice — Full Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/voice.css">
+</head>
+<body>
+
+<!-- Sacred Geometry Background Canvas -->
+<canvas id="bg-canvas"></canvas>
+<div class="vignette"></div>
+
+<!-- Main App -->
+<div id="app">
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="20" r="18" stroke="url(#g1)" stroke-width="1.5"/>
+                    <circle cx="20" cy="20" r="12" stroke="url(#g1)" stroke-width="1" opacity="0.6"/>
+                    <circle cx="20" cy="20" r="6" fill="url(#g2)"/>
+                    <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#d4af37"/><stop offset="1" stop-color="#00d9ff"/>
+                        </linearGradient>
+                        <radialGradient id="g2"><stop stop-color="#00d9ff"/><stop offset="1" stop-color="#d4af37"/></radialGradient>
+                    </defs>
+                </svg>
+            </div>
+            <span class="logo-text">MUSE</span>
+            <span class="logo-sub">Voice</span>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="voice">Voice</button>
+            <button class="nav-tab" data-tab="agents">Agents</button>
+            <button class="nav-tab" data-tab="system">System</button>
+        </nav>
+
+        <div class="header-right">
+            <div id="status-indicator" class="status-pill">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+            <button id="settings-btn" class="icon-btn" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ════ TAB: VOICE ════ -->
+    <div id="tab-voice" class="tab-content active">
+        <main id="conversation" class="conversation">
+            <div class="messages" id="messages"></div>
+        </main>
+
+        <div class="voice-dock">
+            <div id="live-transcript" class="live-transcript hidden">
+                <span class="transcript-text"></span>
+                <span class="transcript-cursor">|</span>
+            </div>
+
+            <div class="orb-container">
+                <div id="muse-orb" class="muse-orb idle">
+                    <div class="orb-ring orb-ring-1"></div>
+                    <div class="orb-ring orb-ring-2"></div>
+                    <div class="orb-ring orb-ring-3"></div>
+                    <div class="orb-core">
+                        <svg class="orb-icon" viewBox="0 0 48 48" fill="none">
+                            <path d="M24 6C18 6 13 8 10 12C13 10 18 9 24 12C30 9 35 10 38 12C35 8 30 6 24 6Z" fill="currentColor" opacity="0.3"/>
+                            <path d="M24 12C18 14 14 18 14 24C14 30 18 36 24 38C30 36 34 30 34 24C34 18 30 14 24 12Z" fill="currentColor" opacity="0.5"/>
+                            <circle cx="24" cy="22" r="4" fill="currentColor"/>
+                            <path d="M20 28C20 28 22 30 24 30C26 30 28 28 28 28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <canvas id="waveform" class="waveform"></canvas>
+                </div>
+                <div id="orb-label" class="orb-label">Tap to speak</div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="quick-btn" data-prompt="Give me a full system status report" title="System Status">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </button>
+                <button class="quick-btn" data-prompt="List my recent sessions" title="Sessions">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <button class="quick-btn" data-prompt="Spawn a subagent to search the web for latest AI news" title="Delegate">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </button>
+                <button class="quick-btn" data-prompt="Check my cron jobs" title="Cron Jobs">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </button>
+                <button class="quick-btn" data-action="stop-tts" title="Mute">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                </button>
+            </div>
+
+            <div class="text-input-bar">
+                <input type="text" id="text-input" placeholder="Speak or type — MUSE has full control..." autocomplete="off">
+                <button id="text-send" class="send-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ TAB: AGENTS ════ -->
+    <div id="tab-agents" class="tab-content">
+        <div class="panel-scroll">
+            <div class="panel-section">
+                <h3 class="panel-title">Active Runs</h3>
+                <div id="active-runs" class="runs-list">
+                    <div class="empty-state">No active agent runs</div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Delegate Task</h3>
+                <div class="delegate-form">
+                    <textarea id="delegate-goal" placeholder="Describe a task for a subagent..." rows="3"></textarea>
+                    <div class="delegate-controls">
+                        <select id="delegate-tools">
+                            <option value="">All tools</option>
+                            <option value="web">Web only</option>
+                            <option value="terminal,file">Code only</option>
+                            <option value="browser">Browser only</option>
+                        </select>
+                        <button id="delegate-send" class="action-btn">Dispatch Agent</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Cron Jobs</h3>
+                <button id="refresh-cron" class="refresh-btn">Refresh</button>
+                <div id="cron-list" class="data-list"><div class="empty-state">Loading...</div></div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Recent Sessions</h3>
+                <button id="refresh-sessions" class="refresh-btn">Refresh</button>
+                <div class="search-bar">
+                    <input type="text" id="session-search" placeholder="Search sessions..." autocomplete="off">
+                    <button id="session-search-btn" class="search-btn">Search</button>
+                </div>
+                <div id="sessions-list" class="data-list"><div class="empty-state">Loading...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ TAB: SYSTEM ════ -->
+    <div id="tab-system" class="tab-content">
+        <div class="panel-scroll">
+            <div class="panel-section">
+                <h3 class="panel-title">System Status</h3>
+                <button id="refresh-status" class="refresh-btn">Refresh</button>
+                <pre id="system-status" class="code-block">Loading...</pre>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Gateway</h3>
+                <div class="control-row">
+                    <pre id="gateway-status" class="code-block small">Loading...</pre>
+                </div>
+                <div class="control-row">
+                    <button class="action-btn" data-gateway="ensure">Start</button>
+                    <button class="action-btn" data-gateway="stop">Stop</button>
+                    <button class="action-btn" data-gateway="restart">Restart</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Dashboard</h3>
+                <div class="control-row">
+                    <pre id="dashboard-status" class="code-block small">Loading...</pre>
+                </div>
+                <div class="control-row">
+                    <button class="action-btn" data-dashboard="status">Check</button>
+                    <button class="action-btn danger" data-dashboard="stop">Stop</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Tools</h3>
+                <button id="refresh-tools" class="refresh-btn">Refresh</button>
+                <div id="tools-grid" class="tools-grid"><div class="empty-state">Loading...</div></div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Models</h3>
+                <button id="refresh-models" class="refresh-btn">Refresh</button>
+                <pre id="models-list" class="code-block">Loading...</pre>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Memory</h3>
+                <pre id="memory-status" class="code-block">Loading...</pre>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Jarvis</h3>
+                <div class="control-row">
+                    <button class="action-btn" data-jarvis="launch">Launch Jarvis</button>
+                    <button class="action-btn danger" data-jarvis="stop">Emergency Stop</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-title">Configuration</h3>
+                <button id="refresh-config" class="refresh-btn">Refresh</button>
+                <pre id="config-display" class="code-block">Loading...</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel hidden">
+        <div class="settings-overlay"></div>
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>Voice Settings</h2>
+                <button id="settings-close" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="settings-body">
+                <div class="setting-group">
+                    <label class="setting-label">Voice Mode</label>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="push"><strong>Push to Talk</strong><small>Tap orb, speak, tap again</small></button>
+                        <button class="mode-btn" data-mode="hold"><strong>Hold to Talk</strong><small>Hold orb while speaking</small></button>
+                        <button class="mode-btn" data-mode="continuous"><strong>Always Listening</strong><small>Continuous with wake word</small></button>
+                    </div>
+                </div>
+                <div class="setting-group" id="wake-word-group" style="display:none">
+                    <label class="setting-label">Wake Word</label>
+                    <input type="text" id="wake-word-input" value="muse" class="setting-input">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Response Voice</label>
+                    <select id="tts-voice" class="setting-input"><option value="">Auto</option></select>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Voice Speed: <span id="rate-val">1.0</span>x</label>
+                    <input type="range" id="tts-rate" min="0.5" max="2.0" step="0.1" value="1.0" class="setting-slider">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-label">Voice Pitch: <span id="pitch-val">1.0</span></label>
+                    <input type="range" id="tts-pitch" min="0.5" max="2.0" step="0.1" value="1.0" class="setting-slider">
+                </div>
+                <div class="setting-group">
+                    <label class="setting-toggle"><span>Auto-speak responses</span><input type="checkbox" id="auto-tts" checked><span class="toggle-switch"></span></label>
+                </div>
+                <div class="setting-group">
+                    <label class="setting-toggle"><span>Full control (no confirmations)</span><input type="checkbox" id="yolo-mode" checked><span class="toggle-switch"></span></label>
+                </div>
+                <div class="setting-group"><div id="api-status" class="api-status">Checking...</div></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/geometry.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

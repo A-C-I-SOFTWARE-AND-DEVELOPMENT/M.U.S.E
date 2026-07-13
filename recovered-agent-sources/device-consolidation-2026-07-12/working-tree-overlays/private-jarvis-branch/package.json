@@ -1,0 +1,27 @@
+{
+  "name": "jarvis-prime",
+  "version": "1.0.0",
+  "description": "JARVIS Prime dashboard/browser tooling for the local-first personal AI operating partner.",
+  "private": true,
+  "scripts": {
+    "postinstall": "echo '✅ Browser tools ready. Run: python run_agent.py --help'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues"
+  },
+  "homepage": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent#readme",
+  "dependencies": {
+    "agent-browser": "^0.26.0"
+  },
+  "overrides": {
+    "lodash": "4.18.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,4 @@
+.env
+local-files/
+__pycache__/
+*.pyc

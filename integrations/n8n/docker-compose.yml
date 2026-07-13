@@ -1,0 +1,69 @@
+# docker-compose.yml — self-hosted n8n for M.U.S.E.'s external-connector layer.
+#
+# Stage 1 (echo) + full sync: n8n handles app-connector work so M.U.S.E. doesn't
+# maintain bespoke integration code per app. M.U.S.E.'s Delegate stage calls into
+# n8n via webhook AFTER AXIOM's Gate approves — this container executes, never verifies.
+#
+# Postgres (not the SQLite default) because the Fusion Gate can fan agents out in
+# parallel; SQLite serializes writes and bottlenecks under concurrent webhook runs.
+#
+# Bring-up:  ./bring-up.sh   (or: cp .env.example .env && docker compose up -d)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: muse_n8n_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: muse_n8n
+    restart: unless-stopped
+    ports:
+      # Loopback only — M.U.S.E. calls this over 127.0.0.1. Do not drop the prefix
+      # unless a reverse proxy + auth sits in front, or you expose n8n on the LAN.
+      - "127.0.0.1:5678:5678"
+    # Makes host.docker.internal resolve to the host on Linux/WSL2 Docker too
+    # (Docker Desktop provides it automatically; this is belt-and-suspenders).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/New_York}
+      TZ: ${GENERIC_TIMEZONE:-America/New_York}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      # ── forwarded so the MUSE workflows can read them as $env.* ──
+      MUSE_COCKPIT_URL: ${MUSE_COCKPIT_URL:-http://host.docker.internal:8765}
+      MUSE_COCKPIT_TOKEN: ${MUSE_COCKPIT_TOKEN:-}
+      MUSE_N8N_BASE: ${MUSE_N8N_BASE:-http://localhost:5678}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./local-files:/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  n8n_postgres_data:
+  n8n_data:

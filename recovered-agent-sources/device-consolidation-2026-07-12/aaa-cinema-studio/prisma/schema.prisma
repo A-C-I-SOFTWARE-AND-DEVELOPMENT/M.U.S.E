@@ -1,0 +1,93 @@
+// M.U.S.E — Master Unified Studio Engine
+// Persistent creative ledger: projects, characters, scenes, scripts, assets, voice takes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String      @id @default(cuid())
+  title       String
+  logline     String      @default("")
+  genre       String      @default("") // e.g. Neo-Noir, Space Opera, Mythic Fantasy
+  medium      String      @default("film") // film | game | hybrid
+  palette     String      @default("") // visual palette descriptor
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  characters  Character[]
+  scenes      Scene[]
+  scripts     Script[]
+  assets      Asset[]
+  voiceTakes  VoiceTake[]
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  role        String   @default("Supporting") // Protagonist | Antagonist | Supporting | Faction
+  archetype   String   @default("") // e.g. The Reluctant Hero, The Trickster
+  backstory   String   @default("")
+  appearance  String   @default("")
+  voiceProfile String  @default("") // e.g. gravelly baritone, faint scottish
+  voice       String   @default("default") // TTS voice id
+  portraitUrl String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model Scene {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String   @default("")
+  sequence    Int      @default(0)
+  location    String   @default("")
+  timeOfDay   String   @default("")
+  mood        String   @default("")
+  shotType    String   @default("") // e.g. Wide Establishing, Dutch Tilt, Dolly Push
+  description String   @default("")
+  imageUrl    String   @default("")
+  duration    Int      @default(0) // seconds
+  createdAt   DateTime @default(now())
+}
+
+model Script {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  act         String   @default("Act I")
+  kind        String   @default("scene") // scene | outline | dialogue | treatment
+  content     String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        String   // portrait | environment | storyboard | prop | concept
+  title       String
+  prompt      String   @default("")
+  imageUrl    String   @default("")
+  meta        String   @default("") // JSON blob for extra params
+  createdAt   DateTime @default(now())
+}
+
+model VoiceTake {
+  id          String   @id @default(cuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  characterId String?
+  text        String
+  voice       String   @default("default")
+  audioBase64 String   @default("")
+  createdAt   DateTime @default(now())
+}

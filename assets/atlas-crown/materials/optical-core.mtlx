@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<materialx version="1.38">
+  <noise3d name="NG_optical_microabrasion" type="float">
+    <input name="amplitude" type="float" value="0.018" />
+    <input name="pivot" type="float" value="0.5" />
+  </noise3d>
+  <constant name="NG_navigation_emission_mask" type="float">
+    <input name="value" type="float" value="1.0" />
+  </constant>
+  <add name="NG_optical_roughness" type="float">
+    <input name="in1" type="float" nodename="NG_optical_microabrasion" />
+    <input name="in2" type="float" value="0.057" />
+  </add>
+
+  <standard_surface name="SS_OpticalGlass" type="surfaceshader">
+    <input name="base" type="float" value="0.08" />
+    <input name="base_color" type="color3" value="0.025, 0.04, 0.055" />
+    <input name="metalness" type="float" value="0.0" />
+    <input name="specular" type="float" value="0.52" />
+    <input name="specular_roughness" type="float" nodename="NG_optical_roughness" />
+    <input name="specular_IOR" type="float" value="1.52" />
+    <input name="transmission" type="float" value="0.92" />
+    <input name="transmission_color" type="color3" value="0.72, 0.9, 0.98" />
+    <input name="transmission_depth" type="float" value="1.8" />
+    <input name="coat" type="float" value="0.18" />
+    <input name="coat_roughness" type="float" value="0.06" />
+  </standard_surface>
+  <surfacematerial name="MAT_OpticalGlass" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_OpticalGlass" />
+  </surfacematerial>
+
+  <standard_surface name="SS_OpticalCoreGlass" type="surfaceshader">
+    <input name="base" type="float" value="0.16" />
+    <input name="base_color" type="color3" value="0.035, 0.065, 0.09" />
+    <input name="metalness" type="float" value="0.0" />
+    <input name="specular" type="float" value="0.5" />
+    <input name="specular_roughness" type="float" value="0.11" />
+    <input name="specular_IOR" type="float" value="1.49" />
+    <input name="transmission" type="float" value="0.78" />
+    <input name="transmission_color" type="color3" value="0.38, 0.74, 0.9" />
+    <input name="emission" type="float" value="0.055" />
+    <input name="emission_color" type="color3" value="0.18, 0.64, 0.82" />
+  </standard_surface>
+  <surfacematerial name="MAT_OpticalCoreGlass" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_OpticalCoreGlass" />
+  </surfacematerial>
+
+  <standard_surface name="SS_NavigationEmission" type="surfaceshader">
+    <input name="base" type="float" value="0.2" />
+    <input name="base_color" type="color3" value="0.08, 0.09, 0.1" />
+    <input name="metalness" type="float" value="0.18" />
+    <input name="specular_roughness" type="float" value="0.24" />
+    <input name="emission" type="float" value="1.0" />
+    <input name="emission_color" type="color3" value="0.35, 0.78, 0.95" />
+  </standard_surface>
+  <surfacematerial name="MAT_NavigationEmission" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS_NavigationEmission" />
+  </surfacematerial>
+
+  <look name="AtlasOpticalLook">
+    <materialassign name="MA_Core" material="MAT_OpticalCoreGlass" geom="/AtlasCrown/NeuralCore" />
+    <materialassign name="MA_Windows" material="MAT_OpticalGlass" geom="/AtlasCrown/SensorsAndScaleCues/WindowModules" />
+  </look>
+</materialx>

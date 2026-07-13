@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1740" font-family="DejaVu Sans, Arial, sans-serif">
+<defs>
+<radialGradient id="bg" cx="30%" cy="10%" r="120%"><stop offset="0" stop-color="#0a1024"/><stop offset="1" stop-color="#05070f"/></radialGradient>
+<linearGradient id="e_flow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37d0d6" stop-opacity="0.35"/><stop offset="1" stop-color="#37d0d6" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_branch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4c95d" stop-opacity="0.35"/><stop offset="1" stop-color="#f4c95d" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_loop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity="0.35"/><stop offset="1" stop-color="#f59e0b" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_compensate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b6b" stop-opacity="0.35"/><stop offset="1" stop-color="#ff6b6b" stop-opacity="1"/></linearGradient>
+</defs>
+<rect width="1180" height="1740" fill="url(#bg)"/>
+<circle cx="924" cy="638" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="963" cy="1533" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="221" cy="1357" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="99" cy="1026" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="582" cy="1458" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="792" cy="344" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="118" cy="1607" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="320" cy="651" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="914" cy="701" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="993" cy="1302" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="237" cy="461" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="588" cy="817" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="980" cy="84" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1030" cy="1668" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="942" cy="163" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="140" cy="1098" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="262" cy="1018" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="249" cy="290" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1156" cy="1738" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="88" cy="628" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="283" cy="19" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1170" cy="954" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="198" cy="1265" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="107" cy="154" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="53" cy="1466" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="345" cy="1581" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="79" cy="312" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="293" cy="1148" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="569" cy="1485" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="344" cy="1564" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="153" cy="1514" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="307" cy="787" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="1178" cy="527" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="440" cy="774" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="986" cy="486" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="235" cy="1352" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1144" cy="1352" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="567" cy="1602" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="1125" cy="1235" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="436" cy="310" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="502" cy="589" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="426" cy="428" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="443" cy="78" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="593" cy="365" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="118" cy="101" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="166" cy="970" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="482" cy="223" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="212" cy="1104" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="727" cy="530" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="908" cy="257" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="93" cy="280" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="735" cy="254" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="541" cy="1586" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="51" cy="55" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="39" cy="951" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="25" cy="995" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="812" cy="950" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1090" cy="1716" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="720" cy="1573" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="813" cy="507" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="379" cy="11" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="992" cy="729" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="494" cy="401" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="492" cy="51" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="903" cy="903" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="256" cy="385" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="105" cy="243" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="162" cy="508" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="954" cy="1388" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="519" cy="23" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="995" cy="1195" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="273" cy="768" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="266" cy="121" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="714" cy="436" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="531" cy="1616" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1048" cy="1030" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="1171" cy="163" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="73" cy="1194" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="876" cy="357" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="294" cy="239" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="902" cy="433" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="567" cy="584" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="230" cy="1159" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="140" cy="969" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="677" cy="375" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="765" cy="551" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="426" cy="952" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="1104" cy="1504" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="689" cy="235" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="236" cy="56" r="0.6" fill="#9fc0ff" opacity="0.25"/>
+<text x="70" y="56" fill="#37d0d6" font-size="15" font-weight="700" letter-spacing="4">B1 · research.literature-review</text>
+<text x="70" y="92" fill="#eef3ff" font-size="30" font-weight="700">Academic Literature Review</text>
+<text x="70" y="118" fill="#9fb0d6" font-size="14" font-style="italic">“Do a literature review on [topic]" / "Find all papers about X since 2020”</text>
+<text x="1110" y="56" text-anchor="end" fill="#37d0d6" font-size="13" font-weight="600" letter-spacing="1">30-120 min | ~$2-10 | 50k-200k tokens</text>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,318) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,486) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,654) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,822) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,990) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1158) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1326) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1432 C196.0,1463.0 196.0,1463.0 196.0,1494" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1432 C196.0,1463.0 196.0,1463.0 196.0,1494" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1494) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<rect x="54" y="134" width="284" height="138" rx="34" fill="#dfe8ff" opacity="0.1"/>
+<rect x="61" y="141" width="270" height="124" rx="27" fill="#dfe8ff" opacity="0.16"/>
+<path d="M322,164 L337,181 L337,273 L85,273 L322,256 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="150" width="8" height="106" rx="4" fill="#dfe8ff"/>
+<circle cx="100" cy="176" r="7" fill="#dfe8ff"/>
+<text x="116" y="181" fill="#dfe8ff" font-size="12.5" font-weight="600" letter-spacing="1">ENTRY</text>
+<text x="90" y="212" fill="#eef3ff" font-size="20" font-weight="700">Prompt</text>
+<text x="90" y="236" fill="#9fb0d6" font-size="13">Do a literature review on [topic]…</text>
+<rect x="54" y="302" width="284" height="138" rx="34" fill="#37d0d6" opacity="0.1"/>
+<rect x="61" y="309" width="270" height="124" rx="27" fill="#37d0d6" opacity="0.16"/>
+<path d="M322,332 L337,349 L337,441 L85,441 L322,424 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="318" width="8" height="106" rx="4" fill="#37d0d6"/>
+<circle cx="100" cy="344" r="7" fill="#37d0d6"/>
+<text x="116" y="349" fill="#37d0d6" font-size="12.5" font-weight="600" letter-spacing="1">RESEARCH</text>
+<text x="90" y="380" fill="#eef3ff" font-size="20" font-weight="700">Query Expansion</text>
+<text x="90" y="404" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="470" width="284" height="138" rx="34" fill="#37d0d6" opacity="0.1"/>
+<rect x="61" y="477" width="270" height="124" rx="27" fill="#37d0d6" opacity="0.16"/>
+<path d="M322,500 L337,517 L337,609 L85,609 L322,592 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="486" width="8" height="106" rx="4" fill="#37d0d6"/>
+<circle cx="100" cy="512" r="7" fill="#37d0d6"/>
+<text x="116" y="517" fill="#37d0d6" font-size="12.5" font-weight="600" letter-spacing="1">RESEARCH · PARALLEL</text>
+<text x="90" y="548" fill="#eef3ff" font-size="20" font-weight="700">Search Execution</text>
+<text x="90" y="572" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="638" width="284" height="138" rx="34" fill="#f59e0b" opacity="0.1"/>
+<rect x="61" y="645" width="270" height="124" rx="27" fill="#f59e0b" opacity="0.16"/>
+<path d="M322,668 L337,685 L337,777 L85,777 L322,760 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="654" width="8" height="106" rx="4" fill="#f59e0b"/>
+<circle cx="100" cy="680" r="7" fill="#f59e0b"/>
+<text x="116" y="685" fill="#f59e0b" font-size="12.5" font-weight="600" letter-spacing="1">REVIEW</text>
+<text x="90" y="716" fill="#eef3ff" font-size="20" font-weight="700">Screening</text>
+<text x="90" y="740" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="806" width="284" height="138" rx="34" fill="#37d0d6" opacity="0.1"/>
+<rect x="61" y="813" width="270" height="124" rx="27" fill="#37d0d6" opacity="0.16"/>
+<path d="M322,836 L337,853 L337,945 L85,945 L322,928 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="822" width="8" height="106" rx="4" fill="#37d0d6"/>
+<circle cx="100" cy="848" r="7" fill="#37d0d6"/>
+<text x="116" y="853" fill="#37d0d6" font-size="12.5" font-weight="600" letter-spacing="1">RESEARCH · PARALLEL</text>
+<text x="90" y="884" fill="#eef3ff" font-size="20" font-weight="700">Data Extraction</text>
+<text x="90" y="908" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="974" width="284" height="138" rx="34" fill="#f59e0b" opacity="0.1"/>
+<rect x="61" y="981" width="270" height="124" rx="27" fill="#f59e0b" opacity="0.16"/>
+<path d="M322,1004 L337,1021 L337,1113 L85,1113 L322,1096 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="990" width="8" height="106" rx="4" fill="#f59e0b"/>
+<circle cx="100" cy="1016" r="7" fill="#f59e0b"/>
+<text x="116" y="1021" fill="#f59e0b" font-size="12.5" font-weight="600" letter-spacing="1">REVIEW</text>
+<text x="90" y="1052" fill="#eef3ff" font-size="20" font-weight="700">Quality Assessment</text>
+<text x="90" y="1076" fill="#9fb0d6" font-size="13">creative.analyst</text>
+<rect x="54" y="1142" width="284" height="138" rx="34" fill="#a78bfa" opacity="0.1"/>
+<rect x="61" y="1149" width="270" height="124" rx="27" fill="#a78bfa" opacity="0.16"/>
+<path d="M322,1172 L337,1189 L337,1281 L85,1281 L322,1264 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1158" width="8" height="106" rx="4" fill="#a78bfa"/>
+<circle cx="100" cy="1184" r="7" fill="#a78bfa"/>
+<text x="116" y="1189" fill="#a78bfa" font-size="12.5" font-weight="600" letter-spacing="1">AGENT</text>
+<text x="90" y="1220" fill="#eef3ff" font-size="20" font-weight="700">Synthesis</text>
+<text x="90" y="1244" fill="#9fb0d6" font-size="13">creative.researcher</text>
+<rect x="54" y="1310" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1317" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1340 L337,1357 L337,1449 L85,1449 L322,1432 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1326" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1352" r="7" fill="#56d364"/>
+<text x="116" y="1357" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">OUTPUT</text>
+<text x="90" y="1388" fill="#eef3ff" font-size="20" font-weight="700">Report Generation</text>
+<text x="90" y="1412" fill="#9fb0d6" font-size="13">creative.writer</text>
+<rect x="54" y="1478" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1485" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1508 L337,1525 L337,1617 L85,1617 L322,1600 Z" fill="#13484a" opacity="0.9"/>
+<rect x="70" y="1494" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1494" width="252" height="106" rx="16" fill="none" stroke="#37d0d6" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1494" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1520" r="7" fill="#56d364"/>
+<text x="116" y="1525" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">DONE</text>
+<text x="90" y="1556" fill="#eef3ff" font-size="20" font-weight="700">Delivery</text>
+<text x="90" y="1580" fill="#9fb0d6" font-size="13">canvas · files · KG</text>
+<text x="70" y="1688" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">NODE</text>
+<circle cx="122" cy="1684" r="6" fill="#dfe8ff"/><text x="134" y="1688" fill="#9fb0d6" font-size="12">entry</text>
+<circle cx="191" cy="1684" r="6" fill="#a78bfa"/><text x="203" y="1688" fill="#9fb0d6" font-size="12">agent</text>
+<circle cx="260" cy="1684" r="6" fill="#37d0d6"/><text x="272" y="1688" fill="#9fb0d6" font-size="12">research</text>
+<circle cx="353" cy="1684" r="6" fill="#f59e0b"/><text x="365" y="1688" fill="#9fb0d6" font-size="12">review</text>
+<circle cx="430" cy="1684" r="6" fill="#f4c95d"/><text x="442" y="1688" fill="#9fb0d6" font-size="12">gate</text>
+<circle cx="490" cy="1684" r="6" fill="#56d364"/><text x="502" y="1688" fill="#9fb0d6" font-size="12">output</text>
+<circle cx="567" cy="1684" r="6" fill="#56d364"/><text x="579" y="1688" fill="#9fb0d6" font-size="12">done</text>
+<circle cx="627" cy="1684" r="6" fill="#ff6b6b"/><text x="639" y="1688" fill="#9fb0d6" font-size="12">fail</text>
+<text x="70" y="1712" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">EDGE</text>
+<line x1="122" y1="1708" x2="144" y2="1708" stroke="#37d0d6" stroke-width="3"/><text x="150" y="1712" fill="#9fb0d6" font-size="12">flow</text>
+<line x1="206" y1="1708" x2="228" y2="1708" stroke="#f4c95d" stroke-width="3"/><text x="234" y="1712" fill="#9fb0d6" font-size="12">branch</text>
+<line x1="307" y1="1708" x2="329" y2="1708" stroke="#f59e0b" stroke-width="3"/><text x="335" y="1712" fill="#9fb0d6" font-size="12">loop</text>
+<line x1="391" y1="1708" x2="413" y2="1708" stroke="#ff6b6b" stroke-width="3"/><text x="419" y="1712" fill="#9fb0d6" font-size="12">compensate</text>
+</svg>

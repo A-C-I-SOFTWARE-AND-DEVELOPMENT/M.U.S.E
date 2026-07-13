@@ -13,9 +13,9 @@ import json
 import shutil
 import time
 import zipfile
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from agent.studio.types import ProjectManifest, StageResult
 
@@ -38,6 +38,62 @@ def _classify_artifact(path: Path) -> str:
         ".json": "data", ".edl": "data", ".uproject": "project",
         ".glb": "mesh3d", ".gltf": "mesh3d", ".fbx": "mesh3d", ".obj": "mesh3d",
     }.get(suf, "other")
+
+
+def _json_record(value: Any) -> Dict[str, Any]:
+    if is_dataclass(value):
+        return asdict(value)
+    if isinstance(value, Mapping):
+        return dict(value)
+    raise TypeError("bundle evidence records must be dataclasses or mappings")
+
+
+def _evidence_files(manifest: ProjectManifest, index: Dict[str, Any]) -> Dict[str, str]:
+    assets = sorted(
+        (_json_record(item) for item in manifest.asset_provenance),
+        key=lambda item: str(item.get("asset_id", "")),
+    )
+    verification = sorted(
+        (_json_record(item) for item in manifest.asset_validations),
+        key=lambda item: str(item.get("asset_id", item.get("path", ""))),
+    )
+    blocked = [item for item in verification if not bool(item.get("passed"))]
+    verified_ids = {
+        str(item.get("asset_id"))
+        for item in verification
+        if item.get("asset_id") and bool(item.get("passed"))
+    }
+    for asset in assets:
+        asset_id = str(asset.get("asset_id", ""))
+        if asset_id and asset_id not in verified_ids:
+            blocked.append({
+                "asset_id": asset_id,
+                "passed": False,
+                "failures": ["verification_missing_or_failed"],
+            })
+    licenses = [
+        {
+            "asset_id": item.get("asset_id", ""),
+            "license": item.get("license", ""),
+            "license_url": item.get("license_url", ""),
+            "allowed_uses": item.get("allowed_uses", ()),
+        }
+        for item in assets
+    ]
+    inventory = "\n".join(
+        f"{item['sha256']}  {item['path']}"
+        for item in sorted(index["artifacts"], key=lambda value: value["path"])
+    )
+    if inventory:
+        inventory += "\n"
+    return {
+        "assets.json": json.dumps(assets, indent=2, sort_keys=True),
+        "verification-results.json": json.dumps(verification, indent=2, sort_keys=True),
+        "licenses.json": json.dumps(licenses, indent=2, sort_keys=True),
+        "blocked-items.json": json.dumps(blocked, indent=2, sort_keys=True),
+        "inventory.sha256": inventory,
+        "rollback.json": json.dumps(manifest.rollback_source, indent=2, sort_keys=True),
+    }
 
 
 def build_index(manifest: ProjectManifest) -> Dict:
@@ -100,6 +156,25 @@ def build_index(manifest: ProjectManifest) -> Dict:
             for s in manifest.stages
         },
         "artifacts": artifacts,
+        "publication": {
+            "asset_records": len(manifest.asset_provenance),
+            "verification_records": len(manifest.asset_validations),
+            "blocked_items": len([
+                item
+                for item in manifest.asset_validations
+                if not bool(_json_record(item).get("passed"))
+            ]) + len({
+                str(_json_record(item).get("asset_id", ""))
+                for item in manifest.asset_provenance
+                if _json_record(item).get("asset_id")
+            } - {
+                str(_json_record(item).get("asset_id", ""))
+                for item in manifest.asset_validations
+                if _json_record(item).get("asset_id")
+                and bool(_json_record(item).get("passed"))
+            }),
+            "rollback_source_present": bool(manifest.rollback_source),
+        },
     }
 
 
@@ -110,6 +185,12 @@ def _readme(manifest: ProjectManifest, index: Dict) -> str:
         "## Bundle layout\n\n"
         "    manifest.txt        human-readable stage list\n"
         "    index.json          structured artifact inventory (sha256-keyed)\n"
+        "    assets.json         sorted provenance records (no raw prompts)\n"
+        "    verification-results.json  format, safety, and rights gate evidence\n"
+        "    licenses.json       license and allowed-use summary\n"
+        "    blocked-items.json  assets that cannot be promoted\n"
+        "    inventory.sha256    deterministic artifact checksum inventory\n"
+        "    rollback.json       source version used for rollback\n"
         "    artifacts/<stage>/  every generated file, grouped by pipeline stage\n"
         "\n"
         "## Importing\n\n"
@@ -129,6 +210,11 @@ def _readme(manifest: ProjectManifest, index: Dict) -> str:
         f"- Size: **{t['bytes']/1e6:.1f} MB**\n"
         f"- Cost: **${t['cost_usd']:.2f}**\n"
         f"- Wall time: **{t['duration_s']:.1f}s**\n\n"
+        "## Production status\n\n"
+        "Generated or stubbed stages are drafts until their corresponding "
+        "verification record passes. Only reviewed assets with complete rights, "
+        "safety, topology, and checksum evidence are production assets. Items in "
+        "`blocked-items.json` are not publishable.\n\n"
         f"{layout_blurb}\n"
     )
 
@@ -150,6 +236,7 @@ def make_bundle(
     index = build_index(manifest)
     readme = _readme(manifest, index)
     manifest_txt = manifest.summary()
+    evidence_files = _evidence_files(manifest, index)
 
     if bundle_path is None:
         slug = "".join(c if c.isalnum() else "_" for c in manifest.title.lower()).strip("_")
@@ -159,6 +246,8 @@ def make_bundle(
         zf.writestr("manifest.txt", manifest_txt)
         zf.writestr("index.json", json.dumps(index, indent=2))
         zf.writestr("README.md", readme)
+        for name, content in evidence_files.items():
+            zf.writestr(name, content)
         # Track seen arcnames to avoid duplicate-name warnings when stages
         # produce files with colliding millisecond timestamps.
         seen: Dict[str, int] = {}
@@ -196,6 +285,7 @@ def make_bundle_dir(
     index = build_index(manifest)
     readme = _readme(manifest, index)
     manifest_txt = manifest.summary()
+    evidence_files = _evidence_files(manifest, index)
 
     if out_dir is None:
         slug = "".join(c if c.isalnum() else "_" for c in manifest.title.lower()).strip("_")
@@ -205,6 +295,8 @@ def make_bundle_dir(
     (out_dir / "manifest.txt").write_text(manifest_txt, encoding="utf-8")
     (out_dir / "index.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
     (out_dir / "README.md").write_text(readme, encoding="utf-8")
+    for name, content in evidence_files.items():
+        (out_dir / name).write_text(content, encoding="utf-8")
 
     for stage in manifest.stages:
         stage_dir = out_dir / "artifacts" / stage.stage
