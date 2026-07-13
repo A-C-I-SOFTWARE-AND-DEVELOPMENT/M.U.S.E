@@ -1,0 +1,67 @@
+name: muse-game-slice
+
+# Headless Godot export + verification of the Game Studio vertical slice.
+# This is the "verify, don't vibe" gate: a build claim must ship with the
+# export log and artifact listing, produced here on a real runner.
+
+on:
+  push:
+    branches: [main]
+    paths: ["skills/creative/game-studio/**", ".github/workflows/muse-game-slice.yml"]
+  pull_request:
+    paths: ["skills/creative/game-studio/**", ".github/workflows/muse-game-slice.yml"]
+  workflow_dispatch: {}
+
+env:
+  GODOT_VERSION: 4.2.2
+
+jobs:
+  export-slice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint GDScript (gdtoolkit parse)
+        run: |
+          pip install --quiet gdtoolkit
+          python -m gdtoolkit.parser skills/creative/game-studio/reference-slice/scripts/*.gd
+
+      - name: Install Godot ${{ env.GODOT_VERSION }} + export templates
+        run: |
+          set -euo pipefail
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          curl -fsSL -o templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates/* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          godot --version
+
+      - name: Import project (first headless open)
+        working-directory: skills/creative/game-studio/reference-slice
+        run: godot --headless --import . 2>&1 | tail -20 || true
+
+      - name: Export linux build
+        working-directory: skills/creative/game-studio/reference-slice
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          godot --headless --export-release linux build/slice.x86_64 2>&1 | tee ../export.log
+          ls -la build/
+
+      - name: Verify the artifact
+        run: |
+          python skills/creative/game-studio/scripts/verify_slice.py \
+            skills/creative/game-studio/reference-slice/build/slice.x86_64
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muse-slice-linux
+          path: |
+            skills/creative/game-studio/reference-slice/build/
+            skills/creative/game-studio/export.log
+          retention-days: 30

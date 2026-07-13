@@ -1,28 +1,66 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/game.gd" id="2_game"]
 [ext_resource type="PackedScene" path="res://scenes/Collectible.tscn" id="3_collectible"]
+[ext_resource type="AudioStreamWAV" path="res://assets/sfx/pickup.wav" id="4_pickup"]
+[ext_resource type="AudioStreamWAV" path="res://assets/sfx/win.wav" id="5_win"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
-sky_top_color = Color(0.27, 0.42, 0.66, 1)
-sky_horizon_color = Color(0.65, 0.69, 0.74, 1)
-ground_bottom_color = Color(0.16, 0.17, 0.2, 1)
-ground_horizon_color = Color(0.65, 0.69, 0.74, 1)
+[sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1"]
+turbidity = 6.0
+sun_disk_scale = 3.0
+ground_color = Color(0.12, 0.13, 0.15, 1)
 
 [sub_resource type="Sky" id="Sky_1"]
-sky_material = SubResource("ProceduralSkyMaterial_1")
+sky_material = SubResource("PhysicalSkyMaterial_1")
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_1"]
+dof_blur_far_enabled = true
+dof_blur_far_distance = 30.0
+dof_blur_far_transition = 10.0
+dof_blur_amount = 0.06
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 2
 sky = SubResource("Sky_1")
 ambient_light_source = 3
 tonemap_mode = 3
+tonemap_white = 6.0
+ssr_enabled = true
 ssao_enabled = true
 ssil_enabled = true
-ssr_enabled = true
 sdfgi_enabled = true
 glow_enabled = true
+glow_bloom = 0.05
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.02
+volumetric_fog_albedo = Color(0.72, 0.82, 0.92, 1)
+volumetric_fog_length = 96.0
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_1"]
+frequency = 0.06
+fractal_octaves = 4
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_rough"]
+seamless = true
+noise = SubResource("FastNoiseLite_1")
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_norm"]
+seamless = true
+as_normal_map = true
+bump_strength = 6.0
+noise = SubResource("FastNoiseLite_1")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.09, 0.1, 0.12, 1)
+metallic = 0.6
+roughness = 0.45
+roughness_texture = SubResource("NoiseTexture2D_rough")
+normal_enabled = true
+normal_scale = 0.4
+normal_texture = SubResource("NoiseTexture2D_norm")
+uv1_scale = Vector3(3, 3, 3)
+uv1_triplanar = true
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
 size = Vector3(24, 0.5, 24)
@@ -36,6 +74,33 @@ size = Vector3(24, 3, 0.5)
 [sub_resource type="BoxMesh" id="BoxMesh_wall"]
 size = Vector3(24, 3, 0.5)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.16, 0.17, 0.19, 1)
+metallic = 0.35
+roughness = 0.7
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pillar"]
+size = Vector3(1, 2.4, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pillar"]
+size = Vector3(1, 2.4, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_strip"]
+albedo_color = Color(0.02, 0.03, 0.04, 1)
+emission_enabled = true
+emission = Color(0.48, 0.85, 1, 1)
+emission_energy_multiplier = 3.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_strip"]
+size = Vector3(20, 0.12, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hero"]
+albedo_color = Color(0.75, 0.78, 0.8, 1)
+metallic = 0.9
+roughness = 0.25
+clearcoat_enabled = true
+clearcoat = 0.6
+
 [sub_resource type="BoxMesh" id="BoxMesh_hero"]
 size = Vector3(1, 1, 1)
 
@@ -44,10 +109,33 @@ script = ExtResource("2_game")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
+camera_attributes = SubResource("CameraAttributesPractical_1")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.86, -0.32, 0.4, 0, 0.78, 0.62, -0.5, -0.54, 0.68, 0, 12, 0)
+light_color = Color(0.99, 0.94, 0.84, 1)
+light_energy = 1.35
+light_angular_distance = 0.5
 shadow_enabled = true
+shadow_blur = 1.2
+directional_shadow_max_distance = 64.0
+
+[node name="OmniCore" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 0)
+light_color = Color(0.48, 0.85, 1, 1)
+light_energy = 2.6
+omni_range = 18.0
+
+[node name="OmniAmber" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 2.2, 7)
+light_color = Color(1, 0.75, 0.45, 1)
+light_energy = 1.8
+omni_range = 12.0
+
+[node name="ReflectionProbe" type="ReflectionProbe" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+size = Vector3(24, 8, 24)
+box_projection = true
 
 [node name="Floor" type="StaticBody3D" parent="."]
 
@@ -56,6 +144,7 @@ shape = SubResource("BoxShape3D_floor")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
 mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
 
 [node name="WallNorth" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -12)
@@ -65,6 +154,7 @@ shape = SubResource("BoxShape3D_wall")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallNorth"]
 mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
 
 [node name="WallSouth" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 12)
@@ -74,6 +164,17 @@ shape = SubResource("BoxShape3D_wall")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="WallSouth"]
 mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="StripNorth" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, -11.7)
+mesh = SubResource("BoxMesh_strip")
+surface_material_override/0 = SubResource("StandardMaterial3D_strip")
+
+[node name="StripSouth" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 11.7)
+mesh = SubResource("BoxMesh_strip")
+surface_material_override/0 = SubResource("StandardMaterial3D_strip")
 
 [node name="Ramp" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.92, 0.39, 0, -0.39, 0.92, -6, 1, 4)
@@ -83,12 +184,54 @@ shape = SubResource("BoxShape3D_wall")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Ramp"]
 mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="PillarNE" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.45, -9)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PillarNE"]
+shape = SubResource("BoxShape3D_pillar")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PillarNE"]
+mesh = SubResource("BoxMesh_pillar")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="PillarNW" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.45, -9)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PillarNW"]
+shape = SubResource("BoxShape3D_pillar")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PillarNW"]
+mesh = SubResource("BoxMesh_pillar")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="PillarSE" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.45, 9)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PillarSE"]
+shape = SubResource("BoxShape3D_pillar")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PillarSE"]
+mesh = SubResource("BoxMesh_pillar")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="PillarSW" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.45, 9)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="PillarSW"]
+shape = SubResource("BoxShape3D_pillar")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PillarSW"]
+mesh = SubResource("BoxMesh_pillar")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
 
 [node name="HeroProp" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="Placeholder" type="MeshInstance3D" parent="HeroProp"]
 mesh = SubResource("BoxMesh_hero")
+surface_material_override/0 = SubResource("StandardMaterial3D_hero")
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 6)
@@ -107,6 +250,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1, 6)
 [node name="Collectible4" parent="Collectibles" instance=ExtResource("3_collectible")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 4)
 
+[node name="Collectible5" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 3.4, -9)
+
+[node name="Collectible6" parent="Collectibles" instance=ExtResource("3_collectible")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 3, 1)
+
+[node name="PickupSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_pickup")
+volume_db = -6.0
+
+[node name="WinSfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_win")
+volume_db = -4.0
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Status" type="Label" parent="HUD"]
@@ -114,5 +271,154 @@ offset_left = 24.0
 offset_top = 16.0
 offset_right = 420.0
 offset_bottom = 48.0
-text = "Collected: 0 / 0"
+theme_override_font_sizes/font_size = 20
+text = "Cores: 0 / 0"
 
+[node name="Clock" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = 48.0
+grow_horizontal = 0
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 20
+text = "0:00.00"
+
+[node name="TitlePanel" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/TitlePanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="HUD/TitlePanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="HUD/TitlePanel/Center"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="HUD/TitlePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+horizontal_alignment = 1
+text = "ATLAS SLICE"
+
+[node name="Sub" type="Label" parent="HUD/TitlePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "Recover the aether cores"
+
+[node name="Keys" type="Label" parent="HUD/TitlePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+text = "WASD move · Shift sprint · Space jump · mouse look · Esc pause"
+
+[node name="Prompt" type="Label" parent="HUD/TitlePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text = "Press Enter to begin"
+
+[node name="PausePanel" type="Control" parent="HUD"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/PausePanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="HUD/PausePanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="HUD/PausePanel/Center"]
+layout_mode = 2
+
+[node name="PauseTitle" type="Label" parent="HUD/PausePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+horizontal_alignment = 1
+text = "PAUSED"
+
+[node name="PauseHint" type="Label" parent="HUD/PausePanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "Esc to resume"
+
+[node name="WinPanel" type="Control" parent="HUD"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="HUD/WinPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.62)
+
+[node name="Center" type="CenterContainer" parent="HUD/WinPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="HUD/WinPanel/Center"]
+layout_mode = 2
+
+[node name="WinTitle" type="Label" parent="HUD/WinPanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+text = "RUN COMPLETE"
+
+[node name="WinLine" type="Label" parent="HUD/WinPanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text = ""
+
+[node name="WinTime" type="Label" parent="HUD/WinPanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text = ""
+
+[node name="WinPrompt" type="Label" parent="HUD/WinPanel/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "Enter — run it back"
