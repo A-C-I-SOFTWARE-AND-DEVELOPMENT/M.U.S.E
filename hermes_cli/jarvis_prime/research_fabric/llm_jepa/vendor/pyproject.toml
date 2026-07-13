@@ -1,0 +1,25 @@
+[project]
+name = "llm-jepa-finetune"
+version = "0.1.0"
+description = "LLM-JEPA fine-tune harness (clean-room; runs in a disposable workspace)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch==2.9.1",
+    "transformers>=4.46,<5",
+    "peft>=0.14,<1",
+    "accelerate>=1.2,<2",
+    "bitsandbytes>=0.45,<1; platform_machine == 'x86_64'",
+]
+
+# torch resolves from the CUDA 12.8 wheel index inside the workspace env, the
+# same discipline the autoresearch vendor uses — never from the muse root env.
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

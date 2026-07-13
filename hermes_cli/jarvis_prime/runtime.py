@@ -105,6 +105,12 @@ class JarvisConfig:
     memory_layers_enabled: bool = field(default_factory=_memory_layers_default)
     memory_tree: Optional[MemoryTreeStore] = None
     memory_token_budget: int = 512
+    # Optional dense-embedding retrieval lane for the Memory Tree (default off).
+    # A positive weight activates a semantic-similarity term blended into the
+    # tree's term-overlap search; 0.0 (with the env flag unset) is byte-for-byte
+    # the legacy keyword search. Env override: HERMES_MEMORY_TREE_EMBEDDINGS /
+    # HERMES_MEMORY_TREE_EMBED_WEIGHT (see memory_tree_embeddings.py).
+    memory_tree_embedding_weight: float = 0.0
     # Gemma memory-curator lane (proposed-only). On by default but inert until a
     # ``gemma_runner`` is configured — so default behavior is byte-identical to
     # before. The runner is injectable: ``(prompt: str) -> str``.
@@ -229,7 +235,10 @@ class JarvisPrime:
             return None
         if self.config.memory_tree is None:
             try:
-                self.config.memory_tree = MemoryTreeStore.load()
+                store = MemoryTreeStore.load()
+                if self.config.memory_tree_embedding_weight > 0:
+                    store.embedding_weight = self.config.memory_tree_embedding_weight
+                self.config.memory_tree = store
             except Exception:  # pragma: no cover - defensive (corrupt store)
                 return None
         return self.config.memory_tree

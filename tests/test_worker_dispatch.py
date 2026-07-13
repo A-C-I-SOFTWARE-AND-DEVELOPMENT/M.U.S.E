@@ -245,6 +245,7 @@ def test_builtin_worker_roster() -> None:
         "claude-execute",
         "sia",
         "autoresearch",
+        "llm-jepa",
     }
 
 

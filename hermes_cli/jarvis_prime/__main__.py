@@ -2079,6 +2079,28 @@ def _cmd_memory_tree_store(args: argparse.Namespace) -> int:
         print(store.export_markdown())
         return 0
 
+    if args.op == "reindex":
+        # (Re)build the optional dense-embedding sidecar for the whole tree.
+        # No-op unless the embedding lane is enabled (HERMES_MEMORY_TREE_EMBEDDINGS
+        # or a positive embedding weight).
+        index = store._embeddings()
+        if index is None:
+            msg = (
+                "memory-tree embeddings are disabled — enable the lane first, e.g. "
+                "HERMES_MEMORY_TREE_EMBEDDINGS=1 (see docs). Nothing reindexed."
+            )
+            if args.json:
+                _print_json({"ok": False, "reason": "embeddings-disabled"})
+            else:
+                print(msg, file=sys.stderr)
+            return 1
+        count = index.reindex(list(store.nodes.values()))
+        if args.json:
+            _print_json({"ok": True, "embedded": count, "sidecar": str(index.path)})
+        else:
+            print(f"ok: embedded {count} node(s) -> {index.path}")
+        return 0
+
     print(f"error: unknown memory-tree op {args.op!r}", file=sys.stderr)
     return 2
 
@@ -3979,8 +4001,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_memtree.add_argument(
         "op",
         nargs="?",
-        choices=["add", "search", "outline", "export-markdown"],
+        choices=["add", "search", "outline", "export-markdown", "reindex"],
         help="Persistent Memory OS operation (durable JSONL store). "
+        "`reindex` (re)builds the optional dense-embedding sidecar. "
         "Omit to use the stateless --add/--search form.",
     )
     p_memtree.add_argument(
