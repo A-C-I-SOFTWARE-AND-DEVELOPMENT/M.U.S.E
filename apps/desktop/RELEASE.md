@@ -58,9 +58,18 @@ provisioning a known-good cert (and the secrets above), set
 `ENABLE_MACOS_SIGNING=true` (Settings → Secrets and variables → Actions →
 Variables) to turn signing on; leave it unset for unsigned bring-up builds.
 
-**Windows** (Authenticode): provide a cert and set Tauri's Windows signing config
-(`bundle.windows.certificateThumbprint` in `tauri.conf.json`, or the equivalent env).
-EV/OV certs avoid SmartScreen warnings.
+**Windows** (Authenticode — secret-driven, mirrors macOS):
+- `WINDOWS_CERTIFICATE` — base64 of your code-signing `.pfx`
+- `WINDOWS_CERTIFICATE_PASSWORD` — its export password
+
+Windows signing is **opt-in and OFF by default**: the release builds an UNSIGNED
+`-setup.exe` (which still publishes) unless the repo **variable**
+`ENABLE_WINDOWS_SIGNING` is set to `true` AND `WINDOWS_CERTIFICATE` is present. When
+enabled, the `Prepare Windows code signing` step imports the `.pfx` into the runner's
+cert store and the build merges `bundle.windows.certificateThumbprint` (+ `sha256`
+digest, DigiCert timestamp URL) via `--config`, so Tauri's bundler signs with
+`signtool`. A malformed cert or wrong password logs a warning and falls back to
+UNSIGNED rather than failing the release. EV/OV certs avoid SmartScreen warnings.
 
 There is no `REQUIRE_*_SIGNING` hard-gate yet (the Android lane has one): add a guard
 step in the `build` job keyed on a `REQUIRE_DESKTOP_SIGNING` repo variable if you want
