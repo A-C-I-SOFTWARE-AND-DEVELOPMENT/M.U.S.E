@@ -136,3 +136,35 @@ tabs (`apps/android/.../ui/screens/memory/`).
 **Safety invariants preserved:** never silently overwrite (contradiction +
 supersession); durable requires owner approval; secrets / chain-of-thought
 rejected; capture is best-effort and never breaks a turn.
+
+## Optional dense-embedding retrieval lane
+
+Retrieval defaults to deterministic term-overlap scoring. Phase 1 (Option C) of
+the JEPA integration adds an **opt-in, default-off** dense-embedding lane that
+blends a cosine-similarity term into `MemoryTreeStore.search` / `_score`,
+reusing the holographic plugin's embedding backend
+(`plugins/memory/holographic/embeddings.py`). Implementation:
+`hermes_cli/jarvis_prime/memory_tree_embeddings.py`.
+
+- **Off by default:** with no config, retrieval is byte-for-byte the legacy
+  keyword search (the dense term is 0 and zero-overlap candidates are dropped).
+  When active, the query is embedded once and semantic-only candidates are kept
+  so similarity can surface them.
+- **Enable:** `HERMES_MEMORY_TREE_EMBEDDINGS=1`
+  (`HERMES_MEMORY_TREE_EMBED_WEIGHT`, `..._BACKEND`, `..._MODEL`,
+  `..._BASE_URL`), or a positive `JarvisConfig.memory_tree_embedding_weight`.
+- **Storage:** a rebuildable JSONL **sidecar** (`memory_tree.emb.jsonl`) keyed
+  by node id + text hash + model — the authoritative `memory_tree.jsonl` never
+  carries vectors; `memory-tree reindex` rebuilds it. No FAISS/ANN (brute-force
+  cosine over active nodes; the tree is small).
+- **Graceful + safe:** a missing/failed backend degrades to the neutral
+  keyword path; all existing filters (active / non-contested / awaiting-review)
+  and the write policy are unchanged. Reuses the existing
+  `memory.embeddings_local` lazy dep (no new root dependency).
+- **Gated adoption:** `memory_tree_eval.score_retrieval` measures recall@k / MRR
+  for keyword vs blended on a held-out set and disposes of the result through
+  `benchmark_gate.evaluate_improvement` — turn the lane on only when it clears
+  `min_margin`; otherwise keep keyword search.
+
+Text chunks use a permissive text embedder; reserve frozen I-JEPA/V-JEPA
+inference (CC-BY-NC, non-commercial) for image/video chunks only.

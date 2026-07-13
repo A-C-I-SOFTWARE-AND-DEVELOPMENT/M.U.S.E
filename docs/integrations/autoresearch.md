@@ -94,3 +94,41 @@ writes the HIGH-risk AXIOM classification + chain event.
 Rollback: unset the spawn env (everything degrades to plan-only/unavailable);
 workspaces are disposable (`rm -rf ~/.hermes/autoresearch/`); all provenance
 stores are append-only JSONL.
+
+## LLM-JEPA fine-tune engine (sibling)
+
+`hermes_cli/jarvis_prime/research_fabric/llm_jepa/` is a **sibling** engine that
+runs the LLM-JEPA objective (Huang, LeCun & Balestriero, arXiv 2509.14252) as an
+owner-gated experiment variant — Phase 2 (Option D) of the JEPA integration
+plan. It follows every autoresearch convention (torch-free lazy import,
+`vendor/` do-not-edit + `checksums.json`, isolated `uv` env, dry-run default,
+RC4 promotion), differing only in that it *fine-tunes* a small (≤1B) base model
+rather than pretraining from scratch.
+
+| Concept | Where |
+|---|---|
+| Objective (clean-room) | `llm_jepa/vendor/train.py` — `L = L_LLM + λ·d(Pred(Enc(text)), Enc(code))`, LoRA, loss-dropout |
+| Two-view builder | `llm_jepa/views.py` — `(text, code)` pairs from git issue→diff and prompt→result history |
+| Governed driver | `llm_jepa/engine.py` — `plan_finetune` (dry-run), `run_finetune` (gated), `evaluate_finetune` (benchmark gate), `propose_promotion` (RC4) |
+| Worker | `hermes_cli/workers/llm_jepa.py` — id `llm-jepa`, five-step contract, `WorkerScore` from downstream accuracy |
+
+Gates:
+
+1. **Dry-run by default** — the worker only produces a plan unless `dry_run=False`.
+2. **Live spawn** — `MUSE_LLM_JEPA_ALLOW_SPAWN=1` (mirrors the autoresearch spawn gate).
+3. **Promotion** — a winning objective is an RC4 `SELF_RUNTIME_UPDATE` proposal that lands `NEEDS_OWNER_APPROVAL` (exact `Yes, with authorization.`); a worker never applies it. On a FAIL the gate emits no proposal — keep the baseline.
+
+Isolated env: `torch` / `transformers` / `peft` live **only** in the vendored
+`llm_jepa/vendor/pyproject.toml` (cu128 index), never in the MUSE root
+`pyproject.toml` — there is deliberately **no `[llm-jepa]` extra**, exactly as
+autoresearch avoids a `torch` extra.
+
+### Clean-room + license boundary
+
+`vendor/train.py` is a **clean-room** implementation of the published objective
+(like the tokenjuice port), credited to the upstream reference
+`rbalestr-lab/llm-jepa` (MIT) in `VENDOR.md`; it is not a byte copy. This keeps
+MUSE on a permissive path: prefer training your **own** weights with the
+LLM-JEPA *objective* over shipping the CC-BY-NC vision checkpoints
+(facebookresearch `jepa`/`vjepa2`), which are non-commercial and must stay off
+any commercial path.
