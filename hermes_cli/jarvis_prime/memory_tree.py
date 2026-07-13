@@ -36,7 +36,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -626,6 +626,12 @@ class MemoryTreeStore:
     nodes: dict[str, MemoryNode] = field(default_factory=dict)
     contradictions: dict[str, ContradictionReport] = field(default_factory=dict)
     load_diagnostics: list[str] = field(default_factory=list)
+    # Optional dense-embedding retrieval lane (default off). A positive weight
+    # here — or the ``HERMES_MEMORY_TREE_EMBEDDINGS`` env flag — activates a
+    # semantic similarity term blended into ``search`` / ``_score``. When 0 and
+    # the env flag is unset, retrieval is byte-for-byte the pure term-overlap
+    # behavior. See ``memory_tree_embeddings.py``.
+    embedding_weight: float = 0.0
 
     # -- write --------------------------------------------------------------
 
@@ -744,6 +750,16 @@ class MemoryTreeStore:
 
         if persist:
             self.save()
+            # Compute the node's embedding at ingest when the dense lane is on.
+            # No-op (returns None) when embeddings are disabled, so the default
+            # write path is unchanged. Never let embedding failures break a write.
+            try:
+                index = self._embeddings()
+                if index is not None:
+                    index.vector_for(node)
+                    index.flush()
+            except Exception:
+                pass
 
         return MemoryWriteResult(
             ok=True,
@@ -951,6 +967,16 @@ class MemoryTreeStore:
         layer_filter = set(layers) if layers else None
         results: list[MemorySearchResult] = []
 
+        # Dense-embedding lane (opt-in, default off). When active, the query is
+        # embedded once and semantic-only candidates (no lexical overlap) are
+        # kept so similarity can surface them; the score blends the cosine term.
+        emb_index = self._embeddings()
+        emb_query_vec = None
+        emb_active = False
+        if emb_index is not None:
+            emb_query_vec = emb_index.embed_query(query)
+            emb_active = emb_query_vec is not None
+
         for node in self.nodes.values():
             if not node.active:
                 continue
@@ -972,20 +998,39 @@ class MemoryTreeStore:
             )
             matched = q_terms & hay
             overlap = len(matched)
-            if overlap == 0 and q_terms:
+            # Off path is byte-identical: drop zero-overlap candidates. When the
+            # dense lane is active, keep them so semantic matches can rank.
+            if overlap == 0 and q_terms and not emb_active:
                 continue
 
-            score = self._score(node, overlap, len(q_terms))
+            emb_sim = None
+            if emb_active:
+                emb_sim = emb_index.similarity(emb_query_vec, node)
+
+            score = self._score(node, overlap, len(q_terms), emb_sim=emb_sim)
             results.append(
                 MemorySearchResult(
                     node=node, score=score, matched_terms=tuple(sorted(matched))
                 )
             )
 
+        # Persist any node vectors computed lazily during this search, once.
+        if emb_active:
+            try:
+                emb_index.flush()
+            except Exception:
+                pass
+
         results.sort(key=lambda r: (r.score, r.node.updated_at), reverse=True)
         return results[:limit]
 
-    def _score(self, node: MemoryNode, overlap: int, q_size: int) -> float:
+    def _score(
+        self,
+        node: MemoryNode,
+        overlap: int,
+        q_size: int,
+        emb_sim: Optional[float] = None,
+    ) -> float:
         term_score = (overlap / q_size) if q_size else 0.5
         layer_bonus = {"durable": 0.3, "session": 0.15, "working": 0.05}[
             node.layer.value
@@ -994,7 +1039,7 @@ class MemoryTreeStore:
             0.15 if node.approval_state == ApprovalState.OWNER_APPROVED else 0.0
         )
         freshness_penalty = 0.2 if self._is_stale(node) else 0.0
-        return (
+        base = (
             term_score * 1.0
             + node.source_trust.weight * 0.5
             + node.confidence * 0.4
@@ -1002,6 +1047,13 @@ class MemoryTreeStore:
             + approval_bonus
             - freshness_penalty
         )
+        # Dense-embedding term is purely additive and only contributes when the
+        # lane is active (weight > 0 and a similarity was computed). When off,
+        # ``emb_sim`` is None and the score is unchanged.
+        emb_weight = getattr(self, "_emb_weight", 0.0)
+        if emb_sim is not None and emb_weight > 0:
+            base += emb_weight * emb_sim
+        return base
 
     @staticmethod
     def _is_stale(node: MemoryNode) -> bool:
@@ -1057,6 +1109,54 @@ class MemoryTreeStore:
 
     def get(self, node_id: str) -> Optional[MemoryNode]:
         return self.nodes.get(node_id)
+
+    # -- embeddings (optional dense retrieval lane) -------------------------
+
+    def _embedding_sidecar_path(self) -> Path:
+        p = self._resolve_path()
+        return p.parent / (p.stem + ".emb.jsonl")
+
+    def _embeddings(self) -> Optional[Any]:
+        """Return an active embedding index, or ``None`` when the lane is off.
+
+        Lazy + cached per store instance. Enablement is either the
+        ``HERMES_MEMORY_TREE_EMBEDDINGS`` env flag or an explicit positive
+        ``embedding_weight`` (e.g. wired from ``JarvisConfig``). Any failure
+        (missing deps, backend unavailable) disables the lane silently so
+        retrieval always falls back to the byte-identical lexical path.
+        """
+
+        if getattr(self, "_emb_ready", False):
+            return getattr(self, "_emb_index", None)
+        self._emb_ready = True
+        self._emb_index = None
+        self._emb_weight = 0.0
+        try:
+            from hermes_cli.jarvis_prime.memory_tree_embeddings import (
+                build_index,
+                resolve_embedding_config,
+            )
+
+            cfg = resolve_embedding_config()
+            weight = (
+                self.embedding_weight
+                if self.embedding_weight > 0
+                else float(cfg.get("weight", 0.0))
+            )
+            enabled = bool(cfg.get("enabled")) or self.embedding_weight > 0
+            if not enabled or weight <= 0:
+                return None
+            # The store owns enablement; force the backend factory on.
+            cfg.setdefault("embeddings", {})["enabled"] = True
+            index = build_index(cfg, self._embedding_sidecar_path())
+            if index is None:
+                return None
+            self._emb_index = index
+            self._emb_weight = weight
+        except Exception:
+            self._emb_index = None
+            self._emb_weight = 0.0
+        return self._emb_index
 
     # -- persistence --------------------------------------------------------
 
