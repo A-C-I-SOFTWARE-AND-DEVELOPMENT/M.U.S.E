@@ -34,7 +34,7 @@ export function AgentWorkshop() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [lanes, setLanes] = useState<WorkerLane[]>([]);
-  const [laneId, setLaneId] = useState("hermes-local-planner");
+  const [laneId, setLaneId] = useState("muse-local-planner");
   const [authorization, setAuthorization] = useState("");
   const [launching, setLaunching] = useState(false);
   const [logs, setLogs] = useState<Record<string, LogEntry[]>>({});
@@ -259,7 +259,7 @@ export function AgentWorkshop() {
               style={{ width: "100%" }}
             >
               {lanes.length === 0 ? (
-                <option value="hermes-local-planner">No lanes available</option>
+                <option value="muse-local-planner">No lanes available</option>
               ) : (
                 lanes.map((lane) => (
                   <option key={lane.id} value={lane.id}>

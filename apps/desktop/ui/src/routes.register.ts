@@ -14,7 +14,7 @@ import { Home } from "./views/Home";
 
 registerRoute({
   id: "home",
-  label: "Home",
-  order: 0,
+  label: "Legacy Home",
+  order: 100,
   render: () => createElement(Home),
 });

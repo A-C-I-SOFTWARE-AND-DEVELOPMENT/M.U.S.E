@@ -4,7 +4,7 @@
 // Best-effort and silent: when a MUSE gateway is reachable on THIS device (the
 // app served same-origin by the gateway — e.g. Termux serving NEXUS — or a
 // gateway this device already paired with), reconnect and pull the owner's
-// existing providers & API keys so every model/provider from their Hermes
+// existing providers & API keys so every model/provider from their Muse
 // install is available here too, with nothing to re-type.
 //
 // This never bypasses the owner gate: first-time device pairing still needs the
@@ -41,7 +41,7 @@ export async function autoSyncOnLaunch(): Promise<void> {
     );
 
     // With a working gateway (existing token or same-origin), import the owner's
-    // existing provider keys so all their Hermes models & providers are present.
+    // existing provider keys so all their Muse models & providers are present.
     if (museToken() || sameOrigin) {
       await importSecretsFromGateway().catch(() => {});
     }

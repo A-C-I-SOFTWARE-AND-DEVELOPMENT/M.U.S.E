@@ -3,7 +3,7 @@ import { importSecretsFromGateway, type ImportResult } from '@/lib/secretImport'
 
 /**
  * One-tap import of the keys the user already has in their gateway's
- * ~/.hermes/.env, so they don't re-type them. Values are written to NEXUS's
+ * ~/.hermes/.env (Muse state home), so they don't re-type them. Values are written to Muse's
  * encrypted on-device store and the provider/add-on cards light up as Connected.
  */
 export function ImportKeysCard() {
@@ -22,7 +22,7 @@ export function ImportKeysCard() {
       <div className="text-[12px] font-semibold">Import keys I already have</div>
       <p className="mt-1 text-[10px] leading-relaxed text-[var(--ink-dim)]">
         Pulls every API key / token you already have in your gateway's
-        <span className="mono"> ~/.hermes/.env</span> and fills them in here — no re-typing. Values are stored
+        <span className="mono"> ~/.hermes/.env</span> (Muse state home) and fills them in here — no re-typing. Values are stored
         <b className="text-[var(--ink)]"> encrypted on this device</b>. Requires a connected gateway with
         <span className="mono"> HERMES_COCKPIT_SECRET_IMPORT=1</span> (owner-gated, loopback-only).
       </p>
