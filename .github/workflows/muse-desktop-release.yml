@@ -9,10 +9,9 @@ name: muse desktop release
 # an explicit `muse-desktop-v*` tag pins a hand-named version. Pushes to `main`
 # that touch apps/desktop refresh the rolling `muse-desktop-latest` download.
 #
-# Signing is entirely secret-driven; nothing sensitive lives in the repo. If the
-# signing secrets are absent the build still succeeds and publishes UNSIGNED
-# installers (clearly marked) instead of failing -- so forks/bring-up are never
-# blocked. See apps/desktop/RELEASE.md for the secrets and how to provision them.
+# Signing is owner-gated and secret-driven; nothing sensitive lives in the repo.
+# The default is an unsigned installer. macOS signing requires both the documented
+# repository variable and valid secrets. See apps/desktop/RELEASE.md.
 #
 # This is the release lane only; the cheap per-PR gate stays in muse-desktop.yml.
 
@@ -66,7 +65,7 @@ jobs:
       date: ${{ steps.ctx.outputs.date }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           fetch-depth: 0  # full history so the version reflects real work done
 
@@ -135,7 +134,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Create or update the release (notes, no assets yet)
         env:
@@ -155,14 +154,15 @@ jobs:
             printf '%s\n' ""
             printf '%s\n' "_Auto-versioned from real history: built **${BUILD_DATE}** (UTC) from commit \`${SHA}\` — **${REPO_COMMITS}** commits total, **${APP_COMMITS}** touching the desktop app._"
             printf '%s\n' ""
-            printf '%s\n' "> This is a native shell around the lean Singularity cockpit. It does **not** bundle or spawn the backend — it talks to **your own local muse gateway** (default \`127.0.0.1:8765\`) after you pair it with the owner phrase, and holds no API keys."
+            printf '%s\n' "> This installer bundles the complete built M.U.S.E. Omni interface and its accessible 2D path. It connects to **your own local M.U.S.E. gateway** (default \`127.0.0.1:8765\`) using the pairing method supported by that gateway, and holds no API keys."
+            printf '%s\n' "> The source-only SYNAPSE UE 5.6 runtime, OpenXR mode, Pixel Streaming infrastructure, and Atlas Crown OpenUSD/MaterialX sources are **not packaged in this Desktop installer**. They have separate build, rights, and environment gates."
             printf '%s\n' ""
             printf '%s\n' "## Install"
             printf '%s\n' "- **macOS:** download the \`.dmg\`, open it, drag muse to Applications."
             printf '%s\n' "- **Windows:** download the \`-setup.exe\` and run it."
             printf '%s\n' "- **Linux:** download the \`.AppImage\` (chmod +x and run) or the \`.deb\`."
             printf '%s\n' ""
-            printf '%s\n' "Unsigned builds may warn about an unknown developer (Gatekeeper / SmartScreen) until signing certs are provisioned (see apps/desktop/RELEASE.md)."
+            printf '%s\n' "Installers are unsigned by default and may warn about an unknown developer. Platform signatures exist only when the owner-gated signing configuration is provisioned; verify the downloaded asset's signature before treating it as signed. Auto-update artifacts are disabled until updater signing keys are provisioned, so updates use a newly downloaded installer."
           } > release-notes.md
           pre_flag=""; [ "$PRERELEASE" = "true" ] && pre_flag="--prerelease"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -193,10 +193,10 @@ jobs:
           - { os: windows-latest, rust_target: '',                  bundles: 'nsis' }
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -207,7 +207,7 @@ jobs:
         working-directory: apps/desktop/ui
 
       - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30  # stable
         with:
           targets: ${{ matrix.rust_target }}
 
@@ -224,7 +224,7 @@ jobs:
             pkg-config
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae  # v2
         with:
           workspaces: apps/desktop/src-tauri
 
@@ -242,7 +242,13 @@ jobs:
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
+          SIGNING_ENABLED: ${{ vars.ENABLE_MACOS_SIGNING }}
         run: |
+          if [ "$SIGNING_ENABLED" != "true" ]; then
+            echo "ENABLE_MACOS_SIGNING is not true; building unsigned (owner-gated default)."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "No APPLE_CERTIFICATE secret; building unsigned (documented fallback)."
             echo "sign=false" >> "$GITHUB_OUTPUT"
