@@ -1,7 +1,7 @@
 # Launch Status — CURRENT
 
-**Date:** 2026-06-20
-**Base commit:** `a7f5296fd` (`main` tip — feat: GODMODE jailbreak + background_learner as default config)
+**Date:** 2026-07-12
+**Base commit:** `85c4aecac` on `codex/muse-atlas-universe-consolidation`, plus an uncommitted, source-only Unreal/assets stream
 **Supersedes:** [`LAUNCH_STATUS.md`](./LAUNCH_STATUS.md),
 [`LAUNCH_READINESS_CHECKLIST.md`](./LAUNCH_READINESS_CHECKLIST.md),
 [`LAUNCH_BRANCH_MATRIX.md`](./LAUNCH_BRANCH_MATRIX.md) (all dated 2026-05-26,
@@ -9,7 +9,59 @@ written against the now-211-commits-stale `bc97e43` / PR #131 baseline).
 **Full audit:** [`../audits/CODEBASE_AUDIT_2026-06-01.md`](../audits/CODEBASE_AUDIT_2026-06-01.md).
 **P1 claims audit:** [`../synapse/phase0/P1_CLAIMS_AUDIT.md`](../synapse/phase0/P1_CLAIMS_AUDIT.md).
 
-## Verdict
+## Current Atlas universe verdict
+
+**YELLOW — source implementation present; release verification remains open.**
+
+The original Atlas Crown/flagship OpenUSD and MaterialX sources, provenance,
+UE 5.6 `SynapseUniverse` and `SynapseCinematic` modules, native stereo/MRQ
+manifests, OpenXR/Pixel Streaming/scalability configuration, no-engine
+self-check sources, and truthful Desktop packaging metadata are now present in
+the working tree. They are not a packaged or benchmarked release.
+
+The implementation assignment explicitly prohibited tests, scripts, compilers,
+Unreal, builds, linters, type checks, servers, and gates. Therefore no Python,
+C++, UBT, UE automation, Desktop, Tauri, OpenXR, Pixel Streaming, USD import,
+MRQ, visual, accessibility, performance, signing, or installer result is green
+from this stream. The exact completion matrix is
+[`2026-07-12-muse-atlas-universe-verification.md`](../audits/2026-07-12-muse-atlas-universe-verification.md).
+
+Release blockers include:
+
+- authorized Python/source/self-check and security runs;
+- UE 5.6 compile, automation, source import, packaged traversal, native stereo
+  EXR/QC, OpenXR, Pixel Streaming, and target-GPU benchmarks;
+- Desktop/Omni tests, type check, build, browser/accessibility/performance
+  matrix, Tauri bundle inspection, and clean-install smoke;
+- owner-gated signing/updater keys and external rights/certification gates.
+
+The Desktop installer explicitly does not bundle Unreal Engine, a packaged
+SYNAPSE runtime, Pixel Streaming infrastructure, API keys, or bearer tokens.
+Updater artifacts remain disabled while updater signing is unprovisioned.
+
+## Update — 2026-07-12 (Desktop lane verified locally)
+
+The Desktop blockers listed above ("Desktop/Omni tests, type check, build,
+… Tauri bundle inspection, and clean-install smoke") were executed locally on
+the owner's Windows 11 machine (branch `claude/desktop-ui-verification`,
+commit `d939a1ec2` plus the uncommitted truthful-packaging `tauri.conf.json`
+and release-workflow changes). Toolchain: Node 24.14.1 / npm 11.13.0,
+rustc 1.96.0, tauri-cli 2.11.2.
+
+| Check | Command (`apps/desktop`) | Result |
+|---|---|---|
+| Type check | `npm run typecheck` (`tsc -b --noEmit`) | 🟢 clean |
+| Unit tests | `npm test` (`node --test src/omni/universe/**/*.test.ts`) | 🟢 25 passed, 0 failed |
+| Production UI build | `npm run build` (`tsc -b && vite build` + PWA) | 🟢 built in 4.4s, 19 precache entries |
+| Tauri bundle | `cargo tauri build` (release, LTO) | 🟢 2m32s; `muse_0.1.0_x64_en-US.msi` + `muse_0.1.0_x64-setup.exe` produced |
+| Clean-install smoke | NSIS `/S` silent install → launch `%LOCALAPPDATA%\muse\muse-desktop.exe` | 🟢 window "muse" up, WebView2 rendered (6 helper processes), clean exit |
+
+Still open for the Desktop lane (unchanged): browser/accessibility/performance
+matrix acceptance, owner-gated signing/updater keys, and CI runs of
+`muse-desktop.yml` / `muse-desktop-release.yml`. Installers remain unsigned by
+design until the owner provisions signing.
+
+## Historical 2026-06-20 baseline verdict
 
 **🟢 GREEN on everything runnable in-repo; 🟡 YELLOW pending CI-only Android
 build; permission-posture risk (B6) reviewed and ACCEPTED by owner (ship-as-is,
