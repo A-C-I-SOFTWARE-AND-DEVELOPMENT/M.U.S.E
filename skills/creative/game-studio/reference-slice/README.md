@@ -46,3 +46,17 @@ validates it loads.)
 
 See `assets/README.md` — `3d-asset-artist` → `asset3d_generate` → copy the
 returned `.glb` over `assets/prop.glb`, then record provenance.
+
+## Game-elements contract + muse sync
+
+- **`slice-manifest.json`** enumerates every game element (scenes, scripts,
+  states, collectibles, objective, timer, sfx, HUD, input actions, graphics
+  flags/set-pieces, export preset, muse mapping). It is drift-proofed against
+  the actual project by `tests/skills/test_game_studio_muse_sync.py`.
+- **`../scripts/sync_slice_to_muse.py`** maps a verified build to a completed
+  *simulation* mission and records it through muse_universe's
+  `AchievementBridge` (`--dry-run` prints the outbox without recording).
+- **`tools/capture/Capture.tscn`** is the deterministic acceptance-capture
+  harness (title + in-run frames via Movie Maker mode); see
+  `docs/game-studio/SLICE_BUILD_EVIDENCE_2026-07-13.md` for the rendered
+  evidence and full build provenance.

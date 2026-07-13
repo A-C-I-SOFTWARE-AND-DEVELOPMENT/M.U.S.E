@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Script" path="res://scripts/game.gd" id="2_game"]
@@ -10,6 +10,9 @@
 turbidity = 6.0
 sun_disk_scale = 3.0
 ground_color = Color(0.12, 0.13, 0.15, 1)
+mie_coefficient = 0.008
+mie_color = Color(1, 0.9, 0.76, 1)
+energy_multiplier = 1.15
 
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("PhysicalSkyMaterial_1")
@@ -27,15 +30,27 @@ ambient_light_source = 3
 tonemap_mode = 3
 tonemap_white = 6.0
 ssr_enabled = true
+ssr_max_steps = 128
 ssao_enabled = true
+ssao_intensity = 2.2
 ssil_enabled = true
 sdfgi_enabled = true
+sdfgi_use_occlusion = true
 glow_enabled = true
+glow_intensity = 0.9
 glow_bloom = 0.05
+glow_hdr_threshold = 0.85
 volumetric_fog_enabled = true
 volumetric_fog_density = 0.02
 volumetric_fog_albedo = Color(0.72, 0.82, 0.92, 1)
 volumetric_fog_length = 96.0
+volumetric_fog_anisotropy = 0.45
+volumetric_fog_gi_inject = 0.6
+volumetric_fog_ambient_inject = 0.15
+volumetric_fog_sky_affect = 0.35
+adjustment_enabled = true
+adjustment_contrast = 1.05
+adjustment_saturation = 1.12
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_1"]
 frequency = 0.06
@@ -79,6 +94,12 @@ albedo_color = Color(0.16, 0.17, 0.19, 1)
 metallic = 0.35
 roughness = 0.7
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_ramp"]
+size = Vector3(4, 0.5, 8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ramp"]
+size = Vector3(4, 0.5, 8)
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_pillar"]
 size = Vector3(1, 2.4, 1)
 
@@ -103,6 +124,48 @@ clearcoat = 0.6
 
 [sub_resource type="BoxMesh" id="BoxMesh_hero"]
 size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beam"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.48, 0.85, 1, 0.14)
+disable_receive_shadows = true
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_beam"]
+top_radius = 0.55
+bottom_radius = 0.9
+height = 9.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ring"]
+albedo_color = Color(0.02, 0.03, 0.04, 1)
+emission_enabled = true
+emission = Color(0.48, 0.85, 1, 1)
+emission_energy_multiplier = 2.6
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring"]
+inner_radius = 1.55
+outer_radius = 1.85
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dust"]
+emission_shape = 3
+emission_box_extents = Vector3(11, 3, 11)
+gravity = Vector3(0, 0.02, 0)
+initial_velocity_min = 0.02
+initial_velocity_max = 0.12
+scale_min = 0.4
+scale_max = 1.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_dust"]
+size = Vector2(0.05, 0.05)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dust"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(0.7, 0.9, 1, 0.35)
+billboard_mode = 3
+disable_receive_shadows = true
 
 [node name="Main" type="Node3D"]
 script = ExtResource("2_game")
@@ -176,14 +239,54 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 11.7)
 mesh = SubResource("BoxMesh_strip")
 surface_material_override/0 = SubResource("StandardMaterial3D_strip")
 
-[node name="Ramp" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.92, 0.39, 0, -0.39, 0.92, -6, 1, 4)
+[node name="WallEast" type="StaticBody3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 12, 1.5, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallEast"]
 shape = SubResource("BoxShape3D_wall")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Ramp"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallEast"]
 mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="WallWest" type="StaticBody3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -12, 1.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="WallWest"]
+shape = SubResource("BoxShape3D_wall")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="WallWest"]
+mesh = SubResource("BoxMesh_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_wall")
+
+[node name="StripEast" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 11.7, 2.8, 0)
+mesh = SubResource("BoxMesh_strip")
+surface_material_override/0 = SubResource("StandardMaterial3D_strip")
+
+[node name="StripWest" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -11.7, 2.8, 0)
+mesh = SubResource("BoxMesh_strip")
+surface_material_override/0 = SubResource("StandardMaterial3D_strip")
+
+[node name="Dust" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+amount = 220
+lifetime = 9.0
+preprocess = 4.0
+visibility_aabb = AABB(-12, -4, -12, 24, 9, 24)
+process_material = SubResource("ParticleProcessMaterial_dust")
+draw_pass_1 = SubResource("QuadMesh_dust")
+material_override = SubResource("StandardMaterial3D_dust")
+
+[node name="Ramp" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.97, 0.243, 0, -0.243, 0.97, -6, 1, 4)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ramp"]
+mesh = SubResource("BoxMesh_ramp")
 surface_material_override/0 = SubResource("StandardMaterial3D_wall")
 
 [node name="PillarNE" type="StaticBody3D" parent="."]
@@ -233,6 +336,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("BoxMesh_hero")
 surface_material_override/0 = SubResource("StandardMaterial3D_hero")
 
+[node name="HoloBeam" type="MeshInstance3D" parent="HeroProp"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_beam")
+surface_material_override/0 = SubResource("StandardMaterial3D_beam")
+
+[node name="DaisRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+cast_shadow = 0
+mesh = SubResource("TorusMesh_ring")
+surface_material_override/0 = SubResource("StandardMaterial3D_ring")
+
+[node name="HeroSpot" type="SpotLight3D" parent="."]
+transform = Transform3D(0.707, -0.53, 0.47, 0, 0.664, 0.75, -0.707, -0.53, 0.47, 2.5, 5, 2.5)
+light_color = Color(0.8, 0.93, 1, 1)
+light_energy = 4.0
+shadow_enabled = true
+spot_range = 12.0
+spot_angle = 22.0
+
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 2, 6)
 
@@ -271,6 +394,9 @@ offset_left = 24.0
 offset_top = 16.0
 offset_right = 420.0
 offset_bottom = 48.0
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 20
 text = "Cores: 0 / 0"
 
@@ -283,8 +409,23 @@ offset_right = -24.0
 offset_bottom = 48.0
 grow_horizontal = 0
 horizontal_alignment = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 20
 text = "0:00.00"
+
+[node name="Brand" type="Label" parent="HUD"]
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -40.0
+offset_right = 420.0
+offset_bottom = -16.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.62, 0.78, 0.86, 0.55)
+theme_override_font_sizes/font_size = 13
+text = "muse · Atlas program · Game Studio slice"
 
 [node name="TitlePanel" type="Control" parent="HUD"]
 anchors_preset = 15
@@ -313,6 +454,10 @@ layout_mode = 2
 
 [node name="Title" type="Label" parent="HUD/TitlePanel/Center/Box"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.92, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.1, 0.35, 0.5, 0.7)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 3
 theme_override_font_sizes/font_size = 56
 horizontal_alignment = 1
 text = "ATLAS SLICE"

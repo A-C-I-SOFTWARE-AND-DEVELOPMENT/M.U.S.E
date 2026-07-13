@@ -16,6 +16,7 @@ enum State { TITLE, PLAYING, PAUSED, WON }
 @onready var _win_time: Label = $HUD/WinPanel/Center/Box/WinTime
 @onready var _pickup_sfx: AudioStreamPlayer = $PickupSfx
 @onready var _win_sfx: AudioStreamPlayer = $WinSfx
+@onready var _core_light: OmniLight3D = get_node_or_null("OmniCore")
 
 const SAVE_PATH := "user://slice.cfg"
 
@@ -41,6 +42,11 @@ func _process(delta: float) -> void:
 		run_time += delta
 		if _clock:
 			_clock.text = _format_time(run_time)
+	if _core_light:
+		# Slow breathing on the core light keeps the arena alive on every
+		# screen, including title and pause (this node always processes).
+		var t := Time.get_ticks_msec() / 1000.0
+		_core_light.light_energy = 2.6 + 0.5 * sin(t * 1.3)
 
 
 func _unhandled_input(event: InputEvent) -> void:

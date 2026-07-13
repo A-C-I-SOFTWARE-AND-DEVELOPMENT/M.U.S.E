@@ -50,3 +50,6 @@ pause={
 [rendering]
 
 renderer/rendering_method="forward_plus"
+anti_aliasing/quality/use_taa=true
+lights_and_shadows/directional_shadow/size=8192
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4

@@ -6,6 +6,9 @@ extends Area3D
 var _base_y: float = 0.0
 var _phase: float = 0.0
 
+@onready var _mesh: MeshInstance3D = $MeshInstance3D
+@onready var _glow: OmniLight3D = get_node_or_null("Glow")
+
 
 func _ready() -> void:
 	add_to_group("collectibles")
@@ -18,6 +21,14 @@ func _process(delta: float) -> void:
 	rotate_y(delta * 1.6)
 	var t := Time.get_ticks_msec() / 1000.0
 	position.y = _base_y + sin(t * 2.0 + _phase) * 0.14
+	# Per-instance pulse (material is resource_local_to_scene) so each core
+	# breathes on its own phase instead of all six flashing in lockstep.
+	var pulse := 0.5 + 0.5 * sin(t * 2.4 + _phase)
+	var material := _mesh.get_surface_override_material(0) as StandardMaterial3D
+	if material:
+		material.emission_energy_multiplier = 1.5 + pulse * 1.4
+	if _glow:
+		_glow.light_energy = 0.9 + pulse * 1.1
 
 
 func _on_body_entered(body: Node) -> void:

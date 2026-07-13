@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "id": "atlas-slice",
+  "title": "muse Game Studio — Vertical Slice",
+  "engine": {
+    "name": "godot",
+    "version": "4.2.2",
+    "renderer": "forward_plus"
+  },
+  "elements": {
+    "scenes": [
+      "scenes/Main.tscn",
+      "scenes/Player.tscn",
+      "scenes/Collectible.tscn"
+    ],
+    "scripts": [
+      "scripts/game.gd",
+      "scripts/player.gd",
+      "scripts/collectible.gd"
+    ],
+    "states": ["TITLE", "PLAYING", "PAUSED", "WON"],
+    "collectibles": 6,
+    "objective": "recover_all_cores",
+    "timer": {
+      "run_clock": true,
+      "best_time_store": "user://slice.cfg"
+    },
+    "audio": [
+      "assets/sfx/pickup.wav",
+      "assets/sfx/win.wav"
+    ],
+    "hero_prop_slot": "assets/prop.glb",
+    "hud": ["Status", "Clock", "Brand", "TitlePanel", "PausePanel", "WinPanel"],
+    "input_actions": [
+      "move_forward",
+      "move_back",
+      "move_left",
+      "move_right",
+      "jump",
+      "sprint",
+      "pause"
+    ]
+  },
+  "graphics": {
+    "environment": [
+      "sdfgi_enabled",
+      "ssao_enabled",
+      "ssil_enabled",
+      "ssr_enabled",
+      "glow_enabled",
+      "volumetric_fog_enabled",
+      "adjustment_enabled"
+    ],
+    "project_rendering": [
+      "anti_aliasing/quality/use_taa=true",
+      "lights_and_shadows/directional_shadow/soft_shadow_filter_quality=4"
+    ],
+    "set_pieces": [
+      "HoloBeam",
+      "DaisRing",
+      "HeroSpot",
+      "Dust",
+      "StripNorth",
+      "StripSouth",
+      "StripEast",
+      "StripWest"
+    ]
+  },
+  "export": {
+    "preset": "linux",
+    "artifact": "build/slice.x86_64"
+  },
+  "muse": {
+    "realm_id": "realm-game-studio-slice",
+    "mode": "simulation",
+    "evidence_label": "simulation",
+    "mission_kind": "recover_all_cores",
+    "source_type": "game_studio_slice",
+    "source_id": "atlas-slice",
+    "achievements": ["all_cores_recovered", "best_time_record"]
+  }
+}
