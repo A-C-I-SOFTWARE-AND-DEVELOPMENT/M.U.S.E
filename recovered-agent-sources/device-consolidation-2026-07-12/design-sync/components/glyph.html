@@ -1,0 +1,209 @@
+<!-- @dsCard group="Brand" name="Brand glyph" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brand glyph — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors.
+     * The .glyph component (core bloom + matte spectral ring) lives in
+     * cockpit.css; this page only arranges instances for documentation. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview-title {
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-spacing);
+      line-height: var(--type-title-line);
+      color: var(--core);
+      margin: 0 0 var(--space-2);
+    }
+    .preview-lede {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: 0 0 var(--space-12);
+      max-width: 64ch;
+    }
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-bottom: var(--space-12);
+    }
+    .preview-row {
+      display: flex;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: var(--space-12);
+    }
+    .preview-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .type-label {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      color: var(--signal-mute);
+    }
+    .geometry {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--signal-mute);
+      line-height: var(--type-body-line);
+      margin: 0;
+      max-width: 72ch;
+    }
+    .geometry b { color: var(--signal-dim); font-weight: var(--type-label-weight); }
+    /* Size the glyph box to the SVG so the core-bloom (sized to the glyph
+     * box in cockpit.css) blooms the white core only, never the matte ring. */
+    .glyph-16  { width: 16px;  height: 16px;  }
+    .glyph-48  { width: 48px;  height: 48px;  }
+    .glyph-128 { width: 128px; height: 128px; }
+  </style>
+</head>
+<body>
+  <h1 class="preview-title">Brand glyph</h1>
+  <p class="preview-lede">
+    The muse brand mark: a single white <code>--core</code> circle in the void,
+    wrapped by one thin MATTE spectral ring (cyan&nbsp;&rarr;&nbsp;violet, single
+    gap, round caps, rotated&nbsp;&minus;32&deg;). Rendered with the
+    <code>.glyph</code> component — inline SVG over the stacked cool-white
+    radial halos of <code>.glyph::before</code>. White is the hero; the ring
+    stays matte (never glowed or neon).
+  </p>
+
+  <!-- ===== Size ladder: 16 / 48 / 128 ===== -->
+  <div class="preview-section">
+    <span class="type-label">size ladder &mdash; 16px / 48px / 128px (matte ring, static)</span>
+    <div class="preview-row">
+
+      <div class="preview-cell">
+        <span class="type-label">16px &middot; favicon / inline</span>
+        <span class="glyph glyph-16">
+          <svg viewBox="0 0 100 100" width="16" height="16" role="img" aria-label="muse glyph">
+            <defs>
+              <linearGradient id="ringGrad16" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#7ae0ff" />
+                <stop offset="1" stop-color="#b388ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="31.25" fill="none"
+                    stroke="url(#ringGrad16)" stroke-width="3.33"
+                    stroke-linecap="round" stroke-dasharray="66 28"
+                    transform="rotate(-32 50 50)" />
+            <circle cx="50" cy="50" r="6.46" fill="#ffffff" />
+          </svg>
+        </span>
+      </div>
+
+      <div class="preview-cell">
+        <span class="type-label">48px &middot; nav / lockup</span>
+        <span class="glyph glyph-48">
+          <svg viewBox="0 0 100 100" width="48" height="48" role="img" aria-label="muse glyph">
+            <defs>
+              <linearGradient id="ringGrad48" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#7ae0ff" />
+                <stop offset="1" stop-color="#b388ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="31.25" fill="none"
+                    stroke="url(#ringGrad48)" stroke-width="3.33"
+                    stroke-linecap="round" stroke-dasharray="66 28"
+                    transform="rotate(-32 50 50)" />
+            <circle cx="50" cy="50" r="6.46" fill="#ffffff" />
+          </svg>
+        </span>
+      </div>
+
+      <div class="preview-cell">
+        <span class="type-label">128px &middot; hero (core bloom)</span>
+        <span class="glyph glyph-128">
+          <svg viewBox="0 0 100 100" width="128" height="128" role="img" aria-label="muse glyph">
+            <defs>
+              <linearGradient id="ringGrad128" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#7ae0ff" />
+                <stop offset="1" stop-color="#b388ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="31.25" fill="none"
+                    stroke="url(#ringGrad128)" stroke-width="3.33"
+                    stroke-linecap="round" stroke-dasharray="66 28"
+                    transform="rotate(-32 50 50)" />
+            <circle cx="50" cy="50" r="6.46" fill="#ffffff" />
+          </svg>
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Motion: static vs live ~8.5s spin ===== -->
+  <div class="preview-section">
+    <span class="type-label">motion &mdash; static vs live spin (8.5s linear, ring + core together)</span>
+    <div class="preview-row">
+
+      <div class="preview-cell">
+        <span class="type-label">static</span>
+        <span class="glyph glyph-128">
+          <svg viewBox="0 0 100 100" width="128" height="128" role="img" aria-label="muse glyph, static">
+            <defs>
+              <linearGradient id="ringGradStatic" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#7ae0ff" />
+                <stop offset="1" stop-color="#b388ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="31.25" fill="none"
+                    stroke="url(#ringGradStatic)" stroke-width="3.33"
+                    stroke-linecap="round" stroke-dasharray="66 28"
+                    transform="rotate(-32 50 50)" />
+            <circle cx="50" cy="50" r="6.46" fill="#ffffff" />
+          </svg>
+        </span>
+      </div>
+
+      <div class="preview-cell">
+        <span class="type-label">live &middot; .glyph.spin (~8.5s)</span>
+        <span class="glyph glyph-128 spin">
+          <svg viewBox="0 0 100 100" width="128" height="128" role="img" aria-label="muse glyph, spinning">
+            <defs>
+              <linearGradient id="ringGradSpin" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#7ae0ff" />
+                <stop offset="1" stop-color="#b388ff" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="31.25" fill="none"
+                    stroke="url(#ringGradSpin)" stroke-width="3.33"
+                    stroke-linecap="round" stroke-dasharray="66 28"
+                    transform="rotate(-32 50 50)" />
+            <circle cx="50" cy="50" r="6.46" fill="#ffffff" />
+          </svg>
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== Geometry caption ===== -->
+  <p class="geometry">
+    Geometry (viewBox 0&nbsp;0&nbsp;100&nbsp;100, normalized to 1.0):
+    core&nbsp;r&nbsp;<b>&asymp;&nbsp;0.0646</b> &middot;
+    ring&nbsp;r&nbsp;<b>&asymp;&nbsp;0.3125</b> &middot;
+    stroke&nbsp;<b>&asymp;&nbsp;0.0333</b> &middot;
+    dasharray&nbsp;<b>66&nbsp;28</b> &middot;
+    round caps &middot; ring rotated&nbsp;<b>&minus;32&deg;</b>.
+    Core bloom = stacked cool-white radial halos behind the core only; the
+    spectral ring stays matte.
+  </p>
+</body>
+</html>

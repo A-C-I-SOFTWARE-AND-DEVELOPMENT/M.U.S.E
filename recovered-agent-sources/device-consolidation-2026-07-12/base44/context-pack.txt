@@ -1,0 +1,533 @@
+BASE44 CONTEXT UPLOAD METHOD FOR HERMES / JARVIS
+
+Problem:
+Base44 is rejecting full source ZIPs because of file type and/or size limits. Do not try to upload the 33MB Hermes ZIP directly.
+
+Best method:
+1. Keep the full Hermes source in GitHub/local ZIP as the source of truth.
+2. Give Base44 only a compact context pack in pasted text chunks.
+3. Ask Base44 to build the Base44 cockpit, not to ingest or replace the whole Hermes backend.
+4. Use GitHub links or local repo references for full source. Base44 receives summaries, schemas, entity definitions, pages, API contracts, and task packets.
+
+Upload/paste order:
+- Paste 01_MASTER_BUILD_PROMPT first.
+- Paste 02_SYSTEM_ARCHITECTURE second.
+- Paste 03_ENTITY_SCHEMA third.
+- Paste 04_UI_AND_PAGES fourth.
+- Paste 05_ANDROID_AVATAR_ACTIONS fifth.
+- Paste 06_MEMORY_TREE_AND_SELF_EFFICIENT_CODER sixth.
+- Paste 07_IMPLEMENTATION_TASKS seventh.
+
+Rule:
+Do not ask Base44 to import Hermes as a zip. Ask it to generate a small Vite/React/Base44 app that talks to Hermes through future local API endpoints or manually imported job/memory data during testing.
+BUILD PROMPT FOR BASE44 — HERMES / JARVIS COMMAND COCKPIT
+
+You are building a Base44 app named "Hermes JARVIS Command Cockpit" for private local testing.
+
+Do not attempt to recreate the entire Hermes backend inside Base44. Hermes is the canonical backend/runtime. Base44 is the visual cockpit, owner dashboard, memory review surface, task packet generator, and avatar status UI.
+
+Core product:
+A private owner cockpit for Jeremiah Echerd's Hermes/JARVIS AI operating partner. It should help monitor and command a local-first autonomous AI companion with memory, reasoning modes, natural-language coding, task packets, verification gates, Android mini-avatar status, and owner-authorized local actions.
+
+Primary design goal:
+Make JARVIS feel like a living technical companion while keeping execution structured, auditable, and reversible.
+
+App sections:
+1. Owner Brief Dashboard
+2. JARVIS Mode Router
+3. Memory Tree Browser
+4. Natural Language Coding Packetizer
+5. Task Packet Board
+6. Verification Gate Console
+7. Avatar / Companion Presence Console
+8. Android Action Broker Console
+9. Research Vault
+10. Settings / Authority / Safety Controls
+
+Important architecture:
+- Hermes backend: source of truth for runtime, memory, coding, jobs, Android automation, model routing.
+- Base44 app: cockpit UI and local testing interface.
+- Do not store secrets.
+- Do not claim production deploy until tested.
+- Do not invent connected endpoints. Stub local API calls behind clearly named adapter functions.
+
+Visual style:
+Dark futuristic command center. Black/navy/silver/neon-cyan with tasteful gold highlights. Professional, not cartoonish. The avatar should feel alive but not childish.
+
+Avatar concept:
+A customizable mini JARVIS companion can shrink down and remain on screen. It shows state transitions: idle, listening, watching, thinking, working, moving_to_target, tapping_target, turning_page, waiting_for_approval, blocked, offline, emergency_stop. For tasks like "click Facebook," the UI should show the avatar running to the target, pointing/tapping, or turning a page when the target is on the next screen. Real Android control belongs to the Hermes Android Accessibility/Overlay layer; Base44 only manages and visualizes the action contract.
+
+Build this in phases:
+Phase 1: cockpit UI, local mock data, entities, dashboard.
+Phase 2: memory tree browser and task packet creator.
+Phase 3: avatar state console and action contract viewer.
+Phase 4: local Hermes API adapter placeholders.
+Phase 5: production hardening after local tests.
+SYSTEM ARCHITECTURE — HERMES / JARVIS / BASE44
+
+Canonical backend:
+Hermes Agent repository: A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
+Hermes is a Python AI agent runtime with CLI, gateway, memory, tools, model routing, orchestration, Android companion concepts, and JARVIS Prime.
+
+JARVIS Prime runtime model:
+perceive -> classify -> decide -> gate -> delegate -> speak
+
+JARVIS modes:
+- companion
+- strategy
+- critic
+- operator
+- builder
+- mobile_voice
+
+Hermes orchestration model:
+- Decompose a human-sized goal into jobs/cards.
+- Route each card to the right worker/model/tool environment.
+- Validate through gates.
+- Publish result or handoff.
+- Audit every decision in a ledger.
+
+Base44 app responsibility:
+- Visualize state.
+- Generate structured work packets.
+- Manage owner cockpit data.
+- Review memory facts.
+- Display avatar/action plans.
+- Prepare local API contracts for Hermes.
+
+Base44 should not:
+- Replace Hermes runtime.
+- Store API keys or credentials.
+- Pretend to execute Android actions directly from the web app.
+- Invent unsupported endpoint behavior.
+- Upload/parse the entire 33MB source ZIP.
+
+Future integration boundary:
+Base44 calls a local Hermes bridge when available, for example:
+- GET /api/health
+- GET /api/owner-brief
+- POST /api/task-packets
+- POST /api/jarvis/handle
+- GET /api/memory-tree
+- POST /api/android/action-contract
+- GET /api/avatar/state
+
+For now, implement mock/local data with adapter functions shaped like those endpoints.
+
+Authority posture:
+Jeremiah has authorized private local action testing. Base44 should reflect owner authorization as active, while Android capability grants are separate technical checks. If Accessibility or Overlay permission is missing, label status as "blocked_missing_capability," not "not_authorized."
+BASE44 ENTITY SCHEMA
+
+Create these entities. Names may be adapted to Base44 conventions, but preserve fields.
+
+Entity: OwnerBrief
+Fields:
+- title: string
+- summary: text
+- current_mode: string
+- active_goal: string
+- readiness_score: number
+- blockers: text/list
+- next_action: text
+- created_at: datetime
+
+Entity: JarvisModeRoute
+Fields:
+- user_intent: text
+- selected_mode: string enum companion,strategy,critic,operator,builder,mobile_voice
+- confidence: number
+- route_target: string
+- delegate_to: string
+- reason: text
+- risk_class: string enum RC0,RC1,RC2,RC3,RC4
+- created_at: datetime
+
+Entity: MemoryNode
+Fields:
+- node_id: string
+- parent_id: string optional
+- namespace: string
+- title: string
+- summary: text
+- source_type: string
+- source_ref: string
+- confidence: number
+- freshness_status: string
+- sensitivity: string
+- contradiction_state: string
+- approval_state: string
+- tags: list/string
+- updated_at: datetime
+
+Entity: TaskPacket
+Fields:
+- packet_id: string
+- title: string
+- natural_language_request: text
+- mission: text
+- repo_root: string
+- branch: string
+- worker: string
+- reviewer: string
+- allowed_files: list/text
+- forbidden_files: list/text
+- non_goals: text
+- acceptance_criteria: text
+- verification_plan: text
+- rollback_plan: text
+- risk_class: string
+- owner_authorized: boolean
+- execution_status: string enum draft,ready,running,blocked,complete,failed
+- created_at: datetime
+
+Entity: VerificationGateResult
+Fields:
+- packet_id: string
+- planning: string
+- build: string
+- review: string
+- test: string
+- security: string
+- release: string
+- owner_approval: string
+- rollback: string
+- overall: string
+- remaining_risk: text
+- created_at: datetime
+
+Entity: AvatarState
+Fields:
+- avatar_id: string
+- display_name: string
+- visual_style: string
+- size_mode: string enum full,mini,ambient
+- state: string enum idle,listening,watching,thinking,working,moving_to_target,tapping_target,turning_page,waiting_for_approval,blocked,offline,emergency_stop
+- emotion_hint: string
+- current_task: string
+- animation_beat: string
+- position_hint: string
+- updated_at: datetime
+
+Entity: AndroidActionContract
+Fields:
+- contract_id: string
+- user_command: text
+- interpreted_action: text
+- target_package: string
+- target_label: string
+- execution_mode: string enum direct_execute,execute_with_pause_point,preview_only,blocked_missing_capability
+- owner_authorized: boolean
+- required_capabilities: list/text
+- missing_capabilities: list/text
+- avatar_beats: list/text
+- final_action_requires_pause: boolean
+- status: string
+- created_at: datetime
+
+Entity: ResearchArtifact
+Fields:
+- title: string
+- source_name: string
+- source_url_or_ref: string
+- license_notes: text
+- summary: text
+- jarvis_relevance: text
+- implementation_candidate: text
+- confidence: number
+- status: string enum raw,reviewed,approved,rejected,superseded
+- created_at: datetime
+BASE44 UI / PAGE SPEC
+
+Global UI:
+- Dark command center layout.
+- Sidebar navigation.
+- Top status bar: Hermes status, JARVIS mode, owner authorization, Android capability status.
+- Use cards, badges, progress rings, compact tables, timeline panels.
+
+Page: Owner Brief Dashboard
+Purpose: morning/current command overview.
+Widgets:
+- Current JARVIS mode
+- Active goal
+- Readiness score
+- Blockers
+- Next action
+- Latest memory updates
+- Latest task packets
+- Avatar state card
+
+Page: JARVIS Mode Router
+Purpose: show how a natural language request gets routed.
+Inputs:
+- user intent text
+- risk class
+- surface: desktop, slack, termux, android, voice
+Output:
+- selected mode
+- route target
+- worker/reviewer
+- reason
+- generated task packet button
+
+Page: Memory Tree Browser
+Purpose: OpenHuman-style memory tree viewer, clean-room.
+Features:
+- tree/list toggle
+- namespace filter
+- confidence filter
+- freshness filter
+- approval queue
+- contradiction queue
+- detail panel showing summary, source, confidence, tags
+
+Page: Natural Language Coding Packetizer
+Purpose: convert request into bounded work packet.
+Inputs:
+- plain English task
+- repo root
+- risk class
+- allowed files
+- forbidden files
+Output:
+- branch name
+- task packet
+- acceptance criteria
+- verification plan
+- rollback plan
+
+Page: Verification Gate Console
+Purpose: evaluate task packets before done.
+Show eight gates:
+- planning
+- build
+- review
+- test
+- security
+- release
+- owner approval
+- rollback
+
+Page: Avatar / Companion Presence Console
+Purpose: customize avatar and show living companion state.
+Controls:
+- avatar name
+- avatar style
+- mini/full/ambient mode
+- current state
+- animation beat timeline
+- emotional expression hint
+- task progress
+
+Page: Android Action Broker Console
+Purpose: map commands to real Android/local actions.
+Show:
+- owner authorization active
+- overlay permission status
+- accessibility status
+- target app/package
+- direct execute vs pause point
+- avatar beats
+- action contract JSON
+
+Page: Research Vault
+Purpose: store OSS/research/context sources.
+Cards:
+- OpenHuman Memory Tree research
+- TokenJuice compression
+- Hermes orchestration
+- self-efficient coder patterns
+- Android overlay/accessibility research
+
+Page: Settings / Authority
+Purpose: private owner controls.
+Fields:
+- owner authorization mode
+- high-consequence pause actions
+- allowed packages
+- blocked packages
+- telemetry privacy mode
+- local-only mode
+ANDROID AVATAR / ACTION ARCHITECTURE
+
+Goal:
+A customizable mini JARVIS avatar stays on screen and feels alive. It recognizes attention signals when allowed, responds when spoken to, animates while working, and visually maps its actions to real Android tasks.
+
+Important distinction:
+- Owner authorization: active for Jeremiah's private local use.
+- Android capability grants: still required by the OS for overlay/accessibility.
+
+States:
+idle, listening, watching, thinking, working, moving_to_target, tapping_target, turning_page, waiting_for_approval, blocked, offline, emergency_stop
+
+Action contract example:
+Command: click Facebook
+Interpreted action: open/tap Facebook app
+Target package: com.facebook.katana
+Owner authorized: true
+Required capabilities: overlay, accessibility
+Execution mode:
+- direct_execute if capabilities exist
+- blocked_missing_capability if Android grants are missing
+Avatar beats:
+1. acknowledge
+2. think
+3. shrink_to_mini
+4. move_to_target
+5. point_or_tap
+6. report_complete
+
+High consequence actions should default to pause point unless changed by developer:
+- send message
+- post publicly
+- buy
+- delete
+- change password
+- share private data
+
+Avatar customization:
+- name
+- face/personality style
+- full/mini/ambient size
+- idle animation
+- thinking animation
+- working animation
+- success animation
+- blocked animation
+
+Attention recognition:
+May use local face/gaze/voice signals only if user enabled. Do not store raw camera frames. Do not upload camera frames to cloud. Do not persist inferred emotions as durable memory.
+
+Base44 app role:
+Base44 only displays and edits AvatarState and AndroidActionContract. Actual overlay and gestures happen in Hermes Android native code.
+MEMORY TREE + SELF-EFFICIENT CODER SPEC
+
+Memory Tree inspiration:
+OpenHuman uses memory tree and Obsidian-style local vault concepts. Because OpenHuman is GPLv3, do not copy its code into Hermes/Base44. Reimplement the architecture clean-room.
+
+Memory tree clean-room model:
+Raw artifact -> canonical note -> validated fact -> memory node -> summary tree -> retrieval packet -> task context
+
+Memory node fields:
+- namespace
+- source ref
+- summary
+- confidence
+- freshness
+- sensitivity
+- approval state
+- contradiction state
+- tags
+
+Namespaces:
+- owner/profile
+- owner/preferences
+- hermes/runtime
+- hermes/codebase
+- jarvis/strategy
+- jarvis/memory
+- jarvis/avatar
+- jarvis/android-actions
+- research/oss
+- research/model-routing
+- research/natural-language-coding
+- failures/lessons
+- evaluations
+
+Do not durable-store:
+- secrets
+- API keys
+- raw camera/audio frames
+- private credentials
+- temporary emotions
+- unverified claims
+
+Natural-language coder loop:
+1. Interpret request.
+2. Classify mode/risk.
+3. Localize repo area before editing.
+4. Build task packet.
+5. Select builder/reviewer/model.
+6. Execute in bounded scope.
+7. Run tests/checks.
+8. Summarize diff.
+9. Store lesson only if durable and approved.
+
+Self-efficiency rules:
+- No serious code edit without localization first.
+- Prefer small scoped diffs.
+- Separate builder and reviewer.
+- Save failure patterns.
+- Reuse known successful packets.
+- Stop when acceptance criteria are met.
+- Escalate contradictions.
+
+Base44 app role:
+- UI to create and review memory nodes.
+- UI to generate and inspect task packets.
+- UI to show routing decisions and verification gates.
+- UI to approve/reject durable memory candidates.
+BASE44 IMPLEMENTATION TASKS
+
+TASK 1 — Create app shell
+Build responsive dark command cockpit with sidebar, top status bar, dashboard cards, and mock data.
+Acceptance:
+- All pages exist.
+- Navigation works.
+- Mock Hermes status visible.
+- Owner authorization shown as active.
+
+TASK 2 — Create entities
+Create OwnerBrief, JarvisModeRoute, MemoryNode, TaskPacket, VerificationGateResult, AvatarState, AndroidActionContract, ResearchArtifact.
+Acceptance:
+- Entities can be created/listed/edited.
+- Dashboard reads from entities.
+
+TASK 3 — Build Memory Tree Browser
+Create filterable tree/list view of MemoryNode.
+Acceptance:
+- Filter by namespace/confidence/approval.
+- Detail panel shows source/confidence/freshness/contradiction.
+
+TASK 4 — Build Natural Language Coding Packetizer
+Create form that converts user request into TaskPacket draft.
+Acceptance:
+- Generates packet fields.
+- Allows editing allowed/forbidden files.
+- Can send packet to gate console.
+
+TASK 5 — Build Verification Gate Console
+Show eight gate statuses for each TaskPacket.
+Acceptance:
+- Gate result visual cards.
+- Overall result computed from statuses.
+- Remaining risk displayed.
+
+TASK 6 — Build Avatar Console
+Create customizable AvatarState page.
+Acceptance:
+- Avatar state changes are visible.
+- Timeline shows animation beats.
+- Style settings are editable.
+
+TASK 7 — Build Android Action Broker Console
+Create AndroidActionContract page.
+Acceptance:
+- Can create contract from command like "click Facebook."
+- Shows owner_authorized true.
+- Shows missing capabilities separately.
+- Shows execution_mode correctly.
+
+TASK 8 — Add local Hermes API adapter placeholders
+Create functions for future local bridge but use mock fallback now.
+Acceptance:
+- Adapter names are clear.
+- No fake live network claims.
+- UI works offline with mock data.
+
+TASK 9 — Seed sample data
+Add sample OwnerBrief, MemoryNodes, TaskPackets, AvatarState, AndroidActionContract.
+Acceptance:
+- Dashboard looks useful immediately.
+
+TASK 10 — Security/privacy notes
+Add Settings page text that says local/private testing, no secrets in Base44, real Android control only through local Hermes Android app.

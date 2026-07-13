@@ -1,4 +1,4 @@
-"""End-to-end tests for the Hermes cockpit API (gateway/cockpit).
+﻿"""End-to-end tests for the Hermes cockpit API (gateway/cockpit).
 
 Hermetic: each test starts the real stdlib server on a random loopback
 port with a tmp HERMES_HOME and a known token, then drives it with
@@ -75,7 +75,7 @@ def test_health_needs_no_auth(server) -> None:
     status, payload = _get(server, "/v1/health", token=None)
     assert status == 200
     assert payload["ok"] is True
-    assert payload["service"] == "hermes-cockpit"
+    assert payload["service"] == "muse-cockpit"
     assert payload["api_version"]
 
 
@@ -172,7 +172,7 @@ def test_jobs_and_events_have_real_or_empty(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# memory CRUD — real store, secret-rejection preserved
+# memory CRUD â€” real store, secret-rejection preserved
 # ---------------------------------------------------------------------------
 
 
@@ -231,13 +231,13 @@ def test_memory_rejects_secret(server) -> None:
         _post(
             server,
             "/v1/cockpit/memory",
-            {"key": "leak", "value": "api_key=sk-secret-value-1234567890"},
+            {"key": "leak", "value": "api_key=sk-secret-value-1234567890"},  # pragma: allowlist secret
         )
     assert exc.value.code == 422  # rejected, not stored, not faked
 
 
 # ---------------------------------------------------------------------------
-# jobs — real JobQueue, canonical CockpitJob shape
+# jobs â€” real JobQueue, canonical CockpitJob shape
 # ---------------------------------------------------------------------------
 
 
@@ -280,7 +280,7 @@ def test_jobs_dispatch_list_get_cancel_roundtrip(server) -> None:
     assert status == 200
     assert json.loads(raw)["status"] == "CANCELLED"
 
-    # cancelling a terminal job → 409
+    # cancelling a terminal job â†’ 409
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(server, f"/v1/cockpit/jobs/{jid}/cancel", {})
     assert exc.value.code == 409
@@ -299,7 +299,7 @@ def test_job_get_unknown_is_404(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# audit — real decision ledger, canonical AuditRecord / ProofRecord
+# audit â€” real decision ledger, canonical AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 
 
@@ -379,7 +379,7 @@ def test_chat_requires_auth(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# approvals — persistent proposal queue, owner phrase preserved
+# approvals â€” persistent proposal queue, owner phrase preserved
 # ---------------------------------------------------------------------------
 
 
@@ -936,7 +936,7 @@ def test_proposals_native_view(server, home: Path) -> None:
 
 def test_approve_requires_exact_owner_phrase(server, home: Path) -> None:
     pid = _seed_proposal(home)
-    # Wrong phrase → 403, never bypasses the owner gate.
+    # Wrong phrase â†’ 403, never bypasses the owner gate.
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(
             server,
@@ -947,7 +947,7 @@ def test_approve_requires_exact_owner_phrase(server, home: Path) -> None:
     error = _http_error_json(exc.value)
     assert error == {"error": "owner authorization required"}
     assert "Yes, with authorization." not in json.dumps(error)
-    # Exact phrase → approved.
+    # Exact phrase â†’ approved.
     status, raw = _post(
         server,
         f"/v1/cockpit/approvals/{pid}",
@@ -992,7 +992,7 @@ def test_sessions_list_real_or_empty(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# research vault — recent evidence for the mobile home screen (read-only)
+# research vault â€” recent evidence for the mobile home screen (read-only)
 # ---------------------------------------------------------------------------
 
 
@@ -1019,7 +1019,7 @@ def test_token_persisted_owner_only(home: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# skills — real installed-skill list (read-only)
+# skills â€” real installed-skill list (read-only)
 # ---------------------------------------------------------------------------
 
 
@@ -1037,7 +1037,7 @@ def test_skills_list_requires_auth(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# navigation — surfaced from the orchestrator job ledger
+# navigation â€” surfaced from the orchestrator job ledger
 # ---------------------------------------------------------------------------
 
 
@@ -1067,7 +1067,7 @@ def test_navigation_empty_when_no_orchestrate_job(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# capabilities — server feature negotiation (not the curated in-app catalog)
+# capabilities â€” server feature negotiation (not the curated in-app catalog)
 # ---------------------------------------------------------------------------
 
 
@@ -1097,7 +1097,7 @@ def test_capabilities_requires_auth(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# jobs pause / resume — real JobQueue scheduling control
+# jobs pause / resume â€” real JobQueue scheduling control
 # ---------------------------------------------------------------------------
 
 
@@ -1135,7 +1135,7 @@ def test_job_resume_non_resumable_is_409(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# emergency stop — a real backend halt (pauses queued work, clears leases)
+# emergency stop â€” a real backend halt (pauses queued work, clears leases)
 # ---------------------------------------------------------------------------
 
 
@@ -1162,7 +1162,7 @@ def test_emergency_stop_cancels_non_terminal_jobs(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# coding lanes — audit (read-only) / plan (stage only) / execute (gated)
+# coding lanes â€” audit (read-only) / plan (stage only) / execute (gated)
 # ---------------------------------------------------------------------------
 
 
@@ -1255,14 +1255,14 @@ def test_coding_execute_reuses_staged_job_id(server) -> None:
 
 
 # ---------------------------------------------------------------------------
-# models/local — honest local-model status (Gemma / Ollama)
+# models/local â€” honest local-model status (Gemma / Ollama)
 # ---------------------------------------------------------------------------
 
 
 def test_models_local_is_honest_when_runtime_unreachable(server, monkeypatch) -> None:
     from gateway.cockpit import generate as cockpit_generate
 
-    # No reachable runtime → never fabricate installed models or readiness.
+    # No reachable runtime â†’ never fabricate installed models or readiness.
     def _boom(_base=None):
         raise ConnectionError("connection refused")
 
@@ -1294,7 +1294,7 @@ def test_models_local_labels_are_evidence_based(server, monkeypatch) -> None:
     assert names == {"gemma3:latest", "qwen3-coder:7b"}
     allowed = {"promoted_for_task", "fallback_only", "variant_installed"}
     for m in payload["installed"]:
-        # Honest vocabulary only — a GET never claims "smoke_tested" / "ready".
+        # Honest vocabulary only â€” a GET never claims "smoke_tested" / "ready".
         assert m["status"] in allowed
         assert isinstance(m["promoted_for"], list)
         assert isinstance(m["fallback_for"], list)
@@ -1316,7 +1316,7 @@ def test_models_local_smoke_reports_blocked_without_runtime(server, monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# evidence — search (read-only) / verify (non-mutating claim audit)
+# evidence â€” search (read-only) / verify (non-mutating claim audit)
 # ---------------------------------------------------------------------------
 
 
@@ -1374,7 +1374,7 @@ def test_model_route_override_unknown_task_is_400(server) -> None:
 
 
 def test_combined_invalid_task_does_not_flip_paid(server) -> None:
-    # A combined body — valid paid authorization + an *invalid* task class —
+    # A combined body â€” valid paid authorization + an *invalid* task class â€”
     # must reject the whole request (400) and leave the money-spend gate
     # untouched. The paid override must not be written before validation fails.
     _, before = _get(server, "/v1/cockpit/model-routes")
@@ -1395,7 +1395,7 @@ def test_combined_invalid_task_does_not_flip_paid(server) -> None:
 
 
 def test_paid_toggle_requires_owner_phrase(server) -> None:
-    # Wrong/absent phrase → 403, money-spend gate never bypassed.
+    # Wrong/absent phrase â†’ 403, money-spend gate never bypassed.
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(
             server,
@@ -1403,7 +1403,7 @@ def test_paid_toggle_requires_owner_phrase(server) -> None:
             {"paid_enabled": True, "authorization": "go ahead"},
         )
     assert exc.value.code == 403
-    # Exact phrase → enabled + reflected.
+    # Exact phrase â†’ enabled + reflected.
     status, raw = _post(
         server,
         "/v1/cockpit/model-routes/override",

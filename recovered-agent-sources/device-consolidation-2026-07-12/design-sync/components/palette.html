@@ -1,0 +1,235 @@
+<!-- @dsCard group="Brand" name="Singularity palette" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Singularity palette — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — grid/gap. No component restyling, no new colors.
+     * Every fill below is painted from an existing token (var(--…)). */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview {
+      display: grid;
+      gap: var(--space-12);
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    .specimen { display: grid; gap: var(--space-4); }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+    }
+
+    /* ---- Swatch grid ---------------------------------------------------- */
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: var(--space-4);
+    }
+    .swatch { display: grid; gap: var(--space-2); }
+    /* A token chip is just a tonally-elevated card framing one fill. */
+    .swatch .fill {
+      height: 76px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--edge);
+    }
+    .swatch .meta { display: grid; gap: 2px; }
+    .swatch .name {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      color: var(--signal);
+    }
+    .swatch .hex {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--signal-mute);
+    }
+
+    /* Token fills — all sourced from tokens.css custom properties. */
+    .fill-void   { background: var(--void); }
+    .fill-void-2 { background: var(--void-2); }
+    .fill-void-3 { background: var(--void-3); }
+    .fill-edge   { background: var(--edge); }
+    /* The hero: white core, volumetric cool-white bloom on the core ONLY. */
+    .fill-core {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 9%),
+        radial-gradient(circle at 50% 50%, rgba(242, 251, 255, 0.55) 0%, rgba(242, 251, 255, 0) 16%),
+        radial-gradient(circle at 50% 50%, rgba(224, 248, 255, 0.30) 0%, rgba(224, 248, 255, 0) 30%),
+        radial-gradient(circle at 50% 50%, rgba(212, 242, 255, 0.16) 0%, rgba(212, 242, 255, 0) 52%),
+        var(--core);
+    }
+    .fill-ring-1     { background: var(--ring-1); }   /* matte — flat fill, no glow */
+    .fill-ring-2     { background: var(--ring-2); }   /* matte — flat fill, no glow */
+    .fill-ring-grad  { background: var(--ring-grad); } /* matte gradient, no glow */
+    .fill-signal     { background: var(--signal); }
+    .fill-signal-dim { background: var(--signal-dim); }
+    .fill-signal-mute{ background: var(--signal-mute); }
+    .fill-ok     { background: var(--ok); }
+    .fill-warn   { background: var(--warn); }
+    .fill-danger { background: var(--danger); }
+
+    /* ---- Value ladder --------------------------------------------------- */
+    .ladder { display: grid; gap: var(--space-3); }
+    .rung {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      height: 56px;
+      padding: 0 var(--space-4);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--edge);
+    }
+    .rung .rung-label {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+    }
+    .rung .rung-hex {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* Descending brightness: incandescent core -> wordmark -> expansion ->
+     * tagline -> void. Top rung carries the same core bloom; the rest are
+     * flat brightness steps. Labels sit on each bar in a contrasting value. */
+    .rung-core {
+      background:
+        radial-gradient(120px 56px at 12% 50%, rgba(242, 251, 255, 0.55) 0%, rgba(242, 251, 255, 0) 70%),
+        var(--core);
+      color: var(--void);
+    }
+    .rung-wordmark  { background: #eef2f7; color: var(--void); }
+    .rung-expansion { background: var(--signal-dim); color: var(--void); }   /* #AAB2C4 */
+    .rung-tagline   { background: #8b93a6; color: var(--void); }
+    .rung-void      { background: var(--void); color: var(--signal-dim); }
+  </style>
+</head>
+<body>
+  <main class="preview">
+
+    <!-- Token swatch grid ------------------------------------------------- -->
+    <section class="specimen">
+      <div class="caption">Tokens — every Singularity color with hex</div>
+      <div class="swatches">
+
+        <div class="swatch">
+          <div class="fill fill-void"></div>
+          <div class="meta"><span class="name">--void</span><span class="hex">#050507</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-void-2"></div>
+          <div class="meta"><span class="name">--void-2</span><span class="hex">#0B0D12</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-void-3"></div>
+          <div class="meta"><span class="name">--void-3</span><span class="hex">#12151D</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-edge"></div>
+          <div class="meta"><span class="name">--edge</span><span class="hex">#1C2030</span></div>
+        </div>
+
+        <div class="swatch">
+          <div class="fill fill-core"></div>
+          <div class="meta"><span class="name">--core (hero)</span><span class="hex">#FFFFFF</span></div>
+        </div>
+
+        <div class="swatch">
+          <div class="fill fill-ring-1"></div>
+          <div class="meta"><span class="name">--ring-1 (matte)</span><span class="hex">#7AE0FF</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-ring-2"></div>
+          <div class="meta"><span class="name">--ring-2 (matte)</span><span class="hex">#B388FF</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-ring-grad"></div>
+          <div class="meta"><span class="name">--ring-grad</span><span class="hex">cyan → violet</span></div>
+        </div>
+
+        <div class="swatch">
+          <div class="fill fill-signal"></div>
+          <div class="meta"><span class="name">--signal</span><span class="hex">#E8ECF4</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-signal-dim"></div>
+          <div class="meta"><span class="name">--signal-dim</span><span class="hex">#AAB2C4</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-signal-mute"></div>
+          <div class="meta"><span class="name">--signal-mute</span><span class="hex">#6B7388</span></div>
+        </div>
+
+        <div class="swatch">
+          <div class="fill fill-ok"></div>
+          <div class="meta"><span class="name">--ok</span><span class="hex">#5BE3A0</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-warn"></div>
+          <div class="meta"><span class="name">--warn</span><span class="hex">#F5C451</span></div>
+        </div>
+        <div class="swatch">
+          <div class="fill fill-danger"></div>
+          <div class="meta"><span class="name">--danger</span><span class="hex">#FF5C63</span></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Status tokens shown as their real UI components --------------------- -->
+    <section class="specimen">
+      <div class="caption">Status tokens — UI only (never brand art)</div>
+      <div class="row">
+        <span class="pill ok"><span class="dot ok"></span>ok</span>
+        <span class="pill warn"><span class="dot warn"></span>warn</span>
+        <span class="pill danger"><span class="dot danger"></span>danger</span>
+        <span class="pill accent"><span class="dot live"></span>live</span>
+        <span class="pill neutral"><span class="dot off"></span>idle</span>
+      </div>
+    </section>
+
+    <!-- Value ladder ------------------------------------------------------- -->
+    <section class="specimen">
+      <div class="caption">Value ladder — descending brightness (hierarchy by value, not effects)</div>
+      <div class="ladder">
+        <div class="rung rung-core">
+          <span class="rung-label">Incandescent core</span>
+          <span class="rung-hex">#FFFFFF</span>
+        </div>
+        <div class="rung rung-wordmark">
+          <span class="rung-label">Wordmark</span>
+          <span class="rung-hex">#EEF2F7</span>
+        </div>
+        <div class="rung rung-expansion">
+          <span class="rung-label">Expansion</span>
+          <span class="rung-hex">#AAB2C4</span>
+        </div>
+        <div class="rung rung-tagline">
+          <span class="rung-label">Tagline</span>
+          <span class="rung-hex">#8B93A6</span>
+        </div>
+        <div class="rung rung-void">
+          <span class="rung-label">Void</span>
+          <span class="rung-hex">#050507</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

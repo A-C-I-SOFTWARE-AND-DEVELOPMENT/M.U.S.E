@@ -196,16 +196,56 @@ export function SacredGeometry({ className = "", paused = false }: SacredGeometr
       ctx.ellipse(wx, wy, wr * 1.28, wr * 0.22, -0.35, 0, TAU);
       ctx.stroke();
 
+      // Atmospheric limb + night crescent give the world body real depth.
+      const rim = ctx.createRadialGradient(wx, wy, wr * 0.86, wx, wy, wr * 1.06);
+      rim.addColorStop(0, "rgba(120,190,220,0)");
+      rim.addColorStop(0.78, "rgba(120,190,220,0.16)");
+      rim.addColorStop(1, "rgba(120,190,220,0)");
+      ctx.fillStyle = rim;
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr * 1.06, 0, TAU);
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(wx, wy, wr, 0, TAU);
+      ctx.clip();
+      const night = ctx.createRadialGradient(
+        wx + wr * 0.55, wy + wr * 0.4, wr * 0.2,
+        wx + wr * 0.55, wy + wr * 0.4, wr * 1.25,
+      );
+      night.addColorStop(0, "rgba(2,3,5,0.72)");
+      night.addColorStop(0.6, "rgba(2,3,5,0.28)");
+      night.addColorStop(1, "rgba(2,3,5,0)");
+      ctx.fillStyle = night;
+      ctx.fillRect(wx - wr, wy - wr, wr * 2, wr * 2);
+      ctx.restore();
+
       // Stars with parallax
       for (const star of stars) {
         const drift = reduced ? 0 : t * (0.9 + star.z * 1.8);
         const x = ((star.x * vw + pointer.x * 28 * star.z + drift) % (vw + 20)) - 10;
         const y = star.y * vh + pointer.y * 18 * star.z;
         const twinkle = 0.32 + Math.sin(t * 0.7 + star.phase) * 0.14;
-        ctx.fillStyle = `rgba(220,235,255,${twinkle * star.z})`;
+        const warm = star.phase / TAU; // deterministic per-star temperature
+        const tint =
+          warm < 0.22 ? "170,200,255" : warm < 0.55 ? "220,235,255" : warm < 0.82 ? "255,235,205" : "255,200,170";
+        const alpha = twinkle * star.z;
+        ctx.fillStyle = `rgba(${tint},${alpha})`;
         ctx.beginPath();
         ctx.arc(x, y, star.size * star.z, 0, TAU);
         ctx.fill();
+        if (star.size > 1.28 && star.z > 0.72) {
+          // Diffraction spikes on the handful of brightest stars.
+          const len = star.size * star.z * 4.2;
+          ctx.strokeStyle = `rgba(${tint},${alpha * 0.45})`;
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(x - len, y);
+          ctx.lineTo(x + len, y);
+          ctx.moveTo(x, y - len);
+          ctx.lineTo(x, y + len);
+          ctx.stroke();
+        }
       }
 
       const compact = Math.min(vw, vh);

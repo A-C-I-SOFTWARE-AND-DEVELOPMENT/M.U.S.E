@@ -1,0 +1,8 @@
+{
+  "name": "ACI Hermes Command Cockpit",
+  "slug": "aci-hermes-command-cockpit",
+  "framework": "vite-react",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "role": "owner-cockpit-not-backend"
+}

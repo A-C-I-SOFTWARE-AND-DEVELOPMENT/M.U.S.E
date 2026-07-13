@@ -10,6 +10,8 @@ import pytest
 
 from agent.studio.adapters import ollama_local, free_providers
 from agent.studio.bundle import build_index, make_bundle, make_bundle_dir
+from agent.studio.asset_validation import AssetValidation
+from agent.studio.provenance import AssetProvenance, sha256_file
 from agent.studio.types import (
     FilmBrief, GameBrief, ProjectManifest, Provider, Quality, StageResult,
 )
@@ -93,6 +95,33 @@ def test_make_bundle_dir_creates_layout(tmp_path: Path):
     assert (out / "artifacts" / "concept_art" / "concept.png").exists()
     idx = json.loads((out / "index.json").read_text())
     assert idx["totals"]["artifacts"] == 2
+
+
+def test_bundle_contains_sorted_provenance_gates_and_rollback(tmp_path: Path):
+    m = _fake_manifest(tmp_path)
+    artifact = Path(m.stages[0].artifacts[0])
+    m.asset_provenance.append(AssetProvenance(
+        asset_id="ast_1",
+        content_hash=sha256_file(artifact),
+        formats=("md",),
+        creator="owner",
+        license="Proprietary",
+        allowed_uses=("public",),
+        safety_status="passed",
+    ))
+    m.asset_validations.append(AssetValidation(
+        passed=True, failures=(), warnings=(), metrics={}, parser="text_v1"
+    ))
+    m.rollback_source = {"revision": "abc123"}
+    bundle = make_bundle(m)
+    with zipfile.ZipFile(bundle) as zf:
+        names = set(zf.namelist())
+        assert {
+            "assets.json", "verification-results.json", "licenses.json",
+            "blocked-items.json", "inventory.sha256", "rollback.json",
+        } <= names
+        assert json.loads(zf.read("rollback.json"))["revision"] == "abc123"
+        assert b"drafts until" in zf.read("README.md")
 
 
 def test_bundle_skips_missing_artifacts(tmp_path: Path):

@@ -1,0 +1,120 @@
+<!-- @dsCard group="Components" name="EmptyState" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EmptyState — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .preview {
+      display: grid;
+      gap: var(--space-8);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .specimen { display: grid; gap: var(--space-2); }
+    .caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+    }
+    /* Tonal frame so the centered stack + its negative space read clearly. */
+    .stage {
+      border: 1px solid var(--edge);
+      border-radius: var(--radius-lg);
+      background: var(--void-2);
+    }
+    /* The action row: round caps, generous gap, centered. */
+    .empty .actions {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="preview">
+
+    <!-- Variant 1 — full empty state: dimmed glyph + title + body + primary/secondary row -->
+    <section class="specimen">
+      <div class="caption">Variant — primary + secondary actions</div>
+      <div class="stage">
+        <div class="empty">
+          <!-- Brand glyph: white core in the void + one thin MATTE spectral ring.
+               In .empty the glyph is dimmed (opacity 0.5) and NEVER spins. The
+               core bloom is supplied by cockpit.css .glyph::before. -->
+          <span class="glyph">
+            <svg viewBox="0 0 48 48" width="64" height="64" aria-label="muse">
+              <defs>
+                <linearGradient id="ring-grad-1" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#7ae0ff" />
+                  <stop offset="1" stop-color="#b388ff" />
+                </linearGradient>
+              </defs>
+              <g transform="rotate(-32 24 24)">
+                <circle cx="24" cy="24" r="15" fill="none" stroke="url(#ring-grad-1)"
+                        stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round" />
+              </g>
+              <circle cx="24" cy="24" r="3.1" fill="#ffffff" />
+            </svg>
+          </span>
+          <h2 class="empty-title">No active jobs</h2>
+          <p class="empty-body">
+            When you orchestrate a goal, its task graph appears here with live
+            phase progress. Nothing is running right now.
+          </p>
+          <div class="actions">
+            <button type="button" class="btn primary">Orchestrate a goal</button>
+            <button type="button" class="btn secondary">Browse profiles</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Variant 2 — same component, copy-only (single primary action) -->
+    <section class="specimen">
+      <div class="caption">Variant — single primary action</div>
+      <div class="stage">
+        <div class="empty">
+          <span class="glyph">
+            <svg viewBox="0 0 48 48" width="64" height="64" aria-label="muse">
+              <defs>
+                <linearGradient id="ring-grad-2" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#7ae0ff" />
+                  <stop offset="1" stop-color="#b388ff" />
+                </linearGradient>
+              </defs>
+              <g transform="rotate(-32 24 24)">
+                <circle cx="24" cy="24" r="15" fill="none" stroke="url(#ring-grad-2)"
+                        stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round" />
+              </g>
+              <circle cx="24" cy="24" r="3.1" fill="#ffffff" />
+            </svg>
+          </span>
+          <h2 class="empty-title">Your decision ledger is empty</h2>
+          <p class="empty-body">
+            Every validated decision muse makes is recorded here with its source.
+            Start a job to write the first entry.
+          </p>
+          <div class="actions">
+            <button type="button" class="btn primary">Start a job</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

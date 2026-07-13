@@ -1,4 +1,4 @@
-"""Regression tests for the Nexus static-shell alias and /nexus/health probe
+﻿"""Regression tests for the Nexus static-shell alias and /nexus/health probe
 on the cockpit gateway.
 
 Grain B (per the swarm-decompose plan): the cockpit serves the same SPA
@@ -54,7 +54,7 @@ def _get_raw(server, path: str, token: str | None = None):
 
 
 def test_nexus_root_serves_spa(server) -> None:
-    """GET /nexus/ → 200, text/html, body starts with '<!doctype html>'."""
+    """GET /nexus/ â†’ 200, text/html, body starts with '<!doctype html>'."""
     status, ctype, body = _get_raw(server, "/nexus/")
     assert status == 200
     assert ctype.startswith("text/html")
@@ -63,7 +63,7 @@ def test_nexus_root_serves_spa(server) -> None:
 
 
 def test_nexus_subpath_serves_spa(server) -> None:
-    """GET /nexus/anything → 200, html (SPA fallback so the SPA can route)."""
+    """GET /nexus/anything â†’ 200, html (SPA fallback so the SPA can route)."""
     status, ctype, body = _get_raw(server, "/nexus/anything")
     assert status == 200
     assert ctype.startswith("text/html")
@@ -71,19 +71,19 @@ def test_nexus_subpath_serves_spa(server) -> None:
 
 
 def test_nexus_health_unauthed(server) -> None:
-    """GET /nexus/health → 200, JSON {ok: true, ...} with NO bearer token."""
+    """GET /nexus/health â†’ 200, JSON {ok: true, ...} with NO bearer token."""
     status, ctype, body = _get_raw(server, "/nexus/health", token=None)
     assert status == 200
     assert "application/json" in ctype
     payload = json.loads(body)
     assert payload["ok"] is True
     # Mirrors /v1/health so the rest of the envelope must also be present.
-    assert payload["service"] == "hermes-cockpit"
+    assert payload["service"] == "muse-cockpit"
     assert payload["api_version"]
 
 
 def test_cockpit_root_still_works(server) -> None:
-    """GET /cockpit/ → 200, html — no regression from adding /nexus routes."""
+    """GET /cockpit/ â†’ 200, html â€” no regression from adding /nexus routes."""
     status, ctype, body = _get_raw(server, "/cockpit/")
     assert status == 200
     assert ctype.startswith("text/html")

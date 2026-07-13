@@ -1,0 +1,351 @@
+#usda 1.0
+(
+    defaultPrim = "AtlasCrown"
+    metersPerUnit = 1
+    upAxis = "Z"
+    customLayerData = {
+        string muse:assetContract = "atlas-crown-v1"
+        string muse:design = "original-muse-atlas-crown"
+        string muse:license = "MUSE-ORIGINAL-1.0"
+        string muse:materialLibrary = "materials/atlas-hull.mtlx"
+        string muse:opticalMaterialLibrary = "materials/optical-core.mtlx"
+    }
+)
+
+def Xform "AtlasCrown" (
+    kind = "component"
+    prepend variantSets = "lod"
+    variants = {
+        string lod = "source"
+    }
+)
+{
+    custom string muse:designLanguage = "celestial-realism-aerospace"
+    custom string muse:designStatus = "original-clean-room-source"
+    custom string muse:visualStyle = "photoreal-non-cartoony"
+    custom double muse:navigationClearanceMeters = 12
+    custom bool muse:sealedTransferBearing = true
+    custom bool muse:stationaryDock = true
+    custom bool muse:serviceVehicleScaleReference = true
+    custom asset muse:sourceHullMaterial = @./materials/atlas-hull.mtlx@
+    custom asset muse:sourceOpticalMaterial = @./materials/optical-core.mtlx@
+
+    variantSet "lod" = {
+        "source" {
+            custom int muse:triangleBudget = 2400000
+            custom int muse:ringSegments = 192
+            custom int muse:windowModulesPerSector = 96
+            custom string muse:usage = "cinema-master-and-source-import"
+        }
+        "interactive" {
+            custom int muse:triangleBudget = 480000
+            custom int muse:ringSegments = 96
+            custom int muse:windowModulesPerSector = 32
+            custom string muse:usage = "ultra-high-balanced-runtime"
+        }
+        "proxy" {
+            custom int muse:triangleBudget = 18000
+            custom int muse:ringSegments = 24
+            custom int muse:windowModulesPerSector = 0
+            custom string muse:usage = "collision-navigation-hlod"
+        }
+    }
+
+    def Sphere "NeuralCore" (
+        kind = "component"
+    )
+    {
+        double radius = 105
+        custom double muse:diameterMeters = 210
+        custom string muse:materialId = "MAT_OpticalCoreGlass"
+        custom string muse:structure = "stationary-pressure-sphere"
+    }
+
+    def Cylinder "AxialSpine"
+    {
+        token axis = "Z"
+        double height = 1800
+        double radius = 18
+        custom double muse:lengthMeters = 1800
+        custom string muse:materialId = "MAT_BrushedAlloy"
+        custom string muse:structure = "non-rotating-service-truss"
+    }
+
+    def Xform "CrownRingA"
+    {
+        custom double muse:ringDiameterMeters = 1200
+        custom double muse:tubeDiameterMeters = 64
+        custom double muse:angularVelocityDegreesPerSecond = 0.25
+        custom string muse:rotationAxis = "Z"
+
+        def BasisCurves "PressureLoop"
+        {
+            uniform token basis = "bspline"
+            int[] curveVertexCounts = [16]
+            point3f[] points = [
+                (600, 0, 0), (554.328, 229.610, 0), (424.264, 424.264, 0),
+                (229.610, 554.328, 0), (0, 600, 0), (-229.610, 554.328, 0),
+                (-424.264, 424.264, 0), (-554.328, 229.610, 0), (-600, 0, 0),
+                (-554.328, -229.610, 0), (-424.264, -424.264, 0),
+                (-229.610, -554.328, 0), (0, -600, 0), (229.610, -554.328, 0),
+                (424.264, -424.264, 0), (554.328, -229.610, 0)
+            ]
+            uniform token type = "cubic"
+            float[] widths = [64]
+            uniform token wrap = "periodic"
+        }
+    }
+
+    def Xform "CrownRingB"
+    {
+        custom double muse:ringDiameterMeters = 1200
+        custom double muse:tubeDiameterMeters = 64
+        custom double muse:angularVelocityDegreesPerSecond = -0.25
+        custom string muse:rotationAxis = "Z"
+        double3 xformOp:rotateXYZ = (0, 0, 36)
+        uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+
+        def BasisCurves "PressureLoop"
+        {
+            uniform token basis = "bspline"
+            int[] curveVertexCounts = [16]
+            point3f[] points = [
+                (600, 0, 0), (554.328, 229.610, 0), (424.264, 424.264, 0),
+                (229.610, 554.328, 0), (0, 600, 0), (-229.610, 554.328, 0),
+                (-424.264, 424.264, 0), (-554.328, 229.610, 0), (-600, 0, 0),
+                (-554.328, -229.610, 0), (-424.264, -424.264, 0),
+                (-229.610, -554.328, 0), (0, -600, 0), (229.610, -554.328, 0),
+                (424.264, -424.264, 0), (554.328, -229.610, 0)
+            ]
+            uniform token type = "cubic"
+            float[] widths = [64]
+            uniform token wrap = "periodic"
+        }
+    }
+
+    def Xform "Sectors"
+    {
+        def Xform "CommandSector"
+        {
+            custom double muse:arcStartDegrees = -18
+            custom double muse:arcExtentDegrees = 54
+            custom string muse:deckId = "command-collaboration"
+            double3 xformOp:translate = (470, 341.5, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            def Cube "PressureModule"
+            {
+                double size = 2
+                double3 xformOp:scale = (52, 18, 12)
+                uniform token[] xformOpOrder = ["xformOp:scale"]
+            }
+        }
+        def Xform "ProductionSector"
+        {
+            custom double muse:arcStartDegrees = 54
+            custom double muse:arcExtentDegrees = 54
+            custom string muse:deckId = "build-production"
+            double3 xformOp:translate = (-179.5, 552.5, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            def Cube "PressureModule"
+            {
+                double size = 2
+                double3 xformOp:scale = (60, 20, 14)
+                uniform token[] xformOpOrder = ["xformOp:scale"]
+            }
+        }
+        def Xform "IntelligenceSector"
+        {
+            custom double muse:arcStartDegrees = 126
+            custom double muse:arcExtentDegrees = 54
+            custom string muse:deckId = "intelligence-sensors"
+            double3 xformOp:translate = (-581, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            def Cube "PressureModule"
+            {
+                double size = 2
+                double3 xformOp:scale = (48, 16, 16)
+                uniform token[] xformOpOrder = ["xformOp:scale"]
+            }
+        }
+        def Xform "GovernanceSector"
+        {
+            custom double muse:arcStartDegrees = 198
+            custom double muse:arcExtentDegrees = 54
+            custom string muse:deckId = "governance"
+            double3 xformOp:translate = (-179.5, -552.5, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            def Cube "PressureModule"
+            {
+                double size = 2
+                double3 xformOp:scale = (50, 18, 12)
+                uniform token[] xformOpOrder = ["xformOp:scale"]
+            }
+        }
+        def Xform "SystemsSector"
+        {
+            custom double muse:arcStartDegrees = 270
+            custom double muse:arcExtentDegrees = 54
+            custom string muse:deckId = "systems-dockyard"
+            double3 xformOp:translate = (470, -341.5, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+            def Cube "PressureModule"
+            {
+                double size = 2
+                double3 xformOp:scale = (58, 22, 15)
+                uniform token[] xformOpOrder = ["xformOp:scale"]
+            }
+        }
+    }
+
+    def Xform "TransferSystem"
+    {
+        def Cylinder "SealedBearingA"
+        {
+            token axis = "Z"
+            double height = 44
+            double radius = 124
+            double3 xformOp:translate = (0, 0, 128)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cylinder "SealedBearingB"
+        {
+            token axis = "Z"
+            double height = 44
+            double radius = 124
+            double3 xformOp:translate = (0, 0, -128)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Xform "RadialLifts"
+        {
+            def Cube "LiftCommand"
+            {
+                double size = 2
+                double3 xformOp:scale = (4, 4, 250)
+                double3 xformOp:translate = (0, 0, 250)
+                uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+            }
+            def Cube "LiftSystems"
+            {
+                double size = 2
+                double3 xformOp:scale = (4, 4, 250)
+                double3 xformOp:translate = (0, 0, -250)
+                uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+            }
+        }
+    }
+
+    def Xform "DockingSpine"
+    {
+        custom string muse:motion = "stationary"
+        custom double muse:approachClearanceMeters = 80
+        def Cylinder "DockingCollarNorth"
+        {
+            token axis = "Z"
+            double height = 24
+            double radius = 30
+            double3 xformOp:translate = (0, 0, 860)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cylinder "DockingCollarSouth"
+        {
+            token axis = "Z"
+            double height = 24
+            double radius = 30
+            double3 xformOp:translate = (0, 0, -860)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cylinder "DockingCollarMidA"
+        {
+            token axis = "X"
+            double height = 70
+            double radius = 22
+            double3 xformOp:translate = (138, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def Cylinder "DockingCollarMidB"
+        {
+            token axis = "X"
+            double height = 70
+            double radius = 22
+            double3 xformOp:translate = (-138, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Xform "Radiators"
+    {
+        custom string muse:thermalMode = "two-sided-deep-space-rejection"
+        def Cube "RadiatorPort"
+        {
+            double size = 2
+            double3 xformOp:scale = (150, 1.2, 42)
+            double3 xformOp:translate = (-210, 0, 520)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+        }
+        def Cube "RadiatorStarboard"
+        {
+            double size = 2
+            double3 xformOp:scale = (150, 1.2, 42)
+            double3 xformOp:translate = (210, 0, -520)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+        }
+    }
+
+    def Xform "SensorsAndScaleCues"
+    {
+        def Cylinder "HighGainAntenna"
+        {
+            token axis = "Z"
+            double height = 80
+            double radius = 2
+            double3 xformOp:translate = (0, 0, 1010)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+        def PointInstancer "WindowModules"
+        {
+            int[] protoIndices = [0, 0, 0, 0, 0]
+            point3f[] positions = [(570, 0, 8), (176, 542, 8), (-461, 335, 8), (-461, -335, 8), (176, -542, 8)]
+            rel prototypes = [</AtlasCrown/SensorsAndScaleCues/WindowPrototype>]
+        }
+        def Cube "WindowPrototype"
+        {
+            double size = 1.4
+            custom string muse:materialId = "MAT_OpticalGlass"
+        }
+        def Cube "ServiceVehicleReference"
+        {
+            uniform token purpose = "guide"
+            double size = 2
+            double3 xformOp:scale = (4.5, 1.4, 1.2)
+            double3 xformOp:translate = (34, 0, 730)
+            uniform token[] xformOpOrder = ["xformOp:scale", "xformOp:translate"]
+            custom double muse:humanHeightMeters = 1.75
+        }
+    }
+
+    def Xform "CollisionProxies"
+    {
+        uniform token purpose = "proxy"
+        custom string muse:collisionPolicy = "simple-convex-per-major-assembly"
+        custom string muse:navigationPolicy = "docks-and-vestibules-only"
+        def Sphere "NeuralCoreCollision"
+        {
+            uniform token purpose = "proxy"
+            double radius = 108
+        }
+        def Cylinder "SpineCollision"
+        {
+            uniform token purpose = "proxy"
+            token axis = "Z"
+            double height = 1800
+            double radius = 24
+        }
+        def Cylinder "RingClearanceCollision"
+        {
+            uniform token purpose = "proxy"
+            token axis = "Z"
+            double height = 92
+            double radius = 640
+        }
+    }
+}

@@ -79,6 +79,14 @@ public:
 	 *  ProcessRequest(). C++-only; not a UFUNCTION. */
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> CreateAuthorizedGetRequest(const FString& Path) const;
 
+	/** Build a bearer-authorized JSON request while keeping token access inside
+	 *  SynapseNet. Body is never logged. Downstream authoritative clients use
+	 *  this for POST/PUT/PATCH without reading or storing credential material. */
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> CreateAuthorizedJsonRequest(
+		const FString& Path,
+		const FString& Verb,
+		const FString& Body = FString()) const;
+
 	/** Fired for health results (and capabilities failures). Game thread. */
 	UPROPERTY(BlueprintAssignable, Category = "muse|Gateway")
 	FOnGatewayHealth OnGatewayHealth;

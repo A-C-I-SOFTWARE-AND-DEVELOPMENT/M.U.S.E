@@ -1,0 +1,45 @@
+# Standalone Docker Compose for Hermes Dashboard on Windows
+# Does NOT use the base docker-compose.yml (which requires network_mode: host)
+services:
+  gateway:
+    image: hermes-agent:latest
+    container_name: hermes
+    restart: unless-stopped
+    ports:
+      - "9118:9118"
+    volumes:
+      - hermes-data:/opt/data
+    environment:
+      - HERMES_UID=10000
+      - HERMES_GID=10000
+      - HERMES_BOOTSTRAP_MODELS=0
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["sed -i 's/\r$//' /opt/hermes/docker/entrypoint.sh && exec /usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run"]
+    networks:
+      - hermes-net
+
+  dashboard:
+    image: hermes-agent:latest
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    ports:
+      - "9119:9119"
+    volumes:
+      - hermes-data:/opt/data
+    environment:
+      - HERMES_UID=10000
+      - HERMES_GID=10000
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["sed -i 's/\r$//' /opt/hermes/docker/entrypoint.sh && exec /usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh dashboard --host 0.0.0.0 --port 9119 --no-open --insecure"]
+    networks:
+      - hermes-net
+    depends_on:
+      - gateway
+
+volumes:
+  hermes-data:
+
+networks:
+  hermes-net:
+    driver: bridge
+

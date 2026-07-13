@@ -21,8 +21,15 @@ from agent.studio.budget import estimate, compare_tiers, BudgetScenario
 from agent.studio.types import (
     FilmBrief, GameBrief, StageResult, ProjectManifest, Quality, Provider,
     Phase, PhaseStatus, Milestone, Project, Portfolio, TeamMember, TeamRole,
-    BudgetLine,
+    BudgetLine, GameBuildManifest, GameProductionSpec,
 )
+from agent.studio.game_foundry import GameFoundry, PRODUCTION_LANES
+from agent.studio.stereo import (
+    StereoCamera, StereoCameraRig, StereoFrameMetrics, StereoQcIssue,
+    StereoQcLimits, StereoQcResult, StereoShot, evaluate_stereo_qc,
+)
+from agent.studio.render_manifest import RenderFrameRecord, RenderManifest, RenderValidation
+from agent.studio.cinema import CinemaPackage, CinemaPackager
 from agent.studio.blueprints import (
     OpenWorldRpgBlueprint, CapabilityDomain, RoadmapPhase, DependencyEdge,
     load_open_world_rpg_blueprint,
@@ -37,6 +44,11 @@ __all__ = [
     "estimate", "compare_tiers", "BudgetScenario",
     "Phase", "PhaseStatus", "Milestone", "Project", "Portfolio",
     "TeamMember", "TeamRole", "BudgetLine",
+    "GameBuildManifest", "GameProductionSpec", "GameFoundry", "PRODUCTION_LANES",
+    "StereoCamera", "StereoCameraRig", "StereoFrameMetrics", "StereoQcIssue",
+    "StereoQcLimits", "StereoQcResult", "StereoShot", "evaluate_stereo_qc",
+    "RenderFrameRecord", "RenderManifest", "RenderValidation",
+    "CinemaPackage", "CinemaPackager",
     "OpenWorldRpgBlueprint", "CapabilityDomain", "RoadmapPhase", "DependencyEdge",
     "load_open_world_rpg_blueprint",
 ]

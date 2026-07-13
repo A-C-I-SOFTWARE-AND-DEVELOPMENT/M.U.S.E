@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" font-family="Segoe UI, Inter, system-ui, sans-serif" role="img" aria-labelledby="ttl dsc">
+<title id="ttl">MUSE × n8n — global end-to-end pipeline</title>
+<desc id="dsc">A chat message enters at the Atlas Neural Conversation and flows through perceive, classify, decide, the AXIOM verification gate, the owner gate, delegation to the n8n connector layer, a hash-chained ledger append, and back out as speech. Includes the inbound n8n to MUSE direction and the five Atlas decks.</desc>
+<rect x="0" y="0" width="1200" height="1400" fill="#0b1020"/>
+<defs>
+<marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#37d0d6"/></marker>
+<marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f4c95d"/></marker>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff6b6b"/></marker>
+</defs>
+<text x="40" y="46" fill="#e6ecff" font-size="24" font-weight="700">MUSE × n8n — Global End-to-End Pipeline</text>
+<text x="40" y="70" fill="#93a1c9" font-size="13">chat AI agent → Atlas → AXIOM gate → owner gate → delegate → n8n connectors → ledger → speak</text>
+<text x="41" y="70" fill="#93a1c9" font-size="11" text-anchor="start" font-weight="400"></text>
+<rect x="770" y="30" width="392" height="46" rx="10" fill="#0f1730" stroke="#2b3a5c"/>
+<text x="786" y="50" fill="#f4c95d" font-size="12" font-weight="700">INVARIANT</text>
+<text x="786" y="67" fill="#93a1c9" font-size="11.5">Intelligence proposes; the verifier disposes. n8n executes,</text>
+<text x="864" y="50" fill="#93a1c9" font-size="11.5">— the AXIOM gate stays in MUSE.</text>
+<text x="40" y="110" fill="#37d0d6" font-size="13" font-weight="700">ATLAS DECKS</text>
+<rect x="40" y="128" width="210" height="52" rx="9" fill="#0f1730" stroke="#f4c95d" stroke-width="1.2"/>
+<text x="52" y="149" fill="#e6ecff" font-size="12.5" font-weight="600">▲ Crown</text>
+<text x="52" y="167" fill="#93a1c9" font-size="10.5">command · gate · ledger · speak</text>
+<rect x="40" y="190" width="210" height="52" rx="9" fill="#0f1730" stroke="#37d0d6" stroke-width="1.2"/>
+<text x="52" y="211" fill="#e6ecff" font-size="12.5" font-weight="600">✦ Flight</text>
+<text x="52" y="229" fill="#93a1c9" font-size="10.5">agents · fleets · delegate_to</text>
+<rect x="40" y="252" width="210" height="52" rx="9" fill="#0f1730" stroke="#37d0d6" stroke-width="1.2"/>
+<text x="52" y="273" fill="#e6ecff" font-size="12.5" font-weight="600">⬢ Foundry</text>
+<text x="52" y="291" fill="#93a1c9" font-size="10.5">source · release gate · cinema</text>
+<rect x="40" y="314" width="210" height="52" rx="9" fill="#0f1730" stroke="#37d0d6" stroke-width="1.2"/>
+<text x="52" y="335" fill="#e6ecff" font-size="12.5" font-weight="600">◆ Observatory</text>
+<text x="52" y="353" fill="#93a1c9" font-size="10.5">memory · evidence · models</text>
+<rect x="40" y="376" width="210" height="52" rx="9" fill="#0f1730" stroke="#f4c95d" stroke-width="1.2"/>
+<text x="52" y="397" fill="#e6ecff" font-size="12.5" font-weight="600">⬟ Embassy</text>
+<text x="52" y="415" fill="#93a1c9" font-size="10.5">share · post_publicly (gated)</text>
+<rect x="380.0" y="110" width="360" height="52" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="110" width="5" height="52" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="136" fill="#e6ecff" font-size="15" font-weight="600">1 · Chat AI Agent</text>
+<text x="398.0" y="156" fill="#93a1c9" font-size="11.5">Atlas /chat · Neural Conversation (Crown)</text>
+<rect x="380.0" y="196" width="360" height="52" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="196" width="5" height="52" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="222" fill="#e6ecff" font-size="15" font-weight="600">2 · RECEIVING</text>
+<text x="398.0" y="242" fill="#93a1c9" font-size="11.5">normalize prompt · idempotency key</text>
+<line x1="560" y1="162" x2="560" y2="196" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="282" width="360" height="70" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="282" width="5" height="70" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="308" fill="#e6ecff" font-size="15" font-weight="600">3 · TURN → POST /v1/jarvis/chat</text>
+<text x="398.0" y="328" fill="#93a1c9" font-size="11.5">perceive · classify · decide · gate · speak</text>
+<text x="398.0" y="344" fill="#93a1c9" font-size="11.5">cockpit :8765 (host.docker.internal)</text>
+<line x1="560" y1="248" x2="560" y2="282" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="386" width="360" height="52" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="386" width="5" height="52" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="412" fill="#e6ecff" font-size="15" font-weight="600">4 · Parse NDJSON</text>
+<text x="398.0" y="432" fill="#93a1c9" font-size="11.5">phase · body · detail · evidence · ledger · done</text>
+<line x1="560" y1="352" x2="560" y2="386" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="472" width="360" height="52" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="472" width="5" height="52" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="498" fill="#e6ecff" font-size="15" font-weight="600">5 · Atlas read-back (live cockpit)</text>
+<text x="398.0" y="518" fill="#93a1c9" font-size="11.5">GET axiom · ledger · memory/tree · evidence · autonomy · approvals</text>
+<line x1="560" y1="438" x2="560" y2="472" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="558" width="360" height="70" rx="12" fill="#121a2f" stroke="#f4c95d" stroke-width="1.5"/>
+<rect x="380.0" y="558" width="5" height="70" rx="2" fill="#f4c95d"/>
+<text x="398.0" y="584" fill="#e6ecff" font-size="15" font-weight="600">6 · GATE — 8 verification gates</text>
+<text x="398.0" y="604" fill="#93a1c9" font-size="11.5">planning·build·review·test·security·release·owner·rollback</text>
+<text x="398.0" y="620" fill="#93a1c9" font-size="11.5">source of truth: GET /v1/cockpit/axiom → chain_valid</text>
+<line x1="560" y1="524" x2="560" y2="558" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<polygon points="560,631.0 635.0,668 560,705.0 485.0,668" fill="#121a2f" stroke="#f4c95d" stroke-width="1.5"/>
+<text x="560" y="672" fill="#e6ecff" font-size="12.5" font-weight="600" text-anchor="middle">gates pass?</text>
+<line x1="560" y1="628" x2="560" y2="631" stroke="#f4c95d" stroke-width="2" marker-end="url(#arg)"/>
+<rect x="790" y="638" width="300" height="60" rx="12" fill="#0f1730" stroke="#ff6b6b" stroke-width="1.5"/>
+<rect x="790" y="638" width="5" height="60" rx="2" fill="#ff6b6b"/>
+<text x="808" y="664" fill="#e6ecff" font-size="15" font-weight="600">HOLD · gate blocked</text>
+<text x="808" y="684" fill="#93a1c9" font-size="11.5">Quarantine Moon /axiom</text>
+<line x1="635" y1="668" x2="790" y2="668" stroke="#ff6b6b" stroke-width="2" marker-end="url(#arr)"/>
+<text x="655" y="660" fill="#ff6b6b" font-size="11" text-anchor="start" font-weight="700">fail</text>
+<polygon points="560,748.0 650.0,788 560,828.0 470.0,788" fill="#121a2f" stroke="#f4c95d" stroke-width="1.5"/>
+<text x="560" y="792" fill="#e6ecff" font-size="12.5" font-weight="600" text-anchor="middle">owner gate?</text>
+<line x1="560" y1="705" x2="560" y2="748" stroke="#f4c95d" stroke-width="2" marker-end="url(#arg)"/>
+<text x="570" y="738" fill="#56d364" font-size="11" text-anchor="start" font-weight="700">pass</text>
+<rect x="790" y="756" width="300" height="64" rx="12" fill="#0f1730" stroke="#ff6b6b" stroke-width="1.5"/>
+<rect x="790" y="756" width="5" height="64" rx="2" fill="#ff6b6b"/>
+<text x="808" y="782" fill="#e6ecff" font-size="15" font-weight="600">HOLD · owner approval</text>
+<text x="808" y="802" fill="#93a1c9" font-size="11.5">needs: Yes, with authorization.</text>
+<line x1="650" y1="788" x2="790" y2="788" stroke="#ff6b6b" stroke-width="2" marker-end="url(#arr)"/>
+<text x="660" y="780" fill="#ff6b6b" font-size="11" text-anchor="start" font-weight="700">no phrase</text>
+<rect x="380.0" y="860" width="360" height="70" rx="12" fill="#121a2f" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="380.0" y="860" width="5" height="70" rx="2" fill="#37d0d6"/>
+<text x="398.0" y="886" fill="#e6ecff" font-size="15" font-weight="600">7 · DELEGATE — envelope → N8nBridge</text>
+<text x="398.0" y="906" fill="#93a1c9" font-size="11.5">JarvisPrime.delegate() → POST /webhook/muse-connector-*</text>
+<text x="398.0" y="922" fill="#93a1c9" font-size="11.5">{ idempotency_key, verified_by, payload } (Flight/Embassy)</text>
+<line x1="560" y1="828" x2="560" y2="860" stroke="#f4c95d" stroke-width="2" marker-end="url(#arg)"/>
+<text x="570" y="852" fill="#56d364" font-size="11" text-anchor="start" font-weight="700">authorized</text>
+<rect x="340.0" y="964" width="175" height="64" rx="12" fill="#0f1730" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="340.0" y="964" width="5" height="64" rx="2" fill="#37d0d6"/>
+<text x="358.0" y="990" fill="#e6ecff" font-size="13" font-weight="600">n8n: gmail-send</text>
+<text x="358.0" y="1010" fill="#93a1c9" font-size="11.5">idempotent connector</text>
+<rect x="585.0" y="964" width="175" height="64" rx="12" fill="#0f1730" stroke="#37d0d6" stroke-width="1.5"/>
+<rect x="585.0" y="964" width="5" height="64" rx="2" fill="#37d0d6"/>
+<text x="603.0" y="990" fill="#e6ecff" font-size="13" font-weight="600">n8n: slack-post</text>
+<text x="603.0" y="1010" fill="#93a1c9" font-size="11.5">idempotent connector</text>
+<line x1="560" y1="930" x2="560" y2="964" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="1062" width="360" height="66" rx="12" fill="#121a2f" stroke="#f4c95d" stroke-width="1.5"/>
+<rect x="380.0" y="1062" width="5" height="66" rx="2" fill="#f4c95d"/>
+<text x="398.0" y="1088" fill="#e6ecff" font-size="15" font-weight="600">8 · LEDGER append (host-side)</text>
+<text x="398.0" y="1108" fill="#93a1c9" font-size="11.5">GuardrailLedger.append(kind,subject,payload)</text>
+<text x="398.0" y="1124" fill="#93a1c9" font-size="11.5">$HERMES_HOME/jarvis_prime/guardrail_ledger.jsonl — sha256 hash chain</text>
+<line x1="560" y1="1028" x2="560" y2="1062" stroke="#37d0d6" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="380.0" y="1162" width="360" height="54" rx="12" fill="#121a2f" stroke="#56d364" stroke-width="1.5"/>
+<rect x="380.0" y="1162" width="5" height="54" rx="2" fill="#56d364"/>
+<text x="398.0" y="1188" fill="#e6ecff" font-size="15" font-weight="600">9 · SPEAK → Atlas /chat</text>
+<text x="398.0" y="1208" fill="#93a1c9" font-size="11.5">final envelope: speak · gates · delegation · refs</text>
+<line x1="560" y1="1128" x2="560" y2="1162" stroke="#56d364" stroke-width="2" marker-end="url(#ar)"/>
+<text x="920" y="136" fill="#f4c95d" font-size="13" font-weight="700">INBOUND · n8n → MUSE</text>
+<rect x="920" y="150" width="250" height="58" rx="12" fill="#0f1730" stroke="#f4c95d" stroke-width="1.5"/>
+<rect x="920" y="150" width="5" height="58" rx="2" fill="#f4c95d"/>
+<text x="938" y="176" fill="#e6ecff" font-size="13" font-weight="600">POST /webhook/muse-run</text>
+<text x="938" y="196" fill="#93a1c9" font-size="11.5">external: Zapier · Make · n8n</text>
+<rect x="920" y="242" width="250" height="58" rx="12" fill="#0f1730" stroke="#f4c95d" stroke-width="1.5"/>
+<rect x="920" y="242" width="5" height="58" rx="2" fill="#f4c95d"/>
+<text x="938" y="268" fill="#e6ecff" font-size="13" font-weight="600">→ POST /v1/jarvis/chat</text>
+<text x="938" y="288" fill="#93a1c9" font-size="11.5">MUSE runs a full turn</text>
+<rect x="920" y="334" width="250" height="58" rx="12" fill="#0f1730" stroke="#f4c95d" stroke-width="1.5"/>
+<rect x="920" y="334" width="5" height="58" rx="2" fill="#f4c95d"/>
+<text x="938" y="360" fill="#e6ecff" font-size="13" font-weight="600">← return answer</text>
+<text x="938" y="380" fill="#93a1c9" font-size="11.5">MUSE as a callable node</text>
+<line x1="1045" y1="208" x2="1045" y2="242" stroke="#f4c95d" stroke-width="2" marker-end="url(#arg)"/>
+<line x1="1045" y1="300" x2="1045" y2="334" stroke="#f4c95d" stroke-width="2" marker-end="url(#arg)"/>
+<rect x="40" y="1256" width="1120" height="86" rx="10" fill="#0f1730" stroke="#2b3a5c"/>
+<text x="58" y="1282" fill="#e6ecff" font-size="13" font-weight="700">Two hash-chained ledgers + owner gate</text>
+<text x="58" y="1304" fill="#93a1c9" font-size="11.5">AXIOM event chain — $HERMES_HOME/axiom/chain.jsonl (perceive→gate events, chain_valid).   GuardrailLedger — $HERMES_HOME/jarvis_prime/guardrail_ledger.jsonl (every delegation attempt).</text>
+<text x="58" y="1324" fill="#93a1c9" font-size="11.5">Owner gate (owner_auth.py): exact phrase “Yes, with authorization.” • 16 OWNER_GATED_ACTIONS (spend, post_publicly, oauth, deploy, package_publish, modify_secrets, …).</text>
+<rect x="58" y="1364" width="14" height="14" rx="3" fill="#37d0d6"/>
+<text x="78" y="1376" fill="#93a1c9" font-size="11">flow / execution (n8n)</text>
+<rect x="240" y="1364" width="14" height="14" rx="3" fill="#f4c95d"/>
+<text x="260" y="1376" fill="#93a1c9" font-size="11">governance / gate / owner</text>
+<rect x="470" y="1364" width="14" height="14" rx="3" fill="#56d364"/>
+<text x="490" y="1376" fill="#93a1c9" font-size="11">pass / speak</text>
+<rect x="610" y="1364" width="14" height="14" rx="3" fill="#ff6b6b"/>
+<text x="630" y="1376" fill="#93a1c9" font-size="11">hold / refused</text>
+</svg>

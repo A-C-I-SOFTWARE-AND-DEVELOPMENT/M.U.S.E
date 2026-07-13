@@ -207,6 +207,60 @@ class TestActionsExprSuppression:
         assert not scan_secrets._is_actions_expression_assignment("just text")
 
 
+class TestComposeInterpolationSuppression:
+    """Regression for PR #629's red secret-scan check.
+
+    ``integrations/n8n/docker-compose.yml`` passes credentials to containers
+    as ``NAME: ${NAME}`` / ``NAME: ${NAME:-default}``. The assigned value is
+    a compose/shell *interpolation* — a reference resolved from the runtime
+    environment, never credential material — so the ``env_name`` detector
+    must not flag it. A real value assigned to the same name must still flag.
+    """
+
+    PR_629_FALSE_POSITIVES = [
+        "      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}",
+        "      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}",
+        "      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}",
+        "      MUSE_COCKPIT_TOKEN: ${MUSE_COCKPIT_TOKEN:-}",
+    ]
+
+    def test_pr_629_lines_do_not_flag(self):
+        diff = _diff("integrations/n8n/docker-compose.yml", *self.PR_629_FALSE_POSITIVES)
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    @pytest.mark.parametrize("line", sorted(set(PR_629_FALSE_POSITIVES)))
+    def test_each_pr_629_line_alone(self, line):
+        diff = _diff("integrations/n8n/docker-compose.yml", line)
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    def test_shell_style_interpolation_assignment_does_not_flag(self):
+        diff = _diff("compose.yml", "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}")
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    def test_interpolation_plus_extra_material_still_flags(self):
+        # Only a *pure* interpolation is a reference; an interpolation
+        # embedded in a longer value could smuggle real material past the
+        # gate.
+        line = "API_TOKEN: ${SALT}" + "-hunter2" + "real"
+        diff = _diff("compose.yml", line)
+        hits = scan_secrets.scan_diff_text(diff, allow_globs=())
+        assert any(h.kind == "env_name" for h in hits)
+        blocking, _ = scan_secrets.partition(hits, strict=False)
+        assert blocking
+
+    def test_is_interpolation_assignment_helper(self):
+        assert scan_secrets._is_interpolation_assignment(
+            "  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  "
+        )
+        assert scan_secrets._is_interpolation_assignment(
+            "MUSE_COCKPIT_TOKEN: ${MUSE_COCKPIT_TOKEN:-}"
+        )
+        assert not scan_secrets._is_interpolation_assignment(
+            "POSTGRES_PASSWORD: " + "notaninterpolation"
+        )
+        assert not scan_secrets._is_interpolation_assignment("just text")
+
+
 # ---------------------------------------------------------------------------
 # partition — kind policy (blocking vs advisory)
 # ---------------------------------------------------------------------------

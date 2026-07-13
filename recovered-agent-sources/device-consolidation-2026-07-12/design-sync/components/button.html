@@ -1,0 +1,224 @@
+<!-- @dsCard group="Components" name="Buttons" -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buttons — muse Cockpit Design System</title>
+  <link rel="stylesheet" href="../tokens.css" />
+  <link rel="stylesheet" href="../cockpit.css" />
+  <style>
+    /* Minimal layout only — no component restyling, no new colors. */
+    body {
+      background: var(--void);
+      color: var(--signal);
+      font-family: var(--sans);
+      padding: 32px;
+    }
+    .ds-page {
+      max-width: 880px;
+      margin: 0 auto;
+      display: grid;
+      gap: var(--space-12);
+    }
+    .ds-head {
+      display: grid;
+      gap: var(--space-2);
+    }
+    .ds-eyebrow {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      text-transform: uppercase;
+      color: var(--signal-mute);
+    }
+    .ds-title {
+      font-size: var(--type-display-size);
+      font-weight: var(--type-display-weight);
+      letter-spacing: var(--type-display-spacing);
+      line-height: var(--type-display-line);
+      color: var(--core);
+      margin: 0;
+    }
+    .ds-lede {
+      font-size: var(--type-body-size);
+      line-height: var(--type-body-line);
+      color: var(--signal-dim);
+      margin: 0;
+      max-width: 56ch;
+    }
+    .ds-section {
+      display: grid;
+      gap: var(--space-4);
+    }
+    .ds-section-title {
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-spacing);
+      line-height: var(--type-title-line);
+      color: var(--signal);
+      margin: 0;
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--edge);
+    }
+    .ds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--space-6);
+      align-items: start;
+    }
+    .ds-spec {
+      display: grid;
+      gap: var(--space-3);
+      justify-items: start;
+    }
+    .ds-caption {
+      font-size: var(--type-label-size);
+      font-weight: var(--type-label-weight);
+      letter-spacing: var(--type-label-spacing);
+      color: var(--signal-mute);
+    }
+    .ds-note {
+      font-size: var(--type-label-size);
+      line-height: var(--type-label-line);
+      color: var(--signal-mute);
+      max-width: 30ch;
+    }
+    .ds-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="ds-page">
+    <header class="ds-head">
+      <span class="ds-eyebrow">Components</span>
+      <h1 class="ds-title">Buttons</h1>
+      <p class="ds-lede">
+        Four button variants from the Singularity language. White is the hero:
+        the primary is the single core-fill control; everything else holds back
+        in tonal value. No glow, no drop shadows, round caps.
+      </p>
+    </header>
+
+    <!-- ============================ Primary ============================ -->
+    <section class="ds-section">
+      <h2 class="ds-section-title">Primary</h2>
+      <p class="ds-note">Core fill, void text — the single bright control on a view. Use it once.</p>
+      <div class="ds-grid">
+        <div class="ds-spec">
+          <span class="ds-caption">DEFAULT</span>
+          <button type="button" class="btn primary">Synthesize</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">HOVER</span>
+          <button type="button" class="btn primary">Synthesize</button>
+          <span class="ds-note">Lifts to a brighter cool-white (#f2fbff).</span>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">DISABLED</span>
+          <button type="button" class="btn primary" disabled>Synthesize</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">FOCUS RING</span>
+          <button type="button" class="btn primary" autofocus>Synthesize</button>
+          <span class="ds-note">2px matte cyan ring (--ring-1), 2px offset.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== Secondary =========================== -->
+    <section class="ds-section">
+      <h2 class="ds-section-title">Secondary</h2>
+      <p class="ds-note">1px hairline edge + signal text. Tonal fill appears only on interaction.</p>
+      <div class="ds-grid">
+        <div class="ds-spec">
+          <span class="ds-caption">DEFAULT</span>
+          <button type="button" class="btn secondary">Configure</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">HOVER</span>
+          <button type="button" class="btn secondary">Configure</button>
+          <span class="ds-note">Fills with raised void tone (--void-2).</span>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">DISABLED</span>
+          <button type="button" class="btn secondary" disabled>Configure</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">FOCUS RING</span>
+          <button type="button" class="btn secondary">Configure</button>
+          <span class="ds-note">Same 2px cyan ring on keyboard focus.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= Ghost ============================= -->
+    <section class="ds-section">
+      <h2 class="ds-section-title">Ghost</h2>
+      <p class="ds-note">Transparent, dim signal text. The quietest control — lifts toward signal on interaction.</p>
+      <div class="ds-grid">
+        <div class="ds-spec">
+          <span class="ds-caption">DEFAULT</span>
+          <button type="button" class="btn ghost">Dismiss</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">HOVER</span>
+          <button type="button" class="btn ghost">Dismiss</button>
+          <span class="ds-note">Text brightens to --signal over --void-2.</span>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">DISABLED</span>
+          <button type="button" class="btn ghost" disabled>Dismiss</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">FOCUS RING</span>
+          <button type="button" class="btn ghost">Dismiss</button>
+          <span class="ds-note">Cyan focus ring even when fill is transparent.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ Danger ============================= -->
+    <section class="ds-section">
+      <h2 class="ds-section-title">Danger</h2>
+      <p class="ds-note">Danger text + danger border. UI status color only — tinted fill on interaction, never neon.</p>
+      <div class="ds-grid">
+        <div class="ds-spec">
+          <span class="ds-caption">DEFAULT</span>
+          <button type="button" class="btn danger">Emergency stop</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">HOVER</span>
+          <button type="button" class="btn danger">Emergency stop</button>
+          <span class="ds-note">Fills with a 12% danger tint.</span>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">DISABLED</span>
+          <button type="button" class="btn danger" disabled>Emergency stop</button>
+        </div>
+        <div class="ds-spec">
+          <span class="ds-caption">FOCUS RING</span>
+          <button type="button" class="btn danger">Emergency stop</button>
+          <span class="ds-note">Focus stays cyan; danger lives in text + edge.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== All variants =========================== -->
+    <section class="ds-section">
+      <h2 class="ds-section-title">In context</h2>
+      <p class="ds-note">The full ladder side by side — one bright primary, the rest held in value.</p>
+      <div class="ds-row">
+        <button type="button" class="btn primary">Synthesize</button>
+        <button type="button" class="btn secondary">Configure</button>
+        <button type="button" class="btn ghost">Dismiss</button>
+        <button type="button" class="btn danger">Emergency stop</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

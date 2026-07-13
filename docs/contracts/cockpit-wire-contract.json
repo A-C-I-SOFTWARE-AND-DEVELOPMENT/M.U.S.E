@@ -65,7 +65,7 @@
       "owner_gated": true,
       "path": "/v1/cockpit/approvals/{id}",
       "requires_auth": true,
-      "summary": "Approve/reject a proposal. Approve requires the exact owner phrase."
+      "summary": "Approve/reject a legacy proposal or a persisted bound grant."
     },
     {
       "handler": "gateway.cockpit.handlers.audit_list",

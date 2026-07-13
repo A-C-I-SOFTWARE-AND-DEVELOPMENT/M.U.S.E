@@ -46,7 +46,16 @@ def _load_external_evidence_module():
 
 
 _external_evidence = _load_external_evidence_module()
-record_external_evidence = _external_evidence.record_external_evidence
+
+
+def record_external_evidence(envelope: Dict[str, Any]) -> Dict[str, str]:
+    """Explicit external-evidence seam.
+
+    muse_universe's AchievementBridge activates this sink only when it finds
+    this literal definition here (a bare re-export is not treated as an
+    explicit seam), so keep it a real ``def``.
+    """
+    return _external_evidence.record_external_evidence(envelope)
 
 
 def _with_external_evidence(payload: Dict[str, Any]) -> Dict[str, Any]:

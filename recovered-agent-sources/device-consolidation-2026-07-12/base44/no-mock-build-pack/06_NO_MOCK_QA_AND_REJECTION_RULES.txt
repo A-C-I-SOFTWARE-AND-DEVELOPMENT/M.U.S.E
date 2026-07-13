@@ -1,0 +1,34 @@
+# No-Mock QA and Rejection Rules
+
+Before considering the app complete, scan all pages, functions, and data initializers for banned patterns.
+
+Reject build if any appear:
+- "mock"
+- "demo"
+- "sample"
+- "seed"
+- hardcoded MemoryNode arrays
+- hardcoded ResearchArtifact arrays
+- fake OwnerBrief on first load
+- fake AvatarState on first load
+- fake AndroidActionContract on first load
+- fake bridge response
+- fallback records after failed fetch
+
+Allowed terms only inside this QA document or explicit "no mock data" warning copy.
+
+Completion criteria:
+- All 9 pages exist and are navigable.
+- All 9 entities exist and persist real records.
+- First load contains zero fake records.
+- Empty states tell the owner how to import/sync real data.
+- Mode Router creates real JarvisModeRoute and TaskPacket records from owner input.
+- Packetizer creates real TaskPacket records from owner input.
+- Verification Console creates/updates real VerificationGateResult rows.
+- Avatar Console creates/updates real AvatarState rows.
+- Android Broker creates real AndroidActionContract rows.
+- Research Vault imports/edits real ResearchArtifact rows.
+- Settings stores bridge URL and authority controls.
+- Bridge adapter refuses to fake success when Hermes is unreachable.
+
+Tell the owner exactly what is complete and what remains. Do not claim real Hermes sync works until the local Hermes bridge exists and has been connected.

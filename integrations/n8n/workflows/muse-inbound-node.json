@@ -1,0 +1,174 @@
+{
+  "name": "MUSE \u00b7 Inbound Node (n8n \u2192 MUSE / callable by Zapier\u00b7Make\u00b7external)",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 900,
+        "height": 220,
+        "content": "## MUSE \u00b7 Inbound Node \u2014 n8n \u2192 MUSE\nThe **reverse** direction the Stage-1 rollout left unbuilt: exposes MUSE as a callable node so external systems (Zapier, Make, Taskade, another n8n) can trigger a MUSE turn.\n\n`POST /webhook/muse-run  { prompt, history? }` \u2192 calls cockpit `POST /v1/jarvis/chat` \u2192 returns the spoken answer.\nEnv: `MUSE_COCKPIT_URL` (default `http://host.docker.internal:8765`), `MUSE_COCKPIT_TOKEN`.",
+        "color": 4
+      },
+      "id": "d0dc851f-f6b0-41b5-b238-4fb105d73ef4",
+      "name": "h",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "muse-run",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c2ecc18e-33bd-4356-86de-4c343a7190f3",
+      "name": "MUSE Run (inbound)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        120
+      ],
+      "webhookId": "muse-run"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const body=$json.body??$json; const headers=$json.headers??{};\nconst prompt=body.prompt??body.message??body.text??'';\nconst history=body.history??[];\nconst base=$env.MUSE_COCKPIT_URL||'http://host.docker.internal:8765';\nconst idempotency_key=headers['idempotency-key']||body.idempotency_key||(''+Date.now());\nreturn [{json:{prompt,history,cockpitBase:base,idempotency_key,source:'n8n-inbound'}}];"
+      },
+      "id": "c7a71cc5-6370-4f23-adee-471cb4604134",
+      "name": "Normalize inbound",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.cockpitBase }}/v1/jarvis/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MUSE_COCKPIT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: $json.prompt, history: $json.history }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e1b4e5b4-519c-4525-a765-3b1566f2bcb5",
+      "name": "POST /v1/jarvis/chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const inItem=$input.first().json; const raw=inItem.data??inItem.body??''; \nconst text=(typeof raw==='string')?raw:JSON.stringify(raw);\nconst lines=text.split(/\\r?\\n/).map(l=>l.trim()).filter(Boolean);\nlet speak='',done=false; const details=[];\nfor(const line of lines){ let c; try{c=JSON.parse(line);}catch(e){continue;}\n  if(c.type==='body')speak=c.text??c.value??speak;\n  else if(c.type==='body_delta')speak+=(c.text??c.value??'');\n  else if(c.type==='detail')details.push(c.text??c.value);\n  else if(c.type==='done')done=true; }\nreturn [{json:{ok:true,answer:speak,details,done,source:'muse'}}];"
+      },
+      "id": "ff488f6f-b4cf-4f5a-9fbc-329c07eba1f4",
+      "name": "Collect MUSE answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "7ab60338-882b-400a-b084-1df36cbd83a3",
+      "name": "Return MUSE answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "MUSE Run (inbound)": {
+      "main": [
+        [
+          {
+            "node": "Normalize inbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize inbound": {
+      "main": [
+        [
+          {
+            "node": "POST /v1/jarvis/chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /v1/jarvis/chat": {
+      "main": [
+        [
+          {
+            "node": "Collect MUSE answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect MUSE answer": {
+      "main": [
+        [
+          {
+            "node": "Return MUSE answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "5b7548849a114050",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

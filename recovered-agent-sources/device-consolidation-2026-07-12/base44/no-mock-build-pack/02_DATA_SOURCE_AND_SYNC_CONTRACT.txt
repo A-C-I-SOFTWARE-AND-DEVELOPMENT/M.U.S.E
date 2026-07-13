@@ -1,0 +1,38 @@
+# Data Source and Sync Contract — No Mock Policy
+
+Data sources, in priority order:
+1. Real Base44 entity records created by the owner inside the cockpit.
+2. Imported JSON/pasted JSON from Hermes local export files.
+3. Hermes Local Bridge API, only when configured in Settings.
+
+Forbidden:
+- mock data
+- demo data
+- sample seeded records
+- fake status indicators
+- fake bridge responses
+- hardcoded sample memory trees
+- hardcoded sample research artifacts
+- hardcoded Android package/capability results except enum defaults
+
+Allowed empty-state copy:
+- "No memory nodes imported yet. Import a Hermes memory export or configure local bridge."
+- "No active task packets. Generate a packet or import from Hermes."
+- "Hermes bridge not configured. Set local bridge URL in Settings."
+- "No Android capability report available. Sync from Hermes Android app."
+
+Every fetch-like adapter must follow this rule:
+- If settings.hermesBridgeUrl is empty, return structured error: bridge_not_configured.
+- If network call fails, return structured error: bridge_unreachable with real error message.
+- If bridge returns empty list, display empty list.
+- Never inject fake records to make the dashboard look populated.
+
+First-load dashboard should be useful by showing:
+- connection status cards
+- import buttons
+- sync buttons disabled until configured
+- setup checklist
+- empty record counters
+- next real action: "Configure bridge or import Hermes export"
+
+This is a full build, not a prototype. Empty state is acceptable; fake state is not.

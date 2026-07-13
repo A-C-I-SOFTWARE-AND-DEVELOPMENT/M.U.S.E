@@ -1,0 +1,65 @@
+# All 9 Pages — No Mock Acceptance Criteria
+
+1. Owner Brief Dashboard
+- Shows connection/setup panel if no OwnerBrief exists.
+- Shows real OwnerBrief when imported/generated/synced.
+- Shows counts from real entity tables only.
+- No fake cards.
+- Has buttons: Import Brief JSON, Sync from Hermes Bridge, Create Manual Brief.
+
+2. JARVIS Mode Router
+- Form: intent, risk class, surface.
+- Deterministic local routing helper generates JarvisModeRoute from form input.
+- Persist route as real record.
+- Generate TaskPacket from route and persist it.
+- No fake prior routes.
+
+3. Memory Tree Browser
+- Shows real MemoryNode tree/list only.
+- Filters by namespace, confidence, freshness, approvalState, contradictionState.
+- Detail panel supports approve/reject/supersede/contest.
+- Import JSON supports array of MemoryNode objects.
+
+4. Natural Language Coding Packetizer
+- Form: plain-English task, repoRoot, riskClass, allowedFiles, forbiddenFiles, nonGoals.
+- Generates real TaskPacket record.
+- Branch name generated deterministically from task title + date.
+- Can send packet to Verification Gate Console by creating pending gate rows.
+
+5. Verification Gate Console
+- Select real TaskPacket.
+- Shows exactly 8 gate cards for that packet.
+- If no gate rows exist, user can initialize pending gate rows.
+- Overall result computed from actual gate statuses.
+- No fake pass/fail statuses.
+
+6. Avatar / Companion Presence Console
+- Shows real AvatarState records only.
+- Lets owner create/edit avatar name, style, size mode.
+- Supports animation beat timeline editor.
+- Empty state says no avatar state synced/created yet.
+
+7. Android Action Broker Console
+- Form: natural-language command.
+- Creates AndroidActionContract with ownerAuthorized=true.
+- Computes highConsequence from command keywords: send, post, buy, delete, password, share private data, transfer, submit.
+- executionMode rules:
+  - missingCapabilities non-empty => blocked_missing_capability
+  - highConsequence true => execute_with_pause_point
+  - otherwise => direct_execute
+- Does not execute Android actions inside Base44.
+- Can send to bridge only if bridge configured.
+
+8. Research Vault
+- Shows real ResearchArtifact records only.
+- Import/edit/filter by status/topic/confidence.
+- Must include fields for license notes and implementation relevance.
+- No preseeded research cards unless imported by owner.
+
+9. Settings / Authority
+- Owner authorization mode visible and editable.
+- Bridge URL and bridge enabled controls.
+- High-consequence pause action list editable.
+- Allowed/blocked packages editable.
+- Disclaimer: local/private testing; no secrets in Base44; real Android execution lives in Hermes Android app.
+- Provides Export All Data and Import All Data actions if Base44 supports it.

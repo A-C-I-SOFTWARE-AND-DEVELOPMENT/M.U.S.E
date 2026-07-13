@@ -1,0 +1,72 @@
+# docker-compose.yml — self-hosted n8n for M.U.S.E.'s external-connector layer
+#
+# This is Stage 1 of the StackAI-alternative rollout: n8n handles the "boring"
+# app-connector work (email, calendars, CRMs, Slack, etc.) so M.U.S.E. doesn't
+# need bespoke integration code for every external app. M.U.S.E.'s Delegate
+# stage calls into n8n via webhook AFTER AXIOM's Gate stage has approved the
+# action — this container does not participate in verification, it only executes.
+#
+# Why Postgres instead of n8n's SQLite default: the Fusion Gate can fan agents
+# out in parallel, and each can trigger a delegated action concurrently.
+# SQLite serializes writes and will bottleneck under concurrent webhook
+# executions; Postgres won't.
+#
+# Usage:
+#   1. cp .env.example .env   and fill in real secrets (see SETUP.md)
+#   2. docker compose up -d
+#   3. Open http://localhost:5678 and create the owner account
+#   4. Import muse_echo_workflow.json, activate it, then run:
+#        python muse_n8n_bridge.py
+#      to confirm the round trip works before wiring it into the real pipeline.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: muse_n8n_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: muse_n8n
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only — M.U.S.E. calls this over loopback.
+      # Do not remove the 127.0.0.1 prefix unless you've put a reverse
+      # proxy + auth in front of this, or you'll expose n8n on your LAN.
+      - "127.0.0.1:5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_USER_MANAGEMENT_JWT_SECRET}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/New_York}
+      TZ: ${GENERIC_TIMEZONE:-America/New_York}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./local-files:/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  n8n_postgres_data:
+  n8n_data:

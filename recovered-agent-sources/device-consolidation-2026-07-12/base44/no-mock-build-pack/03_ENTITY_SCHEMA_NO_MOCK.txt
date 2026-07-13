@@ -1,0 +1,137 @@
+# Entity Schema — No Mock Build
+
+Create these Base44 entities with real persistence and CRUD screens/actions where relevant.
+
+1. OwnerBrief
+Fields:
+- title: string
+- generatedAt: datetime
+- jarvisMode: enum companion|strategy|critic|operator|builder|mobile_voice
+- activeGoal: string
+- readinessScore: number 0-100
+- blockers: array string
+- nextAction: string
+- latestMemoryNodeIds: array string
+- latestTaskPacketIds: array string
+- avatarStateId: string
+- source: enum imported|bridge|manual
+- sourceRef: string
+- createdAt, updatedAt
+
+2. JarvisModeRoute
+Fields:
+- intent: string
+- riskClass: enum RC0|RC1|RC2|RC3|RC4
+- surface: enum desktop|slack|termux|android|voice
+- selectedMode: enum companion|strategy|critic|operator|builder|mobile_voice
+- routeTarget: string
+- worker: string
+- reviewer: string
+- reason: string
+- generatedTaskPacketId: string optional
+- source: enum generated|imported|bridge
+- createdAt, updatedAt
+
+3. MemoryNode
+Fields:
+- namespace: enum owner/profile|owner/preferences|hermes/runtime|hermes/codebase|jarvis/strategy|jarvis/memory|jarvis/avatar|jarvis/android-actions|research/oss|research/model-routing|research/natural-language-coding|failures/lessons|evaluations
+- title: string
+- summary: string
+- parentId: string optional
+- source: string
+- sourceType: enum manual|imported|bridge|research|repo|user
+- sourceRef: string
+- confidence: number 0-1
+- freshness: enum fresh|aging|stale|unknown
+- approvalState: enum candidate|approved|rejected|superseded|contested
+- contradictionState: enum none|possible|active|resolved
+- tags: array string
+- citations: array string
+- createdAt, updatedAt
+
+4. TaskPacket
+Fields:
+- title: string
+- mission: string
+- repoRoot: string
+- branchName: string
+- riskClass: enum RC0|RC1|RC2|RC3|RC4
+- surface: enum desktop|slack|termux|android|voice
+- allowedFiles: array string
+- forbiddenFiles: array string
+- nonGoals: array string
+- acceptanceCriteria: array string
+- verificationPlan: array string
+- rollbackPlan: string
+- builder: string
+- reviewer: string
+- status: enum draft|ready_for_gate|blocked|approved|sent_to_bridge|completed|failed
+- source: enum generated|manual|imported|bridge
+- createdAt, updatedAt
+
+5. VerificationGateResult
+Fields:
+- taskPacketId: string
+- gateName: enum planning|build|review|test|security|release|owner_approval|rollback
+- status: enum pass|fail|pending|needs_owner_approval|skipped
+- reason: string
+- findings: array string
+- evidenceRefs: array string
+- createdAt, updatedAt
+
+6. AvatarState
+Fields:
+- avatarName: string
+- style: string
+- sizeMode: enum full|mini|ambient
+- state: enum idle|listening|watching|thinking|working|moving_to_target|tapping_target|turning_page|waiting_for_approval|blocked|offline|emergency_stop
+- emotionHint: string
+- currentTask: string
+- animationBeats: array string
+- attentionSignal: enum unknown|not_available|looking|speaking|idle
+- source: enum manual|bridge|imported
+- createdAt, updatedAt
+
+7. AndroidActionContract
+Fields:
+- command: string
+- ownerAuthorized: boolean default true
+- targetPackage: string
+- targetAppLabel: string
+- requiredCapabilities: array string
+- missingCapabilities: array string
+- executionMode: enum direct_execute|blocked_missing_capability|execute_with_pause_point|blocked_policy|preview_only
+- highConsequence: boolean
+- pauseReason: string
+- avatarBeats: array string
+- contractJson: json/string
+- status: enum draft|ready|sent_to_bridge|completed|failed|blocked
+- source: enum generated|imported|bridge
+- createdAt, updatedAt
+
+8. ResearchArtifact
+Fields:
+- title: string
+- topic: enum openhuman_memory_tree|tokenjuice|hermes_orchestration|self_efficient_coder|natural_language_coding|android_overlay|android_accessibility|avatar_attention|model_routing|security_privacy
+- summary: string
+- sourceUrl: string
+- sourceType: enum official_doc|github|paper|internal_note|repo_audit|manual
+- licenseNotes: string
+- implementationRelevance: string
+- status: enum raw|reviewed|approved|rejected|superseded
+- confidence: number 0-1
+- tags: array string
+- createdAt, updatedAt
+
+9. SettingsAuthority
+Fields:
+- ownerAuthorizationMode: enum active|paused|emergency_stop
+- highConsequencePauseActions: array string
+- allowedPackages: array string
+- blockedPackages: array string
+- telemetryPrivacyMode: enum local_only|minimal|off
+- localOnlyMode: boolean default true
+- hermesBridgeUrl: string
+- bridgeEnabled: boolean default false
+- androidCapabilityStatus: enum unknown|not_configured|partial|ready|blocked
+- createdAt, updatedAt

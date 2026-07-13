@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/collectible.gd" id="1_collectible"]
 
@@ -10,10 +10,22 @@ radius = 0.4
 height = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+resource_local_to_scene = true
 albedo_color = Color(1, 0.84, 0.2, 1)
 emission_enabled = true
 emission = Color(1, 0.7, 0.1, 1)
 emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_halo"]
+radius = 0.55
+height = 1.1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_halo"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.78, 0.35, 0.12)
+disable_receive_shadows = true
 
 [node name="Collectible" type="Area3D"]
 script = ExtResource("1_collectible")
@@ -24,3 +36,13 @@ shape = SubResource("SphereShape3D_1")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("SphereMesh_1")
 surface_material_override/0 = SubResource("StandardMaterial3D_1")
+
+[node name="Halo" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_halo")
+surface_material_override/0 = SubResource("StandardMaterial3D_halo")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.78, 0.35, 1)
+light_energy = 1.4
+omni_range = 4.5

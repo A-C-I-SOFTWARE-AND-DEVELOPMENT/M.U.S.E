@@ -1,5 +1,8 @@
-name: muse_universe
+name: muse-universe
 version: 1.0.0
-description: "Authoritative local contracts and event store for MUSE Universe."
+description: "Authoritative realms, fleets, missions, and event APIs."
 author: MUSE
 kind: standalone
+provides_tools:
+  - muse_universe_query
+  - muse_universe_command

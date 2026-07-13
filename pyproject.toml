@@ -361,9 +361,13 @@ redundant-cast = "ignore"
 preview = true  # required for PLW1514 (unspecified-encoding) — preview rule
 # Vendored / clean-room do-not-edit payloads are never linted (do-not-edit rule;
 # see the sibling VENDOR.md files under research_fabric/*/vendor).
+# recovered-agent-sources/ is the byte-preserved archival snapshot of the
+# 2026-07-12 device-consolidation recovery (historical evidence, not live
+# code) — including an intentionally broken prototype; never linted.
 extend-exclude = [
   "hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor",
   "hermes_cli/jarvis_prime/research_fabric/llm_jepa/vendor",
+  "recovered-agent-sources",
 ]
 
 [tool.ruff.lint]

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MUSE · Workflow Lifecycle — 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05070f; --panel:rgba(16,24,44,0.66); --panel2:rgba(12,18,36,0.82);
+    --stroke:rgba(90,120,180,0.28); --txt:#e8eeff; --mut:#9fb0d6; --cy:#37d0d6; --gd:#f4c95d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;overflow:hidden}
+  #scene{position:fixed;inset:0;display:block}
+  .glass{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--stroke);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+  /* left menu */
+  #menu{position:fixed;top:16px;left:16px;width:270px;max-height:calc(100vh - 32px);
+    overflow:auto;padding:14px 12px;z-index:10}
+  #menu h1{font-family:Orbitron,sans-serif;font-size:15px;letter-spacing:.14em;margin:2px 4px 2px;
+    background:linear-gradient(90deg,#7cf6ff,#b48bff 60%,#f4c95d);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #menu .sub{font-size:10.5px;color:var(--mut);margin:0 4px 12px;letter-spacing:.03em}
+  .fam{margin:10px 2px 3px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px;color:var(--mut)}
+  .fam .dot{width:9px;height:9px;border-radius:50%}
+  .flowbtn{display:flex;gap:8px;align-items:center;width:100%;text-align:left;cursor:pointer;
+    background:transparent;border:1px solid transparent;border-radius:9px;color:var(--txt);
+    padding:6px 8px;font-size:12px;font-family:inherit;transition:.15s;line-height:1.15}
+  .flowbtn:hover{background:rgba(120,150,220,.10);border-color:var(--stroke)}
+  .flowbtn.active{background:rgba(124,246,255,.12);border-color:rgba(124,246,255,.5)}
+  .flowbtn .code{font-family:Orbitron,monospace;font-size:10px;min-width:26px;color:var(--mut)}
+  .flowbtn.active .code{color:var(--cy)}
+  /* header */
+  #hdr{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9;
+    padding:12px 20px;max-width:min(640px,58vw);text-align:center}
+  #hdr .code{font-family:Orbitron,monospace;font-size:11px;letter-spacing:.2em;color:var(--gd)}
+  #hdr h2{margin:3px 0 5px;font-size:20px;font-weight:700;letter-spacing:.01em}
+  #hdr .prompt{font-size:12px;color:var(--mut);font-style:italic}
+  #hdr .metrics{font-size:11px;color:var(--cy);margin-top:5px;font-family:Orbitron,monospace;letter-spacing:.04em}
+  /* controls */
+  #ctrls{position:fixed;top:16px;right:16px;z-index:10;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .row{display:flex;gap:8px}
+  .btn{cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--txt);padding:8px 12px;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--stroke);backdrop-filter:blur(10px);transition:.15s;white-space:nowrap}
+  .btn:hover{border-color:var(--cy);color:#fff}
+  .btn.on{border-color:var(--cy);color:var(--cy)}
+  /* legend */
+  #legend{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:9;
+    padding:9px 14px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:92vw}
+  #legend .item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--mut)}
+  #legend .sw{width:11px;height:11px;border-radius:3px}
+  #legend .ln{width:16px;height:0;border-top:2px solid}
+  /* tooltip */
+  #tip{position:fixed;z-index:20;pointer-events:none;padding:8px 11px;max-width:250px;font-size:12px;
+    opacity:0;transition:opacity .12s;transform:translate(-50%,-120%)}
+  #tip .t{font-weight:600}
+  #tip .a{color:var(--cy);font-size:11px;margin-top:2px;font-family:Orbitron,monospace}
+  #tip .ty{color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin-top:3px}
+  #hint{position:fixed;bottom:14px;right:16px;z-index:9;font-size:10.5px;color:var(--mut);
+    padding:7px 11px}
+  #err{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:40px;z-index:50}
+  #err div{max-width:520px}
+  a{color:var(--cy)}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(120,150,220,.3);border-radius:8px}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="menu" class="glass">
+  <h1>M.U.S.E</h1>
+  <div class="sub">Workflow Lifecycle · 3D Atlas</div>
+  <div id="flowlist"></div>
+</div>
+
+<div id="hdr" class="glass">
+  <div class="code" id="h-code"></div>
+  <h2 id="h-title"></h2>
+  <div class="prompt" id="h-prompt"></div>
+  <div class="metrics" id="h-metrics"></div>
+</div>
+
+<div id="ctrls">
+  <div class="row">
+    <button class="btn" id="b-prev">◀ Prev</button>
+    <button class="btn" id="b-next">Next ▶</button>
+  </div>
+  <div class="row">
+    <button class="btn on" id="b-rotate">⟲ Auto-orbit</button>
+    <button class="btn on" id="b-flow">✦ Flow</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="b-fit">⤢ Fit view</button>
+  </div>
+</div>
+
+<div id="legend" class="glass"></div>
+<div id="hint" class="glass">drag to orbit · scroll to zoom · shift-drag to pan · hover a node</div>
+<div id="tip" class="glass"></div>
+<div id="err"><div><h2>WebGL unavailable</h2><p>This 3D view needs a browser with WebGL enabled. Try a recent Chrome, Edge, or Firefox.</p></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* fallback CDN if the first failed */
+if(typeof THREE==='undefined'){document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');}
+</script>
+<script>
+const DATA = {"families":{"master":{"name":"Master Lifecycle","color":"#7cf6ff"},"creative":{"name":"Creative & Writing","color":"#ff7ad9"},"research":{"name":"Research & Analysis","color":"#37d0d6"},"engineering":{"name":"Engineering & Dev","color":"#5ee0a0"},"design":{"name":"Design & Visual","color":"#b48bff"},"planning":{"name":"Planning & Mgmt","color":"#f4c95d"},"meta":{"name":"Meta-Workflows","color":"#ffd36e"},"pattern":{"name":"Universal Patterns","color":"#6ee7ff"}},"order":["master","writing.essay","writing.technical-doc","writing.creative-story","research.literature-review","research.competitive-analysis","research.data-analysis","engineering.feature-development","engineering.code-review","engineering.debug-investigation","design.ui-mockup","design.diagram-generation","planning.sprint-planning","planning.project-roadmap","meta.research-to-content","meta.idea-to-mvp","pattern.hitl-gate","pattern.parallel","pattern.iterative","pattern.compensation"],"flows":{"master":{"id":"master","code":"\u2605","family":"master","title":"Complete Request Lifecycle","prompt":"Every request, prompt \u2192 completion","metrics":"the whole pipeline","nodes":[{"id":"u","label":"User Input","sub":"prompt \u00b7 file \u00b7 canvas \u00b7 cron","type":"entry","row":0,"col":0,"flags":[]},{"id":"e1","label":"Natural Language","sub":"prompt","type":"entry","row":1,"col":-2,"flags":[]},{"id":"e2","label":"Structured Cmd","sub":"/ @ !","type":"entry","row":1,"col":-1,"flags":[]},{"id":"e3","label":"File / Import","sub":"drag \u00b7 API","type":"entry","row":1,"col":0,"flags":[]},{"id":"e4","label":"Canvas Selection","sub":"context","type":"entry","row":1,"col":1,"flags":[]},{"id":"e5","label":"Scheduled","sub":"cron \u00b7 CI \u00b7 webhook","type":"entry","row":1,"col":2,"flags":[]},{"id":"cls","label":"Intent Classifier","sub":"sys.classifier","type":"classify","row":2,"col":0,"flags":[]},{"id":"t1","label":"Simple Task","sub":"direct agent","type":"branch","row":3,"col":-1,"flags":[]},{"id":"t2","label":"Complex Task","sub":"single workflow","type":"branch","row":3,"col":0,"flags":[]},{"id":"t3","label":"Multi-step","sub":"composed workflows","type":"branch","row":3,"col":1,"flags":[]},{"id":"orch","label":"Workflow Orchestrator","sub":"workflow.executor","type":"plan","row":4,"col":0,"flags":[]},{"id":"w1","label":"Creative","sub":"writing \u00b7 design","type":"agent","row":5,"col":-1,"flags":[]},{"id":"w2","label":"Research / Analysis","sub":"review \u00b7 data","type":"research","row":5,"col":0,"flags":[]},{"id":"w3","label":"Engineering","sub":"build \u00b7 debug","type":"agent","row":5,"col":1,"flags":[]},{"id":"ael","label":"Agent Execution Layer","sub":"writer \u00b7 coder \u00b7 critic \u00b7 planner","type":"agent","row":6,"col":0,"flags":[]},{"id":"o1","label":"Canvas Mutations","sub":"nodes \u00b7 edges","type":"tool","row":7,"col":-1,"flags":[]},{"id":"o2","label":"Knowledge Graph","sub":"entities \u00b7 relations","type":"tool","row":7,"col":0,"flags":[]},{"id":"o3","label":"Artifacts","sub":"pdf \u00b7 code \u00b7 data","type":"tool","row":7,"col":1,"flags":[]},{"id":"done","label":"Completion & Delivery","sub":"persist \u00b7 export \u00b7 notify \u00b7 next","type":"done","row":8,"col":0,"flags":[]}],"edges":[{"from":"u","to":"e1","kind":"flow"},{"from":"u","to":"e2","kind":"flow"},{"from":"u","to":"e3","kind":"flow"},{"from":"u","to":"e4","kind":"flow"},{"from":"u","to":"e5","kind":"flow"},{"from":"e1","to":"cls","kind":"flow"},{"from":"e2","to":"cls","kind":"flow"},{"from":"e3","to":"cls","kind":"flow"},{"from":"e4","to":"cls","kind":"flow"},{"from":"e5","to":"cls","kind":"flow"},{"from":"cls","to":"t1","kind":"flow"},{"from":"cls","to":"t2","kind":"flow"},{"from":"cls","to":"t3","kind":"flow"},{"from":"t1","to":"orch","kind":"flow"},{"from":"t2","to":"orch","kind":"flow"},{"from":"t3","to":"orch","kind":"flow"},{"from":"orch","to":"w1","kind":"flow"},{"from":"orch","to":"w2","kind":"flow"},{"from":"orch","to":"w3","kind":"flow"},{"from":"w1","to":"ael","kind":"flow"},{"from":"w2","to":"ael","kind":"flow"},{"from":"w3","to":"ael","kind":"flow"},{"from":"ael","to":"o1","kind":"flow"},{"from":"ael","to":"o2","kind":"flow"},{"from":"ael","to":"o3","kind":"flow"},{"from":"o1","to":"done","kind":"flow"},{"from":"o2","to":"done","kind":"flow"},{"from":"o3","to":"done","kind":"flow"}]},"writing.essay":{"id":"writing.essay","code":"A1","family":"creative","title":"Long-form Essay/Article","prompt":"Write a 3000-word essay on [topic] for [audience]","metrics":"15-45 min | ~$0.50-2.00 | 15k-50k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Write a 3000-word essay on [topic] for [audien","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Research","sub":"creative.researcher","type":"research","row":1,"col":0,"flags":["parallel"]},{"id":"s2","label":"Outline Generation","sub":"creative.writer","type":"plan","row":2,"col":0,"flags":[]},{"id":"s3","label":"Section Drafting","sub":"creative.writer","type":"agent","row":3,"col":0,"flags":["parallel"]},{"id":"s4","label":"Assembly","sub":"creative.writer","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Self Critique","sub":"creative.critic","type":"review","row":5,"col":0,"flags":["loop"]},{"id":"s6","label":"Format & Export","sub":"creative.formatter","type":"output","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s4","kind":"loop"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"writing.technical-doc":{"id":"writing.technical-doc","code":"A2","family":"creative","title":"Technical Documentation","prompt":"Create API docs for this codebase\" / \"Write a README for this repo","metrics":"","nodes":[{"id":"in","label":"Prompt","sub":"Create API docs for this codebase\" / \"Write a ","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Codebase Analysis","sub":"creative.coder","type":"agent","row":1,"col":0,"flags":[]},{"id":"s2","label":"Existing Docs Audit","sub":"creative.researcher","type":"review","row":2,"col":0,"flags":[]},{"id":"s3","label":"Structure Planning","sub":"creative.writer","type":"plan","row":3,"col":0,"flags":[]},{"id":"s4","label":"Content Generation","sub":"creative.writer + coder","type":"agent","row":4,"col":0,"flags":["parallel"]},{"id":"s5","label":"Validation","sub":"creative.coder","type":"review","row":5,"col":0,"flags":[]},{"id":"s6","label":"Format & Publish","sub":"creative.formatter","type":"output","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"writing.creative-story":{"id":"writing.creative-story","code":"A3","family":"creative","title":"Fiction/Creative Writing","prompt":"Write a short story about [concept]\" / \"Continue my novel chapter","metrics":"","nodes":[{"id":"in","label":"Prompt","sub":"Write a short story about [concept]\" / \"Contin","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Story Development","sub":"creative.writer","type":"agent","row":1,"col":0,"flags":[]},{"id":"s2","label":"Scene Breakdown","sub":"creative.writer","type":"agent","row":2,"col":0,"flags":[]},{"id":"s3","label":"Scene Drafting","sub":"creative.writer","type":"agent","row":3,"col":0,"flags":[]},{"id":"s4","label":"Developmental Edit","sub":"creative.critic","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Line Edit","sub":"creative.writer","type":"agent","row":5,"col":0,"flags":["loop"]},{"id":"s6","label":"Format","sub":"creative.formatter","type":"output","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s4","kind":"loop"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"research.literature-review":{"id":"research.literature-review","code":"B1","family":"research","title":"Academic Literature Review","prompt":"Do a literature review on [topic]\" / \"Find all papers about X since 2020","metrics":"30-120 min | ~$2-10 | 50k-200k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Do a literature review on [topic]\" / \"Find all","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Query Expansion","sub":"creative.researcher","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Search Execution","sub":"creative.researcher","type":"research","row":2,"col":0,"flags":["parallel"]},{"id":"s3","label":"Screening","sub":"creative.researcher","type":"review","row":3,"col":0,"flags":[]},{"id":"s4","label":"Data Extraction","sub":"creative.researcher","type":"research","row":4,"col":0,"flags":["parallel"]},{"id":"s5","label":"Quality Assessment","sub":"creative.analyst","type":"review","row":5,"col":0,"flags":[]},{"id":"s6","label":"Synthesis","sub":"creative.researcher","type":"agent","row":6,"col":0,"flags":[]},{"id":"s7","label":"Report Generation","sub":"creative.writer","type":"output","row":7,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":8,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"s7","kind":"flow"},{"from":"s7","to":"out","kind":"flow"}]},"research.competitive-analysis":{"id":"research.competitive-analysis","code":"B2","family":"research","title":"Market/Competitive Intelligence","prompt":"Analyze the competitive landscape for [product/space]","metrics":"20-60 min | ~$1-5 | 30k-100k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Analyze the competitive landscape for [product","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Competitor Discovery","sub":"creative.researcher","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Data Collection","sub":"creative.researcher","type":"agent","row":2,"col":0,"flags":["parallel"]},{"id":"s3","label":"Feature Matrix","sub":"creative.analyst","type":"agent","row":3,"col":0,"flags":[]},{"id":"s4","label":"Positioning Analysis","sub":"creative.researcher","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Traction Benchmarking","sub":"creative.analyst","type":"review","row":5,"col":0,"flags":[]},{"id":"s6","label":"Strategic Synthesis","sub":"creative.writer","type":"agent","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"research.data-analysis":{"id":"research.data-analysis","code":"B3","family":"research","title":"Exploratory Data Analysis","prompt":"Analyze this dataset\" / \"Find insights in data.csv","metrics":"15-60 min | ~$0.50-3 | 20k-80k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Analyze this dataset\" / \"Find insights in data","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Data Ingestion","sub":"creative.analyst","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Data Quality Assessment","sub":"creative.analyst","type":"review","row":2,"col":0,"flags":[]},{"id":"s3","label":"Exploratory Analysis","sub":"creative.analyst","type":"agent","row":3,"col":0,"flags":["parallel"]},{"id":"s4","label":"Hypothesis Testing","sub":"creative.analyst","type":"review","row":4,"col":0,"flags":[]},{"id":"s5","label":"Modeling","sub":"creative.analyst","type":"agent","row":5,"col":0,"flags":["cond"]},{"id":"s6","label":"Insight Synthesis","sub":"creative.writer","type":"agent","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"engineering.feature-development":{"id":"engineering.feature-development","code":"C1","family":"engineering","title":"Full Feature Implementation","prompt":"Build a [feature] for [codebase]\" / \"Implement user authentication","metrics":"30min-4hr | ~$1-20 | 50k-500k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Build a [feature] for [codebase]\" / \"Implement","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Spec Analysis","sub":"creative.coder","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Implementation Planning","sub":"workflow.planner","type":"plan","row":2,"col":0,"flags":[]},{"id":"s3","label":"Task Execution","sub":"creative.coder","type":"agent","row":3,"col":0,"flags":["parallel"]},{"id":"s4","label":"Integration Testing","sub":"creative.coder","type":"review","row":4,"col":0,"flags":[]},{"id":"s5","label":"Code Review","sub":"creative.critic","type":"review","row":5,"col":0,"flags":[]},{"id":"s6","label":"Documentation Update","sub":"creative.writer","type":"agent","row":6,"col":0,"flags":[]},{"id":"s7","label":"Deployment","sub":"workflow.executor","type":"output","row":7,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":8,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"s7","kind":"flow"},{"from":"s7","to":"out","kind":"flow"}]},"engineering.code-review":{"id":"engineering.code-review","code":"C2","family":"engineering","title":"Automated Code Review","prompt":"Review this PR\" / \"Review changes in [branch/commit]","metrics":"2-10 min | ~$0.20-1 | 10k-50k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Review this PR\" / \"Review changes in [branch/c","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Diff Analysis","sub":"creative.coder","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Automated Checks","sub":"creative.coder","type":"agent","row":2,"col":0,"flags":["parallel"]},{"id":"s3","label":"Semantic Review","sub":"creative.critic","type":"review","row":3,"col":0,"flags":[]},{"id":"s4","label":"Architecture Review","sub":"creative.coder","type":"review","row":4,"col":0,"flags":["cond"]},{"id":"s5","label":"Review Synthesis","sub":"creative.writer","type":"review","row":5,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":6,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"out","kind":"flow"}]},"engineering.debug-investigation":{"id":"engineering.debug-investigation","code":"C3","family":"engineering","title":"Root Cause Analysis","prompt":"Debug why [error/behavior] is happening\" / \"Investigate production issue","metrics":"15min-2hr | ~$0.50-5 | 20k-100k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Debug why [error/behavior] is happening\" / \"In","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Symptom Analysis","sub":"creative.coder","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Evidence Gathering","sub":"creative.coder","type":"research","row":2,"col":0,"flags":["parallel"]},{"id":"s3","label":"Hypothesis Testing","sub":"creative.coder","type":"review","row":3,"col":0,"flags":["loop"]},{"id":"s4","label":"Fix Development","sub":"creative.coder","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Postmortem","sub":"creative.writer","type":"output","row":5,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":6,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s2","kind":"loop"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"out","kind":"flow"}]},"design.ui-mockup":{"id":"design.ui-mockup","code":"D1","family":"design","title":"UI/UX Design Generation","prompt":"Design a [screen/flow] for [product]\" / \"Create mockups for [feature]","metrics":"30min-3hr | ~$1-10 | 20k-150k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Design a [screen/flow] for [product]\" / \"Creat","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Requirements Analysis","sub":"creative.designer","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Ia & Flow","sub":"creative.designer","type":"agent","row":2,"col":0,"flags":[]},{"id":"s3","label":"Wireframing","sub":"creative.designer","type":"agent","row":3,"col":0,"flags":["parallel"]},{"id":"s4","label":"Visual Design","sub":"creative.designer","type":"agent","row":4,"col":0,"flags":["cond"]},{"id":"s5","label":"Accessibility Audit","sub":"creative.critic","type":"review","row":5,"col":0,"flags":[]},{"id":"s6","label":"Prototype","sub":"creative.designer","type":"agent","row":6,"col":0,"flags":["cond"]},{"id":"s7","label":"Handoff","sub":"creative.formatter","type":"output","row":7,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":8,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"s7","kind":"flow"},{"from":"s7","to":"out","kind":"flow"}]},"design.diagram-generation":{"id":"design.diagram-generation","code":"D2","family":"design","title":"Technical Diagrams","prompt":"Create an architecture diagram for [system]\" / \"Draw a sequence diagram for","metrics":"1-5 min | ~$0.10-0.50 | 5k-20k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Create an architecture diagram for [system]\" /","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Content Extraction","sub":"creative.coder","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Layout Computation","sub":"creative.designer","type":"plan","row":2,"col":0,"flags":[]},{"id":"s3","label":"Rendering","sub":"creative.designer","type":"output","row":3,"col":0,"flags":[]},{"id":"s4","label":"Validation","sub":"creative.critic","type":"review","row":4,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":5,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"out","kind":"flow"}]},"planning.sprint-planning":{"id":"planning.sprint-planning","code":"E1","family":"planning","title":"Sprint Planning","prompt":"Plan the next sprint\" / \"Plan sprint for [team] with [goals]","metrics":"15-30 min | ~$0.20-1 | 10k-30k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Plan the next sprint\" / \"Plan sprint for [team","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Backlog Analysis","sub":"workflow.planner","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Capacity Planning","sub":"workflow.planner","type":"plan","row":2,"col":0,"flags":[]},{"id":"s3","label":"Selection","sub":"workflow.planner","type":"plan","row":3,"col":0,"flags":[]},{"id":"s4","label":"Task Breakdown","sub":"creative.coder","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Commitment","sub":"workflow.human-loop","type":"output","row":5,"col":0,"flags":[]},{"id":"s6","label":"Setup","sub":"workflow.executor","type":"output","row":6,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":7,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"s6","kind":"flow"},{"from":"s6","to":"out","kind":"flow"}]},"planning.project-roadmap":{"id":"planning.project-roadmap","code":"E2","family":"planning","title":"Strategic Roadmap","prompt":"Create a roadmap for [project/product]\" / \"Plan Q3/Q4 roadmap","metrics":"1-3 hr | ~$2-10 | 50k-150k tokens","nodes":[{"id":"in","label":"Prompt","sub":"Create a roadmap for [project/product]\" / \"Pla","type":"entry","row":0,"col":0,"flags":[]},{"id":"s1","label":"Context Synthesis","sub":"creative.researcher","type":"research","row":1,"col":0,"flags":[]},{"id":"s2","label":"Initiative Generation","sub":"workflow.planner","type":"plan","row":2,"col":0,"flags":[]},{"id":"s3","label":"Roadmap Construction","sub":"workflow.planner","type":"plan","row":3,"col":0,"flags":[]},{"id":"s4","label":"Team Alignment","sub":"workflow.human-loop","type":"agent","row":4,"col":0,"flags":[]},{"id":"s5","label":"Execution Plan","sub":"workflow.planner","type":"plan","row":5,"col":0,"flags":[]},{"id":"out","label":"Delivery","sub":"canvas \u00b7 files \u00b7 KG","type":"done","row":6,"col":0,"flags":[]}],"edges":[{"from":"in","to":"s1","kind":"flow"},{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"s4","kind":"flow"},{"from":"s4","to":"s5","kind":"flow"},{"from":"s5","to":"out","kind":"flow"}]},"meta.research-to-content":{"id":"meta.research-to-content","code":"F1","family":"meta","title":"Research \u2192 Content Pipeline","prompt":"Research [topic] and create [blog/whitepaper/script]","metrics":"45min-3hr | ~$3-25 | 80k-400k tokens","nodes":[{"id":"in","label":"Prompt","sub":"research + create","type":"entry","row":0,"col":0,"flags":[]},{"id":"p1","label":"Research","sub":"literature / competitive / data","type":"research","row":1,"col":0,"flags":[]},{"id":"p2","label":"Strategy","sub":"creative.writer \u00b7 outline","type":"plan","row":2,"col":0,"flags":["gate"]},{"id":"p3","label":"Creation","sub":"essay / doc / story / mockup","type":"agent","row":3,"col":0,"flags":[]},{"id":"p4","label":"Refinement","sub":"critic \u00b7 editor \u00b7 SEO","type":"review","row":4,"col":0,"flags":[]},{"id":"p5","label":"Distribution","sub":"meta.publish \u00b7 channels","type":"output","row":5,"col":0,"flags":[]},{"id":"out","label":"Published","sub":"urls \u00b7 analytics","type":"done","row":6,"col":0,"flags":[]}],"edges":[{"from":"in","to":"p1","kind":"flow"},{"from":"p1","to":"p2","kind":"flow"},{"from":"p2","to":"p3","kind":"flow"},{"from":"p3","to":"p4","kind":"flow"},{"from":"p4","to":"p5","kind":"flow"},{"from":"p5","to":"out","kind":"flow"}]},"meta.idea-to-mvp":{"id":"meta.idea-to-mvp","code":"F2","family":"meta","title":"Idea to Shippable Product","prompt":"Build an MVP for [idea]","metrics":"discovery \u2192 definition \u2192 build \u2192 launch \u2192 iterate","nodes":[{"id":"in","label":"Idea","sub":"concept","type":"entry","row":0,"col":0,"flags":[]},{"id":"d1","label":"Discovery","sub":"2-4 hr \u00b7 research","type":"research","row":1,"col":0,"flags":[]},{"id":"d2","label":"Definition","sub":"1-2 hr \u00b7 spec","type":"plan","row":2,"col":0,"flags":["gate"]},{"id":"d3","label":"Build","sub":"sprints \u00b7 2 wks each","type":"agent","row":3,"col":0,"flags":["loop"]},{"id":"d4","label":"Launch","sub":"1-2 days \u00b7 deploy","type":"output","row":4,"col":0,"flags":[]},{"id":"d5","label":"Iterate","sub":"ongoing","type":"review","row":5,"col":0,"flags":["loop"]}],"edges":[{"from":"in","to":"d1","kind":"flow"},{"from":"d1","to":"d2","kind":"flow"},{"from":"d2","to":"d3","kind":"flow"},{"from":"d3","to":"d4","kind":"flow"},{"from":"d4","to":"d5","kind":"flow"},{"from":"d5","to":"d3","kind":"loop"}]},"pattern.hitl-gate":{"id":"pattern.hitl-gate","code":"P1","family":"pattern","title":"Human-in-the-Loop Gate","prompt":"Checkpoint \u2192 notify \u2192 human decision","metrics":"pause \u00b7 approve / revise / reject","nodes":[{"id":"a","label":"Agent Work","sub":"","type":"agent","row":0,"col":0,"flags":[]},{"id":"p","label":"Pause","sub":"checkpoint saved","type":"tool","row":1,"col":0,"flags":[]},{"id":"n","label":"Notification","sub":"toast \u00b7 desktop \u00b7 email \u00b7 slack","type":"tool","row":2,"col":0,"flags":[]},{"id":"h","label":"Human Review","sub":"context \u00b7 preview \u00b7 decision","type":"gate","row":3,"col":0,"flags":[]},{"id":"ap","label":"Approve","sub":"continue","type":"done","row":4,"col":-1,"flags":[]},{"id":"rv","label":"Revise","sub":"feedback \u2192 agent","type":"review","row":4,"col":0,"flags":[]},{"id":"rj","label":"Reject","sub":"stop + compensate","type":"fail","row":4,"col":1,"flags":[]}],"edges":[{"from":"a","to":"p","kind":"flow"},{"from":"p","to":"n","kind":"flow"},{"from":"n","to":"h","kind":"flow"},{"from":"h","to":"ap","kind":"branch"},{"from":"h","to":"rv","kind":"branch"},{"from":"h","to":"rj","kind":"branch"},{"from":"rv","to":"a","kind":"loop"}]},"pattern.parallel":{"id":"pattern.parallel","code":"P2","family":"pattern","title":"Parallel Fan-out / Fan-in","prompt":"Split \u2192 parallel agents \u2192 aggregate","metrics":"max_parallel \u00b7 timeout \u00b7 failure_policy","nodes":[{"id":"in","label":"Single Input","sub":"","type":"entry","row":0,"col":0,"flags":[]},{"id":"sp","label":"Splitter","sub":"workflow.executor \u00b7 map","type":"plan","row":1,"col":0,"flags":[]},{"id":"t1","label":"Task 1","sub":"agent","type":"agent","row":2,"col":-1,"flags":[]},{"id":"t2","label":"Task 2","sub":"agent","type":"agent","row":2,"col":0,"flags":[]},{"id":"t3","label":"Task 3","sub":"agent","type":"agent","row":2,"col":1,"flags":[]},{"id":"ag","label":"Aggregator","sub":"collect \u00b7 merge \u00b7 validate","type":"review","row":3,"col":0,"flags":[]},{"id":"out","label":"Single Output","sub":"","type":"done","row":4,"col":0,"flags":[]}],"edges":[{"from":"in","to":"sp","kind":"flow"},{"from":"sp","to":"t1","kind":"branch"},{"from":"sp","to":"t2","kind":"branch"},{"from":"sp","to":"t3","kind":"branch"},{"from":"t1","to":"ag","kind":"flow"},{"from":"t2","to":"ag","kind":"flow"},{"from":"t3","to":"ag","kind":"flow"},{"from":"ag","to":"out","kind":"flow"}]},"pattern.iterative":{"id":"pattern.iterative","code":"P3","family":"pattern","title":"Iterative Refinement Loop","prompt":"Generate \u2192 evaluate \u2192 (iterate | done)","metrics":"score threshold \u00b7 max iterations","nodes":[{"id":"in","label":"Input","sub":"","type":"entry","row":0,"col":0,"flags":[]},{"id":"g","label":"Generate","sub":"agent A \u00b7 creator","type":"agent","row":1,"col":0,"flags":[]},{"id":"e","label":"Evaluate","sub":"agent B \u00b7 critic","type":"review","row":2,"col":0,"flags":[]},{"id":"out","label":"Output","sub":"score \u2265 threshold","type":"done","row":3,"col":0,"flags":[]}],"edges":[{"from":"in","to":"g","kind":"flow"},{"from":"g","to":"e","kind":"flow"},{"from":"e","to":"out","kind":"branch"},{"from":"e","to":"g","kind":"loop"}]},"pattern.compensation":{"id":"pattern.compensation","code":"P4","family":"pattern","title":"Compensation / Rollback","prompt":"Failure \u2192 retry \u2192 compensate in reverse","metrics":"retry \u00b7 backoff \u00b7 circuit-break \u00b7 rollback","nodes":[{"id":"s1","label":"Step 1","sub":"\u2713","type":"agent","row":0,"col":0,"flags":[]},{"id":"s2","label":"Step 2","sub":"\u2713","type":"agent","row":1,"col":0,"flags":[]},{"id":"s3","label":"Step 3","sub":"\u2717 failure","type":"fail","row":2,"col":0,"flags":[]},{"id":"rt","label":"Retry Policy","sub":"max \u00b7 backoff \u00b7 breaker","type":"review","row":3,"col":0,"flags":[]},{"id":"ok","label":"Retry OK","sub":"continue","type":"agent","row":4,"col":-1,"flags":[]},{"id":"s4","label":"Step 4 \u2192 Complete","sub":"","type":"done","row":5,"col":-1,"flags":[]},{"id":"cx","label":"Compensations","sub":"rollback fs \u00b7 kg \u00b7 canvas","type":"compensate","row":4,"col":1,"flags":[]},{"id":"rb","label":"Rolled Back","sub":"preserved artifacts","type":"fail","row":5,"col":1,"flags":[]}],"edges":[{"from":"s1","to":"s2","kind":"flow"},{"from":"s2","to":"s3","kind":"flow"},{"from":"s3","to":"rt","kind":"flow"},{"from":"rt","to":"ok","kind":"branch"},{"from":"ok","to":"s4","kind":"flow"},{"from":"rt","to":"cx","kind":"branch"},{"from":"cx","to":"rb","kind":"compensate"}]}}};
+window.addEventListener('load', ()=>{ try{ boot(); }catch(e){ console.error(e); showErr(); } });
+function showErr(){ document.getElementById('err').style.display='grid'; }
+
+const TYPECOL={entry:'#dfe8ff',classify:'#7cf6ff',plan:'#8ab4ff',agent:'#a78bfa',research:'#37d0d6',
+  review:'#f59e0b',gate:'#f4c95d',tool:'#5ee0c9',output:'#56d364',done:'#56d364',branch:'#f4c95d',
+  merge:'#7cf6ff',fail:'#ff6b6b',compensate:'#ff8a5b'};
+const TYPEGLYPH={entry:'▷',classify:'◈',plan:'▣',agent:'⬢',research:'⌕',review:'✓',gate:'⚑',
+  tool:'⚙',output:'▤',done:'★',branch:'⋔',merge:'⋈',fail:'✕',compensate:'↩'};
+const EDGECOL={flow:'#37d0d6',branch:'#f4c95d',loop:'#f59e0b',compensate:'#ff6b6b'};
+const ROWGAP=8.4, COLGAP=9.2;
+
+let renderer,scene,camera,clock,raycaster,pointer=new THREE.Vector2(-9,-9);
+let flowGroup,nodeSprites=[],edges=[],stars,nebula;
+let curId='master', curIndex=0, hovered=null;
+let autoRotate=true, showFlow=true, particleT=0;
+// orbit state
+const ctr={theta:0.9,phi:1.15,radius:70,target:new THREE.Vector3(),
+  dTheta:0.9,dPhi:1.15,dRadius:70,dTarget:new THREE.Vector3(),idle:0,dragging:false,mode:'rotate',px:0,py:0};
+
+function boot(){
+  const canvas=document.getElementById('scene');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.sortObjects=true;
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x05070f,0.0062);
+  camera=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,0.1,2000);
+  clock=new THREE.Clock();
+  raycaster=new THREE.Raycaster();
+  scene.add(new THREE.AmbientLight(0xffffff,0.9));
+  makeStars(); makeNebula();
+  buildMenu(); buildLegend();
+  addControls();
+  selectFlow('master');
+  addEventListener('resize',onResize);
+  animate();
+}
+
+/* ---------- textures ---------- */
+function radialTex(inner,outer){
+  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,inner);g.addColorStop(0.4,outer);g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);
+}
+const DOT=radialTex('rgba(255,255,255,1)','rgba(255,255,255,0.25)');
+const GLOW=radialTex('rgba(255,255,255,0.9)','rgba(255,255,255,0.12)');
+
+function roundRect(x,rx,ry,w,h,r){x.beginPath();x.moveTo(rx+r,ry);
+  x.arcTo(rx+w,ry,rx+w,ry+h,r);x.arcTo(rx+w,ry+h,rx,ry+h,r);
+  x.arcTo(rx,ry+h,rx,ry,r);x.arcTo(rx,ry,rx+w,ry,r);x.closePath();}
+function wrap(x,txt,maxw){const words=(txt||'').split(' ');let line='',out=[];
+  for(const w of words){const t=line?line+' '+w:w;if(x.measureText(t).width>maxw&&line){out.push(line);line=w;}else line=t;}
+  if(line)out.push(line);return out;}
+
+function cardTexture(node,fam){
+  const W=560,H=260,c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');const col=TYPECOL[node.type]||'#8ab4ff';
+  // panel
+  x.fillStyle='rgba(11,17,33,0.94)';roundRect(x,8,8,W-16,H-16,26);x.fill();
+  // family border glow
+  x.lineWidth=4;x.strokeStyle=fam;x.shadowColor=fam;x.shadowBlur=22;roundRect(x,8,8,W-16,H-16,26);x.stroke();x.shadowBlur=0;
+  // type accent bar (left)
+  x.fillStyle=col;roundRect(x,8,8,10,H-16,6);x.fill();
+  // glyph chip
+  x.fillStyle=col;x.font='700 44px system-ui,Segoe UI,Arial';x.textBaseline='top';
+  x.fillText(TYPEGLYPH[node.type]||'●',40,34);
+  // type label
+  x.fillStyle='rgba(159,176,214,0.9)';x.font='600 20px Segoe UI,system-ui,Arial';
+  x.fillText((node.type||'').toUpperCase(),102,40);
+  // flags
+  let fx=102+x.measureText((node.type||'').toUpperCase()).width+16;
+  (node.flags||[]).forEach(fl=>{const t=fl.toUpperCase();x.fillStyle='rgba(244,201,93,0.9)';
+    x.font='600 15px Segoe UI';roundRect(x,fx,42,x.measureText(t).width+16,20,10);x.strokeStyle='rgba(244,201,93,.6)';x.lineWidth=1.5;x.stroke();
+    x.fillText(t,fx+8,44);fx+=x.measureText(t).width+24;});
+  // title
+  x.fillStyle='#eef3ff';x.font='700 40px Segoe UI,system-ui,Arial';
+  const tl=wrap(x,node.label,W-90);let ty=96;
+  tl.slice(0,2).forEach(l=>{x.fillText(l,40,ty);ty+=46;});
+  // subtitle
+  if(node.sub){x.fillStyle='rgba(159,176,214,0.95)';x.font='400 24px Segoe UI,system-ui,Arial';
+    const sl=wrap(x,node.sub,W-80);sl.slice(0,2).forEach(l=>{x.fillText(l,40,ty+4);ty+=30;});}
+  const tex=new THREE.CanvasTexture(c);tex.anisotropy=4;return tex;
+}
+
+/* ---------- background ---------- */
+function makeStars(){
+  const n=1600,g=new THREE.BufferGeometry(),p=new Float32Array(n*3);
+  for(let i=0;i<n;i++){const r=380+Math.random()*520,th=Math.random()*6.28,ph=Math.acos(2*Math.random()-1);
+    p[i*3]=r*Math.sin(ph)*Math.cos(th);p[i*3+1]=r*Math.sin(ph)*Math.sin(th);p[i*3+2]=r*Math.cos(ph);}
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  stars=new THREE.Points(g,new THREE.PointsMaterial({color:0x9fc0ff,size:1.5,sizeAttenuation:true,
+    transparent:true,opacity:0.75,map:DOT,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(stars);
+}
+function makeNebula(){
+  const n=90,g=new THREE.Group();
+  for(let i=0;i<n;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,
+    color:[0x1a2b5a,0x22406b,0x3a2a5e][i%3],transparent:true,opacity:0.10,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const r=120+Math.random()*260;s.position.set((Math.random()-.5)*r,(Math.random()-.5)*r*0.6,(Math.random()-.5)*r-60);
+    const sc=40+Math.random()*90;s.scale.set(sc,sc,1);g.add(s);}
+  nebula=g;scene.add(g);
+}
+
+/* ---------- build a flow ---------- */
+function disposeGroup(gp){gp.traverse(o=>{if(o.material){if(o.material.map&&o.material.map!==DOT&&o.material.map!==GLOW)o.material.map.dispose();o.material.dispose();}if(o.geometry)o.geometry.dispose();});}
+function pos(node){return new THREE.Vector3(node.col*COLGAP, -node.row*ROWGAP, Math.sin(node.row*0.7)*5.2 + (node.col*1.6));}
+
+function edgeCurve(a,b,kind){
+  const mid=a.clone().add(b).multiplyScalar(0.5);
+  if(kind==='loop'){const off=new THREE.Vector3(Math.max(9,Math.abs(a.x-b.x)+7),0,10);
+    return new THREE.CubicBezierCurve3(a,a.clone().add(off),b.clone().add(off),b);}
+  if(kind==='compensate'){const off=new THREE.Vector3(-8,0,9);
+    return new THREE.CubicBezierCurve3(a,a.clone().add(off),b.clone().add(off),b);}
+  mid.z+=3.2; return new THREE.QuadraticBezierCurve3(a,mid,b);
+}
+
+function selectFlow(id){
+  curId=id; curIndex=DATA.order.indexOf(id);
+  if(flowGroup){scene.remove(flowGroup);disposeGroup(flowGroup);}
+  flowGroup=new THREE.Group();scene.add(flowGroup);
+  nodeSprites=[];edges=[];
+  const flow=DATA.flows[id];const fam=DATA.families[flow.family].color;
+  const P={}; flow.nodes.forEach(n=>P[n.id]=pos(n));
+  // edges first
+  flow.edges.forEach(e=>{
+    if(!P[e.from]||!P[e.to])return;
+    const curve=edgeCurve(P[e.from],P[e.to],e.kind);const col=EDGECOL[e.kind]||'#37d0d6';
+    const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,44,e.kind==='flow'?0.09:0.075,8,false),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:e.kind==='flow'?0.5:0.62,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+    flowGroup.add(tube);
+    const dots=[];const N=e.kind==='flow'?7:5;
+    for(let i=0;i<N;i++){const d=new THREE.Sprite(new THREE.SpriteMaterial({map:DOT,color:col,
+      transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false}));
+      d.scale.set(0.95,0.95,1);flowGroup.add(d);dots.push(d);}
+    edges.push({curve,dots,N,kind:e.kind});
+  });
+  // nodes
+  flow.nodes.forEach((n,i)=>{
+    const grp=new THREE.Group();grp.position.copy(P[n.id]);
+    const col=TYPECOL[n.type]||'#8ab4ff';
+    const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:col,transparent:true,
+      opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false}));
+    halo.scale.set(12,9,1);halo.position.z=-0.2;grp.add(halo);
+    const card=new THREE.Sprite(new THREE.SpriteMaterial({map:cardTexture(n,fam),transparent:true,depthWrite:false}));
+    card.scale.set(7.8,3.62,1);grp.add(card);
+    grp.userData={node:n,card,halo,base:7.8,baseh:3.62,t:i*0.05,col};
+    grp.scale.setScalar(0.01);
+    flowGroup.add(grp);nodeSprites.push(grp);
+  });
+  frame(P);
+  // header + menu state
+  const f=flow;
+  document.getElementById('h-code').textContent=f.code+' · '+f.id;
+  document.getElementById('h-title').textContent=f.title;
+  document.getElementById('h-prompt').textContent=f.prompt?('“'+f.prompt+'”'):'';
+  document.getElementById('h-metrics').textContent=f.metrics||'';
+  document.querySelectorAll('.flowbtn').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
+  const active=document.querySelector('.flowbtn.active');if(active)active.scrollIntoView({block:'nearest'});
+}
+
+function frame(P){
+  const c=new THREE.Vector3();const keys=Object.keys(P);keys.forEach(k=>c.add(P[k]));c.multiplyScalar(1/keys.length);
+  let maxd=0;keys.forEach(k=>maxd=Math.max(maxd,P[k].distanceTo(c)));
+  ctr.dTarget.copy(c);ctr.dRadius=maxd*1.7+26;ctr.dTheta=0.82;ctr.dPhi=1.12;ctr.idle=0;
+}
+
+/* ---------- controls ---------- */
+function addControls(){
+  const el=renderer.domElement;
+  el.addEventListener('pointerdown',e=>{ctr.dragging=true;ctr.px=e.clientX;ctr.py=e.clientY;
+    ctr.mode=(e.shiftKey||e.button===2||e.button===1)?'pan':'rotate';ctr.idle=-999;el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointerup',e=>{ctr.dragging=false;ctr.idle=0;});
+  el.addEventListener('pointermove',e=>{
+    pointer.x=(e.clientX/innerWidth)*2-1;pointer.y=-(e.clientY/innerHeight)*2+1;
+    if(!ctr.dragging)return;const dx=e.clientX-ctr.px,dy=e.clientY-ctr.py;ctr.px=e.clientX;ctr.py=e.clientY;
+    if(ctr.mode==='rotate'){ctr.dTheta-=dx*0.006;ctr.dPhi-=dy*0.006;ctr.dPhi=Math.max(0.2,Math.min(2.9,ctr.dPhi));}
+    else{const s=ctr.radius*0.0016;const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+      const up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+      ctr.dTarget.addScaledVector(right,-dx*s);ctr.dTarget.addScaledVector(up,dy*s);}
+  });
+  el.addEventListener('wheel',e=>{e.preventDefault();ctr.dRadius*=(1+Math.sign(e.deltaY)*0.08);
+    ctr.dRadius=Math.max(10,Math.min(260,ctr.dRadius));ctr.idle=-999;},{passive:false});
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+function updateControls(dt){
+  if(autoRotate){ctr.idle+=dt;if(ctr.idle>1.6&&!ctr.dragging)ctr.dTheta+=dt*0.12;}
+  ctr.theta+=(ctr.dTheta-ctr.theta)*0.09;ctr.phi+=(ctr.dPhi-ctr.phi)*0.09;
+  ctr.radius+=(ctr.dRadius-ctr.radius)*0.08;ctr.target.lerp(ctr.dTarget,0.09);
+  const r=ctr.radius,sp=Math.sin(ctr.phi);
+  camera.position.set(ctr.target.x+r*sp*Math.sin(ctr.theta),ctr.target.y+r*Math.cos(ctr.phi),
+    ctr.target.z+r*sp*Math.cos(ctr.theta));
+  camera.lookAt(ctr.target);
+}
+
+/* ---------- loop ---------- */
+function animate(){
+  requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);
+  updateControls(dt);
+  particleT=(particleT+dt*0.16)%1;
+  if(showFlow)edges.forEach(ed=>{ed.dots.forEach((d,i)=>{let u=(particleT+i/ed.N)%1;
+    if(ed.kind==='loop'||ed.kind==='compensate')u=(1-u);const p=ed.curve.getPoint(u);d.position.copy(p);d.visible=true;});});
+  else edges.forEach(ed=>ed.dots.forEach(d=>d.visible=false));
+  // node grow-in + hover pulse
+  nodeSprites.forEach(g=>{const tgt=(g===hovered)?1.16:1.0;
+    const s=g.scale.x + ((tgt)-g.scale.x)*0.12;g.scale.setScalar(s);
+    g.userData.halo.material.opacity=0.42+0.14*Math.sin(clock.elapsedTime*2+g.userData.t*30)+(g===hovered?0.25:0);});
+  if(stars)stars.rotation.y+=dt*0.006;
+  if(nebula)nebula.rotation.z+=dt*0.004;
+  hover();
+  renderer.render(scene,camera);
+}
+function hover(){
+  raycaster.setFromCamera(pointer,camera);
+  const cards=nodeSprites.map(g=>g.userData.card);
+  const hit=raycaster.intersectObjects(cards,false)[0];
+  const tip=document.getElementById('tip');
+  if(hit){const g=nodeSprites.find(n=>n.userData.card===hit.object);hovered=g;
+    const n=g.userData.node;tip.innerHTML='<div class="t">'+n.label+'</div>'+
+      (n.sub?'<div class="a">'+n.sub+'</div>':'')+'<div class="ty">'+n.type+(n.flags&&n.flags.length?' · '+n.flags.join(' · '):'')+'</div>';
+    tip.style.opacity=1;const v=g.position.clone().project(camera);
+    tip.style.left=((v.x*0.5+0.5)*innerWidth)+'px';tip.style.top=((-v.y*0.5+0.5)*innerHeight)+'px';
+    document.body.style.cursor='pointer';
+  }else{hovered=null;tip.style.opacity=0;document.body.style.cursor='default';}
+}
+
+/* ---------- UI ---------- */
+function buildMenu(){
+  const list=document.getElementById('flowlist');const byFam={};
+  DATA.order.forEach(id=>{const f=DATA.flows[id];(byFam[f.family]=byFam[f.family]||[]).push(f);});
+  Object.keys(DATA.families).forEach(fk=>{if(!byFam[fk])return;const fam=DATA.families[fk];
+    const h=document.createElement('div');h.className='fam';
+    h.innerHTML='<span class="dot" style="background:'+fam.color+';box-shadow:0 0 8px '+fam.color+'"></span>'+fam.name;
+    list.appendChild(h);
+    byFam[fk].forEach(f=>{const b=document.createElement('button');b.className='flowbtn';b.dataset.id=f.id;
+      b.innerHTML='<span class="code" style="color:'+fam.color+'">'+f.code+'</span><span>'+f.title+'</span>';
+      b.onclick=()=>selectFlow(f.id);list.appendChild(b);});
+  });
+}
+function buildLegend(){
+  const L=document.getElementById('legend');
+  const types=[['entry','Entry'],['classify','Classify'],['plan','Plan'],['agent','Agent'],['research','Research'],
+    ['review','Review'],['gate','Human gate'],['tool','Tool'],['output','Output'],['done','Complete'],['fail','Fail'],['compensate','Compensate']];
+  types.forEach(([t,l])=>{const d=document.createElement('div');d.className='item';
+    d.innerHTML='<span class="sw" style="background:'+TYPECOL[t]+';box-shadow:0 0 7px '+TYPECOL[t]+'"></span>'+l;L.appendChild(d);});
+  [['flow','flow'],['branch','branch'],['loop','loop'],['compensate','rollback']].forEach(([k,l])=>{
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML='<span class="ln" style="border-color:'+EDGECOL[k]+'"></span>'+l;L.appendChild(d);});
+}
+function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+
+document.getElementById('b-rotate').onclick=e=>{autoRotate=!autoRotate;e.target.classList.toggle('on',autoRotate);};
+document.getElementById('b-flow').onclick=e=>{showFlow=!showFlow;e.target.classList.toggle('on',showFlow);};
+document.getElementById('b-fit').onclick=()=>{const P={};DATA.flows[curId].nodes.forEach(n=>P[n.id]=pos(n));frame(P);};
+document.getElementById('b-prev').onclick=()=>selectFlow(DATA.order[(curIndex-1+DATA.order.length)%DATA.order.length]);
+document.getElementById('b-next').onclick=()=>selectFlow(DATA.order[(curIndex+1)%DATA.order.length]);
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')document.getElementById('b-next').click();
+  if(e.key==='ArrowLeft')document.getElementById('b-prev').click();});
+</script>
+</body>
+</html>

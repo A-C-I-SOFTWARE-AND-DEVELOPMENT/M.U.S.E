@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 
 class Quality(str, Enum):
@@ -64,7 +64,7 @@ class Provider(str, Enum):
     CASCADEUR = "cascadeur/auto"
     DEEPMOTION = "deepmotion/animate-3d"
     # Engine
-    UE5 = "epic/ue-5.5"
+    UE5 = "epic/ue-5.6"
     UNITY6 = "unity/6-muse"
     GODOT4 = "godot/4.3"
     # Stub fallback (always available)
@@ -103,6 +103,62 @@ class GameBrief:
     engine: Provider = Provider.UE5
     workdir: Optional[Path] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class GameProductionSpec:
+    """Release-oriented inputs for a source-complete game production run."""
+
+    title: str
+    project_id: str = ""
+    engine: str = "unreal"
+    engine_version: str = "5.6"
+    platforms: tuple[str, ...] = ("windows",)
+    multiplayer_model: str = "single_player"
+    world_streaming: str = "partitioned"
+    performance_budgets: Mapping[str, float] = field(default_factory=dict)
+    accessibility_requirements: tuple[str, ...] = ()
+    rights_checklist: tuple[str, ...] = ()
+    rating_checklist: tuple[str, ...] = ()
+    store_checklist: tuple[str, ...] = ()
+    save_schema_version: int = 1
+    migration_plan: str = ""
+    crash_telemetry: str = "disabled"
+    test_commands: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    build_commands: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    release_channels: tuple[str, ...] = ("internal",)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not self.title.strip():
+            raise ValueError("game title is required")
+        if self.engine not in {"unreal", "godot", "unity"}:
+            raise ValueError("engine must be unreal, godot, or unity")
+        if type(self.save_schema_version) is not int or self.save_schema_version < 1:
+            raise ValueError("save_schema_version must be a positive integer")
+        if not self.platforms:
+            raise ValueError("at least one target platform is required")
+
+
+@dataclass(frozen=True)
+class GameBuildManifest:
+    """Truthful game-foundry output; evidence controls ``playable``."""
+
+    project_id: str
+    title: str
+    root: Path
+    lanes: tuple[str, ...]
+    engine: str
+    engine_version: str
+    engine_validation: str
+    compiled: bool = False
+    package_verified: bool = False
+    smoke_verified: bool = False
+    playable: bool = False
+    command_evidence: tuple[Mapping[str, Any], ...] = ()
+    artifact_hashes: Mapping[str, str] = field(default_factory=dict)
+    unavailable_reason: str = ""
+    created_at: str = ""
 
 
 @dataclass
@@ -254,6 +310,9 @@ class ProjectManifest:
     stages: List[StageResult] = field(default_factory=list)
     total_cost_usd: float = 0.0
     total_duration_s: float = 0.0
+    asset_provenance: List[Any] = field(default_factory=list)
+    asset_validations: List[Any] = field(default_factory=list)
+    rollback_source: Dict[str, Any] = field(default_factory=dict)
 
     def summary(self) -> str:
         lines = [

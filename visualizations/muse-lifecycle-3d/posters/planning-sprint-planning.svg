@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1572" font-family="DejaVu Sans, Arial, sans-serif">
+<defs>
+<radialGradient id="bg" cx="30%" cy="10%" r="120%"><stop offset="0" stop-color="#0a1024"/><stop offset="1" stop-color="#05070f"/></radialGradient>
+<linearGradient id="e_flow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37d0d6" stop-opacity="0.35"/><stop offset="1" stop-color="#37d0d6" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_branch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4c95d" stop-opacity="0.35"/><stop offset="1" stop-color="#f4c95d" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_loop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity="0.35"/><stop offset="1" stop-color="#f59e0b" stop-opacity="1"/></linearGradient>
+<linearGradient id="e_compensate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b6b" stop-opacity="0.35"/><stop offset="1" stop-color="#ff6b6b" stop-opacity="1"/></linearGradient>
+</defs>
+<rect width="1180" height="1572" fill="url(#bg)"/>
+<circle cx="642" cy="972" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="70" cy="978" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="596" cy="1496" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="345" cy="220" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1145" cy="549" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="958" cy="329" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="855" cy="1396" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="114" cy="455" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="442" cy="1317" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="804" cy="1202" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="1008" cy="468" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="1030" cy="1267" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="1055" cy="95" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="803" cy="838" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="918" cy="834" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="205" cy="955" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1007" cy="685" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="161" cy="486" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="656" cy="1351" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="77" cy="1276" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="991" cy="715" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="453" cy="532" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="935" cy="419" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="428" cy="637" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="439" cy="1265" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="1124" cy="1170" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="611" cy="1445" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="279" cy="1214" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="890" cy="635" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="630" cy="1481" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="123" cy="450" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="321" cy="1501" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="340" cy="707" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="432" cy="731" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="1076" cy="1095" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="913" cy="791" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="376" cy="1014" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="908" cy="1427" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="879" cy="612" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="765" cy="1409" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="716" cy="718" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="792" cy="100" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1121" cy="1549" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="606" cy="563" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="135" cy="969" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="922" cy="1228" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="470" cy="768" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="149" cy="101" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="768" cy="362" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="792" cy="1208" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="615" cy="221" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="356" cy="692" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="711" cy="1158" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="798" cy="566" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="611" cy="155" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="779" cy="1255" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="138" cy="923" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="34" cy="1543" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="969" cy="1429" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="833" cy="1561" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="233" cy="36" r="1.3" fill="#9fc0ff" opacity="0.4"/><circle cx="28" cy="1346" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="289" cy="1410" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="388" cy="439" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="553" cy="350" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="154" cy="763" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="567" cy="777" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="185" cy="485" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="16" cy="956" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="1089" cy="562" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="506" cy="246" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="364" cy="876" r="0.6" fill="#9fc0ff" opacity="0.6"/><circle cx="228" cy="1400" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="797" cy="1319" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="1116" cy="710" r="0.9" fill="#9fc0ff" opacity="0.4"/><circle cx="364" cy="674" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="88" cy="1053" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="899" cy="1278" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1145" cy="177" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="147" cy="1365" r="1.3" fill="#9fc0ff" opacity="0.6"/><circle cx="1030" cy="992" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="805" cy="349" r="0.6" fill="#9fc0ff" opacity="0.25"/><circle cx="651" cy="189" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="265" cy="1507" r="1.3" fill="#9fc0ff" opacity="0.25"/><circle cx="276" cy="424" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="850" cy="481" r="0.9" fill="#9fc0ff" opacity="0.6"/><circle cx="308" cy="1278" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="300" cy="985" r="0.6" fill="#9fc0ff" opacity="0.4"/><circle cx="1150" cy="1036" r="0.9" fill="#9fc0ff" opacity="0.25"/><circle cx="1058" cy="1301" r="0.6" fill="#9fc0ff" opacity="0.6"/>
+<text x="70" y="56" fill="#f4c95d" font-size="15" font-weight="700" letter-spacing="4">E1 · planning.sprint-planning</text>
+<text x="70" y="92" fill="#eef3ff" font-size="30" font-weight="700">Sprint Planning</text>
+<text x="70" y="118" fill="#9fb0d6" font-size="14" font-style="italic">“Plan the next sprint" / "Plan sprint for [team] with [goals]”</text>
+<text x="1110" y="56" text-anchor="end" fill="#37d0d6" font-size="13" font-weight="600" letter-spacing="1">15-30 min | ~$0.20-1 | 10k-30k tokens</text>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,256 C196.0,287.0 196.0,287.0 196.0,318" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,318) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,424 C196.0,455.0 196.0,455.0 196.0,486" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,486) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,592 C196.0,623.0 196.0,623.0 196.0,654" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,654) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,760 C196.0,791.0 196.0,791.0 196.0,822" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,822) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,928 C196.0,959.0 196.0,959.0 196.0,990" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,990) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1096 C196.0,1127.0 196.0,1127.0 196.0,1158" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1158) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="#37d0d6" stroke-width="11" opacity="0.14"/>
+<path d="M196.0,1264 C196.0,1295.0 196.0,1295.0 196.0,1326" fill="none" stroke="url(#e_flow)" stroke-width="3.4" opacity="0.95"/>
+<g transform="translate(196.0,1326) rotate(90)"><path d="M-6,-9 L6,0 L-6,9 Z" fill="#37d0d6"/></g>
+<rect x="54" y="134" width="284" height="138" rx="34" fill="#dfe8ff" opacity="0.1"/>
+<rect x="61" y="141" width="270" height="124" rx="27" fill="#dfe8ff" opacity="0.16"/>
+<path d="M322,164 L337,181 L337,273 L85,273 L322,256 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="150" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="150" width="8" height="106" rx="4" fill="#dfe8ff"/>
+<circle cx="100" cy="176" r="7" fill="#dfe8ff"/>
+<text x="116" y="181" fill="#dfe8ff" font-size="12.5" font-weight="600" letter-spacing="1">ENTRY</text>
+<text x="90" y="212" fill="#eef3ff" font-size="20" font-weight="700">Prompt</text>
+<text x="90" y="236" fill="#9fb0d6" font-size="13">Plan the next sprint" / "Plan spr…</text>
+<rect x="54" y="302" width="284" height="138" rx="34" fill="#37d0d6" opacity="0.1"/>
+<rect x="61" y="309" width="270" height="124" rx="27" fill="#37d0d6" opacity="0.16"/>
+<path d="M322,332 L337,349 L337,441 L85,441 L322,424 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="318" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="318" width="8" height="106" rx="4" fill="#37d0d6"/>
+<circle cx="100" cy="344" r="7" fill="#37d0d6"/>
+<text x="116" y="349" fill="#37d0d6" font-size="12.5" font-weight="600" letter-spacing="1">RESEARCH</text>
+<text x="90" y="380" fill="#eef3ff" font-size="20" font-weight="700">Backlog Analysis</text>
+<text x="90" y="404" fill="#9fb0d6" font-size="13">workflow.planner</text>
+<rect x="54" y="470" width="284" height="138" rx="34" fill="#8ab4ff" opacity="0.1"/>
+<rect x="61" y="477" width="270" height="124" rx="27" fill="#8ab4ff" opacity="0.16"/>
+<path d="M322,500 L337,517 L337,609 L85,609 L322,592 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="486" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="486" width="8" height="106" rx="4" fill="#8ab4ff"/>
+<circle cx="100" cy="512" r="7" fill="#8ab4ff"/>
+<text x="116" y="517" fill="#8ab4ff" font-size="12.5" font-weight="600" letter-spacing="1">PLAN</text>
+<text x="90" y="548" fill="#eef3ff" font-size="20" font-weight="700">Capacity Planning</text>
+<text x="90" y="572" fill="#9fb0d6" font-size="13">workflow.planner</text>
+<rect x="54" y="638" width="284" height="138" rx="34" fill="#8ab4ff" opacity="0.1"/>
+<rect x="61" y="645" width="270" height="124" rx="27" fill="#8ab4ff" opacity="0.16"/>
+<path d="M322,668 L337,685 L337,777 L85,777 L322,760 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="654" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="654" width="8" height="106" rx="4" fill="#8ab4ff"/>
+<circle cx="100" cy="680" r="7" fill="#8ab4ff"/>
+<text x="116" y="685" fill="#8ab4ff" font-size="12.5" font-weight="600" letter-spacing="1">PLAN</text>
+<text x="90" y="716" fill="#eef3ff" font-size="20" font-weight="700">Selection</text>
+<text x="90" y="740" fill="#9fb0d6" font-size="13">workflow.planner</text>
+<rect x="54" y="806" width="284" height="138" rx="34" fill="#a78bfa" opacity="0.1"/>
+<rect x="61" y="813" width="270" height="124" rx="27" fill="#a78bfa" opacity="0.16"/>
+<path d="M322,836 L337,853 L337,945 L85,945 L322,928 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="822" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="822" width="8" height="106" rx="4" fill="#a78bfa"/>
+<circle cx="100" cy="848" r="7" fill="#a78bfa"/>
+<text x="116" y="853" fill="#a78bfa" font-size="12.5" font-weight="600" letter-spacing="1">AGENT</text>
+<text x="90" y="884" fill="#eef3ff" font-size="20" font-weight="700">Task Breakdown</text>
+<text x="90" y="908" fill="#9fb0d6" font-size="13">creative.coder</text>
+<rect x="54" y="974" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="981" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1004 L337,1021 L337,1113 L85,1113 L322,1096 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="990" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="990" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1016" r="7" fill="#56d364"/>
+<text x="116" y="1021" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">OUTPUT</text>
+<text x="90" y="1052" fill="#eef3ff" font-size="20" font-weight="700">Commitment</text>
+<text x="90" y="1076" fill="#9fb0d6" font-size="13">workflow.human-loop</text>
+<rect x="54" y="1142" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1149" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1172 L337,1189 L337,1281 L85,1281 L322,1264 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1158" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1158" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1184" r="7" fill="#56d364"/>
+<text x="116" y="1189" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">OUTPUT</text>
+<text x="90" y="1220" fill="#eef3ff" font-size="20" font-weight="700">Setup</text>
+<text x="90" y="1244" fill="#9fb0d6" font-size="13">workflow.executor</text>
+<rect x="54" y="1310" width="284" height="138" rx="34" fill="#56d364" opacity="0.1"/>
+<rect x="61" y="1317" width="270" height="124" rx="27" fill="#56d364" opacity="0.16"/>
+<path d="M322,1340 L337,1357 L337,1449 L85,1449 L322,1432 Z" fill="#554620" opacity="0.9"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="#0b1122"/>
+<rect x="70" y="1326" width="252" height="106" rx="16" fill="none" stroke="#f4c95d" stroke-width="2" opacity="0.85"/>
+<rect x="70" y="1326" width="8" height="106" rx="4" fill="#56d364"/>
+<circle cx="100" cy="1352" r="7" fill="#56d364"/>
+<text x="116" y="1357" fill="#56d364" font-size="12.5" font-weight="600" letter-spacing="1">DONE</text>
+<text x="90" y="1388" fill="#eef3ff" font-size="20" font-weight="700">Delivery</text>
+<text x="90" y="1412" fill="#9fb0d6" font-size="13">canvas · files · KG</text>
+<text x="70" y="1520" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">NODE</text>
+<circle cx="122" cy="1516" r="6" fill="#dfe8ff"/><text x="134" y="1520" fill="#9fb0d6" font-size="12">entry</text>
+<circle cx="191" cy="1516" r="6" fill="#a78bfa"/><text x="203" y="1520" fill="#9fb0d6" font-size="12">agent</text>
+<circle cx="260" cy="1516" r="6" fill="#37d0d6"/><text x="272" y="1520" fill="#9fb0d6" font-size="12">research</text>
+<circle cx="353" cy="1516" r="6" fill="#f59e0b"/><text x="365" y="1520" fill="#9fb0d6" font-size="12">review</text>
+<circle cx="430" cy="1516" r="6" fill="#f4c95d"/><text x="442" y="1520" fill="#9fb0d6" font-size="12">gate</text>
+<circle cx="490" cy="1516" r="6" fill="#56d364"/><text x="502" y="1520" fill="#9fb0d6" font-size="12">output</text>
+<circle cx="567" cy="1516" r="6" fill="#56d364"/><text x="579" y="1520" fill="#9fb0d6" font-size="12">done</text>
+<circle cx="627" cy="1516" r="6" fill="#ff6b6b"/><text x="639" y="1520" fill="#9fb0d6" font-size="12">fail</text>
+<text x="70" y="1544" fill="#9fb0d6" font-size="12" font-weight="600" letter-spacing="1">EDGE</text>
+<line x1="122" y1="1540" x2="144" y2="1540" stroke="#37d0d6" stroke-width="3"/><text x="150" y="1544" fill="#9fb0d6" font-size="12">flow</text>
+<line x1="206" y1="1540" x2="228" y2="1540" stroke="#f4c95d" stroke-width="3"/><text x="234" y="1544" fill="#9fb0d6" font-size="12">branch</text>
+<line x1="307" y1="1540" x2="329" y2="1540" stroke="#f59e0b" stroke-width="3"/><text x="335" y="1544" fill="#9fb0d6" font-size="12">loop</text>
+<line x1="391" y1="1540" x2="413" y2="1540" stroke="#ff6b6b" stroke-width="3"/><text x="419" y="1544" fill="#9fb0d6" font-size="12">compensate</text>
+</svg>

@@ -1,0 +1,257 @@
+/* ════════════════════════════════════════════════════════════════
+   MUSE Dashboard — State-of-the-Art CSS Polish
+   Inspired by Linear, Raycast, Arc Browser
+   ════════════════════════════════════════════════════════════════
+
+   Applied as global overrides to make every element feel premium:
+   - Smooth transitions on all interactive elements
+   - Subtle inner shadows for depth
+   - Consistent border treatments
+   - Custom scrollbar styling
+   - Focus ring polish
+*/
+
+/* ── Smooth transitions on all interactive elements ── */
+button,
+a,
+input,
+textarea,
+select,
+[role="button"] {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease,
+    box-shadow 200ms ease,
+    transform 150ms ease;
+}
+
+/* ── Subtle inner shadow on cards for depth (Raycast-style) ── */
+[class*="rounded-xl"],
+[class*="rounded-lg"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Premium scrollbar (thin, minimal, Arc-style) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  transition: background 150ms ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Focus ring polish (Linear-style) ── */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3);
+  border-radius: 4px;
+}
+
+/* ── Text selection color ── */
+::selection {
+  background: rgba(6, 182, 212, 0.2);
+  color: inherit;
+}
+
+/* ── Smooth page transitions ── */
+main,
+[class*="flex-1"] {
+  view-transition-name: page-content;
+}
+
+/* ── Glassmorphic surface utility ── */
+.muse-glass {
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Accent glow utility ── */
+.muse-glow {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.08);
+}
+
+.muse-glow:hover {
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
+}
+
+/* ── Fade-in animation for content ── */
+@keyframes museFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.muse-fade-in {
+  animation: museFadeIn 0.2s ease-out;
+}
+
+/* ── Shimmer for loading states ── */
+@keyframes museShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.muse-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  background-size: 200% 100%;
+  animation: museShimmer 1.5s infinite;
+}
+
+/* ── Pulse for live indicators ── */
+@keyframes musePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.muse-pulse {
+  animation: musePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   MUSE Omni Global Luxe Pass — applies outside /omni too.
+   Keeps the Nous layout intact while upgrading the shell with
+   aurora depth, glass, better nav affordance, and premium motion.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --muse-luxe-cyan: #55f3ff;
+  --muse-luxe-violet: #b888ff;
+  --muse-luxe-gold: #ffd28a;
+  --muse-luxe-ink: #020305;
+  --muse-luxe-glass: rgba(7, 12, 18, 0.58);
+  --muse-luxe-edge: color-mix(in srgb, var(--midground-base, #ffe6cb) 18%, transparent);
+}
+
+body {
+  background:
+    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--muse-luxe-cyan) 20%, transparent), transparent 30%),
+    radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--muse-luxe-violet) 18%, transparent), transparent 32%),
+    radial-gradient(circle at 58% 100%, color-mix(in srgb, var(--muse-luxe-gold) 12%, transparent), transparent 34%),
+    var(--muse-luxe-ink);
+}
+
+#root > div::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(255,255,255,.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size: 76px 76px;
+  mask-image: radial-gradient(circle at 50% 28%, #000 0 48%, transparent 82%);
+  opacity: .55;
+}
+
+#root > div > aside,
+#root > div > div > aside {
+  background: linear-gradient(180deg, rgba(9, 15, 24, .76), rgba(4, 7, 11, .66)) !important;
+  border-color: var(--muse-luxe-edge) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    18px 0 70px rgba(0,0,0,.32),
+    0 0 80px color-mix(in srgb, var(--muse-luxe-cyan) 5%, transparent) !important;
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+}
+
+aside nav a {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+aside nav a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--muse-luxe-cyan) 16%, transparent), color-mix(in srgb, var(--muse-luxe-violet) 13%, transparent));
+  opacity: 0;
+  transition: opacity var(--dur-std) var(--ease-standard);
+  pointer-events: none;
+}
+
+aside nav a:hover::before,
+aside nav a[aria-current="page"]::before {
+  opacity: 1;
+}
+
+aside nav a[aria-current="page"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 10px 34px color-mix(in srgb, var(--muse-luxe-cyan) 9%, transparent);
+}
+
+header,
+[class*="PageHeader"],
+[class*="page-header"] {
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+main,
+[role="main"] {
+  position: relative;
+}
+
+button:hover,
+[role="button"]:hover,
+a:hover {
+  filter: saturate(1.08);
+}
+
+[class*="rounded-xl"],
+[class*="rounded-2xl"],
+[class*="rounded-3xl"] {
+  border-color: color-mix(in srgb, var(--midground-base, #ffe6cb) 16%, transparent);
+}
+
+@supports (background: color-mix(in srgb, white, black)) {
+  .text-midground,
+  .text-foreground {
+    text-shadow: 0 0 28px color-mix(in srgb, currentColor 9%, transparent);
+  }
+}

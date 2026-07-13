@@ -1,0 +1,250 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ======================================================================== */
+/* muse "Singularity" design tokens — canonical palette from the M.U.S.E repo
+/* One white core in the void; a single thin spectral ring.
+/* Elevation is TONAL (lift the void tone), never a drop shadow.
+/* Hierarchy by VALUE, not effects. Spectral color ≤ ~20% of any composition.
+/* ======================================================================== */
+:root {
+  --radius: 0.75rem;
+  --void: #050507;
+  --void-2: #0b0d12;
+  --void-3: #12151d;
+  --edge: #1c2030;
+  --core: #ffffff;
+  --sig-1: #7ae0ff;
+  --sig-2: #b388ff;
+  --ring-grad: linear-gradient(90deg, #7ae0ff, #b388ff);
+
+  --background: var(--void);
+  --foreground: #e8ecf4;
+  --card: var(--void-3);
+  --card-foreground: #e8ecf4;
+  --popover: var(--void-2);
+  --popover-foreground: #e8ecf4;
+  --primary: var(--core);
+  --primary-foreground: #04060c;
+  --secondary: var(--void-2);
+  --secondary-foreground: #e8ecf4;
+  --muted: var(--void-2);
+  --muted-foreground: #6b7388;
+  --accent: var(--void-2);
+  --accent-foreground: #e8ecf4;
+  --destructive: #ff5c63;
+  --border: var(--edge);
+  --input: var(--void-2);
+  --ring: var(--sig-1);
+  --chart-1: #7ae0ff;
+  --chart-2: #b388ff;
+  --chart-3: #5b8cff;
+  --chart-4: #5be3a0;
+  --chart-5: #f5c451;
+  --sidebar: #050507cc;
+  --sidebar-foreground: #e8ecf4;
+  --sidebar-primary: var(--core);
+  --sidebar-primary-foreground: #04060c;
+  --sidebar-accent: var(--void-2);
+  --sidebar-accent-foreground: #e8ecf4;
+  --sidebar-border: var(--edge);
+  --sidebar-ring: var(--sig-1);
+}
+
+.dark {
+  /* Singularity is dark-by-default; parity */
+  --background: var(--void);
+  --foreground: #e8ecf4;
+  --card: var(--void-3);
+  --card-foreground: #e8ecf4;
+  --popover: var(--void-2);
+  --popover-foreground: #e8ecf4;
+  --primary: var(--core);
+  --primary-foreground: #04060c;
+  --secondary: var(--void-2);
+  --secondary-foreground: #e8ecf4;
+  --muted: var(--void-2);
+  --muted-foreground: #6b7388;
+  --accent: var(--void-2);
+  --accent-foreground: #e8ecf4;
+  --destructive: #ff5c63;
+  --border: var(--edge);
+  --input: var(--void-2);
+  --ring: var(--sig-1);
+  --sidebar: #050507cc;
+  --sidebar-foreground: #e8ecf4;
+  --sidebar-primary: var(--core);
+  --sidebar-primary-foreground: #04060c;
+  --sidebar-accent: var(--void-2);
+  --sidebar-accent-foreground: #e8ecf4;
+  --sidebar-border: var(--edge);
+  --sidebar-ring: var(--sig-1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background:
+      radial-gradient(1100px 560px at 50% -8%,
+        rgba(122, 224, 255, 0.06) 0%,
+        rgba(179, 136, 255, 0.04) 40%,
+        transparent 70%),
+      var(--void);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), var(--font-geist-sans), serif;
+  }
+  .glyph-spin {
+    transform-origin: center;
+    animation: glyph-rot 9s linear infinite;
+  }
+  @keyframes glyph-rot {
+    to { transform: rotate(360deg); }
+  }
+  .phase-pulse {
+    animation: phase-pulse 350ms cubic-bezier(0.2, 0, 0, 1) infinite alternate;
+  }
+  @keyframes phase-pulse {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+  }
+  .phase-shimmer {
+    background-size: 200% 100%;
+    animation: rail-shimmer 1.6s cubic-bezier(0, 0, 0, 1) infinite;
+  }
+  @keyframes rail-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  /* Spectral ring accent — the one sparing brand flourish */
+  .spectral-text {
+    background: var(--ring-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .spectral-border {
+    border: 1px solid transparent;
+    border-image: var(--ring-grad) 1;
+  }
+  .spectral-edge-left {
+    border-left: 2px solid;
+    border-image: var(--ring-grad) 1;
+  }
+  .tonal-card {
+    background: var(--void-3);
+    border: 1px solid var(--edge);
+  }
+  .tonal-raised {
+    background: var(--void-2);
+    border: 1px solid var(--edge);
+  }
+  .void-deep {
+    background: var(--void);
+  }
+  /* Loading shimmer — tonal sweep, no neon */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(122, 224, 255, 0.07) 50%, transparent 70%);
+    animation: shimmer-slide 1.6s cubic-bezier(0.05, 0.7, 0.1, 1) infinite;
+  }
+  @keyframes shimmer-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+  /* Rec dot — the live indicator */
+  @keyframes muse-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .rec-dot {
+    animation: muse-pulse 1.4s ease-in-out infinite;
+  }
+  .core-dot {
+    background: var(--core);
+  }
+  /* Film edge kept for the reel frame */
+  .film-edge {
+    background-image: repeating-linear-gradient(
+      90deg,
+      #050507 0px, #050507 14px,
+      #1c2030 14px, #1c2030 18px
+    );
+  }
+  @keyframes muse-fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up {
+    animation: muse-fade-up 320ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  }
+  .scrollbar-muse::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-muse::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-muse::-webkit-scrollbar-thumb { background: rgba(122,224,255,0.25); border-radius: 8px; }
+  .scrollbar-muse::-webkit-scrollbar-thumb:hover { background: rgba(122,224,255,0.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-spin, .phase-pulse, .phase-shimmer, .shimmer::after, .rec-dot {
+    animation: none !important;
+  }
+}

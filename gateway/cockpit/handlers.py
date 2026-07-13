@@ -84,7 +84,8 @@ def health(_req: Request) -> JsonResponse:
         200,
         {
             "ok": True,
-            "service": "hermes-cockpit",
+            "service": "muse-cockpit",
+            "legacy_service": "hermes-cockpit",
             "api_version": COCKPIT_API_VERSION,
             "gateway_version": version,
             "agent": _AGENT_MODE,

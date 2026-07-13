@@ -1,0 +1,2574 @@
+{
+ "families": {
+  "master": {
+   "name": "Master Lifecycle",
+   "color": "#7cf6ff"
+  },
+  "creative": {
+   "name": "Creative & Writing",
+   "color": "#ff7ad9"
+  },
+  "research": {
+   "name": "Research & Analysis",
+   "color": "#37d0d6"
+  },
+  "engineering": {
+   "name": "Engineering & Dev",
+   "color": "#5ee0a0"
+  },
+  "design": {
+   "name": "Design & Visual",
+   "color": "#b48bff"
+  },
+  "planning": {
+   "name": "Planning & Mgmt",
+   "color": "#f4c95d"
+  },
+  "meta": {
+   "name": "Meta-Workflows",
+   "color": "#ffd36e"
+  },
+  "pattern": {
+   "name": "Universal Patterns",
+   "color": "#6ee7ff"
+  }
+ },
+ "order": [
+  "master",
+  "writing.essay",
+  "writing.technical-doc",
+  "writing.creative-story",
+  "research.literature-review",
+  "research.competitive-analysis",
+  "research.data-analysis",
+  "engineering.feature-development",
+  "engineering.code-review",
+  "engineering.debug-investigation",
+  "design.ui-mockup",
+  "design.diagram-generation",
+  "planning.sprint-planning",
+  "planning.project-roadmap",
+  "meta.research-to-content",
+  "meta.idea-to-mvp",
+  "pattern.hitl-gate",
+  "pattern.parallel",
+  "pattern.iterative",
+  "pattern.compensation"
+ ],
+ "flows": {
+  "master": {
+   "id": "master",
+   "code": "\u2605",
+   "family": "master",
+   "title": "Complete Request Lifecycle",
+   "prompt": "Every request, prompt \u2192 completion",
+   "metrics": "the whole pipeline",
+   "nodes": [
+    {
+     "id": "u",
+     "label": "User Input",
+     "sub": "prompt \u00b7 file \u00b7 canvas \u00b7 cron",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "e1",
+     "label": "Natural Language",
+     "sub": "prompt",
+     "type": "entry",
+     "row": 1,
+     "col": -2,
+     "flags": []
+    },
+    {
+     "id": "e2",
+     "label": "Structured Cmd",
+     "sub": "/ @ !",
+     "type": "entry",
+     "row": 1,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "e3",
+     "label": "File / Import",
+     "sub": "drag \u00b7 API",
+     "type": "entry",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "e4",
+     "label": "Canvas Selection",
+     "sub": "context",
+     "type": "entry",
+     "row": 1,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "e5",
+     "label": "Scheduled",
+     "sub": "cron \u00b7 CI \u00b7 webhook",
+     "type": "entry",
+     "row": 1,
+     "col": 2,
+     "flags": []
+    },
+    {
+     "id": "cls",
+     "label": "Intent Classifier",
+     "sub": "sys.classifier",
+     "type": "classify",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "t1",
+     "label": "Simple Task",
+     "sub": "direct agent",
+     "type": "branch",
+     "row": 3,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "t2",
+     "label": "Complex Task",
+     "sub": "single workflow",
+     "type": "branch",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "t3",
+     "label": "Multi-step",
+     "sub": "composed workflows",
+     "type": "branch",
+     "row": 3,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "orch",
+     "label": "Workflow Orchestrator",
+     "sub": "workflow.executor",
+     "type": "plan",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "w1",
+     "label": "Creative",
+     "sub": "writing \u00b7 design",
+     "type": "agent",
+     "row": 5,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "w2",
+     "label": "Research / Analysis",
+     "sub": "review \u00b7 data",
+     "type": "research",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "w3",
+     "label": "Engineering",
+     "sub": "build \u00b7 debug",
+     "type": "agent",
+     "row": 5,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "ael",
+     "label": "Agent Execution Layer",
+     "sub": "writer \u00b7 coder \u00b7 critic \u00b7 planner",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "o1",
+     "label": "Canvas Mutations",
+     "sub": "nodes \u00b7 edges",
+     "type": "tool",
+     "row": 7,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "o2",
+     "label": "Knowledge Graph",
+     "sub": "entities \u00b7 relations",
+     "type": "tool",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "o3",
+     "label": "Artifacts",
+     "sub": "pdf \u00b7 code \u00b7 data",
+     "type": "tool",
+     "row": 7,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "done",
+     "label": "Completion & Delivery",
+     "sub": "persist \u00b7 export \u00b7 notify \u00b7 next",
+     "type": "done",
+     "row": 8,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "u",
+     "to": "e1",
+     "kind": "flow"
+    },
+    {
+     "from": "u",
+     "to": "e2",
+     "kind": "flow"
+    },
+    {
+     "from": "u",
+     "to": "e3",
+     "kind": "flow"
+    },
+    {
+     "from": "u",
+     "to": "e4",
+     "kind": "flow"
+    },
+    {
+     "from": "u",
+     "to": "e5",
+     "kind": "flow"
+    },
+    {
+     "from": "e1",
+     "to": "cls",
+     "kind": "flow"
+    },
+    {
+     "from": "e2",
+     "to": "cls",
+     "kind": "flow"
+    },
+    {
+     "from": "e3",
+     "to": "cls",
+     "kind": "flow"
+    },
+    {
+     "from": "e4",
+     "to": "cls",
+     "kind": "flow"
+    },
+    {
+     "from": "e5",
+     "to": "cls",
+     "kind": "flow"
+    },
+    {
+     "from": "cls",
+     "to": "t1",
+     "kind": "flow"
+    },
+    {
+     "from": "cls",
+     "to": "t2",
+     "kind": "flow"
+    },
+    {
+     "from": "cls",
+     "to": "t3",
+     "kind": "flow"
+    },
+    {
+     "from": "t1",
+     "to": "orch",
+     "kind": "flow"
+    },
+    {
+     "from": "t2",
+     "to": "orch",
+     "kind": "flow"
+    },
+    {
+     "from": "t3",
+     "to": "orch",
+     "kind": "flow"
+    },
+    {
+     "from": "orch",
+     "to": "w1",
+     "kind": "flow"
+    },
+    {
+     "from": "orch",
+     "to": "w2",
+     "kind": "flow"
+    },
+    {
+     "from": "orch",
+     "to": "w3",
+     "kind": "flow"
+    },
+    {
+     "from": "w1",
+     "to": "ael",
+     "kind": "flow"
+    },
+    {
+     "from": "w2",
+     "to": "ael",
+     "kind": "flow"
+    },
+    {
+     "from": "w3",
+     "to": "ael",
+     "kind": "flow"
+    },
+    {
+     "from": "ael",
+     "to": "o1",
+     "kind": "flow"
+    },
+    {
+     "from": "ael",
+     "to": "o2",
+     "kind": "flow"
+    },
+    {
+     "from": "ael",
+     "to": "o3",
+     "kind": "flow"
+    },
+    {
+     "from": "o1",
+     "to": "done",
+     "kind": "flow"
+    },
+    {
+     "from": "o2",
+     "to": "done",
+     "kind": "flow"
+    },
+    {
+     "from": "o3",
+     "to": "done",
+     "kind": "flow"
+    }
+   ]
+  },
+  "writing.essay": {
+   "id": "writing.essay",
+   "code": "A1",
+   "family": "creative",
+   "title": "Long-form Essay/Article",
+   "prompt": "Write a 3000-word essay on [topic] for [audience]",
+   "metrics": "15-45 min | ~$0.50-2.00 | 15k-50k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Write a 3000-word essay on [topic] for [audien",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Research",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s2",
+     "label": "Outline Generation",
+     "sub": "creative.writer",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Section Drafting",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s4",
+     "label": "Assembly",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Self Critique",
+     "sub": "creative.critic",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": [
+      "loop"
+     ]
+    },
+    {
+     "id": "s6",
+     "label": "Format & Export",
+     "sub": "creative.formatter",
+     "type": "output",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s4",
+     "kind": "loop"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "writing.technical-doc": {
+   "id": "writing.technical-doc",
+   "code": "A2",
+   "family": "creative",
+   "title": "Technical Documentation",
+   "prompt": "Create API docs for this codebase\" / \"Write a README for this repo",
+   "metrics": "",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Create API docs for this codebase\" / \"Write a ",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Codebase Analysis",
+     "sub": "creative.coder",
+     "type": "agent",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Existing Docs Audit",
+     "sub": "creative.researcher",
+     "type": "review",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Structure Planning",
+     "sub": "creative.writer",
+     "type": "plan",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Content Generation",
+     "sub": "creative.writer + coder",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s5",
+     "label": "Validation",
+     "sub": "creative.coder",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Format & Publish",
+     "sub": "creative.formatter",
+     "type": "output",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "writing.creative-story": {
+   "id": "writing.creative-story",
+   "code": "A3",
+   "family": "creative",
+   "title": "Fiction/Creative Writing",
+   "prompt": "Write a short story about [concept]\" / \"Continue my novel chapter",
+   "metrics": "",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Write a short story about [concept]\" / \"Contin",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Story Development",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Scene Breakdown",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Scene Drafting",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Developmental Edit",
+     "sub": "creative.critic",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Line Edit",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 5,
+     "col": 0,
+     "flags": [
+      "loop"
+     ]
+    },
+    {
+     "id": "s6",
+     "label": "Format",
+     "sub": "creative.formatter",
+     "type": "output",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s4",
+     "kind": "loop"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "research.literature-review": {
+   "id": "research.literature-review",
+   "code": "B1",
+   "family": "research",
+   "title": "Academic Literature Review",
+   "prompt": "Do a literature review on [topic]\" / \"Find all papers about X since 2020",
+   "metrics": "30-120 min | ~$2-10 | 50k-200k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Do a literature review on [topic]\" / \"Find all",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Query Expansion",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Search Execution",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s3",
+     "label": "Screening",
+     "sub": "creative.researcher",
+     "type": "review",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Data Extraction",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 4,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s5",
+     "label": "Quality Assessment",
+     "sub": "creative.analyst",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Synthesis",
+     "sub": "creative.researcher",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s7",
+     "label": "Report Generation",
+     "sub": "creative.writer",
+     "type": "output",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 8,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "s7",
+     "kind": "flow"
+    },
+    {
+     "from": "s7",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "research.competitive-analysis": {
+   "id": "research.competitive-analysis",
+   "code": "B2",
+   "family": "research",
+   "title": "Market/Competitive Intelligence",
+   "prompt": "Analyze the competitive landscape for [product/space]",
+   "metrics": "20-60 min | ~$1-5 | 30k-100k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Analyze the competitive landscape for [product",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Competitor Discovery",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Data Collection",
+     "sub": "creative.researcher",
+     "type": "agent",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s3",
+     "label": "Feature Matrix",
+     "sub": "creative.analyst",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Positioning Analysis",
+     "sub": "creative.researcher",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Traction Benchmarking",
+     "sub": "creative.analyst",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Strategic Synthesis",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "research.data-analysis": {
+   "id": "research.data-analysis",
+   "code": "B3",
+   "family": "research",
+   "title": "Exploratory Data Analysis",
+   "prompt": "Analyze this dataset\" / \"Find insights in data.csv",
+   "metrics": "15-60 min | ~$0.50-3 | 20k-80k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Analyze this dataset\" / \"Find insights in data",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Data Ingestion",
+     "sub": "creative.analyst",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Data Quality Assessment",
+     "sub": "creative.analyst",
+     "type": "review",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Exploratory Analysis",
+     "sub": "creative.analyst",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s4",
+     "label": "Hypothesis Testing",
+     "sub": "creative.analyst",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Modeling",
+     "sub": "creative.analyst",
+     "type": "agent",
+     "row": 5,
+     "col": 0,
+     "flags": [
+      "cond"
+     ]
+    },
+    {
+     "id": "s6",
+     "label": "Insight Synthesis",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "engineering.feature-development": {
+   "id": "engineering.feature-development",
+   "code": "C1",
+   "family": "engineering",
+   "title": "Full Feature Implementation",
+   "prompt": "Build a [feature] for [codebase]\" / \"Implement user authentication",
+   "metrics": "30min-4hr | ~$1-20 | 50k-500k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Build a [feature] for [codebase]\" / \"Implement",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Spec Analysis",
+     "sub": "creative.coder",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Implementation Planning",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Task Execution",
+     "sub": "creative.coder",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s4",
+     "label": "Integration Testing",
+     "sub": "creative.coder",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Code Review",
+     "sub": "creative.critic",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Documentation Update",
+     "sub": "creative.writer",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s7",
+     "label": "Deployment",
+     "sub": "workflow.executor",
+     "type": "output",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 8,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "s7",
+     "kind": "flow"
+    },
+    {
+     "from": "s7",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "engineering.code-review": {
+   "id": "engineering.code-review",
+   "code": "C2",
+   "family": "engineering",
+   "title": "Automated Code Review",
+   "prompt": "Review this PR\" / \"Review changes in [branch/commit]",
+   "metrics": "2-10 min | ~$0.20-1 | 10k-50k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Review this PR\" / \"Review changes in [branch/c",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Diff Analysis",
+     "sub": "creative.coder",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Automated Checks",
+     "sub": "creative.coder",
+     "type": "agent",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s3",
+     "label": "Semantic Review",
+     "sub": "creative.critic",
+     "type": "review",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Architecture Review",
+     "sub": "creative.coder",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": [
+      "cond"
+     ]
+    },
+    {
+     "id": "s5",
+     "label": "Review Synthesis",
+     "sub": "creative.writer",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "engineering.debug-investigation": {
+   "id": "engineering.debug-investigation",
+   "code": "C3",
+   "family": "engineering",
+   "title": "Root Cause Analysis",
+   "prompt": "Debug why [error/behavior] is happening\" / \"Investigate production issue",
+   "metrics": "15min-2hr | ~$0.50-5 | 20k-100k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Debug why [error/behavior] is happening\" / \"In",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Symptom Analysis",
+     "sub": "creative.coder",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Evidence Gathering",
+     "sub": "creative.coder",
+     "type": "research",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s3",
+     "label": "Hypothesis Testing",
+     "sub": "creative.coder",
+     "type": "review",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "loop"
+     ]
+    },
+    {
+     "id": "s4",
+     "label": "Fix Development",
+     "sub": "creative.coder",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Postmortem",
+     "sub": "creative.writer",
+     "type": "output",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s2",
+     "kind": "loop"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "design.ui-mockup": {
+   "id": "design.ui-mockup",
+   "code": "D1",
+   "family": "design",
+   "title": "UI/UX Design Generation",
+   "prompt": "Design a [screen/flow] for [product]\" / \"Create mockups for [feature]",
+   "metrics": "30min-3hr | ~$1-10 | 20k-150k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Design a [screen/flow] for [product]\" / \"Creat",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Requirements Analysis",
+     "sub": "creative.designer",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Ia & Flow",
+     "sub": "creative.designer",
+     "type": "agent",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Wireframing",
+     "sub": "creative.designer",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "parallel"
+     ]
+    },
+    {
+     "id": "s4",
+     "label": "Visual Design",
+     "sub": "creative.designer",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": [
+      "cond"
+     ]
+    },
+    {
+     "id": "s5",
+     "label": "Accessibility Audit",
+     "sub": "creative.critic",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Prototype",
+     "sub": "creative.designer",
+     "type": "agent",
+     "row": 6,
+     "col": 0,
+     "flags": [
+      "cond"
+     ]
+    },
+    {
+     "id": "s7",
+     "label": "Handoff",
+     "sub": "creative.formatter",
+     "type": "output",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 8,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "s7",
+     "kind": "flow"
+    },
+    {
+     "from": "s7",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "design.diagram-generation": {
+   "id": "design.diagram-generation",
+   "code": "D2",
+   "family": "design",
+   "title": "Technical Diagrams",
+   "prompt": "Create an architecture diagram for [system]\" / \"Draw a sequence diagram for",
+   "metrics": "1-5 min | ~$0.10-0.50 | 5k-20k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Create an architecture diagram for [system]\" /",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Content Extraction",
+     "sub": "creative.coder",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Layout Computation",
+     "sub": "creative.designer",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Rendering",
+     "sub": "creative.designer",
+     "type": "output",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Validation",
+     "sub": "creative.critic",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "planning.sprint-planning": {
+   "id": "planning.sprint-planning",
+   "code": "E1",
+   "family": "planning",
+   "title": "Sprint Planning",
+   "prompt": "Plan the next sprint\" / \"Plan sprint for [team] with [goals]",
+   "metrics": "15-30 min | ~$0.20-1 | 10k-30k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Plan the next sprint\" / \"Plan sprint for [team",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Backlog Analysis",
+     "sub": "workflow.planner",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Capacity Planning",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Selection",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Task Breakdown",
+     "sub": "creative.coder",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Commitment",
+     "sub": "workflow.human-loop",
+     "type": "output",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s6",
+     "label": "Setup",
+     "sub": "workflow.executor",
+     "type": "output",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 7,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "s6",
+     "kind": "flow"
+    },
+    {
+     "from": "s6",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "planning.project-roadmap": {
+   "id": "planning.project-roadmap",
+   "code": "E2",
+   "family": "planning",
+   "title": "Strategic Roadmap",
+   "prompt": "Create a roadmap for [project/product]\" / \"Plan Q3/Q4 roadmap",
+   "metrics": "1-3 hr | ~$2-10 | 50k-150k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "Create a roadmap for [project/product]\" / \"Pla",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s1",
+     "label": "Context Synthesis",
+     "sub": "creative.researcher",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Initiative Generation",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Roadmap Construction",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Team Alignment",
+     "sub": "workflow.human-loop",
+     "type": "agent",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s5",
+     "label": "Execution Plan",
+     "sub": "workflow.planner",
+     "type": "plan",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Delivery",
+     "sub": "canvas \u00b7 files \u00b7 KG",
+     "type": "done",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "s1",
+     "kind": "flow"
+    },
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "s4",
+     "to": "s5",
+     "kind": "flow"
+    },
+    {
+     "from": "s5",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "meta.research-to-content": {
+   "id": "meta.research-to-content",
+   "code": "F1",
+   "family": "meta",
+   "title": "Research \u2192 Content Pipeline",
+   "prompt": "Research [topic] and create [blog/whitepaper/script]",
+   "metrics": "45min-3hr | ~$3-25 | 80k-400k tokens",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Prompt",
+     "sub": "research + create",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "p1",
+     "label": "Research",
+     "sub": "literature / competitive / data",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "p2",
+     "label": "Strategy",
+     "sub": "creative.writer \u00b7 outline",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "gate"
+     ]
+    },
+    {
+     "id": "p3",
+     "label": "Creation",
+     "sub": "essay / doc / story / mockup",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "p4",
+     "label": "Refinement",
+     "sub": "critic \u00b7 editor \u00b7 SEO",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "p5",
+     "label": "Distribution",
+     "sub": "meta.publish \u00b7 channels",
+     "type": "output",
+     "row": 5,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Published",
+     "sub": "urls \u00b7 analytics",
+     "type": "done",
+     "row": 6,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "p1",
+     "kind": "flow"
+    },
+    {
+     "from": "p1",
+     "to": "p2",
+     "kind": "flow"
+    },
+    {
+     "from": "p2",
+     "to": "p3",
+     "kind": "flow"
+    },
+    {
+     "from": "p3",
+     "to": "p4",
+     "kind": "flow"
+    },
+    {
+     "from": "p4",
+     "to": "p5",
+     "kind": "flow"
+    },
+    {
+     "from": "p5",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "meta.idea-to-mvp": {
+   "id": "meta.idea-to-mvp",
+   "code": "F2",
+   "family": "meta",
+   "title": "Idea to Shippable Product",
+   "prompt": "Build an MVP for [idea]",
+   "metrics": "discovery \u2192 definition \u2192 build \u2192 launch \u2192 iterate",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Idea",
+     "sub": "concept",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "d1",
+     "label": "Discovery",
+     "sub": "2-4 hr \u00b7 research",
+     "type": "research",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "d2",
+     "label": "Definition",
+     "sub": "1-2 hr \u00b7 spec",
+     "type": "plan",
+     "row": 2,
+     "col": 0,
+     "flags": [
+      "gate"
+     ]
+    },
+    {
+     "id": "d3",
+     "label": "Build",
+     "sub": "sprints \u00b7 2 wks each",
+     "type": "agent",
+     "row": 3,
+     "col": 0,
+     "flags": [
+      "loop"
+     ]
+    },
+    {
+     "id": "d4",
+     "label": "Launch",
+     "sub": "1-2 days \u00b7 deploy",
+     "type": "output",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "d5",
+     "label": "Iterate",
+     "sub": "ongoing",
+     "type": "review",
+     "row": 5,
+     "col": 0,
+     "flags": [
+      "loop"
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "d1",
+     "kind": "flow"
+    },
+    {
+     "from": "d1",
+     "to": "d2",
+     "kind": "flow"
+    },
+    {
+     "from": "d2",
+     "to": "d3",
+     "kind": "flow"
+    },
+    {
+     "from": "d3",
+     "to": "d4",
+     "kind": "flow"
+    },
+    {
+     "from": "d4",
+     "to": "d5",
+     "kind": "flow"
+    },
+    {
+     "from": "d5",
+     "to": "d3",
+     "kind": "loop"
+    }
+   ]
+  },
+  "pattern.hitl-gate": {
+   "id": "pattern.hitl-gate",
+   "code": "P1",
+   "family": "pattern",
+   "title": "Human-in-the-Loop Gate",
+   "prompt": "Checkpoint \u2192 notify \u2192 human decision",
+   "metrics": "pause \u00b7 approve / revise / reject",
+   "nodes": [
+    {
+     "id": "a",
+     "label": "Agent Work",
+     "sub": "",
+     "type": "agent",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "p",
+     "label": "Pause",
+     "sub": "checkpoint saved",
+     "type": "tool",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "n",
+     "label": "Notification",
+     "sub": "toast \u00b7 desktop \u00b7 email \u00b7 slack",
+     "type": "tool",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "h",
+     "label": "Human Review",
+     "sub": "context \u00b7 preview \u00b7 decision",
+     "type": "gate",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "ap",
+     "label": "Approve",
+     "sub": "continue",
+     "type": "done",
+     "row": 4,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "rv",
+     "label": "Revise",
+     "sub": "feedback \u2192 agent",
+     "type": "review",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "rj",
+     "label": "Reject",
+     "sub": "stop + compensate",
+     "type": "fail",
+     "row": 4,
+     "col": 1,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "a",
+     "to": "p",
+     "kind": "flow"
+    },
+    {
+     "from": "p",
+     "to": "n",
+     "kind": "flow"
+    },
+    {
+     "from": "n",
+     "to": "h",
+     "kind": "flow"
+    },
+    {
+     "from": "h",
+     "to": "ap",
+     "kind": "branch"
+    },
+    {
+     "from": "h",
+     "to": "rv",
+     "kind": "branch"
+    },
+    {
+     "from": "h",
+     "to": "rj",
+     "kind": "branch"
+    },
+    {
+     "from": "rv",
+     "to": "a",
+     "kind": "loop"
+    }
+   ]
+  },
+  "pattern.parallel": {
+   "id": "pattern.parallel",
+   "code": "P2",
+   "family": "pattern",
+   "title": "Parallel Fan-out / Fan-in",
+   "prompt": "Split \u2192 parallel agents \u2192 aggregate",
+   "metrics": "max_parallel \u00b7 timeout \u00b7 failure_policy",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Single Input",
+     "sub": "",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "sp",
+     "label": "Splitter",
+     "sub": "workflow.executor \u00b7 map",
+     "type": "plan",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "t1",
+     "label": "Task 1",
+     "sub": "agent",
+     "type": "agent",
+     "row": 2,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "t2",
+     "label": "Task 2",
+     "sub": "agent",
+     "type": "agent",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "t3",
+     "label": "Task 3",
+     "sub": "agent",
+     "type": "agent",
+     "row": 2,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "ag",
+     "label": "Aggregator",
+     "sub": "collect \u00b7 merge \u00b7 validate",
+     "type": "review",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Single Output",
+     "sub": "",
+     "type": "done",
+     "row": 4,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "sp",
+     "kind": "flow"
+    },
+    {
+     "from": "sp",
+     "to": "t1",
+     "kind": "branch"
+    },
+    {
+     "from": "sp",
+     "to": "t2",
+     "kind": "branch"
+    },
+    {
+     "from": "sp",
+     "to": "t3",
+     "kind": "branch"
+    },
+    {
+     "from": "t1",
+     "to": "ag",
+     "kind": "flow"
+    },
+    {
+     "from": "t2",
+     "to": "ag",
+     "kind": "flow"
+    },
+    {
+     "from": "t3",
+     "to": "ag",
+     "kind": "flow"
+    },
+    {
+     "from": "ag",
+     "to": "out",
+     "kind": "flow"
+    }
+   ]
+  },
+  "pattern.iterative": {
+   "id": "pattern.iterative",
+   "code": "P3",
+   "family": "pattern",
+   "title": "Iterative Refinement Loop",
+   "prompt": "Generate \u2192 evaluate \u2192 (iterate | done)",
+   "metrics": "score threshold \u00b7 max iterations",
+   "nodes": [
+    {
+     "id": "in",
+     "label": "Input",
+     "sub": "",
+     "type": "entry",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "g",
+     "label": "Generate",
+     "sub": "agent A \u00b7 creator",
+     "type": "agent",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "e",
+     "label": "Evaluate",
+     "sub": "agent B \u00b7 critic",
+     "type": "review",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "out",
+     "label": "Output",
+     "sub": "score \u2265 threshold",
+     "type": "done",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "in",
+     "to": "g",
+     "kind": "flow"
+    },
+    {
+     "from": "g",
+     "to": "e",
+     "kind": "flow"
+    },
+    {
+     "from": "e",
+     "to": "out",
+     "kind": "branch"
+    },
+    {
+     "from": "e",
+     "to": "g",
+     "kind": "loop"
+    }
+   ]
+  },
+  "pattern.compensation": {
+   "id": "pattern.compensation",
+   "code": "P4",
+   "family": "pattern",
+   "title": "Compensation / Rollback",
+   "prompt": "Failure \u2192 retry \u2192 compensate in reverse",
+   "metrics": "retry \u00b7 backoff \u00b7 circuit-break \u00b7 rollback",
+   "nodes": [
+    {
+     "id": "s1",
+     "label": "Step 1",
+     "sub": "\u2713",
+     "type": "agent",
+     "row": 0,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s2",
+     "label": "Step 2",
+     "sub": "\u2713",
+     "type": "agent",
+     "row": 1,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "s3",
+     "label": "Step 3",
+     "sub": "\u2717 failure",
+     "type": "fail",
+     "row": 2,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "rt",
+     "label": "Retry Policy",
+     "sub": "max \u00b7 backoff \u00b7 breaker",
+     "type": "review",
+     "row": 3,
+     "col": 0,
+     "flags": []
+    },
+    {
+     "id": "ok",
+     "label": "Retry OK",
+     "sub": "continue",
+     "type": "agent",
+     "row": 4,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "s4",
+     "label": "Step 4 \u2192 Complete",
+     "sub": "",
+     "type": "done",
+     "row": 5,
+     "col": -1,
+     "flags": []
+    },
+    {
+     "id": "cx",
+     "label": "Compensations",
+     "sub": "rollback fs \u00b7 kg \u00b7 canvas",
+     "type": "compensate",
+     "row": 4,
+     "col": 1,
+     "flags": []
+    },
+    {
+     "id": "rb",
+     "label": "Rolled Back",
+     "sub": "preserved artifacts",
+     "type": "fail",
+     "row": 5,
+     "col": 1,
+     "flags": []
+    }
+   ],
+   "edges": [
+    {
+     "from": "s1",
+     "to": "s2",
+     "kind": "flow"
+    },
+    {
+     "from": "s2",
+     "to": "s3",
+     "kind": "flow"
+    },
+    {
+     "from": "s3",
+     "to": "rt",
+     "kind": "flow"
+    },
+    {
+     "from": "rt",
+     "to": "ok",
+     "kind": "branch"
+    },
+    {
+     "from": "ok",
+     "to": "s4",
+     "kind": "flow"
+    },
+    {
+     "from": "rt",
+     "to": "cx",
+     "kind": "branch"
+    },
+    {
+     "from": "cx",
+     "to": "rb",
+     "kind": "compensate"
+    }
+   ]
+  }
+ }
+}

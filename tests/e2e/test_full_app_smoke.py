@@ -1,14 +1,14 @@
-"""End-to-end "client journey" smoke for the whole app.
+﻿"""End-to-end "client journey" smoke for the whole app.
 
 Exercises the surfaces a real owner touches, with no network and no model
-configured — proving the pieces *synergize* rather than just import:
+configured â€” proving the pieces *synergize* rather than just import:
 
 1. **Cockpit HTTP server** boots, gates on the bearer token, reports health,
    and streams a **real** muse turn over the chunk vocabulary the
-   Android avatar consumes (``thinking`` → ``tone`` → … → ``body`` → ``done``).
+   Android avatar consumes (``thinking`` â†’ ``tone`` â†’ â€¦ â†’ ``body`` â†’ ``done``).
 2. **Shared memory** is one brain across surfaces: a fact written through one
    ``JarvisPrime`` instance is recollected by a *fresh* instance pointed at the
-   same ``HERMES_HOME`` — i.e. surfaces learn from one another.
+   same ``HERMES_HOME`` â€” i.e. surfaces learn from one another.
 
 These run without API keys: the chat responder degrades to the JARVIS turn
 summary when no model is reachable, which is the designed behaviour.
@@ -43,7 +43,7 @@ def _req(base, method, path, token, body=None, auth=True):
 
 
 def test_cockpit_journey_health_auth_and_streaming_chat(hermes_home):
-    """Boot the cockpit and walk health → auth gate → streamed JARVIS turn."""
+    """Boot the cockpit and walk health â†’ auth gate â†’ streamed JARVIS turn."""
     from gateway.cockpit.server import serve
 
     token = "e2e-smoke-token"
@@ -54,7 +54,7 @@ def test_cockpit_journey_health_auth_and_streaming_chat(hermes_home):
         # Health needs no auth and reports the service identity.
         health = json.loads(_req(base, "GET", "/v1/health", token, auth=False).read())
         assert health.get("ok") is True
-        assert health.get("service") == "hermes-cockpit"
+        assert health.get("service") == "muse-cockpit"
 
         # Authed routes reject a missing token.
         with pytest.raises(urllib.error.HTTPError) as exc:
@@ -114,5 +114,5 @@ def test_shared_memory_is_one_brain_across_surfaces(hermes_home):
         return str(hit)
 
     assert any("dark mode" in _text(h) for h in hits), (
-        "fact written by surface A was not visible to surface B — memory is not shared"
+        "fact written by surface A was not visible to surface B â€” memory is not shared"
     )

@@ -1,91 +1,63 @@
-# SYNAPSE — UE 5.6 scaffold (Prompt 0, STAGED)
+# SYNAPSE — Unreal Engine 5.6 source project
 
-This is the **Prompt 0 scaffold** from the SYNAPSE master plan
-(`docs/plans/2026-06-10-project-synapse-master-plan.md` §13): the UE 5.6
-C++ project skeleton with modules `SynapseCore` and `SynapseNet`
-(`UmuseGatewayClient` + `UmuseSseClient`) over the frozen cockpit wire
-contract (`docs/contracts/cockpit-wire-contract.md`).
+This directory is the source-only Unreal companion for M.U.S.E. It now includes
+the frozen universe projection contract, an Atlas Crown runtime projection, and
+native stereo-cinematic queueing in addition to the existing core, networking,
+observatory, and render modules.
 
-**Why it lives here:** the standalone `SYNAPSE` GitHub repo could not be
-created from the build session (403, out of scope for the session's
-credentials), so the scaffold is **staged** at `apps/synapse-ue/` in the
-muse monorepo — **source-only, zero binary assets** — designed for
-verbatim copy into the future SYNAPSE repo. Per the master plan §5, UE
-binary assets do **not** belong in this monorepo; nothing binary is here.
+No Unreal Engine binaries, cooked content, credentials, signing identities, or
+Pixel Streaming infrastructure are bundled here. The project remains staged in
+the monorepo for later migration to the private standalone SYNAPSE repository.
 
-## Layout
+## Current layout
 
-```
-Synapse.uproject                  UE 5.6, modules SynapseCore + SynapseNet
-Source/Synapse(.Editor).Target.cs Game + Editor targets
-Source/SynapseCore/               Foundation module (log category, boilerplate,
-                                  MuseSacredGeometry closed-form generators)
-Source/SynapseNet/                Gateway client: settings, HTTP subsystem, SSE
-Source/SynapseObservatory/        /v1/observatory/* typed client (data plane)
-Source/SynapseObservatoryRender/  Phase-3 galaxy renderer: sacred-geometry +
-                                  4D-polytope layouts (docs/sacred-geometry.md)
-Config/                           Minimal DefaultEngine/DefaultGame ini
-Content/.gitkeep                  Empty by policy — see file comment
-docs/synapsenet.md                Module doc: threading, token, SSE, backoff
-docs/testmap-setup.md             6-step in-editor BP test map instructions
-tools/stub_gateway.py             Prompt 0 fallback stub (validated here)
-.github/workflows/build-win64.yml CI for the FUTURE repo — inert here
-.gitattributes / .gitignore       LFS rules + standard UE ignores
+```text
+Synapse.uproject                  UE 5.6 module and plugin declarations
+Config/UniverseContract.lock.json
+                                  Frozen schema hashes, major version, and routes
+Source/SynapseCore/               Foundation and geometry utilities
+Source/SynapseNet/                Authorized HTTP/SSE gateway boundary
+Source/SynapseObservatory/        Typed observatory projection client
+Source/SynapseObservatoryRender/  Existing observatory renderer
+Source/SynapseUniverse/           Universe state, Atlas Crown, and vessel actors
+Source/SynapseCinematic/          Physical stereo rig and deterministic MRQ jobs
+Config/DefaultScalability.ini     Cinema through Accessible 2D profiles
+docs/atlas-crown-runtime.md       Pairing, recovery, OpenXR, streaming, and QC
+tools/universe-selfcheck/         Engine-independent C++ contract consumer
+tools/universe_reference.py       Python reference used by specification tests
 ```
 
-## Migration to the standalone SYNAPSE repo
+The imported OpenUSD and MaterialX masters live at
+`../../assets/atlas-crown/`. Unreal-generated `.uasset` and `.umap` files stay
+out of this repository unless the binary/LFS policy is separately approved.
 
-1. **Copy the tree verbatim** — `apps/synapse-ue/` contents become the new
-   repo **root** (so `Synapse.uproject` sits at root).
-2. `git init` (private repo `SYNAPSE` under the org), `git lfs install`.
-3. The shipped `.gitattributes` LFS rules are already in place — commit it
-   **first** so every future binary asset is LFS-tracked from commit one.
-4. Commit the rest; push.
-5. `.github/workflows/build-win64.yml` is **intentionally inert here**
-   (GitHub only runs workflows from a repo root's `.github/workflows/`);
-   at the new repo root it goes live automatically. Register a
-   self-hosted Windows runner with UE 5.6 + VS2022 (labels
-   `[self-hosted, Windows, UE5_6]`) before expecting green.
-6. Add `synapse/contract.lock` (wire-contract version pin, TDD §7) when
-   the first contract-consuming feature lands.
+## Security and runtime selection
 
-## Validation status (honest, per the no-evidence-no-claim rule)
+- `SynapseNet` owns bearer-token access. Downstream modules ask it to create an
+  authorized request and never read or serialize the token.
+- Pixel Streaming is private, disabled by default, and selected through
+  `MUSE_PIXEL_STREAMING_URL`; credentials and TLS termination remain external.
+- OpenXR is an explicit local runtime choice. Accessible 2D remains the
+  fail-safe path when XR, streaming, or high-fidelity rendering is unavailable.
+- Universe schema major mismatches and cursor gaps fail closed into resnapshot;
+  stale versions never overwrite a newer projection.
 
-| What | Status |
-|---|---|
-| Python stub gateway: `/health` + `/v1/health` 200, capabilities 401-without/200-with bearer (real contract field names), SSE heartbeats | **VALIDATED in this container** — Prompt 0's documented fallback path; transcript in the delivery report |
-| Sacred-geometry reference (`tools/sacred_geometry_reference.py --check`): golden angle 137.50776405°, Platonic counts 4/8/6/12/20, 4-polytope counts 5/8/16/24/120/600 | **VALIDATED in this container** — the numeric ground truth the C++ `MuseSacredGeometry` + `Synapse.Geometry.*` automation tests reproduce |
-| UBT compile (`SynapseEditor Win64 Development`, warnings-as-errors) | **NOT RUN HERE** — UE 5.6/UnrealBuildTool are not installed in this container. This is the documented **OWNER-BLOCKER**, not a failure. Compiling is the **first action on the owner's machine** |
-| PIE test map printing `/v1/health` + capabilities | Deferred to the owner per `docs/testmap-setup.md` |
+## Migration to the standalone repository
 
-> **OWNER-BLOCKER (per Prompt 0):** pairing + compile needed. The scaffold
-> cannot be proven end-to-end until (a) UBT compiles it on a machine with
-> UE 5.6 + VS2022 and (b) a gateway is paired (or the stub is run) so the
-> PIE handshake log can be captured. No output, no done — the Phase 0 exit
-> gate stays open until those logs exist.
+1. Copy this directory verbatim so `Synapse.uproject` becomes the repository
+   root.
+2. Install Git LFS and commit the existing `.gitattributes` before any future
+   binary assets.
+3. Register a private Windows runner with Unreal Engine 5.6 and Visual Studio
+   2022 before enabling the staged workflow.
+4. Pair against a private M.U.S.E. gateway and capture compile, automation,
+   Pixel Streaming, OpenXR, and MRQ evidence before changing any gate to green.
 
-### First actions on the Legion
+## Verification status
 
-**Shortcut:** `tools\build-legion.bat` does compile + headless tests in one
-double-click; `tools\run-stub.bat` pairs the offline gateway for a PIE smoke.
-See [`docs/build-on-legion.md`](docs/build-on-legion.md). The manual commands:
-
-```bat
-:: 1) Compile (iterate until clean; warnings-as-errors is on for Synapse* modules)
-"C:\Program Files\Epic Games\UE_5.6\Engine\Build\BatchFiles\Build.bat" SynapseEditor Win64 Development -Project=<path>\Synapse.uproject -WaitMutex
-
-:: 2) Automation smoke (headless; suites land with Phase 1, runs clean-empty today)
-"C:\Program Files\Epic Games\UE_5.6\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" <path>\Synapse.uproject -ExecCmds="Automation RunTests Synapse.; Quit" -TestExit="Automation Test Queue Empty" -unattended -nopause -nullrhi -log
-```
-
-Then run the stub (`python tools\stub_gateway.py`), write the token to
-`Saved\muse_token.txt` (default dev token `synapse-dev-token`, or set
-`STUB_TOKEN`), and follow `docs/testmap-setup.md` to capture the PIE
-handshake logs that close the gate.
-
-## Module docs
-
-- `docs/synapsenet.md` — architecture, threading rules, token security,
-  SSE framing, backoff policy, validation matrix.
-- Design authority: `docs/synapse/design/11-technical-design.md` (muse
-  repo) — module spec §2; master plan §5 stack table.
+The Tasks 1–6 deliverables were inspected as source only. In accordance with
+the current assignment, no tests, Unreal commands, compilers, builds, linters,
+type checks, scripts, gates, or servers were run. The exact open evidence gates
+are recorded in
+`../../docs/audits/2026-07-12-muse-atlas-universe-verification.md` and
+`../../.superpowers/sdd/unreal-stream-report.md`.

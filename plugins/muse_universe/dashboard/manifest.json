@@ -1,0 +1,13 @@
+{
+  "name": "muse-universe",
+  "label": "Universe",
+  "description": "Realm, fleet, and authoritative event-log health.",
+  "icon": "Globe",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/universe",
+    "position": "after:kanban"
+  },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}

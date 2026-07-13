@@ -1,0 +1,21 @@
+%% MUSE x n8n - global end-to-end pipeline
+flowchart TD
+  chat["1 - Chat AI Agent<br/>Atlas /chat (Crown)"] --> recv["2 - RECEIVING<br/>normalize + idempotency key"]
+  recv --> turn["3 - TURN: POST /v1/jarvis/chat<br/>perceive -> classify -> decide -> gate -> speak (cockpit :8765)"]
+  turn --> parse["4 - Parse NDJSON<br/>phase/body/detail/evidence/ledger/done"]
+  parse --> atlas["5 - Atlas read-back (live cockpit)<br/>GET axiom | ledger | memory/tree | evidence | autonomy | approvals"]
+  atlas --> gate["6 - GATE: 8 gates<br/>planning|build|review|test|security|release|owner|rollback"]
+  gate --> gpass{"gates pass?"}
+  gpass -- fail --> hold1["HOLD - gate blocked<br/>Quarantine Moon /axiom"]
+  gpass -- pass --> owner{"owner gate?"}
+  owner -- "no phrase" --> hold2["HOLD - owner approval<br/>needs: Yes, with authorization."]
+  owner -- authorized --> deleg["7 - DELEGATE<br/>envelope -> N8nBridge -> /webhook/muse-connector-*"]
+  deleg --> gmail["n8n: gmail-send (idempotent)"]
+  deleg --> slack["n8n: slack-post (idempotent)"]
+  gmail --> ledger["8 - LEDGER append (host-side)<br/>GuardrailLedger -> guardrail_ledger.jsonl (hash chain)"]
+  slack --> ledger
+  ledger --> speak["9 - SPEAK -> Atlas /chat"]
+
+  subgraph INBOUND["Inbound: n8n -> MUSE (callable node)"]
+    ext["POST /webhook/muse-run<br/>Zapier / Make / n8n"] --> callturn["POST /v1/jarvis/chat"] --> ret["return answer"]
+  end

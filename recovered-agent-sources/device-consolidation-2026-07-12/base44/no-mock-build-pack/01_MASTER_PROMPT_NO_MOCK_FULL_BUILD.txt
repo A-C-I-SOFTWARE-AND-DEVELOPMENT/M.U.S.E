@@ -1,0 +1,46 @@
+# MASTER PROMPT — Hermes/JARVIS Base44 Cockpit, No Mock Data, Full Build
+
+Build a complete single-owner Base44 command cockpit for the Hermes/JARVIS local AI runtime.
+
+Hard requirement: NO MOCK DATA.
+Do not create sample cards, fake memory nodes, fake task packets, fake gate results, fake Android contracts, fake research records, or placeholder dashboard content. The app must be fully built, but it should show an empty/needs-connection state until real data is imported or synced from the Hermes local bridge.
+
+Architecture:
+- Hermes remains the canonical Python/Android/local runtime.
+- Base44 is the owner's control cockpit and review UI.
+- Base44 persists structured cockpit records only.
+- Base44 must not replace Hermes, execute Android taps, store secrets, store raw camera/audio frames, or invent live endpoints.
+- Owner role only: Jeremiah. No multi-user RBAC.
+- Owner authorization is active by default, but Android capability status is separate.
+
+Build all 9 pages:
+1. Owner Brief Dashboard
+2. JARVIS Mode Router
+3. Memory Tree Browser
+4. Natural Language Coding Packetizer
+5. Verification Gate Console
+6. Avatar / Companion Presence Console
+7. Android Action Broker Console
+8. Research Vault
+9. Settings / Authority
+
+Data behavior:
+- On first load, show a fully designed empty state, not fake content.
+- Provide import actions for JSON files/pasted JSON for every entity.
+- Provide sync controls that call a configured Hermes local bridge only after the owner sets a bridge URL in Settings.
+- If bridge URL is missing, show "Hermes bridge not configured".
+- If bridge call fails, show real failure status, not fallback mock data.
+- All CRUD actions must work on real Base44 entities.
+- All generated task packets, mode routes, avatar contracts, and gate results must be persisted as real records.
+
+Design:
+- Midnight Slate / pro aesthetic.
+- Background #0D1117.
+- Sidebar #161B22 frosted-glass style.
+- Accent ice blue #60A5FA.
+- Card border #30363D.
+- Pill badges: green active/pass, amber pending/warning, red blocked/fail, gray offline.
+- Clean Inter/system sans-serif hierarchy.
+- No decorative animation; only subtle state transitions.
+
+Do not ask me whether to use mock data. Do not seed sample data. Build real empty-state + import/sync-driven app.

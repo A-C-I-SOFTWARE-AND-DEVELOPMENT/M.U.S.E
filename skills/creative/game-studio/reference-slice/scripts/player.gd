@@ -8,6 +8,7 @@ extends CharacterBody3D
 ## importable, falling back to the built-in placeholder otherwise.
 
 const SPEED := 5.0
+const SPRINT_MULT := 1.65
 const JUMP_VELOCITY := 4.5
 const MOUSE_SENS := 0.0025
 
@@ -28,8 +29,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _camera:
 			_camera.rotate_x(-event.relative.y * MOUSE_SENS)
 			_camera.rotation.x = clamp(_camera.rotation.x, -1.4, 1.4)
-	elif event.is_action_pressed("ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _physics_process(delta: float) -> void:
@@ -39,14 +38,15 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 
+	var speed := SPEED * (SPRINT_MULT if InputMap.has_action("sprint") and Input.is_action_pressed("sprint") else 1.0)
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	if direction:
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
+		velocity.x = direction.x * speed
+		velocity.z = direction.z * speed
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
-		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
 
 	move_and_slide()
 

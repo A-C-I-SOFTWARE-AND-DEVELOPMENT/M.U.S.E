@@ -382,3 +382,19 @@ class StudioOrchestrator:
         manifest.total_duration_s = time.perf_counter() - t_start
         (wd / "manifest.txt").write_text(manifest.summary(), encoding="utf-8")
         return manifest
+
+    def produce_game_foundry(self, spec, **kwargs):
+        """Build a release-evidence manifest without overstating playability."""
+
+        from agent.studio.game_foundry import GameFoundry
+
+        return GameFoundry(self.root / "game_foundry", **kwargs).build(spec)
+
+    def package_native_stereo(self, shot, renders, qc, **kwargs):
+        """Package a two-eye cinema master with deterministic QC evidence."""
+
+        from agent.studio.cinema import CinemaPackager
+
+        return CinemaPackager(self.root / "cinema").create(
+            shot, renders, qc, **kwargs
+        )
