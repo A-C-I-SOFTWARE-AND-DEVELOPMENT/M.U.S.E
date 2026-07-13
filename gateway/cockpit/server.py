@@ -68,6 +68,28 @@ def _nexus_dist_root() -> Optional[Path]:
         return None
 
 
+def _omni_dist_root() -> Optional[Path]:
+    """Resolve the built Atlas Omni UI (``apps/desktop/ui/dist``) so ``muse omni``
+    serves the new desktop surface at the site root instead of the bundled
+    Singularity shell. Override with ``MUSE_OMNI_DIST_DIR``. Returns ``None``
+    when no build is present (the root then falls back to Singularity —
+    nothing else changes). Mirrors ``_nexus_dist_root``."""
+    override = os.environ.get("MUSE_OMNI_DIST_DIR")
+    if override:
+        # An explicit override is authoritative — no fallback. Either it holds a
+        # build or the swap is off.
+        p = Path(override)
+        try:
+            return p.resolve() if (p / "index.html").is_file() else None
+        except OSError:
+            return None
+    default = Path(__file__).resolve().parents[2] / "apps" / "desktop" / "ui" / "dist"
+    try:
+        return default.resolve() if (default / "index.html").is_file() else None
+    except OSError:
+        return None
+
+
 # Browser Origins allowed to call the cockpit API cross-origin, by DEFAULT —
 # the first-party muse cockpit plus the muse desktop app's webview. Defaulting
 # these on means a user can run ``muse cockpit serve`` and reach their gateway
@@ -520,6 +542,33 @@ def _make_handler(
             }
         )
 
+        def _omni_rel(self, omni_root: Path, path: str) -> Optional[str]:
+            """Relative path inside the Atlas Omni build that should serve
+            ``path``, or ``None`` when the request belongs to another mount.
+            ``/`` maps to the SPA document; any other path is served only when
+            it names a real file with an allowlisted suffix inside the build
+            (path-traversal-safe)."""
+            if path.startswith(("/cockpit", "/nexus")):
+                return None
+            if path == "/":
+                return "index.html"
+            rel = path.lstrip("/")
+            if not rel:
+                return None
+            try:
+                target = (omni_root / rel).resolve()
+                target.relative_to(omni_root)
+            except (ValueError, OSError):
+                return None
+            if target.suffix not in self._STATIC_TYPES:
+                return None
+            return rel if target.is_file() else None
+
+        def _omni_static_candidate(self, path: str) -> bool:
+            """True when a built Atlas Omni UI exists and claims ``path``."""
+            omni_root = _omni_dist_root()
+            return omni_root is not None and self._omni_rel(omni_root, path) is not None
+
         def _serve_static(self, path: str) -> bool:
             """Serve the bundled browser cockpit. Returns True if it handled the
             request. Path-traversal-safe; falls back to the section's entry
@@ -533,10 +582,26 @@ def _make_handler(
             Root-relative static assets (``/vendor/*``, ``/atlas/*``, icons, …)
             are also served so ``muse omni``'s ``http://127.0.0.1:8765/`` URL
             boots fully — the HTML references those paths without a ``/cockpit``
-            prefix."""
+            prefix.
+
+            When a built Atlas Omni UI is present (``_omni_dist_root``), it
+            owns the site root: ``/`` serves its ``index.html`` and any path
+            that resolves to a real file in that build (``/assets/*``, PWA
+            manifest/service-worker, icons) is served from it. Singularity
+            stays fully reachable at ``/cockpit/`` and via its root-relative
+            asset dirs (``/vendor/*``, ``/atlas/*``, …), which do not exist in
+            the Vite build and therefore never collide."""
             root = (Path(__file__).resolve().parent / "static").resolve()
             cockpit_doc = "cockpit.dc.html"
-            if path in ("/", "/cockpit", "/cockpit/"):
+            omni_root = _omni_dist_root()
+            omni_rel = self._omni_rel(omni_root, path) if omni_root is not None else None
+            if omni_root is not None and omni_rel is not None:
+                rel = omni_rel
+                root = omni_root
+                # SPA fallback only for the root document; concrete asset
+                # paths must 404 honestly rather than mask as index.html.
+                default_doc = "index.html" if path == "/" else ""
+            elif path in ("/", "/cockpit", "/cockpit/"):
                 rel = cockpit_doc
                 default_doc = cockpit_doc
             elif path in ("/nexus", "/nexus/"):
@@ -681,6 +746,8 @@ def _make_handler(
                 or path.startswith(Handler._ROOT_STATIC_PREFIXES)
                 or path in Handler._ROOT_STATIC_EXACT_DIRS
                 or path in Handler._ROOT_STATIC_FILES
+                # Atlas Omni build assets (/assets/*, PWA files) when present.
+                or self._omni_static_candidate(path)
             ):
                 if self._serve_static(path):
                     return
