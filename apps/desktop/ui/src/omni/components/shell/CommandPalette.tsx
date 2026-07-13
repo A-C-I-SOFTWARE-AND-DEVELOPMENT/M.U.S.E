@@ -48,17 +48,23 @@ export function CommandPalette() {
 
   const cmds = useMemo<Cmd[]>(() => {
     const nav: Cmd[] = [
-      ['Console', '/'], ['Chat', '/chat'], ['Models', '/models'], ['Second Brain', '/second-brain'], ['Repo Mirror', '/repo'], ['Fusion', '/fusion'], ['Forge', '/forge'], ['Championship', '/championship'], ['Federation', '/federation'], ['Council', '/council'], ['Fleet', '/fleet'],
-      ['Steer', '/steer'], ['Axiom Gate', '/axiom'], ['Observatory', '/observatory'],
-      ['Agents', '/agents'], ['Activity', '/activity'], ['Settings', '/settings'],
+      ['Atlas Crown', '/atlas'], ['Stations', '/stations'], ['Chat', '/'], ['Console', '/console'],
+      ['Jobs', '/jobs'], ['Approvals', '/approvals'], ['Autonomy', '/autonomy'],
+      ['Fusion', '/fusion'], ['Steer', '/steer'], ['Axiom Gate', '/axiom'],
+      ['Shipyard', '/shipyard'], ['Forge', '/forge'], ['Fleet', '/fleet'], ['Agents', '/agents'],
+      ['Studio', '/studio'], ['Fabrication', '/fabrication'], ['Game Foundry', '/game-foundry'],
+      ['Cinema Stage', '/cinema'], ['Release Dock', '/release'], ['Repo', '/repo'],
+      ['Models', '/models'], ['Second Brain', '/second-brain'], ['Observatory', '/observatory'],
+      ['Championship', '/championship'], ['Civilizations', '/civilizations'], ['Council', '/council'],
+      ['Federation', '/federation'], ['Activity', '/activity'], ['Share', '/share'], ['Settings', '/settings'],
     ].map(([label, to]) => ({ id: `nav-${to}`, label: `Go to ${label}`, hint: 'page', run: () => navigate(to) }));
     const actions: Cmd[] = [
       { id: 'wallpaper', label: 'Enter wallpaper mode', hint: 'observatory', run: () => { navigate('/observatory'); setWallpaper(true); } },
       { id: 'estop', label: 'Emergency stop', hint: 'halt all work', run: () => void cockpit.emergencyStop() },
       { id: 'connect', label: 'Install & connect everything', hint: 'setup', run: () => window.dispatchEvent(new CustomEvent('nexus:open-setup')) },
-      { id: 'update', label: 'Update NEXUS (pull latest from main)', hint: 'sync', run: () => void applyUpdate() },
-      { id: 'checkupdate', label: 'Check for NEXUS update', hint: 'sync', run: () => void checkForUpdate() },
-      { id: 'syncrepo', label: 'Sync MUSE repo mirror', hint: 'repo', run: () => { void fetchMirror(true); navigate('/repo'); } },
+      { id: 'update', label: 'Update Muse (pull latest from main)', hint: 'sync', run: () => void applyUpdate() },
+      { id: 'checkupdate', label: 'Check for Muse update', hint: 'sync', run: () => void checkForUpdate() },
+      { id: 'syncrepo', label: 'Sync Muse repo mirror', hint: 'repo', run: () => { void fetchMirror(true); navigate('/repo'); } },
     ];
     const caps: Cmd[] = CAPABILITIES.map((c) => ({
       id: `cap-${c.id}`,

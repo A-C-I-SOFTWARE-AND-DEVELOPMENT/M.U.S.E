@@ -29,6 +29,9 @@ import ChatPage from './pages/ChatPage';
 import AxiomGatePage from './pages/AxiomGatePage';
 import FusionPage from './pages/FusionPage';
 import StudioPage from './pages/StudioPage';
+import JobsPage from './pages/JobsPage';
+import ApprovalsPage from './pages/ApprovalsPage';
+import AutonomyPage from './pages/AutonomyPage';
 import AtlasPage from './universe/pages/AtlasPage';
 import StationsPage from './universe/pages/StationsPage';
 import ShipyardPage from './universe/pages/ShipyardPage';
@@ -158,6 +161,9 @@ export default function App() {
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />
             <Route path="/settings" element={<Page><SettingsPage /></Page>} />
             <Route path="/studio" element={<Page><StudioPage /></Page>} />
+            <Route path="/jobs" element={<Page><JobsPage /></Page>} />
+            <Route path="/approvals" element={<Page><ApprovalsPage /></Page>} />
+            <Route path="/autonomy" element={<Page><AutonomyPage /></Page>} />
             <Route path="/atlas" element={<Page><AtlasPage /></Page>} />
             <Route path="/stations" element={<Page><StationsPage /></Page>} />
             <Route path="/stations/:stationId" element={<Page><StationsPage /></Page>} />

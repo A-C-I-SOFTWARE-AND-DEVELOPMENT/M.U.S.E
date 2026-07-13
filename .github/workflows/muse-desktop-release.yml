@@ -284,6 +284,43 @@ jobs:
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Prepare Windows code signing (Windows only)
+        id: winsign
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          SIGNING_ENABLED: ${{ vars.ENABLE_WINDOWS_SIGNING }}
+        run: |
+          # Owner-gated, secret-driven Authenticode signing — mirrors the macOS
+          # path. OFF unless ENABLE_WINDOWS_SIGNING=true AND a WINDOWS_CERTIFICATE
+          # secret is present. Any failure falls back to an UNSIGNED build so a
+          # missing/malformed cert never blocks the release.
+          if ($env:SIGNING_ENABLED -ne 'true') {
+            Write-Host 'ENABLE_WINDOWS_SIGNING is not true; building unsigned (owner-gated default).'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'sign=false'
+            exit 0
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+            Write-Host 'No WINDOWS_CERTIFICATE secret; building unsigned (documented fallback).'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'sign=false'
+            exit 0
+          }
+          try {
+            $pfxPath = Join-Path $env:RUNNER_TEMP 'muse-win-cert.pfx'
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+            $securePwd = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+            $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+            Remove-Item $pfxPath -Force -ErrorAction SilentlyContinue
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$($cert.Thumbprint)"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'sign=true'
+            Write-Host "WINDOWS_CERTIFICATE imported; signing enabled (thumbprint $($cert.Thumbprint))."
+          } catch {
+            Write-Warning "WINDOWS_CERTIFICATE failed to import (malformed .pfx or wrong password) - building UNSIGNED. Re-export and re-provision per apps/desktop/RELEASE.md. $_"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'sign=false'
+          }
+
       - name: Build installers
         env:
           # Tauri reads these for code-signing; ALL resolve to empty when the
@@ -299,12 +336,22 @@ jobs:
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
           BUNDLES: ${{ matrix.bundles }}
+          WIN_SIGN: ${{ steps.winsign.outputs.sign }}
+          WIN_THUMBPRINT: ${{ steps.winsign.outputs.thumbprint }}
         run: |
           # Stamp the CI-derived semver into the bundle via a --config merge so
           # the installer carries the real version (tauri.conf stays at 0.1.0).
           target_arg=""; [ -n "$TARGET" ] && target_arg="--target $TARGET"
-          ( cd apps/desktop && tauri build $target_arg --bundles "$BUNDLES" \
-              --config "{\"version\": \"${VERSION}\"}" )
+          # Windows: deep-merge Authenticode signing config only when the
+          # owner-gated probe above enabled it; otherwise this stays the plain
+          # version-only merge (unsigned) on every OS -- byte-identical default.
+          if [ "$WIN_SIGN" = "true" ] && [ -n "$WIN_THUMBPRINT" ]; then
+            config="{\"version\": \"${VERSION}\", \"bundle\": {\"windows\": {\"certificateThumbprint\": \"${WIN_THUMBPRINT}\", \"digestAlgorithm\": \"sha256\", \"timestampUrl\": \"http://timestamp.digicert.com\"}}}"
+            echo "Windows Authenticode signing enabled (thumbprint ${WIN_THUMBPRINT})."
+          else
+            config="{\"version\": \"${VERSION}\"}"
+          fi
+          ( cd apps/desktop && tauri build $target_arg --bundles "$BUNDLES" --config "$config" )
 
       - name: Collect + upload installers to the release
         env:

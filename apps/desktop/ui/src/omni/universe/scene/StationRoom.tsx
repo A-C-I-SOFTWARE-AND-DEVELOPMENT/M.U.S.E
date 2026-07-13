@@ -24,7 +24,23 @@ function RoomShell({ children, room }: { children: ReactNode; room: string }) {
           <meshStandardMaterial color={WALL} metalness={0.76} roughness={0.52} />
         </mesh>
       ))}
+      {/* Observation windows — transparent panes look out onto the galactic field. */}
+      {[-3.2, 0, 3.2].map((x) => (
+        <mesh key={`win-${x}`} position={[x, 1.35, -4.68]}>
+          <planeGeometry args={[2.4, 1.6]} />
+          <meshPhysicalMaterial
+            color="#9ec8d6"
+            transparent
+            opacity={0.18}
+            roughness={0.05}
+            metalness={0.1}
+            transmission={0.55}
+            thickness={0.2}
+          />
+        </mesh>
+      ))}
       <rectAreaLight position={[0, 4.2, 0]} rotation={[-Math.PI / 2, 0, 0]} width={8} height={2} intensity={2.2} color="#dce9e9" />
+      <pointLight position={[0, 2.2, -3.8]} color="#8ad8ee" intensity={1.6} distance={10} decay={2} />
       {children}
     </group>
   );

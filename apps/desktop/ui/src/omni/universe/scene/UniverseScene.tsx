@@ -7,6 +7,7 @@ import { projectUniverseGraph } from '../semanticZoom.ts';
 import type { UniverseSnapshot, Vessel } from '../types.ts';
 import { AtlasCrown } from './AtlasCrown.tsx';
 import { CelestialEnvironment } from './CelestialEnvironment.tsx';
+import { GalacticStationField } from './GalacticStationField.tsx';
 import { NeuralCore } from './NeuralCore.tsx';
 import { StationRoom } from './StationRoom.tsx';
 import { AgentVessel } from './AgentVessel.tsx';
@@ -82,18 +83,47 @@ function SceneContent({
   const vessel = (vessels.find((entry) => entry.id === selected) ?? vessels[0]) as Vessel | undefined;
 
   if (route.scene === 'neural-core') {
-    return <NeuralCore nodes={graph.nodes} edges={graph.edges} settings={settings} />;
+    return (
+      <>
+        <GalacticStationField settings={settings} showCrown={false} density={0.7} />
+        <NeuralCore nodes={graph.nodes} edges={graph.edges} settings={settings} />
+      </>
+    );
   }
   if (route.scene === 'vessel-exterior' && vessel) {
-    return <AgentVessel vessel={vessel} settings={settings} />;
+    return (
+      <>
+        <GalacticStationField settings={settings} crownScale={0.28} crownPosition={[14, 2, -26]} />
+        <AgentVessel vessel={vessel} settings={settings} />
+      </>
+    );
   }
   if (route.scene === 'vessel-interior' && vessel) {
-    return <VesselInterior vessel={vessel} settings={settings} />;
+    return (
+      <>
+        <GalacticStationField settings={settings} crownScale={0.22} crownPosition={[16, 1, -30]} />
+        <VesselInterior vessel={vessel} settings={settings} />
+      </>
+    );
   }
-  if (route.scene === 'station-room' || route.scene.startsWith('vessel-')) {
-    return <StationRoom route={route} settings={settings} />;
+  if (route.scene === 'station-room' || route.scene.startsWith('vessel-') || route.scene === 'celestial-map') {
+    return (
+      <>
+        <GalacticStationField
+          settings={settings}
+          crownScale={route.scene === 'celestial-map' ? 0.55 : 0.34}
+          crownPosition={route.scene === 'celestial-map' ? [4, 0.4, -14] : [11, -0.6, -22]}
+        />
+        {route.scene === 'celestial-map' ? null : <StationRoom route={route} settings={settings} />}
+      </>
+    );
   }
-  return <AtlasCrown settings={settings} />;
+  return (
+    <>
+      <GalacticStationField settings={settings} showCrown={false} density={0.85} />
+      <AtlasCrown settings={settings} />
+    </>
+  );
 }
 
 class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {

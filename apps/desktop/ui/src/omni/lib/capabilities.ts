@@ -66,7 +66,9 @@ export const CAPABILITIES: Capability[] = [
   // ---- Operating Layer ----
   { id: 'modes', title: 'Six Modes', blurb: 'Companion · Strategy · Critic · Operator · Builder · Voice — intent/mode classifier + runtime persona injection.', plane: 'operating', accent: '#34E5C8', surface: { kind: 'panel', panel: 'modes' }, doc: 'docs/jarvis-prime-operating-system.md' },
   { id: 'emergency', title: 'Emergency Stop', blurb: 'Halt all autonomous work immediately. The kill-switch over the runtime.', plane: 'operating', accent: '#FF5470', surface: { kind: 'panel', panel: 'emergency' }, endpoint: '/v1/cockpit/emergency-stop' },
-  { id: 'autonomy', title: 'Autonomy Bands', blurb: 'B0–B3 capability-band wall. Workspace-scoped high-autonomy coding never weakens owner gates.', plane: 'operating', accent: '#FFB020', surface: { kind: 'panel', panel: 'autonomy' }, endpoint: '/v1/cockpit/autonomy' },
+  { id: 'jobs', title: 'Jobs & Task Graph', blurb: 'Live jobs, lanes, task trees, diffs, approve / pause / resume / cancel / publish.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'tab', to: '/jobs' }, endpoint: '/v1/cockpit/jobs' },
+  { id: 'approvals', title: 'Owner Approvals', blurb: 'Owner-gated actions (spend, deploy, publish, OAuth, credentials) defer until you reply exactly "Yes, with authorization."', plane: 'governance', accent: '#FFB020', surface: { kind: 'tab', to: '/approvals' }, endpoint: '/v1/cockpit/approvals' },
+  { id: 'autonomy', title: 'Autonomy Bands', blurb: 'B0–B3 capability-band wall. Workspace-scoped high-autonomy coding never weakens owner gates.', plane: 'operating', accent: '#FFB020', surface: { kind: 'tab', to: '/autonomy' }, endpoint: '/v1/cockpit/autonomy' },
   { id: 'runtime', title: 'Runtime & Monitors', blurb: 'Read-only fail-visible monitors, worker pool, and the daily owner brief.', plane: 'operating', accent: '#34E5C8', surface: { kind: 'panel', panel: 'runtime' }, endpoint: '/v1/cockpit/runtime/status' },
 
   // ---- Cognition Plane ----
@@ -81,7 +83,6 @@ export const CAPABILITIES: Capability[] = [
 
   // ---- Orchestration ----
   { id: 'orchestrate', title: 'Goal → PR Orchestration', blurb: 'Decompose a goal into a validated task graph run by specialist workers; publish the result.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'panel', panel: 'orchestrate' }, endpoint: '/v1/cockpit/orchestrate', doc: 'docs/orchestration/README.md' },
-  { id: 'jobs', title: 'Jobs & Task Graph', blurb: 'Live jobs, lanes, task trees, diffs, approve / pause / resume / cancel / publish.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'panel', panel: 'orchestrate' }, endpoint: '/v1/cockpit/jobs' },
   { id: 'council', title: 'AOS Enterprise Council', blurb: '233 routed agent roles for audits, hardening, launch readiness, multi-perspective review.', plane: 'orchestration', accent: '#3DD68C', surface: { kind: 'tab', to: '/agents' }, doc: 'skills/aos-enterprise-council/' },
   { id: 'council-dispatch', title: 'Council Dispatch', blurb: 'Executable runtime: route a request to the active council + matching domain specialists, with owner gates surfaced.', plane: 'orchestration', accent: '#3DD68C', surface: { kind: 'tab', to: '/council' }, endpoint: '/v1/cockpit/council/dispatch' },
   { id: 'fleet', title: 'The Fleet', blurb: 'Massive 1-minute siloed fan-out: decompose a goal into N verifiable tasks, budget-capped, kill-switch, live galaxy mirror.', plane: 'orchestration', accent: '#FFB020', surface: { kind: 'tab', to: '/fleet' } },
@@ -91,7 +92,6 @@ export const CAPABILITIES: Capability[] = [
   // ---- Governance & Gates ----
   { id: 'gates', title: 'Eight Verification Gates', blurb: 'Planning · Build · Review · Test · Security · Release · Owner · Rollback — fused & attested in the Axiom Gate.', plane: 'governance', accent: '#FF6B8A', surface: { kind: 'tab', to: '/axiom' }, doc: 'docs/jarvis-verification-gates.md' },
   { id: 'federation', title: 'Federation', blurb: 'Sovereign-node identity + peers (public material only — keys never leave the node). Read-only.', plane: 'governance', accent: '#3DD68C', surface: { kind: 'tab', to: '/federation' }, endpoint: '/v1/cockpit/federation/status' },
-  { id: 'approvals', title: 'Owner Approvals', blurb: 'Owner-gated actions (spend, deploy, publish, OAuth, credentials) defer until you reply exactly "Yes, with authorization."', plane: 'governance', accent: '#FFB020', surface: { kind: 'panel', panel: 'approvals' }, endpoint: '/v1/cockpit/approvals' },
   { id: 'audit', title: 'Evidence Ledger · verify_chain', blurb: 'Hash-chained, tamper-evident decision ledger with Merkle inclusion proofs.', plane: 'governance', accent: '#FF6B8A', surface: { kind: 'panel', panel: 'audit' }, endpoint: '/v1/cockpit/audit' },
   { id: 'constitution', title: 'Constitution & Self-Audit', blurb: 'Versioned behavioral rubric (C1…Cn), reward-hacking/Goodhart detection, capability-band wall, Anti-Goal Covenant.', plane: 'governance', accent: '#FF6B8A', surface: { kind: 'panel', panel: 'info' }, doc: 'docs/jarvis-constitution.md' },
 

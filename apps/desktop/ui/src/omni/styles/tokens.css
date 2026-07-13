@@ -272,15 +272,74 @@ button {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  /* The void is the full-bleed field. ONE broad atmospheric depth pool sits
-     top-centre — a single faint cool wash (cyan→violet ring stops), not a
-     stack — exactly as the cockpit shell does it. */
+  /* Full galactic void — starfield + milky band + distant station silhouette. */
   background:
-    radial-gradient(1100px 560px at 50% -8%,
-      rgba(122, 224, 255, 0.05) 0%,
-      rgba(179, 136, 255, 0.035) 34%,
+    radial-gradient(1200px 640px at 50% -10%,
+      rgba(122, 224, 255, 0.07) 0%,
+      rgba(179, 136, 255, 0.04) 36%,
+      rgba(5, 5, 7, 0) 70%),
+    radial-gradient(900px 420px at 78% 62%,
+      rgba(30, 58, 72, 0.35) 0%,
       rgba(5, 5, 7, 0) 68%),
     var(--void);
+}
+
+/* Deterministic CSS starfield — no image assets, scales to any display. */
+.cb-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 8% 12%, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 18% 42%, rgba(220,235,255,0.7), transparent),
+    radial-gradient(1.4px 1.4px at 28% 18%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1px 1px at 36% 68%, rgba(180,210,255,0.55), transparent),
+    radial-gradient(1.1px 1.1px at 48% 22%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 58% 78%, rgba(200,230,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 68% 14%, rgba(255,255,255,0.95), transparent),
+    radial-gradient(1px 1px at 76% 52%, rgba(170,200,255,0.45), transparent),
+    radial-gradient(1.2px 1.2px at 86% 34%, rgba(255,255,255,0.75), transparent),
+    radial-gradient(1px 1px at 92% 72%, rgba(190,220,255,0.55), transparent),
+    radial-gradient(1px 1px at 12% 88%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.3px 1.3px at 42% 92%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 62% 48%, rgba(210,230,255,0.4), transparent),
+    radial-gradient(1.1px 1.1px at 82% 88%, rgba(255,255,255,0.65), transparent);
+  opacity: 0.55;
+}
+
+/* Soft galactic plane band behind UI chrome. */
+.cb-galaxy {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 38%;
+  height: 42%;
+  background:
+    linear-gradient(98deg,
+      transparent 0%,
+      rgba(122, 224, 255, 0.05) 28%,
+      rgba(179, 136, 255, 0.07) 52%,
+      rgba(122, 224, 255, 0.04) 74%,
+      transparent 100%);
+  filter: blur(28px);
+  transform: rotate(-12deg) scaleY(0.85);
+  opacity: 0.85;
+}
+
+/* Distant Atlas Crown / station silhouette — SVG-free geometric mask. */
+.cb-station {
+  position: absolute;
+  right: 6%;
+  bottom: 8%;
+  width: min(42vw, 520px);
+  height: min(42vw, 520px);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(231, 247, 251, 0.22) 0%, rgba(122, 224, 255, 0.08) 8%, transparent 18%),
+    radial-gradient(circle at 50% 48%, transparent 22%, rgba(127, 137, 145, 0.18) 23%, rgba(127, 137, 145, 0.12) 26%, transparent 28%),
+    radial-gradient(circle at 50% 48%, transparent 32%, rgba(90, 110, 120, 0.14) 33%, rgba(90, 110, 120, 0.08) 36%, transparent 38%),
+    linear-gradient(180deg, transparent 18%, rgba(80, 90, 98, 0.35) 42%, rgba(37, 43, 49, 0.55) 58%, transparent 78%);
+  mask-image: radial-gradient(ellipse 55% 60% at 50% 48%, #000 0%, #000 42%, transparent 72%);
+  opacity: 0.55;
+  filter: blur(0.4px);
 }
 
 /* The drifting auroras are kept for subtle motion but pulled WAY back: matte,
@@ -627,8 +686,8 @@ button {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: .46;
-  mask-image: radial-gradient(ellipse 74% 70% at 72% 48%, #000 5%, rgba(0,0,0,.88) 52%, transparent 100%);
+  opacity: .62;
+  mask-image: radial-gradient(ellipse 78% 74% at 70% 46%, #000 8%, rgba(0,0,0,.92) 58%, transparent 100%);
   transition: opacity 500ms var(--ease-emphasized);
 }
 .omni-cinematic-world canvas { width: 100% !important; height: 100% !important; filter: saturate(.86) contrast(1.06); }

@@ -125,18 +125,38 @@ function CometField({ count, motion }: { count: number; motion: boolean }) {
   );
 }
 
+function MilkyBand() {
+  return (
+    <mesh position={[0, -4, -120]} rotation={[0.55, 0.2, -0.35]} scale={[220, 28, 1]}>
+      <planeGeometry args={[1, 1, 1, 1]} />
+      <meshBasicMaterial
+        color="#9bb4d0"
+        transparent
+        opacity={0.07}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
 export function CelestialEnvironment({ settings, density = 1 }: Props) {
   const stars = useMemo(
-    () => pointCloud(Math.round(settings.starCount * density), 180, 1400, 0xa71a5),
+    () => pointCloud(Math.round(settings.starCount * density * 1.35), 120, 1600, 0xa71a5),
     [density, settings.starCount],
   );
   const dust = useMemo(
-    () => pointCloud(Math.round(settings.dustCount * density), 8, 64, 0xd057),
+    () => pointCloud(Math.round(settings.dustCount * density * 1.2), 8, 72, 0xd057),
     [density, settings.dustCount],
+  );
+  const bright = useMemo(
+    () => pointCloud(Math.round(80 * density), 40, 420, 0xf00d),
+    [density],
   );
 
   return (
     <group name="celestial-environment">
+      <MilkyBand />
       {stars.length > 0 && (
         <points frustumCulled={false}>
           <bufferGeometry>
@@ -144,16 +164,32 @@ export function CelestialEnvironment({ settings, density = 1 }: Props) {
           </bufferGeometry>
           <pointsMaterial
             color="#dbe8ed"
-            size={0.72}
+            size={0.78}
             sizeAttenuation
             transparent
-            opacity={0.72}
+            opacity={0.78}
             depthWrite={false}
           />
         </points>
       )}
-      {Array.from({ length: settings.volumetricLayers }, (_, index) => (
-        <NebulaVolume key={index} index={index} density={Math.max(0.2, density)} />
+      {bright.length > 0 && (
+        <points frustumCulled={false}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[bright, 3]} />
+          </bufferGeometry>
+          <pointsMaterial
+            color="#ffffff"
+            size={1.35}
+            sizeAttenuation
+            transparent
+            opacity={0.9}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </points>
+      )}
+      {Array.from({ length: Math.max(settings.volumetricLayers, 4) }, (_, index) => (
+        <NebulaVolume key={index} index={index} density={Math.max(0.25, density)} />
       ))}
       {dust.length > 0 && (
         <points>
@@ -162,15 +198,15 @@ export function CelestialEnvironment({ settings, density = 1 }: Props) {
           </bufferGeometry>
           <pointsMaterial
             color="#9eb0b8"
-            size={0.045}
+            size={0.05}
             sizeAttenuation
             transparent
-            opacity={0.34}
+            opacity={0.38}
             depthWrite={false}
           />
         </points>
       )}
-      <CometField count={settings.comets} motion={settings.motion} />
+      <CometField count={Math.max(settings.comets, 6)} motion={settings.motion} />
     </group>
   );
 }
