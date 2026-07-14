@@ -9,6 +9,7 @@ import { AtlasCrown } from './AtlasCrown.tsx';
 import { CelestialEnvironment } from './CelestialEnvironment.tsx';
 import { GalacticStationField } from './GalacticStationField.tsx';
 import { NeuralCore } from './NeuralCore.tsx';
+import { SpaceEnvironment } from './SpaceEnvironment.tsx';
 import { StationRoom } from './StationRoom.tsx';
 import { AgentVessel } from './AgentVessel.tsx';
 import { VesselInterior } from './VesselInterior.tsx';
@@ -94,7 +95,11 @@ function SceneContent({
     return (
       <>
         <GalacticStationField settings={settings} crownScale={0.28} crownPosition={[14, 2, -26]} />
-        <AgentVessel vessel={vessel} settings={settings} />
+        {/* Hero framing: ship right-of-centre in a lit three-quarter pose, the
+            host world hanging off the port bow — never nose-on silhouette. */}
+        <group position={[5.2, -0.9, -4.5]} rotation={[0.08, -0.72, -0.04]} scale={0.92}>
+          <AgentVessel vessel={vessel} settings={settings} />
+        </group>
       </>
     );
   }
@@ -178,24 +183,26 @@ export function UniverseScene({
             toneMapping: THREE.ACESFilmicToneMapping,
           }}
           onCreated={({ gl }) => {
-            gl.toneMappingExposure = 0.82;
+            gl.toneMappingExposure = 1.3;
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.shadowMap.enabled = settings.shadowMap > 0;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
           }}
         >
-          <color attach="background" args={['#020306']} />
-          <fogExp2 attach="fog" args={['#05070a', 0.025]} />
-          <ambientLight color="#90a5b1" intensity={0.18} />
+          <color attach="background" args={['#030509']} />
+          <fogExp2 attach="fog" args={['#05070a', 0.016]} />
+          <ambientLight color="#90a5b1" intensity={0.34} />
+          <hemisphereLight args={['#33566d', '#0a0d10', 0.7]} />
           <directionalLight
-            color="#f3f1e8"
-            intensity={3.2}
+            color="#fff2dd"
+            intensity={5.6}
             position={[8, 11, 9]}
             castShadow={settings.shadowMap > 0}
             shadow-mapSize-width={settings.shadowMap}
             shadow-mapSize-height={settings.shadowMap}
           />
-          <directionalLight color="#668da4" intensity={0.82} position={[-8, -3, -7]} />
+          <directionalLight color="#7fb2d0" intensity={1.45} position={[-8, -3, -7]} />
+          <SpaceEnvironment enabled={settings.volumetricLayers >= 2} />
           <CelestialEnvironment settings={settings} density={particleDensity} />
           <SceneContent route={route} snapshot={snapshot} settings={settings} />
           {settings.motion && <CameraDrift strength={settings.cameraDrift} />}

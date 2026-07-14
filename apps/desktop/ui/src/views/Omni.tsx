@@ -4,9 +4,26 @@ import OmniApp from "../omni/App";
 import { AuthProvider } from "../omni/auth/AuthProvider";
 import { startHealthMonitor } from "../omni/lib/health";
 import { autoSyncOnLaunch } from "../omni/lib/autoSync";
+import { UNIVERSE_ROUTES } from "../omni/universe/catalog";
 import "../omni/styles/index.css";
 
 let omniStarted = false;
+
+/**
+ * Deep-link support: when the URL hash names an Omni universe destination
+ * (e.g. `#/fleet`, `#/atlas`, `#/stations`), start the MemoryRouter there
+ * instead of the chat root. The hash is only read once at mount — the Omni
+ * surface's internal navigation stays isolated from the desktop shell's
+ * hash routing exactly as before.
+ */
+function initialOmniPath(): string {
+  const raw = (window.location.hash || "").replace(/^#/, "");
+  if (!raw.startsWith("/") || raw === "/") return "/";
+  const known = UNIVERSE_ROUTES.some(
+    (route) => route.path === raw || (route.path.includes(":") && raw.startsWith(route.path.split(":")[0])),
+  );
+  return known ? raw : "/";
+}
 
 /**
  * The complete MUSE Atlas command center, bundled natively inside the desktop
@@ -47,7 +64,7 @@ export function Omni() {
 
   return (
     <div className="omni-workspace" aria-label="MUSE Atlas command center">
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={[initialOmniPath()]}>
         <AuthProvider>
           <OmniApp />
         </AuthProvider>

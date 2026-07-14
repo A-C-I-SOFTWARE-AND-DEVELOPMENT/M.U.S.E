@@ -1,7 +1,8 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { FidelitySettings } from '../fidelity.ts';
+import { SPACE_PLATES } from '../spaceAssets.ts';
 import { AtlasCrown } from './AtlasCrown.tsx';
 
 /**
@@ -9,11 +10,13 @@ import { AtlasCrown } from './AtlasCrown.tsx';
  * distant Atlas Crown silhouette that sits behind every interior room so the
  * desktop never falls back to a flat void.
  *
- * Realism pass: temperature-graded starfield (vertex colours), a fully
- * procedural planet shader (banded surface, day/night terminator, night-side
- * city lights, limb darkening) wrapped in a fresnel atmosphere shell, layered
- * additive nebulae, and emissive habitat detail. Everything is generated in
- * code — no shipped textures — and gated by the fidelity budget.
+ * Realism pass: temperature-graded starfield (vertex colours), a host world
+ * relit from real NASA plates (Blue Marble day, Black Marble night lights,
+ * MODIS cloud fraction — see public/space/ATTRIBUTION.md) with day/night
+ * terminator, ocean sun-glint and limb darkening, wrapped in a fresnel
+ * atmosphere shell, plus layered additive nebulae and emissive habitat
+ * detail. Procedural elements remain generated in code and everything is
+ * gated by the fidelity budget.
  */
 function seeded(seed: number): () => number {
   let value = seed >>> 0;
@@ -139,80 +142,63 @@ function NebulaField({ layers }: { layers: number }) {
 const PLANET_VERTEX = /* glsl */ `
 varying vec3 vNormal;
 varying vec3 vViewDir;
-varying vec3 vLocal;
+varying vec2 vUv;
 void main() {
   vec4 worldPos = modelMatrix * vec4(position, 1.0);
   vNormal = normalize(mat3(modelMatrix) * normal);
   vViewDir = normalize(cameraPosition - worldPos.xyz);
-  vLocal = position;
+  vUv = uv;
   gl_Position = projectionMatrix * viewMatrix * worldPos;
 }
 `;
 
+// Real-photography host world: NASA Blue Marble day plate, Black Marble
+// night-side city lights, and the MODIS cloud-fraction plate, relit with the
+// same terminator/limb model the procedural shader used. Textures are sRGB;
+// lighting runs in linear and re-encodes at the end.
 const PLANET_FRAGMENT = /* glsl */ `
 uniform float uTime;
 uniform vec3 uLightDir;
+uniform sampler2D uDayMap;
+uniform sampler2D uNightMap;
+uniform sampler2D uCloudMap;
 varying vec3 vNormal;
 varying vec3 vViewDir;
-varying vec3 vLocal;
+varying vec2 vUv;
 
-float hash(vec3 p) {
-  p = fract(p * 0.3183099 + 0.1);
-  p *= 17.0;
-  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-}
-
-float noise(vec3 p) {
-  vec3 i = floor(p);
-  vec3 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(
-    mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
-    mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y),
-    f.z);
-}
-
-float fbm(vec3 p) {
-  float value = 0.0;
-  float amp = 0.5;
-  for (int i = 0; i < 4; i++) {
-    value += amp * noise(p);
-    p *= 2.15;
-    amp *= 0.5;
-  }
-  return value;
-}
+vec3 srgbToLinear(vec3 c) { return pow(c, vec3(2.2)); }
 
 void main() {
   vec3 n = normalize(vNormal);
-  float day = clamp(dot(n, normalize(uLightDir)), -1.0, 1.0);
+  vec3 light = normalize(uLightDir);
+  vec3 view = normalize(vViewDir);
+  float day = clamp(dot(n, light), -1.0, 1.0);
 
-  // Banded, slowly drifting surface — ice-teal ocean world with mineral bands.
-  float bands = fbm(vLocal * 0.42 + vec3(0.0, uTime * 0.008, 0.0)) * 0.6
-              + fbm(vLocal * vec3(0.22, 1.35, 0.22)) * 0.4;
-  vec3 ocean = vec3(0.035, 0.10, 0.15);
-  vec3 shelf = vec3(0.10, 0.24, 0.28);
-  vec3 mineral = vec3(0.36, 0.33, 0.26);
-  vec3 surface = mix(ocean, shelf, smoothstep(0.35, 0.62, bands));
-  surface = mix(surface, mineral, smoothstep(0.68, 0.86, bands) * 0.55);
+  vec3 surface = srgbToLinear(texture2D(uDayMap, vUv).rgb);
+  vec3 nightGlow = srgbToLinear(texture2D(uNightMap, vUv).rgb);
+  float cloud = texture2D(uCloudMap, vUv + vec2(uTime * 0.0018, 0.0)).r;
 
-  // Sparse cloud sheets catch the light.
-  float clouds = smoothstep(0.58, 0.8, fbm(vLocal * 0.9 + vec3(uTime * 0.012, 0.0, 0.0)));
-  surface = mix(surface, vec3(0.82, 0.88, 0.9), clouds * 0.5);
+  float daylight = smoothstep(-0.08, 0.32, day);
+  vec3 lit = surface * (0.05 + 1.85 * daylight);
 
-  float daylight = smoothstep(-0.12, 0.35, day);
-  vec3 lit = surface * (0.12 + 1.25 * daylight);
+  // Ocean sun glint: specular lobe masked to the blue-dominant water pixels.
+  float waterMask = smoothstep(0.02, 0.14, surface.b - surface.r);
+  float glint = pow(clamp(dot(reflect(-light, n), view), 0.0, 1.0), 42.0);
+  lit += vec3(1.0, 0.96, 0.88) * glint * waterMask * daylight * 0.55;
 
-  // Night-side settlements: sparse warm speckle, masked to land bands.
-  float cityMask = step(0.66, hash(floor(vLocal * 14.0))) * smoothstep(0.5, 0.72, bands) * (1.0 - clouds);
-  vec3 cities = vec3(1.0, 0.72, 0.42) * cityMask * smoothstep(0.05, -0.3, day) * 0.9;
+  // Real cloud plate, lit by the same sun and drifting slowly with time.
+  lit = mix(lit, vec3(1.04, 1.05, 1.08) * (0.06 + 1.9 * daylight), cloud * 0.82);
 
-  // Limb darkening + a whisper of atmospheric scatter at the terminator.
-  float view = clamp(dot(n, normalize(vViewDir)), 0.0, 1.0);
-  float limb = pow(view, 0.55);
-  vec3 terminator = vec3(0.9, 0.5, 0.3) * smoothstep(0.18, 0.0, abs(day)) * 0.18;
+  // Black Marble city lights emerge past the terminator, dimmed under cloud.
+  vec3 cities = nightGlow * vec3(1.35, 1.05, 0.72) * smoothstep(0.06, -0.26, day) * (1.0 - cloud * 0.85) * 2.4;
 
-  gl_FragColor = vec4((lit + cities + terminator) * limb, 1.0);
+  // Limb darkening + warm scatter hugging the terminator.
+  float rim = clamp(dot(n, view), 0.0, 1.0);
+  float limb = pow(rim, 0.5);
+  vec3 terminator = vec3(0.95, 0.55, 0.32) * smoothstep(0.16, 0.0, abs(day)) * 0.22;
+
+  vec3 color = (lit + cities + terminator) * limb;
+  gl_FragColor = vec4(pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)), 1.0);
 }
 `;
 
@@ -233,34 +219,103 @@ varying vec3 vNormal;
 varying vec3 vViewDir;
 void main() {
   vec3 n = normalize(vNormal);
-  float rim = pow(1.0 - abs(dot(n, normalize(vViewDir))), 2.6);
+  float rim = pow(1.0 - abs(dot(n, normalize(vViewDir))), 2.4);
   float lit = clamp(dot(n, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
-  vec3 sky = mix(vec3(0.16, 0.4, 0.62), vec3(0.5, 0.78, 0.95), lit);
-  gl_FragColor = vec4(sky, rim * (0.22 + lit * 0.5));
+  vec3 sky = mix(vec3(0.2, 0.46, 0.7), vec3(0.56, 0.82, 0.98), lit);
+  gl_FragColor = vec4(sky, rim * (0.3 + lit * 0.58));
 }
 `;
 
 const PLANET_LIGHT_DIR = new THREE.Vector3(0.62, 0.28, 0.73).normalize();
 
+/** Load the NASA host-world plates once; dispose on unmount. */
+function usePlanetPlates(): {
+  day: THREE.Texture;
+  night: THREE.Texture;
+  clouds: THREE.Texture;
+} | null {
+  const [plates, setPlates] = useState<{
+    day: THREE.Texture;
+    night: THREE.Texture;
+    clouds: THREE.Texture;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const loader = new THREE.TextureLoader();
+    const load = (path: string) =>
+      new Promise<THREE.Texture>((resolve, reject) => {
+        loader.load(path, resolve, undefined, reject);
+      });
+    void Promise.all([
+      load(SPACE_PLATES.earthDay.path),
+      load(SPACE_PLATES.earthNight.path),
+      load(SPACE_PLATES.earthClouds.path),
+    ])
+      .then(([day, night, clouds]) => {
+        if (cancelled) {
+          day.dispose();
+          night.dispose();
+          clouds.dispose();
+          return;
+        }
+        for (const texture of [day, night, clouds]) {
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.colorSpace = THREE.NoColorSpace; // decoded manually in-shader
+        }
+        setPlates({ day, night, clouds });
+      })
+      .catch(() => {
+        // Plates unavailable (offline dev server without public/) — the dim
+        // standby sphere below keeps rendering; nothing else breaks.
+      });
+    return () => {
+      cancelled = true;
+      setPlates((current) => {
+        current?.day.dispose();
+        current?.night.dispose();
+        current?.clouds.dispose();
+        return null;
+      });
+    };
+  }, []);
+  return plates;
+}
+
 function HostWorld({ settings }: { settings: FidelitySettings }) {
   const ref = useRef<THREE.Mesh>(null);
-  const surfaceUniforms = useMemo(
-    () => ({ uTime: { value: 0 }, uLightDir: { value: PLANET_LIGHT_DIR.clone() } }),
-    [],
-  );
+  const plates = usePlanetPlates();
+  const surfaceUniforms = useMemo(() => {
+    if (!plates) return null;
+    return {
+      uTime: { value: 0 },
+      uLightDir: { value: PLANET_LIGHT_DIR.clone() },
+      uDayMap: { value: plates.day },
+      uNightMap: { value: plates.night },
+      uCloudMap: { value: plates.clouds },
+    };
+  }, [plates]);
   const atmosphereUniforms = useMemo(() => ({ uLightDir: { value: PLANET_LIGHT_DIR.clone() } }), []);
   const segments = Math.max(48, Math.min(settings.geometrySegments, 128));
 
   useFrame((state, delta) => {
     if (ref.current && settings.motion) ref.current.rotation.y += delta * 0.018;
-    surfaceUniforms.uTime.value = settings.motion ? state.clock.elapsedTime : 0;
+    if (surfaceUniforms) surfaceUniforms.uTime.value = settings.motion ? state.clock.elapsedTime : 0;
   });
 
   return (
-    <group position={[-28, -10, -72]}>
+    <group position={[-26, -7, -66]}>
       <mesh ref={ref}>
-        <sphereGeometry args={[9.4, segments, Math.round(segments * 0.7)]} />
-        <shaderMaterial vertexShader={PLANET_VERTEX} fragmentShader={PLANET_FRAGMENT} uniforms={surfaceUniforms} />
+        <sphereGeometry args={[10.6, segments, Math.round(segments * 0.7)]} />
+        {surfaceUniforms ? (
+          <shaderMaterial
+            key="nasa-world"
+            vertexShader={PLANET_VERTEX}
+            fragmentShader={PLANET_FRAGMENT}
+            uniforms={surfaceUniforms}
+          />
+        ) : (
+          <meshStandardMaterial key="standby-world" color="#16303e" roughness={0.9} metalness={0.05} />
+        )}
       </mesh>
       <mesh scale={1.045}>
         <sphereGeometry args={[9.4, Math.max(32, Math.round(segments * 0.5)), 24]} />

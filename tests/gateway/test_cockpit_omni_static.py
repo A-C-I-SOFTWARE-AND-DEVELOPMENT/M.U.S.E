@@ -45,6 +45,8 @@ def omni_dist(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     )
     (dist / "assets" / "app.js").write_text("console.log('atlas')", encoding="utf-8")
     (dist / "registerSW.js").write_text("/* sw */", encoding="utf-8")
+    (dist / "space").mkdir()
+    (dist / "space" / "starmap.jpg").write_bytes(b"\xff\xd8\xff\xdbjpegish")
     (dist / "secret.py").write_text("nope", encoding="utf-8")  # disallowed type
     monkeypatch.setenv("MUSE_OMNI_DIST_DIR", str(dist))
     return dist
@@ -100,6 +102,13 @@ def test_atlas_assets_served_from_build(omni_dist, server) -> None:
     status, _, body = _get_raw(server, "/registerSW.js")
     assert status == 200
     assert b"sw" in body
+
+    # Real-photography plates ship as JPEG — the suffix allowlist must serve
+    # them (regression: .jpg was missing and the NASA layer 404'd).
+    status, ctype, body = _get_raw(server, "/space/starmap.jpg")
+    assert status == 200
+    assert ctype.startswith("image/jpeg")
+    assert body.startswith(b"\xff\xd8")
 
 
 def test_singularity_stays_at_cockpit_prefix(omni_dist, server) -> None:
