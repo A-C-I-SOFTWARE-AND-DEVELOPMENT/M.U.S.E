@@ -5,13 +5,15 @@
 #
 # Idempotent: safe to re-run after a failure or an update. Handles the
 # field-reported failure modes end to end: missing binutils (`ar`) breaking
-# every cargo build script, a half-upgraded rust whose std rlibs the new
-# compiler rejects ("crate `std` required to be available in rlib format,
-# but was not found in this form" — the files exist but are stale, so the
-# toolchain is verified by actually compiling a probe, never by counting
-# files), and uv's cache holding onto a build attempt made with the broken
-# toolchain. Rust deps (maturin, pydantic-core) compile from source
-# on-device: 15-40 minutes on a typical phone is normal.
+# every cargo build script, and a half-upgraded rust whose std the compiler
+# rejects ("crate `std` required to be available in rlib format, but was
+# not found in this form"). Termux packages the standard library separately
+# (rust-std-<target>), so rustc and its std can end up version-mismatched;
+# the toolchain is therefore verified by compiling a real probe — never by
+# counting files — and repaired by purging BOTH packages so they reinstall
+# at matched versions. uv's cache of builds attempted with the broken
+# toolchain is cleared on retry. Rust deps (maturin, pydantic-core) compile
+# from source on-device: 15-40 minutes on a typical phone is normal.
 
 set -u
 
@@ -45,14 +47,22 @@ rust_smoke() {
 }
 
 if ! rust_smoke; then
-  say "rust toolchain is broken (std rejected by compiler) — wiping and reinstalling it"
+  say "rust toolchain is broken (std rejected by compiler) — reinstalling rust AND rust-std together"
   dpkg --configure -a >/dev/null 2>&1 || true
-  pkg uninstall -y rust >/dev/null 2>&1 || true
-  # Stale std rlibs from the old version survive a plain reinstall and the
-  # new compiler refuses them — clear the whole sysroot library tree.
+  pkg update >/dev/null 2>&1 || true
+  # Termux ships the standard library as a separate rust-std-<target> package
+  # that `rust` merely depends on. A half-finished upgrade leaves rustc and
+  # rust-std at different versions and the compiler rejects the mismatched
+  # rlibs — reinstalling `rust` alone can never fix that. Purge both so the
+  # fresh `rust` install pulls a version-matched rust-std back in.
+  rust_pkgs=$(dpkg-query -W -f='${Package} ' 'rust' 'rust-std-*' 2>/dev/null || true)
+  if [ -n "${rust_pkgs// }" ]; then
+    # shellcheck disable=SC2086
+    pkg uninstall -y $rust_pkgs >/dev/null 2>&1 || true
+  fi
   rm -rf "$PREFIX/lib/rustlib"
   pkg install -y rust || fail "rust reinstall"
-  rust_smoke || fail "rust still cannot compile after a clean reinstall; run 'pkg update && pkg upgrade rust' then re-run this installer"
+  rust_smoke || fail "rust still cannot compile after a matched reinstall; run 'termux-change-repo' to pick a different mirror, then re-run this installer"
 fi
 say "rust toolchain verified (compiled and ran a probe binary)"
 
