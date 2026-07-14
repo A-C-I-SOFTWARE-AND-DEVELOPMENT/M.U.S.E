@@ -5,11 +5,13 @@
 #
 # Idempotent: safe to re-run after a failure or an update. Handles the
 # field-reported failure modes end to end: missing binutils (`ar`) breaking
-# every cargo build script, a half-upgraded rust leaving std without rlibs
-# ("crate `std` required to be available in rlib format"), and uv's cache
-# holding onto a build attempt made with the broken toolchain. Rust deps
-# (maturin, pydantic-core) compile from source on-device: 15-40 minutes on a
-# typical phone is normal.
+# every cargo build script, a half-upgraded rust whose std rlibs the new
+# compiler rejects ("crate `std` required to be available in rlib format,
+# but was not found in this form" — the files exist but are stale, so the
+# toolchain is verified by actually compiling a probe, never by counting
+# files), and uv's cache holding onto a build attempt made with the broken
+# toolchain. Rust deps (maturin, pydantic-core) compile from source
+# on-device: 15-40 minutes on a typical phone is normal.
 
 set -u
 
@@ -27,16 +29,32 @@ say "installing Termux packages"
 pkg install -y git python uv rust clang make pkg-config openssl libffi binutils \
   || fail "pkg install did not complete"
 
-# A broken rust upgrade leaves std without its .rlib archives and every
-# cargo build dies with exit 101. Verify before spending 30 minutes.
-rlibs=$(ls "$PREFIX"/lib/rustlib/*/lib/*.rlib 2>/dev/null | wc -l)
-if [ "${rlibs:-0}" -lt 10 ]; then
-  say "rust std looks broken ($rlibs rlibs) — reinstalling rust"
-  pkg reinstall -y rust || fail "rust reinstall"
-  rlibs=$(ls "$PREFIX"/lib/rustlib/*/lib/*.rlib 2>/dev/null | wc -l)
-  [ "${rlibs:-0}" -ge 10 ] || fail "rust std still broken after reinstall; run: pkg uninstall rust && pkg install rust"
+# A broken rust upgrade kills every cargo build script with exit 101. The
+# rlibs can be present on disk yet still be rejected by the compiler when
+# they were built by the previous rust version, so the only trustworthy
+# health check is compiling and running a real binary.
+rust_smoke() {
+  probe_dir="${TMPDIR:-$PREFIX/tmp}/muse-rust-probe.$$"
+  mkdir -p "$probe_dir" || return 1
+  printf 'fn main() {}\n' > "$probe_dir/probe.rs"
+  rustc "$probe_dir/probe.rs" -o "$probe_dir/probe" >/dev/null 2>&1 \
+    && "$probe_dir/probe" >/dev/null 2>&1
+  probe_rc=$?
+  rm -rf "$probe_dir"
+  return "$probe_rc"
+}
+
+if ! rust_smoke; then
+  say "rust toolchain is broken (std rejected by compiler) — wiping and reinstalling it"
+  dpkg --configure -a >/dev/null 2>&1 || true
+  pkg uninstall -y rust >/dev/null 2>&1 || true
+  # Stale std rlibs from the old version survive a plain reinstall and the
+  # new compiler refuses them — clear the whole sysroot library tree.
+  rm -rf "$PREFIX/lib/rustlib"
+  pkg install -y rust || fail "rust reinstall"
+  rust_smoke || fail "rust still cannot compile after a clean reinstall; run 'pkg update && pkg upgrade rust' then re-run this installer"
 fi
-say "rust toolchain healthy ($rlibs std rlibs)"
+say "rust toolchain verified (compiled and ran a probe binary)"
 
 cd "$HOME"
 if [ ! -d M.U.S.E/.git ]; then
