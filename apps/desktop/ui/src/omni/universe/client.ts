@@ -95,12 +95,17 @@ export class UniverseClient {
   constructor(
     baseUrl: string,
     headers: HeaderFactory,
-    fetcher: FetchLike = fetch,
+    fetcher?: FetchLike,
     actorId = 'ply_owner',
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.headers = headers;
-    this.fetcher = fetcher;
+    // Wrap the global fetch instead of storing the bare reference: calling
+    // `this.fetcher(...)` with an unbound `fetch` rebinds `this` to the client
+    // and throws "Illegal invocation" in Chromium — which surfaced as a
+    // permanent "Atlas stale" badge because the error was classified as a
+    // network failure before any request left the page.
+    this.fetcher = fetcher ?? ((input, init) => fetch(input, init));
     this.actorId = actorId;
   }
 
