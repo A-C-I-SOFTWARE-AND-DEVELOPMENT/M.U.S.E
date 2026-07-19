@@ -197,7 +197,7 @@ def relaunch(
             # cryptic.  Common causes: ``hermes`` not on PATH yet (install
             # hasn't propagated User PATH into this shell) or a stale shim.
             print(
-                f"\nHermes relaunch failed: {exc}\n"
+                f"\nmuse relaunch failed: {exc}\n"
                 f"Command: {' '.join(new_argv)}\n"
                 f"Fix: open a new terminal so PATH picks up, then re-run hermes.",
                 file=sys.stderr,

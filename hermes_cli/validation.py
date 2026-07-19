@@ -1741,7 +1741,7 @@ def scan_text_for_secrets(text: str) -> list[tuple[str, str]]:
 def render_summary(report: ValidationReport) -> str:
     """Render a Markdown summary of a ``ValidationReport``."""
     lines: list[str] = []
-    lines.append("# Hermes Validation Summary")
+    lines.append("# muse Validation Summary")
     lines.append("")
     lines.append(f"- Workspace: `{report.workspace}`")
     lines.append(

@@ -141,12 +141,12 @@ def render_user_profile(
     languages = _fmt_pair(commit_summary.get("languages", []))
     top_repos = _fmt_pair(pr_summary.get("top_repos", []))
     lines = [
-        f"# Hermes user profile — {user_label}",
+        f"# muse user profile — {user_label}",
         "",
         f"_Built from the last {snapshot.window_days} days of GitHub history "
         f"(since {snapshot.since}). Sources: {sources}._",
         "",
-        "This file is private to this machine. It exists so Hermes (and any "
+        "This file is private to this machine. It exists so muse (and any "
         "future AI assistant you point at this repo) can be useful from the "
         "first prompt instead of needing to re-learn six months of habits.",
         "",
@@ -224,10 +224,10 @@ def render_user_profile(
         "",
         f"- AI-shaped commit messages in window: "
         f"{commit_summary.get('ai_intent', 0)}",
-        "- Hermes / Claude / Codex appear regularly in commit context. "
+        "- muse / Claude / Codex appear regularly in commit context. "
         "Don't be shy about referencing the orchestration stack in PRs.",
         "",
-        "## Mistakes Hermes should watch for",
+        "## Mistakes muse should watch for",
         "",
         "See `common-mistakes.md` for the full breakdown. The headline "
         "categories from this window are listed above under "
@@ -293,7 +293,7 @@ def render_common_mistakes(commit_summary: dict, issue_summary: dict) -> str:
         reverse=True,
     )
     lines = [
-        "# Common mistakes Hermes should watch for",
+        "# Common mistakes muse should watch for",
         "",
         "_Pattern-match on commit subjects + bodies + PR/issue titles. "
         "Counts are evidence, not absolutes — re-run the builder for "
@@ -440,12 +440,12 @@ def ensure_gitignore(repo_root: Path) -> bool:
             return False
         suffix = "" if existing.endswith("\n") else "\n"
         gitignore.write_text(
-            existing + f"{suffix}# Local Hermes user profile (Phase 07 builder)\n{line}\n",
+            existing + f"{suffix}# Local muse user profile (Phase 07 builder)\n{line}\n",
             encoding="utf-8",
         )
         return True
     gitignore.write_text(
-        f"# Local Hermes user profile (Phase 07 builder)\n{line}\n",
+        f"# Local muse user profile (Phase 07 builder)\n{line}\n",
         encoding="utf-8",
     )
     return True
@@ -547,7 +547,7 @@ def write_profile(
 
 
 def _format_preview(rendered: dict[str, str]) -> str:
-    lines = ["# Hermes user-profile preview", ""]
+    lines = ["# muse user-profile preview", ""]
     for name in sorted(rendered):
         body = rendered[name]
         head = "\n".join(body.splitlines()[:6])

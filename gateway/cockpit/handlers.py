@@ -2172,7 +2172,7 @@ def job_tree(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "path escapes the job workspace"})
     if _within(target, _hermes_state_dir()):
         return JsonResponse(
-            403, {"error": "refusing to browse the Hermes state directory (~/.hermes)"}
+            403, {"error": "refusing to browse the muse state directory (~/.hermes)"}
         )
     if not root.is_dir():
         return JsonResponse(200, {"path": rel, "entries": []})
@@ -2235,7 +2235,7 @@ def job_file(req: Request) -> JsonResponse:
     if _within(target, _hermes_state_dir()):
         return JsonResponse(
             403,
-            {"error": "refusing to read inside the Hermes state directory (~/.hermes)"},
+            {"error": "refusing to read inside the muse state directory (~/.hermes)"},
         )
     if not target.is_file():
         return JsonResponse(404, {"error": f"not a file: {rel}"})

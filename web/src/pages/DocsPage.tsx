@@ -16,7 +16,7 @@ export default function DocsPage() {
     setTitle("Documentation");
     setAfterTitle(
       <span className="hidden whitespace-nowrap text-xs text-[var(--fg-faint)] sm:inline">
-        The full Hermes agent manual, embedded.
+        The full muse agent manual, embedded.
       </span>,
     );
     setEnd(

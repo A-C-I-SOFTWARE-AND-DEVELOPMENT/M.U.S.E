@@ -111,9 +111,9 @@ def _load_env() -> None:
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="muse-acp",
-        description="Run Hermes Agent as an ACP stdio server.",
+        description="Run M.U.S.E. as an ACP stdio server.",
     )
-    parser.add_argument("--version", action="store_true", help="Print Hermes version and exit")
+    parser.add_argument("--version", action="store_true", help="Print M.U.S.E. version and exit")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -122,7 +122,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--setup",
         action="store_true",
-        help="Run interactive Hermes provider/model setup for ACP terminal auth",
+        help="Run interactive M.U.S.E. provider/model setup for ACP terminal auth",
     )
     parser.add_argument(
         "--setup-browser",
@@ -151,7 +151,7 @@ def _run_check() -> None:
     import acp  # noqa: F401
     from acp_adapter.server import HermesACPAgent  # noqa: F401
 
-    print("Hermes ACP check OK")
+    print("M.U.S.E. ACP check OK")
 
 
 def _run_setup() -> None:

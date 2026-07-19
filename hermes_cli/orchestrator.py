@@ -1173,7 +1173,7 @@ def best_coding_tool_mission_status() -> dict[str, Any]:
     manually under ``$HERMES_HOME/orchestrator/best_coding_tool_mission.json``.
     """
     default = {
-        "mission": "Make Hermes the best coding tool for the user's day-to-day work.",
+        "mission": "Make muse the best coding tool for the user's day-to-day work.",
         "metrics": {
             "jobs_submitted": 0,
             "jobs_published": 0,
@@ -1287,7 +1287,7 @@ _ORCHESTRATOR_HELP = (
 _MODEL_ROUTER_HELP = (
     "Usage: /model-router explain <prompt>\n"
     "\n"
-    "Explains which model/profile Hermes would route a prompt to.\n"
+    "Explains which model/profile muse would route a prompt to.\n"
     "This is an explain-only surface — use /model to actually switch.\n"
 )
 

@@ -192,7 +192,7 @@ export default function ProfilesPage() {
     setTitle("Profiles");
     setAfterTitle(
       <span className="whitespace-nowrap text-xs text-[var(--fg-faint)]">
-        Isolated Hermes homes with their own config, keys, and skills.
+        Isolated muse homes with their own config, keys, and skills.
       </span>,
     );
     setEnd(

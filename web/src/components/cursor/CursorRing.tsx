@@ -6,7 +6,10 @@ import { createCursorTrail } from "./trail";
 /**
  * Custom cursor layer for the M.U.S.E. dashboard (animation-spec §5, §6).
  *
- * The native cursor stays visible — this layer AUGMENTS it with:
+ * While this layer is mounted it REPLACES the native cursor: a
+ * `*{cursor:none!important}` <style> tag lives in document.head for the
+ * layer's lifetime (injected on mount, removed on unmount / whenever the
+ * media gate below disables the layer). On that blank canvas it draws:
  *
  *  1. A 28px ring (1.5px var(--accent) border) that follows the pointer via
  *     rAF lerp (factor 0.35 — fast follow), plus a tiny center dot that
@@ -85,6 +88,16 @@ function CursorLayer(): JSX.Element {
     if (!canvas || !ring || !inner || !dot) return;
 
     const trail = createCursorTrail(canvas);
+
+    // Native-cursor takeover: hide the OS cursor globally for exactly as
+    // long as this layer is mounted. The tag is owned by this effect
+    // instance — appended once here, removed in the cleanup below — so
+    // re-renders never double-inject, and the native cursor is restored
+    // the moment the ring unmounts or the media gate flips to disabled.
+    const cursorTakeover = document.createElement("style");
+    cursorTakeover.setAttribute("data-muse-cursor-takeover", "");
+    cursorTakeover.textContent = "*{cursor:none!important}";
+    document.head.appendChild(cursorTakeover);
 
     const pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const ringPos = { x: pointer.x, y: pointer.y };
@@ -279,6 +292,8 @@ function CursorLayer(): JSX.Element {
       }
       touched.clear();
       trail.destroy();
+      // Hand the native cursor back.
+      cursorTakeover.remove();
     };
   }, []);
 

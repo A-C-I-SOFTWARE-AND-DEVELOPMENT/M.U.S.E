@@ -87,13 +87,13 @@ export const coreCommands: SlashCommand[] = [
 
   {
     aliases: ['exit', 'q'],
-    help: 'exit hermes',
+    help: 'exit muse',
     name: 'quit',
     run: (_arg, ctx) => ctx.session.die()
   },
 
   {
-    help: 'update Hermes Agent to the latest version (exits TUI)',
+    help: 'update muse to the latest version (exits TUI)',
     name: 'update',
     run: (_arg, ctx) => {
       ctx.transcript.sys('exiting TUI to run update...')
@@ -450,7 +450,7 @@ export const coreCommands: SlashCommand[] = [
       const preview = Math.max(80, parseInt(arg, 10) || 400)
 
       const lines = items.map((m, i) => {
-        const tag = m.role === 'user' ? `You #${i + 1}` : `Hermes #${i + 1}`
+        const tag = m.role === 'user' ? `You #${i + 1}` : `M.U.S.E. #${i + 1}`
         const body = m.text.trim() || (m.tools?.length ? `(${m.tools.length} tool calls)` : '(empty)')
         const clipped = body.length > preview ? `${body.slice(0, preview).trimEnd()}…` : body
 

@@ -486,7 +486,7 @@ def _capture_claude_code_token() -> None:
     from hermes_cli.config import save_env_value
 
     print()
-    print("Claude Code (optional) — Hermes reads a token you mint yourself:")
+    print("Claude Code (optional) — muse reads a token you mint yourself:")
     print("  1. Run `claude setup-token` (opens a URL; paste the code back).")
     print("  2. Paste the resulting token below (or press Enter to skip).")
     try:

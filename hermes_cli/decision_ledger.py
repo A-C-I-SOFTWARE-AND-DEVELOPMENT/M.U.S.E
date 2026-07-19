@@ -466,7 +466,7 @@ _PLACEHOLDERS: dict[str, str] = {
         " Validation. 'Defer' is always a legitimate option. -->"
     ),
     "Selected Model / Worker": (
-        "<!-- Which Hermes worker, subagent profile, or model will"
+        "<!-- Which muse worker, subagent profile, or model will"
         " execute this? Name it precisely (e.g."
         " `delegation` -> `anthropic/claude-sonnet-4-6`). -->"
     ),

@@ -79,7 +79,7 @@ export function CommandPalette({ onSystemAction }: CommandPaletteProps) {
       },
       {
         id: "update",
-        label: "Update Hermes",
+        label: "Update muse",
         hint: "System",
         icon: Download,
         action: () => onSystemAction?.("update"),

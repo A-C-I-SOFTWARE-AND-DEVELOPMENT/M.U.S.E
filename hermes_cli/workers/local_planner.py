@@ -34,7 +34,7 @@ class LocalPlannerWorker(WorkerAdapter):
     """A safe, deterministic, repo-read-only planning worker."""
 
     id = "hermes-local-planner"
-    display_name = "Hermes local planner"
+    display_name = "muse local planner"
     # Non-destructive (read-only navigation; no edits, no shell) → runs ungated.
     requires_approval = False
 

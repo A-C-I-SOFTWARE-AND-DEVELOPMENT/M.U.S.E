@@ -101,7 +101,7 @@ def detect(project_root: Optional[Path] = None) -> Detection:
     if not has_dot:
         notes.append(
             "Project not linked — run `vercel link` interactively before "
-            "the first deploy. Hermes will not run `vercel link` for you."
+            "the first deploy. muse will not run `vercel link` for you."
         )
     return Detection(
         cli_present=cli_path is not None,
@@ -164,7 +164,7 @@ def plan(
     ]
     env_policy = [
         "Env var *names* may be committed (e.g. in `.env.example`); values must not.",
-        "Add or rotate secrets via `vercel env add` or the dashboard — Hermes never sends env values to Vercel.",
+        "Add or rotate secrets via `vercel env add` or the dashboard — muse never sends env values to Vercel.",
         "If an env var is missing for the target environment, the deploy will succeed but the app will fail at runtime — confirm presence in the dashboard first.",
         "Treat preview env vars as production-equivalent for any secret that grants real data access.",
     ]

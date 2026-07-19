@@ -616,7 +616,7 @@ async def test_topic_restore_inside_topic_binds_old_session_and_returns_last_ass
     result = await runner._handle_message(_make_event("/topic old-session", thread_id="17585"))
 
     assert "Session restored: Research notes" in result
-    assert "Last Hermes message:" in result
+    assert "Last muse message:" in result
     assert "Here is the summary." in result
     binding = session_db.get_telegram_topic_binding(chat_id="208214988", thread_id="17585")
     assert binding is not None
@@ -739,7 +739,7 @@ async def test_topic_root_command_creates_and_pins_system_topic(tmp_path, monkey
     adapter._create_dm_topic.assert_awaited_once_with(208214988, "System")
     adapter.send.assert_awaited_once_with(
         "208214988",
-        "System topic for Hermes commands and status.",
+        "System topic for muse commands and status.",
         metadata={"thread_id": "4242"},
     )
     bot.pin_chat_message.assert_awaited_once_with(

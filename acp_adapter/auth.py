@@ -58,7 +58,7 @@ def build_auth_methods() -> list[Any]:
                 id=provider,
                 name=f"{provider} runtime credentials",
                 description=(
-                    "Authenticate Hermes using the currently configured "
+                    "Authenticate muse using the currently configured "
                     f"{provider} runtime credentials."
                 ),
             )
@@ -67,10 +67,10 @@ def build_auth_methods() -> list[Any]:
     methods.append(
         TerminalAuthMethod(
             id=TERMINAL_SETUP_AUTH_METHOD_ID,
-            name="Configure Hermes provider",
+            name="Configure M.U.S.E. provider",
             description=(
-                "Open Hermes' interactive model/provider setup in a terminal. "
-                "Use this when Hermes has not been configured on this machine yet."
+                "Open muse's interactive model/provider setup in a terminal. "
+                "Use this when muse has not been configured on this machine yet."
             ),
             type="terminal",
             args=["--setup"],

@@ -541,7 +541,7 @@ def route(
                 worker_id="hermes-local",
                 role="validator",
                 score=_score(hermes, category, ctx),
-                rationale="Hermes Local is always included for validation + memory.",
+                rationale="muse local is always included for validation + memory.",
             )
         )
         selected_ids.append("hermes-local")
@@ -581,7 +581,7 @@ def route(
             worker_id="hermes-local",
             role="primary",
             score=selected[0].score,
-            rationale="No external worker available; Hermes Local is the primary.",
+            rationale="No external worker available; muse local is the primary.",
         )
 
     # Browser research as a sidecar when current external docs matter.

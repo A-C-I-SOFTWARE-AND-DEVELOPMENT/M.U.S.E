@@ -40,7 +40,7 @@
 /* ------------------------------------------------------------------ */
 /* M.U.S.E. "Singularity" — the canonical palette from the design      */
 /* contract (design.md Part 0), applied statically as the default      */
-/* lens. The old LENS_0 (Hermes teal) defaults are gone; the           */
+/* lens. The old LENS_0 (muse teal) defaults are gone; the           */
 /* `default` theme preset still reproduces that look on demand.        */
 /* ThemeProvider rewrites the 3-layer triplet + typography + layout    */
 /* vars as inline styles when a user switches themes.                  */

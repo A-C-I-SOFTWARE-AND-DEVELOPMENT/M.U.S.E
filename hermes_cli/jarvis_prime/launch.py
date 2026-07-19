@@ -66,7 +66,7 @@ class LaunchSummary:
             lines.append(f"  {'✓' if s.ok else '✗'} {s.name}: {s.detail}")
         lines.append("")
         lines.append("Next commands:")
-        lines.append(f"  Start Hermes:   {self.next_commands.get('start', 'hermes')}")
+        lines.append(f"  Start muse:     {self.next_commands.get('start', 'hermes')}")
         lines.append(f"  Invoke JARVIS:  {self.next_commands.get('invoke', '/jarvis')}")
         lines.append(
             f"  Run doctor:     {self.next_commands.get('doctor', 'hermes doctor --jarvis-launch')}"

@@ -778,7 +778,7 @@ def _print_install_all_summary(summary: Dict[str, List[dict]]):
         _warning("The catalog is empty — nothing to install.")
         return
     print()
-    _info("Start a new Hermes session to load the newly-enabled tools.")
+    _info("Start a new muse session to load the newly-enabled tools.")
     print()
 
 

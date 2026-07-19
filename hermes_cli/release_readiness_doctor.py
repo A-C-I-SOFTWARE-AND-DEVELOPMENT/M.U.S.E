@@ -79,7 +79,7 @@ class ReadinessReport:
 
     def render(self) -> str:
         glyph = {PASS: "✓", WARN: "⚠", FAIL: "✗"}
-        lines = ["Hermes 10/10 — release-readiness doctor", ""]
+        lines = ["muse 10/10 — release-readiness doctor", ""]
         for c in self.checks:
             tier = "" if c.hard else " (10/10 punch list)"
             lines.append(f"  {glyph.get(c.status, '?')} {c.name}: {c.detail}{tier}")

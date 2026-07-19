@@ -169,7 +169,7 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if mv != _MANIFEST_VERSION:
         raise CatalogError(
             f"{path}: manifest_version {mv!r} unsupported "
-            f"(this Hermes understands version {_MANIFEST_VERSION})"
+            f"(this muse understands version {_MANIFEST_VERSION})"
         )
 
     name = data.get("name") or ""
@@ -752,7 +752,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     print(color(
         f"  ✓ Installed '{entry.name}' "
         f"({'enabled' if enable else 'disabled'}). "
-        f"Start a new Hermes session to load its tools.",
+        f"Start a new muse session to load its tools.",
         Colors.GREEN,
     ))
     if entry.post_install:

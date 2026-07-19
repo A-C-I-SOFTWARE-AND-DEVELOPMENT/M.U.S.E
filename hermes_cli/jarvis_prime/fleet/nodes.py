@@ -100,7 +100,7 @@ class TacticalVesselNode(FleetNode):
         super().__init__(
             id="tactical",
             kind=NodeKind.TACTICAL,
-            label="Hermes Tactical Cruiser",
+            label="M.U.S.E. Tactical Cruiser",
             parent_id="flagship",
         )
 

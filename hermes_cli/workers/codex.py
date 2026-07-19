@@ -208,7 +208,7 @@ def build_prompt(task: CodexTask) -> str:
     sections = [
         "# Codex Worker — Implementation Task",
         "",
-        "You are running as the **Codex worker** invoked by the Hermes local",
+        "You are running as the **Codex worker** invoked by the muse local",
         "orchestrator. Follow this prompt literally. Do not invent extra",
         "scope, do not refactor unrelated code, and do not skip the output",
         "contract at the bottom — the orchestrator parses those files.",
@@ -320,7 +320,7 @@ def _initial_status(
             "Hand the contents of prompt.md to the official Codex CLI or "
             "Codex surface you are signed into. After Codex finishes, drop "
             "the five output files listed above into this directory so the "
-            "Hermes orchestrator can collect them."
+            "muse orchestrator can collect them."
             if mode == MODE_HANDOFF
             else "Codex CLI execution requested by operator; see status updates after the run."
         ),

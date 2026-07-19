@@ -810,7 +810,7 @@ class RemoteBridge:
                 else JobState.AWAITING_APPROVAL.value
             ),
             "detail": (
-                "Hermes staged the job."
+                "muse staged the job."
                 if approved
                 else "Awaiting explicit user approval before remote execution."
             ),

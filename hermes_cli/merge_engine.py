@@ -637,7 +637,7 @@ def _write_plain_english_summary(
     elif result.winner is None:
         lines.append(
             f"{n_workers} worker(s) ran. None of them produced a result "
-            "Hermes was willing to ship — see `final-plan.md` for the "
+            "muse was willing to ship — see `final-plan.md` for the "
             "rejection reasons."
         )
     else:
@@ -665,7 +665,7 @@ def _write_plain_english_summary(
         if w.touches_high_risk:
             lines.append(
                 "It touches sensitive code (auth, billing, migrations, or "
-                "similar) — Hermes only let it through because it added tests."
+                "similar) — muse only let it through because it added tests."
             )
         if w.adds_tests:
             lines.append("It added or updated tests.")
@@ -678,7 +678,7 @@ def _write_plain_english_summary(
 
     if result.rejected:
         lines.append("")
-        lines.append("### Workers Hermes did not pick")
+        lines.append("### Workers muse did not pick")
         for r in result.rejected:
             lines.append(f"- `{r.worker_id}`: {_first_sentence(r.reason)}")
 

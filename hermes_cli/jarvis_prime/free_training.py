@@ -267,9 +267,9 @@ model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 
 
 def _grpo_script(base_model: str, dataset_path: str, out_dir: str) -> str:
-    return f'''"""Free GRPO with VERIFIABLE REWARDS = Hermes verification gates.
+    return f'''"""Free GRPO with VERIFIABLE REWARDS = muse verification gates.
 
-The reward runs the model's produced work through Hermes' gates and returns
+The reward runs the model's produced work through muse's gates and returns
 ``reward_from_gate_summary`` — no human/paid judge. Wire a real verifier (run
 tests, scan secrets, score citations) inside ``gate_summary_for`` for your task.
 """
@@ -288,7 +288,7 @@ model = FastLanguageModel.get_peft_model(model, r=16, lora_alpha=16)
 dataset = load_dataset("json", data_files={dataset_path!r}, split="train")
 
 def packet_for(prompt, completion):
-    # WIRE THIS to your task: turn the model's completion into a Hermes work
+    # WIRE THIS to your task: turn the model's completion into a muse work
     # packet (e.g. via natural_language_coder.build_work_packet, or by writing
     # the code to a sandbox and attaching captured evidence). reward_for_work
     # then runs the REAL gates (gates.run_gate_summary) and grades it — no
@@ -375,7 +375,7 @@ def generate_recipe(
     """Emit a runnable Unsloth+TRL training script for a free GPU run.
 
     Generate-only — the actual training runs where you point the script (free
-    Colab/Kaggle T4 or a local GPU). For GRPO the reward is the Hermes gate
+    Colab/Kaggle T4 or a local GPU). For GRPO the reward is the muse gate
     reward (verifiable, no paid judge).
     """
 

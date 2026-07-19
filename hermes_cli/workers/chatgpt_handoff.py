@@ -107,7 +107,7 @@ def render_prompt(
     body = (
         f"# {title}\n\n"
         f"You are acting as ChatGPT in a **{role}** capacity for the "
-        "Hermes orchestrator. A human is pasting this prompt into your "
+        "muse orchestrator. A human is pasting this prompt into your "
         "session manually — there is no automation around your reply, "
         "so be explicit and self-contained. Lead with the answer, then "
         "show your reasoning.\n\n"

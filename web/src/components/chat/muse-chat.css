@@ -1,0 +1,126 @@
+/* ------------------------------------------------------------------ */
+/* M.U.S.E. chat dock — component-local motion + chrome.              */
+/* Composes the global Observatory system (styles/motion.css):        */
+/* durations/easings route through the shared tokens (--dur-fast,     */
+/* --ease-motion, --ease-smooth, --accent). Nothing here introduces   */
+/* a new curve or a new color — only dock-specific keyframes.         */
+/* ------------------------------------------------------------------ */
+
+/* Panel entrance — fade + 8px rise + 0.98→1 settle, std duration on  */
+/* the primary UI curve. Sibling of the global `.muse-enter` page     */
+/* entrance, tuned for a surface that grows out of the FAB corner.    */
+@keyframes muse-chat-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transform-origin: bottom right;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transform-origin: bottom right;
+  }
+}
+
+.muse-chat-dock-in {
+  animation: muse-chat-dock-in var(--dur-std, 250ms)
+    var(--ease-motion, cubic-bezier(0.2, 1, 0.2, 1)) both;
+  will-change: transform, opacity;
+}
+
+/* FAB border treatment — token-driven so the sigil stays inside the  */
+/* Singularity accent family on every theme. Hover lifts the accent   */
+/* share of the border; the transition rides the standard fast curve. */
+.muse-chat-fab {
+  border-color: color-mix(in srgb, var(--accent, #d8b4fe) 26%, transparent);
+  transition:
+    border-color var(--dur-fast, 150ms) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1)),
+    color var(--dur-fast, 150ms) var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.muse-chat-fab:hover {
+  border-color: color-mix(in srgb, var(--accent, #d8b4fe) 48%, transparent);
+}
+
+/* Sigil idle — a slow accent-glow breathe on the FAB while the dock  */
+/* is collapsed. 3.2s on the symmetric smooth curve; deliberately     */
+/* quieter than the 2s status-dot breathe so the FAB never competes   */
+/* with live status signals.                                          */
+@keyframes muse-chat-sigil-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.5),
+      0 0 0 0 color-mix(in srgb, var(--accent, #d8b4fe) 0%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.5),
+      0 0 16px 1px color-mix(in srgb, var(--accent, #d8b4fe) 30%, transparent);
+  }
+}
+
+.muse-chat-sigil-idle {
+  animation: muse-chat-sigil-breathe 3.2s
+    var(--ease-smooth, cubic-bezier(1, 0, 0, 1)) infinite;
+}
+
+/* Streaming "thinking" dots — three accent-dim dots ripple in place  */
+/* while a turn is open but no delta has landed yet. 150ms stagger    */
+/* via :nth-child, on the smooth symmetric curve.                     */
+@keyframes muse-chat-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.muse-chat-typing-dot {
+  animation: muse-chat-typing 1.2s var(--ease-smooth, cubic-bezier(1, 0, 0, 1)) infinite;
+}
+
+.muse-chat-typing-dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.muse-chat-typing-dot:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+/* Thin, quiet scrollbar for the transcript — matches the dashboard's */
+/* dark canvas instead of the OS default.                             */
+.muse-chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--midground-base, #e8ecf4) 18%, transparent)
+    transparent;
+}
+
+.muse-chat-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.muse-chat-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--midground-base, #e8ecf4) 18%, transparent);
+  border-radius: 9999px;
+}
+
+.muse-chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Reduced-motion hard fallback, mirroring the guard in motion.css:   */
+/* remove the looped/entrance animations entirely so nothing pulses   */
+/* or slides for reduced-motion users.                                */
+@media (prefers-reduced-motion: reduce) {
+  .muse-chat-dock-in,
+  .muse-chat-sigil-idle,
+  .muse-chat-typing-dot {
+    animation: none !important;
+  }
+}

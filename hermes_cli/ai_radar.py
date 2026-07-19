@@ -439,7 +439,7 @@ def render_report_markdown(report: RadarReport) -> str:
     defect — that contract is enforced by the tests.
     """
     lines: list[str] = []
-    lines.append(f"# Hermes AI Improvement Radar — {report.timestamp}")
+    lines.append(f"# muse AI Improvement Radar — {report.timestamp}")
     lines.append("")
 
     lines.append("## Summary")
@@ -477,7 +477,7 @@ def render_report_markdown(report: RadarReport) -> str:
         lines.append("_No sources recorded._")
     lines.append("")
 
-    lines.append("## Relevance to Hermes")
+    lines.append("## Relevance to muse")
     relevant = [f for f in report.verified_findings if f.actionable]
     if relevant:
         for f in relevant:

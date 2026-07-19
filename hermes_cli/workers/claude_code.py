@@ -360,7 +360,7 @@ def _render_prompt(
     lines.append("")
     lines.append(
         f"You are running as the **Claude Code worker** ({WORKER_NAME}). "
-        "Hermes has prepared this workspace for you. Read every section "
+        "muse has prepared this workspace for you. Read every section "
         "before producing the requested artifacts."
     )
     lines.append("")
@@ -475,7 +475,7 @@ def _render_prompt(
         lines.append(
             "This run is **handoff-required**. A human (or the official "
             "`claude` CLI driven by a human) is expected to read this "
-            "prompt and produce the artifacts above. Hermes will not "
+            "prompt and produce the artifacts above. muse will not "
             "invoke any Claude Code automation on its own behalf."
         )
     else:

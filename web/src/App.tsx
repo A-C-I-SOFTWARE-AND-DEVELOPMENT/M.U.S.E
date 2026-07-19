@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { Backdrop } from "@/components/Backdrop";
 import { ObservatoryCanvas } from "@/components/observatory/ObservatoryCanvas";
 import { CursorRing } from "@/components/cursor/CursorRing";
+import { BootSplash } from "@/components/BootSplash";
 import { CrossSpaBanner } from "@/components/CrossSpaBanner";
 import { SidebarFooter } from "@/components/SidebarFooter";
 import { SidebarStatusStrip } from "@/components/SidebarStatusStrip";
@@ -73,7 +74,7 @@ import ChatPage from "@/pages/ChatPage";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { CommandPalette } from "@/components/CommandPalette";
-import { MuseChatOverlay } from "@/components/MuseChatOverlay";
+import { MuseChatBox } from "@/components/chat/MuseChatBox";
 import { useI18n } from "@/i18n";
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
@@ -508,6 +509,7 @@ export default function App() {
       <Backdrop />
       <ObservatoryCanvas />
       <CursorRing />
+      <BootSplash />
       <PluginSlot name="backdrop" />
       <CrossSpaBanner />
 
@@ -760,7 +762,7 @@ export default function App() {
       </div>
 
       <PluginSlot name="overlay" />
-      <MuseChatOverlay />
+      <MuseChatBox />
       <CommandPalette onSystemAction={handlePaletteSystemAction} />
     </div>
   );

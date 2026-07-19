@@ -792,7 +792,7 @@ def create_app(
                 "orchestrator_api: restore_from_disk failed; starting empty",
                 exc_info=True,
             )
-    app = FastAPI(title="Hermes Orchestrator API", version="1.0.0")
+    app = FastAPI(title="M.U.S.E. Orchestrator API", version="1.0.0")
     app.state.store = store
     app.state.token = token
     app.state.allow_public_bind = allow_public_bind

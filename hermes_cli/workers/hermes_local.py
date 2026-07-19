@@ -345,7 +345,7 @@ class HermesLocalWorker:
             "# Validation command map",
             "",
             "These commands were *inferred* from repo files, not executed.",
-            "Phase 08 (Hermes Local) discovers; later phases choose what to run.",
+            "Phase 08 (muse local) discovers; later phases choose what to run.",
             "",
         ]
         if not commands:
@@ -395,7 +395,7 @@ class HermesLocalWorker:
     ) -> Path:
         path = self._worker_dir() / "output.md"
         lines = [
-            f"# Hermes Local — run summary",
+            f"# muse local — run summary",
             "",
             f"- Root: `{self.root}`",
             f"- Output base: `{self.output_base}`",

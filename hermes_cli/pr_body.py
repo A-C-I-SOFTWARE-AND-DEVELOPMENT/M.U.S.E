@@ -49,7 +49,7 @@ def render_pr_body(inputs: PrBodyInputs) -> str:
         return redact(value) if value else _NA
 
     lines: list[str] = []
-    lines.append("## Hermes Job")
+    lines.append("## muse Job")
     lines.append("")
     lines.append(f"- Job: `{inputs.job_id}`")
     lines.append(f"- Source session: `{inputs.session_id or _NA}`")

@@ -92,7 +92,7 @@ def _git(
 # Used only as a last resort when the environment has no git identity at all
 # (common on a fresh Termux / container install). Injected via ``-c`` so it
 # never overwrites a real configured identity and never persists to git config.
-_FALLBACK_GIT_NAME = "Hermes Update"
+_FALLBACK_GIT_NAME = "M.U.S.E. Update"
 _FALLBACK_GIT_EMAIL = "hermes-agent@users.noreply.github.com"
 
 

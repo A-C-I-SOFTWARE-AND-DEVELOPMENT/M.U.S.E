@@ -290,8 +290,8 @@ def _render_remote_epilogue(task: RemoteWorkerTask) -> str:
     lines.append("")
     lines.append(
         "You are running on Jeremiah's Windows desktop, driven by the "
-        "Hermes remote bridge. Read the manifest at `manifest.json` "
-        "before you start — it tells you which command Hermes authorised "
+        "muse remote bridge. Read the manifest at `manifest.json` "
+        "before you start — it tells you which command muse authorised "
         "and where to write artifacts."
     )
     lines.append("")
@@ -310,7 +310,7 @@ def _render_remote_epilogue(task: RemoteWorkerTask) -> str:
         "them as inputs."
     )
     lines.append(
-        "- Honour `cancel.json`: if Hermes writes one into the workspace, "
+        "- Honour `cancel.json`: if muse writes one into the workspace, "
         "abort and update `status.json` with `state: canceled`."
     )
     lines.append("")

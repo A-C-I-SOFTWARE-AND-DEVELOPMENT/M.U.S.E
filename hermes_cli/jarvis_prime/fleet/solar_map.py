@@ -125,7 +125,7 @@ def _default_bodies(fleet_snapshot: dict[str, Any]) -> list[SolarBody]:
         ),
         SolarBody(
             id="planet-tactical",
-            label="Hermes",
+            label="M.U.S.E.",
             role="planet",
             orbit_radius=18.0,
             orbit_angle_rad=_seed_angle("tactical"),

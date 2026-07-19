@@ -774,7 +774,7 @@ def render_retrospective_md(
     jargon-only sections.
     """
     lines: list[str] = []
-    lines.append(f"# Hermes Job Retrospective — {job.job_id}")
+    lines.append(f"# muse Job Retrospective — {job.job_id}")
     lines.append("")
     lines.append("## Outcome")
     if job.winning_worker:
