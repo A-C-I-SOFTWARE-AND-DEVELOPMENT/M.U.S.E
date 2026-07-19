@@ -3,6 +3,7 @@ import { memo, type ReactNode, useEffect, useMemo, useState } from 'react'
 import spinners, { type BrailleSpinnerName } from 'unicode-animations'
 
 import { THINKING_COT_MAX } from '../config/limits.js'
+import { VERBS } from '../content/verbs.js'
 import { sectionMode } from '../domain/details.js'
 import {
   buildSubagentTree,
@@ -171,6 +172,46 @@ export function Spinner({ color, variant = 'think' }: { color: string; variant?:
   }, [spin])
 
   return <Text color={color}>{spin.frames[frame]}</Text>
+}
+
+// ── Busy spinner line (design.md Part 0 #6) ──────────────────────────
+// braille + gerund verb + elapsed + (esc to interrupt) + ↓token count.
+// Mounts only while a turn is busy, so the elapsed clock starts at turn
+// start and resets when the turn ends.
+
+const BUSY_VERB_TICK_MS = 2500
+
+function BusyLine({ t, tokens }: { t: Theme; tokens: number }) {
+  const [startedAt] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
+  const [verbTick, setVerbTick] = useState(() => Math.floor(Math.random() * VERBS.length))
+
+  useEffect(() => {
+    const clock = setInterval(() => setNow(Date.now()), 500)
+    const verb = setInterval(() => setVerbTick(n => n + 1), BUSY_VERB_TICK_MS)
+
+    return () => {
+      clearInterval(clock)
+      clearInterval(verb)
+    }
+  }, [])
+
+  const color = t.color.info ?? t.color.accent
+  const verb = VERBS[verbTick % VERBS.length] ?? 'thinking'
+
+  return (
+    <Text wrap="truncate-end">
+      <Spinner color={color} variant="think" />
+      <Text color={color}>
+        {' '}
+        {verb}… {fmtElapsed(now - startedAt)}{' '}
+      </Text>
+      <Text color={t.color.muted} dim>
+        (esc to interrupt)
+      </Text>
+      {tokens > 0 ? <Text color={t.color.muted}> ↓{fmtK(tokens)}</Text> : null}
+    </Text>
+  )
 }
 
 interface DetailRow {
@@ -926,8 +967,9 @@ export const ToolTrail = memo(function ToolTrail({
   if (allHidden) {
     const alerts = activity.filter(i => i.tone !== 'info').slice(-2)
 
-    return alerts.length ? (
+    return busy || alerts.length ? (
       <Box flexDirection="column">
+        {busy ? <BusyLine t={t} tokens={totalTokenCount} /> : null}
         {alerts.map(i => (
           <Text color={i.tone === 'error' ? t.color.error : t.color.warn} key={`ha-${i.id}`}>
             {i.tone === 'error' ? '✗' : '!'} {i.text}
@@ -1169,6 +1211,7 @@ export const ToolTrail = memo(function ToolTrail({
 
   return (
     <Box flexDirection="column">
+      {busy ? <BusyLine t={t} tokens={totalTokenCount} /> : null}
       {panels.map((panel, index) => (
         <TreeNode
           branch={index === topCount - 1 ? 'last' : 'mid'}

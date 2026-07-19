@@ -79,12 +79,21 @@ export const ko: Translations = {
       plugins: "플러그인",
       sessions: "세션",
       skills: "스킬",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "및 도구",
     modelToolsSheetTitle: "모델",
     navigation: "내비게이션",
     openDocumentation: "새 탭에서 문서 열기",
-    openNavigation: "내비게이션 열기",
+    openNavigation: "내비게이션 열기",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "플러그인",
     sessionsActiveCount: "{count}개 활성",
     statusOverview: "상태 개요",

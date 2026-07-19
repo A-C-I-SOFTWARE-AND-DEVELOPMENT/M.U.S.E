@@ -79,12 +79,21 @@ export const zhHant: Translations = {
       plugins: "外掛管理",
       sessions: "工作階段",
       skills: "技能",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "與工具",
     modelToolsSheetTitle: "模型",
     navigation: "導覽",
     openDocumentation: "在新分頁開啟文件",
-    openNavigation: "開啟導覽",
+    openNavigation: "開啟導覽",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "外掛",
     sessionsActiveCount: "{count} 個使用中",
     statusOverview: "狀態總覽",

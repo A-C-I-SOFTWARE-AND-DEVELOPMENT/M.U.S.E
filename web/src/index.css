@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @import '@nous-research/ui/styles/globals.css';
+@import './styles/muse-polish.css';
+@import './styles/motion.css';
 
 /* Scan the published design-system bundle so its utility classes survive
    Tailwind's JIT purge. */
@@ -36,44 +38,74 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Hermes Agent — Nous DS with the LENS_0 (Hermes teal) lens applied   */
-/* statically. Mirrors nousnet-web/(hermes-agent)/layout.tsx so the    */
-/* canonical Hermes palette is the default — teal canvas + cream      */
-/* accent — without relying on leva/gsap at runtime.                  */
+/* M.U.S.E. "Singularity" — the canonical palette from the design      */
+/* contract (design.md Part 0), applied statically as the default      */
+/* lens. The old LENS_0 (Hermes teal) defaults are gone; the           */
+/* `default` theme preset still reproduces that look on demand.        */
+/* ThemeProvider rewrites the 3-layer triplet + typography + layout    */
+/* vars as inline styles when a user switches themes.                  */
 /* ------------------------------------------------------------------ */
 
 :root {
-  /* LENS_0 — from design-language/src/ui/components/overlays/index.tsx.
-     These are the defaults for the `default` (Hermes Teal) dashboard theme;
-     ThemeProvider rewrites them as inline styles when a user switches themes. */
+  /* 3-layer Nous DS triplet — Singularity values. These are the static
+     defaults for the `muse` (Singularity) dashboard theme. */
   --foreground: color-mix(in srgb, #ffffff 0%, transparent);
   --foreground-base: #ffffff;
   --foreground-alpha: 0;
-  --midground: color-mix(in srgb, #ffe6cb 100%, transparent);
-  --midground-base: #ffe6cb;
+  --midground: color-mix(in srgb, #e8ecf4 100%, transparent);
+  --midground-base: #e8ecf4;
   --midground-alpha: 1;
-  --background: color-mix(in srgb, #041c1c 100%, transparent);
-  --background-base: #041c1c;
+  --background: color-mix(in srgb, #050507 100%, transparent);
+  --background-base: #050507;
   --background-alpha: 1;
 
-  /* Consumed by <Backdrop />; also theme-switchable. */
-  --warm-glow: rgba(255, 189, 56, 0.35);
-  --noise-opacity-mul: 1;
+  /* Singularity semantic tokens (design contract Part 0). Static: the
+     contract mandates ONE accent across both surfaces. New components
+     should consume these instead of hardcoding hex values.
+     NOTE: --bg-elev/--bg-mute/--fg-* describe the default (muse) theme;
+     for theme-following "text color" effects use var(--midground-base). */
+  --bg: #050507;
+  --bg-elev: #0d0d12;
+  --bg-mute: #16161d;
+  --fg: #e8ecf4;
+  --fg-dim: #8b90a0;
+  --fg-faint: #4a4e5c;
+  --accent: #d8b4fe;
+  --accent-dim: #7e5fa8;
+  --ok: #7bd88f;
+  --warn: #e5c07b;
+  --err: #e06c75;
+  --info: #6cb3e0;
+  --border: #26262e;
+  --border-active: var(--accent);
 
-  /* Typography tokens — rewritten by ThemeProvider. Defaults match the
-     system stack so themes that don't override look native. */
+  /* Consumed by <Backdrop />; also theme-switchable. Soft violet wash —
+     low saturation per the Singularity contract. */
+  --warm-glow: rgba(216, 180, 254, 0.14);
+  --noise-opacity-mul: 0.5;
+
+  /* Typography tokens — rewritten by ThemeProvider. Singularity type
+     system: ONE body font (system sans), ONE display font (DS Collapse,
+     headers only), JetBrains Mono for code/terminal. */
   --theme-font-sans: system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --theme-font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo,
-    Consolas, monospace;
-  --theme-font-display: var(--theme-font-sans);
+  --theme-font-mono: "JetBrains Mono", ui-monospace, "SF Mono",
+    "Cascadia Mono", Menlo, Consolas, monospace;
+  --theme-font-display: "Collapse", var(--theme-font-sans);
   --theme-base-size: 15px;
   --theme-line-height: 1.55;
   --theme-letter-spacing: 0;
 
+  /* Remap the DS/Tailwind font vars so `font-sans`/`font-mono` utilities
+     and DS components that read var(--font-*) follow the active theme
+     instead of the DS baked-in Collapse/Courier Prime defaults. */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  --font-display: var(--theme-font-display);
+
   /* Layout tokens. */
-  --radius: 0.5rem;
-  --theme-radius: 0.5rem;
+  --radius: 0.75rem;
+  --theme-radius: 0.75rem;
   --theme-spacing-mul: 1;
   --theme-density: comfortable;
 
@@ -83,6 +115,13 @@
   --dur-fast: 150ms;
   --dur-std: 250ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Observatory motion tokens (animation-spec §6). --ease-motion is the
+     primary UI curve (entrances, magnetic hover); --ease-smooth is the
+     symmetric curve for continuous loops. Consumed by styles/motion.css
+     and mirrored in TS by src/lib/motion.ts. */
+  --ease-motion: cubic-bezier(0.2, 1, 0.2, 1);
+  --ease-smooth: cubic-bezier(1, 0, 0, 1);
 }
 
 /* Accessibility: never lose the focus ring. A theme-aware visible outline
@@ -91,7 +130,7 @@
    which live in the higher-priority `utilities` layer) still win. */
 @layer base {
   :focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--midground-base) 80%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
     outline-offset: 2px;
   }
 }
@@ -110,7 +149,8 @@
 }
 
 /* Theme tokens cascade into the document root so every descendant inherits
-   the font stack, base size, and letter spacing without explicit calls. */
+   the font stack, base size, and letter spacing without explicit calls.
+   Body copy is sentence case — no global uppercase transform anywhere. */
 html {
   font-family: var(--theme-font-sans);
   font-size: var(--theme-base-size);
@@ -129,6 +169,12 @@ body {
   overflow: hidden;
 }
 
+/* Headers use the ONE display font (DS Collapse). Class-level fonts set
+   by components/utilities still win over this element-level default. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--theme-font-display);
+}
+
 code, kbd, pre, samp, .font-mono, .font-mono-ui {
   font-family: var(--theme-font-mono);
 }
@@ -139,6 +185,11 @@ code, kbd, pre, samp, .font-mono, .font-mono-ui {
    all proportionally in Tailwind v4. */
 @theme inline {
   --spacing: calc(0.25rem * var(--theme-spacing-mul, 1));
+
+  /* Font utilities resolve through the theme-switchable stacks. */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  --font-display: var(--theme-font-display);
 }
 
 #root {
@@ -157,10 +208,12 @@ code { font-size: 0.875rem; }
    The dashboard's page code predates the Nous DS and uses shadcn-style
    utility classes (bg-card, text-muted-foreground, border-border, etc.)
    extensively. Rather than rewrite every call site, we expose those
-   tokens on top of the Nous palette so classes continue to resolve. */
+   tokens on top of the Nous palette so classes continue to resolve.
+   The color-mix cascade mechanism is preserved — the `muse` preset pins
+   the exact Part-0 elevations via colorOverrides; other themes derive. */
 @theme inline {
   /* Remap foreground to midground so `text-foreground` / `bg-foreground`
-     stay visible — in LENS_0, `--foreground` itself has alpha 0. */
+     stay visible — in the DS triplet, `--foreground` itself has alpha 0. */
   --color-foreground: var(--midground);
 
   --color-card: color-mix(in srgb, var(--midground-base) 4%, var(--background-base));
@@ -171,15 +224,15 @@ code { font-size: 0.875rem; }
   --color-secondary-foreground: var(--midground);
   --color-muted: color-mix(in srgb, var(--midground-base) 8%, var(--background-base));
   --color-muted-foreground: color-mix(in srgb, var(--midground-base) 55%, transparent);
-  --color-accent: color-mix(in srgb, var(--midground-base) 10%, var(--background-base));
+  --color-accent: color-mix(in srgb, var(--accent) 12%, var(--background-base));
   --color-accent-foreground: var(--midground);
-  --color-destructive: #fb2c36;
+  --color-destructive: var(--err);
   --color-destructive-foreground: #ffffff;
-  --color-success: #4ade80;
-  --color-warning: #ffbd38;
+  --color-success: var(--ok);
+  --color-warning: var(--warn);
   --color-border: color-mix(in srgb, var(--midground-base) 15%, transparent);
   --color-input: color-mix(in srgb, var(--midground-base) 15%, transparent);
-  --color-ring: var(--midground);
+  --color-ring: var(--accent);
   --color-popover: color-mix(in srgb, var(--midground-base) 4%, var(--background-base));
   --color-popover-foreground: var(--midground);
 
@@ -276,4 +329,3 @@ aside nav ul li a:active {
 :root[style*="--theme-asset-bg:"] .theme-default-filler {
   display: none;
 }
-

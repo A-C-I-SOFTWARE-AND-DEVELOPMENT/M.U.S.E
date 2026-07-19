@@ -79,12 +79,21 @@ export const pt: Translations = {
       plugins: "Plugins",
       sessions: "Sessões",
       skills: "Competências",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "e ferramentas",
     modelToolsSheetTitle: "Modelo",
     navigation: "Navegação",
     openDocumentation: "Abrir documentação num novo separador",
-    openNavigation: "Abrir navegação",
+    openNavigation: "Abrir navegação",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Plugins",
     sessionsActiveCount: "{count} ativa(s)",
     statusOverview: "Visão geral do estado",

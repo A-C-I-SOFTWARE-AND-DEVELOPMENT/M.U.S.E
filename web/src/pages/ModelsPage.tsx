@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   Brain,
   ChevronDown,
@@ -27,6 +27,7 @@ import { Stats } from "@nous-research/ui/ui/components/stats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
@@ -93,11 +94,12 @@ function TokenBar({
   const total = input + output + cacheRead + reasoning;
   if (total === 0) return null;
 
+  // Singularity token scale: accent / ok / info / warn — no hardcoded hues.
   const segments = [
-    { value: cacheRead, color: "bg-blue-400/60", dotColor: "bg-blue-400", label: "Cache Read" },
-    { value: reasoning, color: "bg-purple-400/60", dotColor: "bg-purple-400", label: "Reasoning" },
-    { value: input, color: "bg-[#ffe6cb]/70", dotColor: "bg-[#ffe6cb]", label: "Input" },
-    { value: output, color: "bg-emerald-500/70", dotColor: "bg-emerald-500", label: "Output" },
+    { value: cacheRead, color: "bg-[var(--info)]/60", dotColor: "bg-[var(--info)]", label: "Cache Read" },
+    { value: reasoning, color: "bg-[var(--warn)]/60", dotColor: "bg-[var(--warn)]", label: "Reasoning" },
+    { value: input, color: "bg-[var(--accent)]/70", dotColor: "bg-[var(--accent)]", label: "Input" },
+    { value: output, color: "bg-[var(--ok)]/70", dotColor: "bg-[var(--ok)]", label: "Output" },
   ].filter((s) => s.value > 0);
 
   return (
@@ -147,28 +149,64 @@ function CapabilityBadges({
     capabilities.model_family;
   if (!hasAny) return null;
 
+  const chip =
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-4";
+
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {capabilities.supports_tools && (
-        <span className="inline-flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+        <span className={`${chip} text-[var(--ok)] border-[var(--ok)]/30 bg-[var(--ok)]/10`}>
           <Wrench className="h-2.5 w-2.5" /> Tools
         </span>
       )}
       {capabilities.supports_vision && (
-        <span className="inline-flex items-center gap-1 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+        <span className={`${chip} text-[var(--info)] border-[var(--info)]/30 bg-[var(--info)]/10`}>
           <Eye className="h-2.5 w-2.5" /> Vision
         </span>
       )}
       {capabilities.supports_reasoning && (
-        <span className="inline-flex items-center gap-1 bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-400">
+        <span className={`${chip} text-[var(--accent)] border-[var(--accent)]/30 bg-[var(--accent)]/10`}>
           <Brain className="h-2.5 w-2.5" /> Reasoning
         </span>
       )}
       {capabilities.model_family && (
-        <span className="inline-flex items-center bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <span className={`${chip} text-[var(--fg-faint)] border-[var(--border)] bg-transparent`}>
           {capabilities.model_family}
         </span>
       )}
+    </div>
+  );
+}
+
+/** Meter-style capability bar (design 2.3): token-routed track + fill. */
+function CapabilityMeter({
+  label,
+  value,
+  max,
+  tone,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  tone: "accent" | "info";
+}) {
+  const pct = max > 0 ? Math.max(3, Math.min(100, (value / max) * 100)) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-16 shrink-0 text-[10px] text-[var(--fg-faint)]">
+        {label}
+      </span>
+      <div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--bg-mute)]">
+        <div
+          className={`h-full rounded-full ${
+            tone === "accent" ? "bg-[var(--accent)]" : "bg-[var(--info)]"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="w-12 shrink-0 text-right font-mono-ui text-[10px] text-[var(--fg-dim)]">
+        {formatTokenCount(value)}
+      </span>
     </div>
   );
 }
@@ -241,7 +279,7 @@ function UseAsMenu({
         Use as <ChevronDown className="h-3 w-3" />
       </Button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-[220px] border border-border bg-card shadow-lg">
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-[220px] rounded-lg border border-[var(--border)] shadow-lg" style={{ backgroundColor: "var(--bg-elev)" }}>
           <button
             type="button"
             onClick={() => assign("main", "")}
@@ -253,13 +291,13 @@ function UseAsMenu({
               Main model
             </span>
             {isMain && (
-              <span className="text-[9px] uppercase tracking-wider text-primary/80">
+              <span className="text-[10px] text-[var(--accent)]">
                 current
               </span>
             )}
           </button>
 
-          <div className="border-t border-border/50 px-3 py-1.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+          <div className="border-t border-[var(--border)] px-3 py-1.5 text-[10px] text-[var(--fg-faint)]">
             Auxiliary task
           </div>
 
@@ -282,7 +320,7 @@ function UseAsMenu({
             >
               <span>{t.label}</span>
               {mainAuxTask === t.key && (
-                <span className="text-[9px] uppercase tracking-wider text-primary/80">
+                <span className="text-[10px] text-[var(--accent)]">
                   current
                 </span>
               )}
@@ -290,7 +328,7 @@ function UseAsMenu({
           ))}
 
           {error && (
-            <div className="px-3 py-2 text-[10px] text-destructive border-t border-border/50">
+            <div className="px-3 py-2 text-[10px] text-[var(--err)] border-t border-[var(--border)]">
               {error}
             </div>
           )}
@@ -311,6 +349,8 @@ function ModelCard({
   aux,
   onAssigned,
   showTokens,
+  maxCtx,
+  maxOut,
 }: {
   entry: ModelsAnalyticsModelEntry;
   rank: number;
@@ -318,11 +358,15 @@ function ModelCard({
   aux: AuxiliaryTaskAssignment[];
   onAssigned(): void;
   showTokens: boolean;
+  maxCtx: number;
+  maxOut: number;
 }) {
   const { t } = useI18n();
   const provider = entry.provider || modelVendor(entry.model);
   const totalTokens = entry.input_tokens + entry.output_tokens;
   const caps = entry.capabilities;
+  const hasCtxMeter = !!caps.context_window && caps.context_window > 0;
+  const hasOutMeter = !!caps.max_output_tokens && caps.max_output_tokens > 0;
 
   const isMain =
     !!main &&
@@ -337,25 +381,25 @@ function ModelCard({
 
   return (
     <Card
-      className={`min-w-0 max-w-full overflow-hidden${isMain ? " ring-1 ring-primary/40" : ""}`}
+      className={`min-w-0 max-w-full overflow-hidden rounded-xl${isMain ? " ring-1 ring-[var(--accent)]/40" : ""}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground/50 text-xs font-mono">
+              <span className="text-[var(--fg-faint)] text-xs font-mono">
                 #{rank}
               </span>
-              <CardTitle className="text-sm font-mono-ui truncate">
+              <CardTitle className="text-sm font-mono-ui truncate normal-case tracking-normal">
                 {shortModelName(entry.model)}
               </CardTitle>
               {isMain && (
-                <span className="inline-flex items-center gap-0.5 bg-primary/15 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-primary">
-                  <Star className="h-2.5 w-2.5" /> main
+                <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-medium leading-4 text-[var(--accent)]">
+                  <Star className="h-2.5 w-2.5" /> Current
                 </span>
               )}
               {mainAuxTask && (
-                <span className="inline-flex items-center bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                <span className="inline-flex items-center rounded-full border border-[var(--info)]/30 bg-[var(--info)]/10 px-2 py-0.5 text-[10px] font-medium leading-4 text-[var(--info)]">
                   aux · {mainAuxTask}
                 </span>
               )}
@@ -366,14 +410,11 @@ function ModelCard({
                   {provider}
                 </Badge>
               )}
-              {caps.context_window && caps.context_window > 0 && (
-                <span className="text-[10px] text-muted-foreground">
-                  {formatTokenCount(caps.context_window)} ctx
-                </span>
-              )}
-              {caps.max_output_tokens && caps.max_output_tokens > 0 && (
-                <span className="text-[10px] text-muted-foreground">
-                  {formatTokenCount(caps.max_output_tokens)} out
+              {!hasCtxMeter && !hasOutMeter && (
+                <span className="text-[10px] text-[var(--fg-faint)]">
+                  {entry.sessions > 0
+                    ? `${entry.sessions} ${t.models.sessions}`
+                    : "—"}
                 </span>
               )}
             </div>
@@ -384,7 +425,7 @@ function ModelCard({
                 <div className="text-xs font-mono font-semibold">
                   {formatTokens(totalTokens)}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-[var(--fg-dim)]">
                   {t.models.tokens}
                 </div>
               </div>
@@ -394,7 +435,7 @@ function ModelCard({
                   <div className="text-xs font-mono font-semibold">
                     {entry.sessions}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="text-[10px] text-[var(--fg-dim)]">
                     {t.models.sessions}
                   </div>
                 </div>
@@ -411,6 +452,28 @@ function ModelCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pt-3">
+        {/* Capability meters — only when catalog data exists for the model */}
+        {(hasCtxMeter || hasOutMeter) && (
+          <div className="grid gap-1.5">
+            {hasCtxMeter && (
+              <CapabilityMeter
+                label="Context"
+                value={caps.context_window!}
+                max={maxCtx}
+                tone="accent"
+              />
+            )}
+            {hasOutMeter && (
+              <CapabilityMeter
+                label="Max output"
+                value={caps.max_output_tokens!}
+                max={maxOut}
+                tone="info"
+              />
+            )}
+          </div>
+        )}
+
         {showTokens && (
           <>
             <TokenBar
@@ -423,7 +486,7 @@ function ModelCard({
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="text-center">
                 <div className="font-mono font-semibold">{entry.sessions}</div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-[var(--fg-dim)]">
                   {t.models.sessions}
                 </div>
               </div>
@@ -431,7 +494,7 @@ function ModelCard({
                 <div className="font-mono font-semibold">
                   {formatTokens(entry.avg_tokens_per_session)}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-[var(--fg-dim)]">
                   {t.models.avgPerSession}
                 </div>
               </div>
@@ -439,7 +502,7 @@ function ModelCard({
                 <div className="font-mono font-semibold">
                   {entry.api_calls > 0 ? formatTokens(entry.api_calls) : "—"}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-[10px] text-[var(--fg-dim)]">
                   {t.models.apiCalls}
                 </div>
               </div>
@@ -447,7 +510,7 @@ function ModelCard({
           </>
         )}
 
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/30 pt-2">
+        <div className="flex items-center justify-between text-[10px] text-[var(--fg-dim)] border-t border-[var(--border)] pt-2">
           <div className="flex items-center gap-3">
             {showTokens && entry.estimated_cost > 0 && (
               <span className="flex items-center gap-0.5">
@@ -463,7 +526,7 @@ function ModelCard({
             )}
           </div>
           {entry.last_used_at > 0 && (
-            <span>{timeAgo(entry.last_used_at)}</span>
+            <span className="text-[var(--fg-faint)]">{timeAgo(entry.last_used_at)}</span>
           )}
         </div>
 
@@ -522,7 +585,7 @@ function AuxiliaryTasksModal({
       aria-modal="true"
       aria-labelledby="aux-modal-title"
     >
-      <div className="relative w-full max-w-2xl max-h-[80vh] border border-border bg-card shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-2xl max-h-[80vh] rounded-xl border border-[var(--border)] shadow-2xl flex flex-col" style={{ backgroundColor: "var(--bg-elev)" }}>
         <Button
           ghost
           size="icon"
@@ -537,9 +600,9 @@ function AuxiliaryTasksModal({
           <div className="flex items-center justify-between gap-3 pr-8">
             <h2
               id="aux-modal-title"
-              className="font-display text-base tracking-wider uppercase"
+              className="font-display text-base"
             >
-              Auxiliary Tasks
+              Auxiliary tasks
             </h2>
             <Button
               size="sm"
@@ -668,11 +731,11 @@ function ModelSettingsPanel({
   ).length ?? 0;
 
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden">
+    <Card className="min-w-0 max-w-full overflow-hidden rounded-xl">
       <CardHeader className="min-w-0 pb-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <Settings2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <CardTitle className="text-sm">Model Settings</CardTitle>
+          <CardTitle className="text-sm normal-case tracking-normal">Model settings</CardTitle>
           <span className="max-w-full min-w-0 text-[10px] text-muted-foreground [overflow-wrap:anywhere]">
             applies to new sessions
           </span>
@@ -684,8 +747,8 @@ function ModelSettingsPanel({
         <div className="flex min-w-0 flex-col gap-2 bg-muted/20 border border-border/50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-0.5">
-              <Star className="h-3 w-3 text-primary" />
-              <span className="text-xs font-medium uppercase tracking-wider">
+              <Star className="h-3 w-3 text-[var(--accent)]" />
+              <span className="text-xs font-medium">
                 Main model
               </span>
             </div>
@@ -709,7 +772,7 @@ function ModelSettingsPanel({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-0.5">
               <Cpu className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs font-medium uppercase tracking-wider">
+              <span className="text-xs font-medium">
                 Auxiliary tasks
               </span>
             </div>
@@ -863,9 +926,36 @@ export default function ModelsPage() {
     load();
   }, [load]);
 
+  // Normalization caps for the capability meters (largest catalog values win).
+  const maxCtx = useMemo(
+    () =>
+      Math.max(
+        0,
+        ...(data?.models ?? []).map(
+          (m) => m.capabilities.context_window ?? 0,
+        ),
+      ),
+    [data],
+  );
+  const maxOut = useMemo(
+    () =>
+      Math.max(
+        0,
+        ...(data?.models ?? []).map(
+          (m) => m.capabilities.max_output_tokens ?? 0,
+        ),
+      ),
+    [data],
+  );
+
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-6">
       <PluginSlot name="models:top" />
+
+      <p className="text-sm text-[var(--fg-dim)]">
+        Model usage, capabilities, and main/auxiliary assignments — pick which
+        model runs new sessions and side-jobs.
+      </p>
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">
         <ModelSettingsPanel
@@ -875,7 +965,7 @@ export default function ModelsPage() {
         />
 
         {data && (
-          <Card className="min-w-0 max-w-full overflow-hidden">
+          <Card className="min-w-0 max-w-full overflow-hidden rounded-xl">
             <CardContent className="min-w-0 py-6">
               <div className="min-w-0 max-w-full [&_div.grid]:grid-cols-[auto_minmax(0,1fr)_auto]">
                 <Stats
@@ -940,17 +1030,47 @@ export default function ModelsPage() {
       </div>
 
       {loading && !data && (
-        <div className="flex items-center justify-center py-24">
-          <Spinner className="text-2xl text-primary" />
+        <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-[var(--border)] p-4"
+              style={{ backgroundColor: "var(--bg-elev)" }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-40 animate-pulse rounded bg-[var(--bg-mute)]" />
+                <div className="h-4 w-14 animate-pulse rounded-full bg-[var(--bg-mute)]" />
+              </div>
+              <div className="mt-4 grid gap-3">
+                <div className="h-1.5 w-full animate-pulse rounded-full bg-[var(--bg-mute)]" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-[var(--bg-mute)]/70" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--bg-mute)]/70" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {error && (
-        <Card>
-          <CardContent className="py-6">
-            <p className="text-sm text-destructive text-center">{error}</p>
-          </CardContent>
-        </Card>
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--err)]/40 px-4 py-3"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--err) 8%, var(--bg-elev))",
+          }}
+          role="alert"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--err)]">
+              Failed to load model analytics
+            </p>
+            <p className="mt-0.5 break-words text-xs text-[var(--fg-dim)]">
+              {error}
+            </p>
+          </div>
+          <Button size="sm" outlined onClick={load} prefix={<RefreshCw />}>
+            {t.common.retry}
+          </Button>
+        </div>
       )}
 
       {data && (
@@ -966,21 +1086,17 @@ export default function ModelsPage() {
                   aux={aux?.tasks ?? []}
                   onAssigned={onAssigned}
                   showTokens={showTokens}
+                  maxCtx={maxCtx}
+                  maxOut={maxOut}
                 />
               ))}
             </div>
           ) : (
-            <Card>
-              <CardContent className="py-12">
-                <div className="flex flex-col items-center text-muted-foreground">
-                  <Cpu className="h-8 w-8 mb-3 opacity-40" />
-                  <p className="text-sm font-medium">{t.models.noModelsData}</p>
-                  <p className="text-xs mt-1 text-muted-foreground/60">
-                    {t.models.startSession}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyStateCard
+              icon={Cpu}
+              title={t.models.noModelsData}
+              description={t.models.startSession}
+            />
           )}
         </>
       )}

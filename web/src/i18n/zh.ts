@@ -78,12 +78,21 @@ export const zh: Translations = {
       plugins: "插件管理",
       sessions: "会话",
       skills: "技能",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "与工具",
     modelToolsSheetTitle: "模型",
     navigation: "导航",
     openDocumentation: "在新标签页中打开文档",
-    openNavigation: "打开导航",
+    openNavigation: "打开导航",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "插件",
     sessionsActiveCount: "{count} 个活跃",
     statusOverview: "状态概览",

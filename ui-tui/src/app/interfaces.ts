@@ -75,8 +75,11 @@ export interface OverlayState {
   approval: ApprovalReq | null
   clarify: ClarifyReq | null
   confirm: ConfirmReq | null
+  fusion: boolean
+  hub: boolean
   modelPicker: boolean
   pager: null | PagerState
+  palette: boolean
   picker: boolean
   secret: null | SecretReq
   skillsHub: boolean
@@ -307,6 +310,7 @@ export interface AppLayoutActions {
   clearSelection: () => void
   onModelSelect: (value: string) => void
   resumeById: (id: string) => void
+  runSlash: (cmd: string) => void
   setStickyPrompt: (value: string) => void
 }
 
@@ -332,6 +336,7 @@ export interface AppLayoutProgressProps {
 
 export interface AppLayoutStatusProps {
   cwdLabel: string
+  gitBranch?: null | string
   goodVibesTick: number
   sessionStartedAt: null | number
   showStickyPrompt: boolean
@@ -365,6 +370,7 @@ export interface AppOverlaysProps {
   onClarifyAnswer: (value: string) => void
   onModelSelect: (value: string) => void
   onPickerSelect: (sessionId: string) => void
+  onRunSlash: (cmd: string) => void
   onSecretSubmit: (value: string) => void
   onSudoSubmit: (pw: string) => void
   pagerPageSize: number

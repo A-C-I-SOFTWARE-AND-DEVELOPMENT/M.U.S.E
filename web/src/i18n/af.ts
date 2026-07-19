@@ -79,12 +79,21 @@ export const af: Translations = {
       plugins: "Inproppe",
       sessions: "Sessies",
       skills: "Vaardighede",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "& gereedskap",
     modelToolsSheetTitle: "Model",
     navigation: "Navigasie",
     openDocumentation: "Maak dokumentasie in 'n nuwe oortjie oop",
-    openNavigation: "Maak navigasie oop",
+    openNavigation: "Maak navigasie oop",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Inproppe",
     sessionsActiveCount: "{count} aktief",
     statusOverview: "Statusoorsig",

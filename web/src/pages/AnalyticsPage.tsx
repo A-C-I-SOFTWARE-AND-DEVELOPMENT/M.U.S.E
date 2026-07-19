@@ -21,6 +21,7 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Stats } from "@nous-research/ui/ui/components/stats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Meter, Spark } from "@/components/ui/meter";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
@@ -31,8 +32,6 @@ const PERIODS = [
   { label: "30d", days: 30 },
   { label: "90d", days: 90 },
 ] as const;
-
-const CHART_HEIGHT_PX = 160;
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -110,104 +109,89 @@ function SortHeader({
       onClick={() => toggle(col)}
       className={`cursor-pointer select-none ${className ?? ""}`}
     >
-      <span className="inline-flex items-center gap-1.5 rounded px-1 -mx-1 py-0.5 hover:bg-muted/40 transition-colors">
+      <span className="inline-flex items-center gap-1.5 rounded px-1 -mx-1 py-0.5 transition-colors hover:bg-[var(--bg-mute)]">
         {label}
         {active ? (
           sortDir === "asc" ? (
-            <ArrowUp className="h-3.5 w-3.5 text-foreground/80 shrink-0" />
+            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-[var(--fg)]/80" />
           ) : (
-            <ArrowDown className="h-3.5 w-3.5 text-foreground/80 shrink-0" />
+            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-[var(--fg)]/80" />
           )
         ) : (
-          <ArrowUpDown className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+          <ArrowUpDown className="h-3 w-3 shrink-0 text-[var(--fg-faint)]" />
         )}
       </span>
     </th>
   );
 }
 
+/** Section card header: sentence-case title + one-line description (design 2.3). */
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof BarChart3;
+  title: string;
+  description: string;
+}) {
+  return (
+    <CardHeader>
+      <div className="flex items-center gap-2">
+        <Icon className="h-5 w-5 text-[var(--fg-dim)]" />
+        <CardTitle className="text-base normal-case tracking-normal">
+          {title}
+        </CardTitle>
+      </div>
+      <p className="text-xs text-[var(--fg-dim)]">{description}</p>
+    </CardHeader>
+  );
+}
 
-
-function TokenBarChart({ daily }: { daily: AnalyticsDailyEntry[] }) {
+/** Daily usage chart built from the shared Spark primitive (accent = input, ok = output). */
+function DailyUsageChart({ daily }: { daily: AnalyticsDailyEntry[] }) {
   const { t } = useI18n();
   if (daily.length === 0) return null;
 
-  const maxTokens = Math.max(
-    ...daily.map((d) => d.input_tokens + d.output_tokens),
-    1,
-  );
+  const inputSeries = daily.map((d) => d.input_tokens);
+  const outputSeries = daily.map((d) => d.output_tokens);
+  const totalInput = inputSeries.reduce((s, v) => s + v, 0);
+  const totalOutput = outputSeries.reduce((s, v) => s + v, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-base">
-            {t.analytics.dailyTokenUsage}
-          </CardTitle>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 bg-[#ffe6cb]" />
-            {t.analytics.input}
+    <Card className="rounded-xl">
+      <SectionHeader
+        icon={BarChart3}
+        title={t.analytics.dailyTokenUsage}
+        description="Tokens processed per day, split into input and output."
+      />
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-2 text-xs">
+            <span className="flex items-center gap-1.5 text-[var(--fg-dim)]">
+              <span className="h-2 w-2 rounded-[1px] bg-[var(--accent)]" />
+              {t.analytics.input}
+            </span>
+            <span className="tabular-nums text-[var(--fg-faint)]">
+              {formatTokens(totalInput)}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 bg-emerald-500" />
-            {t.analytics.output}
+          <Spark values={inputSeries} color="accent" className="h-16" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between gap-2 text-xs">
+            <span className="flex items-center gap-1.5 text-[var(--fg-dim)]">
+              <span className="h-2 w-2 rounded-[1px] bg-[var(--ok)]" />
+              {t.analytics.output}
+            </span>
+            <span className="tabular-nums text-[var(--fg-faint)]">
+              {formatTokens(totalOutput)}
+            </span>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          className="flex items-end gap-[2px]"
-          style={{ height: CHART_HEIGHT_PX }}
-        >
-          {daily.map((d) => {
-            const total = d.input_tokens + d.output_tokens;
-            const inputH = Math.round(
-              (d.input_tokens / maxTokens) * CHART_HEIGHT_PX,
-            );
-            const outputH = Math.round(
-              (d.output_tokens / maxTokens) * CHART_HEIGHT_PX,
-            );
-            return (
-              <div
-                key={d.day}
-                className="flex-1 min-w-0 group relative flex flex-col justify-end"
-                style={{ height: CHART_HEIGHT_PX }}
-              >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                  <div className="bg-card border border-border px-2.5 py-1.5 text-[10px] text-foreground shadow-lg whitespace-nowrap">
-                    <div className="font-medium">{formatDate(d.day)}</div>
-                    <div>
-                      {t.analytics.input}: {formatTokens(d.input_tokens)}
-                    </div>
-                    <div>
-                      {t.analytics.output}: {formatTokens(d.output_tokens)}
-                    </div>
-                    <div>
-                      {t.analytics.total}: {formatTokens(total)}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="w-full bg-[#ffe6cb]/70"
-                  style={{ height: Math.max(inputH, total > 0 ? 1 : 0) }}
-                />
-
-                <div
-                  className="w-full bg-emerald-500/70"
-                  style={{
-                    height: Math.max(outputH, d.output_tokens > 0 ? 1 : 0),
-                  }}
-                />
-              </div>
-            );
-          })}
+          <Spark values={outputSeries} color="ok" className="h-16" />
         </div>
 
-        <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
+        <div className="flex justify-between text-[10px] text-[var(--fg-faint)]">
           <span>{daily.length > 0 ? formatDate(daily[0].day) : ""}</span>
           {daily.length > 2 && (
             <span>{formatDate(daily[Math.floor(daily.length / 2)].day)}</span>
@@ -227,51 +211,60 @@ function DailyTable({ daily }: { daily: AnalyticsDailyEntry[] }) {
 
   if (daily.length === 0) return null;
 
+  const maxTotal = Math.max(
+    ...daily.map((d) => d.input_tokens + d.output_tokens),
+    1,
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-base">
-            {t.analytics.dailyBreakdown}
-          </CardTitle>
-        </div>
-      </CardHeader>
+    <Card className="rounded-xl">
+      <SectionHeader
+        icon={TrendingUp}
+        title={t.analytics.dailyBreakdown}
+        description="Per-day session counts and token totals, with relative volume."
+      />
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-muted-foreground text-xs">
-                <SortHeader label={t.analytics.date} col="day" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-left py-2 pr-4 font-medium" />
-                <SortHeader label={t.sessions.title} col="sessions" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.input} col="input_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.output} col="output_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 pl-4 font-medium" />
+              <tr className="border-b border-[var(--border)] text-xs text-[var(--fg-dim)]">
+                <SortHeader label={t.analytics.date} col="day" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pr-4 text-left font-medium" />
+                <SortHeader label={t.sessions.title} col="sessions" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.input} col="input_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.output} col="output_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pl-4 text-right font-medium" />
+                <th className="hidden w-40 py-2 pl-4 text-left font-medium sm:table-cell" />
               </tr>
             </thead>
             <tbody>
-              {sorted.map((d) => (
-                <tr
+              {sorted.map((d) => {
+                const total = d.input_tokens + d.output_tokens;
+                return (
+                  <tr
                     key={d.day}
-                    className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
+                    className="border-b border-[var(--border)]/50 transition-colors hover:bg-[var(--bg-mute)]/50"
                   >
-                  <td className="py-2 pr-4 font-medium">
+                    <td className="py-2 pr-4 font-medium text-[var(--fg)]">
                       {formatDate(d.day)}
                     </td>
-                  <td className="text-right py-2 px-4 text-muted-foreground">
+                    <td className="px-4 py-2 text-right tabular-nums text-[var(--fg-dim)]">
                       {d.sessions}
                     </td>
-                  <td className="text-right py-2 px-4">
-                    <span className="text-[#ffe6cb]">
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      <span className="text-[var(--accent)]">
                         {formatTokens(d.input_tokens)}
                       </span>
-                  </td>
-                  <td className="text-right py-2 pl-4">
-                    <span className="text-emerald-400">
+                    </td>
+                    <td className="py-2 pl-4 text-right tabular-nums">
+                      <span className="text-[var(--ok)]">
                         {formatTokens(d.output_tokens)}
                       </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="hidden py-2 pl-4 sm:table-cell">
+                      <Meter value={total} max={maxTotal} color="accent" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -286,49 +279,60 @@ function ModelTable({ models }: { models: AnalyticsModelEntry[] }) {
 
   if (models.length === 0) return null;
 
+  const maxTokens = Math.max(
+    ...models.map((m) => m.input_tokens + m.output_tokens),
+    1,
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Cpu className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-base">
-            {t.analytics.perModelBreakdown}
-          </CardTitle>
-        </div>
-      </CardHeader>
+    <Card className="rounded-xl">
+      <SectionHeader
+        icon={Cpu}
+        title={t.analytics.perModelBreakdown}
+        description="Token share per model across the selected period."
+      />
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-muted-foreground text-xs">
-                <SortHeader label={t.analytics.model} col="model" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-left py-2 pr-4 font-medium" />
-                <SortHeader label={t.sessions.title} col="sessions" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.tokens} col="input_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 pl-4 font-medium" />
+              <tr className="border-b border-[var(--border)] text-xs text-[var(--fg-dim)]">
+                <SortHeader label={t.analytics.model} col="model" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pr-4 text-left font-medium" />
+                <SortHeader label={t.sessions.title} col="sessions" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.tokens} col="input_tokens" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pl-4 text-right font-medium" />
+                <th className="hidden w-40 py-2 pl-4 text-left font-medium sm:table-cell" />
               </tr>
             </thead>
             <tbody>
-              {sorted.map((m) => (
-                <tr
-                  key={m.model}
-                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
-                >
-                  <td className="py-2 pr-4">
-                    <span className="font-mono-ui text-xs">{m.model}</span>
-                  </td>
-                  <td className="text-right py-2 px-4 text-muted-foreground">
-                    {m.sessions}
-                  </td>
-                  <td className="text-right py-2 pl-4">
-                    <span className="text-[#ffe6cb]">
-                      {formatTokens(m.input_tokens)}
-                    </span>
-                    {" / "}
-                    <span className="text-emerald-400">
-                      {formatTokens(m.output_tokens)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {sorted.map((m) => {
+                const total = m.input_tokens + m.output_tokens;
+                return (
+                  <tr
+                    key={m.model}
+                    className="border-b border-[var(--border)]/50 transition-colors hover:bg-[var(--bg-mute)]/50"
+                  >
+                    <td className="py-2 pr-4">
+                      <span className="font-mono text-xs text-[var(--fg)]">
+                        {m.model}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-[var(--fg-dim)]">
+                      {m.sessions}
+                    </td>
+                    <td className="py-2 pl-4 text-right tabular-nums">
+                      <span className="text-[var(--accent)]">
+                        {formatTokens(m.input_tokens)}
+                      </span>
+                      <span className="text-[var(--fg-faint)]"> / </span>
+                      <span className="text-[var(--ok)]">
+                        {formatTokens(m.output_tokens)}
+                      </span>
+                    </td>
+                    <td className="hidden py-2 pl-4 sm:table-cell">
+                      <Meter value={total} max={maxTokens} color="info" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -343,44 +347,53 @@ function SkillTable({ skills }: { skills: AnalyticsSkillEntry[] }) {
 
   if (skills.length === 0) return null;
 
+  const maxCount = Math.max(...skills.map((s) => s.total_count), 1);
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-base">{t.analytics.topSkills}</CardTitle>
-        </div>
-      </CardHeader>
+    <Card className="rounded-xl">
+      <SectionHeader
+        icon={Brain}
+        title={t.analytics.topSkills}
+        description="Most-loaded skills, ranked by total invocations."
+      />
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-muted-foreground text-xs">
-                <SortHeader label={t.analytics.skill} col="skill" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-left py-2 pr-4 font-medium" />
-                <SortHeader label={t.analytics.loads} col="view_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.edits} col="manage_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.total} col="total_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 px-4 font-medium" />
-                <SortHeader label={t.analytics.lastUsed} col="last_used_at" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="text-right py-2 pl-4 font-medium" />
+              <tr className="border-b border-[var(--border)] text-xs text-[var(--fg-dim)]">
+                <SortHeader label={t.analytics.skill} col="skill" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pr-4 text-left font-medium" />
+                <SortHeader label={t.analytics.loads} col="view_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.edits} col="manage_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.total} col="total_count" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="px-4 py-2 text-right font-medium" />
+                <SortHeader label={t.analytics.lastUsed} col="last_used_at" sortKey={sortKey} sortDir={sortDir} toggle={toggle} className="py-2 pl-4 text-right font-medium" />
+                <th className="hidden w-40 py-2 pl-4 text-left font-medium sm:table-cell" />
               </tr>
             </thead>
             <tbody>
               {sorted.map((skill) => (
                 <tr
                   key={skill.skill}
-                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
+                  className="border-b border-[var(--border)]/50 transition-colors hover:bg-[var(--bg-mute)]/50"
                 >
                   <td className="py-2 pr-4">
-                    <span className="font-mono-ui text-xs">{skill.skill}</span>
+                    <span className="font-mono text-xs text-[var(--fg)]">
+                      {skill.skill}
+                    </span>
                   </td>
-                  <td className="text-right py-2 px-4 text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-[var(--fg-dim)]">
                     {skill.view_count}
                   </td>
-                  <td className="text-right py-2 px-4 text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-[var(--fg-dim)]">
                     {skill.manage_count}
                   </td>
-                  <td className="text-right py-2 px-4">{skill.total_count}</td>
-                  <td className="text-right py-2 pl-4 text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-[var(--fg)]">
+                    {skill.total_count}
+                  </td>
+                  <td className="py-2 pl-4 text-right text-[var(--fg-dim)]">
                     {skill.last_used_at ? timeAgo(skill.last_used_at) : "—"}
+                  </td>
+                  <td className="hidden py-2 pl-4 sm:table-cell">
+                    <Meter value={skill.total_count} max={maxCount} color="ok" />
                   </td>
                 </tr>
               ))}
@@ -431,7 +444,7 @@ export default function AnalyticsPage() {
       PERIODS.find((p) => p.days === days)?.label ?? `${days}d`;
     setAfterTitle(
       <span className="flex items-center gap-2">
-        {loading && <Spinner className="shrink-0 text-base text-primary" />}
+        {loading && <Spinner className="shrink-0 text-base text-[var(--accent)]" />}
         <Badge tone="secondary" className="text-[10px]">
           {periodLabel}
         </Badge>
@@ -481,10 +494,10 @@ export default function AnalyticsPage() {
       <PluginSlot name="analytics:top" />
 
       {showTokens === false && (
-        <Card>
+        <Card className="rounded-xl">
           <CardContent className="py-12">
-            <div className="mx-auto flex max-w-2xl flex-col gap-3 text-sm text-muted-foreground">
-              <h2 className="font-display text-base tracking-wider uppercase text-foreground">
+            <div className="mx-auto flex max-w-2xl flex-col gap-3 text-sm text-[var(--fg-dim)]">
+              <h2 className="font-display text-base tracking-wide text-[var(--fg)]">
                 Token analytics hidden
               </h2>
               <p>
@@ -510,23 +523,33 @@ export default function AnalyticsPage() {
                 <span className="font-mono">
                   dashboard.show_token_analytics: true
                 </span>{" "}
-                in <a href="/config" className="underline">Config</a>.
+                in{" "}
+                <a href="/config" className="text-[var(--accent)] underline">
+                  Config
+                </a>
+                .
               </p>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {showTokens && (
+        <p className="text-sm text-[var(--fg-dim)]">
+          Token usage and activity across your sessions, models, and skills.
+        </p>
+      )}
+
       {showTokens && loading && !data && (
         <div className="flex items-center justify-center py-24">
-          <Spinner className="text-2xl text-primary" />
+          <Spinner className="text-2xl text-[var(--accent)]" />
         </div>
       )}
 
       {showTokens && error && (
-        <Card>
+        <Card className="rounded-xl">
           <CardContent className="py-6">
-            <p className="text-sm text-destructive text-center">{error}</p>
+            <p className="text-center text-sm text-[var(--err)]">{error}</p>
           </CardContent>
         </Card>
       )}
@@ -534,7 +557,7 @@ export default function AnalyticsPage() {
       {showTokens && data && (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
+            <Card className="rounded-xl">
               <CardContent className="py-6">
                 <Stats
                   items={[
@@ -568,7 +591,7 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <TokenBarChart daily={data.daily} />
+            <DailyUsageChart daily={data.daily} />
           </div>
 
           <DailyTable daily={data.daily} />
@@ -581,12 +604,12 @@ export default function AnalyticsPage() {
         data.daily.length === 0 &&
         data.by_model.length === 0 &&
         data.skills.top_skills.length === 0 && (
-          <Card>
+          <Card className="rounded-xl">
             <CardContent className="py-12">
-              <div className="flex flex-col items-center text-muted-foreground">
-                <BarChart3 className="h-8 w-8 mb-3 opacity-40" />
+              <div className="flex flex-col items-center text-[var(--fg-dim)]">
+                <BarChart3 className="mb-3 h-8 w-8 opacity-40" />
                 <p className="text-sm font-medium">{t.analytics.noUsageData}</p>
-                <p className="text-xs mt-1 text-muted-foreground/60">
+                <p className="mt-1 text-xs text-[var(--fg-faint)]">
                   {t.analytics.startSession}
                 </p>
               </div>

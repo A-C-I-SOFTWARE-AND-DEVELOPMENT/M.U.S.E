@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { BUILTIN_THEMES, defaultTheme } from "./presets";
+import { BUILTIN_THEMES, museTheme } from "./presets";
 import type {
   DashboardTheme,
   ThemeAssets,
@@ -306,8 +306,9 @@ function applyTheme(theme: DashboardTheme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   /** Name of the currently active theme (built-in id or user YAML name). */
   const [themeName, setThemeName] = useState<string>(() => {
-    if (typeof window === "undefined") return "default";
-    return window.localStorage.getItem(STORAGE_KEY) ?? "default";
+    if (typeof window === "undefined") return "muse";
+    // Singularity is the default look; a stored choice always wins.
+    return window.localStorage.getItem(STORAGE_KEY) ?? "muse";
   });
 
   /** All selectable themes (shown in the picker). Starts with just the
@@ -326,14 +327,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     Record<string, DashboardTheme>
   >({});
 
-  // Resolve a theme name to a full DashboardTheme, falling back to default
-  // only when neither a built-in nor a user theme is found.
+  // Resolve a theme name to a full DashboardTheme, falling back to
+  // Singularity only when neither a built-in nor a user theme is found.
   const resolveTheme = useCallback(
     (name: string): DashboardTheme => {
       return (
         BUILTIN_THEMES[name] ??
         userThemeDefs[name] ??
-        defaultTheme
+        museTheme
       );
     },
     [userThemeDefs],
@@ -391,7 +392,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         ...availableThemes.map((t) => t.name),
         ...Object.keys(userThemeDefs),
       ]);
-      const next = knownNames.has(name) ? name : "default";
+      const next = knownNames.has(name) ? name : "muse";
       setThemeName(next);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(STORAGE_KEY, next);
@@ -419,8 +420,8 @@ export function useTheme(): ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: defaultTheme,
-  themeName: "default",
+  theme: museTheme,
+  themeName: "muse",
   availableThemes: Object.values(BUILTIN_THEMES).map((t) => ({
     name: t.name,
     label: t.label,

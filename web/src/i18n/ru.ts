@@ -79,12 +79,21 @@ export const ru: Translations = {
       plugins: "Плагины",
       sessions: "Сессии",
       skills: "Навыки",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "и инструменты",
     modelToolsSheetTitle: "Модель",
     navigation: "Навигация",
     openDocumentation: "Открыть документацию в новой вкладке",
-    openNavigation: "Открыть навигацию",
+    openNavigation: "Открыть навигацию",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Плагины",
     sessionsActiveCount: "{count} активн.",
     statusOverview: "Обзор статуса",

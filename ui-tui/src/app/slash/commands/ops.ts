@@ -320,6 +320,15 @@ export const opsCommands: SlashCommand[] = [
   },
 
   {
+    aliases: ['hubs'],
+    help: 'open the hub browser (agents, automation, skills, providers, memory)',
+    name: 'hub',
+    run: () => {
+      patchOverlayState({ hub: true })
+    }
+  },
+
+  {
     help: 'replay a completed spawn tree · `/replay [N|last|list|load <path>]`',
     name: 'replay',
     run: (arg, ctx) => {

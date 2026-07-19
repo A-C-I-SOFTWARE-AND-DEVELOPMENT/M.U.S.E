@@ -7,6 +7,8 @@ import { $overlayState, patchOverlayState } from '../app/overlayStore.js'
 import { $uiSessionId, $uiTheme } from '../app/uiStore.js'
 
 import { FloatBox } from './appChrome.js'
+import { CommandPalette } from './commandPalette.js'
+import { HubOverlay } from './hubOverlay.js'
 import { MaskedPrompt } from './maskedPrompt.js'
 import { ModelPicker } from './modelPicker.js'
 import { OverlayHint } from './overlayControls.js'
@@ -97,14 +99,20 @@ export function FloatingOverlays({
   completions,
   onModelSelect,
   onPickerSelect,
+  onRunSlash,
   pagerPageSize
-}: Pick<AppOverlaysProps, 'cols' | 'compIdx' | 'completions' | 'onModelSelect' | 'onPickerSelect' | 'pagerPageSize'>) {
+}: Pick<
+  AppOverlaysProps,
+  'cols' | 'compIdx' | 'completions' | 'onModelSelect' | 'onPickerSelect' | 'onRunSlash' | 'pagerPageSize'
+>) {
   const { gw } = useGateway()
   const overlay = useStore($overlayState)
   const sid = useStore($uiSessionId)
   const theme = useStore($uiTheme)
 
-  const hasAny = overlay.modelPicker || overlay.pager || overlay.picker || overlay.skillsHub || completions.length
+  const hasAny =
+    overlay.modelPicker || overlay.pager || overlay.picker || overlay.skillsHub || overlay.hub || overlay.palette ||
+    completions.length
 
   if (!hasAny) {
     return null
@@ -119,6 +127,17 @@ export function FloatingOverlays({
 
   return (
     <Box alignItems="flex-start" bottom="100%" flexDirection="column" left={0} position="absolute" right={0}>
+      {/* HubOverlay draws its own rounded accent border — mount BARE (no
+          FloatBox wrapper), first in the stack so the palette (mounted last,
+          below) stays topmost. */}
+      {overlay.hub && (
+        <HubOverlay
+          onClose={() => patchOverlayState({ hub: false })}
+          onRunSlash={onRunSlash}
+          t={theme}
+        />
+      )}
+
       {overlay.picker && (
         <FloatBox color={theme.color.border}>
           <SessionPicker
@@ -205,6 +224,16 @@ export function FloatingOverlays({
             })}
           </Box>
         </FloatBox>
+      )}
+
+      {/* CommandPalette draws its own rounded accent border — mount BARE and
+          LAST so it is the topmost float (palette.manifest.md §3). */}
+      {overlay.palette && (
+        <CommandPalette
+          onClose={() => patchOverlayState({ palette: false })}
+          onRunSlash={onRunSlash}
+          t={theme}
+        />
       )}
     </Box>
   )

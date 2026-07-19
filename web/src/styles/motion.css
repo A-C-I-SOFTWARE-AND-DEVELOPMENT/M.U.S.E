@@ -1,0 +1,137 @@
+/* ------------------------------------------------------------------ */
+/* M.U.S.E. "Observatory" — global motion system (animation-spec §6-7).*/
+/* CSS-driven only: transforms + opacity (compositor-friendly). All    */
+/* easings route through the motion tokens defined in index.css        */
+/* (--ease-motion / --ease-smooth). Hard fallback for reduced-motion   */
+/* users is scoped to these classes at the bottom of the file; the     */
+/* global guard in index.css remains the second line of defense.       */
+/* ------------------------------------------------------------------ */
+
+/* Page entrance — fade + translateY(8px→0), 0.4s var(--ease-motion).  */
+/* Apply `.muse-enter` to a section; add `.muse-enter-d1..d5` for the  */
+/* 40ms stagger step (40/80/120/160/200ms). `both` fill keeps the      */
+/* pre-state during the delay so staggered items don't flash.          */
+@keyframes muse-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.muse-enter {
+  animation: muse-enter 0.4s var(--ease-motion, cubic-bezier(0.2, 1, 0.2, 1)) both;
+  will-change: transform;
+}
+
+.muse-enter-d1 { animation-delay: 40ms; }
+.muse-enter-d2 { animation-delay: 80ms; }
+.muse-enter-d3 { animation-delay: 120ms; }
+.muse-enter-d4 { animation-delay: 160ms; }
+.muse-enter-d5 { animation-delay: 200ms; }
+
+/* Route transition — 160ms fade + 4px rise on the page container.     */
+/* App.tsx keys the container by location.pathname, so every route     */
+/* change re-runs this entrance. Cheap: one transform + one opacity.   */
+@keyframes muse-route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.muse-route-enter {
+  animation: muse-route-enter 160ms var(--ease-motion, cubic-bezier(0.2, 1, 0.2, 1)) both;
+  will-change: transform;
+}
+
+/* Wordmark — slow hue-cycling gradient shimmer for the "M.U.S.E."     */
+/* sigil (spec §7): violet → magenta → violet over a 12s linear loop.  */
+/* The gradient starts and ends on --accent so the loop is seamless.   */
+/* background-clip:text does the work; text-midground on the element   */
+/* remains as the no-clip fallback color.                              */
+@keyframes muse-wordmark-shimmer {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+.muse-wordmark {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent, #d8b4fe) 0%,
+    #e879f9 50%,
+    var(--accent, #d8b4fe) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: muse-wordmark-shimmer 12s linear infinite;
+}
+
+/* Status dot — 2s breathe pulse with an accent glow (spec §7). Sits   */
+/* next to the wordmark; glow stays inside the Singularity family.     */
+@keyframes muse-status-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #d8b4fe) 0%, transparent);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    box-shadow: 0 0 8px 2px color-mix(in srgb, var(--accent, #d8b4fe) 55%, transparent);
+  }
+}
+
+.muse-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--accent, #d8b4fe);
+  animation: muse-status-breathe 2s var(--ease-motion, cubic-bezier(0.2, 1, 0.2, 1)) infinite;
+}
+
+/* Button press feedback — mirrors Tailwind `active:scale-[0.98]`.     */
+/* Scoped utility class (no global button rule) so DS components that  */
+/* manage their own transforms are never disturbed.                    */
+.muse-press {
+  transition: transform var(--dur-fast, 150ms) var(--ease-motion, cubic-bezier(0.2, 1, 0.2, 1));
+}
+.muse-press:active {
+  transform: scale(0.98);
+}
+
+/* Reduced-motion hard fallback for every class in this file. The      */
+/* global guard in index.css already collapses durations; this block   */
+/* additionally REMOVES the animations so shimmer/pulse never run and  */
+/* `both`-filled entrances land on their visible end state instantly.  */
+@media (prefers-reduced-motion: reduce) {
+  .muse-enter,
+  .muse-enter-d1,
+  .muse-enter-d2,
+  .muse-enter-d3,
+  .muse-enter-d4,
+  .muse-enter-d5,
+  .muse-route-enter,
+  .muse-wordmark,
+  .muse-status-dot,
+  .muse-press {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

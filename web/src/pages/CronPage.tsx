@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Clock, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
+import {
+  AlertCircle,
+  Clock,
+  Plus,
+  RefreshCw,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-react";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@/components/NouiTypography";
+import { Switch } from "@nous-research/ui/ui/components/switch";
 import { api } from "@/lib/api";
 import type { CronJob, ProfileInfo } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -12,7 +19,6 @@ import { useToast } from "@/hooks/useToast";
 import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Toast } from "@/components/Toast";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,22 +94,56 @@ function profileLabel(profile: string): string {
   return profile === "default" ? "default" : profile;
 }
 
-const STATUS_TONE: Record<string, "success" | "warning" | "destructive"> = {
-  enabled: "success",
-  scheduled: "success",
-  paused: "warning",
-  error: "destructive",
-  completed: "destructive",
-};
+/** Last-run status chip routed through Singularity semantic tokens. */
+function LastStatusChip({ job }: { job: CronJob }) {
+  if (job.last_error) {
+    return (
+      <span
+        className="rounded-full border border-[var(--err)]/40 bg-[var(--err)]/10 px-2 py-0.5 text-[0.65rem] text-[var(--err)]"
+        title={job.last_error}
+      >
+        error
+      </span>
+    );
+  }
+  const state = getJobState(job);
+  if (state === "paused") {
+    return (
+      <span className="rounded-full border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-2 py-0.5 text-[0.65rem] text-[var(--warn)]">
+        paused
+      </span>
+    );
+  }
+  if (state === "disabled") {
+    return (
+      <span className="rounded-full border border-[var(--border)] bg-[var(--bg-mute)] px-2 py-0.5 text-[0.65rem] text-[var(--fg-faint)]">
+        disabled
+      </span>
+    );
+  }
+  if (job.last_run_at) {
+    return (
+      <span className="rounded-full border border-[var(--ok)]/40 bg-[var(--ok)]/10 px-2 py-0.5 text-[0.65rem] text-[var(--ok)]">
+        ok
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-[var(--border)] bg-[var(--bg-mute)] px-2 py-0.5 text-[0.65rem] text-[var(--fg-faint)]">
+      scheduled
+    </span>
+  );
+}
 
 export default function CronPage() {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [selectedProfile, setSelectedProfile] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
-  const { setEnd } = usePageHeader();
+  const { setTitle, setAfterTitle, setEnd } = usePageHeader();
 
   // New job modal state
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -120,10 +160,14 @@ export default function CronPage() {
   const createProfile = selectedProfile === "all" ? "default" : selectedProfile;
 
   const loadJobs = useCallback(() => {
+    setLoadError(null);
     api
       .getCronJobs(selectedProfile)
       .then(setJobs)
-      .catch(() => showToast(t.common.loading, "error"))
+      .catch((e) => {
+        setLoadError(e instanceof Error ? e.message : t.common.loading);
+        showToast(t.common.loading, "error");
+      })
       .finally(() => setLoading(false));
   }, [selectedProfile, showToast, t.common.loading]);
 
@@ -168,25 +212,35 @@ export default function CronPage() {
     }
   };
 
-  const handlePauseResume = async (job: CronJob) => {
+  const handleSetEnabled = async (job: CronJob, enabled: boolean) => {
+    const profile = getJobProfile(job);
+    const patch = (j: CronJob, on: boolean): CronJob => ({
+      ...j,
+      enabled: on,
+      // getJobState() prefers `state` over `enabled` — keep both in sync.
+      state: on ? "scheduled" : "paused",
+    });
+    // Optimistic switch flip; revert on failure.
+    setJobs((prev) =>
+      prev.map((j) => (getJobKey(j) === getJobKey(job) ? patch(j, enabled) : j)),
+    );
     try {
-      const isPaused = getJobState(job) === "paused";
-      const profile = getJobProfile(job);
-      if (isPaused) {
+      if (enabled) {
         await api.resumeCronJob(job.id, profile);
-        showToast(
-          `${t.cron.resume}: "${truncateText(getJobTitle(job), 30)}"`,
-          "success",
-        );
       } else {
         await api.pauseCronJob(job.id, profile);
-        showToast(
-          `${t.cron.pause}: "${truncateText(getJobTitle(job), 30)}"`,
-          "success",
-        );
       }
+      showToast(
+        `${enabled ? t.cron.resume : t.cron.pause}: "${truncateText(getJobTitle(job), 30)}"`,
+        "success",
+      );
       loadJobs();
     } catch (e) {
+      setJobs((prev) =>
+        prev.map((j) =>
+          getJobKey(j) === getJobKey(job) ? patch(j, !enabled) : j,
+        ),
+      );
       showToast(`${t.status.error}: ${e}`, "error");
     }
   };
@@ -225,29 +279,26 @@ export default function CronPage() {
     ),
   });
 
-  // Put "Create" button in page header
+  // Sentence-case header + description + primary action (design 2.3).
   useLayoutEffect(() => {
+    setTitle("Cron jobs");
+    setAfterTitle(
+      <span className="whitespace-nowrap text-xs text-[var(--fg-faint)]">
+        Scheduled prompts that run automatically across profiles.
+      </span>,
+    );
     setEnd(
-      <Button
-        size="sm"
-        onClick={() => setCreateModalOpen(true)}
-      >
+      <Button size="sm" onClick={() => setCreateModalOpen(true)}>
         <Plus className="h-3 w-3" />
         {t.common.create}
       </Button>,
     );
     return () => {
+      setTitle(null);
+      setAfterTitle(null);
       setEnd(null);
     };
-  }, [setEnd, t.common.create, loading]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner className="text-2xl text-primary" />
-      </div>
-    );
-  }
+  }, [setTitle, setAfterTitle, setEnd, t.common.create]);
 
   const pendingJob = jobDelete.pendingId
     ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId)
@@ -283,7 +334,7 @@ export default function CronPage() {
           aria-modal="true"
           aria-labelledby="create-cron-title"
         >
-          <div className="relative w-full max-w-lg border border-border bg-card shadow-2xl flex flex-col">
+          <div className="relative flex w-full max-w-lg flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] shadow-2xl">
             <Button
               ghost
               size="icon"
@@ -294,16 +345,16 @@ export default function CronPage() {
               <X />
             </Button>
 
-            <header className="p-5 pb-3 border-b border-border">
+            <header className="border-b border-[var(--border)] p-5 pb-3">
               <h2
                 id="create-cron-title"
-                className="font-display text-base tracking-wider uppercase"
+                className="font-display text-base tracking-wider"
               >
                 {t.cron.newJob}
               </h2>
             </header>
 
-            <div className="p-5 grid gap-4">
+            <div className="grid gap-4 p-5">
               <div className="grid gap-2">
                 <Label htmlFor="cron-profile">Profile</Label>
                 <Select
@@ -334,14 +385,14 @@ export default function CronPage() {
                 <Label htmlFor="cron-prompt">{t.cron.prompt}</Label>
                 <textarea
                   id="cron-prompt"
-                  className="flex min-h-[80px] w-full border border-border bg-background/40 px-3 py-2 text-sm font-courier shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:border-foreground/25"
+                  className="flex min-h-[80px] w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-sm text-[var(--fg)] shadow-sm placeholder:text-[var(--fg-faint)] focus-visible:border-[var(--accent-dim)] focus-visible:outline-none"
                   placeholder={t.cron.promptPlaceholder}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="cron-schedule">{t.cron.schedule}</Label>
                   <Input
@@ -395,15 +446,12 @@ export default function CronPage() {
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <H2
-            variant="sm"
-            className="flex items-center gap-2 text-muted-foreground"
-          >
+          <h2 className="flex items-center gap-2 text-sm font-medium text-[var(--fg-dim)]">
             <Clock className="h-4 w-4" />
             {t.cron.scheduledJobs} ({jobs.length})
-          </H2>
+          </h2>
 
-          <div className="grid gap-1 min-w-[220px]">
+          <div className="grid min-w-[220px] gap-1">
             <Label htmlFor="cron-profile-filter">Profile</Label>
             <Select
               id="cron-profile-filter"
@@ -420,72 +468,117 @@ export default function CronPage() {
           </div>
         </div>
 
-        {jobs.length === 0 && (
-          <EmptyStateCard icon={Clock} title={t.cron.noJobs} />
+        {/* Inline error banner with retry (design 2.3) */}
+        {loadError && (
+          <div className="flex items-center gap-2 rounded-xl border border-[var(--err)]/30 bg-[var(--err)]/5 px-3 py-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-[var(--err)]" />
+            <span className="flex-1 text-xs text-[var(--err)]">{loadError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                loadJobs();
+              }}
+              className="inline-flex items-center gap-1 rounded-md border border-[var(--err)]/40 px-2 py-0.5 text-xs text-[var(--err)] transition-colors hover:bg-[var(--err)]/10"
+            >
+              <RefreshCw className="h-3 w-3" />
+              {t.common.retry}
+            </button>
+          </div>
         )}
 
-        {jobs.map((job) => {
-          const state = getJobState(job);
-          const promptText = getJobPrompt(job);
-          const title = getJobTitle(job);
-          const hasName = Boolean(getJobName(job));
-          const deliver = asText(job.deliver);
-          const profile = getJobProfile(job);
-          const jobKey = getJobKey(job);
+        {/* Skeleton rows while loading (design 2.3 — no spinner storms) */}
+        {loading &&
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex animate-pulse items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] px-4 py-4"
+            >
+              <div className="h-5 w-9 rounded-full bg-[var(--bg-mute)]" />
+              <div className="flex-1">
+                <div className="mb-2 h-3.5 w-48 rounded bg-[var(--bg-mute)]" />
+                <div className="h-3 w-72 rounded bg-[var(--bg-mute)]" />
+              </div>
+              <div className="h-6 w-16 rounded-full bg-[var(--bg-mute)]" />
+            </div>
+          ))}
 
-          return (
-            <Card key={jobKey}>
-              <CardContent className="flex items-start gap-4 py-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm truncate">
+        {!loading && jobs.length === 0 && !loadError && (
+          <EmptyStateCard
+            icon={Clock}
+            title={t.cron.noJobs}
+            action={
+              <Button size="sm" onClick={() => setCreateModalOpen(true)}>
+                <Plus className="h-3 w-3" />
+                {t.common.create}
+              </Button>
+            }
+          />
+        )}
+
+        {!loading &&
+          jobs.map((job) => {
+            const state = getJobState(job);
+            const promptText = getJobPrompt(job);
+            const title = getJobTitle(job);
+            const hasName = Boolean(getJobName(job));
+            const deliver = asText(job.deliver);
+            const profile = getJobProfile(job);
+            const jobKey = getJobKey(job);
+            const enabled = state !== "paused" && state !== "disabled";
+
+            return (
+              <div
+                key={jobKey}
+                className="flex items-start gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] px-4 py-4 transition-colors hover:border-[var(--accent-dim)]"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-medium text-[var(--fg)]">
                       {title}
                     </span>
-                    <Badge tone={STATUS_TONE[state] ?? "secondary"}>
-                      {state}
-                    </Badge>
-                    <Badge tone="outline">{profileLabel(profile)}</Badge>
+                    <LastStatusChip job={job} />
+                    <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[0.65rem] text-[var(--fg-faint)]">
+                      {profileLabel(profile)}
+                    </span>
                     {deliver && deliver !== "local" && (
-                      <Badge tone="outline">{deliver}</Badge>
+                      <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[0.65rem] text-[var(--fg-faint)]">
+                        {deliver}
+                      </span>
                     )}
                   </div>
                   {hasName && promptText && (
-                    <p className="text-xs text-muted-foreground truncate mb-1">
+                    <p className="mb-1 truncate text-xs text-[var(--fg-dim)]">
                       {truncateText(promptText, 100)}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="font-mono">{getJobScheduleDisplay(job)}</span>
-                    <span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                    <span className="font-mono text-[var(--fg-dim)]">
+                      {getJobScheduleDisplay(job)}
+                    </span>
+                    <span className="text-[var(--fg-faint)]">
                       {t.cron.last}: {formatTime(job.last_run_at)}
                     </span>
-                    <span>
+                    <span className="text-[var(--fg-faint)]">
                       {t.cron.next}: {formatTime(job.next_run_at)}
                     </span>
                   </div>
                   {job.last_error && (
-                    <p className="text-xs text-destructive mt-1">
+                    <p className="mt-1 text-xs text-[var(--err)]">
                       {job.last_error}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    ghost
-                    size="icon"
-                    title={state === "paused" ? t.cron.resume : t.cron.pause}
+                <div className="flex shrink-0 items-center gap-2">
+                  {/* Enabled switch — pause/resume via existing endpoints */}
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(v) => handleSetEnabled(job, v)}
                     aria-label={
-                      state === "paused" ? t.cron.resume : t.cron.pause
+                      enabled ? t.cron.pause : t.cron.resume
                     }
-                    onClick={() => handlePauseResume(job)}
-                    className={
-                      state === "paused" ? "text-success" : "text-warning"
-                    }
-                  >
-                    {state === "paused" ? <Play /> : <Pause />}
-                  </Button>
-
+                  />
                   <Button
                     ghost
                     size="icon"
@@ -495,7 +588,6 @@ export default function CronPage() {
                   >
                     <Zap />
                   </Button>
-
                   <Button
                     ghost
                     destructive
@@ -507,10 +599,9 @@ export default function CronPage() {
                     <Trash2 />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            );
+          })}
       </div>
 
       <PluginSlot name="cron:bottom" />

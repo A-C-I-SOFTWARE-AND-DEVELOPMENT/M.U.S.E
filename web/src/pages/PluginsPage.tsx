@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { HubAgentPluginRow, PluginsHubResponse } from "@/lib/api";
 import { Button } from "@nous-research/ui/ui/components/button";
-import { Badge } from "@nous-research/ui/ui/components/badge";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
@@ -27,6 +27,7 @@ const MEMORY_PROVIDER_BUILTIN = "__hermes_memory_builtin__";
 export default function PluginsPage() {
   const [hub, setHub] = useState<PluginsHubResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [installId, setInstallId] = useState("");
   const [installForce, setInstallForce] = useState(false);
   const [installEnable, setInstallEnable] = useState(true);
@@ -46,11 +47,15 @@ export default function PluginsPage() {
       .getPluginsHub()
       .then((h) => {
         setHub(h);
+        setLoadError(null);
         const p = h.providers;
         setMemorySel(p.memory_provider ? p.memory_provider : MEMORY_PROVIDER_BUILTIN);
         setContextSel(p.context_engine || "compressor");
       })
-      .catch(() => showToast(t.common.loading, "error"));
+      .catch((e) => {
+        setLoadError(String(e));
+        showToast(t.common.loading, "error");
+      });
   }, [showToast, t.common.loading]);
 
   useEffect(() => {
@@ -154,13 +159,45 @@ export default function PluginsPage() {
     <div className="flex flex-col gap-4">
       <PluginSlot name="plugins:top" />
 
+      <p className="text-sm text-[var(--fg-dim)]">{t.pluginsPage.headline}</p>
+
+      {loadError && !hub && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--err)]/40 px-4 py-3"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--err) 8%, var(--bg-elev))",
+          }}
+          role="alert"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--err)]">
+              Failed to load plugins
+            </p>
+            <p className="mt-0.5 break-words text-xs text-[var(--fg-dim)]">
+              {loadError}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            outlined
+            onClick={() => {
+              setLoading(true);
+              void loadHub().finally(() => setLoading(false));
+            }}
+            prefix={<RefreshCw className="h-3.5 w-3.5" />}
+          >
+            {t.common.retry}
+          </Button>
+        </div>
+      )}
+
       <div className={cn("flex w-full flex-col gap-8")}>
 
         {providers && (
-          <Card>
+          <Card className="rounded-xl">
             <CardHeader>
-              <CardTitle>{t.pluginsPage.providersHeading}</CardTitle>
-              <p className="text-[0.7rem] tracking-[0.08em] text-midground/55 normal-case">
+              <CardTitle className="normal-case tracking-normal">{t.pluginsPage.providersHeading}</CardTitle>
+              <p className="text-xs text-[var(--fg-dim)]">
                 {t.pluginsPage.providersHint}
               </p>
             </CardHeader>
@@ -224,10 +261,10 @@ export default function PluginsPage() {
           </Card>
         )}
 
-        <Card>
+        <Card className="rounded-xl">
           <CardHeader>
-            <CardTitle>{t.pluginsPage.installHeading}</CardTitle>
-            <p className="text-[0.7rem] tracking-[0.08em] text-midground/55 normal-case">
+            <CardTitle className="normal-case tracking-normal">{t.pluginsPage.installHeading}</CardTitle>
+            <p className="text-xs text-[var(--fg-dim)]">
               {t.pluginsPage.installHint}
             </p>
           </CardHeader>
@@ -256,7 +293,7 @@ export default function PluginsPage() {
 
                 <Switch checked={installForce} onCheckedChange={setInstallForce} />
 
-                <span className="text-[0.7rem] tracking-[0.06em] text-midforeground/85 normal-case">
+                <span className="text-xs text-[var(--fg-dim)]">
                   {t.pluginsPage.forceReinstall}
                 </span>
               </div>
@@ -265,7 +302,7 @@ export default function PluginsPage() {
 
                 <Switch checked={installEnable} onCheckedChange={setInstallEnable} />
 
-                <span className="text-[0.7rem] tracking-[0.06em] text-midforeground/85 normal-case">
+                <span className="text-xs text-[var(--fg-dim)]">
                   {t.pluginsPage.enableAfterInstall}
                 </span>
               </div>
@@ -281,11 +318,11 @@ export default function PluginsPage() {
               {t.pluginsPage.installBtn}
             </Button>
 
-            <p className="text-[0.65rem] tracking-[0.06em] text-midforeground/55 normal-case">
+            <p className="text-[0.65rem] text-[var(--fg-faint)]">
               {t.pluginsPage.rescanHint}
             </p>
 
-            <p className="text-[0.65rem] tracking-[0.06em] text-midforeground/55 normal-case">
+            <p className="text-[0.65rem] text-[var(--fg-faint)]">
               {t.pluginsPage.removeHint}
             </p>
           </CardContent>
@@ -293,23 +330,38 @@ export default function PluginsPage() {
 
         <div className="flex flex-col gap-3">
 
-          <h3 className="font-mondwest text-[0.75rem] tracking-[0.12em] text-midground/85">
+          <h3 className="text-sm font-semibold text-[var(--fg-dim)]">
             {t.pluginsPage.pluginListHeading}
           </h3>
 
           {loading ? (
-
-            <div className="flex items-center gap-2 py-8 text-[0.8rem] text-midforeground/65">
-
-              <Spinner />
-              <span>{t.common.loading}</span>
+            <div className="grid gap-4 sm:grid-cols-2" aria-busy="true">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-[var(--border)] p-4"
+                  style={{ backgroundColor: "var(--bg-elev)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-32 animate-pulse rounded bg-[var(--bg-mute)]" />
+                    <div className="h-4 w-12 animate-pulse rounded-full bg-[var(--bg-mute)]" />
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    <div className="h-3 w-full animate-pulse rounded bg-[var(--bg-mute)]/70" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-[var(--bg-mute)]/70" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : rows.length === 0 ? (
-
-            <p className="text-[0.75rem] text-midforeground/55 normal-case">{t.common.noResults}</p>
+            <EmptyStateCard
+              icon={Puzzle}
+              title={t.common.noResults}
+              description={t.pluginsPage.installHint}
+            />
           ) : (
 
-            <ul className="flex flex-col gap-3">
+            <ul className="grid gap-4 sm:grid-cols-2">
 
               {rows.map((row: HubAgentPluginRow) => (
 
@@ -331,15 +383,15 @@ export default function PluginsPage() {
 
           <div className="flex flex-col gap-3 opacity-95">
 
-            <h3 className="font-mondwest text-[0.75rem] tracking-[0.12em] text-midforeground/85">
+            <h3 className="text-sm font-semibold text-[var(--fg-dim)]">
               {t.pluginsPage.orphanHeading}
             </h3>
 
-            <ul className="flex flex-col gap-2 rounded border border-current/15 p-4">
+            <ul className="flex flex-col gap-2 rounded-xl border border-[var(--border)] p-4" style={{ backgroundColor: "var(--bg-elev)" }}>
 
               {hub!.orphan_dashboard_plugins.map((m) => (
 
-                <li className="text-[0.7rem] normal-case opacity-85" key={m.name}>
+                <li className="text-xs text-[var(--fg-dim)]" key={m.name}>
 
 
                   {m.label ?? m.name} — {m.description || m.tab?.path}
@@ -348,7 +400,7 @@ export default function PluginsPage() {
                   {!m.tab?.hidden ? (
 
 
-                    <Link className="ml-3 inline-flex items-center gap-1 underline" to={m.tab.path}>
+                    <Link className="ml-3 inline-flex items-center gap-1 text-[var(--accent)] hover:underline" to={m.tab.path}>
 
 
                       <ExternalLink className="h-3 w-3 opacity-65" />
@@ -397,81 +449,94 @@ function PluginRowCard(props: PluginRowCardProps) {
 
   const busy = rowBusy === row.name;
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const enabled = row.runtime_status === "enabled";
 
-  const badgeTone =
-    row.runtime_status === "enabled"
-      ? "success"
-      : row.runtime_status === "disabled"
-        ? "destructive"
-        : "outline";
+  const chip =
+    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-4";
+
+  const toggleEnabled = (checked: boolean) => {
+    void setRuntimeLoading(row.name, async () => {
+      if (checked) {
+        await api.enableAgentPlugin(row.name);
+        showToast(t.pluginsPage.enableRuntime, "success");
+      } else {
+        await api.disableAgentPlugin(row.name);
+        showToast(t.pluginsPage.disableRuntime, "success");
+      }
+    });
+  };
 
   return (
 
-    <Card className={cn(busy ? "opacity-70" : undefined)}>
+    <Card
+      className={cn("rounded-xl", busy ? "opacity-70" : undefined)}
+      style={{ backgroundColor: "var(--bg-elev)" }}
+    >
 
 
-      <CardContent className="flex flex-col gap-4 px-6 py-4">
+      <CardContent className="flex flex-col gap-4 px-5 py-4">
 
 
         <div className="flex flex-wrap items-start justify-between gap-4">
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
 
             <span className="truncate font-semibold">{row.name}</span>
 
-            <Badge tone="outline">
+            {/* version chip — faint */}
+            <span className={`${chip} font-mono-ui text-[var(--fg-faint)] border-[var(--border)] bg-transparent`}>
+              v{row.version || "—"}
+            </span>
+
+            <span className={`${chip} text-[var(--fg-faint)] border-[var(--border)] bg-transparent`}>
               {t.pluginsPage.sourceBadge}: {row.source}
-            </Badge>
+            </span>
 
-            <Badge tone="outline">v{row.version || "—"}</Badge>
-
-            <Badge tone={badgeTone}>{row.runtime_status}</Badge>
+            {enabled ? (
+              <span className={`${chip} text-[var(--ok)] border-[var(--ok)]/30 bg-[var(--ok)]/10`}>
+                {t.common.enabled}
+              </span>
+            ) : row.runtime_status === "disabled" ? (
+              <span className={`${chip} text-[var(--fg-faint)] border-[var(--border)] bg-transparent`}>
+                {t.common.disabled}
+              </span>
+            ) : (
+              <span className={`${chip} text-[var(--warn)] border-[var(--warn)]/30 bg-[var(--warn)]/10`}>
+                {row.runtime_status}
+              </span>
+            )}
 
             {row.auth_required ? (
-              <Badge tone="destructive">{t.pluginsPage.authRequired}</Badge>
+              <span className={`${chip} text-[var(--err)] border-[var(--err)]/30 bg-[var(--err)]/10`}>
+                {t.pluginsPage.authRequired}
+              </span>
             ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
 
-
-            <Button
-              disabled={busy || row.runtime_status === "enabled"}
-              ghost
-              size="sm"
-              onClick={() => {
-                void setRuntimeLoading(row.name, async () => {
-                  await api.enableAgentPlugin(row.name);
-                  showToast(t.pluginsPage.enableRuntime, "success");
-                });
-              }}
-            >
-              {t.pluginsPage.enableRuntime}
-            </Button>
-
-
-            <Button
-              disabled={busy || row.runtime_status === "disabled"}
-              ghost
-              size="sm"
-              onClick={() => {
-                void setRuntimeLoading(row.name, async () => {
-                  await api.disableAgentPlugin(row.name);
-                  showToast(t.pluginsPage.disableRuntime, "success");
-                });
-              }}
-            >
-              {t.pluginsPage.disableRuntime}
-            </Button>
+            {/* enabled switch — accent track when on */}
+            <Switch
+              checked={enabled}
+              disabled={busy}
+              onCheckedChange={toggleEnabled}
+              aria-label={`${t.pluginsPage.enableRuntime} ${row.name}`}
+              style={
+                enabled
+                  ? {
+                      backgroundColor:
+                        "color-mix(in srgb, var(--accent) 25%, transparent)",
+                      borderColor:
+                        "color-mix(in srgb, var(--accent) 55%, transparent)",
+                    }
+                  : undefined
+              }
+            />
 
             {tabPath ? (
 
               <Link
-                className={cn(
-                  "inline-flex items-center rounded-none px-3 py-1.5",
-                  "border border-current/25 hover:bg-current/10",
-                  "font-mondwest text-[0.65rem] tracking-[0.1em] uppercase",
-                )}
+                className="inline-flex items-center gap-1 rounded border border-[var(--border)] px-2.5 py-1 text-[10px] text-[var(--accent)] hover:bg-[var(--accent)]/10"
                 to={tabPath}
               >
                 {t.pluginsPage.openTab}
@@ -535,14 +600,14 @@ function PluginRowCard(props: PluginRowCardProps) {
         </div>
 
         {row.description ? (
-          <p className="min-w-0 w-full text-[0.7rem] tracking-[0.06em] text-midforeground/75 normal-case break-words">
+          <p className="min-w-0 w-full text-sm text-[var(--fg-dim)] break-words">
             {row.description}
           </p>
         ) : null}
 
         {dm?.slots?.length ? (
 
-          <p className="text-[0.65rem] tracking-[0.05em] text-midforeground/55 normal-case">
+          <p className="text-[0.65rem] text-[var(--fg-faint)]">
             {t.pluginsPage.dashboardSlots}: {dm.slots.join(", ")}
           </p>
         ) : null}
@@ -557,7 +622,7 @@ function PluginRowCard(props: PluginRowCardProps) {
         {!row.has_dashboard_manifest && !dm ? (
 
 
-          <p className="text-[0.65rem] italic text-midforeground/45 normal-case">
+          <p className="text-[0.65rem] italic text-[var(--fg-faint)]">
             {t.pluginsPage.noDashboardTab}
           </p>
         ) : null}

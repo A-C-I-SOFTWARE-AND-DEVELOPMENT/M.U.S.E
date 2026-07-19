@@ -5,6 +5,7 @@ import { isMac } from '../lib/platform.js'
 import type { Theme } from '../theme.js'
 import type { ApprovalReq, ClarifyReq, ConfirmReq } from '../types.js'
 
+import { readMuseAgentMode } from './appChrome.js'
 import { TextInput } from './textInput.js'
 
 const OPTS = ['once', 'session', 'always', 'deny'] as const
@@ -78,8 +79,8 @@ export function ApprovalPrompt({ onChoice, req, t }: ApprovalPromptProps) {
   const overflow = rawLines.length - shown.length
 
   return (
-    <Box borderColor={t.color.warn} borderStyle="double" flexDirection="column" paddingX={1}>
-      <Text bold color={t.color.warn}>
+    <Box borderColor={t.color.error} borderStyle="round" flexDirection="column" paddingX={1}>
+      <Text bold color={t.color.error}>
         ⚠ approval required · {req.description}
       </Text>
 
@@ -101,7 +102,7 @@ export function ApprovalPrompt({ onChoice, req, t }: ApprovalPromptProps) {
 
       {OPTS.map((o, i) => (
         <Text key={o}>
-          <Text bold={sel === i} color={sel === i ? t.color.warn : t.color.muted} inverse={sel === i}>
+          <Text bold={sel === i} color={sel === i ? t.color.error : t.color.muted} inverse={sel === i}>
             {sel === i ? '▸ ' : '  '}
             {i + 1}. {LABELS[o]}
           </Text>
@@ -227,7 +228,7 @@ export function ConfirmPrompt({ onCancel, onConfirm, req, t }: ConfirmPromptProp
   ]
 
   return (
-    <Box borderColor={accent} borderStyle="double" flexDirection="column" paddingX={1}>
+    <Box borderColor={accent} borderStyle="round" flexDirection="column" paddingX={1}>
       <Text bold color={accent}>
         {req.danger ? '⚠' : '?'} {req.title}
       </Text>
@@ -273,4 +274,60 @@ interface ConfirmPromptProps {
   onConfirm: () => void
   req: ConfirmReq
   t: Theme
+}
+
+// ── Composer chrome (design.md 1.2) ──────────────────────────────────
+// The composer Box itself lives in appLayout.tsx (Wave-3 integrator). Wire:
+//   <Box borderStyle="round"
+//        borderColor={composerBorderColor(t, { approvalPending: !!overlay.approval })}>
+//     <PromptPrefix text={composerGlyph(t.brand.prompt, shellMode)} …/>
+// Mode/permission are read defensively via globalThis.__museAgentMode —
+// see readMuseAgentMode in appChrome.tsx for the getter contract.
+
+/**
+ * Rounded-border color for the composer: approval-pending → error,
+ * plan permission → info, FUSION → accent, MOA → warn, default → border.
+ */
+export function composerBorderColor(t: Theme, opts: { approvalPending?: boolean } = {}): string {
+  const { mode, permission } = readMuseAgentMode()
+
+  if (opts.approvalPending) {
+    return t.color.error
+  }
+
+  if (permission === 'plan') {
+    return t.color.info ?? t.color.accent
+  }
+
+  if (mode === 'fusion') {
+    return t.color.accent
+  }
+
+  if (mode === 'moa') {
+    return t.color.warn
+  }
+
+  return t.color.border
+}
+
+/**
+ * Prompt glyph per mode (design.md 1.2): `$` shell, `◈` fusion, `M` MOA,
+ * otherwise the brand prompt (`❯` by default).
+ */
+export function composerGlyph(basePrompt: string, shell = false): string {
+  if (shell) {
+    return '$'
+  }
+
+  const { mode } = readMuseAgentMode()
+
+  if (mode === 'fusion') {
+    return '◈'
+  }
+
+  if (mode === 'moa') {
+    return 'M'
+  }
+
+  return basePrompt || '❯'
 }

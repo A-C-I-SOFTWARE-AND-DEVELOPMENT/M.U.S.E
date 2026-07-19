@@ -17,6 +17,7 @@ import { computeWheelStep, initWheelAccelForHost } from '../lib/wheelAccel.js'
 import { getInputSelection } from './inputSelectionStore.js'
 import type { InputHandlerContext, InputHandlerResult } from './interfaces.js'
 import { $isBlocked, $overlayState, patchOverlayState } from './overlayStore.js'
+import { cycleAgentMode } from './agentModeStore.js'
 import { turnController } from './turnController.js'
 import { patchTurnState } from './turnStore.js'
 import { getUiState } from './uiStore.js'
@@ -279,6 +280,17 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
         return
       }
 
+      if (overlay.palette) {
+        // Palette mounts its own useInput (typing, ↑↓, ⏎, esc). Only Ctrl+C is
+        // handled globally; every other key is swallowed here so Esc closes the
+        // palette and never the floats beneath it.
+        if (isCtrl(key, ch, 'c')) {
+          return patchOverlayState({ palette: false })
+        }
+
+        return
+      }
+
       if (overlay.pager) {
         if (key.escape || isCtrl(key, ch, 'c') || ch === 'q') {
           return patchOverlayState({ pager: null })
@@ -507,6 +519,14 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return
     }
 
+    // Ctrl+P opens the command palette (design.md 1.3A). While the palette is
+    // open the blocked-path guard above swallows every key but Ctrl+C, so this
+    // binding is unreachable then — Ctrl+P inside the palette is fzf-style
+    // selection-up, handled by the palette's own useInput.
+    if (isCtrl(key, ch, 'p')) {
+      return patchOverlayState({ palette: true })
+    }
+
     if (isVoiceToggleKey(key, ch, voice.recordKey)) {
       return voiceRecordToggle()
     }
@@ -541,6 +561,15 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
           actions.sys('failed to toggle yolo')
         }
       })
+    }
+
+    // design.md rule 8: Tab on an EMPTY composer cycles the agent mode
+    // (solo → moa → fusion → solo). The completion dropdown (below) and the
+    // Shift+Tab yolo toggle (above) keep priority over this binding.
+    if (key.tab && !key.shift && !cState.completions.length && !cState.input && !cState.inputBuf.length) {
+      cycleAgentMode()
+
+      return
     }
 
     if (key.tab && cState.completions.length) {

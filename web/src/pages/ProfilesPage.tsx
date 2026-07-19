@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ChevronDown, Pencil, Plus, Terminal, Trash2, Users, X } from "lucide-react";
-import spinners from "unicode-animations";
-import { H2 } from "@/components/NouiTypography";
+import { AlertCircle, ChevronDown, Pencil, Plus, Terminal, Trash2, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import type { ProfileInfo } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -10,6 +8,7 @@ import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Toast } from "@/components/Toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Input } from "@/components/ui/input";
@@ -17,46 +16,19 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { cn } from "@/lib/utils";
 
 // Mirrors hermes_cli/profiles.py::_PROFILE_ID_RE so we can reject obviously
 // invalid names (uppercase, spaces, …) before round-tripping a doomed POST.
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
-/** Braille unicode spinner (`unicode-animations`); static first frame when reduced motion is preferred. */
-function ProfilesLoadingSpinner() {
-  const { frames, interval } = spinners.braille;
-  const [frameIndex, setFrameIndex] = useState(0);
-
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      return;
-    }
-    const id = window.setInterval(
-      () => setFrameIndex((i) => (i + 1) % frames.length),
-      interval,
-    );
-    return () => window.clearInterval(id);
-  }, [frames.length, interval]);
-
-  return (
-    <span
-      aria-hidden
-      className="inline-block select-none font-mono text-xl leading-none text-muted-foreground"
-    >
-      {frames[frameIndex]}
-    </span>
-  );
-}
-
 export default function ProfilesPage() {
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
-  const { setEnd } = usePageHeader();
+  const { setTitle, setAfterTitle, setEnd } = usePageHeader();
 
   // Create modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -82,10 +54,14 @@ export default function ProfilesPage() {
   const activeSoulRequest = useRef<string | null>(null);
 
   const load = useCallback(() => {
+    setLoadError(null);
     api
       .getProfiles()
       .then((res) => setProfiles(res.profiles))
-      .catch((e) => showToast(`${t.status.error}: ${e}`, "error"))
+      .catch((e) => {
+        setLoadError(e instanceof Error ? e.message : String(e));
+        showToast(`${t.status.error}: ${e}`, "error");
+      })
       .finally(() => setLoading(false));
   }, [showToast, t.status.error]);
 
@@ -211,8 +187,14 @@ export default function ProfilesPage() {
 
   const pendingName = profileDelete.pendingId;
 
-  // Put "Create" button in page header
+  // Sentence-case header + description + primary action (design 2.3).
   useLayoutEffect(() => {
+    setTitle("Profiles");
+    setAfterTitle(
+      <span className="whitespace-nowrap text-xs text-[var(--fg-faint)]">
+        Isolated Hermes homes with their own config, keys, and skills.
+      </span>,
+    );
     setEnd(
       <Button
         size="sm"
@@ -223,20 +205,28 @@ export default function ProfilesPage() {
       </Button>,
     );
     return () => {
+      setTitle(null);
+      setAfterTitle(null);
       setEnd(null);
     };
-  }, [setEnd, t.common.create, loading]);
+  }, [setTitle, setAfterTitle, setEnd, t.common.create, loading]);
 
   if (loading) {
+    // Skeleton profile cards (design 2.3 — no spinner storms).
     return (
-      <div
-        aria-busy="true"
-        aria-live="polite"
-        className="flex items-center justify-center py-24"
-      >
-        <span className="sr-only">{t.common.loading}</span>
-
-        <ProfilesLoadingSpinner />
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex animate-pulse items-start gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] px-4 py-4"
+          >
+            <div className="flex-1">
+              <div className="mb-2 h-3.5 w-40 rounded bg-[var(--bg-mute)]" />
+              <div className="h-3 w-72 rounded bg-[var(--bg-mute)]" />
+            </div>
+            <div className="h-7 w-20 rounded bg-[var(--bg-mute)]" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -271,7 +261,7 @@ export default function ProfilesPage() {
           aria-modal="true"
           aria-labelledby="create-profile-title"
         >
-          <div className="relative w-full max-w-md border border-border bg-card shadow-2xl flex flex-col">
+          <div className="relative flex w-full max-w-md flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] shadow-2xl">
             <Button
               ghost
               size="icon"
@@ -285,7 +275,7 @@ export default function ProfilesPage() {
             <header className="p-5 pb-3 border-b border-border">
               <h2
                 id="create-profile-title"
-                className="font-display text-base tracking-wider uppercase"
+                className="font-display text-base tracking-wider"
               >
                 {t.profiles.newProfile}
               </h2>
@@ -333,27 +323,55 @@ export default function ProfilesPage() {
 
       {/* List */}
       <div className="flex flex-col gap-3">
-        <H2
-          variant="sm"
-          className="flex items-center gap-2 text-muted-foreground"
-        >
+        <h2 className="flex items-center gap-2 text-sm font-medium text-[var(--fg-dim)]">
           <Users className="h-4 w-4" />
           {t.profiles.allProfiles} ({profiles.length})
-        </H2>
+        </h2>
 
-        {profiles.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              {t.profiles.noProfiles}
-            </CardContent>
-          </Card>
+        {/* Inline error banner with retry (design 2.3) */}
+        {loadError && (
+          <div className="flex items-center gap-2 rounded-xl border border-[var(--err)]/30 bg-[var(--err)]/5 px-3 py-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-[var(--err)]" />
+            <span className="flex-1 text-xs text-[var(--err)]">{loadError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                load();
+              }}
+              className="rounded-md border border-[var(--err)]/40 px-2 py-0.5 text-xs text-[var(--err)] transition-colors hover:bg-[var(--err)]/10"
+            >
+              {t.common.retry}
+            </button>
+          </div>
+        )}
+
+        {profiles.length === 0 && !loadError && (
+          <EmptyStateCard
+            icon={Users}
+            title={t.profiles.noProfiles}
+            action={
+              <Button size="sm" onClick={() => setCreateModalOpen(true)}>
+                <Plus className="h-3 w-3" />
+                {t.common.create}
+              </Button>
+            }
+          />
         )}
 
         {profiles.map((p) => {
           const isRenaming = renamingFrom === p.name;
           const isEditingSoul = editingSoulFor === p.name;
           return (
-            <Card key={p.name}>
+            <Card
+              key={p.name}
+              className={cn(
+                "rounded-xl border-[var(--border)] bg-[var(--bg-elev)]",
+                // Active profile = accent left-rule (design 2.3). The API
+                // marks the operative profile via `is_default`.
+                p.is_default && "border-l-2 border-l-[var(--accent)]",
+              )}
+            >
               <CardContent className="flex items-start gap-4 py-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -497,10 +515,10 @@ export default function ProfilesPage() {
               </CardContent>
 
               {isEditingSoul && (
-                <div className="border-t border-border px-4 pb-4 pt-3 flex flex-col gap-2">
+                <div className="flex flex-col gap-2 border-t border-[var(--border)] px-4 pb-4 pt-3">
                   <Label
                     htmlFor={`soul-editor-${p.name}`}
-                    className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground"
+                    className="flex items-center gap-2 text-xs text-[var(--fg-dim)]"
                   >
                     {t.profiles.soulSection}
                   </Label>

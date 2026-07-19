@@ -78,11 +78,16 @@ describe('sectionMode', () => {
     expect(sectionMode('subagents', 'hidden', {})).toBe('hidden')
   })
 
-  it('streams thinking + tools expanded by default for persisted config values', () => {
+  it('streams thinking expanded by default for persisted config values', () => {
     expect(sectionMode('thinking', 'collapsed', {})).toBe('expanded')
     expect(sectionMode('thinking', 'hidden', undefined)).toBe('expanded')
-    expect(sectionMode('tools', 'collapsed', {})).toBe('expanded')
-    expect(sectionMode('tools', 'hidden', undefined)).toBe('expanded')
+  })
+
+  it('collapses tools to genre one-liners by default for persisted config values', () => {
+    // design.md Part 0 #5: tool calls default to one-line summaries.
+    expect(sectionMode('tools', 'collapsed', {})).toBe('collapsed')
+    expect(sectionMode('tools', 'hidden', undefined)).toBe('collapsed')
+    expect(sectionMode('tools', 'expanded', {})).toBe('collapsed')
   })
 
   it('hides the activity panel by default for persisted config values', () => {

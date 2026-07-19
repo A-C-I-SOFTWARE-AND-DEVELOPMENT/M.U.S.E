@@ -79,12 +79,21 @@ export const ja: Translations = {
       plugins: "プラグイン",
       sessions: "セッション",
       skills: "スキル",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "とツール",
     modelToolsSheetTitle: "モデル",
     navigation: "ナビゲーション",
     openDocumentation: "ドキュメントを新しいタブで開く",
-    openNavigation: "ナビゲーションを開く",
+    openNavigation: "ナビゲーションを開く",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "プラグイン",
     sessionsActiveCount: "{count} 件アクティブ",
     statusOverview: "ステータス概要",

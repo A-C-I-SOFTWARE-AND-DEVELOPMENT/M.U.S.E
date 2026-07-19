@@ -6,7 +6,7 @@ import { STARTUP_RESUME_ID } from '../config/env.js'
 import { MAX_HISTORY, WHEEL_SCROLL_STEP } from '../config/limits.js'
 import { SECTION_NAMES, sectionMode } from '../domain/details.js'
 import { attachedImageNotice, imageTokenMeta } from '../domain/messages.js'
-import { fmtCwdBranch, shortCwd } from '../domain/paths.js'
+import { shortCwd } from '../domain/paths.js'
 import { type GatewayClient } from '../gatewayClient.js'
 import type {
   ClarifyRespondResponse,
@@ -727,6 +727,12 @@ export function useMainApp(gw: GatewayClient) {
     slashRef.current(`/model ${value}`)
   }, [])
 
+  // Palette / hub rows emit slash commands verbatim; the ref form stays
+  // stable across renders (mirrors useSubmission.ts consumption).
+  const onRunSlash = useCallback((cmd: string) => {
+    slashRef.current(cmd)
+  }, [])
+
   const hasReasoning = useTurnSelector(state => Boolean(state.reasoning.trim()))
 
   // Per-section overrides win over the global mode — when every section is
@@ -784,9 +790,10 @@ export function useMainApp(gw: GatewayClient) {
       clearSelection,
       onModelSelect,
       resumeById: session.resumeById,
+      runSlash: onRunSlash,
       setStickyPrompt
     }),
-    [answerApproval, answerClarify, answerSecret, answerSudo, clearSelection, onModelSelect, session.resumeById]
+    [answerApproval, answerClarify, answerSecret, answerSudo, clearSelection, onModelSelect, onRunSlash, session.resumeById]
   )
 
   const appComposer = useMemo(
@@ -818,7 +825,8 @@ export function useMainApp(gw: GatewayClient) {
 
   const appStatus = useMemo(
     () => ({
-      cwdLabel: fmtCwdBranch(cwd, gitBranch),
+      cwdLabel: shortCwd(cwd),
+      gitBranch,
       goodVibesTick,
       sessionStartedAt: ui.sid ? sessionStartedAt : null,
       showStickyPrompt: !!stickyPrompt,

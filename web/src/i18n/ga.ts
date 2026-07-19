@@ -79,12 +79,21 @@ export const ga: Translations = {
       plugins: "Plugins",
       sessions: "Seisiúin",
       skills: "Scileanna",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "agus uirlisí",
     modelToolsSheetTitle: "Samhail",
     navigation: "Nascleanúint",
     openDocumentation: "Oscail an doiciméadú i gcluaisín nua",
-    openNavigation: "Oscail an nascleanúint",
+    openNavigation: "Oscail an nascleanúint",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Plugins",
     sessionsActiveCount: "{count} gníomhach",
     statusOverview: "Forbhreathnú stádais",

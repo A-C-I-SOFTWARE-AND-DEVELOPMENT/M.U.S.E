@@ -95,6 +95,14 @@ export interface Translations {
       plugins: string;
       sessions: string;
       skills: string;
+      studio: string;
+    };
+    navSection: {
+      agents: string;
+      automate: string;
+      chat: string;
+      observe: string;
+      system: string;
     };
     modelToolsSheetSubtitle: string;
     modelToolsSheetTitle: string;

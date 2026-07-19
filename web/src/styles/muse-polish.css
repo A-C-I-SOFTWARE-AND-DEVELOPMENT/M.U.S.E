@@ -1,0 +1,182 @@
+/* ============================================================
+   M.U.S.E Polish — SOTA CSS enhancements for the dashboard
+   Sacred geometry brand identity + glassmorphic panels
+   Singularity: every accent routes through var(--accent) and the
+   theme-switchable token vars — zero hardcoded teal/white rgba.
+   ============================================================ */
+
+/* Sacred geometry background — subtle flower-of-life overlay */
+.muse-studio::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.015;
+  background-image:
+    radial-gradient(circle at 20% 20%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 50% 20%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 80% 20%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 35% 50%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 65% 50%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 20% 80%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 50% 80%, transparent 38%, currentColor 39%, transparent 40%),
+    radial-gradient(circle at 80% 80%, transparent 38%, currentColor 39%, transparent 40%);
+  background-size: 300px 300px;
+}
+
+/* Stat card sacred geometry accent */
+.muse-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.muse-stat-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 60%;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--component-accent, color-mix(in srgb, var(--accent) 18%, transparent)), transparent);
+  opacity: 0;
+  transition: opacity var(--dur-std, 250ms) var(--ease-standard, ease);
+}
+
+.muse-stat-card:hover::after {
+  opacity: 1;
+}
+
+/* Glassmorphic panel effect — low-saturation per the Singularity
+   contract: keep the blur, drop the saturation boost. */
+.muse-panel {
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  transition: border-color var(--dur-std, 250ms) var(--ease-standard, ease),
+    background-color var(--dur-std, 250ms) var(--ease-standard, ease);
+}
+
+.muse-panel:hover {
+  border-color: color-mix(in srgb, var(--midground-base) 14%, transparent);
+}
+
+/* Chat overlay pill glow */
+.muse-overlay-pill {
+  box-shadow:
+    0 0 0 0.5px color-mix(in srgb, var(--midground-base) 8%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 0.12px color-mix(in srgb, var(--midground-base) 10%, transparent);
+}
+
+.muse-overlay-pill:hover {
+  box-shadow:
+    0 0 0 0.5px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0.12px color-mix(in srgb, var(--midground-base) 12%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* Overlay panel slide-in animation */
+.muse-overlay-panel {
+  animation: muse-slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes muse-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Command palette entrance */
+.muse-cmd-palette > div:last-child {
+  animation: muse-cmd-enter 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes muse-cmd-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dashboard scrollbar — slim, theme-following */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--midground-base) 14%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--midground-base) 10%, transparent);
+  border-radius: 3px;
+  border: none;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--midground-base) 20%, transparent);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Enhanced focus rings — Singularity accent glow (soft violet).
+   Overrides the base-layer outline with a quieter ring + halo. */
+*:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 0 12px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Selection styling — accent-tinted, low alpha */
+::selection {
+  background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: inherit;
+}
+
+/* Smooth transitions on interactive elements */
+button,
+a,
+[role="button"] {
+  transition: color var(--dur-fast, 150ms) var(--ease-standard, ease),
+    background-color var(--dur-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--dur-fast, 150ms) var(--ease-standard, ease),
+    opacity var(--dur-fast, 150ms) var(--ease-standard, ease),
+    transform var(--dur-fast, 150ms) var(--ease-standard, ease);
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Kbd styling */
+kbd {
+  font-family: var(--theme-font-mono, "JetBrains Mono", monospace);
+  background: color-mix(in srgb, var(--midground-base) 6%, transparent);
+}

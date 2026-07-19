@@ -6646,3 +6646,111 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5002, "command timed out (30s)")
     except Exception as e:
         return _err(rid, 5003, str(e))
+
+
+# ── Wave 1 feature-status RPCs (design contract Part 1.4) ────────────
+# fusion.* / cron.list / memory.status — all additive, all import-guarded
+# via tui_gateway.feature_status; payloads carry "available": false when
+# the underlying agent modules are absent so TUI consumers can render a
+# "requires newer gateway / feature absent" hint instead of crashing.
+from tui_gateway import feature_status as _feature_status
+
+_feature_status.set_event_emitter(_emit)
+try:
+    # Cheap hook: wraps agent.fusion_router.fuse_response_sync (the exact
+    # entry point conversation_loop imports per turn) to emit
+    # fusion.progress start/done events.  No-op when agent modules absent.
+    _feature_status.install_fusion_progress_hook()
+except Exception:
+    pass
+
+_FUSION_DEPTHS = frozenset({"skip", "light", "standard", "deep", "adaptive"})
+
+
+@method("fusion.status")
+def _(rid, params: dict) -> dict:
+    try:
+        return _ok(rid, _feature_status.fusion_status(_load_cfg()))
+    except Exception as e:
+        return _err(rid, 5024, str(e))
+
+
+@method("fusion.set")
+def _(rid, params: dict) -> dict:
+    try:
+        changed: dict = {}
+
+        if "enabled" in params:
+            en = params.get("enabled")
+            if not isinstance(en, bool):
+                return _err(rid, 4002, "enabled must be a boolean")
+            # Thread-local override (parity with contract; only affects
+            # this RPC thread) + durable config write, which is the path
+            # should_use_fusion() actually honors on conversation threads.
+            _feature_status.apply_fusion_override(en)
+            _write_config_key("fusion.mode", "fusion" if en else "single")
+            changed["enabled"] = en
+
+        if "depth" in params:
+            depth = str(params.get("depth") or "").strip().lower()
+            if depth not in _FUSION_DEPTHS:
+                return _err(
+                    rid,
+                    4002,
+                    f"unknown depth: {depth!r}; pick one of {'|'.join(sorted(_FUSION_DEPTHS))}",
+                )
+            # FUSION_CONFIG has no static depth key (difficulty_aware picks
+            # depth per turn); persisted for the status probe + future
+            # consumers.
+            _write_config_key("fusion.depth", depth)
+            changed["depth"] = depth
+
+        if "rounds_cap" in params:
+            rc = params.get("rounds_cap")
+            if isinstance(rc, bool) or not isinstance(rc, int) or not 1 <= rc <= 5:
+                return _err(rid, 4002, "rounds_cap must be an integer 1-5")
+            _write_config_key("fusion.rounds", rc)
+            changed["rounds_cap"] = rc
+
+        if "moa" in params:
+            mo = params.get("moa")
+            if not isinstance(mo, bool):
+                return _err(rid, 4002, "moa must be a boolean")
+            cfg = _load_cfg()
+            pt = cfg.get("platform_toolsets")
+            if not isinstance(pt, dict):
+                pt = {}
+            cli = pt.get("cli")
+            if not isinstance(cli, list):
+                cli = []
+            cli = [str(t) for t in cli]
+            if mo and "moa" not in cli:
+                cli.append("moa")
+            elif not mo and "moa" in cli:
+                cli.remove("moa")
+            pt["cli"] = sorted(cli)
+            cfg["platform_toolsets"] = pt
+            _save_cfg(cfg)
+            changed["moa"] = mo
+
+        status = _feature_status.fusion_status(_load_cfg())
+        status["changed"] = changed
+        return _ok(rid, status)
+    except Exception as e:
+        return _err(rid, 5001, str(e))
+
+
+@method("cron.list")
+def _(rid, params: dict) -> dict:
+    try:
+        return _ok(rid, _feature_status.cron_list())
+    except Exception as e:
+        return _err(rid, 5023, str(e))
+
+
+@method("memory.status")
+def _(rid, params: dict) -> dict:
+    try:
+        return _ok(rid, _feature_status.memory_status())
+    except Exception as e:
+        return _err(rid, 5024, str(e))

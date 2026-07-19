@@ -79,12 +79,21 @@ export const tr: Translations = {
       plugins: "Eklentiler",
       sessions: "Oturumlar",
       skills: "Yetenekler",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "& araçlar",
     modelToolsSheetTitle: "Model",
     navigation: "Gezinti",
     openDocumentation: "Dokümantasyonu yeni sekmede aç",
-    openNavigation: "Gezintiyi aç",
+    openNavigation: "Gezintiyi aç",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Eklentiler",
     sessionsActiveCount: "{count} aktif",
     statusOverview: "Durum özeti",

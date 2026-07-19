@@ -52,7 +52,7 @@ describe('DEFAULT_THEME', () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
     expect(DEFAULT_THEME.color.primary).toBe('#FFFFFF')
-    expect(DEFAULT_THEME.color.error).toBe('#FF5C63')
+    expect(DEFAULT_THEME.color.error).toBe('#E06C75')
   })
 })
 
@@ -86,11 +86,11 @@ describe('LIGHT_THEME', () => {
     const { LIGHT_THEME } = await importThemeWithCleanEnv()
 
     // Wordmark + glyph render with primary-ink fill on white, keeping the
-    // cyan→violet spectral ring stops.
+    // violet ramp ring stops (accentDim → accent, the Singularity accent family).
     expect(LIGHT_THEME.bannerLogo).toContain('#12151D')
     expect(LIGHT_THEME.bannerHero).toContain('#12151D')
-    expect(LIGHT_THEME.bannerHero).toContain('#7AE0FF')
-    expect(LIGHT_THEME.bannerHero).toContain('#B388FF')
+    expect(LIGHT_THEME.bannerHero).toContain('#7E5FA8')
+    expect(LIGHT_THEME.bannerHero).toContain('#D8B4FE')
   })
 })
 

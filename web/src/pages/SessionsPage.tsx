@@ -53,13 +53,19 @@ import { isDashboardEmbeddedChatEnabled } from "@/lib/dashboard-flags";
 
 const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: string }> =
   {
-    cli: { icon: Terminal, color: "text-primary" },
-    telegram: { icon: MessageCircle, color: "text-[oklch(0.65_0.15_250)]" },
-    discord: { icon: Hash, color: "text-[oklch(0.65_0.15_280)]" },
-    slack: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
-    whatsapp: { icon: Globe, color: "text-success" },
-    cron: { icon: Clock, color: "text-warning" },
+    cli: { icon: Terminal, color: "text-[var(--accent)]" },
+    telegram: { icon: MessageCircle, color: "text-[var(--info)]" },
+    discord: { icon: Hash, color: "text-[var(--accent-dim)]" },
+    slack: { icon: MessageSquare, color: "text-[var(--ok)]" },
+    whatsapp: { icon: Globe, color: "text-[var(--ok)]" },
+    cron: { icon: Clock, color: "text-[var(--warn)]" },
   };
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
 
 /** Render an FTS5 snippet with highlighted matches.
  *  The backend wraps matches in >>> and <<< delimiters. */
@@ -74,7 +80,10 @@ function SnippetHighlight({ snippet }: { snippet: string }) {
       parts.push(snippet.slice(last, match.index));
     }
     parts.push(
-      <mark key={i++} className="bg-warning/30 text-warning px-0.5">
+      <mark
+        key={i++}
+        className="bg-[var(--warn)]/25 px-0.5 text-[var(--warn)]"
+      >
         {match[1]}
       </mark>,
     );
@@ -84,7 +93,7 @@ function SnippetHighlight({ snippet }: { snippet: string }) {
     parts.push(snippet.slice(last));
   }
   return (
-    <p className="mt-0.5 min-w-0 max-w-full truncate text-xs text-muted-foreground/80">
+    <p className="mt-0.5 min-w-0 max-w-full truncate text-xs text-[var(--fg-dim)]">
       {parts}
     </p>
   );
@@ -106,25 +115,23 @@ function ToolCallBlock({
   }
 
   return (
-    <div className="mt-2 border border-warning/20 bg-warning/5">
+    <div className="mt-2 rounded-lg border border-[var(--warn)]/20 bg-[var(--warn)]/5">
       <ListItem
         onClick={() => setOpen(!open)}
         aria-label={`${open ? t.common.collapse : t.common.expand} tool call ${toolCall.function.name}`}
         aria-expanded={open}
-        className="px-3 py-2 text-xs text-warning hover:bg-warning/10 hover:text-warning"
+        className="px-3 py-2 text-xs text-[var(--warn)] hover:bg-[var(--warn)]/10 hover:text-[var(--warn)]"
       >
         {open ? (
           <ChevronDown className="h-3 w-3" />
         ) : (
           <ChevronRight className="h-3 w-3" />
         )}
-        <span className="font-mono-ui font-medium">
-          {toolCall.function.name}
-        </span>
-        <span className="text-warning/50 ml-auto">{toolCall.id}</span>
+        <span className="font-mono font-medium">{toolCall.function.name}</span>
+        <span className="ml-auto text-[var(--warn)]/50">{toolCall.id}</span>
       </ListItem>
       {open && (
-        <pre className="border-t border-warning/20 px-3 py-2 text-xs text-warning/80 overflow-x-auto whitespace-pre-wrap font-mono">
+        <pre className="overflow-x-auto whitespace-pre-wrap border-t border-[var(--warn)]/20 px-3 py-2 font-mono text-xs text-[var(--warn)]/80">
           {args}
         </pre>
       )}
@@ -146,23 +153,23 @@ function MessageBubble({
     { bg: string; text: string; label: string }
   > = {
     user: {
-      bg: "bg-primary/10",
-      text: "text-primary",
+      bg: "bg-[var(--accent)]/10",
+      text: "text-[var(--accent)]",
       label: t.sessions.roles.user,
     },
     assistant: {
-      bg: "bg-success/10",
-      text: "text-success",
+      bg: "bg-[var(--ok)]/10",
+      text: "text-[var(--ok)]",
       label: t.sessions.roles.assistant,
     },
     system: {
-      bg: "bg-muted",
-      text: "text-muted-foreground",
+      bg: "bg-[var(--bg-mute)]",
+      text: "text-[var(--fg-dim)]",
       label: t.sessions.roles.system,
     },
     tool: {
-      bg: "bg-warning/10",
-      text: "text-warning",
+      bg: "bg-[var(--warn)]/10",
+      text: "text-[var(--warn)]",
       label: t.sessions.roles.tool,
     },
   };
@@ -186,25 +193,25 @@ function MessageBubble({
 
   return (
     <div
-      className={`${style.bg} p-3 ${isHit ? "ring-1 ring-warning/40" : ""}`}
+      className={`${style.bg} rounded-lg p-3 ${isHit ? "ring-1 ring-[var(--warn)]/40" : ""}`}
       data-search-hit={isHit || undefined}
     >
-      <div className="flex items-center gap-2 mb-1">
+      <div className="mb-1 flex items-center gap-2">
         <span className={`text-xs font-semibold ${style.text}`}>{label}</span>
         {isHit && (
-          <Badge tone="warning" className="text-[9px] py-0 px-1.5">
+          <Badge tone="warning" className="px-1.5 py-0 text-[9px]">
             {t.common.match}
           </Badge>
         )}
         {msg.timestamp && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-[10px] text-[var(--fg-faint)]">
             {timeAgo(msg.timestamp)}
           </span>
         )}
       </div>
       {msg.content &&
         (msg.role === "system" ? (
-          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap text-[var(--fg)]">
             {msg.content}
           </div>
         ) : (
@@ -246,7 +253,7 @@ function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-2"
+      className="flex max-h-[600px] flex-col gap-3 overflow-y-auto pr-2"
     >
       {messages.map((msg, i) => (
         <MessageBubble key={i} msg={msg} highlight={highlight} />
@@ -255,6 +262,7 @@ function MessageList({
   );
 }
 
+/** bgElev session card: title, dim preview, faint metadata, hover actions. */
 function SessionRow({
   session,
   snippet,
@@ -291,112 +299,121 @@ function SessionRow({
 
   const sourceInfo = (session.source
     ? SOURCE_CONFIG[session.source]
-    : null) ?? { icon: Globe, color: "text-muted-foreground" };
+    : null) ?? { icon: Globe, color: "text-[var(--fg-dim)]" };
   const SourceIcon = sourceInfo.icon;
   const hasTitle = session.title && session.title !== "Untitled";
+  const totalTokens = session.input_tokens + session.output_tokens;
 
   return (
     <div
-      className={`max-w-full min-w-0 overflow-hidden border transition-colors ${
+      className={`group max-w-full min-w-0 overflow-hidden rounded-xl border bg-[var(--bg-elev)] transition-colors ${
         session.is_active
-          ? "border-success/30 bg-success/[0.03]"
-          : "border-border"
+          ? "border-[var(--ok)]/40"
+          : "border-[var(--border)] hover:border-[var(--accent-dim)]/50"
       }`}
     >
       <div
-        className="flex cursor-pointer items-start gap-3 p-3 transition-colors hover:bg-secondary/30"
+        className="flex cursor-pointer items-start gap-3 p-3 transition-colors hover:bg-[var(--bg-mute)]/50"
         onClick={onToggle}
       >
         <div className={`shrink-0 pt-0.5 ${sourceInfo.color}`}>
           <SourceIcon className="h-4 w-4" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className={`min-w-0 flex-1 truncate text-sm ${hasTitle ? "font-medium" : "text-muted-foreground italic"}`}
-              >
-                {hasTitle
-                  ? session.title
-                  : session.preview
-                    ? session.preview.slice(0, 60)
-                    : t.sessions.untitledSession}
-              </span>
-              {session.is_active && (
-                <Badge tone="success" className="shrink-0 text-[10px]">
-                  <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-                  {t.common.live}
-                </Badge>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className={`min-w-0 flex-1 truncate text-sm ${
+                hasTitle
+                  ? "font-medium text-[var(--fg)]"
+                  : "text-[var(--fg-dim)] italic"
+              }`}
+            >
+              {hasTitle ? session.title : t.sessions.untitledSession}
+            </span>
+            {session.is_active && (
+              <Badge tone="success" className="shrink-0 text-[10px]">
+                <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+                {t.common.live}
+              </Badge>
+            )}
+            {/* Hover actions — always visible on touch, fade in on desktop hover */}
+            <span className="flex shrink-0 items-center gap-1 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+              {resumeInChatEnabled && (
+                <Button
+                  ghost
+                  size="icon"
+                  className="text-[var(--fg-dim)] hover:text-[var(--ok)]"
+                  aria-label={t.sessions.resumeInChat}
+                  title={t.sessions.resumeInChat}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/chat?resume=${encodeURIComponent(session.id)}`);
+                  }}
+                >
+                  <Play />
+                </Button>
               )}
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-              <span className="max-w-[min(100%,12rem)] truncate sm:max-w-[180px]">
-                {(session.model ?? t.common.unknown).split("/").pop()}
-              </span>
-              <span className="text-border">&#183;</span>
-              <span className="shrink-0">
-                {session.message_count} {t.common.msgs}
-              </span>
-              {session.tool_call_count > 0 && (
-                <>
-                  <span className="text-border">&#183;</span>
-                  <span className="shrink-0">
-                    {session.tool_call_count} {t.common.tools}
-                  </span>
-                </>
-              )}
-              <span className="text-border">&#183;</span>
-              <span className="shrink-0">{timeAgo(session.last_active)}</span>
-            </div>
-          </div>
-          {snippet && <SnippetHighlight snippet={snippet} />}
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="outline" className="text-[10px]">
-              {session.source ?? "local"}
-            </Badge>
-            {resumeInChatEnabled && (
               <Button
                 ghost
+                destructive
                 size="icon"
-                className="text-muted-foreground hover:text-success"
-                aria-label={t.sessions.resumeInChat}
-                title={t.sessions.resumeInChat}
+                aria-label={t.sessions.deleteSession}
+                title={t.sessions.deleteSession}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/chat?resume=${encodeURIComponent(session.id)}`);
+                  onDelete();
                 }}
               >
-                <Play />
+                <Trash2 />
               </Button>
-            )}
-            <Button
-              ghost
-              destructive
-              size="icon"
-              aria-label={t.sessions.deleteSession}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-            >
-              <Trash2 />
-            </Button>
+            </span>
           </div>
+
+          {session.preview && (
+            <p className="min-w-0 max-w-full truncate text-xs text-[var(--fg-dim)]">
+              {session.preview}
+            </p>
+          )}
+
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-[var(--fg-faint)]">
+            <span className="max-w-[min(100%,12rem)] truncate font-mono sm:max-w-[180px]">
+              {(session.model ?? t.common.unknown).split("/").pop()}
+            </span>
+            <span>&#183;</span>
+            <span className="shrink-0 tabular-nums">
+              {session.message_count} {t.common.msgs}
+            </span>
+            <span>&#183;</span>
+            <span className="shrink-0 tabular-nums">
+              {formatTokens(totalTokens)} {t.analytics.tokens.toLowerCase()}
+            </span>
+            <span>&#183;</span>
+            <span className="shrink-0">{timeAgo(session.last_active)}</span>
+            <span className="ml-auto shrink-0">
+              <Badge tone="outline" className="text-[10px]">
+                {session.source ?? "local"}
+              </Badge>
+            </span>
+          </div>
+
+          {snippet && <SnippetHighlight snippet={snippet} />}
         </div>
       </div>
 
       {isExpanded && (
-        <div className="min-w-0 border-t border-border bg-background/50 p-4">
+        <div className="min-w-0 border-t border-[var(--border)] p-4">
           {loading && (
             <div className="flex items-center justify-center py-8">
-              <Spinner className="text-xl text-primary" />
+              <Spinner className="text-xl text-[var(--accent)]" />
             </div>
           )}
           {error && (
-            <p className="text-sm text-destructive py-4 text-center">{error}</p>
+            <p className="py-4 text-center text-sm text-[var(--err)]">
+              {error}
+            </p>
           )}
           {messages && messages.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4 text-center">
+            <p className="py-4 text-center text-sm text-[var(--fg-dim)]">
               {t.sessions.noMessages}
             </p>
           )}
@@ -405,6 +422,22 @@ function SessionRow({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Pulse placeholder matching the session-card shape (design 2.3: skeletons, not spinner storms). */
+function SessionRowSkeleton() {
+  return (
+    <div className="animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] p-3">
+      <div className="flex items-start gap-3">
+        <div className="h-4 w-4 shrink-0 rounded bg-[var(--bg-mute)]" />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="h-3.5 w-2/5 rounded bg-[var(--bg-mute)]" />
+          <div className="h-3 w-3/4 rounded bg-[var(--bg-mute)]" />
+          <div className="h-2.5 w-1/3 rounded bg-[var(--bg-mute)]" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -445,9 +478,9 @@ export default function SessionsPage() {
     setEnd(
       <div className="relative w-full min-w-0 sm:max-w-xs">
         {searching ? (
-          <Spinner className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.875rem] text-primary" />
+          <Spinner className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.875rem] text-[var(--accent)]" />
         ) : (
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--fg-faint)]" />
         )}
         <Input
           placeholder={t.sessions.searchPlaceholder}
@@ -459,7 +492,7 @@ export default function SessionsPage() {
           <Button
             ghost
             size="xs"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--fg-dim)] hover:text-[var(--fg)]"
             onClick={() => setSearch("")}
             aria-label={t.common.clear}
           >
@@ -615,14 +648,6 @@ export default function SessionsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner className="text-2xl text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-w-0 w-full max-w-full flex-col gap-4">
       <PluginSlot name="sessions:top" />
@@ -641,18 +666,22 @@ export default function SessionsPage() {
         loading={sessionDelete.isDeleting}
       />
 
+      <p className="text-sm text-[var(--fg-dim)]">
+        Browse, search, and resume your past conversations.
+      </p>
+
       {alerts.length > 0 && (
-        <div className="border border-destructive/30 bg-destructive/[0.06] p-4">
+        <div className="rounded-xl border border-[var(--err)]/30 bg-[var(--err)]/[0.06] p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-            <div className="flex flex-col gap-2 min-w-0">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--err)]" />
+            <div className="flex min-w-0 flex-col gap-2">
               {alerts.map((alert, i) => (
                 <div key={i}>
-                  <p className="text-sm font-medium text-destructive">
+                  <p className="text-sm font-medium text-[var(--err)]">
                     {alert.message}
                   </p>
                   {alert.detail && (
-                    <p className="text-xs text-destructive/70 mt-0.5">
+                    <p className="mt-0.5 text-xs text-[var(--err)]/70">
                       {alert.detail}
                     </p>
                   )}
@@ -664,20 +693,20 @@ export default function SessionsPage() {
       )}
 
       {activeAction && (
-        <div className="border border-border bg-background-base/50">
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-            <div className="flex items-center gap-2 min-w-0">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elev)]">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
+            <div className="flex min-w-0 items-center gap-2">
               {actionStatus?.running ? (
-                <Spinner className="shrink-0 text-[0.875rem] text-warning" />
+                <Spinner className="shrink-0 text-[0.875rem] text-[var(--warn)]" />
               ) : actionStatus?.exit_code === 0 ? (
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[var(--ok)]" />
               ) : actionStatus !== null ? (
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-[var(--err)]" />
               ) : (
-                <Spinner className="shrink-0 text-[0.875rem] text-muted-foreground" />
+                <Spinner className="shrink-0 text-[0.875rem] text-[var(--fg-dim)]" />
               )}
 
-              <span className="text-xs font-mondwest tracking-[0.12em] truncate">
+              <span className="truncate text-xs font-medium tracking-wide text-[var(--fg-dim)]">
                 {activeAction === "restart"
                   ? t.status.restartGateway
                   : t.status.updateHermes}
@@ -693,7 +722,7 @@ export default function SessionsPage() {
                         ? "destructive"
                         : "outline"
                 }
-                className="text-[10px] shrink-0"
+                className="shrink-0 text-[10px]"
               >
                 {actionStatus?.running
                   ? t.status.running
@@ -718,7 +747,7 @@ export default function SessionsPage() {
 
           <pre
             ref={logScrollRef}
-            className="max-h-72 overflow-auto px-3 py-2 font-mono-ui text-[11px] leading-relaxed whitespace-pre-wrap break-all"
+            className="max-h-72 overflow-auto px-3 py-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-all"
           >
             {actionStatus?.lines && actionStatus.lines.length > 0
               ? actionStatus.lines.join("\n")
@@ -731,12 +760,12 @@ export default function SessionsPage() {
         <PlatformsCard platforms={platformEntries} />
       )}
 
-      {recentSessions.length > 0 && (
-        <Card className="min-w-0 max-w-full overflow-hidden">
+      {recentSessions.length > 0 && !loading && (
+        <Card className="min-w-0 max-w-full overflow-hidden rounded-xl">
           <CardHeader className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <CardTitle className="min-w-0 truncate text-base">
+              <Clock className="h-5 w-5 shrink-0 text-[var(--fg-dim)]" />
+              <CardTitle className="min-w-0 truncate text-base normal-case tracking-normal">
                 {t.status.recentSessions}
               </CardTitle>
             </div>
@@ -746,23 +775,25 @@ export default function SessionsPage() {
             {recentSessions.map((s) => (
               <div
                 key={s.id}
-                className="flex min-w-0 max-w-full flex-col gap-2 border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex min-w-0 max-w-full flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="min-w-0 truncate text-sm font-medium">
+                  <span className="min-w-0 truncate text-sm font-medium text-[var(--fg)]">
                     {s.title ?? t.common.untitled}
                   </span>
 
-                  <span className="min-w-0 break-words text-xs text-muted-foreground">
-                    <span className="font-mono-ui">
+                  <span className="min-w-0 break-words text-xs text-[var(--fg-faint)]">
+                    <span className="font-mono">
                       {(s.model ?? t.common.unknown).split("/").pop()}
                     </span>{" "}
                     · {s.message_count} {t.common.msgs} ·{" "}
+                    {formatTokens(s.input_tokens + s.output_tokens)}{" "}
+                    {t.analytics.tokens.toLowerCase()} ·{" "}
                     {timeAgo(s.last_active)}
                   </span>
 
                   {s.preview && (
-                    <p className="min-w-0 max-w-full text-xs leading-snug text-muted-foreground/70 [overflow-wrap:anywhere]">
+                    <p className="min-w-0 max-w-full text-xs leading-snug text-[var(--fg-dim)] [overflow-wrap:anywhere]">
                       {s.preview}
                     </p>
                   )}
@@ -781,7 +812,13 @@ export default function SessionsPage() {
         </Card>
       )}
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex min-w-0 flex-col gap-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <SessionRowSkeleton key={i} />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyStateCard
           icon={Clock}
           title={search ? t.sessions.noMatch : t.sessions.noSessions}
@@ -789,7 +826,7 @@ export default function SessionsPage() {
         />
       ) : (
         <>
-          <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-2">
             {filtered.map((s) => (
               <SessionRow
                 key={s.id}
@@ -808,7 +845,7 @@ export default function SessionsPage() {
 
           {!searchResults && total > PAGE_SIZE && (
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-[var(--fg-dim)]">
                 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)}{" "}
                 {t.common.of} {total}
               </span>
@@ -822,7 +859,7 @@ export default function SessionsPage() {
                 >
                   <ChevronLeft />
                 </Button>
-                <span className="text-xs text-muted-foreground px-2">
+                <span className="px-2 text-xs text-[var(--fg-dim)]">
                   {t.common.page} {page + 1} {t.common.of}{" "}
                   {Math.ceil(total / PAGE_SIZE)}
                 </span>

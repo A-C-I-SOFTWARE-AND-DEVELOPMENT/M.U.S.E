@@ -21,9 +21,17 @@ const SYSTEM_SANS =
 const SYSTEM_MONO =
   'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
+/** Singularity type system (design contract Part 0 / 2.1):
+ *  ONE body font (system sans), ONE display font (DS Collapse, headers
+ *  only — bundled with `@nous-research/ui`), JetBrains Mono for
+ *  code/terminal (bundled in `public/fonts-terminal`). */
+const JETBRAINS_MONO = `"JetBrains Mono", ${SYSTEM_MONO}`;
+const COLLAPSE_DISPLAY = `"Collapse", ${SYSTEM_SANS}`;
+
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
   fontSans: SYSTEM_SANS,
-  fontMono: SYSTEM_MONO,
+  fontMono: JETBRAINS_MONO,
+  fontDisplay: COLLAPSE_DISPLAY,
   baseSize: "15px",
   lineHeight: "1.55",
   letterSpacing: "0",
@@ -39,22 +47,25 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // ---------------------------------------------------------------------------
 
 /**
- * muse "Singularity" — the brand-canonical theme. White core in the void,
- * one thin spectral ring. Tokens come from `design-system/tokens.json`
- * (FROZEN — consumed, never redefined here): void #050507 canvas, signal
- * #e8ecf4 text/chrome, status warn/danger pinned to the brand values.
+ * muse "Singularity" — the brand-canonical theme and the DEFAULT preset.
+ * Soft violet core in the void, one thin spectral ring. Tokens come from
+ * the design contract (design.md Part 0): void #050507 canvas, signal
+ * #e8ecf4 text/chrome, soft-violet #d8b4fe accent, Part-0 status hues.
+ * The exact Part-0 elevations (elev #0d0d12, mute #16161d, dim #8b90a0,
+ * border #26262e) are pinned via colorOverrides so the default look is
+ * contract-exact rather than a color-mix approximation.
  * Tonal elevation only — no shadows, no glow.
  */
 export const museTheme: DashboardTheme = {
   name: "muse",
   label: "Singularity",
-  description: "White core in the void — one thin spectral ring",
+  description: "Soft violet core in the void — one thin spectral ring",
   palette: {
     background: { hex: "#050507", alpha: 1 },
     midground: { hex: "#e8ecf4", alpha: 1 },
     foreground: { hex: "#ffffff", alpha: 0 },
-    // Cool spectral wash (ring-1 cyan) instead of the legacy warm amber.
-    warmGlow: "rgba(122, 224, 255, 0.18)",
+    // Soft violet wash (accent at low alpha) — low saturation per contract.
+    warmGlow: "rgba(216, 180, 254, 0.14)",
     noiseOpacity: 0.5,
   },
   typography: {
@@ -66,9 +77,19 @@ export const museTheme: DashboardTheme = {
     radius: "0.75rem",
   },
   colorOverrides: {
-    destructive: "#ff5c63",
-    warning: "#f5c451",
-    success: "#5be3a0",
+    // Exact Part-0 elevations + hues for the default Singularity look.
+    card: "#0d0d12",
+    popover: "#0d0d12",
+    secondary: "#16161d",
+    muted: "#16161d",
+    accent: "#16161d",
+    mutedForeground: "#8b90a0",
+    border: "#26262e",
+    input: "#26262e",
+    ring: "#d8b4fe",
+    destructive: "#e06c75",
+    warning: "#e5c07b",
+    success: "#7bd88f",
   },
 };
 
@@ -135,7 +156,8 @@ export const emberTheme: DashboardTheme = {
     radius: "0.25rem",
   },
   colorOverrides: {
-    destructive: "#c92d0f",
+    // Brightened for readable contrast on the dark forge-red canvas.
+    destructive: "#ff6a4d",
     warning: "#f97316",
   },
 };

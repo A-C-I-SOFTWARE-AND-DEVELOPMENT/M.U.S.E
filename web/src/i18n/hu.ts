@@ -79,12 +79,21 @@ export const hu: Translations = {
       plugins: "Bővítmények",
       sessions: "Munkamenetek",
       skills: "Készségek",
+
+      studio: "Studio",
     },
     modelToolsSheetSubtitle: "és eszközök",
     modelToolsSheetTitle: "Modell",
     navigation: "Navigáció",
     openDocumentation: "Dokumentáció megnyitása új lapon",
-    openNavigation: "Navigáció megnyitása",
+    openNavigation: "Navigáció megnyitása",    navSection: {
+      agents: "Agents",
+      automate: "Automate",
+      chat: "Chat",
+      observe: "Observe",
+      system: "System",
+    },
+
     pluginNavSection: "Bővítmények",
     sessionsActiveCount: "{count} aktív",
     statusOverview: "Állapot áttekintése",

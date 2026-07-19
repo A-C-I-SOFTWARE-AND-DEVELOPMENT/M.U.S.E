@@ -3,6 +3,7 @@ import type { Translations } from "@/i18n/types";
 const BUILTIN: Record<string, keyof Translations["app"]["nav"]> = {
   "/chat": "chat",
   "/sessions": "sessions",
+  "/studio": "studio",
   "/analytics": "analytics",
   "/models": "models",
   "/logs": "logs",

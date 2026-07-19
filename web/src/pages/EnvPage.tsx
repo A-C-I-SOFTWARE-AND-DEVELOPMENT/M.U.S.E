@@ -6,6 +6,7 @@ import {
   KeyRound,
   MessageSquare,
   Pencil,
+  RefreshCw,
   Save,
   Settings,
   Trash2,
@@ -21,9 +22,9 @@ import { Toast } from "@/components/Toast";
 import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { useToast } from "@/hooks/useToast";
 import { OAuthProvidersCard } from "@/components/OAuthProvidersCard";
+import { SyncIndicator } from "@/components/SyncIndicator";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { ListItem } from "@nous-research/ui/ui/components/list-item";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import {
   Card,
   CardContent,
@@ -93,6 +94,39 @@ const CATEGORY_META_ICONS: Record<string, typeof KeyRound> = {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Key-test state + status chips (Singularity tokens)                  */
+/* ------------------------------------------------------------------ */
+
+interface KeyTestState {
+  state: "testing" | "ok" | "err";
+  latencyMs?: number;
+  error?: string;
+}
+
+/** Small status chip; tone routes to the contract's semantic tokens. */
+function StatusChip({
+  tone,
+  children,
+}: {
+  tone: "ok" | "err" | "faint";
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "ok"
+      ? "text-[var(--ok)] border-[var(--ok)]/30 bg-[var(--ok)]/10"
+      : tone === "err"
+        ? "text-[var(--err)] border-[var(--err)]/30 bg-[var(--err)]/10"
+        : "text-[var(--fg-faint)] border-[var(--border)] bg-transparent";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-4 ${cls}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  EnvVarRow — single key edit row                                    */
 /* ------------------------------------------------------------------ */
 
@@ -107,6 +141,8 @@ function EnvVarRow({
   onClear,
   onReveal,
   onCancelEdit,
+  testState,
+  onTest,
   clearDialogOpen = false,
   compact = false,
 }: {
@@ -120,6 +156,8 @@ function EnvVarRow({
   onClear: (key: string) => void;
   onReveal: (key: string) => void;
   onCancelEdit: (key: string) => void;
+  testState?: KeyTestState;
+  onTest: (key: string) => void;
   clearDialogOpen?: boolean;
   compact?: boolean;
 }) {
@@ -148,7 +186,7 @@ function EnvVarRow({
               href={info.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-[0.65rem] text-[var(--accent)] hover:underline"
             >
               {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
             </a>
@@ -184,7 +222,7 @@ function EnvVarRow({
               href={info.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-[0.65rem] text-[var(--accent)] hover:underline"
             >
               {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
             </a>
@@ -204,27 +242,31 @@ function EnvVarRow({
 
   // Full expanded row for set keys or keys being edited
   return (
-    <div className="grid gap-2 border border-border p-4 min-w-0 overflow-hidden">
+    <div className="grid gap-2 rounded-lg border border-[var(--border)] p-4 min-w-0 overflow-hidden">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Label className="font-mono-ui text-[0.7rem]">{varKey}</Label>
-          <Badge tone={info.is_set ? "success" : "outline"}>
-            {info.is_set ? t.common.set : t.env.notSet}
-          </Badge>
+          {info.is_set ? (
+            <StatusChip tone={testState?.state === "err" ? "err" : "ok"}>
+              {testState?.state === "err" ? "Test failed" : t.common.set}
+            </StatusChip>
+          ) : (
+            <StatusChip tone="faint">{t.env.notSet}</StatusChip>
+          )}
         </div>
         {info.url && (
           <a
             href={info.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-[0.65rem] text-[var(--accent)] hover:underline"
           >
             {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
           </a>
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">{info.description}</p>
+      <p className="text-xs text-[var(--fg-dim)]">{info.description}</p>
 
       {info.tools.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -241,9 +283,9 @@ function EnvVarRow({
       )}
 
       {!isEditing && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div
-            className={`flex-1 border border-border px-3 py-2 font-mono-ui text-xs ${
+            className={`flex-1 min-w-[12rem] border border-[var(--border)] rounded px-3 py-2 font-mono-ui text-xs ${
               isRevealed
                 ? "bg-background text-foreground select-all"
                 : "bg-muted/30 text-muted-foreground"
@@ -262,6 +304,38 @@ function EnvVarRow({
             >
               {isRevealed ? <EyeOff /> : <Eye />}
             </Button>
+          )}
+
+          {info.is_set && (
+            <>
+              <Button
+                size="sm"
+                outlined
+                onClick={() => onTest(varKey)}
+                disabled={testState?.state === "testing"}
+                prefix={<Zap />}
+                title="Send a test request with this key"
+                className="border-[var(--accent)]/40 text-[var(--accent)] shadow-none hover:bg-[var(--accent)]/10"
+              >
+                {testState?.state === "testing" ? "…" : "Test"}
+              </Button>
+              {testState?.state === "ok" && (
+                <span className="text-[10px] text-[var(--ok)]">
+                  ✓{" "}
+                  {testState.latencyMs !== undefined
+                    ? `${Math.round(testState.latencyMs)}ms`
+                    : "ok"}
+                </span>
+              )}
+              {testState?.state === "err" && (
+                <span
+                  className="text-[10px] text-[var(--err)]"
+                  title={testState.error}
+                >
+                  ✖ failed
+                </span>
+              )}
+            </>
           )}
 
           <Button
@@ -343,6 +417,8 @@ function ProviderGroupCard({
   onClear,
   onReveal,
   onCancelEdit,
+  testStates,
+  onTest,
   clearDialogOpen = false,
 }: {
   group: ProviderGroup;
@@ -354,6 +430,8 @@ function ProviderGroupCard({
   onClear: (key: string) => void;
   onReveal: (key: string) => void;
   onCancelEdit: (key: string) => void;
+  testStates: Record<string, KeyTestState>;
+  onTest: (key: string) => void;
   clearDialogOpen?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -374,12 +452,18 @@ function ProviderGroupCard({
   const configuredCount = group.entries.filter(
     ([, info]) => info.is_set,
   ).length;
+  const hasFailedTest = group.entries.some(
+    ([k]) => testStates[k]?.state === "err",
+  );
 
   // Get a representative URL for "Get key" link
   const keyUrl = apiKeys.find(([, info]) => info.url)?.[1]?.url ?? null;
 
   return (
-    <div className="border border-border">
+    <div
+      className="rounded-xl border border-[var(--border)]"
+      style={{ backgroundColor: "var(--bg-elev)" }}
+    >
       {/* Header — always visible */}
       <ListItem
         onClick={() => setExpanded(!expanded)}
@@ -388,17 +472,21 @@ function ProviderGroupCard({
       >
         <div className="flex items-center gap-3 min-w-0">
           {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <ChevronDown className="h-3.5 w-3.5 text-[var(--fg-dim)] shrink-0" />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <ChevronRight className="h-3.5 w-3.5 text-[var(--fg-faint)] shrink-0" />
           )}
           <span className="font-semibold text-sm tracking-wide">
             {group.name === "Other" ? t.common.other : group.name}
           </span>
-          {hasAnyConfigured && (
-            <Badge tone="success" className="text-[0.6rem]">
-              {configuredCount} {t.common.set.toLowerCase()}
-            </Badge>
+          {hasFailedTest ? (
+            <StatusChip tone="err">Test failed</StatusChip>
+          ) : hasAnyConfigured ? (
+            <StatusChip tone="ok">
+              {configuredCount} {t.common.set.toLowerCase()} · connected
+            </StatusChip>
+          ) : (
+            <StatusChip tone="faint">Missing key</StatusChip>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -407,13 +495,13 @@ function ProviderGroupCard({
               href={keyUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[0.65rem] text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-[0.65rem] text-[var(--accent)] hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               {t.env.getKey} <ExternalLink className="h-2.5 w-2.5" />
             </a>
           )}
-          <span className="text-[0.65rem] text-muted-foreground/60">
+          <span className="text-[0.65rem] text-[var(--fg-faint)]">
             {t.env.keysCount
               .replace("{count}", String(group.entries.length))
               .replace("{s}", group.entries.length !== 1 ? "s" : "")}
@@ -422,7 +510,7 @@ function ProviderGroupCard({
       </ListItem>
 
       {expanded && (
-        <div className="border-t border-border px-4 py-3 grid gap-2">
+        <div className="border-t border-[var(--border)] px-4 py-3 grid gap-2">
           {apiKeys.map(([key, info]) => (
             <EnvVarRow
               key={key}
@@ -437,6 +525,8 @@ function ProviderGroupCard({
               onClear={onClear}
               onReveal={onReveal}
               onCancelEdit={onCancelEdit}
+              testState={testStates[key]}
+              onTest={onTest}
               clearDialogOpen={clearDialogOpen}
             />
           ))}
@@ -455,6 +545,8 @@ function ProviderGroupCard({
               onClear={onClear}
               onReveal={onReveal}
               onCancelEdit={onCancelEdit}
+              testState={testStates[key]}
+              onTest={onTest}
               clearDialogOpen={clearDialogOpen}
             />
           ))}
@@ -473,6 +565,8 @@ function ProviderGroupCard({
               onClear={onClear}
               onReveal={onReveal}
               onCancelEdit={onCancelEdit}
+              testState={testStates[key]}
+              onTest={onTest}
               clearDialogOpen={clearDialogOpen}
             />
           ))}
@@ -492,15 +586,59 @@ export default function EnvPage() {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(true); // Show all providers by default
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [testStates, setTestStates] = useState<Record<string, KeyTestState>>({});
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle } = usePageHeader();
 
-  useEffect(() => {
-    api
+  const loadVars = useCallback(() => {
+    setLoadError(null);
+    return api
       .getEnvVars()
-      .then(setVars)
-      .catch(() => {});
+      .then((data) => {
+        setVars(data);
+        setEnvSyncedAt(new Date());
+      })
+      .catch((e) => setLoadError(String(e)));
+  }, []);
+
+  useEffect(() => {
+    void loadVars();
+  }, [loadVars]);
+
+  const [envSyncedAt, setEnvSyncedAt] = useState<Date | null>(null);
+
+  const handleEnvSync = useCallback(async () => {
+    const data = await api.getEnvVars();
+    setVars(data);
+    setEnvSyncedAt(new Date());
+  }, []);
+
+  const handleTest = useCallback(async (key: string) => {
+    setTestStates((prev) => ({ ...prev, [key]: { state: "testing" } }));
+    try {
+      const r = await api.testEnvKey(key);
+      if (r.ok) {
+        setTestStates((prev) => ({
+          ...prev,
+          [key]: { state: "ok", latencyMs: r.latency_ms },
+        }));
+      } else {
+        setTestStates((prev) => ({
+          ...prev,
+          [key]: {
+            state: "err",
+            error: r.error ?? r.reason ?? "Test failed",
+          },
+        }));
+      }
+    } catch (e) {
+      setTestStates((prev) => ({
+        ...prev,
+        [key]: { state: "err", error: String(e) },
+      }));
+    }
   }, []);
 
   // Scroll-to sub-nav in the page header
@@ -546,7 +684,7 @@ export default function EnvPage() {
             key={s.id}
             type="button"
             onClick={() => scrollTo(s.id)}
-            className="shrink-0 cursor-pointer px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground border border-border/50 hover:border-foreground/30 transition-colors"
+            className="shrink-0 cursor-pointer px-2 py-0.5 text-[10px] text-[var(--fg-dim)] hover:text-foreground border border-[var(--border)] rounded hover:border-foreground/30 transition-colors"
           >
             {s.label}
           </button>
@@ -708,9 +846,55 @@ export default function EnvPage() {
   }, [vars, showAdvanced, t]);
 
   if (!vars) {
+    if (loadError) {
+      return (
+        <div className="flex flex-col gap-4">
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--err)]/40 px-4 py-3"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--err) 8%, var(--bg-elev))",
+            }}
+            role="alert"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--err)]">
+                Failed to load keys
+              </p>
+              <p className="mt-0.5 break-words text-xs text-[var(--fg-dim)]">
+                {loadError}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              outlined
+              onClick={() => void loadVars()}
+              prefix={<RefreshCw />}
+            >
+              {t.common.retry}
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex items-center justify-center py-24">
-        <Spinner className="text-2xl text-primary" />
+      <div className="flex flex-col gap-4" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-[var(--border)] p-4"
+            style={{ backgroundColor: "var(--bg-elev)" }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-36 animate-pulse rounded bg-[var(--bg-mute)]" />
+              <div className="h-4 w-16 animate-pulse rounded-full bg-[var(--bg-mute)]" />
+            </div>
+            <div className="mt-4 grid gap-3">
+              <div className="h-3 w-full animate-pulse rounded bg-[var(--bg-mute)]/70" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-[var(--bg-mute)]/70" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -749,13 +933,21 @@ export default function EnvPage() {
             {t.env.changesNote}
           </p>
         </div>
-        <Button
-          size="sm"
-          outlined
-          onClick={() => setShowAdvanced(!showAdvanced)}
-        >
-          {showAdvanced ? t.env.hideAdvanced : t.env.showAdvanced}
-        </Button>
+        <div className="flex items-center gap-2">
+          <SyncIndicator
+            onSync={handleEnvSync}
+            lastSyncedAt={envSyncedAt ?? undefined}
+            label="server keys"
+            autoRefreshMs={30_000}
+          />
+          <Button
+            size="sm"
+            outlined
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            {showAdvanced ? t.env.hideAdvanced : t.env.showAdvanced}
+          </Button>
+        </div>
       </div>
 
       <div id="section-oauth">
@@ -765,7 +957,7 @@ export default function EnvPage() {
         />
       </div>
 
-      <Card id="section-providers">
+      <Card id="section-providers" className="rounded-xl">
         <CardHeader className="border-b border-border bg-card">
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-muted-foreground" />
@@ -778,7 +970,7 @@ export default function EnvPage() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="grid gap-0 p-0">
+        <CardContent className="grid gap-3 p-4">
           {providerGroups.map((group) => (
             <ProviderGroupCard
               key={group.name}
@@ -791,6 +983,8 @@ export default function EnvPage() {
               onClear={keyClear.requestDelete}
               onReveal={handleReveal}
               onCancelEdit={cancelEdit}
+              testStates={testStates}
+              onTest={handleTest}
               clearDialogOpen={keyClear.isOpen}
             />
           ))}
@@ -809,7 +1003,7 @@ export default function EnvPage() {
           if (totalEntries === 0) return null;
 
           return (
-            <Card key={category} id={`section-${category}`}>
+            <Card key={category} id={`section-${category}`} className="rounded-xl">
               <CardHeader className="border-b border-border bg-card">
                 <div className="flex items-center gap-2">
                   <Icon className="h-5 w-5 text-muted-foreground" />
@@ -835,6 +1029,8 @@ export default function EnvPage() {
                     onClear={keyClear.requestDelete}
                     onReveal={handleReveal}
                     onCancelEdit={cancelEdit}
+                    testState={testStates[key]}
+                    onTest={handleTest}
                     clearDialogOpen={keyClear.isOpen}
                   />
                 ))}
@@ -851,6 +1047,8 @@ export default function EnvPage() {
                     onClear={keyClear.requestDelete}
                     onReveal={handleReveal}
                     onCancelEdit={cancelEdit}
+                    testStates={testStates}
+                    onTest={handleTest}
                     clearDialogOpen={keyClear.isOpen}
                   />
                 )}
@@ -878,6 +1076,8 @@ function CollapsibleUnset({
   onClear,
   onReveal,
   onCancelEdit,
+  testStates,
+  onTest,
   clearDialogOpen = false,
 }: {
   category: string;
@@ -890,6 +1090,8 @@ function CollapsibleUnset({
   onClear: (key: string) => void;
   onReveal: (key: string) => void;
   onCancelEdit: (key: string) => void;
+  testStates: Record<string, KeyTestState>;
+  onTest: (key: string) => void;
   clearDialogOpen?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(true);
@@ -922,6 +1124,8 @@ function CollapsibleUnset({
             onClear={onClear}
             onReveal={onReveal}
             onCancelEdit={onCancelEdit}
+            testState={testStates[key]}
+            onTest={onTest}
             clearDialogOpen={clearDialogOpen}
           />
         ))}
