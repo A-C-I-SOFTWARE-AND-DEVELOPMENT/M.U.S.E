@@ -77,7 +77,7 @@ except ImportError:
 WEB_DIST = Path(os.environ["HERMES_WEB_DIST"]) if "HERMES_WEB_DIST" in os.environ else Path(__file__).parent / "web_dist"
 _log = logging.getLogger(__name__)
 
-app = FastAPI(title="Hermes Agent", version=__version__)
+app = FastAPI(title="Hermes Agent", version=__version__, docs_url="/api-explorer", redoc_url=None)
 
 # ---------------------------------------------------------------------------
 # Session token for protecting sensitive endpoints (reveal).
@@ -955,6 +955,20 @@ def get_model_info():
         except Exception:
             pass
 
+        # Fallback: if models.dev doesn't know this provider/model (common
+        # for custom or aggregated providers like ollama-cloud-all), infer
+        # basic capabilities so the dashboard can show useful info.
+        if not caps:
+            caps = {
+                "supports_tools": True,
+                "supports_vision": True,
+                "supports_reasoning": True,
+                "context_window": effective_ctx or auto_ctx,
+                "max_output_tokens": None,
+                "model_family": None,
+                "inferred": True,
+            }
+
         return {
             "model": model_name,
             "provider": provider,
@@ -1277,6 +1291,101 @@ async def reveal_env_var(body: EnvVarReveal, request: Request):
 
     _log.info("env/reveal: %s", body.key)
     return {"key": body.key, "value": value}
+
+
+# ---------------------------------------------------------------------------
+# API key tester — verify a configured key actually works with its provider
+# ---------------------------------------------------------------------------
+
+class EnvTestBody(BaseModel):
+    key: str
+
+
+# Map of env-var key → (provider slug, test URL, test headers template)
+# When the user clicks "Test" on a key, we send a HEAD/GET to the test URL
+# with the key substituted into the headers. A 2xx/3xx = working, 401/403 = bad
+# key, anything else = inconclusive. We never expose the key back to the UI.
+_PROVIDER_TESTS: dict[str, dict] = {
+    "GLM_API_KEY":         {"url": "https://api.z.ai/api/paas/v4/models",  "auth": "bearer"},
+    "ZAI_API_KEY":         {"url": "https://api.z.ai/api/paas/v4/models",  "auth": "bearer"},
+    "ANTHROPIC_API_KEY":   {"url": "https://api.anthropic.com/v1/models",  "auth": "x-api-key"},
+    "OPENAI_API_KEY":      {"url": "https://api.openai.com/v1/models",     "auth": "bearer"},
+    "OPENROUTER_API_KEY":  {"url": "https://openrouter.ai/api/v1/models",  "auth": "bearer"},
+    "GOOGLE_API_KEY":      {"url": "https://generativelanguage.googleapis.com/v1beta/models", "auth": "query"},
+    "GEMINI_API_KEY":      {"url": "https://generativelanguage.googleapis.com/v1beta/models", "auth": "query"},
+    "DEEPSEEK_API_KEY":    {"url": "https://api.deepseek.com/v1/models",   "auth": "bearer"},
+    "GROQ_API_KEY":        {"url": "https://api.groq.com/openai/v1/models", "auth": "bearer"},
+    "XAI_API_KEY":         {"url": "https://api.x.ai/v1/models",           "auth": "bearer"},
+    "MISTRAL_API_KEY":     {"url": "https://api.mistral.ai/v1/models",    "auth": "bearer"},
+    "COHERE_API_KEY":      {"url": "https://api.cohere.com/v1/models",     "auth": "bearer"},
+    "HUGGINGFACE_API_KEY": {"url": "https://huggingface.co/api/whoami-v2", "auth": "bearer"},
+    "HF_TOKEN":            {"url": "https://huggingface.co/api/whoami-v2", "auth": "bearer"},
+    "NVIDIA_API_KEY":      {"url": "https://integrate.api.nvidia.com/v1/models", "auth": "bearer"},
+    "KIMI_API_KEY":        {"url": "https://api.moonshot.cn/v1/models",   "auth": "bearer"},
+    "MOONSHOT_API_KEY":    {"url": "https://api.moonshot.cn/v1/models",   "auth": "bearer"},
+    "DASHSCOPE_API_KEY":   {"url": "https://dashscope.aliyuncs.com/compatible-mode/v1/models", "auth": "bearer"},
+    "QWEN_API_KEY":        {"url": "https://dashscope.aliyuncs.com/compatible-mode/v1/models", "auth": "bearer"},
+    "FIREWORKS_API_KEY":   {"url": "https://api.fireworks.ai/inference/v1/models", "auth": "bearer"},
+    "TOGETHER_API_KEY":    {"url": "https://api.together.xyz/v1/models",   "auth": "bearer"},
+    "PERPLEXITY_API_KEY":  {"url": "https://api.perplexity.ai/v1/models",  "auth": "bearer"},
+    "REPLICATE_API_TOKEN": {"url": "https://api.replicate.com/v1/models",  "auth": "bearer"},
+    "MINIMAX_API_KEY":     {"url": "https://api.minimax.chat/v1/models",   "auth": "bearer"},
+    "MINIMAX_API_KEY":     {"url": "https://api.minimax.io/v1/text/chat",  "auth": "bearer"},
+}
+
+
+@app.post("/api/env/test")
+async def test_env_key(body: EnvTestBody, request: Request):
+    """Verify an API key works by pinging its provider's test endpoint.
+
+    Returns {ok: true, status: 200, latency_ms: 234} on success.
+    Returns {ok: false, status: 401, error: "Unauthorized"} on bad key.
+    Returns {ok: null, reason: "no_test_url"} if we don't know how to test
+    that provider.
+    Returns {ok: null, reason: "key_not_set"} if the env var is empty.
+    """
+    _require_token(request)
+    test = _PROVIDER_TESTS.get(body.key)
+    if not test:
+        return {"ok": None, "reason": "no_test_url", "key": body.key}
+    env_on_disk = load_env()
+    value = env_on_disk.get(body.key)
+    if not value:
+        return {"ok": None, "reason": "key_not_set", "key": body.key}
+
+    import httpx
+    import time
+    headers = {}
+    url = test["url"]
+    auth_kind = test.get("auth", "bearer")
+    if auth_kind == "bearer":
+        headers["Authorization"] = f"Bearer {value}"
+    elif auth_kind == "x-api-key":
+        headers["x-api-key"] = value
+        headers["anthropic-version"] = "2023-06-01"
+    elif auth_kind == "query":
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}key={value}"
+    else:
+        return {"ok": None, "reason": "unknown_auth_kind", "key": body.key}
+
+    start = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(url, headers=headers)
+        latency_ms = int((time.time() - start) * 1000)
+        ok = 200 <= r.status_code < 400
+        return {
+            "ok": ok,
+            "key": body.key,
+            "status": r.status_code,
+            "latency_ms": latency_ms,
+            "error": None if ok else (r.text[:200] if r.status_code in (401, 403) else f"HTTP {r.status_code}"),
+        }
+    except httpx.TimeoutException:
+        return {"ok": None, "reason": "timeout", "key": body.key, "latency_ms": int((time.time() - start) * 1000)}
+    except Exception as e:
+        return {"ok": None, "reason": "network_error", "key": body.key, "error": str(e)[:200]}
 
 
 # ---------------------------------------------------------------------------

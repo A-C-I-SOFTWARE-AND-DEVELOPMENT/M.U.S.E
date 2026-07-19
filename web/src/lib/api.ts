@@ -137,6 +137,25 @@ export const api = {
     });
   },
 
+  testEnvKey: async (key: string) => {
+    const token = await getSessionToken();
+    return fetchJSON<{
+      ok: boolean | null;
+      key: string;
+      status?: number;
+      latency_ms?: number;
+      error?: string | null;
+      reason?: string;
+    }>("/api/env/test", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        [SESSION_HEADER]: token,
+      },
+      body: JSON.stringify({ key }),
+    });
+  },
+
   // Cron jobs
   getCronJobs: (profile = "all") =>
     fetchJSON<CronJob[]>(`/api/cron/jobs?profile=${encodeURIComponent(profile)}`),

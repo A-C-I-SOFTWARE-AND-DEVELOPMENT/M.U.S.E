@@ -5,8 +5,6 @@
 #include "LevelSequence.h"
 #include "Misc/FileHelper.h"
 #include "MoviePipelineAntiAliasingSetting.h"
-#include "MoviePipelineDeferredPasses.h"
-#include "MoviePipelineEXROutput.h"
 #include "MoviePipelineOutputSetting.h"
 #include "MoviePipelinePrimaryConfig.h"
 #include "MoviePipelineQueue.h"
@@ -143,10 +141,8 @@ void UMuseRenderManifestSubsystem::ConfigureMoviePipelineJob(
 	AntiAliasing->SpatialSampleCount = FMath::Max(1, Settings.SpatialSamples);
 	AntiAliasing->TemporalSampleCount = FMath::Max(1, Settings.TemporalSamples);
 
-	Config->FindOrAddSettingByClass(
-		UMoviePipelineDeferredPass_PathTracer::StaticClass(), true, false);
-	Config->FindOrAddSettingByClass(
-		UMoviePipelineImageSequenceOutput_EXR::StaticClass(), true, false);
+	// Path tracer deferred pass disabled — requires MovieRenderPipelineRenderPasses
+	// which has an unresolvable OpenEXR/Imath dependency in this UE 5.7 install.
 }
 
 bool UMuseRenderManifestSubsystem::QueueNativeStereoRender(

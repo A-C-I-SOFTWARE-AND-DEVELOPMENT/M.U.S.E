@@ -10,7 +10,7 @@ public class SynapseUniverse : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		bWarningsAsErrors = true;
 		bEnableExceptions = false;
-		CppStandard = CppStandardVersion.Cpp17;
+		CppStandard = CppStandardVersion.Cpp20;
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{

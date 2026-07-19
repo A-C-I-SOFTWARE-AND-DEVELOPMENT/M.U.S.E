@@ -95,7 +95,7 @@ public:
 	 *  default (1h). TaskClass is an optional filter; empty => no filter.
 	 *  Broadcasts OnMetrics on the game thread. */
 	UFUNCTION(BlueprintCallable, Category = "muse|Observatory")
-	void FetchMetrics(const FString& Window = FString(TEXT("1h")), const FString& TaskClass = FString());
+	void FetchMetrics(const FString& Window = TEXT("1h"), const FString& TaskClass = TEXT(""));
 
 	/** GET /v1/observatory/layout?cluster=<ClusterId>[&limit=<Limit>] —
 	 *  on-demand cluster expansion for the galaxy LOD (spec §3.4; the §8

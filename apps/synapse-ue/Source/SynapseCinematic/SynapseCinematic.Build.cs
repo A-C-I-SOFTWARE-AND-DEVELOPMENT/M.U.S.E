@@ -9,7 +9,7 @@ public class SynapseCinematic : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		bWarningsAsErrors = true;
 		bEnableExceptions = false;
-		CppStandard = CppStandardVersion.Cpp17;
+		CppStandard = CppStandardVersion.Cpp20;
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
@@ -27,7 +27,6 @@ public class SynapseCinematic : ModuleRules
 			"Json",
 			"JsonUtilities",
 			"MovieRenderPipelineCore",
-			"MovieRenderPipelineRenderPasses",
 		});
 	}
 }
