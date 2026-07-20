@@ -31,12 +31,16 @@ from hermes_cli.swarm.grain import Grain, SwarmPlan, now_iso
 from hermes_cli.swarm import grainler as _grainler
 from hermes_cli.swarm import specialist as _specialist
 from hermes_cli.swarm.specialist import GrainAgentSpec
+from hermes_cli.swarm.ai_executor import AIAgentExecutor, AIAgentExecutorConfig  # noqa: E402,F401  (re-exported)
 
 __all__ = [
     "SwarmGrainResult",
     "SwarmResult",
     "GrainExecutor",
     "PromptOnlyExecutor",
+    "AIAgentExecutor",
+    "AIAgentExecutorConfig",
+    "resolve_executor",
     "run_swarm",
 ]
 
@@ -166,8 +170,74 @@ class PromptOnlyExecutor:
                             )
                     except OSError:
                         pass
-            out.append(res)
+        out.append(res)
         return out
+
+
+def resolve_executor(
+    executor: Any = None,
+    *,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    max_iterations: int = 25,
+    concurrency: int = 2,
+    quiet_mode: bool = True,
+) -> "GrainExecutor | PromptOnlyExecutor | AIAgentExecutor":
+    """Resolve the ``executor=`` argument into a concrete :class:`GrainExecutor`.
+
+    Accepts either:
+
+    * a :class:`GrainExecutor` instance (returned as-is, no wrapping);
+    * the string ``"prompt_only"`` → :class:`PromptOnlyExecutor` (the safe
+      default; launched no model);
+    * the string ``"ai"`` → :class:`AIAgentExecutor` driving the model
+      described by ``base_url`` / ``api_key`` / ``model`` / ``provider``
+      (all four are required for the ``"ai"`` selector);
+    * ``None`` → :class:`PromptOnlyExecutor` (preserves prior default).
+
+    Raises :class:`ValueError` for an unknown selector string or when
+    ``"ai"`` is requested without complete credentials.
+    """
+
+    if executor is None or executor == "prompt_only":
+        return PromptOnlyExecutor()
+    if isinstance(executor, str):
+        if executor == "ai":
+            from hermes_cli.swarm.ai_executor import AIAgentExecutor  # lazy
+
+            missing = [
+                name
+                for name, value in (
+                    ("base_url", base_url),
+                    ("api_key", api_key),
+                    ("model", model),
+                    ("provider", provider),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    "executor='ai' requires " + ", ".join(missing)
+                    + " — pass them as run_swarm(... base_url=..., api_key=..., "
+                    "model=..., provider=...) or via the CLI --executor ai "
+                    "--base_url ... --api_key ... --model ... --provider ... flags"
+                )
+            return AIAgentExecutor(
+                base_url=str(base_url),
+                api_key=str(api_key),
+                model=str(model),
+                provider=str(provider),
+                max_iterations=max_iterations,
+                concurrency=concurrency,
+                quiet_mode=quiet_mode,
+            )
+        raise ValueError(
+            f"unknown executor selector {executor!r}; expected 'prompt_only', 'ai', or a GrainExecutor instance"
+        )
+    # Assume it's already a GrainExecutor.
+    return executor
 
 
 # ---------------------------------------------------------------------------
@@ -404,7 +474,14 @@ def run_swarm(
     grains: Optional[Sequence[_grainler.GrainSpec]] = None,
     decomposer: Optional[_grainler.Decomposer] = None,
     job_id: Optional[str] = None,
-    executor: Optional[GrainExecutor] = None,
+    executor: Any = None,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    max_iterations: int = 25,
+    concurrency: int = 2,
+    quiet_mode: bool = True,
     memory_store: Optional[Any] = None,
     lease_store: Optional[Any] = None,
     apply_reversible: bool = True,
@@ -418,6 +495,14 @@ def run_swarm(
     :class:`~hermes_cli.swarm.grain.OverlapError` (from partitioning) if the
     decomposition's file-domains cannot be proven disjoint — in which case **no
     grain runs**.
+
+    ``executor`` selects how the per-grain work is executed:
+
+    * ``None`` or ``"prompt_only"`` (default) → :class:`PromptOnlyExecutor`
+      (isolate + materialise, never launch a model);
+    * ``"ai"`` → :class:`AIAgentExecutor` driving a real model. Requires
+      ``base_url`` / ``api_key`` / ``model`` / ``provider``;
+    * a :class:`GrainExecutor` instance → used as-is.
     """
 
     repo_path = Path(repo)
@@ -464,7 +549,16 @@ def run_swarm(
             for grain in plan.grains
         }
 
-        exec_impl = executor or PromptOnlyExecutor()
+        exec_impl = resolve_executor(
+            executor,
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            provider=provider,
+            max_iterations=max_iterations,
+            concurrency=concurrency,
+            quiet_mode=quiet_mode,
+        )
         result.grains = exec_impl.run(repo_path, plan, specs)
 
         # Convergence — keep every grain (disjoint domains) and run the runtime

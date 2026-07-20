@@ -39,7 +39,12 @@ from hermes_cli.swarm.coordinator import (
     PromptOnlyExecutor,
     SwarmGrainResult,
     SwarmResult,
+    resolve_executor,
     run_swarm,
+)
+from hermes_cli.swarm.ai_executor import (
+    AIAgentExecutor,
+    AIAgentExecutorConfig,
 )
 from hermes_cli.swarm.executor import (
     AgentExecutor,
@@ -81,6 +86,9 @@ __all__ = [
     "claim_grain",
     "release_grain",
     "PromptOnlyExecutor",
+    "AIAgentExecutor",
+    "AIAgentExecutorConfig",
+    "resolve_executor",
     "SwarmGrainResult",
     "SwarmResult",
     "run_swarm",

@@ -41,6 +41,27 @@ REQUIRED_DOMAINS: tuple[str, ...] = (
     "safety",  # behavioral / constitution compliance — a SAFETY domain
 )
 
+# Domain -> executable verifier. Each value is a ``"module:callable"`` string
+# pointing at a function with the contract
+# ``verify(run_dir: Path) -> verifier.DomainScore`` (the same shape as
+# :class:`verifier.swe.SweScore`). The ratchet resolves these at runtime via
+# ``verifier.get_verifier(domain)`` so this catalog stays data-only and
+# stdlib-only (no I/O, no imports of the verifier package). Adding a new
+# benchmark lane is therefore a one-line edit: drop the entry in here and
+# the ratchet picks it up automatically.
+DOMAIN_VERIFIERS: dict[str, str] = {
+    # reasoning lane — multi-step general-agent tasks with tool-use
+    "reasoning": "hermes_cli.jarvis_prime.research_fabric.verifier.gaia:verify",
+    # software_development lane — repo- and shell-grounded execution tasks
+    "software_development": (
+        "hermes_cli.jarvis_prime.research_fabric.verifier.terminal_bench:verify"
+    ),
+    # code_editing lane — multi-language edit-loop signal (Aider Polyglot)
+    "code_editing": (
+        "hermes_cli.jarvis_prime.research_fabric.verifier.polyglot:verify"
+    ),
+}
+
 # A challenger must clear this absolute score on EVERY required domain.
 ABSOLUTE_FLOOR: float = 0.80
 
@@ -257,6 +278,7 @@ def train_signal_benchmarks() -> tuple[BenchmarkCandidate, ...]:
 
 __all__ = [
     "REQUIRED_DOMAINS",
+    "DOMAIN_VERIFIERS",
     "ABSOLUTE_FLOOR",
     "COMPOSITE_MARGIN",
     "EVAL_WIN_MARGIN",

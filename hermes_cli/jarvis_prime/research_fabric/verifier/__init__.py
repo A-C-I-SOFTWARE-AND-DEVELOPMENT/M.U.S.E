@@ -9,6 +9,14 @@ This package is the *only* trusted judge of a candidate, and it is hard-walled
   patterns (``assert True``, deleted/disabled tests, hard-coded expected outputs,
   ``@ts-ignore``-style suppressions) that an incomplete test-only verifier would
   miss. Returns :class:`~research_fabric.monitor.TripwireSignal` items.
+* :class:`DomainScore` — the [0, 1] reward object produced by
+  ``verifier.gaia``, ``verifier.terminal_bench``, ``verifier.polyglot`` (and
+  the contract any new benchmark lane must follow). Same shape as
+  :class:`verifier.swe.SweScore` so the ratchet can consume them uniformly.
+* :func:`get_verifier` — runtime resolver from
+  :data:`research_fabric.catalog.DOMAIN_VERIFIERS` (``"module:callable"``
+  strings) to the actual callable. Lazy + cached so importing
+  ``research_fabric.catalog`` stays I/O-free.
 
 Real sandboxed container execution (pinned deps, network off, no secrets, time
 caps — the OpenHands pattern) is the next build step; the interface here is shaped
@@ -17,13 +25,19 @@ so that a container-backed scorer can drop in without touching the controller.
 
 from __future__ import annotations
 
+import importlib
 import re
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional
+from functools import lru_cache
+from typing import Any, Callable, Mapping, Optional
 
 from hermes_cli.jarvis_prime.self_update import ProposalKind
 
 from ..monitor import TripwireSignal
+
+# Re-export the shared score contract so callers can write
+# ``from ...verifier import DomainScore`` without reaching into gaia.py.
+from .gaia import DomainScore  # noqa: E402,F401  (re-export)
 
 
 @dataclass
@@ -128,4 +142,79 @@ def screen_for_reward_hacking(candidate: Candidate) -> list[TripwireSignal]:
     return signals
 
 
-__all__ = ["Candidate", "screen_for_reward_hacking"]
+# ---------------------------------------------------------------------------
+# Domain -> callable resolver
+# ---------------------------------------------------------------------------
+
+# A ``"module:callable"`` Dotted string. Strict on purpose: must have exactly
+# one colon, a non-empty module path, and a non-empty attribute name — keeps
+# typos in :data:`research_fabric.catalog.DOMAIN_VERIFIERS` from silently
+# resolving to the wrong function.
+_VERIFIER_DOTTED = re.compile(r"^(?P<module>[A-Za-z_][\w.]*):(?P<attr>[A-Za-z_]\w*)$")
+
+
+@lru_cache(maxsize=None)
+def _resolve_dotted(dotted: str) -> Callable[[Any], Any]:
+    """Import a ``"module:callable"`` string and return the callable.
+
+    Cached so the resolver is essentially free on the hot path (the ratchet
+    calls :func:`get_verifier` for every required domain). The cache key is
+    the dotted string itself, so swapping an entry in
+    :data:`catalog.DOMAIN_VERIFIERS` is reflected on cache miss; tests can
+    also call ``_resolve_dotted.cache_clear()`` between runs.
+    """
+
+    m = _VERIFIER_DOTTED.match(dotted)
+    if not m:
+        raise ValueError(
+            f"verifier spec must be 'module:callable', got {dotted!r}"
+        )
+    module = importlib.import_module(m.group("module"))
+    fn = getattr(module, m.group("attr"))
+    if not callable(fn):
+        raise TypeError(
+            f"verifier spec {dotted!r} resolved to non-callable {type(fn).__name__}"
+        )
+    return fn
+
+
+@lru_cache(maxsize=None)
+def get_verifier(domain: str) -> Callable[[Any], Any]:
+    """Resolve a domain name to its ``verify(run_dir) -> DomainScore`` callable.
+
+    Reads :data:`research_fabric.catalog.DOMAIN_VERIFIERS` (a dict of
+    ``"module:callable"`` strings) and returns the imported function. Raises
+    :class:`KeyError` if the domain is not registered, and propagates any
+    import error from the underlying module so a broken entry is loud, not
+    silent.
+    """
+
+    # Local import keeps :mod:`catalog` data-only (it must remain importable
+    # with stdlib alone, per its own module docstring).
+    from ..catalog import DOMAIN_VERIFIERS
+
+    try:
+        dotted = DOMAIN_VERIFIERS[domain]
+    except KeyError as e:
+        raise KeyError(
+            f"no verifier registered for domain {domain!r}; "
+            f"known: {sorted(DOMAIN_VERIFIERS)!r}"
+        ) from e
+    return _resolve_dotted(dotted)
+
+
+def verifier_domains() -> frozenset[str]:
+    """Return the set of domains currently registered in ``DOMAIN_VERIFIERS``."""
+
+    from ..catalog import DOMAIN_VERIFIERS
+
+    return frozenset(DOMAIN_VERIFIERS.keys())
+
+
+__all__ = [
+    "Candidate",
+    "DomainScore",
+    "screen_for_reward_hacking",
+    "get_verifier",
+    "verifier_domains",
+]

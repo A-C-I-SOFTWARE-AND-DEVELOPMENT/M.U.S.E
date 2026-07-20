@@ -1,0 +1,40 @@
+🚀 Terminal-Bench Runner with Hermes Trajectory Format
+============================================================
+📦 No --task_dir provided; using built-in SAMPLE_TASKS (5 tasks).
+🔢 Limited to first 1 task(s)
+🤖 Terminal-Bench Runner initialized
+   Model: kimi-k3
+   Environment: local
+   Max iterations: 3
+
+📦 Running Terminal-Bench batch: 1 task(s)
+📁 Output: terminal-bench-test.jsonl
+
+============================================================
+📋 Task 1/1: sample_create_file
+============================================================
+
+============================================================
+📝 Task: sample_create_file  (tags=['easy', 'file'])
+   Instruction: Create a file at /tmp/bench_hello.txt that contains exactly the text 'hello terminal-bench' (no quot...
+============================================================
+🔧 Creating local environment...
+✅ Environment ready
+⚙️  Running setup_script...
+   setup exit_code=0
+
+🔄 API call #1/3
+🧪 Running test_script...
+   test exit_code=1  ->  score=0
+
+============================================================
+🏁 Terminal-Bench batch complete
+   Total:    1
+   Passed:   0
+   Accuracy: 0.0%
+   - easy         0/1  (0%)
+   - file         0/1  (0%)
+📁 Results written to: terminal-bench-test.jsonl
+============================================================
+
+📊 SUMMARY accuracy=0.0000  passed=0/1
