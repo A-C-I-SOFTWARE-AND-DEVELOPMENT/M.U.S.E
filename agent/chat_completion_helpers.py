@@ -698,7 +698,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
     _is_nous = "nousresearch" in agent._base_url_lower
     _is_nvidia = "integrate.api.nvidia.com" in agent._base_url_lower
     _is_kimi = (
-        base_url_host_matches(agent.base_url, "api.kimi.com")
+        base_url_host_matches(agent.base_url, "kimi.com")
         or base_url_host_matches(agent.base_url, "moonshot.ai")
         or base_url_host_matches(agent.base_url, "moonshot.cn")
     )
@@ -1153,7 +1153,11 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         _fb_is_azure = agent._is_azure_openai_url(fb_base_url)
         if fb_provider == "openai-codex":
             fb_api_mode = "codex_responses"
-        elif fb_provider == "anthropic" or fb_base_url.rstrip("/").lower().endswith("/anthropic"):
+        elif (
+            fb_provider == "anthropic"
+            or fb_base_url.rstrip("/").lower().endswith("/anthropic")
+            or (base_url_host_matches(fb_base_url, "kimi.com") and "/coding" in fb_base_url.lower())
+        ):
             fb_api_mode = "anthropic_messages"
         elif _fb_is_azure:
             # Azure OpenAI serves gpt-5.x on /chat/completions — does NOT

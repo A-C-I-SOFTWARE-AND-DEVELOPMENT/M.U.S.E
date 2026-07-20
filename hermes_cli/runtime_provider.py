@@ -95,7 +95,7 @@ def _detect_api_mode_for_url(base_url: str) -> Optional[str]:
         return "codex_responses"
     if normalized.endswith("/anthropic"):
         return "anthropic_messages"
-    if hostname == "api.kimi.com" and "/coding" in normalized:
+    if base_url_host_matches(base_url, "kimi.com") and "/coding" in normalized:
         return "anthropic_messages"
     return None
 

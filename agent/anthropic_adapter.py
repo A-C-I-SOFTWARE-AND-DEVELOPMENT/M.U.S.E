@@ -383,7 +383,8 @@ def _is_kimi_coding_endpoint(base_url: str | None) -> bool:
     normalized = _normalize_base_url_text(base_url)
     if not normalized:
         return False
-    return normalized.rstrip("/").lower().startswith("https://api.kimi.com/coding")
+    n = normalized.rstrip("/").lower()
+    return base_url_host_matches(n, "kimi.com") and "/coding" in n
 
 
 # Model-name prefixes that identify the Kimi / Moonshot family.  Covers
@@ -433,7 +434,7 @@ def _is_kimi_family_endpoint(base_url: str | None, model: str | None = None) -> 
     """
     if _is_kimi_coding_endpoint(base_url):
         return True
-    for _domain in ("api.kimi.com", "moonshot.ai", "moonshot.cn"):
+    for _domain in ("kimi.com", "moonshot.ai", "moonshot.cn"):
         if base_url_host_matches(base_url or "", _domain):
             return True
     if _model_name_is_kimi_family(model):
