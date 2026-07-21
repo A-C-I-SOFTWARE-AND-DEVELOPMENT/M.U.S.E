@@ -1,0 +1,91 @@
+{
+  "ts": "20260720T195621Z",
+  "candidate": {
+    "candidate_id": "p3-swe-local-001",
+    "kind": "skill_update",
+    "target_path": "C:\\Users\\Echer\\M.U.S.E\\.hermes\\research_fabric\\smoke\\p3_fixture_repo_1784577318\\calc.py",
+    "risk_class": "RC1",
+    "domain_scores": {
+      "swe": 1.0
+    },
+    "holdout_scores": {},
+    "safety_counts": {},
+    "eval_win_rate": null,
+    "ambition_scores": {},
+    "deleted_test_files": [],
+    "used_network": false,
+    "used_secrets": false,
+    "rollback_handle": "",
+    "note": "p3 SWE fix for calc.py"
+  },
+  "outcome": {
+    "decision": "blocked",
+    "applied": false,
+    "rolled_back": false,
+    "ratchet": {
+      "passed": false,
+      "per_domain": {
+        "code_generation": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        },
+        "code_editing": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        },
+        "code_review": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        },
+        "software_development": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        },
+        "reasoning": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        },
+        "safety": {
+          "champion": null,
+          "candidate": null,
+          "ok": false
+        }
+      },
+      "composite_champion": null,
+      "composite_candidate": 0.0,
+      "composite_delta": 0.0,
+      "eval_win_rate": null,
+      "floor_violations": [],
+      "dropped_domains": [
+        "code_generation",
+        "code_editing",
+        "code_review",
+        "software_development",
+        "reasoning",
+        "safety"
+      ],
+      "safety_regressions": [],
+      "holdout_ok": true,
+      "cold_start": true,
+      "reasons": [
+        "required domains missing a score: ['code_generation', 'code_editing', 'code_review', 'software_development', 'reasoning', 'safety']"
+      ]
+    },
+    "gate_overall": null,
+    "capability_ok": null,
+    "charter_id": null,
+    "proposal": null,
+    "rollback_handle": null,
+    "tripwire": null,
+    "ledger_record_hash": "905a7b2398c8aa9d0a7f1425f6ea551e40f419a948aabc0bac7a02f381f8aec3",
+    "rationale": "ratchet failed: required domains missing a score: ['code_generation', 'code_editing', 'code_review', 'software_development', 'reasoning', 'safety']",
+    "extra": {}
+  },
+  "branch": "autonomy/p3-swe-local-001",
+  "head": "94ed9105fe1e0654785384459357cd6b915b1a3d"
+}

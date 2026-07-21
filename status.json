@@ -1,0 +1,10 @@
+{
+  "base_url": "https://api.kimi.com/coding/v1",
+  "ended_at": "2026-07-20T18:14:41Z",
+  "error": null,
+  "grain_id": "g00-write-a-one-line-summary-of-python-to-su",
+  "model": "kimi-k3",
+  "provider": "kimi-coding",
+  "started_at": "2026-07-20T18:14:07Z",
+  "success": true
+}

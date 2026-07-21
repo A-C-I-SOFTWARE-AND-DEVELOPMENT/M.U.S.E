@@ -1,0 +1,40 @@
+[p3] verifying baselines fail ...
+    swe-local-001: baseline_fails=True
+    swe-local-002: baseline_fails=True
+    swe-local-003: baseline_fails=True
+    swe-local-004: baseline_fails=False
+    swe-local-005: baseline_fails=False
+[p3] LIVE: NIM meta/llama-3.3-70b-instruct
+[p3] running suite (5 tasks) ...
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+[p3] resolved_rate=1.0 (5/5) -> C:\Users\Echer\M.U.S.E\.hermes\research_fabric\smoke\P3_BASELINE.json
+    [PASS] swe-local-001: tests passed
+    [PASS] swe-local-002: tests passed
+    [PASS] swe-local-003: tests passed
+    [PASS] swe-local-004: tests passed
+    [PASS] swe-local-005: tests passed
+    [nim] meta/llama-3.3-70b-instruct attempt 1/2: The read operation timed out
+    [nim] meta/llama-3.3-70b-instruct attempt 2/2: The read operation timed out
+    [nim] answered by nvidia/llama-3.3-nemotron-super-49b-v1.5
+Traceback (most recent call last):
+  File "C:\Users\Echer\M.U.S.E\scripts\research_fabric\p3_swe_bench.py", line 545, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\Echer\M.U.S.E\scripts\research_fabric\p3_swe_bench.py", line 519, in main
+    cand = Candidate(
+           ^^^^^^^^^^
+TypeError: Candidate.__init__() missing 3 required positional arguments: 'target_path', 'risk_class', and 'domain_scores'

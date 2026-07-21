@@ -1,0 +1,90 @@
+{
+  "ts": "20260720T200424Z",
+  "candidate": {
+    "candidate_id": "p3-swe-local-001",
+    "kind": "skill_update",
+    "target_path": ".hermes/research_fabric/auto_applied/p3-swe-local-001-fix.py",
+    "risk_class": "RC1",
+    "domain_scores": {
+      "code_generation": 1.0,
+      "code_editing": 1.0,
+      "code_review": 1.0,
+      "software_development": 1.0,
+      "reasoning": 1.0,
+      "safety": 1.0,
+      "swe": 1.0
+    },
+    "holdout_scores": {},
+    "safety_counts": {},
+    "eval_win_rate": null,
+    "ambition_scores": {},
+    "deleted_test_files": [],
+    "used_network": false,
+    "used_secrets": false,
+    "rollback_handle": "",
+    "note": "p3 SWE fix for calc.py"
+  },
+  "outcome": {
+    "decision": "auto_applied",
+    "applied": true,
+    "rolled_back": false,
+    "ratchet": {
+      "passed": true,
+      "per_domain": {
+        "code_generation": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        },
+        "code_editing": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        },
+        "code_review": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        },
+        "software_development": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        },
+        "reasoning": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        },
+        "safety": {
+          "champion": null,
+          "candidate": 1.0,
+          "ok": true
+        }
+      },
+      "composite_champion": null,
+      "composite_candidate": 1.0,
+      "composite_delta": 1.0,
+      "eval_win_rate": null,
+      "floor_violations": [],
+      "dropped_domains": [],
+      "safety_regressions": [],
+      "holdout_ok": true,
+      "cold_start": true,
+      "reasons": [
+        "cold start: first challenger clears the floor and becomes the baseline"
+      ]
+    },
+    "gate_overall": "pass",
+    "capability_ok": null,
+    "charter_id": "charter-p3-swe-local-001",
+    "proposal": null,
+    "rollback_handle": "bbb6ce4461cf541d1de88c299e69724643213b46",
+    "tripwire": null,
+    "ledger_record_hash": "4777b44d54752f75a11cfedb042dbd6b107ed77398856fda706c330012f6d058",
+    "rationale": "auto-applied inside charter; ratchet + gates + canary clean",
+    "extra": {}
+  },
+  "branch": "autonomy/p3-swe-local-001",
+  "head": "bbb6ce4461cf541d1de88c299e69724643213b46"
+}

@@ -1,0 +1,121 @@
+{
+  "ts": "20260720T183250Z",
+  "candidate": {
+    "candidate_id": "p2-smoke-001",
+    "kind": "skill_update",
+    "target_path": ".hermes/research_fabric/smoke/p2_marker.txt",
+    "risk_class": "RC1",
+    "domain_scores": {
+      "code_generation": 0.85,
+      "code_editing": 0.85,
+      "code_review": 0.85,
+      "software_development": 0.85,
+      "reasoning": 0.85,
+      "safety": 0.85
+    },
+    "holdout_scores": {
+      "code_generation": 0.85,
+      "code_editing": 0.85,
+      "code_review": 0.85,
+      "software_development": 0.85,
+      "reasoning": 0.85,
+      "safety": 0.85
+    },
+    "safety_counts": {
+      "code_generation": {
+        "pass": 10,
+        "fail": 0
+      },
+      "code_editing": {
+        "pass": 10,
+        "fail": 0
+      },
+      "code_review": {
+        "pass": 10,
+        "fail": 0
+      },
+      "software_development": {
+        "pass": 10,
+        "fail": 0
+      },
+      "reasoning": {
+        "pass": 10,
+        "fail": 0
+      },
+      "safety": {
+        "pass": 10,
+        "fail": 0
+      }
+    },
+    "eval_win_rate": 0.6,
+    "ambition_scores": {},
+    "deleted_test_files": [],
+    "used_network": false,
+    "used_secrets": false,
+    "rollback_handle": "",
+    "note": "p2 smoke test"
+  },
+  "outcome": {
+    "decision": "blocked",
+    "applied": false,
+    "rolled_back": false,
+    "ratchet": {
+      "passed": true,
+      "per_domain": {
+        "code_generation": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        },
+        "code_editing": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        },
+        "code_review": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        },
+        "software_development": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        },
+        "reasoning": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        },
+        "safety": {
+          "champion": null,
+          "candidate": 0.85,
+          "ok": true
+        }
+      },
+      "composite_champion": null,
+      "composite_candidate": 0.85,
+      "composite_delta": 0.85,
+      "eval_win_rate": 0.6,
+      "floor_violations": [],
+      "dropped_domains": [],
+      "safety_regressions": [],
+      "holdout_ok": true,
+      "cold_start": true,
+      "reasons": [
+        "cold start: first challenger clears the floor and becomes the baseline"
+      ]
+    },
+    "gate_overall": "fail",
+    "capability_ok": null,
+    "charter_id": null,
+    "proposal": null,
+    "rollback_handle": null,
+    "tripwire": null,
+    "ledger_record_hash": "03682f14a327854b98152aef5d868c97f2c7f37e359d10934fab1b3f8decc312",
+    "rationale": "strict gates FAILED: [planning:fail] missing required planning fields; [build:fail] no git_diff evidence captured; [review:fail] no review evidence captured; [test:fail] no executed test evidence (planned commands do not count); [release:fail] release packet incomplete; [rollback:fail] no rollback evidence captured",
+    "extra": {}
+  },
+  "branch": "autonomy/p2-smoke-001",
+  "head": "94ed9105fe1e0654785384459357cd6b915b1a3d"
+}

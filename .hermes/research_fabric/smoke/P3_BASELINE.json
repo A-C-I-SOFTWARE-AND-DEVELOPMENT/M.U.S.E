@@ -1,0 +1,25 @@
+{
+  "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+  "elapsed_s": 4.08,
+  "task_count": 2,
+  "resolved_rate": 1.0,
+  "per_domain_scores": {
+    "swe": 1.0
+  },
+  "outcomes": [
+    {
+      "task_id": "swe-verified-test-001",
+      "domain": "swe",
+      "correctness": 1.0,
+      "ran": true,
+      "detail": "tests passed"
+    },
+    {
+      "task_id": "swe-verified-test-002",
+      "domain": "swe",
+      "correctness": 1.0,
+      "ran": true,
+      "detail": "tests passed"
+    }
+  ]
+}

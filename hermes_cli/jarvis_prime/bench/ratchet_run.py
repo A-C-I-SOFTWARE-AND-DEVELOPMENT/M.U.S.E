@@ -38,7 +38,7 @@ from ..research_fabric.benchmarks import (
     run_suite,
 )
 from ..research_fabric.champion import Champion, ChampionStore
-from ..research_fabric.store import SnapshotStore
+from ..research_fabric.store import SnapshotStore, open_store
 from ..research_fabric.validators import RatchetVerdict, evaluate_ratchet
 from .corpus import FIXTURE_SUITE, HELDOUT_DIR
 
@@ -159,7 +159,7 @@ def run_ratchet(
     train_specs = [s for s in specs if s.task_id not in held_ids]
     held_specs = [s for s in specs if s.task_id in held_ids]
 
-    store = SnapshotStore(db_path)
+    store = open_store(db_path)
     ledger = GuardrailLedger(ledger_path)
     champions = ChampionStore(store, ledger)
 

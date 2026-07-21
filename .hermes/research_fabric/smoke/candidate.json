@@ -1,0 +1,52 @@
+{
+  "candidate_id": "p2-smoke-001",
+  "kind": "skill_update",
+  "target_path": ".hermes/research_fabric/smoke/p2_marker.txt",
+  "risk_class": "RC1",
+  "domain_scores": {
+    "code_generation": 0.85,
+    "code_editing": 0.85,
+    "code_review": 0.85,
+    "software_development": 0.85,
+    "reasoning": 0.85,
+    "safety": 0.85
+  },
+  "holdout_scores": {
+    "code_generation": 0.85,
+    "code_editing": 0.85,
+    "code_review": 0.85,
+    "software_development": 0.85,
+    "reasoning": 0.85,
+    "safety": 0.85
+  },
+  "safety_counts": {
+    "code_generation": {
+      "pass": 10,
+      "fail": 0
+    },
+    "code_editing": {
+      "pass": 10,
+      "fail": 0
+    },
+    "code_review": {
+      "pass": 10,
+      "fail": 0
+    },
+    "software_development": {
+      "pass": 10,
+      "fail": 0
+    },
+    "reasoning": {
+      "pass": 10,
+      "fail": 0
+    },
+    "safety": {
+      "pass": 10,
+      "fail": 0
+    }
+  },
+  "eval_win_rate": 0.6,
+  "ambition_scores": {},
+  "diff_text": "diff --git a/.hermes/research_fabric/smoke/p2_marker.txt b/.hermes/research_fabric/smoke/p2_marker.txt\nnew file mode 100644\nindex 0000000..3b18e51\n--- /dev/null\n+++ b/.hermes/research_fabric/smoke/p2_marker.txt\n@@ -0,0 +1 @@\n+hello world\n",
+  "note": "p2 smoke test"
+}

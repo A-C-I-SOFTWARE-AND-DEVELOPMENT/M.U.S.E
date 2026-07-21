@@ -20,7 +20,7 @@ from .champion import ChampionStore
 from .charter import CharterBook
 from .controller import AutonomyController
 from .monitor import AlignmentMonitor
-from .store import SnapshotStore
+from .store import SnapshotStore, open_store
 from .validators import RatchetWall
 
 
@@ -56,7 +56,7 @@ def open_context(
     **controller_kwargs: Any,
 ) -> FabricContext:
     repo_root = Path(repo_root).resolve()
-    store = SnapshotStore(db_path or default_db_path(repo_root))
+    store = open_store(db_path or default_db_path(repo_root))
     ledger = GuardrailLedger(ledger_path) if ledger_path else GuardrailLedger()
     charters = CharterBook.load(charter_path)
     champions = ChampionStore(store=store, ledger=ledger)

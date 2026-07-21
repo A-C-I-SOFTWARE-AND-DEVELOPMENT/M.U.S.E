@@ -1,0 +1,7 @@
+{
+  "candidate_id": "p2-smoke-001",
+  "diff_text": "diff --git a/.hermes/research_fabric/smoke/p2_marker.txt b/.hermes/research_fabric/smoke/p2_marker.txt\nnew file mode 100644\nindex 0000000..3b18e51\n--- /dev/null\n+++ b/.hermes/research_fabric/smoke/p2_marker.txt\n@@ -0,0 +1 @@\n+hello world\n",
+  "target_path": ".hermes/research_fabric/smoke/p2_marker.txt",
+  "kind": "skill_update",
+  "risk_class": "RC1"
+}

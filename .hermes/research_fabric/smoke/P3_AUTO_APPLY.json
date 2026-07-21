@@ -1,0 +1,9 @@
+{
+  "candidate_id": "p3-swe-local-001",
+  "decision": "blocked",
+  "applied": false,
+  "rolled_back": false,
+  "rationale": "ratchet failed: no held-out / post-cutoff evidence supplied; no challenger eval win-rate supplied (need >= 0.55)",
+  "gate_overall": null,
+  "ledger_record_hash": "8983beb36ac3b8ca9f39d6badc246460760b6eeef439bb7c72ef20ae63cf5417"
+}
