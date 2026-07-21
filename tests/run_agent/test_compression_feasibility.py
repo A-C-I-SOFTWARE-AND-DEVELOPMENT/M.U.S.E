@@ -78,7 +78,7 @@ def test_auto_corrects_threshold_when_aux_context_below_threshold(mock_get_clien
     mock_get_client.return_value = (mock_client, "google/gemini-3-flash-preview")
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
@@ -93,7 +93,7 @@ def test_auto_corrects_threshold_when_aux_context_below_threshold(mock_get_clien
     assert "compression:" in messages[0]
     assert "threshold:" in messages[0]
     # Warning stored for gateway replay
-    assert agent._compression_warning is not None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is not None
     # Threshold on the live compressor was actually lowered to aux_context.
     assert agent.context_compressor.threshold_tokens == 80_000
 
@@ -109,7 +109,7 @@ def test_rejects_aux_below_minimum_context(mock_get_client, mock_ctx_len):
     mock_client.api_key = "sk-aux"
     mock_get_client.return_value = (mock_client, "tiny-aux-model")
 
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None
 
     with pytest.raises(ValueError) as exc_info:
         agent._check_compression_model_feasibility()
@@ -133,12 +133,12 @@ def test_no_warning_when_aux_context_sufficient(mock_get_client, mock_ctx_len):
     mock_get_client.return_value = (mock_client, "google/gemini-2.5-flash")
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
     assert len(messages) == 0
-    assert agent._compression_warning is None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is None
 
 
 def test_feasibility_check_passes_live_main_runtime():
@@ -156,7 +156,7 @@ def test_feasibility_check_passes_live_main_runtime():
 
     with patch("agent.auxiliary_client.get_text_auxiliary_client", return_value=(mock_client, "gpt-5.4")) as mock_get_client, \
          patch("agent.model_metadata.get_model_context_length", return_value=200_000):
-        agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+        agent._emit_status = lambda msg: None
         agent._check_compression_model_feasibility()
 
     mock_get_client.assert_called_once_with(
@@ -167,6 +167,7 @@ def test_feasibility_check_passes_live_main_runtime():
             "base_url": "https://chatgpt.com/backend-api/codex",
             "api_key": "codex-token",
             "api_mode": "codex_responses",
+            "auth_mode": "",
         },
     )
 
@@ -178,13 +179,13 @@ def test_feasibility_check_passes_config_context_length(mock_get_client, mock_ct
     get_model_context_length so custom endpoints that lack /models still
     report the correct context window (fixes #8499)."""
     agent = _make_agent(main_context=200_000, threshold_percent=0.85)
-    agent._aux_compression_context_length_config = 1_000_000  # ty: ignore[unresolved-attribute]
+    agent._aux_compression_context_length_config = 1_000_000
     mock_client = MagicMock()
     mock_client.base_url = "http://custom-endpoint:8080/v1"
     mock_client.api_key = "sk-custom"
     mock_get_client.return_value = (mock_client, "custom/big-model")
 
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None
     agent._check_compression_model_feasibility()
 
     mock_ctx_len.assert_called_once_with(
@@ -202,13 +203,13 @@ def test_feasibility_check_passes_config_context_length(mock_get_client, mock_ct
 def test_feasibility_check_ignores_invalid_context_length(mock_get_client, mock_ctx_len):
     """Non-integer context_length in config is silently ignored."""
     agent = _make_agent(main_context=200_000, threshold_percent=0.50)
-    agent._aux_compression_context_length_config = None  # ty: ignore[unresolved-attribute]
+    agent._aux_compression_context_length_config = None
     mock_client = MagicMock()
     mock_client.base_url = "http://custom:8080/v1"
     mock_client.api_key = "sk-test"
     mock_get_client.return_value = (mock_client, "custom/model")
 
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None
     agent._check_compression_model_feasibility()
 
     mock_ctx_len.assert_called_once_with(
@@ -274,7 +275,7 @@ def test_init_feasibility_check_uses_aux_context_override_from_config():
         # Config override is captured eagerly in __init__ (still needed
         # because the threshold-derivation logic at construction time
         # consults it).
-        assert agent._aux_compression_context_length_config == 1_000_000  # ty: ignore[unresolved-attribute]
+        assert agent._aux_compression_context_length_config == 1_000_000
 
         # The expensive feasibility probe is deferred. Drive it manually
         # to validate the call shape still forwards the override correctly.
@@ -297,13 +298,46 @@ def test_warns_when_no_auxiliary_provider(mock_get_client):
     mock_get_client.return_value = (None, None)
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
     assert len(messages) == 1
     assert "No auxiliary LLM provider" in messages[0]
-    assert agent._compression_warning is not None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is not None
+
+
+def test_no_unavailable_warning_when_configured_fallback_chain_resolves():
+    """Primary compression provider can be down if configured fallback works."""
+    agent = _make_agent(main_context=200_000, threshold_percent=0.50)
+    fallback_client = MagicMock()
+    fallback_client.base_url = "https://chatgpt.com/backend-api/codex"
+    fallback_client.api_key = "codex-oauth-token"
+
+    messages = []
+    agent._emit_status = lambda msg: messages.append(msg)
+
+    with patch(
+        "agent.auxiliary_client._resolve_task_provider_model",
+        return_value=("ollama-cloud", "deepseek-v4-flash:cloud", None, None, None),
+    ), patch(
+        "agent.auxiliary_client.get_text_auxiliary_client",
+        return_value=(None, None),
+    ), patch(
+        "agent.auxiliary_client._try_configured_fallback_for_unavailable_client",
+        return_value=(fallback_client, "gpt-5.4-mini", "fallback_chain[0](openai-codex)"),
+    ) as mock_fallback, patch(
+        "agent.model_metadata.get_model_context_length",
+        return_value=200_000,
+    ) as mock_ctx_len:
+        agent._check_compression_model_feasibility()
+
+    assert messages == []
+    assert agent._compression_warning is None
+    mock_fallback.assert_called_once_with("compression", "ollama-cloud")
+    mock_ctx_len.assert_called_once()
+    assert mock_ctx_len.call_args.args == ("gpt-5.4-mini",)
+    assert mock_ctx_len.call_args.kwargs["provider"] == "openai-codex"
 
 
 def test_skips_check_when_compression_disabled():
@@ -311,12 +345,12 @@ def test_skips_check_when_compression_disabled():
     agent = _make_agent(compression_enabled=False)
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
     assert len(messages) == 0
-    assert agent._compression_warning is None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is None
 
 
 @patch("agent.auxiliary_client.get_text_auxiliary_client")
@@ -326,7 +360,7 @@ def test_exception_does_not_crash(mock_get_client):
     mock_get_client.side_effect = RuntimeError("boom")
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     # Should not raise
     agent._check_compression_model_feasibility()
@@ -346,7 +380,7 @@ def test_exact_threshold_boundary_no_warning(mock_get_client, mock_ctx_len):
     mock_get_client.return_value = (mock_client, "test-model")
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
@@ -365,7 +399,7 @@ def test_just_below_threshold_auto_corrects(mock_get_client, mock_ctx_len):
     mock_get_client.return_value = (mock_client, "small-model")
 
     messages = []
-    agent._emit_status = lambda msg: messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: messages.append(msg)
 
     agent._check_compression_model_feasibility()
 
@@ -390,11 +424,11 @@ def test_warning_stored_for_gateway_replay(mock_get_client, mock_ctx_len):
 
     # Phase 1: __init__ — _emit_status prints (CLI) but callback is None
     vprint_messages = []
-    agent._emit_status = lambda msg: vprint_messages.append(msg)  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: vprint_messages.append(msg)
     agent._check_compression_model_feasibility()
 
     assert len(vprint_messages) == 1  # CLI got it
-    assert agent._compression_warning is not None  # stored for replay  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is not None  # stored for replay
 
     # Phase 2: gateway wires callback post-init, then run_conversation replays
     callback_events = []
@@ -417,10 +451,10 @@ def test_no_replay_when_no_warning(mock_get_client, mock_ctx_len):
     mock_client.api_key = "sk-aux"
     mock_get_client.return_value = (mock_client, "big-model")
 
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None
     agent._check_compression_model_feasibility()
 
-    assert agent._compression_warning is None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is None
 
     callback_events = []
     agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))
@@ -432,7 +466,7 @@ def test_no_replay_when_no_warning(mock_get_client, mock_ctx_len):
 def test_replay_without_callback_is_noop():
     """_replay_compression_warning doesn't crash when status_callback is None."""
     agent = _make_agent()
-    agent._compression_warning = "some warning"  # ty: ignore[unresolved-attribute]
+    agent._compression_warning = "some warning"
     agent.status_callback = None
 
     # Should not raise
@@ -450,24 +484,24 @@ def test_run_conversation_clears_warning_after_replay(mock_get_client, mock_ctx_
     mock_client.api_key = "sk-aux"
     mock_get_client.return_value = (mock_client, "small-model")
 
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None
     agent._check_compression_model_feasibility()
 
-    assert agent._compression_warning is not None  # ty: ignore[unresolved-attribute]
+    assert agent._compression_warning is not None
 
     # Simulate what run_conversation does
     callback_events = []
     agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))
-    if agent._compression_warning:  # ty: ignore[unresolved-attribute]
+    if agent._compression_warning:
         agent._replay_compression_warning()
-        agent._compression_warning = None  # as in run_conversation  # ty: ignore[unresolved-attribute]
+        agent._compression_warning = None  # as in run_conversation
 
     assert len(callback_events) == 1
 
     # Second turn — nothing replayed
     callback_events.clear()
-    if agent._compression_warning:  # ty: ignore[unresolved-attribute]
+    if agent._compression_warning:
         agent._replay_compression_warning()
-        agent._compression_warning = None  # ty: ignore[unresolved-attribute]
+        agent._compression_warning = None
 
     assert len(callback_events) == 0

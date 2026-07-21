@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# muse Setup Script
+# Hermes Agent Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
@@ -56,7 +56,7 @@ get_command_link_display_dir() {
 }
 
 echo ""
-echo -e "${CYAN}◉ muse Setup${NC}"
+echo -e "${CYAN}⚕ Hermes Agent Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -214,7 +214,7 @@ else
     # if mistral can't resolve.
     _BROKEN_EXTRAS=()  # populate when an extra becomes unresolvable
     _ALL_EXTRAS=(
-        modal daytona vercel messaging matrix cron cli dev tts-premium slack
+        modal daytona messaging matrix cron cli dev tts-premium slack
         pty honcho mcp homeassistant sms acp voice dingtalk feishu google
         bedrock web youtube
     )
@@ -329,31 +329,30 @@ fi
 if [ ! -f ".env" ]; then
     if [ -f ".env.example" ]; then
         cp .env.example .env
+        # .env holds API keys — restrict to owner-only access (matches
+        # scripts/install.sh which already chmods 600 after creation).
+        chmod 600 .env 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Created .env from template"
     fi
 else
+    # Tighten an existing .env's perms in case it was created elsewhere
+    # under a permissive umask.
+    chmod 600 .env 2>/dev/null || true
     echo -e "${GREEN}✓${NC} .env exists"
 fi
 
 # ============================================================================
-# PATH setup — symlink muse (and the legacy hermes alias) into a user-facing bin dir
+# PATH setup — symlink hermes into a user-facing bin dir
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up muse command..."
+echo -e "${CYAN}→${NC} Setting up hermes command..."
 
-MUSE_BIN="$SCRIPT_DIR/venv/bin/muse"
 HERMES_BIN="$SCRIPT_DIR/venv/bin/hermes"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
-# `muse` is the canonical command; older venvs may only have the `hermes` shim.
-if [ -f "$MUSE_BIN" ]; then
-    ln -sf "$MUSE_BIN" "$COMMAND_LINK_DIR/muse"
-else
-    ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/muse"
-fi
 ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/hermes"
-echo -e "${GREEN}✓${NC} Symlinked muse → $COMMAND_LINK_DISPLAY_DIR/muse (legacy alias: hermes)"
+echo -e "${GREEN}✓${NC} Symlinked hermes → $COMMAND_LINK_DISPLAY_DIR/hermes"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"
@@ -384,7 +383,7 @@ else
         if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
             if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# muse — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
                 echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
             else
@@ -426,31 +425,31 @@ echo "Next steps:"
 echo ""
 if is_termux; then
     echo "  1. Run the setup wizard to configure API keys:"
-    echo "     muse setup"
+    echo "     hermes setup"
     echo ""
     echo "  2. Start chatting:"
-    echo "     muse"
+    echo "     hermes"
     echo ""
 else
     echo "  1. Reload your shell:"
     echo "     source $SHELL_CONFIG"
     echo ""
     echo "  2. Run the setup wizard to configure API keys:"
-    echo "     muse setup"
+    echo "     hermes setup"
     echo ""
     echo "  3. Start chatting:"
-    echo "     muse"
+    echo "     hermes"
     echo ""
 fi
 echo "Other commands:"
-echo "  muse status          # Check configuration"
+echo "  hermes status        # Check configuration"
 if is_termux; then
-    echo "  muse gateway         # Run gateway in foreground"
+    echo "  hermes gateway       # Run gateway in foreground"
 else
-    echo "  muse gateway install # Install gateway service (messaging + cron)"
+    echo "  hermes gateway install # Install gateway service (messaging + cron)"
 fi
-echo "  muse cron list       # View scheduled jobs"
-echo "  muse doctor          # Diagnose issues"
+echo "  hermes cron list     # View scheduled jobs"
+echo "  hermes doctor        # Diagnose issues"
 echo ""
 
 # Ask if they want to run setup wizard now

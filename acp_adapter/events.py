@@ -11,7 +11,7 @@ import asyncio
 import json
 import logging
 from collections import deque
-from typing import Any, Callable, Deque, Dict, Literal
+from typing import Any, Callable, Deque, Dict
 
 import acp
 from acp.schema import AgentPlanUpdate, PlanEntry
@@ -59,7 +59,7 @@ def _build_plan_update_from_todo_result(result: Any) -> AgentPlanUpdate | None:
     if not todos:
         return AgentPlanUpdate(session_update="plan", entries=[])
 
-    status_map: Dict[str, Literal["pending", "in_progress", "completed"]] = {
+    status_map = {
         "pending": "pending",
         "in_progress": "in_progress",
         "completed": "completed",
@@ -131,7 +131,7 @@ def make_tool_progress_cb(
     ``reasoning.available``) are silently ignored.
     """
 
-    def _tool_progress(event_type: str, name: str | None = None, preview: str | None = None, args: Any = None, **kwargs) -> None:
+    def _tool_progress(event_type: str, name: str = None, preview: str = None, args: Any = None, **kwargs) -> None:
         # Only emit ACP ToolCallStart for tool.started; ignore other event types
         if event_type != "tool.started":
             return
@@ -147,14 +147,11 @@ def make_tool_progress_cb(
         queue = tool_call_ids.get(name)
         if queue is None:
             queue = deque()
-            tool_call_ids[name] = queue  # ty: ignore[invalid-assignment]
+            tool_call_ids[name] = queue
         elif isinstance(queue, str):
-            # Legacy defensive branch: older adapter versions stored a bare
-            # string id instead of a deque. Statically unreachable per the
-            # Dict[str, Deque[str]] annotation, hence the suppressions.
             queue = deque([queue])
-            tool_call_ids[name] = queue  # ty: ignore[invalid-assignment]
-        queue.append(tc_id)  # ty: ignore[invalid-argument-type]
+            tool_call_ids[name] = queue
+        queue.append(tc_id)
 
         snapshot = None
         if name in {"write_file", "patch", "skill_manage"}:
@@ -179,7 +176,7 @@ def make_tool_progress_cb(
             except Exception:
                 logger.debug("Failed to prepare auto-approved ACP edit diff for %s", name, exc_info=True)
 
-        update = build_tool_start(tc_id, name, args, edit_diff=edit_diff)  # ty: ignore[invalid-argument-type]
+        update = build_tool_start(tc_id, name, args, edit_diff=edit_diff)
         _send_update(conn, session_id, loop, update)
 
     return _tool_progress
@@ -239,9 +236,8 @@ def make_step_cb(
 
                 queue = tool_call_ids.get(tool_name or "")
                 if isinstance(queue, str):
-                    # Same legacy str-valued-queue defensive branch as above.
                     queue = deque([queue])
-                    tool_call_ids[tool_name] = queue  # ty: ignore[invalid-assignment]
+                    tool_call_ids[tool_name] = queue
                 if tool_name and queue:
                     tc_id = queue.popleft()
                     meta = tool_call_meta.pop(tc_id, {})

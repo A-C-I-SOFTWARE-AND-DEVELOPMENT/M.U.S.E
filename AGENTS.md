@@ -2,6 +2,214 @@
 
 Instructions for AI coding assistants and developers working on the hermes-agent codebase.
 
+**Never give up on the right solution.**
+
+## What Hermes Is
+
+Hermes is a personal AI agent that runs the same agent core across a CLI, a
+messaging gateway (Telegram, Discord, Slack, and ~20 other platforms), a TUI,
+and an Electron desktop app. It learns across sessions (memory + skills),
+delegates to subagents, runs scheduled jobs, and drives a real terminal and
+browser. It is extended primarily through **plugins and skills**, not by
+growing the core.
+
+Two properties shape almost every design decision and are the lens for
+reviewing any change:
+
+- **Per-conversation prompt caching is sacred.** A long-lived conversation
+  reuses a cached prefix every turn. Anything that mutates past context,
+  swaps toolsets, or rebuilds the system prompt mid-conversation invalidates
+  that cache and multiplies the user's cost. We do not do it (the one
+  exception is context compression).
+- **The core is a narrow waist; capability lives at the edges.** Every model
+  tool we add is sent on every API call, so the bar for a new *core* tool is
+  high. Most new capability should arrive as a CLI command + skill, a
+  service-gated tool, or a plugin — not as core surface.
+
+## Contribution Rubric — What We Want / What We Don't
+
+This is the project's intent layer. Use it two ways:
+
+1. **For humans and for your own work** — what gets merged and what gets
+   rejected, so a contribution aims at the target.
+2. **For automated review (the triage sweeper)** — guidance on when a PR is
+   safe to close on the three allowed reasons (`implemented_on_main`,
+   `cannot_reproduce`, `incoherent`) and, just as important, **when NOT to
+   close** one. Taste-based "we don't want this / out of scope" closes are NOT
+   an automated decision — those stay with a human maintainer. The sweeper's
+   job here is to recognize design intent and *avoid wrongly closing a
+   legitimate contribution*, not to make the won't-implement call itself.
+
+Read the balance right: Hermes ships a **lot** — most merges are bug fixes to
+real reported behavior, and the product surface (platforms, channels,
+providers, models, desktop/TUI features) expands aggressively and on purpose.
+The restraint below is aimed squarely at the **core agent + the model tool
+schema**, the one place where every addition is paid for on every API call.
+"Smallest footprint" governs *how a capability is wired into the core*, NOT
+whether the product is allowed to grow. We are expansive at the edges and
+conservative at the waist.
+
+### What we want
+
+- **Fix real bugs, well.** The bulk of what lands is `fix(...)` against an
+  actual reported symptom. A good fix reproduces the symptom on current
+  `main`, points to the exact line where it manifests, and fixes the whole bug
+  class — sibling call paths included — not just the one site the reporter hit.
+- **Expand reach at the edges.** New platform adapters, channels, providers,
+  models, and desktop/TUI/dashboard features are welcome and land routinely,
+  including large ones (a new messaging channel, a session-cap feature, a
+  Windows PTY bridge). Breadth in the product is a goal, not a footprint
+  concern — as long as it integrates with the existing setup/config UX
+  (`hermes tools`, `hermes setup`, auto-install) rather than bolting on a raw
+  env var.
+- **Refactor god-files into clean modules.** Extracting a multi-thousand-line
+  cluster out of `cli.py` / `run_agent.py` / `gateway/run.py` into a focused
+  mixin or module is wanted work, even when the diff is huge and mechanical
+  (large `+N/-N` refactors merge regularly). The "every line traces to the
+  request" test applies to *feature* PRs; a declared refactor's request IS the
+  extraction.
+- **Keep the core narrow.** New *model tools* are the expensive exception —
+  every tool ships on every API call. Prefer, in order: extend existing code →
+  CLI command + skill → service-gated tool (`check_fn`) → plugin → MCP server
+  in the catalog → new core tool (last resort). See "The Footprint Ladder."
+- **Extend, don't duplicate.** Before adding a module/manager/hook, check
+  whether existing infrastructure already covers the use case. When several PRs
+  integrate the same *category*, design one shared interface instead of merging
+  them one at a time (see the ABC + orchestrator note under the Footprint
+  Ladder).
+- **Behavior contracts over snapshots.** Tests should assert how two pieces of
+  data must relate (invariants), not freeze a current value (model lists,
+  config version literals, enumeration counts). See "Don't write
+  change-detector tests."
+- **E2E validation, not just green unit mocks.** For anything touching
+  resolution chains, config propagation, security boundaries, remote
+  backends, or file/network I/O, exercise the real path with real imports
+  against a temp `HERMES_HOME`. Mocks hide integration bugs.
+- **Cache-, alternation-, and invariant-safe.** Preserve prompt caching, strict
+  message role alternation (never two same-role messages in a row; never a
+  synthetic user message injected mid-loop), and a system prompt that is
+  byte-stable for the life of a conversation.
+- **Contributor credit preserved.** Salvage external work by cherry-picking
+  (rebase-merge) so authorship survives in git history; don't reimplement from
+  scratch when you can build on top.
+
+### What we don't want (rejected even when well-built)
+
+- **Speculative infrastructure.** Hooks, callbacks, or extension points with no
+  concrete consumer. Adding a hook is easy; removing one after plugins depend
+  on it is hard. A hook is NOT speculative if a contributor has a real, stated
+  use case — even if the consumer ships separately.
+- **New `HERMES_*` env vars for non-secret config.** `.env` is for secrets
+  only (API keys, tokens, passwords). All behavioral settings — timeouts,
+  thresholds, feature flags, display prefs — go in `config.yaml`. Bridge to an
+  internal env var if the mechanism needs one, but user-facing docs point to
+  `config.yaml`. Reject PRs that tell users to "set X in your .env" unless X
+  is a credential.
+- **A new core tool when terminal + file already do the job, or when a skill
+  would.** If the only barrier is file visibility on a remote backend, fix the
+  mount, not the toolset.
+- **Lazy-reading escape hatches on instructional tools.** No `offset`/`limit`
+  pagination on tools that load content the agent must read fully (skills,
+  prompts, playbooks). Models will read page 1 and skip the rest.
+- **"Fixes" that destroy the feature they secure.** A mitigation that kills the
+  feature's purpose is the wrong mitigation. Read the original commit's intent
+  (`git log -p -S`) before restricting behavior; find a fix that preserves the
+  feature.
+- **Outbound telemetry / usage attribution without opt-in gating.** No new
+  analytics, third-party identifier tagging, or attribution tags until a
+  generic user-facing opt-in (config gate + setup prompt + `hermes tools`
+  toggle) exists. Park behind a label, do not merge.
+- **Change-detector tests, cache-breaking mid-conversation, dead code wired in
+  without E2E proof, and plugins that touch core files.** Plugins live in their
+  own directory and work within the ABCs/hooks we provide; if a plugin needs
+  more, widen the generic plugin surface, don't special-case it in core.
+- **Third-party products / other people's projects integrated into the core
+  tree.** Observability backends, vendor SaaS integrations, analytics dashboards,
+  and similar "someone else's product" plugins do NOT land under `plugins/` in
+  this repo. They place an ongoing maintenance burden on us to keep them working
+  against a fast-moving core, for a backend we don't own. Ship them as a
+  **standalone plugin repo** users install into `~/.hermes/plugins/` (or via a
+  pip entry point), and promote them in the Nous Research Discord
+  (`#plugins-skills-and-skins`). This is a coupling-and-maintenance decision, not
+  a quality bar — the plugin can be excellent and still be a close. PRs that add
+  such a directory to the tree are closed with a pointer to publish it as its own
+  repo.
+
+### Before you call it a bug — verify the premise (and when NOT to close)
+
+The most common reason a well-written PR gets closed is not code quality — it
+is that the change is built on a **wrong premise**, or it treats an
+**intentional design as a gap**. These patterns cut both ways: they tell a
+human reviewer what to scrutinize, and they tell the automated sweeper when a
+PR is NOT safe to close as `implemented_on_main` / `cannot_reproduce` (when in
+doubt, leave it open for a human). They are distilled from real closes.
+
+- **"Intentional design, not a gap."** A limitation that looks like an
+  oversight is often deliberate. Before "fixing" a missing link or a
+  restriction, ask whether the isolation IS the design. Example: profiles are
+  independent islands on purpose — a PR adding live config inheritance from the
+  default profile was closed because coupling profiles together is exactly what
+  the design prevents (the copy-at-creation `--clone` path already covers the
+  legitimate "start from my default" case). Read the original commit's intent
+  (`git log -p -S "<symbol>"`) before assuming something is unfinished.
+- **"The premise doesn't hold against how X actually works."** A PR's
+  justification frequently rests on a wrong mental model of an existing
+  mechanism. Trace the real code/runtime before accepting the rationale. Two
+  real closes: a rate-limit "re-probe during cooldown" PR (the breaker only
+  trips on a *confirmed-empty* account bucket, so re-probing just hammers a
+  bucket we've already proven empty); a usage-accumulation fix whose new branch
+  **never executes at runtime** because an earlier guard already popped the
+  state it depended on. If you can't point to the exact line where the bug
+  manifests AND show the fix changes that line's behavior, you haven't verified
+  the premise.
+- **"This fix was wrong — the absence/omission was deliberate."** Adding the
+  obvious-looking missing piece can break things the omission was protecting.
+  Example: restoring "missing" `__init__.py` files made a test tree importable
+  as a dotted package that shadowed the real plugin, deleting its `register()`
+  at import time. The absence was load-bearing.
+- **"Overreached / resurrected an approach we'd moved past."** Scope creep that
+  supersedes an agreed-on base, or revives a direction the maintainers
+  deliberately closed, gets rejected even when the code works. Keep the change
+  to the narrow piece that was actually agreed; offer the rest as a focused
+  follow-up.
+
+The throughline: **verify the claim AND the intent against the codebase before
+writing or merging a fix.** A confirmed reproduction on current `main` plus a
+line-level account of where the fix acts beats a plausible-sounding rationale
+every time. When in doubt about intent, it is cheaper to ask than to ship a
+fix that fights the design.
+
+### The Footprint Ladder (new capability decision)
+
+Each rung adds more permanent surface than the one above. Choose the highest
+(least-footprint) rung that correctly solves the problem:
+
+1. **Extend existing code** — the capability is a variation of something that
+   already exists. Zero new surface.
+2. **CLI command + skill** — manages config/state/infra expressible as shell
+   commands. The agent runs `hermes <subcommand>` guided by a skill. Zero
+   model-tool footprint. Default choice for subscriptions, scheduled tasks,
+   service setup. Examples: `hermes webhook`, `hermes cron`, `hermes tools`.
+3. **Service-gated tool (`check_fn`)** — needs structured params/returns AND
+   only appears when a prerequisite is configured. Zero footprint otherwise.
+   Examples: Home Assistant tools (gated on token), memory-provider tools.
+4. **Plugin** — third-party/niche/user-specific capability that doesn't ship in
+   core. Lives in `~/.hermes/plugins/` or a pip package, discovered at runtime.
+5. **MCP server (in the catalog)** — if the capability genuinely needs to be a
+   tool (structured I/O the agent invokes) but isn't core-fundamental, prefer
+   building it as an MCP server and adding it to the MCP catalog over growing
+   the core toolset. The agent connects to it through the built-in MCP client;
+   zero permanent core-schema footprint, and it's reusable by any MCP host.
+6. **New core tool** — only when the capability is fundamental, broadly useful
+   to nearly every user, and unreachable via terminal + file (or an MCP server).
+   Examples of correct core tools: terminal, read_file, web_search,
+   browser_navigate.
+
+When 3+ open PRs try to integrate the same *category* of thing (memory
+backends, providers, notifiers), don't merge them one at a time — design an
+ABC + orchestrator, wrap the existing built-in as the first provider, and turn
+the competing PRs into plugins against that interface.
+
 ## Development Environment
 
 ```bash
@@ -47,12 +255,11 @@ hermes-agent/
 │   ├── hermes-achievements/  # Gamified achievement tracking
 │   ├── observability/    # Metrics / traces / logs plugin
 │   ├── image_gen/        # Image-generation providers
-│   ├── asset3d_gen/      # Text-to-3D mesh providers (meshy; Game Studio)
-│   └── <others>/         # disk-cleanup, example-dashboard, google_meet, platforms,
-│                         #   spotify, strike-freedom-cockpit, ...
+│   └── <others>/         # disk-cleanup, google_meet, platforms, spotify,
+│                         #   strike-freedom-cockpit, ...
 ├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
 ├── skills/               # Built-in skills bundled with the repo
-├── ui-tui/               # Ink (React) terminal UI — `muse --tui`
+├── ui-tui/               # Ink (React) terminal UI — `hermes --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
 ├── tui_gateway/          # Python JSON-RPC backend for the TUI
 ├── acp_adapter/          # ACP server (VS Code / Zed / JetBrains integration)
@@ -65,7 +272,30 @@ hermes-agent/
 **User config:** `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys only).
 **Logs:** `~/.hermes/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
 `gateway.log` when running the gateway. Profile-aware via `get_hermes_home()`.
-Browse with `muse logs [--follow] [--level ...] [--session ...]`.
+Browse with `hermes logs [--follow] [--level ...] [--session ...]`.
+
+## TypeScript Style
+
+Applies to TypeScript across Hermes: desktop, TUI, website, and future TS packages.
+
+- Prefer small nanostores over component state when state is shared, reused, or read by distant UI.
+- Let each feature own its atoms. Chat state belongs near chat, shell state near shell, shared state in `src/store`.
+- Components that render from an atom should use `useStore`. Non-rendering actions should read with `$atom.get()`.
+- Do not pass state through three components when the leaf can subscribe to the atom.
+- Keep persistence beside the atom that owns it.
+- Keep route roots thin. They compose routes and shell; they should not become controllers.
+- No monolithic hooks. A hook should own one narrow job.
+- Prefer colocated action modules over hidden god hooks.
+- If a callback is pure side effect, use the terse void form:
+  `onState={st => void setGatewayState(st)}`.
+- Async UI handlers should make intent explicit:
+  `onClick={() => void save()}`.
+- Prefer interfaces for public props and shared object shapes. Avoid `type X = { ... }` for object props.
+- Extend React primitives for props: `React.ComponentProps<'button'>`, `React.ComponentProps<typeof Dialog>`, `Omit<...>`, `Pick<...>`.
+- Table-driven beats condition ladders when mapping ids, routes, or views.
+- `src/app` owns routes, pages, and page-specific components.
+- `src/store` owns shared atoms.
+- `src/lib` owns shared pure helpers.
 
 ## File Dependency Chain
 
@@ -197,12 +427,12 @@ if canonical == "mycommand":
 
 ## TUI Architecture (ui-tui + tui_gateway)
 
-The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `muse --tui` or `HERMES_TUI=1`.
+The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `hermes --tui` or `HERMES_TUI=1`.
 
 ### Process Model
 
 ```
-muse --tui
+hermes --tui
   └─ Node (Ink)  ──stdio JSON-RPC──  Python (tui_gateway)
        │                                  └─ AIAgent + tools + sessions
        └─ renders transcript, composer, prompts, activity
@@ -240,56 +470,49 @@ npm install       # first time
 npm run dev       # watch mode (rebuilds hermes-ink + tsx --watch)
 npm start         # production
 npm run build     # full build (hermes-ink + tsc)
-npm run type-check # typecheck only (tsc --noEmit)
+npm run typecheck # typecheck only (tsc --noEmit)
 npm run lint      # eslint
 npm run fmt       # prettier
 npm test          # vitest
 ```
 
-### TUI in the Dashboard (`muse dashboard` → `/chat`)
+### TUI in the Dashboard (`hermes dashboard` → `/chat`)
 
-The dashboard embeds the real `muse --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
+The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
 
 - Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
-- The server spawns whatever `muse --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
+- The server spawns whatever `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
 - Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
 
-**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `muse --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
+**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `hermes --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
+### Electron Desktop Chat App (`apps/desktop/`)
+
+A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@hermes/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `hermes serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `HERMES_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.ts` + `backendSupportsServe()` in `electron/main.ts`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `hermes` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `hermes --tui` — it has its own composer, transcript, and slash-command pipeline. For scoped Desktop architecture, state, resolver, transport, and testing rules, read `apps/desktop/AGENTS.md`.
+
+**Slash commands in the desktop app are curated client-side, then dispatched to the backend.** The pipeline:
+
+- **Backend already provides everything.** `tui_gateway/server.py` `commands.catalog` (empty-query list) and `complete.slash` (typed-query completions) both include built-in commands, user `quick_commands`, AND skill-derived commands (`scan_skill_commands()` / `get_skill_commands()`). The desktop app does not need a new RPC to see skills.
+- **The renderer curates via `apps/desktop/src/lib/desktop-slash-commands.ts`.** This is the load-bearing file. It holds `DESKTOP_COMMAND_SPECS` (the built-ins and their Desktop surfaces) plus `NO_DESKTOP_SURFACE` block-lists for terminal-only / messaging-only / picker-owned / settings-owned / advanced commands that should NOT clutter the desktop popover.
+  - `isDesktopSlashCommand(name)` — gates **execution**. Returns true for built-ins AND for any non-built-in (skill / quick command), so typed extension commands run.
+  - `isDesktopSlashSuggestion(name)` — gates **discovery/completion**. Used by BOTH completion paths in `app/chat/composer/hooks/use-slash-completions.ts` (empty-query catalog filter + typed-query `complete.slash` filter) and by `filterDesktopCommandsCatalog`.
+  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known Hermes built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
+- **Dispatch** lives in `app/session/hooks/use-prompt-actions/slash.ts` (`runSlash`): built-ins that the desktop owns (`/skin`, `/help`, `/new`, …) are handled locally or via `commands.catalog`; everything else goes to `slash.exec`, falling back to `command.dispatch` (which the gateway resolves into skill / alias / exec directives). A skill command resolves to `{type: "skill", message}` and is submitted as a normal prompt.
+
+**Rule:** the desktop slash palette's curation is about hiding noise (terminal-only / messaging-only built-ins), NOT about hiding user-activated extensions. Skill commands and `quick_commands` are extensions the backend surfaces — they belong in completions. If you tighten `desktop-slash-commands.ts`, keep `isDesktopSlashExtensionCommand` flowing into both the suggestion and catalog-filter paths. Tests: from `apps/desktop`, run `npx vitest run src/lib/desktop-slash-commands.test.ts` (workspace dependencies are installed at the repo root).
+
 ---
-
-## Tool-output compaction (TokenJuice)
-
-Tool output is reduced before it enters the model context by a first-pass
-compaction layer in **`tools/tokenjuice/`** (clean-room Python port of the MIT
-`vincentkoc/tokenjuice` rules — see `THIRD_PARTY_NOTICES.md`). It runs inside
-both tool-execution paths in `agent/tool_executor.py` via the shared
-`_tokenjuice_compact(...)` helper, in this order, **before** the existing
-size-threshold persistence/budget layer (`tools/tool_result_storage.py`):
-
-1. **raw log** — full *pre-scrub* output is written to `~/.hermes/tool-raw/`
-   (gitignored, debug-only; never auto-read into context) when `preserve_raw`.
-2. **scrub** — `scrub_credentials` redacts secrets (closes the prior gap where
-   raw tool output reached the model unredacted).
-3. **compact** — rule-based reduction (`compact_tool_output`); pass-through safe
-   (tiny/incompressible/`skip_tools` output untouched) and fail-open (errors
-   return the original).
-
-Then `maybe_persist_tool_result` / `enforce_turn_budget` run unchanged as the
-fallback for anything still large. Config lives under `tool_output.compaction.*`
-in `cli-config.yaml` (see `cli-config.yaml.example`); global kill switch is
-`HERMES_TOKENJUICE=off`. Do **not** confuse this with
-`hermes_cli/jarvis_prime/tokenjuice.py` (a separate *context compiler*). Full
-design: `docs/audits/tokenjuice-integration-plan.md`.
 
 ## Adding New Tools
 
-For most custom or local-only tools, do **not** edit Hermes core. Use the plugin
-route instead: create `~/.hermes/plugins/<name>/plugin.yaml` and
-`~/.hermes/plugins/<name>/__init__.py`, then register tools with
+Before adding any tool, settle the footprint question first (see "The
+Footprint Ladder" in the Contribution Rubric): most capabilities should NOT
+be core tools. For custom or local-only tools, do **not** edit Hermes core.
+Use the plugin route instead: create `~/.hermes/plugins/<name>/plugin.yaml`
+and `~/.hermes/plugins/<name>/__init__.py`, then register tools with
 `ctx.register_tool(...)`. Plugin toolsets are discovered automatically and can be
 enabled or disabled without touching `tools/` or `toolsets.py`.
 
@@ -404,7 +627,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 | Loader | Used by | Location |
 |--------|---------|----------|
 | `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `muse tools`, `muse setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
+| `load_config()` | `hermes tools`, `hermes setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
 If you add a new key and the CLI sees it but the gateway doesn't (or vice
@@ -551,7 +774,7 @@ defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
 it at argparse setup time and wires it into `hermes <plugin>`. The
 framework only exposes CLI commands for the **currently active** memory
 provider (read from `memory.provider` in config.yaml), so disabled
-providers don't clutter `muse --help`.
+providers don't clutter `hermes --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
 (`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
@@ -565,11 +788,29 @@ built-in memory providers under `plugins/memory/` is closed. New memory
 backends must ship as **standalone plugin repos** that users install
 into `~/.hermes/plugins/` (or via pip entry points) — they implement
 the same `MemoryProvider` ABC, register through the same discovery
-path, and integrate via `muse memory setup` / `post_setup()` without
+path, and integrate via `hermes memory setup` / `post_setup()` without
 landing in this tree. PRs that add a new directory under
 `plugins/memory/` will be closed with a pointer to publish the
 provider as its own repo. Existing in-tree providers stay; bug fixes
 to them are welcome.
+
+**No new third-party-product plugins in-tree (policy, June 2026):** the
+same rule applies beyond memory providers. Plugins that integrate
+someone else's product or project — observability/metrics backends,
+vendor SaaS connectors, analytics dashboards, paid-service tie-ins —
+must ship as **standalone plugin repos** that users install into
+`~/.hermes/plugins/` (or via pip entry points). They register through
+the existing plugin discovery path and use the ABCs/hooks/ctx surface
+we expose; nothing special is needed in core. The reason is
+maintenance load: every product we absorb into the tree becomes our
+burden to keep working against a fast-moving core, for a backend we
+don't own. Promote standalone plugins in the Nous Research Discord
+(`#plugins-skills-and-skins`). PRs that add such a directory under
+`plugins/` are closed with a pointer to publish it as its own repo —
+this is a coupling decision, not a quality judgment. (The
+`observability/`, `kanban/`, `disk-cleanup/`, etc. directories already
+in the tree are existing precedent, not an invitation to add more
+third-party-product plugins alongside them.)
 
 ### Model-provider plugins (`plugins/model-providers/<name>/`)
 
@@ -617,7 +858,7 @@ Two parallel surfaces:
   Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
 - **`optional-skills/`** — heavier or niche skills shipped with the repo but
   NOT active by default. Installed explicitly via
-  `muse skills install official/<category>/<skill>`. Adapter lives in
+  `hermes skills install official/<category>/<skill>`. Adapter lives in
   `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
   `autonomous-ai-agents`, `blockchain`, `communication`, `creative`,
   `devops`, `email`, `health`, `mcp`, `migration`, `mlops`, `productivity`,
@@ -718,70 +959,6 @@ lives in the `hermes-agent-dev` skill at
 `references/new-skill-pr-salvage.md` — load it before polishing
 contributor skill PRs.
 
-### Orchestration pipeline skills
-
-A coordinated set of skills implements the local-first orchestration
-pipeline. They expect the same job-folder contract and read/write a
-shared decision ledger so that every run is auditable.
-
-| Skill | Purpose |
-|---|---|
-| `hermes-orchestration-pipeline` | Top-level driver. Reads a job folder, dispatches to the right specialist skills, and writes the result back to the ledger. |
-| `aos-full-agent-team` | Spawns the standard planner / builder / reviewer / architect roles and assigns work via the kanban dispatcher. |
-| `model-router` | Resolves `task-type → model` using `docs/ai-intelligence/model-registry.yaml` and the routing policy. |
-| `decision-quality-gate` | Validates a proposed decision against the ledger before it ships. |
-| `research-validator` | Cross-checks claims pulled from the web / docs before they enter the ledger. |
-| `ai-improvement-radar` | Continuous scan for new AI capabilities Hermes should adopt. |
-| `self-improvement-loop` | Proposes patches to Hermes's own skills, ledger, and routing policy. Gated by `decision-quality-gate`. |
-| `github-publisher` | Turns approved changes into branches, PRs, and releases. |
-| `developer-ux-command-center` | The Android APK cockpit's view onto the pipeline. |
-| `best-coding-tool-mission` | Holds the project's north-star mission used when ranking trade-offs. |
-
-These skills cooperate via two on-disk contracts:
-
-1. **Job folder contract** — every job lives in a directory whose
-   layout is fixed (`prompt.md`, `inputs/`, `outputs/`, `ledger.jsonl`,
-   `status.json`). Skills read inputs and append to `ledger.jsonl`;
-   they never overwrite history.
-2. **Decision ledger** — every non-trivial decision is appended as a
-   JSON line with `decision_id`, `rationale`, `alternatives`,
-   `model`, `cost`, `outcome`. The `decision-quality-gate` skill
-   consumes this; the `self-improvement-loop` skill mines it.
-
-Companion docs:
-
-- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline contract.
-- `docs/orchestration/decision-ledger.md` — ledger schema and lifecycle.
-- `docs/orchestration/self-improvement-loop.md` — how Hermes proposes
-  patches to itself.
-- `docs/ai-intelligence/model-registry.yaml` — model catalog (capabilities,
-  cost, context window, modality) consumed by `model-router`.
-- `docs/ai-intelligence/model-routing-policy.md` — rules that map
-  task type to model.
-- `docs/competitive/openhuman-paperclip-research.md` — competitive
-  feature harvester output that feeds `ai-improvement-radar`.
-- `docs/mission/best-coding-tool-mission.md` — mission statement.
-- `scripts/hermes-orchestrate.sh` — convenience entry point that
-  invokes the pipeline against a job folder.
-
-Posture: **private and local-first**. No telemetry, no remote config,
-no third-party data sharing in the pipeline. The Hermes backend is the
-engine; the Android APK at [`apps/android`](apps/android/) is the
-cockpit. See [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
-for the cockpit contract.
-
-Invocation summary (CLI or any messaging gateway):
-
-```text
-/reload-skills                              # pick up new/edited skills
-/aos-full-agent-team <goal>                 # full team for a goal
-/hermes-orchestration-pipeline <job-id>     # drive a job folder
-/model-router <task-type>                   # pick a model for a task
-/decision-quality-gate <decision-id>        # gate a proposed decision
-/ai-improvement-radar                       # scan + report adoptions
-/github-publisher <branch>                  # ship approved changes
-```
-
 ---
 
 ## Toolsets
@@ -797,7 +974,7 @@ Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
 `messaging`, `moa`, `rl`, `safe`, `search`, `session_search`, `skills`,
 `spotify`, `terminal`, `todo`, `tts`, `video`, `vision`, `web`, `yuanbao`.
 
-Enable/disable per platform via `muse tools` (the curses UI) or the
+Enable/disable per platform via `hermes tools` (the curses UI) or the
 `tools.<platform>.enabled` / `tools.<platform>.disabled` lists in
 `config.yaml`.
 
@@ -806,9 +983,10 @@ Enable/disable per platform via `muse tools` (the curses UI) or the
 ## Delegation (`delegate_task`)
 
 `tools/delegate_tool.py` spawns a subagent with an isolated
-context + terminal session. Synchronous: the parent waits for the
-child's summary before continuing its own loop — if the parent is
-interrupted, the child is cancelled.
+context + terminal session. By default the parent waits for the
+child's summary before continuing its own loop. With `background=true`,
+Hermes returns a delegation id immediately and the result re-enters the
+conversation later through the async-delegation completion queue.
 
 Two shapes:
 
@@ -830,9 +1008,9 @@ Key config knobs (under `delegation:` in `config.yaml`):
 `orchestrator_enabled`, `subagent_auto_approve`, `inherit_mcp_toolsets`,
 `max_iterations`.
 
-Synchronicity rule: delegate_task is **not** durable. For long-running
-work that must outlive the current turn, use `cronjob` or
-`terminal(background=True, notify_on_complete=True)` instead.
+Durability rule: background `delegate_task` is detached from the current
+turn but still process-local. For work that must survive process restart, use
+`cronjob` or `terminal(background=True, notify_on_complete=True)` instead.
 
 ---
 
@@ -844,7 +1022,7 @@ go to `~/.hermes/skills/.archive/` and are restorable.
 
 - **Core:** `agent/curator.py` (review loop, auto-transitions, LLM review
   prompt) + `agent/curator_backup.py` (pre-run tar.gz snapshots).
-- **CLI:** `hermes_cli/curator.py` wires `muse curator <verb>` where
+- **CLI:** `hermes_cli/curator.py` wires `hermes curator <verb>` where
   verbs are: `status`, `run`, `pause`, `resume`, `pin`, `unpin`,
   `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Telemetry:** `tools/skill_usage.py` owns the sidecar
@@ -873,7 +1051,7 @@ Full user-facing docs: `website/docs/user-guide/features/curator.md`.
 ## Cron (scheduled jobs)
 
 `cron/jobs.py` (job store) + `cron/scheduler.py` (tick loop). Agents
-schedule jobs via the `cronjob` tool; users via `muse cron <verb>`
+schedule jobs via the `cronjob` tool; users via `hermes cron <verb>`
 (`list`, `add`, `edit`, `pause`, `resume`, `run`, `remove`) or the
 `/cron` slash command.
 
@@ -909,21 +1087,23 @@ main conversation's message-role alternation stays intact.
 ## Kanban (multi-agent work queue)
 
 Durable SQLite-backed board that lets multiple profiles / workers
-collaborate on shared tasks. Users drive it via `muse kanban <verb>`;
+collaborate on shared tasks. Users drive it via `hermes kanban <verb>`;
 workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `hermes_cli/kanban.py` wires `muse kanban` with verbs
+- **CLI:** `hermes_cli/kanban.py` wires `hermes kanban` with verbs
   `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
-  `unlink`, `comment`, `complete`, `block`, `unblock`, `archive`,
-  `tail`, plus less-commonly-used `watch`, `stats`, `runs`, `log`,
-  `assignees`, `heartbeat`, `notify-*`, `dispatch`, `daemon`, `gc`.
+  `unlink`, `comment`, `attach`, `attachments`, `attach-rm`, `complete`,
+  `block`, `unblock`, `archive`, `tail`, plus less-commonly-used `watch`,
+  `stats`, `runs`, `log`, `assignees`, `heartbeat`, `notify-*`,
+  `dispatch`, `daemon`, `gc`.
 - **Worker/orchestrator toolset:** `tools/kanban_tools.py` exposes
   `kanban_show`, `kanban_complete`, `kanban_block`, `kanban_heartbeat`,
-  `kanban_comment`, `kanban_create`, `kanban_link`; profiles that
-  explicitly enable the `kanban` toolset outside a dispatcher-spawned
-  task also get `kanban_list` and `kanban_unblock` for board routing.
+  `kanban_comment`, `kanban_create`, `kanban_link`, `kanban_attach`,
+  `kanban_attach_url`, `kanban_attachments`; profiles that explicitly
+  enable the `kanban` toolset outside a dispatcher-spawned task also get
+  `kanban_list` and `kanban_unblock` for board routing.
 - **Dispatcher:** long-lived loop that (default every 60s) reclaims
   stale claims, promotes ready tasks, atomically claims, and spawns
   assigned profiles. Runs **inside the gateway** by default via
@@ -1026,11 +1206,11 @@ automatically scope to the active profile.
    a unique credential (bot token, API key), call `acquire_scoped_lock()` from
    `gateway.status` in the `connect()`/`start()` method and `release_scoped_lock()` in
    `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
-   See `gateway/platforms/telegram.py` for the canonical pattern.
+   See `plugins/platforms/irc/adapter.py` for the canonical pattern.
 
 6. **Profile operations are HOME-anchored, not HERMES_HOME-anchored** — `_get_profiles_root()`
    returns `Path.home() / ".hermes" / "profiles"`, NOT `get_hermes_home() / "profiles"`.
-   This is intentional — it lets `muse -p coder profile list` see all profiles regardless
+   This is intentional — it lets `hermes -p coder profile list` see all profiles regardless
    of which one is active.
 
 ## Known Pitfalls
@@ -1100,11 +1280,12 @@ def profile_env(tmp_path, monkeypatch):
 
 ## Testing
 
+### Python
 **ALWAYS use `scripts/run_tests.sh`** — do not call `pytest` directly. The script enforces
 hermetic environment parity with CI (unset credential vars, TZ=UTC, LANG=C.UTF-8,
-4 xdist workers matching GHA ubuntu-latest). Direct `pytest` on a 16+ core
-developer machine with API keys set diverges from CI in ways that have caused
-multiple "works locally, fails in CI" incidents (and the reverse).
+`-n auto` xdist workers, in-tree subprocess-isolation plugin). Direct `pytest`
+on a 16+ core developer machine with API keys set diverges from CI in ways
+that have caused multiple "works locally, fails in CI" incidents (and the reverse).
 
 ```bash
 scripts/run_tests.sh                                  # full suite, CI-parity
@@ -1113,35 +1294,39 @@ scripts/run_tests.sh tests/agent/test_foo.py::test_x  # one test
 scripts/run_tests.sh -v --tb=long                     # pass-through pytest flags
 ```
 
-### Why the wrapper (and why the old "just call pytest" doesn't work)
+**Flake policy:** the runner auto-retries a failing test FILE once in a fresh
+subprocess (`--file-retries`, default 1; `HERMES_TEST_FILE_RETRIES=0` to
+disable). Pass-on-retry counts as green but is printed in a `⚠ FLAKY` summary
+section with both attempts' output. A FLAKY report is a bug to fix, not noise
+to ignore — timing-sensitive tests must not assume a quiet runner (loose
+wall-clock bounds ≥ 2s, event-based sync, no `assert not _wait_until(...)`
+negative-timing races).
 
-Five real sources of local-vs-CI drift the script closes:
+#### Subprocess-per-test-file isolation
 
-| | Without wrapper | With wrapper |
-|---|---|---|
-| Provider API keys | Whatever is in your env (auto-detects pool) | All `*_API_KEY`/`*_TOKEN`/etc. unset |
-| HOME / `~/.hermes/` | Your real config+auth.json | Temp dir per test |
-| Timezone | Local TZ (PDT etc.) | UTC |
-| Locale | Whatever is set | C.UTF-8 |
-| xdist workers | `-n auto` = all cores (20+ on a workstation) | `-n 4` matching CI |
+Every test file runs in a freshly-spawned Python subprocess via `run_tests_parallel.py`. This means module-level dicts/sets and
+ContextVars from one test file cannot leak into the next.
 
-`tests/conftest.py` also enforces points 1-4 as an autouse fixture so ANY pytest
-invocation (including IDE integrations) gets hermetic behavior — but the wrapper
-is belt-and-suspenders.
+#### Why the wrapper
 
-### Running without the wrapper (only if you must)
+|                     | Without wrapper                             | With wrapper                              |
+| ------------------- | ------------------------------------------- | ----------------------------------------- |
+| Provider API keys   | Whatever is in your env (auto-detects pool) | All env vars except a specific few unset. |
+| HOME / `~/.hermes/` | Your real config+auth.json                  | Temp dir per test                         |
+| Timezone            | Local TZ (PDT etc.)                         | UTC                                       |
+| Locale              | Whatever is set                             | C.UTF-8                                   |
 
-If you can't use the wrapper (e.g. on Windows or inside an IDE that shells
-pytest directly), at minimum activate the venv and pass `-n 4`:
+### Where to place what tests
 
-```bash
-source .venv/bin/activate   # or: source venv/bin/activate
-python -m pytest tests/ -q -n 4
-```
+The CI change classifier (`scripts/ci/classify_changes.py`) runs specific jobs based on what files changed. A Python test that asserts
+about the contents of `package.json`, `package-lock.json`, `.ts`/`.tsx`
+source, or any other JS-side artifact will not run on a PR that only touches
+those files. This means a regression can go green on a PR and red on `main` (where the
+classifier fails open and runs everything).
 
-Worker count above 4 will surface test-ordering flakes that CI never sees.
-
-Always run the full suite before pushing changes.
+Any test that reads or asserts about `package.json`,
+`package-lock.json`, `tsconfig.json`, `.ts`/`.tsx`/`.js`/`.mjs`/`.cjs`
+source files configuration belongs in the JS (vitest) test suite, not in `tests/*.py`.
 
 ### Don't write change-detector tests
 
@@ -1192,260 +1377,57 @@ not the specific names.
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
 
----
+### Never read source code in tests
 
-## Plain-English operating manual (docs/)
+A test that reads a source file's text is testing *the shape of the
+source code*, not its behavior. This is a hard antipattern, banned outright.
+Any test that reads a .py, .ts, .tsx, etc., file is suspect.
 
-The [`docs/`](docs/) folder is the user-facing manual for Hermes.
-When you make a change that affects user behavior, you usually need
-to update one of these pages too — pick the closest match:
+**Why it's actively harmful, not just weak:**
 
-| If you changed… | Update |
-|---|---|
-| The orchestrator, kanban, gates, ledger | `docs/orchestration/` (start at `README.md`) |
-| The Prompt to PR flow | `docs/orchestration/prompt-to-pr-demo.md` |
-| The Android cockpit / mobile API | `docs/mobile/mobile-app-guide.md` (and the developer specs under `docs/android/`) |
-| Voice capture, STT/TTS, driving mode | `docs/voice/voice-first-user-guide.md` |
-| The Claude Code Windows bridge / a worker adapter | `docs/remote/windows-claude-code-bridge-guide.md` (+ `docs/orchestration/worker-adapters.md`) |
-| The user profile / GitHub-history learning | `docs/profile/github-history-profile-guide.md` |
-| Secrets, policy gate, private-local recipes | `docs/security/private-local-security-guide.md` (+ `docs/orchestration/private-local-mode.md`) |
-| GitHub / Supabase / Vercel integration | `docs/integrations/github-supabase-vercel-guide.md` |
-| A new failure mode users will hit | `docs/troubleshooting/hermes-orchestration-troubleshooting.md` (and the orchestration-specific `docs/orchestration/troubleshooting.md`) |
+- It passes when the implementation is subtly broken (the regex matches a
+  call site that exists but is wired wrong) and fails when a correct
+  refactor changes formatting, variable names, or control flow with
+  identical runtime behavior. Both directions of failure are wrong.
+- It can't be run against a built/bundled/minified artifact, so it silently
+  stops testing anything the moment code moves, gets renamed, or a
+  dependency reformats it.
+- It actively blocks refactors: reviewers see "keeps a pattern intact" tests
+  fail during pure structural cleanup with no behavior change, and either
+  hand-wave the failure (dangerous) or waste time updating regexes that add
+  nothing (waste).
+- It gives false confidence. a green suite full of source-regex tests
+  looks like coverage but has never once executed the code path it claims
+  to guard.
 
-The index is [`docs/README.md`](docs/README.md). Keep the index in
-sync when you add or rename a guide.
+**Do not write:**
 
----
+```ts
+const source = fs.readFileSync(path.join(__dirname, 'main.ts'), 'utf8')
 
-## Hermes Orchestration
-
-When working on **anything in the orchestration stack** — the
-orchestrator skills, the kanban dispatcher, the validation gates, the
-decision ledger, the publishing path, the Android cockpit's
-orchestrator pane, the Termux runtime — read
-[`docs/orchestration/README.md`](docs/orchestration/README.md) first.
-It is the conceptual map; the rest of this section is rules for code
-that touches the orchestrator.
-
-### The five primitives
-
-The orchestration system is built from five concepts:
-
-1. **Job** — one orchestrated goal. Lives at
-   `~/.hermes/jobs/<job-id>/` and as rows in the kanban SQLite store.
-2. **Worker** — a Hermes profile (model + toolset + skills +
-   environment) that executes a card.
-3. **Model routing** — `orchestration.routing` rules that override a
-   profile's default model per-card.
-4. **Validation gate** — schema check + policy check (via
-   `enterprise.policy.classify`) + optional judge call. Every card
-   passes through.
-5. **Decision ledger** — append-only JSONL at
-   `~/.hermes/jobs/<job-id>/ledger.jsonl`. Source of truth for replay,
-   diff, and audit.
-
-If a change you're making interacts with any of these five, it needs
-to land its semantics in `docs/orchestration/` (or update the
-existing doc) in the same PR.
-
-### Swarm Grainler Parallel (code-task pipeline)
-
-For code-producing work, `hermes_cli/swarm/` composes the five
-primitives into one collision-free pipeline: a goal is decomposed into
-**grains** with *provably disjoint file-domains* (`grain.SwarmPlan.prove_disjoint`),
-each grain becomes its own specialized LLM (token-juice context +
-dedicated Memory Tree namespace + own model lane/toolset/budget), the
-grains run in parallel in isolated git worktrees, every step is dated
-and written to a Decision Ledger, and a self-update loop auto-applies
-the reversible learnings. It is **additive** — it does not replace
-`/orchestrate`. Reuse the existing primitives (`orchestrator_parallel`,
-`worktrees`, `worker_lease`, `decision_ledger`, `scoring`/`merge_engine`,
-`tokenjuice`, `memory_tree`, `self_improvement`); do not fork them. See
-`docs/orchestration/swarm-grainler-parallel.md`.
-
-### Rules for orchestrator code
-
-- **Do not change ledger entry shape silently.** The ledger is a
-  stable, tooling-readable format (see
-  [`docs/orchestration/faq.md`](docs/orchestration/faq.md)). New
-  `kind` values are fine; renaming or repurposing existing ones
-  needs a deprecation cycle.
-- **Do not bypass `enterprise.policy.classify` in publishing paths.**
-  Every mutation on an external service (GitHub, gateway DM, file
-  write outside the job folder) goes through it.
-- **Do not autocorrect unknown profile names.** The dispatcher's
-  documented behavior is to silently leave the card in `ready`. Tests
-  in `tests/orchestration/` enforce this.
-- **Workers must not call publishing tools directly.** The publishing
-  card (T5 in the prompt-to-PR demo) is a separate kanban card
-  precisely so the policy gate catches it. Don't add backdoors that
-  let an engineer-profile worker open a PR mid-run.
-- **The job folder is the source of truth.** If you cache state
-  in-memory, it must be reconstructable from `ledger.jsonl`. A
-  process crash and restart should resume cleanly.
-
-### Rules for orchestrator skills
-
-Custom orchestrator skills live under `~/.hermes/skills/` and ship
-under `skills/` in the repo. They must:
-
-- Discover available profiles before decomposing (call
-  `muse profile list` or ask the user). The
-  [kanban-orchestrator playbook](skills/devops/kanban-orchestrator/SKILL.md)
-  is the reference implementation.
-- Use `parents=[...]` for dependencies, not free-form prose.
-- Mark themselves done with `kanban_complete` and a structured
-  `metadata.task_graph` summary.
-- Never invent profile names. If the user's setup doesn't fit the
-  decomposition, ask which profile to use.
-
-### Adding a new entry surface
-
-There are five today: `hermes` (TUI), `bash scripts/hermes-orchestrate.sh`,
-`/orchestrate` slash command, Android cockpit, gateway DM. A sixth would
-need:
-
-1. A way for a human (or trigger) to deliver the prompt.
-2. A way to authenticate the human (bearer / DM pairing / local
-   privilege).
-3. Translation to the same job-spawn call the other surfaces use —
-   not a new code path that re-implements orchestration.
-
-If you find yourself reimplementing orchestration in the new entry
-point, stop. The orchestrator is the brain; the entry point is just
-the mouth.
-
-### Adding a new worker adapter
-
-See
-[`docs/orchestration/worker-adapters.md`](docs/orchestration/worker-adapters.md).
-The shortest path is a new profile in YAML. Only write Python if
-you need a new *environment* backend that the seven shipped
-backends can't cover.
-
-### Tests
-
-The orchestration tests live under `tests/orchestration/`,
-`tests/kanban/`, and `tests/enterprise/`. The critical ones — the
-ones we will not regress on:
-
-- Dependency engine promotes children only when every parent is
-  `done`.
-- Dispatcher does not spawn workers for unknown profile assignees.
-- Policy gate escalates on HIGH-risk mutations.
-- Schema gate rejects `kanban_complete(created_cards=[...])` lists
-  with ids that don't exist or aren't owned by the worker.
-- Ledger replay produces the same job state as live execution.
-
-If a PR touches any of those code paths, those tests must continue
-to pass. Add cases for new behavior; don't loosen existing
-assertions to make a new feature land.
-
-## Recovered AOS Enterprise Council Pack
-
-Installed by the AOS Recovery pass on 2026-05-24 (branch
-`claude/aos-agent-recovery-hermes-jmocw`). The pack lives at
-`skills/aos-enterprise-council/` and is loadable by Hermes via
-its activation phrases (see below) or explicitly via
-`/aos-enterprise-council <goal>`.
-
-**Activation phrases** (any one loads the pack):
-
-> audit repo · audit this repo · build the app · enterprise hardening ·
-> launch readiness · improve the product · use the AOS team · use the
-> aos smart team · activate the council · run the council · psychology
-> audit · ux audit · Claude/Codex orchestration · HazMat Command review ·
-> Nourish review · full smart team
-
-**Registry surface** (load before dispatching council members):
-
-- `skills/aos-enterprise-council/registry/AOS_AGENT_REGISTRY_COMPLETE.md` — 233 distinct top-level agents.
-- `skills/aos-enterprise-council/registry/AOS_SUBAGENT_REGISTRY_COMPLETE.md` — 108 sub-agents (79 hazmat division specialists + 4 worker templates + 13 Python runtime workers + 7 R-personas + 5 product roles).
-- `skills/aos-enterprise-council/registry/AOS_PROMPT_LIBRARY_COMPLETE.md`
-- `skills/aos-enterprise-council/registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md`
-- `skills/aos-enterprise-council/registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md`
-
-**Recovery artifacts** in `docs/aos-recovery/`:
-`AOS_FULL_SOURCE_INVENTORY.md`, `AOS_AGENT_RECOVERY_REPORT.md`,
-`AOS_INSTALLATION_REPORT.md`, `AOS_DUPLICATE_AND_CONFLICT_REPORT.md`.
-
-**Preserved sources** (never delete): `recovered-agent-sources/` — 166
-hazmat-command files + 20 hermes-agent AOS files snapshotted on
-2026-05-24, with `MANIFEST.md` listing every preserved file. See
-`recovered-agent-sources/MANIFEST.md` for the index.
-
----
-
-## Cursor Cloud specific instructions
-
-This is a Python project (`requires-python >=3.11`); CI pins **3.11**. The
-startup update script runs `uv sync --python 3.11 --extra all --extra dev`,
-which installs the curated `[all,dev]` set into `.venv` from the
-hash-verified `uv.lock`. Activate it with `source .venv/bin/activate`
-before running anything (see "Development Environment" above). `uv` is on
-PATH (installed to `~/.local/bin`).
-
-- **Lint:** `ruff check .` (the blocking rule set). Optional type pass: `ty check`.
-- **Test:** always `scripts/run_tests.sh` (not bare `pytest`). The full
-  suite is ~17k tests, so target a directory while iterating, e.g.
-  `scripts/run_tests.sh tests/agent/`. The wrapper enforces CI-parity
-  (hermetic env, `-n 4`). `integration` and `e2e` tests are excluded by default.
-- **`[all]` is curated, not "everything".** It excludes `messaging`
-  (telegram/discord), `anthropic`, `edge-tts`, `honcho`, `voice`, etc.
-  `muse doctor` flagging those as "not installed" is expected; install the
-  specific extra only if you need that feature.
-
-### First-run config scaffold (one-time; not in the update script)
-
-If `~/.hermes/` is missing on a fresh machine, create it before running
-`muse` commands:
-
-```bash
-mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}
-cp -n cli-config.yaml.example ~/.hermes/config.yaml
-touch ~/.hermes/.env
+test('backend spawn hides the Windows console', () => {
+  assert.match(source, /spawn\(\s*backend\.command,\s*backend\.args[\s\S]{0,300}hiddenWindowsChildOptions/)
+})
 ```
 
-`muse doctor` exits non-zero when it emits warnings (e.g. no API key); that
-exit code is not a hard failure on its own — read the report.
+**Do write — extract the logic into a small pure/DI-testable function and
+call it for real:**
 
-### Running without cloud LLM credentials
+```ts
+// backend-spawn.ts
+export function hiddenWindowsChildOptions(options: SpawnOptionsLike = {}, isWindows = process.platform === 'win32') {
+  if (!isWindows || 'windowsHide' in options) return options
+  return { ...options, windowsHide: true }
+}
 
-No provider API keys are present by default, so interactive `muse` chat /
-gateway agent turns will not complete. Two paths:
-
-**Key-free core surfaces (no LLM at all)** — good smoke tests:
-- `muse version`, `muse doctor`
-- `python -m hermes_cli.jarvis_prime classify "<text>"` / `packet "<text>"`
-  (MUSE decision + work-packet primitives)
-- `muse cockpit serve` — loopback HTTP API on `127.0.0.1:8765`. Probe with
-  `curl -s http://127.0.0.1:8765/v1/health`; bearer-gated endpoints need a
-  token from `muse cockpit token` (`Authorization: Bearer <token>`).
-
-**Local OpenAI-compatible server (full agent E2E)** — point
-`~/.hermes/config.yaml` at a local model:
-
-```yaml
-model:
-  default: "qwen2.5:3b"
-  provider: "custom"           # aliases: ollama, vllm, llamacpp
-  base_url: "http://127.0.0.1:11435/v1"
-  api_key: "ollama"
-  context_length: 65536        # muse requires >=64K declared; override for small models
-  ollama_num_ctx: 32768
+// backend-spawn.test.ts
+test('windowsHide defaults to true on Windows, is left alone elsewhere', () => {
+  assert.equal(hiddenWindowsChildOptions({}, true).windowsHide, true)
+  assert.equal(hiddenWindowsChildOptions({}, false).windowsHide, undefined)
+  assert.equal(hiddenWindowsChildOptions({ windowsHide: false }, true).windowsHide, false)
+})
 ```
 
-Then: `muse chat -Q -t file -q "..."` (non-interactive; `-t` trims the
-toolset so the prompt/inference stay small — CPU inference on a 3B model is
-slow, ~1-2 min/turn).
-
-**Gotchas (non-obvious):**
-- The **latest Ollama prebuilt binary (0.30.x) segfaults** during model
-  warmup on this VM's CPU regardless of model. **Ollama 0.6.8 works** — its
-  GitHub release tarball runs fine (`ollama serve` started manually; systemd
-  is not available here). Models live under `~/.ollama/models`.
-- `muse` rejects models declaring `<64K` context with a hard init error;
-  use the `context_length` override above for small local models.
-- If a provider API key is added later (e.g. `OPENROUTER_API_KEY`), remove
-  the local `model.base_url`/`provider` overrides so `muse` uses the real
-  provider.
+If the logic lives inline in a god-file (`main.ts`, `cli.py`,
+`gateway/run.py`) and extracting it feels disruptive: that's the actual
+signal to do the extraction, not to regex around it.

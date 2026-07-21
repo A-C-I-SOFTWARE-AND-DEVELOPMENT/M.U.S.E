@@ -21,17 +21,9 @@ const SYSTEM_SANS =
 const SYSTEM_MONO =
   'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
-/** Singularity type system (design contract Part 0 / 2.1):
- *  ONE body font (system sans), ONE display font (DS Collapse, headers
- *  only — bundled with `@nous-research/ui`), JetBrains Mono for
- *  code/terminal (bundled in `public/fonts-terminal`). */
-const JETBRAINS_MONO = `"JetBrains Mono", ${SYSTEM_MONO}`;
-const COLLAPSE_DISPLAY = `"Collapse", ${SYSTEM_SANS}`;
-
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
   fontSans: SYSTEM_SANS,
-  fontMono: JETBRAINS_MONO,
-  fontDisplay: COLLAPSE_DISPLAY,
+  fontMono: SYSTEM_MONO,
   baseSize: "15px",
   lineHeight: "1.55",
   letterSpacing: "0",
@@ -46,57 +38,10 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // Themes
 // ---------------------------------------------------------------------------
 
-/**
- * muse "Singularity" — the brand-canonical theme and the DEFAULT preset.
- * Soft violet core in the void, one thin spectral ring. Tokens come from
- * the design contract (design.md Part 0): void #050507 canvas, signal
- * #e8ecf4 text/chrome, soft-violet #d8b4fe accent, Part-0 status hues.
- * The exact Part-0 elevations (elev #0d0d12, mute #16161d, dim #8b90a0,
- * border #26262e) are pinned via colorOverrides so the default look is
- * contract-exact rather than a color-mix approximation.
- * Tonal elevation only — no shadows, no glow.
- */
-export const museTheme: DashboardTheme = {
-  name: "muse",
-  label: "Singularity",
-  description: "Soft violet core in the void — one thin spectral ring",
-  palette: {
-    background: { hex: "#050507", alpha: 1 },
-    midground: { hex: "#e8ecf4", alpha: 1 },
-    foreground: { hex: "#ffffff", alpha: 0 },
-    // Soft violet wash (accent at low alpha) — low saturation per contract.
-    warmGlow: "rgba(216, 180, 254, 0.14)",
-    noiseOpacity: 0.5,
-  },
-  typography: {
-    ...DEFAULT_TYPOGRAPHY,
-    letterSpacing: "-0.005em",
-  },
-  layout: {
-    ...DEFAULT_LAYOUT,
-    radius: "0.75rem",
-  },
-  colorOverrides: {
-    // Exact Part-0 elevations + hues for the default Singularity look.
-    card: "#0d0d12",
-    popover: "#0d0d12",
-    secondary: "#16161d",
-    muted: "#16161d",
-    accent: "#16161d",
-    mutedForeground: "#8b90a0",
-    border: "#26262e",
-    input: "#26262e",
-    ring: "#d8b4fe",
-    destructive: "#e06c75",
-    warning: "#e5c07b",
-    success: "#7bd88f",
-  },
-};
-
 export const defaultTheme: DashboardTheme = {
   name: "default",
-  label: "M.U.S.E. Teal",
-  description: "Classic dark teal — the canonical M.U.S.E. look",
+  label: "Hermes Teal",
+  description: "Classic dark teal — the canonical Hermes look",
   palette: {
     background: { hex: "#041c1c", alpha: 1 },
     midground: { hex: "#ffe6cb", alpha: 1 },
@@ -106,6 +51,7 @@ export const defaultTheme: DashboardTheme = {
   },
   typography: DEFAULT_TYPOGRAPHY,
   layout: DEFAULT_LAYOUT,
+  terminalBackground: "#000000",
 };
 
 export const midnightTheme: DashboardTheme = {
@@ -156,8 +102,7 @@ export const emberTheme: DashboardTheme = {
     radius: "0.25rem",
   },
   colorOverrides: {
-    // Brightened for readable contrast on the dark forge-red canvas.
-    destructive: "#ff6a4d",
+    destructive: "#c92d0f",
     warning: "#f97316",
   },
 };
@@ -239,6 +184,29 @@ export const roseTheme: DashboardTheme = {
   },
 };
 
+/** Light mode — vivid Nous-blue accents on a cream canvas. */
+export const nousBlueTheme: DashboardTheme = {
+  name: "nous-blue",
+  label: "Nous Blue",
+  description: "Light mode — vivid Nous-blue accents on cream canvas",
+  palette: {
+    background: { hex: "#E8F2FD", alpha: 1 },
+    midground: { hex: "#0053FD", alpha: 1 },
+    foreground: { hex: "#170d02", alpha: 0 },
+    warmGlow: "rgba(0, 83, 253, 0.12)",
+    noiseOpacity: 0,
+  },
+  typography: DEFAULT_TYPOGRAPHY,
+  layout: DEFAULT_LAYOUT,
+  terminalBackground: "#f5f8fc",
+  terminalForeground: "#170d02",
+  seriesColors: {
+    inputTokenAccent: "#001934",
+    outputTokenAccent: "#0053fd",
+  },
+  swatchColors: ["#170d02", "#0053FD", "#E8F2FD"],
+};
+
 /**
  * Same look as ``defaultTheme`` but with a larger root font size, looser
  * line-height, and ``spacious`` density so every rem-based size in the
@@ -246,8 +214,8 @@ export const roseTheme: DashboardTheme = {
  */
 export const defaultLargeTheme: DashboardTheme = {
   name: "default-large",
-  label: "M.U.S.E. Teal (Large)",
-  description: "M.U.S.E. Teal with bigger fonts and roomier spacing",
+  label: "Hermes Teal (Large)",
+  description: "Hermes Teal with bigger fonts and roomier spacing",
   palette: defaultTheme.palette,
   typography: {
     ...DEFAULT_TYPOGRAPHY,
@@ -261,9 +229,9 @@ export const defaultLargeTheme: DashboardTheme = {
 };
 
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
-  muse: museTheme,
   default: defaultTheme,
   "default-large": defaultLargeTheme,
+  "nous-blue": nousBlueTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,

@@ -6,7 +6,7 @@ description: How the agent ships generated charts, PDFs, spreadsheets, and other
 
 # Deliverable Mode
 
-When muse runs inside a messaging gateway (Slack, Discord, Telegram,
+When Hermes Agent runs inside a messaging gateway (Slack, Discord, Telegram,
 WhatsApp, Signal, etc.), it can deliver generated files directly into the
 chat — not as paths the user has to copy, but as native attachments.
 
@@ -22,9 +22,10 @@ file natively.
 Three pieces fit together:
 
 1. **The agent has tools that produce files.** `execute_code` for charts via
-   matplotlib, the `latex-pdf-report` skill for PDFs, the `powerpoint` skill
-   for decks, `image_generate` for images, `text_to_speech` for audio, and so
-   on.
+   matplotlib, the `docx` skill for Word documents, the `xlsx` skill for
+   spreadsheets, the `pdf` and `latex-pdf-report` skills for PDFs, the
+   `powerpoint` skill for decks, `image_generate` for images,
+   `text_to_speech` for audio, and so on.
 
 2. **The gateway scans agent responses for file paths.** Any absolute path
    (`/tmp/...`) or home-relative path (`~/...`) ending in a supported
@@ -63,8 +64,10 @@ personality entry that biases toward artifact-style replies on
 messaging platforms.
 
 **Project-level:** add the bias to `AGENTS.md` / `CLAUDE.md` /
-`.cursorrules` in a project the agent works from, or to your global
-custom instructions in `~/.hermes/config.yaml` under `agent.custom_instructions`.
+`.cursorrules` in a project the agent works from, to your global
+persona in `~/.hermes/SOUL.md`, or as a named preset under
+`agent.personalities` in `~/.hermes/config.yaml` (switchable per session
+via `/personality`).
 
 The mechanic the agent has to use is simple: render the file to an
 absolute path (e.g. `/tmp/q3-revenue.png`) and mention that path as
@@ -74,7 +77,7 @@ mutilated.
 
 ## Kanban: artifacts ride completion notifications
 
-If you use muse' kanban multi-agent workflow, workers can attach
+If you use Hermes' kanban multi-agent workflow, workers can attach
 deliverable files to their `kanban_complete` call:
 
 ```python
@@ -118,7 +121,7 @@ section. See [MCP integration](./mcp.md) for the full setup guide.
 
 Perplexity Computer's Slack integration is built around the same idea:
 the agent generates a deliverable (chart, PDF, slide deck) and posts it
-back into the thread as a native attachment. muse's deliverable
+back into the thread as a native attachment. Hermes Agent's deliverable
 mode provides the same user-facing pattern locally:
 
 - Generation happens in the user's own venv / sandbox (no remote tenant).

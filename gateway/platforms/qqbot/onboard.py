@@ -54,7 +54,7 @@ class BindStatus(IntEnum):
 # ---------------------------------------------------------------------------
 
 try:
-    import qrcode as _qrcode_mod  # ty: ignore[unresolved-import]  # optional platform SDK
+    import qrcode as _qrcode_mod
 except (ImportError, TypeError):
     _qrcode_mod = None  # type: ignore[assignment]
 

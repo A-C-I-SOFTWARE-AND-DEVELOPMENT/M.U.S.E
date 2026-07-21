@@ -18,7 +18,6 @@ churn accumulated ~20B per session_id until the process exited.
 These tests pin the new caps + prune hooks.
 """
 
-import pytest
 
 
 class TestReadTrackerCaps:
@@ -149,7 +148,7 @@ class TestCompletionConsumedPrune:
                 self.started_at = time.time() - (FINISHED_TTL_SECONDS + 100)
                 self.exited = True
 
-        reg._finished["stale-1"] = _FakeSess("stale-1")  # ty: ignore[invalid-assignment]
+        reg._finished["stale-1"] = _FakeSess("stale-1")
         reg._completion_consumed.add("stale-1")
 
         with reg._lock:
@@ -175,7 +174,7 @@ class TestCompletionConsumedPrune:
         now = time.time()
         for i in range(pr.MAX_PROCESSES + 5):
             sid = f"sess-{i}"
-            reg._finished[sid] = _FakeSess(sid, now - i)  # sess-0 newest  # ty: ignore[invalid-assignment]
+            reg._finished[sid] = _FakeSess(sid, now - i)  # sess-0 newest
             reg._completion_consumed.add(sid)
 
         with reg._lock:

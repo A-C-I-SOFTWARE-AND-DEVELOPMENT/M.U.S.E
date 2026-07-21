@@ -1,8 +1,6 @@
 """Tests for agent.models_dev — models.dev registry integration."""
-import json
 from unittest.mock import patch, MagicMock
 
-import pytest
 from agent.models_dev import (
     PROVIDER_TO_MODELS_DEV,
     _extract_context,
@@ -12,7 +10,7 @@ from agent.models_dev import (
 )
 
 
-SAMPLE_REGISTRY: dict = {
+SAMPLE_REGISTRY = {
     "anthropic": {
         "id": "anthropic",
         "name": "Anthropic",
@@ -38,6 +36,16 @@ SAMPLE_REGISTRY: dict = {
             "claude-opus-4.6": {
                 "id": "claude-opus-4.6",
                 "limit": {"context": 128000, "output": 32000},
+            },
+        },
+    },
+    "xai": {
+        "id": "xai",
+        "name": "xAI",
+        "models": {
+            "grok-build-0.1": {
+                "id": "grok-build-0.1",
+                "limit": {"context": 256000, "output": 64000},
             },
         },
     },
@@ -74,17 +82,9 @@ SAMPLE_REGISTRY: dict = {
 
 
 class TestProviderMapping:
-    def test_all_mapped_providers_are_strings(self):
-        for hermes_id, mdev_id in PROVIDER_TO_MODELS_DEV.items():
-            assert isinstance(hermes_id, str)
-            assert isinstance(mdev_id, str)
-
-    def test_known_providers_mapped(self):
-        assert PROVIDER_TO_MODELS_DEV["anthropic"] == "anthropic"
-        assert PROVIDER_TO_MODELS_DEV["copilot"] == "github-copilot"
-        assert PROVIDER_TO_MODELS_DEV["stepfun"] == "stepfun"
-        assert PROVIDER_TO_MODELS_DEV["kilocode"] == "kilo"
-        assert PROVIDER_TO_MODELS_DEV["ai-gateway"] == "vercel"
+    def test_xai_oauth_uses_xai_catalog(self):
+        assert PROVIDER_TO_MODELS_DEV["xai"] == "xai"
+        assert PROVIDER_TO_MODELS_DEV["xai-oauth"] == "xai"
 
     def test_unmapped_provider_not_in_dict(self):
         assert "nous" not in PROVIDER_TO_MODELS_DEV
@@ -108,7 +108,7 @@ class TestExtractContext:
         assert _extract_context({"limit": {"output": 8192}}) is None
 
     def test_non_dict_returns_none(self):
-        assert _extract_context("not a dict") is None  # ty: ignore[invalid-argument-type]
+        assert _extract_context("not a dict") is None
 
     def test_float_context_coerced_to_int(self):
         assert _extract_context({"limit": {"context": 131072.0}}) == 131072
@@ -143,6 +143,12 @@ class TestLookupModelsDevContext:
         assert lookup_models_dev_context("anthropic", "claude-opus-4-6") == 1000000
         # GitHub Copilot: only 128K for same model
         assert lookup_models_dev_context("copilot", "claude-opus-4.6") == 128000
+
+    @patch("agent.models_dev.fetch_models_dev")
+    def test_xai_oauth_resolves_xai_context(self, mock_fetch):
+        """xAI OAuth is an auth path, not a separate model catalog."""
+        mock_fetch.return_value = SAMPLE_REGISTRY
+        assert lookup_models_dev_context("xai-oauth", "grok-build-0.1") == 256000
 
     @patch("agent.models_dev.fetch_models_dev")
     def test_zero_context_filtered(self, mock_fetch):
@@ -296,56 +302,6 @@ class TestFetchModelsDev:
 
         mock_get.assert_called_once()
         assert "anthropic" in result
-
-    @patch("agent.models_dev.requests.get")
-    def test_negative_cache_backs_off_when_air_gapped(self, mock_get):
-        """Fresh/air-gapped install: network down AND no disk cache. The first
-        call attempts the network; subsequent calls within the backoff window
-        must NOT re-issue the 15s-timeout request (previously every consumer
-        lookup stalled 15s)."""
-        import agent.models_dev as md
-        md._models_dev_cache = {}
-        md._models_dev_cache_time = 0
-        md._models_dev_last_failure = 0
-        mock_get.side_effect = ConnectionError("no network")
-        try:
-            with patch.object(md, "_disk_cache_age_seconds", return_value=None), \
-                 patch.object(md, "_load_disk_cache", return_value={}):
-                r1 = fetch_models_dev()
-                r2 = fetch_models_dev()
-                r3 = fetch_models_dev()
-            assert r1 == {} and r2 == {} and r3 == {}
-            # Only the FIRST call hit the network; the backoff suppressed the rest.
-            assert mock_get.call_count == 1
-            assert md._models_dev_last_failure > 0
-        finally:
-            md._models_dev_last_failure = 0
-            md._models_dev_cache = {}
-            md._models_dev_cache_time = 0
-
-    @patch("agent.models_dev.requests.get")
-    def test_negative_cache_does_not_block_force_refresh(self, mock_get):
-        """The backoff must never suppress an explicit force_refresh — the
-        user asked for fresh data, so we always hit the network."""
-        import agent.models_dev as md
-        import time
-        md._models_dev_cache = {}
-        md._models_dev_cache_time = 0
-        md._models_dev_last_failure = time.time()  # inside the backoff window
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = SAMPLE_REGISTRY
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-        try:
-            with patch.object(md, "_save_disk_cache"):
-                result = fetch_models_dev(force_refresh=True)
-            mock_get.assert_called_once()
-            assert "anthropic" in result
-        finally:
-            md._models_dev_last_failure = 0
-            md._models_dev_cache = {}
-            md._models_dev_cache_time = 0
 
 
 # ---------------------------------------------------------------------------

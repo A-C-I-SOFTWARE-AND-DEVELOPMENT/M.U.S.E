@@ -96,7 +96,7 @@ def detect_nvidia() -> dict | None:
     ])
     if not out.strip():
         return None
-    gpus: list[dict[str, Any]] = []
+    gpus = []
     for line in out.strip().splitlines():
         parts = [p.strip() for p in line.split(",")]
         if len(parts) < 3:
@@ -132,7 +132,7 @@ def detect_rocm() -> dict | None:
     if out.strip().startswith("{"):
         try:
             data = json.loads(out)
-            cards: list[dict[str, Any]] = []
+            cards = []
             for card_id, info in data.items():
                 if not card_id.startswith("card"):
                     continue
@@ -262,7 +262,7 @@ def total_free_disk_gb(path: str = ".") -> float:
 def check_pytorch_cuda() -> dict | None:
     """Optional PyTorch availability check. Only run when --check-pytorch is set."""
     try:
-        import torch  # type: ignore[import-not-found]  # ty: ignore[unresolved-import]
+        import torch  # type: ignore[import-not-found]
     except Exception as e:
         return {"available": False, "reason": f"torch not importable: {e}"}
     info: dict[str, Any] = {

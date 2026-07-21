@@ -106,7 +106,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
 
             run = kb.latest_run(conn, tid)
             events.append({"kind": "claimed", "task": tid, "worker": worker_id,
-                           "run_id": run.id, "t": time.monotonic() - start})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                           "run_id": run.id, "t": time.monotonic() - start})
 
             time.sleep(random.uniform(0.005, 0.05))
 
@@ -116,7 +116,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                     kb.block_task(conn, tid,
                                   reason=f"blocked by worker-{worker_id}")
                     events.append({"kind": "blocked", "task": tid,
-                                   "worker": worker_id, "run_id": run.id})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                                   "worker": worker_id, "run_id": run.id})
                 except sqlite3.OperationalError as e:
                     events.append({"kind": "sqlite_err", "op": "block",
                                    "task": tid, "err": str(e)[:100]})
@@ -129,7 +129,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                         metadata={"worker_id": worker_id},
                     )
                     events.append({"kind": "completed", "task": tid,
-                                   "worker": worker_id, "run_id": run.id,  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                                   "worker": worker_id, "run_id": run.id,
                                    "t": time.monotonic() - start})
                 except sqlite3.OperationalError as e:
                     events.append({"kind": "sqlite_err", "op": "complete",

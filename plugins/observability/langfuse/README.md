@@ -5,16 +5,20 @@ you explicitly enable it.
 
 ## Enable
 
-```bash
-pip install langfuse
-muse plugins enable observability/langfuse
-```
+Pick one:
 
-Or check the box in the interactive `muse plugins` UI.
+```bash
+# Interactive: walks you through credentials + SDK install + enable
+hermes tools  # → Langfuse Observability
+
+# Manual
+pip install langfuse
+hermes plugins enable observability/langfuse
+```
 
 ## Required credentials
 
-Set these in `~/.hermes/.env`:
+Set these in `~/.hermes/.env` (or via `hermes tools`):
 
 ```bash
 HERMES_LANGFUSE_PUBLIC_KEY=pk-lf-...
@@ -28,8 +32,8 @@ open.
 ## Verify
 
 ```bash
-muse plugins list                 # observability/langfuse should show "enabled"
-muse chat -q "hello"              # then check Langfuse for a "Hermes turn" trace
+hermes plugins list                 # observability/langfuse should show "enabled"
+hermes chat -q "hello"              # then check Langfuse for a "Hermes turn" trace
 ```
 
 ## Optional tuning
@@ -45,5 +49,5 @@ HERMES_LANGFUSE_DEBUG=true           # verbose plugin logging
 ## Disable
 
 ```bash
-muse plugins disable observability/langfuse
+hermes plugins disable observability/langfuse
 ```

@@ -12,7 +12,6 @@ afterwards that the second path belonged to a different profile.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -216,5 +215,4 @@ class TestGetCrossProfileWarning:
         )
         # Must self-document as defense-in-depth so future reviewers
         # don't promote it to a hard block.
-        assert warn is not None
         assert "not a security boundary" in warn.lower()

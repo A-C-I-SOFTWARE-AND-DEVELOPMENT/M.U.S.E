@@ -12,11 +12,8 @@ import concurrent.futures
 import os
 import sys
 import time
-import threading
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 # Ensure project root is importable
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -287,7 +284,7 @@ class TestInactivityTimeout:
             _idle_secs = 0.0
             if hasattr(agent, "get_activity_summary"):
                 try:
-                    _act = agent.get_activity_summary()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
+                    _act = agent.get_activity_summary()
                     _idle_secs = _act.get("seconds_since_activity", 0.0)
                 except Exception:
                     pass

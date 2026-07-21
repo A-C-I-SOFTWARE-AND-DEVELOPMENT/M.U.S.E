@@ -92,7 +92,6 @@ class TestBrowseShSource(unittest.TestCase):
         ]
         bundle = self.src.fetch("browse-sh/airbnb.com/search-listings-ddgioa")
         self.assertIsNotNone(bundle)
-        assert bundle is not None
         self.assertIsInstance(bundle, SkillBundle)
         self.assertEqual(bundle.name, "search-listings")
         self.assertIn("SKILL.md", bundle.files)
@@ -124,7 +123,6 @@ class TestBrowseShSource(unittest.TestCase):
             ]
             bundle = self.src.fetch("browse-sh/airbnb.com/search-listings-ddgioa")
             self.assertIsNotNone(bundle)
-            assert bundle is not None
             self.assertEqual(bundle.files["SKILL.md"], "# Fallback content")
 
     @patch.object(BrowseShSource, "_fetch_catalog", return_value=SAMPLE_CATALOG)
@@ -136,7 +134,6 @@ class TestBrowseShSource(unittest.TestCase):
     def test_inspect_returns_meta(self, _mock_catalog):
         meta = self.src.inspect("browse-sh/airbnb.com/search-listings-ddgioa")
         self.assertIsNotNone(meta)
-        assert meta is not None
         self.assertIsInstance(meta, SkillMeta)
         self.assertEqual(meta.name, "search-listings")
         self.assertEqual(meta.identifier, "browse-sh/airbnb.com/search-listings-ddgioa")

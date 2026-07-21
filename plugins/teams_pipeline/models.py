@@ -55,7 +55,7 @@ class GraphSubscription:
             raise ValueError("GraphSubscription.change_type is required.")
         if not self.notification_url.strip():
             raise ValueError("GraphSubscription.notification_url is required.")
-        self.expiration_datetime = _parse_datetime(self.expiration_datetime)  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
+        self.expiration_datetime = _parse_datetime(self.expiration_datetime)
         self.latest_renewal_at = _parse_datetime(self.latest_renewal_at)
         if self.expiration_datetime is None:
             raise ValueError("GraphSubscription.expiration_datetime is required.")
@@ -69,7 +69,7 @@ class GraphSubscription:
             notification_url=str(
                 payload.get("notification_url") or payload.get("notificationUrl") or ""
             ).strip(),
-            expiration_datetime=payload.get("expiration_datetime")  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+            expiration_datetime=payload.get("expiration_datetime")
             or payload.get("expirationDateTime"),
             client_state=payload.get("client_state") or payload.get("clientState"),
             latest_renewal_at=payload.get("latest_renewal_at") or payload.get("latestRenewalAt"),
@@ -159,7 +159,7 @@ class MeetingArtifact:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "MeetingArtifact":
         return cls(
-            artifact_type=payload.get("artifact_type") or payload.get("artifactType"),  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+            artifact_type=payload.get("artifact_type") or payload.get("artifactType"),
             artifact_id=str(payload.get("artifact_id") or payload.get("id") or "").strip(),
             display_name=payload.get("display_name")
             or payload.get("displayName")

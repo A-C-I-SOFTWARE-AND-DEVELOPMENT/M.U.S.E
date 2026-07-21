@@ -5,9 +5,8 @@ messages from non-allowlisted users must be silently dropped — matching the co
 behavior in _handle_message. Previously, the busy path skipped the auth check entirely,
 allowing unauthorized users to inject text into another user's running session.
 """
-import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -16,23 +15,21 @@ import types
 
 # Minimal stubs for gateway imports
 _tg = types.ModuleType("telegram")
-_tg.constants = types.ModuleType("telegram.constants")  # ty: ignore[unresolved-attribute]
+_tg.constants = types.ModuleType("telegram.constants")
 _ct = MagicMock()
 _ct.SUPERGROUP = "supergroup"
 _ct.GROUP = "group"
 _ct.PRIVATE = "private"
-_tg.constants.ChatType = _ct  # ty: ignore[unresolved-attribute]
+_tg.constants.ChatType = _ct
 sys.modules.setdefault("telegram", _tg)
 sys.modules.setdefault("telegram.constants", _tg.constants)
 sys.modules.setdefault("telegram.ext", types.ModuleType("telegram.ext"))
 
 from gateway.platforms.base import (
-    BasePlatformAdapter,
     MessageEvent,
     MessageType,
     SessionSource,
     build_session_key,
-    merge_pending_message_event,
 )
 
 
@@ -44,7 +41,7 @@ def _make_event(text="hello", chat_id="123", user_id="user1", user_name="TestUse
                 platform_val="slack", thread_id="thread-abc"):
     """Build a MessageEvent for a shared thread."""
     source = SessionSource(
-        platform=MagicMock(value=platform_val),  # ty: ignore[invalid-argument-type]
+        platform=MagicMock(value=platform_val),
         chat_id=chat_id,
         chat_type="channel",
         user_id=user_id,

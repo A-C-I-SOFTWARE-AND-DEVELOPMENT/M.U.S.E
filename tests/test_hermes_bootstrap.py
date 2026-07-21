@@ -1,7 +1,7 @@
 """Tests for hermes_bootstrap — Windows UTF-8 stdio shim.
 
 The bootstrap module is imported at the top of every Hermes entry point
-(muse muse-agent, muse-acp, gateway, batch_runner, cli.py).  It
+(hermes, hermes-agent, hermes-acp, gateway, batch_runner, cli.py).  It
 fixes Python's Windows UTF-8 defaults so print("café") doesn't crash and
 subprocess children inherit UTF-8 mode.
 
@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 import textwrap
-import unittest.mock as mock
 
 import pytest
 
@@ -241,9 +240,9 @@ class TestEntryPointsImportBootstrap:
     # Entry points that invoke Hermes as a process.  Each one must
     # import hermes_bootstrap before doing any file I/O or stdout writes.
     ENTRY_POINTS = [
-        "hermes_cli/main.py",   # muse CLI (console_script)
-        "run_agent.py",          # muse-agent (console_script)
-        "acp_adapter/entry.py",  # muse-acp (console_script)
+        "hermes_cli/main.py",   # hermes CLI (console_script)
+        "run_agent.py",          # hermes-agent (console_script)
+        "acp_adapter/entry.py",  # hermes-acp (console_script)
         "gateway/run.py",        # gateway
         "batch_runner.py",       # batch mode
         "cli.py",                # legacy direct-launch CLI
@@ -260,9 +259,9 @@ class TestEntryPointsImportBootstrap:
 
         Also lenient about a try/except wrapper around the import: entry
         points may guard the import against ``ModuleNotFoundError`` so a
-        half-finished ``muse update`` (git-reset landed new code but
+        half-finished ``hermes update`` (git-reset landed new code but
         ``uv pip install -e .`` didn't finish re-registering
-        ``hermes_bootstrap`` as a top-level module) leaves muse
+        ``hermes_bootstrap`` as a top-level module) leaves hermes
         recoverable instead of crashing on every invocation.  When the
         first top-level node is such a guarded-import block, we peek
         inside it to verify bootstrap is the imported module.
@@ -289,7 +288,7 @@ class TestEntryPointsImportBootstrap:
                 break
             # Accept a guarded-import Try block where the body is a lone
             # Import node — this is the recovery-friendly form that lets
-            # muse start even when hermes_bootstrap hasn't been
+            # hermes start even when hermes_bootstrap hasn't been
             # re-registered in the venv yet.
             if isinstance(node, ast.Try) and len(node.body) == 1 and isinstance(
                 node.body[0], (ast.Import, ast.ImportFrom)
@@ -312,3 +311,88 @@ class TestEntryPointsImportBootstrap:
             f"configured before anything else initializes.  Move the "
             f"'import hermes_bootstrap' line to be the first import."
         )
+
+
+class TestHardenImportPath:
+    """harden_import_path() must keep a same-named package in the launch
+    directory from shadowing Hermes's own top-level modules — covering both
+    the relative ('' / '.') and absolute-path forms the cwd can take on
+    sys.path (issue #51286)."""
+
+    def _run(self, hb, path_seed, env=None):
+        original = sys.path[:]
+        original_env = os.environ.get("HERMES_PYTHON_SRC_ROOT")
+        try:
+            sys.path[:] = path_seed
+            if env is not None:
+                os.environ["HERMES_PYTHON_SRC_ROOT"] = env
+            elif "HERMES_PYTHON_SRC_ROOT" in os.environ:
+                del os.environ["HERMES_PYTHON_SRC_ROOT"]
+            hb.harden_import_path(src_root="/opt/hermes")
+            return sys.path[:]
+        finally:
+            sys.path[:] = original
+            if original_env is None:
+                os.environ.pop("HERMES_PYTHON_SRC_ROOT", None)
+            else:
+                os.environ["HERMES_PYTHON_SRC_ROOT"] = original_env
+
+    def test_relative_cwd_forms_removed(self):
+        hb = _fresh_import()
+        result = self._run(hb, ["", ".", "/opt/hermes", "/usr/lib/python"])
+        assert "" not in result
+        assert "." not in result
+
+    def test_src_root_forced_to_front(self):
+        hb = _fresh_import()
+        result = self._run(hb, ["", "/opt/hermes", "/usr/lib/python"])
+        assert result[0] == "/opt/hermes"
+
+    def test_absolute_cwd_path_loses_to_src_root(self):
+        # The real #51286 bug: the launch dir is present as its own absolute
+        # path (venv activation / a project on PYTHONPATH), ahead of the
+        # Hermes root.  The guard must relocate Hermes to the front.
+        hb = _fresh_import()
+        result = self._run(hb, ["/home/user/tg-ws-proxy", "/opt/hermes"])
+        assert result[0] == "/opt/hermes"
+        # The cwd absolute path may still appear (it can hold legit deps),
+        # but only AFTER the Hermes root.
+        assert result.index("/opt/hermes") < result.index("/home/user/tg-ws-proxy")
+
+    def test_src_root_not_duplicated(self):
+        hb = _fresh_import()
+        result = self._run(hb, ["/opt/hermes", "/opt/hermes", ""])
+        assert result.count("/opt/hermes") == 1
+
+    def test_env_var_used_when_no_arg(self):
+        hb = _fresh_import()
+        original = sys.path[:]
+        original_env = os.environ.get("HERMES_PYTHON_SRC_ROOT")
+        try:
+            sys.path[:] = ["", "/cwd/proj", "/usr/lib"]
+            os.environ["HERMES_PYTHON_SRC_ROOT"] = "/env/hermes"
+            hb.harden_import_path()
+            assert sys.path[0] == "/env/hermes"
+        finally:
+            sys.path[:] = original
+            if original_env is None:
+                os.environ.pop("HERMES_PYTHON_SRC_ROOT", None)
+            else:
+                os.environ["HERMES_PYTHON_SRC_ROOT"] = original_env
+
+    def test_defaults_to_module_dir(self):
+        # With neither arg nor env var, the helper anchors on the bootstrap
+        # module's own directory — the repo root for shipped entry points.
+        hb = _fresh_import()
+        original = sys.path[:]
+        original_env = os.environ.get("HERMES_PYTHON_SRC_ROOT")
+        try:
+            sys.path[:] = ["", "/somewhere/else"]
+            os.environ.pop("HERMES_PYTHON_SRC_ROOT", None)
+            hb.harden_import_path()
+            expected = os.path.dirname(os.path.abspath(hb.__file__))
+            assert sys.path[0] == expected
+        finally:
+            sys.path[:] = original
+            if original_env is not None:
+                os.environ["HERMES_PYTHON_SRC_ROOT"] = original_env

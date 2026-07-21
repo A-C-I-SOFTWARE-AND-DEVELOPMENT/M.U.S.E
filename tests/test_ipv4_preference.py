@@ -2,9 +2,7 @@
 
 import importlib
 import socket
-from unittest.mock import patch, MagicMock
 
-import pytest
 
 
 def _reload_constants():
@@ -23,7 +21,7 @@ class TestApplyIPv4Preference:
 
     def teardown_method(self):
         """Restore the original getaddrinfo after each test."""
-        socket.getaddrinfo = self._original  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        socket.getaddrinfo = self._original
 
     def test_noop_when_force_false(self):
         """No patch when force=False."""
@@ -59,7 +57,7 @@ class TestApplyIPv4Preference:
             calls.append(family)
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 80))]
 
-        socket.getaddrinfo = mock_getaddrinfo  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        socket.getaddrinfo = mock_getaddrinfo
         apply_ipv4_preference(force=True)
 
         # Call with default family (AF_UNSPEC = 0)
@@ -77,7 +75,7 @@ class TestApplyIPv4Preference:
             calls.append(family)
             return [(family, socket.SOCK_STREAM, 6, "", ("::1", 80))]
 
-        socket.getaddrinfo = mock_getaddrinfo  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        socket.getaddrinfo = mock_getaddrinfo
         apply_ipv4_preference(force=True)
 
         socket.getaddrinfo("example.com", 80, family=socket.AF_INET6)
@@ -96,7 +94,7 @@ class TestApplyIPv4Preference:
             # AF_UNSPEC fallback returns IPv6
             return [(socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::1", 80))]
 
-        socket.getaddrinfo = mock_getaddrinfo  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        socket.getaddrinfo = mock_getaddrinfo
         apply_ipv4_preference(force=True)
 
         result = socket.getaddrinfo("ipv6only.example.com", 80)

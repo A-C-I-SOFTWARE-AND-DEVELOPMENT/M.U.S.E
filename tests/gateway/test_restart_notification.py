@@ -1,6 +1,5 @@
 """Tests for /restart notification — the gateway notifies the requester on comeback."""
 
-import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -33,6 +32,19 @@ def test_restart_notification_pending_true_with_marker(tmp_path, monkeypatch):
     assert gateway_run._restart_notification_pending() is True
 
 
+def test_planned_restart_notification_pending_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
+    marker = tmp_path / ".restart_pending.json"
+
+    assert gateway_run._planned_restart_notification_pending() is False
+    marker.write_text("{}")
+    assert gateway_run._planned_restart_notification_pending() is True
+
+    gateway_run._clear_planned_restart_notification()
+
+    assert gateway_run._planned_restart_notification_pending() is False
+
+
 # ── _handle_restart_command writes .restart_notify.json ──────────────────
 
 
@@ -42,7 +54,7 @@ async def test_restart_command_writes_notify_file(tmp_path, monkeypatch):
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+    runner.request_restart = MagicMock(return_value=True)
 
     source = make_restart_source(chat_id="42")
     event = MessageEvent(
@@ -60,6 +72,8 @@ async def test_restart_command_writes_notify_file(tmp_path, monkeypatch):
     data = json.loads(notify_path.read_text())
     assert data["platform"] == "telegram"
     assert data["chat_id"] == "42"
+    assert data["chat_type"] == "dm"
+    assert data["message_id"] == "m1"
     assert "thread_id" not in data  # no thread → omitted
 
 
@@ -70,7 +84,7 @@ async def test_restart_command_uses_service_restart_under_systemd(tmp_path, monk
     monkeypatch.setenv("INVOCATION_ID", "abc123")
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+    runner.request_restart = MagicMock(return_value=True)
 
     source = make_restart_source(chat_id="42")
     event = MessageEvent(
@@ -81,7 +95,7 @@ async def test_restart_command_uses_service_restart_under_systemd(tmp_path, monk
     )
 
     await runner._handle_restart_command(event)
-    runner.request_restart.assert_called_once_with(detached=False, via_service=True)  # ty: ignore[unresolved-attribute]
+    runner.request_restart.assert_called_once_with(detached=False, via_service=True)
 
 
 @pytest.mark.asyncio
@@ -91,7 +105,7 @@ async def test_restart_command_uses_detached_without_systemd(tmp_path, monkeypat
     monkeypatch.delenv("INVOCATION_ID", raising=False)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+    runner.request_restart = MagicMock(return_value=True)
 
     source = make_restart_source(chat_id="42")
     event = MessageEvent(
@@ -102,7 +116,7 @@ async def test_restart_command_uses_detached_without_systemd(tmp_path, monkeypat
     )
 
     await runner._handle_restart_command(event)
-    runner.request_restart.assert_called_once_with(detached=True, via_service=False)  # ty: ignore[unresolved-attribute]
+    runner.request_restart.assert_called_once_with(detached=True, via_service=False)
 
 
 @pytest.mark.asyncio
@@ -111,10 +125,9 @@ async def test_restart_command_preserves_thread_id(tmp_path, monkeypatch):
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+    runner.request_restart = MagicMock(return_value=True)
 
-    source = make_restart_source(chat_id="99")
-    source.thread_id = "topic_7"
+    source = make_restart_source(chat_id="99", thread_id="777")
 
     event = MessageEvent(
         text="/restart",
@@ -126,7 +139,9 @@ async def test_restart_command_preserves_thread_id(tmp_path, monkeypatch):
     await runner._handle_restart_command(event)
 
     data = json.loads((tmp_path / ".restart_notify.json").read_text())
-    assert data["thread_id"] == "topic_7"
+    assert data["chat_type"] == "dm"
+    assert data["thread_id"] == "777"
+    assert data["message_id"] == "m2"
 
 
 @pytest.mark.asyncio
@@ -138,10 +153,14 @@ async def test_restart_command_uses_atomic_json_writes_for_marker_files(tmp_path
     def _fake_atomic_json_write(path, payload, **kwargs):
         calls.append((Path(path).name, payload, kwargs))
 
+    # _handle_restart_command lives in gateway/slash_commands.py (extracted from
+    # run.py); it uses that module's top-level atomic_json_write import.
+    import gateway.slash_commands as gateway_slash
+    monkeypatch.setattr(gateway_slash, "atomic_json_write", _fake_atomic_json_write)
     monkeypatch.setattr(gateway_run, "atomic_json_write", _fake_atomic_json_write)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+    runner.request_restart = MagicMock(return_value=True)
 
     source = make_restart_source(chat_id="42")
     event = MessageEvent(
@@ -237,12 +256,12 @@ async def test_send_home_channel_startup_notification_to_configured_home(tmp_pat
         chat_id="home-42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered = await runner._send_home_channel_startup_notifications()
 
     assert delivered == {("telegram", "home-42", None)}
-    adapter.send.assert_called_once_with(  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_called_once_with(
         "home-42",
         "♻️ Gateway online — Hermes is back and ready.",
     )
@@ -259,17 +278,31 @@ async def test_send_home_channel_startup_notification_preserves_thread_metadata(
         platform=Platform.TELEGRAM,
         chat_id="parent-42",
         name="Ops Topic",
-        thread_id="topic-7",
+        thread_id="777",
     )
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))  # ty: ignore[invalid-assignment]
+    # Declare the DM-topic lookup on the adapter CLASS, not the instance.
+    # _is_telegram_dm_topic_target resolves _get_dm_topic_info via type(adapter)
+    # so a MagicMock auto-attribute (instance-level) is intentionally ignored;
+    # a real adapter exposes the method on its class. Mirrors the fake-adapter
+    # pattern in test_telegram_topic_mode.py.
+    class _DmTopicAdapter(type(adapter)):
+        def _get_dm_topic_info(self, chat_id, thread_id):
+            return {"name": "Ops Topic"}
+
+    adapter.__class__ = _DmTopicAdapter
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))
 
     delivered = await runner._send_home_channel_startup_notifications()
 
-    assert delivered == {("telegram", "parent-42", "topic-7")}
-    adapter.send.assert_called_once_with(  # ty: ignore[unresolved-attribute]
+    assert delivered == {("telegram", "parent-42", "777")}
+    adapter.send.assert_called_once_with(
         "parent-42",
         "♻️ Gateway online — Hermes is back and ready.",
-        metadata={"thread_id": "topic-7"},
+        metadata={
+            "thread_id": "777",
+            "telegram_dm_topic_reply_fallback": True,
+            "direct_messages_topic_id": "777",
+        },
     )
 
 
@@ -285,14 +318,14 @@ async def test_send_home_channel_startup_notification_skips_restart_target(
         chat_id="42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered = await runner._send_home_channel_startup_notifications(
         skip_targets={("telegram", "42", None)}
     )
 
     assert delivered == set()
-    adapter.send.assert_not_called()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -307,14 +340,14 @@ async def test_send_home_channel_startup_notification_does_not_skip_different_th
         chat_id="42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))
 
     delivered = await runner._send_home_channel_startup_notifications(
         skip_targets={("telegram", "42", "topic-7")}
     )
 
     assert delivered == {("telegram", "42", None)}
-    adapter.send.assert_called_once()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -329,12 +362,12 @@ async def test_send_home_channel_startup_notification_ignores_false_send_result(
         chat_id="home-42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock(return_value=SendResult(success=False, error="network down"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(return_value=SendResult(success=False, error="network down"))
 
     delivered = await runner._send_home_channel_startup_notifications()
 
     assert delivered == set()
-    adapter.send.assert_called_once()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_called_once()
 
 
 # ── _send_restart_notification ───────────────────────────────────────────
@@ -352,13 +385,13 @@ async def test_send_restart_notification_delivers_and_cleans_up(tmp_path, monkey
     }))
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered_target = await runner._send_restart_notification()
 
     assert delivered_target == ("telegram", "42", None)
-    adapter.send.assert_called_once()  # ty: ignore[unresolved-attribute]
-    call_args = adapter.send.call_args  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_called_once()
+    call_args = adapter.send.call_args
     assert call_args[0][0] == "42"  # chat_id
     assert "restarted" in call_args[0][1].lower()
     assert call_args[1].get("metadata") is None  # no thread
@@ -374,17 +407,24 @@ async def test_send_restart_notification_with_thread(tmp_path, monkeypatch):
     notify_path.write_text(json.dumps({
         "platform": "telegram",
         "chat_id": "99",
-        "thread_id": "topic_7",
+        "chat_type": "dm",
+        "thread_id": "777",
+        "message_id": "m2",
     }))
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered_target = await runner._send_restart_notification()
 
-    assert delivered_target == ("telegram", "99", "topic_7")
-    call_args = adapter.send.call_args  # ty: ignore[unresolved-attribute]
-    assert call_args[1]["metadata"] == {"thread_id": "topic_7"}
+    assert delivered_target == ("telegram", "99", "777")
+    call_args = adapter.send.call_args
+    assert call_args[1]["metadata"] == {
+        "thread_id": "777",
+        "telegram_dm_topic_reply_fallback": True,
+        "direct_messages_topic_id": "777",
+        "telegram_reply_to_message_id": "m2",
+    }
     assert not notify_path.exists()
 
 
@@ -394,11 +434,11 @@ async def test_send_restart_notification_noop_when_no_file(tmp_path, monkeypatch
     monkeypatch.setattr(gateway_run, "_hermes_home", tmp_path)
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     await runner._send_restart_notification()
 
-    adapter.send.assert_not_called()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -434,7 +474,7 @@ async def test_send_restart_notification_cleans_up_on_send_failure(
     }))
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock(side_effect=RuntimeError("network down"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(side_effect=RuntimeError("network down"))
 
     delivered_target = await runner._send_restart_notification()
 
@@ -466,7 +506,7 @@ async def test_send_restart_notification_logs_warning_on_sendresult_failure(
     }))
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock(  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(
         return_value=SendResult(success=False, error="Chat not found"),
     )
 
@@ -510,12 +550,12 @@ async def test_send_home_channel_startup_notification_skipped_when_flag_disabled
         name="Ops Home",
     )
     runner.config.platforms[Platform.TELEGRAM].gateway_restart_notification = False
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered = await runner._send_home_channel_startup_notifications()
 
     assert delivered == set()
-    adapter.send.assert_not_called()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -535,12 +575,12 @@ async def test_send_home_channel_startup_notification_default_flag_true(
         chat_id="home-42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="home"))
 
     delivered = await runner._send_home_channel_startup_notifications()
 
     assert delivered == {("telegram", "home-42", None)}
-    adapter.send.assert_called_once()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -563,12 +603,12 @@ async def test_send_restart_notification_skipped_when_flag_disabled(
 
     runner, adapter = make_restart_runner()
     runner.config.platforms[Platform.TELEGRAM].gateway_restart_notification = False
-    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock()
 
     delivered_target = await runner._send_restart_notification()
 
     assert delivered_target is None
-    adapter.send.assert_not_called()  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_not_called()
     assert not notify_path.exists()
 
 
@@ -588,7 +628,7 @@ async def test_send_restart_notification_logs_info_on_sendresult_success(
     }))
 
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="m-1"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="m-1"))
 
     with caplog.at_level("DEBUG", logger="gateway.run"):
         delivered_target = await runner._send_restart_notification()
@@ -614,12 +654,37 @@ async def test_shutdown_notifications_use_cached_live_thread_source_when_origin_
     runner._running_agents[session_key] = object()
     runner.session_store._entries[session_key] = MagicMock(origin=None)
     runner._cache_session_source(session_key, source)
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="shutdown"))  # ty: ignore[invalid-assignment]
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="shutdown"))
 
     await runner._notify_active_sessions_of_shutdown()
 
-    adapter.send.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
+    adapter.send.assert_awaited_once_with(
         "parent-42",
         "⚠️ Gateway shutting down — Your current task will be interrupted.",
         metadata={"thread_id": "topic-7"},
     )
+
+
+@pytest.mark.asyncio
+async def test_restart_shutdown_notification_anchors_telegram_dm_topic():
+    runner, adapter = make_restart_runner()
+    runner._restart_requested = True
+    source = make_restart_source(chat_id="123456", thread_id="20197")
+    source.message_id = "462"
+    session_key = build_session_key(source)
+
+    runner._running_agents[session_key] = object()
+    runner.session_store._entries[session_key] = MagicMock(origin=source)
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="shutdown"))
+
+    await runner._notify_active_sessions_of_shutdown()
+
+    call = adapter.send.await_args
+    assert call.args[0] == "123456"
+    assert "Gateway restarting" in call.args[1]
+    assert call.kwargs["metadata"] == {
+        "thread_id": "20197",
+        "telegram_dm_topic_reply_fallback": True,
+        "direct_messages_topic_id": "20197",
+        "telegram_reply_to_message_id": "462",
+    }

@@ -111,12 +111,8 @@ async def test_read_message_two_messages_back_to_back():
     a = encode_message({"jsonrpc": "2.0", "method": "a"})
     b = encode_message({"jsonrpc": "2.0", "method": "b"})
     reader = await _stream_from_bytes(a + b)
-    first = await read_message(reader)
-    assert first is not None
-    assert first["method"] == "a"
-    second = await read_message(reader)
-    assert second is not None
-    assert second["method"] == "b"
+    assert (await read_message(reader))["method"] == "a"
+    assert (await read_message(reader))["method"] == "b"
 
 
 @pytest.mark.asyncio

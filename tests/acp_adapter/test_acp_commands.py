@@ -2,8 +2,6 @@ import sys
 from types import ModuleType, SimpleNamespace
 
 import pytest
-
-pytest.importorskip("acp")
 from acp.schema import TextContentBlock
 
 from acp_adapter.server import HermesACPAgent
@@ -65,7 +63,7 @@ def make_agent_and_state():
     acp_agent = HermesACPAgent(session_manager=manager)
     state = manager.create_session(cwd=".")
     conn = CaptureConn()
-    acp_agent.on_connect(conn)  # ty: ignore[invalid-argument-type]
+    acp_agent.on_connect(conn)
     return acp_agent, state, fake, conn
 
 

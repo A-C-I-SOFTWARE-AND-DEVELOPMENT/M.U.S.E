@@ -135,7 +135,6 @@ def test_subscribe_defaults_to_created_for_transcript_resources(monkeypatch, cap
         async def post_json(self, path, json_body=None, headers=None):
             captured["path"] = path
             captured["json_body"] = json_body
-            assert json_body is not None
             return {
                 "id": "sub-transcript",
                 "resource": json_body["resource"],

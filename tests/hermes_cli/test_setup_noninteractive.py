@@ -1,7 +1,7 @@
 """Tests for non-interactive setup and first-run headless behavior."""
 
 from argparse import Namespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from hermes_cli.config import DEFAULT_CONFIG, load_config, save_config
@@ -81,12 +81,7 @@ class TestNonInteractiveSetup:
             run_setup_wizard(args)
 
         out = capsys.readouterr().out
-        # Post-WC-1: the binary is `muse`, not `hermes`. Both the detection-
-        # aware branch and the fallback env-var recipe always emit the
-        # `muse config set` lines, so this assertion is brand-correct and
-        # branch-agnostic (works regardless of whether `claude`/`codex` is
-        # on the dev host's PATH).
-        assert "muse config set model.provider custom" in out
+        assert "hermes config set model.provider custom" in out
 
     def test_no_tty_skips_wizard(self, capsys):
         """When stdin has no TTY, the setup wizard should print guidance and return."""
@@ -106,7 +101,7 @@ class TestNonInteractiveSetup:
             run_setup_wizard(args)
 
         out = capsys.readouterr().out
-        assert "muse config set model.provider custom" in out
+        assert "hermes config set model.provider custom" in out
 
     def test_reset_flag_rewrites_config_before_noninteractive_exit(self, tmp_path, monkeypatch, capsys):
         """--reset should rewrite config.yaml even when the wizard cannot run interactively."""
@@ -129,7 +124,7 @@ class TestNonInteractiveSetup:
         assert "Configuration reset to defaults." in out
 
     def test_chat_first_run_headless_skips_setup_prompt(self, capsys):
-        """Bare `muse` should not prompt for input when no provider exists and stdin is headless."""
+        """Bare `hermes` should not prompt for input when no provider exists and stdin is headless."""
         from hermes_cli.main import cmd_chat
 
         args = _make_chat_args()
@@ -139,10 +134,6 @@ class TestNonInteractiveSetup:
             patch("hermes_cli.main.cmd_setup") as mock_setup,
             patch("sys.stdin") as mock_stdin,
             patch("builtins.input", side_effect=AssertionError("input should not be called")),
-            # WC-1: the non-interactive guidance is detection-aware. Force the
-            # no-CLI-detected branch so the test asserts the env-var recipe
-            # regardless of whether the dev host has `claude`/`codex` on PATH.
-            patch("shutil.which", return_value=None),
         ):
             mock_stdin.isatty.return_value = False
             with pytest.raises(SystemExit) as exc:
@@ -151,9 +142,7 @@ class TestNonInteractiveSetup:
         assert exc.value.code == 1
         mock_setup.assert_not_called()
         out = capsys.readouterr().out
-        # Post-WC-1: the binary is `muse`, not `hermes`. The non-interactive
-        # guidance prints the env-var recipe with the new command name.
-        assert "muse config set model.provider custom" in out
+        assert "hermes config set model.provider custom" in out
 
     def test_main_accepts_tts_setup_section(self, monkeypatch):
         """`hermes setup tts` should parse and dispatch like other setup sections."""

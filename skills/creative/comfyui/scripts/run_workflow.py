@@ -251,7 +251,7 @@ class ComfyRunner:
         Returns same shape as poll_status.
         """
         try:
-            import websocket  # type: ignore[import-not-found]  # ty: ignore[unresolved-import]
+            import websocket  # type: ignore[import-not-found]
         except ImportError:
             log("websocket-client not installed; falling back to HTTP polling")
             return self.poll_status(prompt_id, timeout=timeout)

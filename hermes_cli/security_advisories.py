@@ -36,7 +36,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -104,7 +104,9 @@ ADVISORIES: tuple[Advisory, ...] = (
             "them to a hardcoded webhook. If you ran any Python process that "
             "imported mistralai 2.4.6 — including hermes when configured "
             "with provider=mistral for TTS or STT — assume those credentials "
-            "are exposed."
+            "are exposed. PyPI has since removed 2.4.6 and the project ships "
+            "clean releases again (2.4.7, 2.4.8); this advisory only fires if "
+            "the compromised 2.4.6 is still installed."
         ),
         url="https://socket.dev/blog/mini-shai-hulud-worm-pypi",
         compromised=(
@@ -118,7 +120,7 @@ ADVISORIES: tuple[Advisory, ...] = (
             "and any other credential files for tokens that may have been read.",
             "Check GitHub for unexpected new SSH keys, deploy keys, or webhook "
             "additions on repos you have admin on.",
-            "After cleanup: muse doctor --ack shai-hulud-2026-05  to dismiss "
+            "After cleanup: hermes doctor --ack shai-hulud-2026-05  to dismiss "
             "this warning.",
         ),
         published="2026-05-12",
@@ -279,7 +281,7 @@ def short_banner_lines(hits: list[AdvisoryHit]) -> list[str]:
     lines = [
         f"SECURITY ADVISORY [{primary.advisory.id}]: {primary.advisory.title}",
         f"  Detected: {primary.package}=={primary.installed_version}",
-        "  Run 'muse doctor' for remediation steps.",
+        "  Run 'hermes doctor' for remediation steps.",
     ]
     if len(hits) > 1:
         lines.insert(1, f"  ({len(hits) - 1} additional advisor"
@@ -448,4 +450,4 @@ def gateway_log_message(hits: list[AdvisoryHit]) -> Optional[str]:
                 f"See {h.advisory.url}")
     return (f"{len(fresh)} security advisories active "
             f"(IDs: {', '.join(h.advisory.id for h in fresh)}). "
-            f"Run `muse doctor` on the gateway host for details.")
+            f"Run `hermes doctor` on the gateway host for details.")

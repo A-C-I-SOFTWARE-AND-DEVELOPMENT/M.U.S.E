@@ -13,7 +13,7 @@ import sys
 import json
 
 def extract_text(path, pages=None):
-    import pymupdf  # ty: ignore[unresolved-import]
+    import pymupdf
     doc = pymupdf.open(path)
     page_range = range(len(doc)) if pages is None else pages
     for i in page_range:
@@ -22,12 +22,12 @@ def extract_text(path, pages=None):
             print(doc[i].get_text())
 
 def extract_markdown(path, pages=None):
-    import pymupdf4llm  # ty: ignore[unresolved-import]
+    import pymupdf4llm
     md = pymupdf4llm.to_markdown(path, pages=pages)
     print(md)
 
 def extract_tables(path):
-    import pymupdf  # ty: ignore[unresolved-import]
+    import pymupdf
     doc = pymupdf.open(path)
     for i, page in enumerate(doc):
         tables = page.find_tables()
@@ -37,7 +37,7 @@ def extract_tables(path):
             print(df.to_markdown(index=False))
 
 def extract_images(path, output_dir):
-    import pymupdf  # ty: ignore[unresolved-import]
+    import pymupdf
     from pathlib import Path
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     doc = pymupdf.open(path)
@@ -54,7 +54,7 @@ def extract_images(path, output_dir):
     print(f"Extracted {count} images to {output_dir}/")
 
 def show_metadata(path):
-    import pymupdf  # ty: ignore[unresolved-import]
+    import pymupdf
     doc = pymupdf.open(path)
     print(json.dumps({
         "pages": len(doc),

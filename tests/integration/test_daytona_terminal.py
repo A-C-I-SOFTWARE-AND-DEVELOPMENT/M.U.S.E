@@ -26,8 +26,8 @@ sys.path.insert(0, str(parent_dir))
 spec = importlib.util.spec_from_file_location(
     "terminal_tool", parent_dir / "tools" / "terminal_tool.py"
 )
-terminal_module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
-spec.loader.exec_module(terminal_module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+terminal_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(terminal_module)
 
 terminal_tool = terminal_module.terminal_tool
 cleanup_vm = terminal_module.cleanup_vm

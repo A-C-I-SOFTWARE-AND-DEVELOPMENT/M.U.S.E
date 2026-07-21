@@ -21,9 +21,7 @@ import logging
 import time
 from unittest.mock import patch
 
-import pytest
 
-import run_agent
 from run_agent import AIAgent
 
 
@@ -115,8 +113,8 @@ def test_flatten_exception_chain_caps_depth():
 
 def test_log_stream_retry_includes_diagnostic_fields(caplog):
     agent = _make_agent()
-    agent._delegate_depth = 1  # ty: ignore[unresolved-attribute]
-    agent._subagent_id = "sa-3-deadbeef"  # ty: ignore[unresolved-attribute]
+    agent._delegate_depth = 1
+    agent._subagent_id = "sa-3-deadbeef"
     agent.provider = "openrouter"
 
     diag = AIAgent._stream_diag_init()
@@ -175,7 +173,7 @@ def test_log_stream_retry_includes_diagnostic_fields(caplog):
 def test_log_stream_retry_works_without_diag(caplog):
     """diag is optional — older callers / unit tests still work."""
     agent = _make_agent()
-    agent._delegate_depth = 0  # ty: ignore[unresolved-attribute]
+    agent._delegate_depth = 0
     agent.provider = "openrouter"
 
     with caplog.at_level(logging.WARNING, logger="run_agent"):
@@ -203,7 +201,7 @@ def test_emit_stream_drop_ui_includes_elapsed_when_available():
     diag = AIAgent._stream_diag_init()
     diag["started_at"] = time.time() - 8.0  # 8s on the wire before drop
 
-    with patch.object(agent, "_emit_status") as mock_emit:
+    with patch.object(agent, "_buffer_status") as mock_emit:
         agent._emit_stream_drop(
             error=ConnectionError("x"),
             attempt=2,
@@ -223,7 +221,7 @@ def test_emit_stream_drop_ui_omits_suffix_without_diag():
     agent = _make_agent()
     agent.provider = "openrouter"
 
-    with patch.object(agent, "_emit_status") as mock_emit:
+    with patch.object(agent, "_buffer_status") as mock_emit:
         agent._emit_stream_drop(
             error=ConnectionError("x"),
             attempt=2,

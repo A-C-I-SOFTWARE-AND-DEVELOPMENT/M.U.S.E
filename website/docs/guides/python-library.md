@@ -1,50 +1,50 @@
 ---
 sidebar_position: 5
-title: "Using muse as a Python Library"
+title: "Using Hermes as a Python Library"
 description: "Embed AIAgent in your own Python scripts, web apps, or automation pipelines — no CLI required"
 ---
 
-# Using muse as a Python Library
+# Using Hermes as a Python Library
 
-muse isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
+Hermes isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
 
 ---
 
 ## Installation
 
-Install muse directly from the repository:
+Install Hermes directly from the repository:
 
 ```bash
-pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
+pip install git+https://github.com/NousResearch/hermes-agent.git
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv pip install git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
+uv pip install git+https://github.com/NousResearch/hermes-agent.git
 ```
 
 You can also pin it in your `requirements.txt`:
 
 ```text
-hermes-agent @ git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/musegit
+hermes-agent @ git+https://github.com/NousResearch/hermes-agent.git
 ```
 
 :::tip
-The same environment variables used by the CLI are required when using muse as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
+The same environment variables used by the CLI are required when using Hermes as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
 :::
 
 ---
 
 ## Basic Usage
 
-The simplest way to use muse is the `chat()` method — pass a message, get a string back:
+The simplest way to use Hermes is the `chat()` method — pass a message, get a string back:
 
 ```python
 from run_agent import AIAgent
 
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     quiet_mode=True,
 )
 response = agent.chat("What is the capital of France?")
@@ -54,7 +54,7 @@ print(response)
 `chat()` handles the full conversation loop internally — tool calls, retries, everything — and returns just the final text response.
 
 :::warning
-Always set `quiet_mode=True` when embedding muse in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
+Always set `quiet_mode=True` when embedding Hermes in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
 :::
 
 ---
@@ -65,7 +65,7 @@ For more control over the conversation, use `run_conversation()` directly. It re
 
 ```python
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     quiet_mode=True,
 )
 
@@ -102,14 +102,14 @@ Control which toolsets the agent has access to using `enabled_toolsets` or `disa
 ```python
 # Only enable web tools (browsing, search)
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     enabled_toolsets=["web"],
     quiet_mode=True,
 )
 
 # Enable everything except terminal access
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     disabled_toolsets=["terminal"],
     quiet_mode=True,
 )
@@ -127,7 +127,7 @@ Maintain conversation state across multiple turns by passing the message history
 
 ```python
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     quiet_mode=True,
 )
 
@@ -153,7 +153,7 @@ Enable trajectory saving to capture conversations in ShareGPT format — useful 
 
 ```python
 agent = AIAgent(
-    model="anthropic/claude-sonnet-4",
+    model="anthropic/claude-sonnet-4.6",
     save_trajectories=True,
     quiet_mode=True,
 )
@@ -187,7 +187,7 @@ This is ideal for building specialized agents — a code reviewer, a documentati
 
 ## Batch Processing
 
-For running many prompts in parallel, muse includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
+For running many prompts in parallel, Hermes includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
 
 ```bash
 python batch_runner.py --input prompts.jsonl --output results.jsonl
@@ -311,7 +311,7 @@ print(review)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `"anthropic/claude-opus-4.6"` | Model in OpenRouter format |
+| `model` | `str` | `""` | Model in OpenRouter format (defaults to empty; resolved from your hermes config at runtime) |
 | `quiet_mode` | `bool` | `False` | Suppress CLI output |
 | `enabled_toolsets` | `List[str]` | `None` | Whitelist specific toolsets |
 | `disabled_toolsets` | `List[str]` | `None` | Blacklist specific toolsets |

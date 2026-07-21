@@ -11,7 +11,6 @@ Covers:
 """
 
 import json
-import queue
 import time
 import pytest
 from unittest.mock import patch
@@ -19,11 +18,8 @@ from unittest.mock import patch
 from tools.process_registry import (
     ProcessRegistry,
     ProcessSession,
-    WATCH_MIN_INTERVAL_SECONDS,
     WATCH_STRIKE_LIMIT,
     WATCH_GLOBAL_MAX_PER_WINDOW,
-    WATCH_GLOBAL_WINDOW_SECONDS,
-    WATCH_GLOBAL_COOLDOWN_SECONDS,
 )
 
 
@@ -316,15 +312,10 @@ class TestCheckpointPersistence:
 class TestTerminalToolSchema:
     def test_schema_includes_watch_patterns(self):
         from tools.terminal_tool import TERMINAL_SCHEMA
-        params = TERMINAL_SCHEMA["parameters"]
-        assert isinstance(params, dict)
-        props = params["properties"]
-        assert isinstance(props, dict)
+        props = TERMINAL_SCHEMA["parameters"]["properties"]
         assert "watch_patterns" in props
-        wp = props["watch_patterns"]
-        assert isinstance(wp, dict)
-        assert wp["type"] == "array"
-        assert wp["items"] == {"type": "string"}
+        assert props["watch_patterns"]["type"] == "array"
+        assert props["watch_patterns"]["items"] == {"type": "string"}
 
     def test_handler_passes_watch_patterns(self):
         """_handle_terminal passes watch_patterns to terminal_tool."""

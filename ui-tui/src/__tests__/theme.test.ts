@@ -43,7 +43,7 @@ describe('DEFAULT_THEME', () => {
   it('has brand defaults', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.brand.name).toBe('muse')
+    expect(DEFAULT_THEME.brand.name).toBe('Hermes Agent')
     expect(DEFAULT_THEME.brand.prompt).toBe('❯')
     expect(DEFAULT_THEME.brand.tool).toBe('┊')
   })
@@ -51,8 +51,8 @@ describe('DEFAULT_THEME', () => {
   it('has color palette', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.color.primary).toBe('#FFFFFF')
-    expect(DEFAULT_THEME.color.error).toBe('#E06C75')
+    expect(DEFAULT_THEME.color.primary).toBe('#FFD700')
+    expect(DEFAULT_THEME.color.error).toBe('#ef5350')
   })
 })
 
@@ -71,26 +71,6 @@ describe('LIGHT_THEME', () => {
 
     expect(Object.keys(LIGHT_THEME.color).sort()).toEqual(Object.keys(DARK_THEME.color).sort())
     expect(LIGHT_THEME.brand).toEqual(DARK_THEME.brand)
-  })
-
-  it('carries no gold-era remnants (Singularity rebrand)', async () => {
-    const { LIGHT_THEME } = await importThemeWithCleanEnv()
-    const GOLD_ERA = /7A5A0F|A0651C|8B6914|FFD700|FFBF00|B8860B/i
-
-    for (const [key, value] of Object.entries(LIGHT_THEME.color)) {
-      expect(value, `color.${key}`).not.toMatch(GOLD_ERA)
-    }
-  })
-
-  it('ships the brand lockup for light terminals', async () => {
-    const { LIGHT_THEME } = await importThemeWithCleanEnv()
-
-    // Wordmark + glyph render with primary-ink fill on white, keeping the
-    // violet ramp ring stops (accentDim → accent, the Singularity accent family).
-    expect(LIGHT_THEME.bannerLogo).toContain('#12151D')
-    expect(LIGHT_THEME.bannerHero).toContain('#12151D')
-    expect(LIGHT_THEME.bannerHero).toContain('#7E5FA8')
-    expect(LIGHT_THEME.bannerHero).toContain('#D8B4FE')
   })
 })
 
@@ -240,10 +220,13 @@ describe('fromSkin', () => {
   it('maps completion meta background colors from skins', async () => {
     const { fromSkin } = await importThemeWithCleanEnv()
 
-    const theme = fromSkin({
-      completion_menu_meta_bg: '#111111',
-      completion_menu_meta_current_bg: '#222222'
-    }, {})
+    const theme = fromSkin(
+      {
+        completion_menu_meta_bg: '#111111',
+        completion_menu_meta_current_bg: '#222222'
+      },
+      {}
+    )
 
     expect(theme.color.completionMetaBg).toBe('#111111')
     expect(theme.color.completionMetaCurrentBg).toBe('#222222')
@@ -283,14 +266,17 @@ describe('fromSkin', () => {
   it('normalizes non-banner foregrounds on light Apple Terminal', async () => {
     const { fromSkin } = await importThemeWithEnv({ TERM_PROGRAM: 'Apple_Terminal' })
 
-    const theme = fromSkin({
-      banner_accent: '#FFBF00',
-      banner_border: '#CD7F32',
-      banner_dim: '#B8860B',
-      banner_text: '#FFF8DC',
-      banner_title: '#FFD700',
-      prompt: '#FFF8DC'
-    }, {})
+    const theme = fromSkin(
+      {
+        banner_accent: '#FFBF00',
+        banner_border: '#CD7F32',
+        banner_dim: '#B8860B',
+        banner_text: '#FFF8DC',
+        banner_title: '#FFD700',
+        prompt: '#FFF8DC'
+      },
+      {}
+    )
 
     expect(theme.color.primary).toBe('#FFD700')
     expect(theme.color.accent).toBe('#FFBF00')

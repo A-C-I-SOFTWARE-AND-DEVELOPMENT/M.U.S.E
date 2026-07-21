@@ -97,7 +97,7 @@ def _normalize_artifact(
     )
     source_url = payload.get("webUrl") or payload.get("contentUrl") or default_source_url
     return MeetingArtifact(
-        artifact_type=artifact_type,  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+        artifact_type=artifact_type,  # type: ignore[arg-type]
         artifact_id=str(payload.get("id") or "").strip(),
         display_name=payload.get("displayName") or payload.get("name"),
         content_type=payload.get("contentType") or payload.get("fileMimeType"),

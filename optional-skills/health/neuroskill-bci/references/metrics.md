@@ -1,14 +1,14 @@
 # NeuroSkill Metric Definitions & Interpretation Guide
 
 > **⚠️ Research Use Only:** All metrics are experimental and derived from
-> consumer-grade hardware (muse 2/S). They are not FDA/CE-cleared and must not
+> consumer-grade hardware (Muse 2/S). They are not FDA/CE-cleared and must not
 > be used for medical diagnosis or treatment.
 
 ---
 
 ## Hardware & Signal Acquisition
 
-NeuroSkill is validated for **muse 2** and **muse S** headbands (with OpenBCI
+NeuroSkill is validated for **Muse 2** and **Muse S** headbands (with OpenBCI
 support in the desktop app), streaming at **256 Hz** (EEG) and **64 Hz** (PPG).
 
 ### Electrode Positions (International 10-20 System)

@@ -17,7 +17,7 @@ Delegate coding to OpenCode CLI (features, PR review).
 | Source | Bundled (installed by default) |
 | Path | `skills/autonomous-ai-agents/opencode` |
 | Version | `1.2.0` |
-| Author | muse |
+| Author | Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `OpenCode`, `Autonomous`, `Refactoring`, `Code-Review` |
@@ -26,12 +26,12 @@ Delegate coding to OpenCode CLI (features, PR review).
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # OpenCode CLI
 
-Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by muse terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
+Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by Hermes terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
 
 ## When to Use
 
@@ -50,7 +50,7 @@ Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated 
 
 ## Binary Resolution (Important)
 
-Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and muse check:
+Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and Hermes, check:
 
 ```
 terminal(command="which -a opencode")

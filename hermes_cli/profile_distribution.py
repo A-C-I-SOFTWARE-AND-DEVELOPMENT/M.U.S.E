@@ -70,6 +70,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from agent.skill_utils import is_excluded_skill_path
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -320,7 +322,7 @@ def check_hermes_requires(spec: str, current_version: str) -> None:
     }[op]
     if not ok:
         raise DistributionError(
-            f"This distribution requires muse {op}{target}, "
+            f"This distribution requires Hermes {op}{target}, "
             f"but you have {current_version}."
         )
 
@@ -333,7 +335,7 @@ def check_hermes_requires(spec: str, current_version: str) -> None:
 def _env_template_from_manifest(manifest: DistributionManifest) -> str:
     """Generate a ``.env.template`` body from env_requires."""
     lines = [
-        "# Environment variables required by this muse distribution.",
+        "# Environment variables required by this Hermes distribution.",
         "# Copy to `.env` and fill in your own values before running.",
         "",
     ]
@@ -410,7 +412,7 @@ def _stage_source(source: str, workdir: Path) -> Tuple[Path, str]:
         if not (cloned / MANIFEST_FILENAME).is_file():
             raise DistributionError(
                 f"No {MANIFEST_FILENAME} at the root of {src_str!r}. "
-                "This repository is not a muse profile distribution."
+                "This repository is not a Hermes profile distribution."
             )
         return cloned, src_str
 
@@ -428,6 +430,20 @@ def _stage_source(source: str, workdir: Path) -> Tuple[Path, str]:
         f"Cannot resolve distribution source: {source!r}. "
         "Expected a git URL (e.g. github.com/user/repo) or a local directory."
     )
+
+
+def _reject_distribution_symlinks(staged: Path) -> None:
+    """Reject symlinks before reading or copying distribution files."""
+    for entry in staged.rglob("*"):
+        if not entry.is_symlink():
+            continue
+        try:
+            rel = entry.relative_to(staged)
+        except ValueError:
+            rel = entry
+        raise DistributionError(
+            f"Profile distributions cannot contain symlinks: {rel}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -463,7 +479,9 @@ def _count_skills(staged: Path) -> int:
     skills_dir = staged / "skills"
     if not skills_dir.is_dir():
         return 0
-    return sum(1 for _ in skills_dir.rglob("SKILL.md"))
+    return sum(
+        1 for p in skills_dir.rglob("SKILL.md") if not is_excluded_skill_path(p)
+    )
 
 
 def plan_install(
@@ -480,11 +498,12 @@ def plan_install(
     from hermes_cli import __version__ as hermes_version
 
     staged, provenance = _stage_source(source, workdir)
+    _reject_distribution_symlinks(staged)
     manifest = read_manifest(staged)
     if manifest is None:
         raise DistributionError(
             f"No {MANIFEST_FILENAME} found at the distribution root — "
-            "this source is not a muse distribution."
+            "this source is not a Hermes distribution."
         )
 
     # Version check up-front so we fail fast
@@ -554,10 +573,15 @@ def _copy_dist_payload(
         if entry.is_dir():
             if dest.exists():
                 shutil.rmtree(dest)
+            staged_resolved = staged.resolve()
             shutil.copytree(
                 entry,
                 dest,
-                ignore=lambda d, names: [n for n in names if n in USER_OWNED_EXCLUDE],
+                ignore=lambda d, names: (
+                    [n for n in names if n in USER_OWNED_EXCLUDE]
+                    if Path(d).resolve() == staged_resolved
+                    else []
+                ),
             )
         else:
             shutil.copy2(entry, dest)

@@ -4,156 +4,10 @@ import unicodeSpinners from 'unicode-animations'
 
 import { artWidth, caduceus, CADUCEUS_WIDTH, logo, LOGO_WIDTH } from '../banner.js'
 import { flat } from '../lib/text.js'
-import type { Theme, ThemeColors } from '../theme.js'
+import type { Theme } from '../theme.js'
 import type { PanelSection, SessionInfo } from '../types.js'
 
-import { readMuseAgentMode } from './appChrome.js'
-
 const LOADER_TICK_MS = 120
-
-// ── Spectral banner shimmer (animation-spec.md, TUI section) ─────────
-// Hue-cycle the banner's art rows through the theme's violet→magenta
-// accent band on a ~90ms tick, starting on mount and settling back to
-// the exact theme palette after ~12s (interval cleared). Re-arms when
-// the terminal width or theme changes the banner.
-
-const SHIMMER_TICK_MS = 90
-const SHIMMER_SETTLE_MS = 12_000
-
-/** Ping-pong path through the 4-stop ramp: violet → magenta → back. */
-const RAMP_PATH = [0, 1, 2, 3, 2, 1] as const
-
-// Tiny HSL helpers, local to this file, so the cycle stays within
-// theme-consistent shades (derived from t.color.accent / accentDim)
-// instead of hardcoded hex stops that would break the light theme.
-function hexToHsl(hex: string): [number, number, number] {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
-
-  if (!m) {
-    return [275, 0.5, 0.7] // Singularity violet fallback
-  }
-
-  const n = parseInt(m[1]!, 16)
-  const r = ((n >> 16) & 255) / 255
-  const g = ((n >> 8) & 255) / 255
-  const b = (n & 255) / 255
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const l = (max + min) / 2
-
-  if (max === min) {
-    return [275, 0, l] // achromatic: anchor hue in the violet band
-  }
-
-  const d = max - min
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-  let h: number
-
-  if (max === r) {
-    h = (g - b) / d + (g < b ? 6 : 0)
-  } else if (max === g) {
-    h = (b - r) / d + 2
-  } else {
-    h = (r - g) / d + 4
-  }
-
-  return [h * 60, s, l]
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  const hue = ((h % 360) + 360) % 360
-  const c = (1 - Math.abs(2 * l - 1)) * Math.min(1, Math.max(0, s))
-  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1))
-  const m = l - c / 2
-  let r = 0
-  let g = 0
-  let b = 0
-
-  if (hue < 60) {
-    r = c; g = x
-  } else if (hue < 120) {
-    r = x; g = c
-  } else if (hue < 180) {
-    g = c; b = x
-  } else if (hue < 240) {
-    g = x; b = c
-  } else if (hue < 300) {
-    r = x; b = c
-  } else {
-    r = c; b = x
-  }
-
-  const to = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
-
-  return `#${to(r)}${to(g)}${to(b)}`
-}
-
-/**
- * 4-stop violet→magenta band anchored on the theme's ONE accent family:
- * accentDim → midpoint → accent → accent hue-rotated ~26° toward magenta
- * (dark: ≈#7E5FA8 → #C187FF → #D8B4FE → #F8B4FE; light theme stays
- * darker/readable because it derives from its own accent stops).
- */
-function spectralRamp(c: ThemeColors): string[] {
-  const accent = c.accent
-  const dim = c.accentDim ?? c.accent
-  const [hA, sA, lA] = hexToHsl(accent)
-  const [hD, sD, lD] = hexToHsl(dim)
-  const mid = hslToHex((hD + hA) / 2, Math.max(sA, sD) + 0.08, Math.min(0.85, (lD + lA) / 2 + 0.08))
-  const magenta = hslToHex(hA + 26, sA, lA)
-
-  return [dim, mid, accent, magenta]
-}
-
-/**
- * Shimmer frame driver. Returns a frame index ≥ 0 while cycling and -1
- * once settled (final palette frame). Restarts from frame 0 whenever any
- * re-arm input changes (e.g. terminal columns, theme object); the
- * interval is always cleared on settle and on unmount.
- */
-export function useSpectralShimmer(...rearm: readonly unknown[]): number {
-  const [frame, setFrame] = useState(0)
-
-  useEffect(() => {
-    setFrame(0)
-    const started = Date.now()
-    const id = setInterval(() => {
-      if (Date.now() - started >= SHIMMER_SETTLE_MS) {
-        clearInterval(id)
-        setFrame(-1)
-      } else {
-        setFrame(n => n + 1)
-      }
-    }, SHIMMER_TICK_MS)
-
-    return () => clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, rearm)
-
-  return frame
-}
-
-/**
- * Apply one shimmer frame to art lines: each colored row steps through
- * the ramp, phase-offset by row index so a wave travels down the art.
- * Uncolored segments (color === '') pass through untouched. frame < 0
- * returns the lines unchanged (settled = exact theme palette).
- */
-export function shimmerLines(lines: [string, string][], c: ThemeColors, frame: number): [string, string][] {
-  if (frame < 0) {
-    return lines
-  }
-
-  const ramp = spectralRamp(c)
-
-  return lines.map(([color, text], i) => {
-    if (!color) {
-      return [color, text]
-    }
-
-    return [ramp[RAMP_PATH[(frame + i) % RAMP_PATH.length]!]!, text]
-  })
-}
 
 function InlineLoader({ label, t }: { label: string; t: Theme }) {
   const [tick, setTick] = useState(0)
@@ -175,37 +29,97 @@ function InlineLoader({ label, t }: { label: string; t: Theme }) {
 
 export function ArtLines({ lines }: { lines: [string, string][] }) {
   return (
-    <>
+    <Box flexDirection="column" height={lines.length} opaque width={artWidth(lines)}>
       {lines.map(([c, text], i) => (
-        <Text color={c} key={i}>
+        <Text color={c} key={i} wrap="truncate-end">
           {text}
         </Text>
       ))}
-    </>
+    </Box>
   )
 }
 
-export function Banner({ t }: { t: Theme }) {
-  const cols = useStdout().stdout?.columns ?? 80
+// Responsive Banner: full art → compact rule → text → hidden.
+//
+// Terminals can't scale glyphs, so "responsive" means picking a layout that
+// fits the available columns. Thresholds are picked so each tier reads
+// comfortably without forcing wrap or truncation drift on box-drawing edges.
+const TAG_FULL = 'Nous Research · Messenger of the Digital Gods'
+const TAG_MID = 'Messenger of the Digital Gods'
+const TAG_TINY = 'Nous Research'
+const HIDE_BELOW = 34
+const COMPACT_FROM = 58
+
+const clip = (s: string, w: number) => (w <= 0 ? '' : s.length > w ? `${s.slice(0, Math.max(0, w - 1))}…` : s)
+
+const centerIn = (s: string, w: number) => {
+  const f = clip(s, w)
+  const slack = Math.max(0, w - f.length)
+  const left = slack >> 1
+
+  return `${' '.repeat(left)}${f}${' '.repeat(slack - left)}`
+}
+
+const ruleIn = (label: string, w: number) => {
+  const f = clip(label, Math.max(1, w - 4))
+  const slack = Math.max(0, w - f.length - 2)
+  const left = slack >> 1
+
+  return `${'─'.repeat(left)} ${f} ${'─'.repeat(slack - left)}`
+}
+
+function CompactBanner({ cols, t }: { cols: number; t: Theme }) {
+  // -4 keeps a margin so exact-edge rows don't trip terminal pending-wrap.
+  const w = Math.max(28, cols - 4)
+
+  return (
+    <Box flexDirection="column" height={3} marginBottom={1} opaque width={w}>
+      <Text bold color={t.color.primary}>
+        {ruleIn(t.brand.name, w)}
+      </Text>
+      <Text color={t.color.muted}>{centerIn(TAG_FULL, w)}</Text>
+      <Text color={t.color.primary}>{'─'.repeat(w)}</Text>
+    </Box>
+  )
+}
+
+export function Banner({ maxWidth, t }: { maxWidth?: number; t: Theme }) {
+  const term = useStdout().stdout?.columns ?? 80
+  const cols = Math.max(1, Math.min(term, maxWidth ?? term))
+
+  if (cols < HIDE_BELOW) {
+    return null
+  }
+
   const logoLines = logo(t.color, t.bannerLogo || undefined)
-  // Spectral shimmer: hue-cycle the banner art rows through the theme's
-  // violet→magenta band (90ms tick), settling to the exact theme palette
-  // after ~12s. Re-arms when width or theme changes the banner. Static
-  // text (brand fallback, tagline) is never shimmered.
-  const frame = useSpectralShimmer(cols, t)
-  const lines = shimmerLines(logoLines, t.color, frame)
+  const logoW = t.bannerLogo ? artWidth(logoLines) : LOGO_WIDTH
+
+  if (cols >= logoW + 2) {
+    return (
+      <Box flexDirection="column" marginBottom={1}>
+        <ArtLines lines={logoLines} />
+        <Text color={t.color.muted} wrap="truncate-end">
+          {t.brand.icon} {TAG_FULL}
+        </Text>
+      </Box>
+    )
+  }
+
+  if (cols >= COMPACT_FROM) {
+    return <CompactBanner cols={cols} t={t} />
+  }
+
+  const name = cols >= 52 ? t.brand.name : (t.brand.name.split(' ')[0] ?? t.brand.name)
+  const tag = cols >= 64 ? TAG_FULL : cols >= 46 ? TAG_MID : TAG_TINY
 
   return (
     <Box flexDirection="column" marginBottom={1}>
-      {cols >= (t.bannerLogo ? artWidth(logoLines) : LOGO_WIDTH) ? (
-        <ArtLines lines={lines} />
-      ) : (
-        <Text bold color={t.color.primary}>
-          {t.brand.icon} {t.brand.name}
-        </Text>
-      )}
-
-      <Text color={t.color.muted}>{t.brand.icon} {t.brand.tagline}</Text>
+      <Text bold color={t.color.primary} wrap="truncate-end">
+        {t.brand.icon} {name}
+      </Text>
+      <Text color={t.color.muted} wrap="truncate-end">
+        {t.brand.icon} {tag}
+      </Text>
     </Box>
   )
 }
@@ -233,12 +147,8 @@ function CollapseToggle({
       <Text bold color={t.color.accent}>
         {title}
       </Text>
-      {typeof count === 'number' ? (
-        <Text color={t.color.muted}> ({count})</Text>
-      ) : null}
-      {suffix ? (
-        <Text color={t.color.muted}> {suffix}</Text>
-      ) : null}
+      {typeof count === 'number' ? <Text color={t.color.muted}> ({count})</Text> : null}
+      {suffix ? <Text color={t.color.muted}> {suffix}</Text> : null}
     </Box>
   )
 }
@@ -248,28 +158,18 @@ function CollapseToggle({
 const SKILLS_MAX = 8
 const TOOLSETS_MAX = 8
 
-export function SessionPanel({ info, sid, t }: SessionPanelProps) {
-  const cols = useStdout().stdout?.columns ?? 100
-  const rows = useStdout().stdout?.rows ?? 24
+export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
+  const term = useStdout().stdout?.columns ?? 100
+  const cols = Math.max(20, Math.min(term, maxWidth ?? term))
   const heroLines = caduceus(t.color, t.bannerHero || undefined)
-  // Spectral shimmer on the hero caduceus, same contract as Banner: the hook
-  // is hoisted here (NOT inline in the `{wide && …}` JSX below) because that
-  // block is conditionally rendered — an inline hook would break the rules
-  // of hooks when `wide` flips. Settles to the exact theme palette ~12s.
-  const heroFrame = useSpectralShimmer(cols, t)
   const leftW = Math.min((artWidth(heroLines) || CADUCEUS_WIDTH) + 4, Math.floor(cols * 0.4))
   const wide = cols >= 90 && leftW + 40 < cols
-  // The 14-row hero glyph only earns its vertical space on tall terminals;
-  // on standard 24-30 row consoles it would push the composer off-screen.
-  const showHero = wide && rows >= 40
-  const w = Math.max(20, showHero ? cols - leftW - 14 : cols - 12)
+  const w = Math.max(20, wide ? cols - leftW - 14 : cols - 12)
   const lineBudget = Math.max(12, w - 2)
   const strip = (s: string) => (s.endsWith('_tools') ? s.slice(0, -6) : s)
 
   // ── Local collapse state for each section ──
-  // All sections default COLLAPSED so the intro panel stays compact enough
-  // that the composer is reachable without scrolling on standard consoles.
-  const [toolsOpen, setToolsOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(true)
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [systemOpen, setSystemOpen] = useState(false)
   const [mcpOpen, setMcpOpen] = useState(false)
@@ -313,9 +213,7 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
             <Text color={t.color.text}>{truncLine(strip(k) + ': ', vs)}</Text>
           </Text>
         ))}
-        {overflow > 0 && (
-          <Text color={t.color.muted}>(and {overflow} more categories…)</Text>
-        )}
+        {overflow > 0 && <Text color={t.color.muted}>(and {overflow} more categories…)</Text>}
       </>
     )
   }
@@ -323,6 +221,12 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
   // ── Collapsible tools section ──
   const toolEntries = Object.entries(info.tools).sort()
   const toolsTotal = flat(info.tools).length
+
+  // MCP headline counts *connected* servers, not configured-but-disabled ones,
+  // so it matches the classic CLI banner (`sum(s.connected)` in
+  // hermes_cli/banner.py) and the "connected" label on the collapse toggle.
+  const mcpServers = info.mcp_servers ?? []
+  const mcpConnected = mcpServers.filter(s => s.connected).length
 
   const toolsBody = () => {
     const shown = toolEntries.slice(0, TOOLSETS_MAX)
@@ -336,9 +240,7 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
             <Text color={t.color.text}>{truncLine(strip(k) + ': ', vs)}</Text>
           </Text>
         ))}
-        {overflow > 0 && (
-          <Text color={t.color.muted}>(and {overflow} more toolsets…)</Text>
-        )}
+        {overflow > 0 && <Text color={t.color.muted}>(and {overflow} more toolsets…)</Text>}
       </>
     )
   }
@@ -355,6 +257,12 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
             <Text color={t.color.text}>
               {s.tools} tool{s.tools === 1 ? '' : 's'}
             </Text>
+          ) : s.disabled || s.status === 'disabled' ? (
+            <Text color={t.color.muted}>disabled</Text>
+          ) : s.status === 'connecting' ? (
+            <Text color={t.color.warn}>connecting</Text>
+          ) : s.status === 'configured' ? (
+            <Text color={t.color.muted}>configured</Text>
           ) : (
             <Text color={t.color.error}>failed</Text>
           )}
@@ -366,28 +274,29 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
   // ── System prompt body ──
   const sysPromptLen = (info.system_prompt ?? '').length
 
-  // Defensive capability read for the banner's MOA/◈Fusion availability
-  // segments — supplied later by the integrator's globalThis.__museAgentMode.
-  const caps = readMuseAgentMode()
-
   const systemBody = () => {
     if (sysPromptLen === 0) {
       return <Text color={t.color.muted}>No system prompt loaded.</Text>
     }
 
-    return (
-      <Text color={t.color.muted}>
-        {info.system_prompt}
-      </Text>
-    )
+    return <Text color={t.color.muted}>{info.system_prompt}</Text>
   }
 
   return (
-    <Box borderColor={t.color.border} borderStyle="round" marginBottom={1} paddingX={2} paddingY={0}>
-      {showHero && (
+    <Box borderColor={t.color.border} borderStyle="round" marginBottom={1} paddingX={2} paddingY={1}>
+      {wide && (
         <Box flexDirection="column" marginRight={2} width={leftW}>
-          <ArtLines lines={shimmerLines(heroLines, t.color, heroFrame)} />
+          <ArtLines lines={heroLines} />
           <Text />
+
+          <Text color={t.color.accent}>
+            {info.model.split('/').pop()}
+            <Text color={t.color.muted}> · Nous Research</Text>
+          </Text>
+
+          <Text color={t.color.muted} wrap="truncate-end">
+            {info.cwd || process.cwd()}
+          </Text>
 
           {sid && (
             <Text>
@@ -399,50 +308,37 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
       )}
 
       <Box flexDirection="column" width={w}>
-        {/* Singularity banner line (design.md 1.1):
-            name v{version} · model · cwd · N skills · MOA ✓ · ◈Fusion ✓
-            MOA/Fusion segments render only when the defensive agent-mode
-            getter reports capability flags (see appChrome.tsx). */}
-        <Box justifyContent="center" marginBottom={1}>
-          <Text wrap="truncate-end">
+        {wide ? (
+          <Box justifyContent="center" marginBottom={1}>
             <Text bold color={t.color.primary}>
               {t.brand.name}
               {info.version ? ` v${info.version}` : ''}
+              {info.release_date ? ` (${info.release_date})` : ''}
             </Text>
-            {info.release_date ? <Text color={t.color.muted}> ({info.release_date})</Text> : null}
-            <Text color={t.color.faint ?? t.color.border}> · </Text>
-            <Text color={t.color.accent}>{info.model.split('/').pop()}</Text>
-            <Text color={t.color.faint ?? t.color.border}> · </Text>
-            <Text color={t.color.muted}>{info.cwd || process.cwd()}</Text>
-            <Text color={t.color.faint ?? t.color.border}> · </Text>
-            <Text color={t.color.text}>{skillsTotal} skills</Text>
-            {typeof caps.moaAvailable === 'boolean' ? (
-              <>
-                <Text color={t.color.faint ?? t.color.border}> · </Text>
-                <Text color={caps.moaAvailable ? t.color.ok : t.color.muted}>
-                  MOA {caps.moaAvailable ? '✓' : '✖'}
-                </Text>
-              </>
-            ) : null}
-            {typeof caps.fusionAvailable === 'boolean' ? (
-              <>
-                <Text color={t.color.faint ?? t.color.border}> · </Text>
-                <Text color={caps.fusionAvailable ? t.color.ok : t.color.muted}>
-                  ◈Fusion {caps.fusionAvailable ? '✓' : '✖'}
-                </Text>
-              </>
-            ) : null}
-          </Text>
-        </Box>
+          </Box>
+        ) : (
+          // Narrow layout hides the hero column; surface model/cwd/session
+          // here so they aren't lost.
+          <Box flexDirection="column" marginBottom={1}>
+            <Text color={t.color.accent} wrap="truncate-end">
+              {info.model.split('/').pop()}
+              <Text color={t.color.muted}> · Nous Research</Text>
+            </Text>
+            <Text color={t.color.muted} wrap="truncate-end">
+              {info.cwd || process.cwd()}
+            </Text>
+            {sid && (
+              <Text wrap="truncate-end">
+                <Text color={t.color.sessionLabel}>Session: </Text>
+                <Text color={t.color.sessionBorder}>{sid}</Text>
+              </Text>
+            )}
+          </Box>
+        )}
 
-        {/* ── Tools (collapsed by default) ── */}
+        {/* ── Tools (expanded by default) ── */}
         <Box flexDirection="column" marginTop={1}>
-          <CollapseToggle
-            onToggle={() => setToolsOpen(v => !v)}
-            open={toolsOpen}
-            t={t}
-            title="Available Tools"
-          />
+          <CollapseToggle onToggle={() => setToolsOpen(v => !v)} open={toolsOpen} t={t} title="Available Tools" />
           {toolsOpen && toolsBody()}
         </Box>
 
@@ -452,7 +348,9 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
             count={skillsTotal}
             onToggle={() => setSkillsOpen(v => !v)}
             open={skillsOpen}
-            suffix={skillsCatCount > 0 ? `in ${skillsCatCount} categor${skillsCatCount === 1 ? 'y' : 'ies'}` : undefined}
+            suffix={
+              skillsCatCount > 0 ? `in ${skillsCatCount} categor${skillsCatCount === 1 ? 'y' : 'ies'}` : undefined
+            }
             t={t}
             title="Available Skills"
           />
@@ -474,10 +372,10 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
         )}
 
         {/* ── MCP Servers (collapsed by default) ── */}
-        {info.mcp_servers && info.mcp_servers.length > 0 && (
+        {mcpServers.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <CollapseToggle
-              count={info.mcp_servers.length}
+              count={mcpConnected}
               onToggle={() => setMcpOpen(v => !v)}
               open={mcpOpen}
               suffix="connected"
@@ -493,7 +391,7 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
         <Text color={t.color.text}>
           {toolsTotal} tools{' · '}
           {skillsTotal} skills
-          {info.mcp_servers?.length ? ` · ${info.mcp_servers.length} MCP` : ''}
+          {mcpConnected ? ` · ${mcpConnected} MCP` : ''}
           {' · '}
           <Text color={t.color.muted}>/help for commands</Text>
         </Text>
@@ -512,6 +410,12 @@ export function SessionPanel({ info, sid, t }: SessionPanelProps) {
               {' '}
               to update
             </Text>
+          </Text>
+        )}
+
+        {info.install_warning && (
+          <Text bold color={t.color.warn} wrap="wrap">
+            ! {info.install_warning}
           </Text>
         )}
       </Box>
@@ -564,6 +468,7 @@ interface PanelProps {
 
 interface SessionPanelProps {
   info: SessionInfo
+  maxWidth?: number
   sid?: string | null
   t: Theme
 }

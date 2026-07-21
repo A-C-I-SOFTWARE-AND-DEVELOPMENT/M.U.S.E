@@ -239,7 +239,7 @@ class TestCmdMigrate:
 
         # Build a fake migration module
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 0, "skipped": 5, "conflict": 0, "error": 0},
@@ -248,7 +248,7 @@ class TestCmdMigrate:
             ],
             "preset": "full",
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -277,7 +277,7 @@ class TestCmdMigrate:
         config_path.write_text("agent:\n  max_turns: 90\n")
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value={"soul"})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value={"soul"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 2, "skipped": 1, "conflict": 0, "error": 0},
@@ -286,7 +286,7 @@ class TestCmdMigrate:
                 {"kind": "memory", "status": "migrated", "destination": str(tmp_path / "memories/MEMORY.md")},
             ],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -317,14 +317,14 @@ class TestCmdMigrate:
         openclaw_dir.mkdir()
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value=set())  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 2, "skipped": 0, "conflict": 0, "error": 0},
             "items": [],
             "preset": "full",
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -352,13 +352,13 @@ class TestCmdMigrate:
 
         # Preview must succeed before the confirmation prompt is shown
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value=set())  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 1, "skipped": 0, "conflict": 0, "error": 0},
             "items": [{"kind": "soul", "status": "migrated", "source": "s", "destination": "d", "reason": ""}],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -389,13 +389,13 @@ class TestCmdMigrate:
         config_path.write_text("")
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value=set())  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 0, "skipped": 0, "conflict": 0, "error": 0},
             "items": [],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -451,13 +451,13 @@ class TestCmdMigrate:
         openclaw_dir.mkdir()
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value=set())  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 0, "skipped": 0, "conflict": 0, "error": 0},
             "items": [],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),
@@ -488,13 +488,13 @@ class TestCmdMigrate:
         openclaw_dir.mkdir()
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value=set())  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 0, "skipped": 0, "conflict": 0, "error": 0},
             "items": [],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         args = Namespace(
             source=str(openclaw_dir),

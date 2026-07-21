@@ -14,7 +14,7 @@ import asyncio
 import json
 import threading
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -129,7 +129,6 @@ class TestRunAsyncWorkerThread:
     def test_parallel_workers_get_separate_loops(self):
         """Different worker threads must get their own loops to avoid
         contention (the original reason for the worker-thread branch)."""
-        import time
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from model_tools import _run_async
 
@@ -240,11 +239,11 @@ class TestRunAsyncWithRunningLoop:
                 # Record which function got submitted -- should be the
                 # in-function worker wrapper, not bare asyncio.run, so we
                 # know _run_async is using a loop it owns and can cancel.
-                events["submitted_fn"] = getattr(fn, "__name__", repr(fn))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+                events["submitted_fn"] = getattr(fn, "__name__", repr(fn))
                 return TimeoutFuture()
 
             def shutdown(self, wait=True, cancel_futures=False):
-                events["shutdown_calls"].append((wait, cancel_futures))  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                events["shutdown_calls"].append((wait, cancel_futures))
 
         async def _never_finishes():
             await asyncio.sleep(999)
@@ -356,7 +355,7 @@ class TestVisionDispatchLoopSafety:
     def test_vision_dispatch_keeps_loop_alive(self, tmp_path):
         """After dispatching vision_analyze via the registry, the event
         loop must remain open so cached async clients don't crash on GC."""
-        from model_tools import _run_async, _get_tool_loop
+        from model_tools import _get_tool_loop
         from tools.registry import registry
 
         fake_response = _mock_vision_response()
@@ -373,7 +372,8 @@ class TestVisionDispatchLoopSafety:
                 side_effect=lambda url, dest, **kw: _write_fake_image(dest),
             ),
             patch(
-                "tools.vision_tools._validate_image_url",
+                "tools.vision_tools._validate_image_url_async",
+                new_callable=AsyncMock,
                 return_value=True,
             ),
             patch(
@@ -417,7 +417,8 @@ class TestVisionDispatchLoopSafety:
                 side_effect=lambda url, dest, **kw: _write_fake_image(dest),
             ),
             patch(
-                "tools.vision_tools._validate_image_url",
+                "tools.vision_tools._validate_image_url_async",
+                new_callable=AsyncMock,
                 return_value=True,
             ),
             patch(

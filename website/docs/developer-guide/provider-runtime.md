@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: "Provider Runtime Resolution"
-description: "How muse resolves providers, credentials, API modes, and auxiliary models at runtime"
+description: "How Hermes resolves providers, credentials, API modes, and auxiliary models at runtime"
 ---
 
 # Provider Runtime Resolution
 
-muse has a shared provider runtime resolver used across:
+Hermes has a shared provider runtime resolver used across:
 
 - CLI
 - gateway
@@ -36,19 +36,18 @@ At a high level, provider resolution uses:
 3. environment variables
 4. provider-specific defaults or auto resolution
 
-That ordering matters because muse treats the saved model/provider choice as the source of truth for normal runs. This prevents a stale shell export from silently overriding the endpoint a user last selected in `muse model`.
+That ordering matters because Hermes treats the saved model/provider choice as the source of truth for normal runs. This prevents a stale shell export from silently overriding the endpoint a user last selected in `hermes model`.
 
 ## Providers
 
 Current provider families include (see `plugins/model-providers/` for the complete bundled set):
 
-- AI Gateway (Vercel)
 - OpenRouter
 - Nous Portal
 - OpenAI Codex
 - Copilot / Copilot ACP
 - Anthropic (native)
-- Google / Gemini (`gemini`, `google-gemini-cli`)
+- Google / Gemini (`gemini`)
 - Alibaba / DashScope (`alibaba`, `alibaba-coding-plan`)
 - DeepSeek
 - Z.AI
@@ -85,29 +84,24 @@ The runtime resolver returns data such as:
 
 ## Why this matters
 
-This resolver is the main reason muse can share auth/runtime logic between:
+This resolver is the main reason Hermes can share auth/runtime logic between:
 
-- `muse chat`
+- `hermes chat`
 - gateway message handling
 - cron jobs running in fresh sessions
 - ACP editor sessions
 - auxiliary model tasks
 
-## AI Gateway
+## OpenRouter and custom OpenAI-compatible base URLs
 
-Set `AI_GATEWAY_API_KEY` in `~/.hermes/.env` and run with `--provider ai-gateway`. muse fetches available models from the gateway's `/models` endpoint, filtering to language models with tool-use support.
-
-## OpenRouter, AI Gateway, and custom OpenAI-compatible base URLs
-
-muse contains logic to avoid leaking the wrong API key to a custom endpoint when multiple provider keys exist (e.g. `OPENROUTER_API_KEY`, `AI_GATEWAY_API_KEY`, and `OPENAI_API_KEY`).
+Hermes contains logic to avoid leaking the wrong API key to a custom endpoint when multiple provider keys exist (e.g. `OPENROUTER_API_KEY` and `OPENAI_API_KEY`).
 
 Each provider's API key is scoped to its own base URL:
 
 - `OPENROUTER_API_KEY` is only sent to `openrouter.ai` endpoints
-- `AI_GATEWAY_API_KEY` is only sent to `ai-gateway.vercel.sh` endpoints
 - `OPENAI_API_KEY` is used for custom endpoints and as a fallback
 
-muse also distinguishes between:
+Hermes also distinguishes between:
 
 - a real custom endpoint selected by the user
 - the OpenRouter fallback path used when no custom endpoint is configured
@@ -115,7 +109,7 @@ muse also distinguishes between:
 That distinction is especially important for:
 
 - local model servers
-- non-OpenRouter/non-AI Gateway OpenAI-compatible APIs
+- non-OpenRouter OpenAI-compatible APIs
 - switching providers without re-running setup
 - config-saved custom endpoints that should keep working even when `OPENAI_BASE_URL` is not exported in the current shell
 
@@ -123,7 +117,7 @@ That distinction is especially important for:
 
 Anthropic is not just "via OpenRouter" anymore.
 
-When provider resolution selects `anthropic`, muse uses:
+When provider resolution selects `anthropic`, Hermes uses:
 
 - `api_mode = anthropic_messages`
 - the native Anthropic Messages API
@@ -133,8 +127,8 @@ Credential resolution for native Anthropic now prefers refreshable Claude Code c
 
 - Claude Code credential files are treated as the preferred source when they include refreshable auth
 - manual `ANTHROPIC_TOKEN` / `CLAUDE_CODE_OAUTH_TOKEN` values still work as explicit overrides
-- muse preflights Anthropic credential refresh before native Messages API calls
-- muse still retries once on a 401 after rebuilding the Anthropic client, as a fallback path
+- Hermes preflights Anthropic credential refresh before native Messages API calls
+- Hermes still retries once on a 401 after rebuilding the Anthropic client, as a fallback path
 
 ## OpenAI Codex path
 
@@ -156,15 +150,15 @@ Auxiliary tasks such as:
 
 can use their own provider/model routing rather than the main conversational model.
 
-When an auxiliary task is configured with provider `main`, muse resolves that through the same shared runtime path as normal chat. In practice that means:
+When an auxiliary task is configured with provider `main`, Hermes resolves that through the same shared runtime path as normal chat. In practice that means:
 
 - env-driven custom endpoints still work
-- custom endpoints saved via `muse model` / `config.yaml` also work
+- custom endpoints saved via `hermes model` / `config.yaml` also work
 - auxiliary routing can tell the difference between a real saved custom endpoint and the OpenRouter fallback
 
 ## Fallback models
 
-muse supports a configured fallback provider chain — a list of `(provider, model)` entries tried in order when the primary model encounters errors. The legacy single-pair `fallback_model` dict is still accepted for back-compat (and migrated on first write).
+Hermes supports a configured fallback provider chain — a list of `(provider, model)` entries tried in order when the primary model encounters errors. The legacy single-pair `fallback_model` dict is still accepted for back-compat (and migrated on first write).
 
 ### How it works internally
 
@@ -199,7 +193,11 @@ Cron jobs **do** support fallback: `run_job()` reads `fallback_providers` (or le
 
 ### Test coverage
 
-See `tests/test_fallback_model.py` for comprehensive tests covering all supported providers, one-shot semantics, and edge cases.
+Fallback behavior is exercised across several suites:
+
+- `tests/run_agent/test_fallback_credential_isolation.py` — credential isolation between primary and fallback
+- `tests/hermes_cli/test_fallback_cmd.py` — the `/fallback` CLI command
+- `tests/gateway/test_fallback_eviction.py` — gateway eviction of failed providers
 
 ## Related docs
 

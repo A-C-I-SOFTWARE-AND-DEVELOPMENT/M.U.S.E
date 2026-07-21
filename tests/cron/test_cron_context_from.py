@@ -1,5 +1,6 @@
 """Tests for cron job context_from feature (issue #5439 Option C)."""
 
+import logging
 import sys
 from pathlib import Path
 
@@ -41,11 +42,10 @@ class TestJobContextFromField:
 
         assert job_b["context_from"] == [job_a["id"]]
         loaded = get_job(job_b["id"])
-        assert loaded is not None
         assert loaded["context_from"] == [job_a["id"]]
 
     def test_create_job_with_context_from_list(self, cron_env):
-        from cron.jobs import create_job, get_job
+        from cron.jobs import create_job
 
         job_a = create_job(prompt="Find news", schedule="every 1h")
         job_b = create_job(prompt="Find weather", schedule="every 1h")
@@ -99,8 +99,8 @@ class TestBuildJobPromptContextFrom:
         )
 
         prompt = _build_job_prompt(job_b)
-        assert "Today's top story: AI is everywhere." in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert f"Output from job '{job_a['id']}'" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Today's top story: AI is everywhere." in prompt
+        assert f"Output from job '{job_a['id']}'" in prompt
 
     def test_uses_most_recent_output(self, cron_env):
         from cron.jobs import create_job, OUTPUT_DIR
@@ -121,8 +121,8 @@ class TestBuildJobPromptContextFrom:
             prompt="Summarize", schedule="every 2h", context_from=job_a["id"]
         )
         prompt = _build_job_prompt(job_b)
-        assert "New output" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert "Old output" not in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "New output" in prompt
+        assert "Old output" not in prompt
 
     def test_graceful_when_no_output_yet(self, cron_env):
         from cron.jobs import create_job
@@ -136,9 +136,7 @@ class TestBuildJobPromptContextFrom:
         # job_a never ran — output dir does not exist
         # expect silent skip: no placeholder injected, base prompt intact
         prompt = _build_job_prompt(job_b)
-        assert prompt is not None
         assert "no output" not in prompt.lower()
-        assert prompt is not None
         assert "not found" not in prompt.lower()
         assert "Summarize" in prompt
 
@@ -160,8 +158,8 @@ class TestBuildJobPromptContextFrom:
             context_from=[job_a["id"], job_b["id"]],
         )
         prompt = _build_job_prompt(job_c)
-        assert "News: AI boom" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert "Weather: Sunny" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "News: AI boom" in prompt
+        assert "Weather: Sunny" in prompt
 
     def test_context_injected_before_prompt(self, cron_env):
         """Context should appear before the job's own prompt."""
@@ -179,9 +177,7 @@ class TestBuildJobPromptContextFrom:
             context_from=job_a["id"],
         )
         prompt = _build_job_prompt(job_b)
-        assert prompt is not None
         context_pos = prompt.find("Context data")
-        assert prompt is not None
         prompt_pos = prompt.find("Process the data above")
         assert context_pos < prompt_pos
 
@@ -200,8 +196,8 @@ class TestBuildJobPromptContextFrom:
             prompt="Process", schedule="every 2h", context_from=job_a["id"]
         )
         prompt = _build_job_prompt(job_b)
-        assert "truncated" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert "x" * 10000 not in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "truncated" in prompt
+        assert "x" * 10000 not in prompt
 
     def test_graceful_when_file_deleted_between_listing_and_reading(self, cron_env):
         """Job should not crash if output file is deleted mid-read."""
@@ -229,7 +225,7 @@ class TestBuildJobPromptContextFrom:
             prompt = _build_job_prompt(job_b)
 
         # Job should not crash, prompt should still contain the base prompt
-        assert "Process" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Process" in prompt
 
     def test_graceful_when_permission_error(self, cron_env):
         """Job should not crash if output directory is not readable."""
@@ -257,7 +253,7 @@ class TestBuildJobPromptContextFrom:
             prompt = _build_job_prompt(job_b)
 
         # Job should not crash, prompt should still contain the base prompt
-        assert "Process" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Process" in prompt
 
     def test_invalid_job_id_skipped(self, cron_env):
         """context_from with path traversal job_id should be skipped."""
@@ -269,8 +265,37 @@ class TestBuildJobPromptContextFrom:
         job["context_from"] = ["../../../etc/passwd"]
         prompt = _build_job_prompt(job)
         # Should not crash and should not inject anything malicious
-        assert "Process" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert "etc/passwd" not in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Process" in prompt
+        assert "etc/passwd" not in prompt
+
+    def test_invalid_job_id_log_includes_job_origin(self, cron_env, caplog):
+        """Invalid stored context_from refs log job/source provenance."""
+        from cron.jobs import create_job
+        from cron.scheduler import _build_job_prompt
+
+        job = create_job(
+            prompt="Process",
+            schedule="every 2h",
+            name="suspicious-chain",
+            origin={
+                "platform": "api_server",
+                "chat_id": "api",
+                "source_ip": "203.0.113.10",
+                "forwarded_for": "198.51.100.7",
+            },
+        )
+        job["context_from"] = ["../../../etc/passwd"]
+
+        caplog.set_level(logging.WARNING, logger="cron.scheduler")
+        prompt = _build_job_prompt(job)
+
+        assert "Process" in prompt
+        message = caplog.text
+        assert "context_from: skipping invalid job_id" in message
+        assert job["id"] in message
+        assert "suspicious-chain" in message
+        assert "203.0.113.10" in message
+        assert "198.51.100.7" in message
 
 
 
@@ -298,7 +323,6 @@ class TestUpdateContextFrom:
         assert result["success"] is True
 
         reloaded = get_job(job_b["id"])
-        assert reloaded is not None
         assert reloaded["context_from"] == [job_a["id"]]
 
     def test_update_changes_context_from_reference(self, cron_env):
@@ -319,7 +343,7 @@ class TestUpdateContextFrom:
             context_from=[job_a2["id"]],
         ))
         assert result["success"] is True
-        assert get_job(job_b["id"])["context_from"] == [job_a2["id"]]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job_b["id"])["context_from"] == [job_a2["id"]]
 
     def test_update_clears_context_from_with_empty_list(self, cron_env):
         from cron.jobs import create_job, get_job
@@ -330,7 +354,7 @@ class TestUpdateContextFrom:
         job_b = create_job(
             prompt="Summarize", schedule="every 2h", context_from=job_a["id"],
         )
-        assert get_job(job_b["id"])["context_from"] == [job_a["id"]]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job_b["id"])["context_from"] == [job_a["id"]]
 
         result = json.loads(cronjob(
             action="update",
@@ -338,7 +362,7 @@ class TestUpdateContextFrom:
             context_from=[],
         ))
         assert result["success"] is True
-        assert get_job(job_b["id"])["context_from"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job_b["id"])["context_from"] is None
 
     def test_update_clears_context_from_with_empty_string(self, cron_env):
         from cron.jobs import create_job, get_job
@@ -356,7 +380,7 @@ class TestUpdateContextFrom:
             context_from="",
         ))
         assert result["success"] is True
-        assert get_job(job_b["id"])["context_from"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job_b["id"])["context_from"] is None
 
     def test_update_rejects_unknown_job_reference(self, cron_env):
         from cron.jobs import create_job
@@ -392,7 +416,5 @@ class TestUpdateContextFrom:
         ))
         assert result["success"] is True
         reloaded = get_job(job_b["id"])
-        assert reloaded is not None
         assert reloaded["prompt"] == "Summarize v2"
-        assert reloaded is not None
         assert reloaded["context_from"] == [job_a["id"]]

@@ -16,12 +16,10 @@ These tests pin:
 """
 from __future__ import annotations
 
-import os
 import threading
 import time
 from pathlib import Path
-from typing import Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -75,7 +73,7 @@ class _StubChild:
             "seconds_since_activity": 60,
         }
 
-    def run_conversation(self, user_message, task_id=None):
+    def run_conversation(self, user_message, task_id=None, stream_callback=None):
         self._hang.wait(self._hang_seconds)
         return {"final_response": "", "completed": False, "api_calls": self._api_call_count}
 
@@ -162,7 +160,6 @@ class TestDumpSubagentTimeoutDiagnostic:
         )
         child.interrupt()
 
-        assert path is not None
         content = Path(path).read_text()
         assert "[truncated]" in content
         # Goal section trimmed to 1000 chars + suffix
@@ -181,7 +178,6 @@ class TestDumpSubagentTimeoutDiagnostic:
             goal="x",
         )
         child.interrupt()
-        assert path is not None
         content = Path(path).read_text()
         assert "<no worker thread handle>" in content
 
@@ -202,7 +198,6 @@ class TestDumpSubagentTimeoutDiagnostic:
             goal="x",
         )
         child.interrupt()
-        assert path is not None
         content = Path(path).read_text()
         assert "<worker thread already exited>" in content
 

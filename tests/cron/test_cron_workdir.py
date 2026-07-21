@@ -13,16 +13,9 @@ Covers:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
-from typing import Any
 
-
-def _as_dict(value: object) -> "dict[str, Any]":
-    """Narrow a config value that must be a dict (fails the test otherwise)."""
-    assert isinstance(value, dict)
-    return value  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
 
 @pytest.fixture()
 def tmp_cron_dir(tmp_path, monkeypatch):
@@ -90,7 +83,6 @@ class TestCreateJobWorkdir:
             workdir=str(tmp_cron_dir),
         )
         stored = get_job(job["id"])
-        assert stored is not None
         assert stored["workdir"] == str(tmp_cron_dir.resolve())
 
     def test_workdir_none_preserves_old_behaviour(self, tmp_cron_dir):
@@ -99,7 +91,6 @@ class TestCreateJobWorkdir:
         stored = get_job(job["id"])
         # Field is present on the dict but None — downstream code checks
         # truthiness to decide whether the feature is active.
-        assert stored is not None
         assert stored.get("workdir") is None
 
     def test_create_rejects_invalid_workdir(self, tmp_cron_dir):
@@ -117,7 +108,7 @@ class TestUpdateJobWorkdir:
         from cron.jobs import create_job, get_job, update_job
         job = create_job(prompt="x", schedule="every 1h")
         update_job(job["id"], {"workdir": str(tmp_cron_dir)})
-        assert get_job(job["id"])["workdir"] == str(tmp_cron_dir.resolve())  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job["id"])["workdir"] == str(tmp_cron_dir.resolve())
 
     def test_clear_workdir_with_none(self, tmp_cron_dir):
         from cron.jobs import create_job, get_job, update_job
@@ -125,7 +116,7 @@ class TestUpdateJobWorkdir:
             prompt="x", schedule="every 1h", workdir=str(tmp_cron_dir)
         )
         update_job(job["id"], {"workdir": None})
-        assert get_job(job["id"])["workdir"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job["id"])["workdir"] is None
 
     def test_clear_workdir_with_empty_string(self, tmp_cron_dir):
         from cron.jobs import create_job, get_job, update_job
@@ -133,7 +124,7 @@ class TestUpdateJobWorkdir:
             prompt="x", schedule="every 1h", workdir=str(tmp_cron_dir)
         )
         update_job(job["id"], {"workdir": ""})
-        assert get_job(job["id"])["workdir"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(job["id"])["workdir"] is None
 
     def test_update_rejects_invalid_workdir(self, tmp_cron_dir):
         from cron.jobs import create_job, update_job
@@ -196,8 +187,8 @@ class TestCronjobToolWorkdir:
 
     def test_schema_advertises_workdir(self):
         from tools.cronjob_tools import CRONJOB_SCHEMA
-        assert "workdir" in _as_dict(CRONJOB_SCHEMA["parameters"])["properties"]
-        desc = _as_dict(_as_dict(CRONJOB_SCHEMA["parameters"]["properties"])["workdir"])["description"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert "workdir" in CRONJOB_SCHEMA["parameters"]["properties"]
+        desc = CRONJOB_SCHEMA["parameters"]["properties"]["workdir"]["description"]
         assert "absolute" in desc.lower()
 
 
@@ -216,20 +207,23 @@ class TestTickWorkdirPartition:
     def test_workdir_jobs_run_sequentially(self, tmp_path, monkeypatch):
         import cron.scheduler as sched
 
-        # Two "jobs" — one with workdir, one without.  get_due_jobs returns both.
-        workdir_job = {"id": "a", "name": "A", "workdir": str(tmp_path)}
-        parallel_job = {"id": "b", "name": "B", "workdir": None}
+        # Two workdir jobs (both sequential) + one parallel job.
+        workdir_a = {"id": "a", "name": "A", "workdir": str(tmp_path)}
+        workdir_b = {"id": "b", "name": "B", "workdir": str(tmp_path)}
+        parallel_job = {"id": "c", "name": "C", "workdir": None}
 
-        monkeypatch.setattr(sched, "get_due_jobs", lambda: [workdir_job, parallel_job])
+        monkeypatch.setattr(sched, "get_due_jobs", lambda: [workdir_a, workdir_b, parallel_job])
         monkeypatch.setattr(sched, "advance_next_run", lambda *_a, **_kw: None)
 
         # Record call order / thread context.
         import threading
-        calls: list[tuple[str, bool]] = []
+        calls: list[tuple[str, str]] = []
+        order_lock = threading.Lock()
 
-        def fake_run_job(job):
+        def fake_run_job(job, *, defer_agent_teardown=None):
             # Return a minimal tuple matching run_job's signature.
-            calls.append((job["id"], threading.current_thread().name))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+            with order_lock:
+                calls.append((job["id"], threading.current_thread().name))
             return True, "output", "response", None
 
         monkeypatch.setattr(sched, "run_job", fake_run_job)
@@ -240,16 +234,22 @@ class TestTickWorkdirPartition:
         )
 
         n = sched.tick(verbose=False)
-        assert n == 2
+        assert n == 3
 
         ids = [c[0] for c in calls]
-        # Workdir jobs always come before parallel jobs.
+        # Sequential workdir jobs preserve submission order relative to each
+        # other (single-thread pool).
         assert ids.index("a") < ids.index("b")
 
-        # The workdir job must run on the main thread (sequential pass).
+        # Workdir jobs run on the persistent single-thread cron-seq pool —
+        # NOT the main thread — so a long workdir job never blocks the ticker.
         main_thread_name = threading.current_thread().name
-        workdir_thread_name = next(t for jid, t in calls if jid == "a")
-        assert workdir_thread_name == main_thread_name
+        for jid in ("a", "b"):
+            workdir_thread_name = next(t for j, t in calls if j == jid)
+            assert workdir_thread_name != main_thread_name
+            assert workdir_thread_name.startswith("cron-seq"), workdir_thread_name
+        par_thread_name = next(t for j, t in calls if j == "c")
+        assert par_thread_name.startswith("cron-parallel"), par_thread_name
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +288,7 @@ class TestRunJobTerminalCwd:
                 return {"seconds_since_activity": 0.0}
 
         fake_mod = type(sys)("run_agent")
-        fake_mod.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.AIAgent = FakeAgent
         monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
 
         # Bypass the real provider resolver — it reads ~/.hermes and credentials.

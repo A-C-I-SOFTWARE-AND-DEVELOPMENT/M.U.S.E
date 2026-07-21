@@ -27,7 +27,7 @@ REALTIME_URL = "wss://api.openai.com/v1/realtime"
 def _require_websockets():
     """Import ``websockets.sync.client.connect`` or raise with hint."""
     try:
-        from websockets.sync.client import connect as _connect
+        from websockets.sync.client import connect as _connect  # type: ignore
     except ImportError as exc:  # pragma: no cover - exercised via test
         raise RuntimeError(
             "websockets package is required for OpenAI Realtime; "

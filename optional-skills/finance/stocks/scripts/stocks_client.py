@@ -14,7 +14,6 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from http.cookiejar import CookieJar
-from typing import Any
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -115,7 +114,7 @@ def _build_request(url: str, headers: dict | None = None) -> urllib.request.Requ
     return req
 
 
-def fetch_url(url: str, headers: dict | None = None, retries: int = MAX_RETRIES) -> Any:
+def fetch_url(url: str, headers: dict | None = None, retries: int = MAX_RETRIES) -> dict | list | None:
     """Fetch a URL, parse JSON, retry on transient errors."""
     last_err = None
     for attempt in range(retries):
@@ -358,7 +357,7 @@ def cmd_quote(symbols: list[str]) -> None:
 
     for sym in symbols:
         sym = sym.upper().strip()
-        entry: dict[str, Any] = {"symbol": sym, "data_source": "Yahoo Finance"}
+        entry = {"symbol": sym, "data_source": "Yahoo Finance"}
 
         # Fetch chart for price data
         chart_data = yf_chart(sym, interval="1d", range_="1d")
@@ -473,7 +472,7 @@ def cmd_history(symbol: str, range_: str = "1mo") -> None:
     lows = ohlcv.get("low") or []
     volumes = ohlcv.get("volume") or []
 
-    history: list[dict[str, Any]] = []
+    history = []
     for i, ts in enumerate(timestamps):
         def _v(lst, idx):
             try:

@@ -10,7 +10,11 @@ Catalog policy:
 - Entries are added only by merging a PR into hermes-agent. Presence in the
   ``optional-mcps/`` directory = Nous approval. No community tier, no trust
   signals beyond "it's in the catalog".
-- Manifests pin transport details (commands, args, refs). MCPs are never
+- Manifests pin transport details (commands, args, refs). Pins follow the
+  same supply-chain rules as pyproject dependencies: exact versions for
+  package launchers (``uvx pkg==X``, ``npx pkg@X``), full commit SHAs for
+  git installs, and the pinned release should be at least 2 weeks old at
+  pin time. MCPs are never
   auto-updated; users explicitly re-run ``hermes mcp install <name>`` to
   pull a new manifest version after a repo update.
 - Secrets prompted at install time go to ``~/.hermes/.env`` (the
@@ -23,7 +27,6 @@ See references/mcp-catalog.md (this repo's skill) for the manifest schema.
 
 from __future__ import annotations
 
-import os
 import re
 import shutil
 import subprocess
@@ -41,7 +44,7 @@ from hermes_cli.config import (
     get_env_value,
     save_env_value,
 )
-from hermes_cli.cli_output import prompt as _prompt_input, prompt_yes_no
+from hermes_cli.cli_output import prompt as _prompt_input
 
 _MANIFEST_VERSION = 1
 
@@ -69,12 +72,6 @@ class AuthSpec:
     provider: Optional[str] = None
     scopes: List[str] = field(default_factory=list)
     env_var: Optional[str] = None
-    # http + api_key remotes that authenticate via a request header rather than
-    # OAuth. Format: "<Header-Name>: <value-with-${VAR}-ref>", e.g.
-    # "Authorization: Bearer ${CONTEXT7_API_KEY}" or "x-api-key: ${EXA_API_KEY}".
-    # The ${VAR} ref is resolved at connect time from ~/.hermes/.env — never a
-    # literal secret in the manifest.
-    header: Optional[str] = None
 
 
 @dataclass
@@ -84,6 +81,10 @@ class TransportSpec:
     args: List[str] = field(default_factory=list)
     url: Optional[str] = None
     version: Optional[str] = None  # informational, pinned
+    # Static environment variables for the stdio subprocess (e.g. telemetry
+    # opt-outs, mode flags). NOT for secrets — credentials go through
+    # auth.env so they are prompted for and land in ~/.hermes/.env.
+    env: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -169,7 +170,7 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if mv != _MANIFEST_VERSION:
         raise CatalogError(
             f"{path}: manifest_version {mv!r} unsupported "
-            f"(this muse understands version {_MANIFEST_VERSION})"
+            f"(this Hermes understands version {_MANIFEST_VERSION})"
         )
 
     name = data.get("name") or ""
@@ -191,12 +192,20 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     args = transport_raw.get("args") or []
     if not isinstance(args, list):
         raise CatalogError(f"{path}: transport.args must be a list")
+    env_raw = transport_raw.get("env") or {}
+    if not isinstance(env_raw, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in env_raw.items()
+    ):
+        raise CatalogError(
+            f"{path}: transport.env must be a mapping of string to string"
+        )
     transport = TransportSpec(
         type=t_type,
         command=transport_raw.get("command"),
         args=[str(a) for a in args],
         url=transport_raw.get("url"),
         version=transport_raw.get("version"),
+        env=dict(env_raw),
     )
     if t_type == "stdio" and not transport.command:
         raise CatalogError(f"{path}: stdio transport requires 'command'")
@@ -213,16 +222,12 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if not isinstance(env_list_raw, list):
         raise CatalogError(f"{path}: auth.env must be a list")
     env_list = [_parse_env_spec(e) for e in env_list_raw]
-    header_raw = auth_raw.get("header")
-    if header_raw is not None and not isinstance(header_raw, str):
-        raise CatalogError(f"{path}: auth.header must be a string")
     auth = AuthSpec(
         type=a_type,
         env=env_list,
         provider=auth_raw.get("provider"),
         scopes=list(auth_raw.get("scopes") or []),
         env_var=auth_raw.get("env_var"),
-        header=header_raw,
     )
 
     tools_raw = data.get("tools") or {}
@@ -479,6 +484,8 @@ def _build_server_config(
         cfg["command"] = _expand_install_dir(t.command or "", install_dir)
         if t.args:
             cfg["args"] = [_expand_install_dir(a, install_dir) for a in t.args]
+        if t.env:
+            cfg["env"] = dict(t.env)
     elif t.type == "http":
         cfg["url"] = t.url
         if entry.auth.type == "oauth":
@@ -500,7 +507,7 @@ def _read_prior_tool_selection(name: str) -> Optional[List[str]]:
         return None
     include = tools_cfg.get("include")
     if isinstance(include, list) and all(isinstance(t, str) for t in include):
-        return list(include)  # ty: ignore[invalid-return-type]  # elements isinstance-checked above
+        return list(include)
     return None
 
 
@@ -741,9 +748,12 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     server_cfg = _build_server_config(entry, install_dir)
     server_cfg["enabled"] = enable
 
-    cfg = load_config()
-    cfg.setdefault("mcp_servers", {})[entry.name] = server_cfg
-    save_config(cfg)
+    from hermes_cli.mcp_config import _save_mcp_server
+
+    if not _save_mcp_server(entry.name, server_cfg):
+        raise CatalogError(
+            f"catalog entry '{entry.name}' rejected: suspicious command/args configuration"
+        )
 
     # ── Probe + tool selection ──────────────────────────────────────────
     _apply_tool_selection(entry, prior_selection=prior_selection)
@@ -752,7 +762,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     print(color(
         f"  ✓ Installed '{entry.name}' "
         f"({'enabled' if enable else 'disabled'}). "
-        f"Start a new muse session to load its tools.",
+        f"Start a new Hermes session to load its tools.",
         Colors.GREEN,
     ))
     if entry.post_install:
@@ -760,151 +770,6 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
         for line in entry.post_install.strip().splitlines():
             print(color(f"  {line}", Colors.DIM))
     print()
-
-
-def _creds_ready(entry: CatalogEntry) -> bool:
-    """True when an entry needs no credentials, or all required api_key env
-    vars are already present in the environment / ~/.hermes/.env.
-
-    oauth and none auth never block on creds (oauth acquires tokens on first
-    connect; none needs nothing)."""
-    if entry.auth.type != "api_key":
-        return True
-    for spec in entry.auth.env:
-        if spec.required and not get_env_value(spec.name):
-            return False
-    return True
-
-
-def _build_server_config_with_auth_refs(
-    entry: CatalogEntry, install_dir: Optional[Path]
-) -> dict:
-    """Like :func:`_build_server_config`, but also encodes auth credentials as
-    ``${VAR}`` references so a bulk-registered entry is self-documenting and
-    connects the moment ~/.hermes/.env is populated — without ever writing a
-    literal secret.
-
-    - stdio + api_key  -> ``env: {VAR: "${VAR}"}`` for each declared env spec.
-    - http  + api_key  -> ``headers`` parsed from ``auth.header`` (or a default
-      ``Authorization: Bearer ${VAR}`` when a single env spec is declared).
-    - http  + oauth    -> ``auth: oauth`` (inherited from _build_server_config).
-
-    The ${VAR} literals survive save_config untouched (they never equal an
-    expanded value), so credentials are referenced, never persisted.
-    """
-    cfg = _build_server_config(entry, install_dir)
-    auth = entry.auth
-    if auth.type != "api_key":
-        return cfg
-
-    if entry.transport.type == "stdio":
-        env_block = {spec.name: "${" + spec.name + "}" for spec in auth.env}
-        if env_block:
-            cfg["env"] = env_block
-    elif entry.transport.type == "http":
-        header_line = auth.header
-        if not header_line and len(auth.env) == 1:
-            header_line = "Authorization: Bearer ${" + auth.env[0].name + "}"
-        if header_line and ":" in header_line:
-            key, _, value = header_line.partition(":")
-            key, value = key.strip(), value.strip()
-            if key and value:
-                cfg.setdefault("headers", {})[key] = value
-    return cfg
-
-
-def register_entry_noninteractive(
-    entry: CatalogEntry,
-    *,
-    enable_without_creds: bool = False,
-    run_bootstrap: bool = False,
-) -> dict:
-    """Register a single catalog entry WITHOUT prompting, probing, or launching.
-
-    Unlike :func:`install_entry` (the interactive single-server path used by the
-    picker), this never calls ``_prompt_env_vars`` or ``_apply_tool_selection``
-    — so it is safe to fan out across the whole catalog in one shot. Tool
-    filtering is seeded directly from the manifest's ``tools.default_enabled``.
-
-    Returns a status dict ``{"name", "status", "enabled", "detail"}`` where
-    ``status`` is one of:
-      - ``installed``   — written and (creds permitting) enabled.
-      - ``needs_creds`` — written but disabled: required api_key vars are unset
-        in ~/.hermes/.env (unless *enable_without_creds*).
-      - ``skipped``     — has an ``install:`` (git/binary) block and
-        *run_bootstrap* is False; nothing written.
-      - ``failed``      — bootstrap or config write raised (caught here).
-    """
-    name = entry.name
-
-    install_dir: Optional[Path] = None
-    if entry.install is not None:
-        if not run_bootstrap:
-            return {
-                "name": name,
-                "status": "skipped",
-                "enabled": False,
-                "detail": (
-                    f"needs bootstrap — run `hermes mcp install {name}` "
-                    "or re-run --all with --with-bootstrap"
-                ),
-            }
-        try:
-            install_dir = _do_git_install(entry)
-        except Exception as exc:  # noqa: BLE001 — never abort the batch
-            return {"name": name, "status": "failed", "enabled": False,
-                    "detail": str(exc)}
-
-    creds_ok = _creds_ready(entry)
-    enabled = creds_ok or enable_without_creds
-    status = "installed" if creds_ok else "needs_creds"
-
-    try:
-        server_cfg = _build_server_config_with_auth_refs(entry, install_dir)
-        server_cfg["enabled"] = enabled
-        if entry.tools.default_enabled is not None:
-            server_cfg.setdefault("tools", {})["include"] = list(
-                entry.tools.default_enabled
-            )
-        cfg = load_config()
-        cfg.setdefault("mcp_servers", {})[name] = server_cfg
-        save_config(cfg)
-    except Exception as exc:  # noqa: BLE001 — never abort the batch
-        return {"name": name, "status": "failed", "enabled": False,
-                "detail": str(exc)}
-
-    detail = ""
-    if status == "needs_creds":
-        missing = [s.name for s in entry.auth.env
-                   if s.required and not get_env_value(s.name)]
-        detail = "set " + ", ".join(missing) + " in ~/.hermes/.env"
-    return {"name": name, "status": status, "enabled": enabled, "detail": detail}
-
-
-def install_all_entries(
-    *, enable_without_creds: bool = False, run_bootstrap: bool = False
-) -> Dict[str, List[dict]]:
-    """Register every catalog entry non-interactively.
-
-    Each entry is wrapped so one failure never aborts the batch. Returns a
-    summary bucketed by status: ``{"installed": [...], "needs_creds": [...],
-    "skipped": [...], "failed": [...]}``.
-    """
-    summary: Dict[str, List[dict]] = {
-        "installed": [], "needs_creds": [], "skipped": [], "failed": [],
-    }
-    for entry in list_catalog():
-        try:
-            res = register_entry_noninteractive(
-                entry,
-                enable_without_creds=enable_without_creds,
-                run_bootstrap=run_bootstrap,
-            )
-        except Exception as exc:  # noqa: BLE001 — belt-and-suspenders
-            res = {"name": entry.name, "status": "failed", "enabled": False,
-                   "detail": str(exc)}
-        summary.setdefault(str(res["status"]), []).append(res)
-    return summary
 
 
 def uninstall_entry(name: str, *, purge_install_dir: bool = True) -> bool:

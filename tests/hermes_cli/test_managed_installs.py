@@ -26,7 +26,7 @@ def test_format_managed_message_homebrew(monkeypatch):
     assert "brew upgrade hermes-agent" in message
 
 
-def test_recommended_update_command_defaults_to_muse_update(monkeypatch):
+def test_recommended_update_command_defaults_to_hermes_update(monkeypatch):
     monkeypatch.delenv("HERMES_MANAGED", raising=False)
 
     # Also short-circuit the .managed marker path — CI runners may have an
@@ -36,7 +36,7 @@ def test_recommended_update_command_defaults_to_muse_update(monkeypatch):
     # detect_install_method().
     with patch("hermes_cli.config.get_managed_update_command", return_value=None), \
          patch("hermes_cli.config.detect_install_method", return_value="git"):
-        assert recommended_update_command() == "muse update"
+        assert recommended_update_command() == "hermes update"
 
 
 def test_cmd_update_blocks_managed_homebrew(monkeypatch, capsys):

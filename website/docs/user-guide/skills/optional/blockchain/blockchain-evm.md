@@ -14,10 +14,10 @@ Read-only EVM client: wallets, tokens, gas across 8 chains.
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/blockchain/evm` |
+| Source | Optional — install with `hermes skills install official/blockchain/evm` |
 | Path | `optional-skills/blockchain/evm` |
 | Version | `1.0.0` |
-| Author | Mibayy (@Mibayy), youssefea (@youssefea), ethernet8023 (@ethernet8023), muse |
+| Author | Mibayy (@Mibayy), youssefea (@youssefea), ethernet8023 (@ethernet8023), Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `EVM`, `Ethereum`, `BNB`, `BSC`, `Base`, `Arbitrum`, `Polygon`, `Optimism`, `Avalanche`, `zkSync`, `Blockchain`, `Crypto`, `Web3`, `DeFi`, `NFT`, `ENS`, `Whale`, `Security` |
@@ -26,7 +26,7 @@ Read-only EVM client: wallets, tokens, gas across 8 chains.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # EVM Blockchain Skill

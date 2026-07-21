@@ -104,11 +104,8 @@ class DaytonaEnvironment(BaseEnvironment):
                     # Daytona SDK >=0.108.0 uses cursor-based pagination and
                     # list() returns an iterator. Offset-based pagination
                     # (page=1) is removed on June 10, 2026.
-                    # list() returns a PaginatedSandboxes model; the sandboxes
-                    # live in .items (iterating the model itself yields
-                    # (field_name, value) tuples, never a Sandbox).
                     results = self._daytona.list(labels=labels, limit=1)
-                    legacy = next(iter(results.items), None)
+                    legacy = next(iter(results), None)
                     if legacy is not None:
                         self._sandbox = legacy
                         self._sandbox.start()
@@ -156,9 +153,8 @@ class DaytonaEnvironment(BaseEnvironment):
 
     def _daytona_upload(self, host_path: str, remote_path: str) -> None:
         """Upload a single file via Daytona SDK."""
-        assert self._sandbox is not None  # only called while the sandbox is alive
         parent = str(Path(remote_path).parent)
-        self._sandbox.process.exec(f"mkdir -p {parent}")
+        self._sandbox.process.exec(quoted_mkdir_command([parent]))
         self._sandbox.fs.upload_file(host_path, remote_path)
 
     def _daytona_bulk_upload(self, files: list[tuple[str, str]]) -> None:
@@ -172,7 +168,6 @@ class DaytonaEnvironment(BaseEnvironment):
 
         if not files:
             return
-        assert self._sandbox is not None  # only called while the sandbox is alive
 
         parents = unique_parent_dirs(files)
         if parents:
@@ -186,7 +181,6 @@ class DaytonaEnvironment(BaseEnvironment):
 
     def _daytona_bulk_download(self, dest: Path) -> None:
         """Download remote .hermes/ as a tar archive."""
-        assert self._sandbox is not None  # only called while the sandbox is alive
         rel_base = f"{self._remote_home}/.hermes".lstrip("/")
         # PID-suffixed remote temp path avoids collisions if sync_back fires
         # concurrently for the same sandbox (e.g. retry after partial failure).
@@ -203,7 +197,6 @@ class DaytonaEnvironment(BaseEnvironment):
 
     def _daytona_delete(self, remote_paths: list[str]) -> None:
         """Batch-delete remote files via SDK exec."""
-        assert self._sandbox is not None  # only called while the sandbox is alive
         self._sandbox.process.exec(quoted_rm_command(remote_paths))
 
     # ------------------------------------------------------------------
@@ -212,7 +205,6 @@ class DaytonaEnvironment(BaseEnvironment):
 
     def _ensure_sandbox_ready(self) -> None:
         """Restart sandbox if it was stopped (e.g., by a previous interrupt)."""
-        assert self._sandbox is not None  # only called while the sandbox is alive
         self._sandbox.refresh_data()
         if self._sandbox.state in {self._SandboxState.STOPPED, self._SandboxState.ARCHIVED}:
             self._sandbox.start()
@@ -229,7 +221,6 @@ class DaytonaEnvironment(BaseEnvironment):
                   stdin_data: str | None = None):
         """Return a _ThreadedProcessHandle wrapping a blocking Daytona SDK call."""
         sandbox = self._sandbox
-        assert sandbox is not None  # only called while the sandbox is alive
         lock = self._lock
 
         def cancel():

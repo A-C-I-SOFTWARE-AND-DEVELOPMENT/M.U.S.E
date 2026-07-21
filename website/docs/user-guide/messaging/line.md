@@ -1,14 +1,16 @@
 ---
 sidebar_position: 17
 title: "LINE"
-description: "Set up muse as a LINE Messaging API bot"
+description: "Set up Hermes Agent as a LINE Messaging API bot"
 ---
 
 # LINE Setup
 
-Run muse as a [LINE](https://line.me/) bot via the official LINE Messaging API. The adapter lives as a bundled platform plugin under `plugins/platforms/line/` — no core edits, just enable it like any other platform.
+Run Hermes Agent as a [LINE](https://line.me/) bot via the official LINE Messaging API. The adapter lives as a bundled platform plugin under `plugins/platforms/line/` — no core edits, just enable it like any other platform.
 
 LINE is the dominant messaging app in Japan, Taiwan, and Thailand. If your users live there, this is how they reach you.
+
+> Run `hermes gateway setup` and pick **LINE** for a guided walk-through.
 
 ## How the bot responds
 
@@ -53,7 +55,7 @@ Copy the `https://...` URL — you'll set it as the webhook URL below. **Leave t
 
 ---
 
-## Step 3: Configure muse
+## Step 3: Configure Hermes
 
 Add to `~/.hermes/.env`:
 
@@ -98,7 +100,7 @@ Back in the LINE console:
 ## Step 5: Run the gateway
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 The agent log shows:
@@ -186,13 +188,13 @@ Cron jobs with `deliver: line` route to `LINE_HOME_CHANNEL`. The adapter ships a
 
 **Postback button never appears.** Either the LLM responded faster than `LINE_SLOW_RESPONSE_THRESHOLD`, or another bubble (tool-progress, streaming) consumed the reply token first. See the suppression block under "Slow LLM responses".
 
-**"already in use by another profile".** The same channel access token is bound to another running muse profile. Stop the other gateway or use a separate channel.
+**"already in use by another profile".** The same channel access token is bound to another running Hermes profile. Stop the other gateway or use a separate channel.
 
 ---
 
 ## Limitations
 
-* **Single bubble per chunk.** Each LINE text bubble is capped at 5000 characters, and at most 5 bubbles are sent per Reply/Push call. Longer responses are truncated with an ellipsis.
+* **Bubble and length caps.** Each LINE text bubble is capped at 5000 characters. Longer responses are smart-chunked at ~4500 characters across up to 5 bubbles per Reply/Push call, splitting on natural boundaries where possible.
 * **No native message editing.** LINE has no edit-message API — streaming responses always send fresh bubbles, never edit prior ones.
 * **No Markdown rendering.** Bold (`**`), italics (`*`), code fences, and headings render as literal characters. The adapter strips them before sending; URLs are preserved (`[label](url)` becomes `label (url)`).
 * **Loading indicator is DM-only.** LINE rejects the chat/loading API for groups and rooms, so the typing indicator only shows in 1:1 chats.

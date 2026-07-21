@@ -45,7 +45,7 @@ def _write_manifest(root: Path, version: str) -> None:
                 "distribution": {
                     "uvx": {
                         "package": f"hermes-agent[acp]=={version}",
-                        "args": ["muse-acp"],
+                        "args": ["hermes-acp"],
                     }
                 },
             },
@@ -68,7 +68,7 @@ def test_update_acp_registry_versions_bumps_manifest_and_pin(monkeypatch, tmp_pa
     assert manifest["version"] == "0.14.0"
     assert manifest["distribution"]["uvx"]["package"] == "hermes-agent[acp]==0.14.0"
     # args stay untouched so we don't accidentally rewrite them.
-    assert manifest["distribution"]["uvx"]["args"] == ["muse-acp"]
+    assert manifest["distribution"]["uvx"]["args"] == ["hermes-acp"]
 
 
 def test_update_acp_registry_versions_is_silent_when_manifest_missing(

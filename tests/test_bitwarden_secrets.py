@@ -15,7 +15,6 @@ import os
 import stat
 import subprocess
 import sys
-import tempfile
 import time
 import zipfile
 from pathlib import Path
@@ -33,25 +32,10 @@ from agent.secret_sources import bitwarden as bw  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def _reset_caches(tmp_path_factory, monkeypatch):
-    # apply_bitwarden_secrets writes applied keys straight into os.environ
-    # (bitwarden.py: `os.environ[key] = value`) — NOT via monkeypatch — so
-    # without an explicit restore those keys (e.g. NEW_KEY) leak across tests
-    # that share an xdist worker. A later override-sensitive test then sees the
-    # leaked key already present and skips it, flaking on `assert 'NEW_KEY' in
-    # []`. Snapshot the environment up front and restore it on teardown so each
-    # test is hermetic regardless of worker/test ordering.
-    env_snapshot = dict(os.environ)
-    # Isolate HERMES_HOME per test so the disk cache at
-    # <HERMES_HOME>/cache/bws_cache.json doesn't get shared between xdist
-    # workers (which race on a single shared file otherwise).
-    isolated_home = tmp_path_factory.mktemp("hermes_home_bw")
-    monkeypatch.setenv("HERMES_HOME", str(isolated_home))
-    bw._reset_cache_for_tests(home_path=isolated_home)
+def _reset_caches():
+    bw._reset_cache_for_tests()
     yield
-    bw._reset_cache_for_tests(home_path=isolated_home)
-    os.environ.clear()
-    os.environ.update(env_snapshot)
+    bw._reset_cache_for_tests()
 
 
 @pytest.fixture
@@ -112,6 +96,94 @@ def _make_fake_zip(binary_bytes: bytes) -> bytes:
     with zipfile.ZipFile(buf, "w") as zf:
         zf.writestr("bws", binary_bytes)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# _safe_extract_member — zip-slip containment
+# ---------------------------------------------------------------------------
+
+
+def test_safe_extract_member_extracts_normal_member(tmp_path):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("bws", b"hello")
+    buf.seek(0)
+
+    dest = tmp_path / "extract"
+    dest.mkdir()
+    with zipfile.ZipFile(buf) as zf:
+        out = bw._safe_extract_member(zf, "bws", dest)
+
+    assert out == (dest / "bws").resolve() or out == dest / "bws"
+    assert Path(out).read_bytes() == b"hello"
+    # Nothing escaped the destination directory.
+    assert Path(out).resolve().parent == dest.resolve()
+
+
+@pytest.mark.parametrize(
+    "evil_name",
+    [
+        "../escape",
+        "../../escape",
+        "sub/../../escape",
+    ],
+)
+def test_safe_extract_member_rejects_traversal(tmp_path, evil_name):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(evil_name, b"pwned")
+    buf.seek(0)
+
+    dest = tmp_path / "extract"
+    dest.mkdir()
+    outside = tmp_path / "escape"
+
+    with zipfile.ZipFile(buf) as zf:
+        with pytest.raises(RuntimeError, match="unsafe archive member"):
+            bw._safe_extract_member(zf, evil_name, dest)
+
+    # The traversal target must not have been written.
+    assert not outside.exists()
+
+
+def test_safe_extract_member_rejects_absolute_path(tmp_path):
+    # An absolute member name should never resolve inside dest.
+    abs_member = "/etc/cron.d/evil" if os.name != "nt" else "C:/Windows/evil"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(abs_member, b"pwned")
+    buf.seek(0)
+
+    dest = tmp_path / "extract"
+    dest.mkdir()
+    with zipfile.ZipFile(buf) as zf:
+        # Absolute paths are reduced to a relative member by zipfile, but
+        # we exercise the guard directly with the raw escaping name too.
+        with pytest.raises(RuntimeError, match="unsafe archive member"):
+            bw._safe_extract_member(zf, "../../../etc/cron.d/evil", dest)
+
+
+def test_install_bws_rejects_malicious_member(hermes_home, monkeypatch):
+    # Build an archive whose only matching member escapes the temp dir.
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(f"../../{bw._platform_binary_name()}", b"pwned")
+    zip_bytes = buf.getvalue()
+    asset_name = bw._platform_asset_name()
+    checksum_text = f"{hashlib.sha256(zip_bytes).hexdigest()}  {asset_name}\n"
+
+    def fake_download(url, dest):
+        if url.endswith(".zip"):
+            Path(dest).write_bytes(zip_bytes)
+        elif url.endswith(".txt"):
+            Path(dest).write_text(checksum_text)
+        else:
+            raise AssertionError(f"unexpected download url: {url}")
+
+    monkeypatch.setattr(bw, "_http_download", fake_download)
+
+    with pytest.raises(RuntimeError, match="unsafe archive member"):
+        bw.install_bws()
 
 
 def test_install_bws_happy_path(hermes_home, monkeypatch):
@@ -434,7 +506,7 @@ def test_apply_missing_token(monkeypatch):
         enabled=True, project_id="p", auto_install=False
     )
     assert not result.ok
-    assert "BWS_ACCESS_TOKEN" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+    assert "BWS_ACCESS_TOKEN" in result.error
 
 
 def test_apply_missing_project_id(monkeypatch):
@@ -443,15 +515,12 @@ def test_apply_missing_project_id(monkeypatch):
         enabled=True, project_id="", auto_install=False
     )
     assert not result.ok
-    assert "project_id" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+    assert "project_id" in result.error
 
 
 def test_apply_does_not_override_existing(monkeypatch, tmp_path):
     monkeypatch.setenv("BWS_ACCESS_TOKEN", "0.t")
     monkeypatch.setenv("OPENAI_API_KEY", "existing-value")
-    # NEW_KEY must be absent so apply() applies (not skips) it; defend against a
-    # value leaked by an earlier test on the same xdist worker.
-    monkeypatch.delenv("NEW_KEY", raising=False)
     fake_binary = tmp_path / "bws"
     fake_binary.write_text("")
     payload = _fake_bws_payload([
@@ -532,7 +601,7 @@ def test_apply_swallows_fetch_errors(monkeypatch, tmp_path):
         enabled=True, project_id="p", auto_install=False,
     )
     assert not result.ok
-    assert "bad token" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+    assert "bad token" in result.error
 
 
 # ---------------------------------------------------------------------------
@@ -547,14 +616,7 @@ def test_env_loader_skips_when_disabled(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    try:
-        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-    except ImportError:
-        pytest.skip(
-            "hermes_cli.env_loader._apply_external_secret_sources not present "
-            "in this checkout — the env_loader secret-source wiring is part "
-            "of a paired modification that ships in a follow-up PR."
-        )
+    from hermes_cli.env_loader import _apply_external_secret_sources
     # Should be a no-op (returns None).
     assert _apply_external_secret_sources(home) is None
 
@@ -577,29 +639,25 @@ def test_env_loader_calls_bsm_when_enabled(tmp_path, monkeypatch):
     monkeypatch.delenv("MY_BSM_KEY", raising=False)
 
     called = {"n": 0}
-    def fake_apply(**kwargs):
+
+    def fake_fetch(**kwargs):
         called["n"] += 1
-        assert kwargs["enabled"] is True
         assert kwargs["project_id"] == "proj-1"
-        os.environ["MY_BSM_KEY"] = "from-bsm"
-        return bw.FetchResult(
-            secrets={"MY_BSM_KEY": "from-bsm"},
-            applied=["MY_BSM_KEY"],
-        )
+        return {"MY_BSM_KEY": "from-bsm"}, []
 
     monkeypatch.setattr(
-        "agent.secret_sources.bitwarden.apply_bitwarden_secrets",
-        fake_apply,
+        "agent.secret_sources.bitwarden.find_bws",
+        lambda **_kw: Path("/fake/bws"),
     )
+    monkeypatch.setattr(
+        "agent.secret_sources.bitwarden.fetch_bitwarden_secrets",
+        fake_fetch,
+    )
+    from agent.secret_sources import registry as reg_module
 
-    try:
-        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-    except ImportError:
-        pytest.skip(
-            "hermes_cli.env_loader._apply_external_secret_sources not present "
-            "in this checkout — the env_loader secret-source wiring is part "
-            "of a paired modification that ships in a follow-up PR."
-        )
+    reg_module._reset_registry_for_tests()
+
+    from hermes_cli.env_loader import _apply_external_secret_sources
     _apply_external_secret_sources(home)
 
     assert called["n"] == 1

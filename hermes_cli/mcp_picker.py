@@ -122,7 +122,7 @@ def _enable_disable(name: str, *, enable: bool) -> None:
     save_config(cfg)
     print(color(
         f"  ✓ '{name}' {'enabled' if enable else 'disabled'}. "
-        "Start a new muse session for changes to take effect.",
+        "Start a new Hermes session for changes to take effect.",
         Colors.GREEN,
     ))
 
@@ -246,8 +246,7 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print(f"  {_format_row(row)}")
     print()
     print(color(
-        "  Install: hermes mcp install <name>   All: hermes mcp install --all   "
-        "Picker: hermes mcp picker",
+        "  Install: hermes mcp install <name>    Picker: hermes mcp",
         Colors.DIM,
     ))
 
@@ -259,7 +258,7 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print()
         for name, _, msg in future:
             print(color(
-                f"  ⚠ '{name}' requires a newer muse — run `hermes update` "
+                f"  ⚠ '{name}' requires a newer Hermes — run `hermes update` "
                 "to install this entry.",
                 Colors.YELLOW,
             ))

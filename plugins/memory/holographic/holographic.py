@@ -25,7 +25,7 @@ import struct
 import math
 
 try:
-    import numpy as np  # ty: ignore[unresolved-import]
+    import numpy as np
     _HAS_NUMPY = True
 except ImportError:
     _HAS_NUMPY = False

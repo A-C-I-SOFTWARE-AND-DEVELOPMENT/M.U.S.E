@@ -6,7 +6,7 @@ scope for vulnerability reports.
 
 ## 1. Reporting a Vulnerability
 
-Report privately via [GitHub Security Advisories](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/security/advisories/new)
+Report privately via [GitHub Security Advisories](https://github.com/NousResearch/hermes-agent/security/advisories/new)
 or **security@nousresearch.com**. Do not open public issues for
 security vulnerabilities. **Hermes Agent does not operate a bug
 bounty program.**
@@ -16,7 +16,7 @@ A useful report includes:
 - A concise description and severity assessment.
 - The affected component, identified by file path and line range
   (e.g. `path/to/file.py:120-145`).
-- Environment details (`muse version`, commit SHA, OS, Python
+- Environment details (`hermes version`, commit SHA, OS, Python
   version).
 - A reproduction against `main` or the latest release.
 - A statement of which trust boundary in §2 is crossed.
@@ -121,10 +121,11 @@ outside the supported security posture.
 ### 2.3 Credential Scoping
 
 Hermes Agent filters the environment it passes to its lower-trust
-in-process components: shell subprocesses, MCP subprocesses, and
-the code-execution child. Credentials like provider API keys and
-gateway tokens are stripped by default; variables explicitly
-declared by the operator or by a loaded skill are passed through.
+in-process components: shell subprocesses, MCP subprocesses,
+cron job scripts, and the code-execution child. Credentials like
+provider API keys and gateway tokens are stripped by default;
+variables explicitly declared by the operator or by a loaded
+skill are passed through.
 
 This reduces casual exfiltration. It is not containment. Any
 component running inside the agent process (skills, plugins, hook

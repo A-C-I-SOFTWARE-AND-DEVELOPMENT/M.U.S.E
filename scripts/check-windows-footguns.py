@@ -35,7 +35,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -79,10 +79,6 @@ EXCLUDED_DIRS = {
     "site-packages",
     "website/build",
     "optional-skills",  # external skills
-    # Vendored upstream files are byte-pinned by integrity manifests
-    # (tests/jarvis_prime/test_autoresearch_vendor_integrity.py) — they can
-    # carry neither fixes nor inline suppressions, so they are out of scope.
-    "vendor",
 }
 
 # File globs we never scan (beyond the dirs above).
@@ -136,7 +132,7 @@ class Footgun:
     # if the match is a REAL footgun (not a false positive). Use this when
     # the regex can't fully distinguish (e.g. open() where mode may contain
     # "b" for binary, or the line may have `encoding=` elsewhere).
-    post_filter: "Callable[[re.Match[str], str], bool] | None" = None
+    post_filter: "callable | None" = None
 
 
 FOOTGUNS: list[Footgun] = [
@@ -559,9 +555,9 @@ def main(argv: list[str]) -> int:
     # characters used in the output. Reconfigure streams to UTF-8 so the
     # script works correctly on the very platform it is designed to help.
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # ty: ignore[call-non-callable]
+        sys.stdout.reconfigure(encoding="utf-8")
     if hasattr(sys.stderr, "reconfigure"):
-        sys.stderr.reconfigure(encoding="utf-8")  # ty: ignore[call-non-callable]
+        sys.stderr.reconfigure(encoding="utf-8")
 
     args = parse_args(argv)
 

@@ -21,24 +21,24 @@ from gateway.platforms.base import MessageType
 
 def _build_telegram_stubs():
     telegram_mod = types.ModuleType("telegram")
-    telegram_mod.Update = object  # ty: ignore[unresolved-attribute]
-    telegram_mod.Bot = object  # ty: ignore[unresolved-attribute]
-    telegram_mod.Message = object  # ty: ignore[unresolved-attribute]
-    telegram_mod.InlineKeyboardButton = object  # ty: ignore[unresolved-attribute]
-    telegram_mod.InlineKeyboardMarkup = object  # ty: ignore[unresolved-attribute]
-    telegram_mod.LinkPreviewOptions = object  # ty: ignore[unresolved-attribute]
+    telegram_mod.Update = object
+    telegram_mod.Bot = object
+    telegram_mod.Message = object
+    telegram_mod.InlineKeyboardButton = object
+    telegram_mod.InlineKeyboardMarkup = object
+    telegram_mod.LinkPreviewOptions = object
 
     telegram_ext_mod = types.ModuleType("telegram.ext")
-    telegram_ext_mod.Application = object  # ty: ignore[unresolved-attribute]
-    telegram_ext_mod.CommandHandler = object  # ty: ignore[unresolved-attribute]
-    telegram_ext_mod.CallbackQueryHandler = object  # ty: ignore[unresolved-attribute]
-    telegram_ext_mod.MessageHandler = object  # ty: ignore[unresolved-attribute]
-    telegram_ext_mod.ContextTypes = SimpleNamespace(DEFAULT_TYPE=type(None))  # ty: ignore[unresolved-attribute]
-    telegram_ext_mod.filters = SimpleNamespace()  # ty: ignore[unresolved-attribute]
+    telegram_ext_mod.Application = object
+    telegram_ext_mod.CommandHandler = object
+    telegram_ext_mod.CallbackQueryHandler = object
+    telegram_ext_mod.MessageHandler = object
+    telegram_ext_mod.ContextTypes = SimpleNamespace(DEFAULT_TYPE=type(None))
+    telegram_ext_mod.filters = SimpleNamespace()
 
     telegram_constants_mod = types.ModuleType("telegram.constants")
-    telegram_constants_mod.ParseMode = SimpleNamespace(MARKDOWN_V2="MarkdownV2")  # ty: ignore[unresolved-attribute]
-    telegram_constants_mod.ChatType = SimpleNamespace(  # ty: ignore[unresolved-attribute]
+    telegram_constants_mod.ParseMode = SimpleNamespace(MARKDOWN_V2="MarkdownV2")
+    telegram_constants_mod.ChatType = SimpleNamespace(
         GROUP="group",
         SUPERGROUP="supergroup",
         CHANNEL="channel",
@@ -46,11 +46,11 @@ def _build_telegram_stubs():
     )
 
     telegram_request_mod = types.ModuleType("telegram.request")
-    telegram_request_mod.HTTPXRequest = object  # ty: ignore[unresolved-attribute]
+    telegram_request_mod.HTTPXRequest = object
 
-    telegram_mod.ext = telegram_ext_mod  # ty: ignore[unresolved-attribute]
-    telegram_mod.constants = telegram_constants_mod  # ty: ignore[unresolved-attribute]
-    telegram_mod.request = telegram_request_mod  # ty: ignore[unresolved-attribute]
+    telegram_mod.ext = telegram_ext_mod
+    telegram_mod.constants = telegram_constants_mod
+    telegram_mod.request = telegram_request_mod
 
     return {
         "telegram": telegram_mod,
@@ -63,7 +63,7 @@ def _build_telegram_stubs():
 @pytest.fixture
 def telegram_adapter_cls(monkeypatch):
     """Import TelegramAdapter without leaking temporary telegram stubs."""
-    module_name = "gateway.platforms.telegram"
+    module_name = "plugins.platforms.telegram.adapter"
     existing_module = sys.modules.get(module_name)
     if existing_module is not None:
         yield existing_module.TelegramAdapter
@@ -174,7 +174,7 @@ async def test_command_handler_uses_effective_message_for_channel_post(telegram_
     await adapter._handle_command(update, MagicMock())
 
     adapter.handle_message.assert_awaited_once()
-    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    event = adapter.handle_message.await_args.args[0]
     assert event.text == "/status"
     assert event.message_type == MessageType.COMMAND
     assert event.source.chat_type == "channel"

@@ -76,9 +76,9 @@ def _handle_feishu_doc_read(args: dict, **kwargs) -> str:
         return tool_error("Feishu client not available (not in a Feishu comment context)")
 
     try:
-        from lark_oapi import AccessTokenType  # ty: ignore[unresolved-import]
-        from lark_oapi.core.enum import HttpMethod  # ty: ignore[unresolved-import]
-        from lark_oapi.core.model.base_request import BaseRequest  # ty: ignore[unresolved-import]
+        from lark_oapi import AccessTokenType
+        from lark_oapi.core.enum import HttpMethod
+        from lark_oapi.core.model.base_request import BaseRequest
     except ImportError:
         return tool_error("lark_oapi not installed")
 

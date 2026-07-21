@@ -9,7 +9,7 @@ Contributed by @PeterFile (PR #593), reimplemented on current main.
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -49,7 +49,7 @@ def _build_runner(monkeypatch, tmp_path, mode: str) -> GatewayRunner:
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock(), handle_message=AsyncMock())
-    runner.adapters[Platform.TELEGRAM] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.TELEGRAM] = adapter
     return runner
 
 
@@ -196,11 +196,11 @@ async def test_run_process_watcher_respects_notification_mode(
 
     await runner._run_process_watcher(_watcher_dict())
 
-    assert adapter.send.await_count == expected_calls, (  # ty: ignore[unresolved-attribute]
-        f"mode={mode}: expected {expected_calls} sends, got {adapter.send.await_count}"  # ty: ignore[unresolved-attribute]
+    assert adapter.send.await_count == expected_calls, (
+        f"mode={mode}: expected {expected_calls} sends, got {adapter.send.await_count}"
     )
     if expected_fragment is not None:
-        sent_message = adapter.send.await_args.args[1]  # ty: ignore[unresolved-attribute]
+        sent_message = adapter.send.await_args.args[1]
         assert expected_fragment in sent_message
 
 
@@ -221,8 +221,8 @@ async def test_thread_id_passed_to_send(monkeypatch, tmp_path):
 
     await runner._run_process_watcher(_watcher_dict(thread_id="42"))
 
-    assert adapter.send.await_count == 1  # ty: ignore[unresolved-attribute]
-    _, kwargs = adapter.send.call_args  # ty: ignore[unresolved-attribute]
+    assert adapter.send.await_count == 1
+    _, kwargs = adapter.send.call_args
     assert kwargs["metadata"] == {"thread_id": "42"}
 
 
@@ -243,8 +243,8 @@ async def test_no_thread_id_sends_no_metadata(monkeypatch, tmp_path):
 
     await runner._run_process_watcher(_watcher_dict())
 
-    assert adapter.send.await_count == 1  # ty: ignore[unresolved-attribute]
-    _, kwargs = adapter.send.call_args  # ty: ignore[unresolved-attribute]
+    assert adapter.send.await_count == 1
+    _, kwargs = adapter.send.call_args
     assert kwargs["metadata"] is None
 
 
@@ -254,7 +254,7 @@ async def test_inject_watch_notification_routes_from_session_store_origin(monkey
 
     runner = _build_runner(monkeypatch, tmp_path, "all")
     adapter = runner.adapters[Platform.TELEGRAM]
-    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(  # ty: ignore[invalid-assignment]
+    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(
         origin=SessionSource(
             platform=Platform.TELEGRAM,
             chat_id="-100",
@@ -272,8 +272,8 @@ async def test_inject_watch_notification_routes_from_session_store_origin(monkey
 
     await runner._inject_watch_notification("[SYSTEM: Background process matched]", evt)
 
-    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
-    synth_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    adapter.handle_message.assert_awaited_once()
+    synth_event = adapter.handle_message.await_args.args[0]
     assert synth_event.internal is True
     assert synth_event.source.platform == Platform.TELEGRAM
     assert synth_event.source.chat_id == "-100"
@@ -316,8 +316,8 @@ async def test_agent_notification_carries_message_id_reply_anchor(monkeypatch, t
     }
     await runner._run_process_watcher(watcher)
 
-    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
-    synth_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    adapter.handle_message.assert_awaited_once()
+    synth_event = adapter.handle_message.await_args.args[0]
     assert synth_event.internal is True
     assert synth_event.message_id == "555"
     assert synth_event.source.thread_id == "24296"
@@ -352,8 +352,8 @@ async def test_agent_notification_no_message_id_is_tolerated(monkeypatch, tmp_pa
     }
     await runner._run_process_watcher(watcher)
 
-    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
-    synth_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    adapter.handle_message.assert_awaited_once()
+    synth_event = adapter.handle_message.await_args.args[0]
     assert synth_event.message_id is None
 
 
@@ -363,7 +363,7 @@ async def test_inject_watch_notification_carries_message_id_reply_anchor(monkeyp
 
     runner = _build_runner(monkeypatch, tmp_path, "all")
     adapter = runner.adapters[Platform.TELEGRAM]
-    runner.session_store._entries["agent:main:telegram:dm:123:24296"] = SimpleNamespace(  # ty: ignore[invalid-assignment]
+    runner.session_store._entries["agent:main:telegram:dm:123:24296"] = SimpleNamespace(
         origin=SessionSource(
             platform=Platform.TELEGRAM,
             chat_id="123",
@@ -382,8 +382,8 @@ async def test_inject_watch_notification_carries_message_id_reply_anchor(monkeyp
 
     await runner._inject_watch_notification("[SYSTEM: Background process matched]", evt)
 
-    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
-    synth_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    adapter.handle_message.assert_awaited_once()
+    synth_event = adapter.handle_message.await_args.args[0]
     assert synth_event.message_id == "777"
     assert synth_event.source.thread_id == "24296"
 
@@ -455,7 +455,7 @@ async def test_inject_watch_notification_ignores_foreground_event_source(monkeyp
     adapter = runner.adapters[Platform.TELEGRAM]
 
     # Session store has the process's original thread (thread 42)
-    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(  # ty: ignore[invalid-assignment]
+    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(
         origin=SessionSource(
             platform=Platform.TELEGRAM,
             chat_id="-100",
@@ -474,8 +474,8 @@ async def test_inject_watch_notification_ignores_foreground_event_source(monkeyp
 
     await runner._inject_watch_notification("[SYSTEM: watch match]", evt)
 
-    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
-    synth_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    adapter.handle_message.assert_awaited_once()
+    synth_event = adapter.handle_message.await_args.args[0]
     # Must route to thread 42 (process origin), NOT some other thread
     assert synth_event.source.thread_id == "42"
     assert synth_event.source.user_id == "proc_owner"

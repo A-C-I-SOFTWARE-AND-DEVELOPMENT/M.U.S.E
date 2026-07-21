@@ -1,6 +1,5 @@
 """Tests for Ollama Cloud provider integration."""
 
-import os
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -279,13 +278,9 @@ class TestOllamaCloudMergedDiscovery:
 
         assert result == ["stale-model"]
 
-    def test_curated_fallback_on_total_failure_no_cache(self, tmp_path, monkeypatch):
-        """Returns the curated headline list when everything fails and no cache exists.
-
-        Keeps the picker non-empty and Gemma 4 selectable on a fresh install
-        with no OLLAMA_API_KEY / offline.
-        """
-        from hermes_cli.models import fetch_ollama_cloud_models, _OLLAMA_CLOUD_CURATED
+    def test_empty_on_total_failure_no_cache(self, tmp_path, monkeypatch):
+        """Returns empty list when everything fails and no cache exists."""
+        from hermes_cli.models import fetch_ollama_cloud_models
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
@@ -293,8 +288,7 @@ class TestOllamaCloudMergedDiscovery:
         with patch("agent.models_dev.fetch_models_dev", return_value={}):
             result = fetch_ollama_cloud_models(force_refresh=True)
 
-        assert result == list(_OLLAMA_CLOUD_CURATED)
-        assert "gemma4" in result
+        assert result == []
 
 
 # ── Model Normalization ──
@@ -501,12 +495,3 @@ class TestOllamaCloudSuffixStripping:
         assert _strip_ollama_cloud_suffix("qwen3-coder:480b-cloud") == "qwen3-coder:480b"
         assert _strip_ollama_cloud_suffix("nemotron-3-nano:30b") == "nemotron-3-nano:30b"
         assert _strip_ollama_cloud_suffix("") == ""
-
-
-# ── Auxiliary Model ──
-
-class TestOllamaCloudAuxiliary:
-    def test_aux_model_defined(self):
-        from agent.auxiliary_client import _API_KEY_PROVIDER_AUX_MODELS
-        assert "ollama-cloud" in _API_KEY_PROVIDER_AUX_MODELS
-        assert _API_KEY_PROVIDER_AUX_MODELS["ollama-cloud"] == "nemotron-3-nano:30b"

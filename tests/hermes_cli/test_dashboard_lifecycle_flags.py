@@ -15,14 +15,14 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from hermes_cli.main import cmd_dashboard, _report_dashboard_status
+from hermes_cli.main import cmd_dashboard
 
 
 def _ns(**kw):
     """Build an argparse.Namespace with dashboard defaults plus overrides."""
     defaults = dict(
         port=9119, host="127.0.0.1", no_open=False, insecure=False,
-        tui=False, stop=False, status=False,
+        stop=False, status=False,
     )
     defaults.update(kw)
     return argparse.Namespace(**defaults)
@@ -36,7 +36,7 @@ class TestDashboardStatus:
             cmd_dashboard(_ns(status=True))
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "No muse dashboard processes running" in out
+        assert "No hermes dashboard processes running" in out
 
     def test_status_with_processes(self, capsys):
         with patch("hermes_cli.main._find_stale_dashboard_pids",
@@ -46,7 +46,7 @@ class TestDashboardStatus:
         # Status is informational — always exits 0.
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "2 muse dashboard process(es) running" in out
+        assert "2 hermes dashboard process(es) running" in out
         assert "PID 12345" in out
         assert "PID 12346" in out
 
@@ -76,7 +76,7 @@ class TestDashboardStop:
             cmd_dashboard(_ns(stop=True))
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "No muse dashboard processes running" in out
+        assert "No hermes dashboard processes running" in out
 
     def test_stop_kills_and_exits_zero_when_all_killed(self, capsys):
         """After the kill, if the second scan returns empty we exit 0."""

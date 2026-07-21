@@ -22,7 +22,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _watermark import Watermark, format_items_as_markdown
+from _watermark import Watermark, format_items_as_markdown  # type: ignore
 
 
 def _strip_ns(tag: str) -> str:

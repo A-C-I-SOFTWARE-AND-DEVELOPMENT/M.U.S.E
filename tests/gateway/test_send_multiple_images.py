@@ -13,7 +13,6 @@ Signal's native implementation is covered by test_signal.py.
 """
 
 import asyncio
-import os
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -42,30 +41,30 @@ class _StubAdapter(BasePlatformAdapter):
         self.sent_animations = []
         self.sent_files = []
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         return True
 
     async def disconnect(self):
         return None
 
-    async def send(self, chat_id, content, reply_to=None, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send(self, chat_id, content, reply_to=None, **kwargs):
         from gateway.platforms.base import SendResult
         return SendResult(success=True)
 
     async def get_chat_info(self, chat_id):
         return {}
 
-    async def send_image(self, chat_id, image_url, caption=None, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send_image(self, chat_id, image_url, caption=None, **kwargs):
         from gateway.platforms.base import SendResult
         self.sent_images.append((chat_id, image_url, caption))
         return SendResult(success=True, message_id=str(len(self.sent_images)))
 
-    async def send_animation(self, chat_id, animation_url, caption=None, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send_animation(self, chat_id, animation_url, caption=None, **kwargs):
         from gateway.platforms.base import SendResult
         self.sent_animations.append((chat_id, animation_url, caption))
         return SendResult(success=True, message_id=str(len(self.sent_animations)))
 
-    async def send_image_file(self, chat_id, image_path, caption=None, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send_image_file(self, chat_id, image_path, caption=None, **kwargs):
         from gateway.platforms.base import SendResult
         self.sent_files.append((chat_id, image_path, caption))
         return SendResult(success=True, message_id=str(len(self.sent_files)))
@@ -116,7 +115,7 @@ def _ensure_telegram_mock():
 
 _ensure_telegram_mock()
 
-from gateway.platforms.telegram import TelegramAdapter  # noqa: E402
+from plugins.platforms.telegram.adapter import TelegramAdapter  # noqa: E402
 
 
 class TestTelegramMultiImage:
@@ -130,7 +129,7 @@ class TestTelegramMultiImage:
 
     def test_single_batch_under_10_calls_send_media_group_once(self, adapter):
         """3 photos → one send_media_group call with 3 items."""
-        import telegram  # ty: ignore[unresolved-import]
+        import telegram
         images = [(f"https://x.com/{i}.png", f"alt{i}") for i in range(3)]
         # Make InputMediaPhoto a concrete class that records its args
         telegram.InputMediaPhoto = MagicMock(side_effect=lambda media, caption=None: {"media": media, "caption": caption})
@@ -144,7 +143,7 @@ class TestTelegramMultiImage:
 
     def test_batch_over_10_chunks(self, adapter):
         """15 photos → two send_media_group calls (10 + 5)."""
-        import telegram  # ty: ignore[unresolved-import]
+        import telegram
         images = [(f"https://x.com/{i}.png", "") for i in range(15)]
         telegram.InputMediaPhoto = MagicMock(side_effect=lambda media, caption=None: {"media": media})
 
@@ -156,7 +155,7 @@ class TestTelegramMultiImage:
 
     def test_animations_routed_to_send_animation(self, adapter):
         """GIFs are peeled off and sent individually via send_animation."""
-        import telegram  # ty: ignore[unresolved-import]
+        import telegram
         telegram.InputMediaPhoto = MagicMock(side_effect=lambda media, caption=None: {"media": media})
         adapter.send_animation = AsyncMock()
         # 2 photos + 1 gif
@@ -174,7 +173,7 @@ class TestTelegramMultiImage:
 
     def test_fallback_to_per_image_on_send_media_group_failure(self, adapter):
         """If send_media_group raises, each photo falls back to send_image."""
-        import telegram  # ty: ignore[unresolved-import]
+        import telegram
         telegram.InputMediaPhoto = MagicMock(side_effect=lambda media, caption=None: {"media": media})
         adapter._bot.send_media_group = AsyncMock(side_effect=Exception("boom"))
         adapter.send_image = AsyncMock(return_value=MagicMock(success=True))
@@ -210,7 +209,7 @@ def _ensure_discord_mock():
 
 _ensure_discord_mock()
 
-from gateway.platforms.discord import DiscordAdapter  # noqa: E402
+from plugins.platforms.discord.adapter import DiscordAdapter  # noqa: E402
 
 
 class TestDiscordMultiImage:
@@ -287,7 +286,7 @@ def _ensure_slack_mock():
 
 _ensure_slack_mock()
 
-from gateway.platforms.slack import SlackAdapter  # noqa: E402
+from plugins.platforms.slack.adapter import SlackAdapter  # noqa: E402
 
 
 class TestSlackMultiImage:
@@ -296,11 +295,11 @@ class TestSlackMultiImage:
         config = PlatformConfig(enabled=True, token="xoxb-fake")
         a = SlackAdapter(config)
         a._app = MagicMock()
-        a._resolve_thread_ts = MagicMock(return_value=None)  # ty: ignore[invalid-assignment]
-        a._record_uploaded_file_thread = MagicMock()  # ty: ignore[invalid-assignment]
+        a._resolve_thread_ts = MagicMock(return_value=None)
+        a._record_uploaded_file_thread = MagicMock()
         client = MagicMock()
         client.files_upload_v2 = AsyncMock(return_value={"ok": True})
-        a._get_client = MagicMock(return_value=client)  # ty: ignore[invalid-assignment]
+        a._get_client = MagicMock(return_value=client)
         return a
 
     def test_single_batch_of_local_files_sends_one_upload(self, adapter, tmp_path):
@@ -344,7 +343,7 @@ class TestSlackMultiImage:
 # ---------------------------------------------------------------------------
 
 
-from gateway.platforms.mattermost import MattermostAdapter  # noqa: E402
+from plugins.platforms.mattermost.adapter import MattermostAdapter  # noqa: E402
 
 
 class TestMattermostMultiImage:
@@ -403,7 +402,7 @@ class TestMattermostMultiImage:
 # ---------------------------------------------------------------------------
 
 
-from gateway.platforms.email import EmailAdapter  # noqa: E402
+from plugins.platforms.email.adapter import EmailAdapter  # noqa: E402
 
 
 class TestEmailMultiImage:

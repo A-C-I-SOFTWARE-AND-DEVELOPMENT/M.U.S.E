@@ -8,8 +8,6 @@ Verifies that:
 3. Context-overflow failures produce helpful error messages suggesting /compact.
 """
 
-import pytest
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 
@@ -39,9 +37,9 @@ class TestGeneric400Heuristic:
             )
             a.client = MagicMock()
             a._cached_system_prompt = "You are helpful."
-            a._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
-            a.tool_delay = 0  # ty: ignore[unresolved-attribute]
-            a.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
+            a._use_prompt_caching = False
+            a.tool_delay = 0
+            a.compression_enabled = False
             return a
 
     def test_generic_400_with_small_session_is_client_error(self):

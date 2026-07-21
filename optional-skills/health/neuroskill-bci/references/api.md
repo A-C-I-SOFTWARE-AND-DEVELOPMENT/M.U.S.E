@@ -107,7 +107,7 @@ Connect to `ws://127.0.0.1:8375/` to receive real-time events:
   "command": "status", "ok": true,
   "device": {
     "state": "connected",     // "connected" | "connecting" | "disconnected"
-    "name": "muse-A1B2",
+    "name": "Muse-A1B2",
     "battery": 73,
     "firmware": "1.3.4",
     "EXG_samples": 195840,
@@ -183,7 +183,7 @@ Connect to `ws://127.0.0.1:8375/` to receive real-time events:
   "command": "search", "ok": true,
   "result": {
     "results": [{
-      "neighbors": [{ "distance": 0.12, "metadata": {"device": "muse-A1B2", "date": "20260223"} }]
+      "neighbors": [{ "distance": 0.12, "metadata": {"device": "Muse-A1B2", "date": "20260223"} }]
     }],
     "analysis": {
       "distance_stats": { "mean": 0.15, "min": 0.08, "max": 0.42 },

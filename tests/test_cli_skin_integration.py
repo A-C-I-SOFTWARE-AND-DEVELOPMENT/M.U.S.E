@@ -101,17 +101,6 @@ class TestCompactBannerSkinIntegration:
 
         assert "NOUS HERMES" in banner
 
-    def test_singularity_compact_banner_uses_muse_branding(self):
-        set_active_skin("singularity")
-
-        with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
-             patch.dict(_build_compact_banner.__globals__, {"format_banner_version_label": lambda: "Hermes Agent v0.1.0 (test)"}):
-            banner = _build_compact_banner()
-
-        assert "muse" in banner
-        assert "NOUS HERMES" not in banner
-        assert "#7AE0FF" in banner  # the ring's cyan border
-
     def test_poseidon_compact_banner_uses_skin_branding_instead_of_nous_hermes(self):
         set_active_skin("poseidon")
 

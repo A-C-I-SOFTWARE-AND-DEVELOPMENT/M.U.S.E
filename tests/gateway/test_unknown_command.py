@@ -200,7 +200,7 @@ async def test_command_hook_can_deny_before_dispatch(monkeypatch):
     runner._run_agent.assert_not_called()
     # The emit_collect call should use the canonical command name.
     call_args = runner.hooks.emit_collect.await_args
-    assert call_args.args[0] == "command:status"  # ty: ignore[unresolved-attribute]
+    assert call_args.args[0] == "command:status"
 
 
 @pytest.mark.asyncio
@@ -317,9 +317,9 @@ async def test_command_hook_fires_for_plugin_registered_command(monkeypatch):
     assert result == "intercepted"
     # Hook event name uses the plugin command as canonical.
     call_args = runner.hooks.emit_collect.await_args
-    assert call_args.args[0] == "command:metricas"  # ty: ignore[unresolved-attribute]
+    assert call_args.args[0] == "command:metricas"
     # Args are passed through in both "args" and "raw_args" keys.
-    ctx = call_args.args[1]  # ty: ignore[unresolved-attribute]
+    ctx = call_args.args[1]
     assert ctx["raw_args"] == "dias:7"
 
 

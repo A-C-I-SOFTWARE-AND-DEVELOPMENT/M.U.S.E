@@ -14,7 +14,7 @@ Generate real meme images by picking a template and overlaying text with Pillow.
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/creative/meme-generation` |
+| Source | Optional — install with `hermes skills install official/creative/meme-generation` |
 | Path | `optional-skills/creative/meme-generation` |
 | Version | `2.0.0` |
 | Author | adanaleycio |
@@ -26,7 +26,7 @@ Generate real meme images by picking a template and overlaying text with Pillow.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Meme Generation

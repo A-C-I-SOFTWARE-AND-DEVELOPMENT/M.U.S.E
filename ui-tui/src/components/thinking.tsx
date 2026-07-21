@@ -3,11 +3,9 @@ import { memo, type ReactNode, useEffect, useMemo, useState } from 'react'
 import spinners, { type BrailleSpinnerName } from 'unicode-animations'
 
 import { THINKING_COT_MAX } from '../config/limits.js'
-import { VERBS } from '../content/verbs.js'
 import { sectionMode } from '../domain/details.js'
 import {
   buildSubagentTree,
-  fmtCost,
   fmtTokens,
   formatSummary as formatSpawnSummary,
   hotnessBucket,
@@ -172,46 +170,6 @@ export function Spinner({ color, variant = 'think' }: { color: string; variant?:
   }, [spin])
 
   return <Text color={color}>{spin.frames[frame]}</Text>
-}
-
-// ── Busy spinner line (design.md Part 0 #6) ──────────────────────────
-// braille + gerund verb + elapsed + (esc to interrupt) + ↓token count.
-// Mounts only while a turn is busy, so the elapsed clock starts at turn
-// start and resets when the turn ends.
-
-const BUSY_VERB_TICK_MS = 2500
-
-function BusyLine({ t, tokens }: { t: Theme; tokens: number }) {
-  const [startedAt] = useState(() => Date.now())
-  const [now, setNow] = useState(() => Date.now())
-  const [verbTick, setVerbTick] = useState(() => Math.floor(Math.random() * VERBS.length))
-
-  useEffect(() => {
-    const clock = setInterval(() => setNow(Date.now()), 500)
-    const verb = setInterval(() => setVerbTick(n => n + 1), BUSY_VERB_TICK_MS)
-
-    return () => {
-      clearInterval(clock)
-      clearInterval(verb)
-    }
-  }, [])
-
-  const color = t.color.info ?? t.color.accent
-  const verb = VERBS[verbTick % VERBS.length] ?? 'thinking'
-
-  return (
-    <Text wrap="truncate-end">
-      <Spinner color={color} variant="think" />
-      <Text color={color}>
-        {' '}
-        {verb}… {fmtElapsed(now - startedAt)}{' '}
-      </Text>
-      <Text color={t.color.muted} dim>
-        (esc to interrupt)
-      </Text>
-      {tokens > 0 ? <Text color={t.color.muted}> ↓{fmtK(tokens)}</Text> : null}
-    </Text>
-  )
 }
 
 interface DetailRow {
@@ -402,12 +360,6 @@ function SubagentAccordion({
     rollupBits.push(`${fmtTokens(localTokens)} tok`)
   }
 
-  const localCost = item.costUsd ?? 0
-
-  if (localCost > 0) {
-    rollupBits.push(fmtCost(localCost))
-  }
-
   const filesLocal = (item.filesWritten?.length ?? 0) + (item.filesRead?.length ?? 0)
 
   if (filesLocal > 0) {
@@ -419,12 +371,6 @@ function SubagentAccordion({
 
     if (subtreeTools > 0) {
       rollupBits.push(`+${subtreeTools}t sub`)
-    }
-
-    const subCost = aggregate.costUsd - localCost
-
-    if (subCost >= 0.01) {
-      rollupBits.push(`+${fmtCost(subCost)} sub`)
     }
 
     if (aggregate.activeCount > 0 && item.status !== 'running') {
@@ -897,7 +843,16 @@ export const ToolTrail = memo(function ToolTrail({
       color: t.color.text,
       key: tool.id,
       label,
-      details: [],
+      details: tool.verboseArgs
+        ? [
+            {
+              color: t.color.muted,
+              content: `Args:\n${boundedLiveRenderText(tool.verboseArgs)}`,
+              dimColor: true,
+              key: `${tool.id}-args`
+            }
+          ]
+        : [],
       content: (
         <>
           <Spinner color={t.color.accent} variant="tool" /> {label}
@@ -967,9 +922,8 @@ export const ToolTrail = memo(function ToolTrail({
   if (allHidden) {
     const alerts = activity.filter(i => i.tone !== 'info').slice(-2)
 
-    return busy || alerts.length ? (
+    return alerts.length ? (
       <Box flexDirection="column">
-        {busy ? <BusyLine t={t} tokens={totalTokenCount} /> : null}
         {alerts.map(i => (
           <Text color={i.tone === 'error' ? t.color.error : t.color.warn} key={`ha-${i.id}`}>
             {i.tone === 'error' ? '✗' : '!'} {i.text}
@@ -1106,6 +1060,10 @@ export const ToolTrail = memo(function ToolTrail({
             const branch: TreeBranch = index === groups.length - 1 ? 'last' : 'mid'
             const childRails = nextTreeRails(rails, branch)
             const hasInlineSubagents = inlineDelegateKey === group.key
+            // Surface the /agents hint the moment a delegate group appears —
+            // while it's still in-flight and before any subagent has
+            // registered — so users can open the live monitor immediately.
+            const isDelegateGroup = group.label.startsWith('Delegate Task')
 
             return (
               <Box flexDirection="column" key={group.key}>
@@ -1116,6 +1074,11 @@ export const ToolTrail = memo(function ToolTrail({
                     <>
                       <Text color={t.color.accent}>● </Text>
                       {toolLabel(group)}
+                      {isDelegateGroup ? (
+                        <Text color={t.color.statusFg} dim>
+                          {'  (/agents to monitor)'}
+                        </Text>
+                      ) : null}
                     </>
                   }
                   rails={rails}
@@ -1211,7 +1174,6 @@ export const ToolTrail = memo(function ToolTrail({
 
   return (
     <Box flexDirection="column">
-      {busy ? <BusyLine t={t} tokens={totalTokenCount} /> : null}
       {panels.map((panel, index) => (
         <TreeNode
           branch={index === topCount - 1 ? 'last' : 'mid'}

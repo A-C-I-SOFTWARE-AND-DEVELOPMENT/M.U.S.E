@@ -20,17 +20,17 @@ import jinja2
 from openai import OpenAI
 
 # Vendored problem types from upstream (AGPL — only run via subprocess in production)
-from darwinian_evolver.cli_common import build_hyperparameter_config_from_args  # ty: ignore[unresolved-import]
-from darwinian_evolver.cli_common import register_hyperparameter_args  # ty: ignore[unresolved-import]
-from darwinian_evolver.cli_common import parse_learning_log_view_type  # ty: ignore[unresolved-import]
-from darwinian_evolver.evolve_problem_loop import EvolveProblemLoop  # ty: ignore[unresolved-import]
-from darwinian_evolver.learning_log import LearningLogEntry  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import EvaluationFailureCase  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import EvaluationResult  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import Evaluator  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import Mutator  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import Organism  # ty: ignore[unresolved-import]
-from darwinian_evolver.problem import Problem  # ty: ignore[unresolved-import]
+from darwinian_evolver.cli_common import build_hyperparameter_config_from_args
+from darwinian_evolver.cli_common import register_hyperparameter_args
+from darwinian_evolver.cli_common import parse_learning_log_view_type
+from darwinian_evolver.evolve_problem_loop import EvolveProblemLoop
+from darwinian_evolver.learning_log import LearningLogEntry
+from darwinian_evolver.problem import EvaluationFailureCase
+from darwinian_evolver.problem import EvaluationResult
+from darwinian_evolver.problem import Evaluator
+from darwinian_evolver.problem import Mutator
+from darwinian_evolver.problem import Organism
+from darwinian_evolver.problem import Problem
 
 DEFAULT_MODEL = os.environ.get("EVOLVER_MODEL", "openai/gpt-4o-mini")
 

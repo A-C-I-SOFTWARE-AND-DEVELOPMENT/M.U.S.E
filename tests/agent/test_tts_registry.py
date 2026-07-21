@@ -81,7 +81,7 @@ class TestRegistration:
 
     def test_rejects_non_provider_type(self):
         with pytest.raises(TypeError, match="expects a TTSProvider instance"):
-            tts_registry.register_provider("not a provider")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+            tts_registry.register_provider("not a provider")  # type: ignore[arg-type]
         assert tts_registry.list_providers() == []
 
     def test_rejects_empty_name(self):
@@ -143,8 +143,8 @@ class TestLookup:
         assert tts_registry.get_provider("nonexistent") is None
 
     def test_get_provider_non_string_returns_none(self):
-        assert tts_registry.get_provider(None) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
-        assert tts_registry.get_provider(123) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+        assert tts_registry.get_provider(None) is None  # type: ignore[arg-type]
+        assert tts_registry.get_provider(123) is None  # type: ignore[arg-type]
 
     def test_get_provider_case_insensitive(self):
         p = _FakeProvider(name="cartesia")
@@ -279,8 +279,8 @@ class TestResolveOutputFormat:
         assert resolve_output_format(None) == DEFAULT_OUTPUT_FORMAT
 
     def test_non_string_returns_default(self):
-        assert resolve_output_format(123) == DEFAULT_OUTPUT_FORMAT  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
-        assert resolve_output_format([]) == DEFAULT_OUTPUT_FORMAT  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+        assert resolve_output_format(123) == DEFAULT_OUTPUT_FORMAT  # type: ignore[arg-type]
+        assert resolve_output_format([]) == DEFAULT_OUTPUT_FORMAT  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -299,14 +299,7 @@ class TestBuiltinSync:
     """
 
     def test_registry_builtins_match_dispatcher_builtins(self):
-        try:
-            from tools.tts_tool import BUILTIN_TTS_PROVIDERS
-        except ImportError:
-            pytest.skip(
-                "tools.tts_tool.BUILTIN_TTS_PROVIDERS not present in this "
-                "checkout — the dispatcher-side built-in list is part of "
-                "a paired modification that ships in a follow-up PR."
-            )
+        from tools.tts_tool import BUILTIN_TTS_PROVIDERS
 
         assert tts_registry._BUILTIN_NAMES == BUILTIN_TTS_PROVIDERS, (
             "agent.tts_registry._BUILTIN_NAMES and "

@@ -34,7 +34,7 @@ class TestCliTurnRoutePool:
 
         from cli import HermesCLI
         bound = HermesCLI._resolve_turn_agent_config.__get__(shell)
-        route = bound("test message")  # ty: ignore[invalid-argument-type]
+        route = bound("test message")
 
         assert route["runtime"]["credential_pool"] is fake_pool
 
@@ -61,7 +61,7 @@ class TestGatewayTurnRoutePool:
         }
 
         bound = GatewayRunner._resolve_turn_agent_config.__get__(runner)
-        route = bound("test message", "gpt-5.4", runtime_kwargs)  # ty: ignore[invalid-argument-type]
+        route = bound("test message", "gpt-5.4", runtime_kwargs)
 
         assert route["runtime"]["credential_pool"] is fake_pool
 
@@ -86,10 +86,10 @@ class TestEagerFallbackWithPool:
             pool.has_available.return_value = pool_has_creds
             agent._credential_pool = pool
 
-        agent._fallback_chain = [{"model": "fallback/model"}] if has_fallback else []  # ty: ignore[unresolved-attribute]
-        agent._fallback_index = 0  # ty: ignore[unresolved-attribute]
-        agent._try_activate_fallback = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
-        agent._emit_status = MagicMock()  # ty: ignore[invalid-assignment]
+        agent._fallback_chain = [{"model": "fallback/model"}] if has_fallback else []
+        agent._fallback_index = 0
+        agent._try_activate_fallback = MagicMock(return_value=True)
+        agent._emit_status = MagicMock()
 
         return agent
 
@@ -155,11 +155,14 @@ class TestPoolRotationCycle:
 
         pool = MagicMock()
         pool.has_credentials.return_value = True
+        # Must be set explicitly — MagicMock.provider returns a truthy
+        # child mock, which would trigger the provider-mismatch guard.
+        pool.provider = ""
 
         # mark_exhausted_and_rotate returns next entry until exhausted
         self._rotation_index = 0
 
-        def rotate(status_code=None, error_context=None):
+        def rotate(status_code=None, error_context=None, api_key_hint=None):
             self._rotation_index += 1
             if self._rotation_index < pool_entries:
                 return entries[self._rotation_index]
@@ -168,7 +171,7 @@ class TestPoolRotationCycle:
 
         pool.mark_exhausted_and_rotate = MagicMock(side_effect=rotate)
         agent._credential_pool = pool
-        agent._swap_credential = MagicMock()  # ty: ignore[invalid-assignment]
+        agent._swap_credential = MagicMock()
         agent.log_prefix = ""
 
         return agent, pool, entries
@@ -217,7 +220,11 @@ class TestPoolRotationCycle:
         )
         assert recovered is True
         assert has_retried is False
-        pool.mark_exhausted_and_rotate.assert_called_once_with(status_code=402, error_context=None)
+        pool.mark_exhausted_and_rotate.assert_called_once_with(
+            status_code=402,
+            error_context=None,
+            api_key_hint=None,
+        )
 
     def test_no_pool_returns_false(self):
         """No pool should return (False, unchanged)."""

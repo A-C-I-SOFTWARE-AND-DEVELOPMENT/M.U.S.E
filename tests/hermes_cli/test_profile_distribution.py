@@ -10,7 +10,6 @@ mocking git would just test the mock.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -49,7 +48,7 @@ def profile_env(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
+def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:
     """Build a local distribution staging directory (what a git clone would
     contain after .git is removed).
 
@@ -74,6 +73,13 @@ def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionMa
     return staged
 
 
+def _symlink_file_or_skip(link: Path, target: Path) -> None:
+    try:
+        link.symlink_to(target)
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable in test environment: {exc}")
+
+
 # ===========================================================================
 # Manifest parsing
 # ===========================================================================
@@ -84,13 +90,9 @@ class TestManifestParsing:
     def test_minimal_manifest(self, tmp_path):
         (tmp_path / MANIFEST_FILENAME).write_text("name: minimal\n")
         m = read_manifest(tmp_path)
-        assert m is not None
         assert m.name == "minimal"
-        assert m is not None
         assert m.version == "0.1.0"
-        assert m is not None
         assert m.env_requires == []
-        assert m is not None
         assert m.distribution_owned == []
 
     def test_full_manifest(self, tmp_path):
@@ -112,25 +114,15 @@ class TestManifestParsing:
             "  - skills/\n"
         )
         m = read_manifest(tmp_path)
-        assert m is not None
         assert m.name == "telem"
-        assert m is not None
         assert m.version == "1.2.3"
-        assert m is not None
         assert m.author == "Kyle"
-        assert m is not None
         assert m.license == "MIT"
-        assert m is not None
         assert len(m.env_requires) == 2
-        assert m is not None
         assert m.env_requires[0].name == "OPENAI_API_KEY"
-        assert m is not None
         assert m.env_requires[0].required is True
-        assert m is not None
         assert m.env_requires[1].required is False
-        assert m is not None
         assert m.env_requires[1].default == "http://127.0.0.1:8000"
-        assert m is not None
         assert m.distribution_owned == ["SOUL.md", "skills"]
 
     def test_missing_name_rejected(self, tmp_path):
@@ -165,9 +157,7 @@ class TestManifestParsing:
         )
         write_manifest(tmp_path, original)
         parsed = read_manifest(tmp_path)
-        assert parsed is not None
         assert parsed.name == "rt"
-        assert parsed is not None
         assert parsed.env_requires[0].name == "FOO"
 
 
@@ -293,9 +283,7 @@ class TestInstall:
         assert (plan.target_dir / "mcp.json").exists()
         # Manifest on disk records canonical name + provenance
         m = read_manifest(plan.target_dir)
-        assert m is not None
         assert m.name == "installed"
-        assert m is not None
         assert m.source == str(staged)
 
     def test_install_uses_manifest_name_when_no_override(self, profile_env):
@@ -491,6 +479,94 @@ class TestSecurity:
         if (plan.target_dir / ".env").exists():
             assert "LEAKED" not in (plan.target_dir / ".env").read_text()
 
+    def test_install_rejects_symlinked_distribution_files(self, profile_env, tmp_path):
+        """Distribution install must not follow symlinks to local files."""
+        staged = _make_staging_dir(profile_env, "src")
+        local_secret = tmp_path / "local-secret.txt"
+        local_secret.write_text("outside secret\n")
+        _symlink_file_or_skip(
+            staged / "skills" / "demo" / "leak.txt",
+            local_secret,
+        )
+
+        with pytest.raises(DistributionError, match="symlink"):
+            install_distribution(str(staged), name="clean")
+
+        from hermes_cli.profiles import get_profile_dir
+        target = get_profile_dir("clean")
+        assert not (target / "skills" / "demo" / "leak.txt").exists()
+
+
+# ===========================================================================
+# Nested directories whose names match USER_OWNED_EXCLUDE must survive install
+# ===========================================================================
+
+
+class TestNestedUserOwnedExcludeNotFiltered:
+
+    def test_nested_bin_dir_is_preserved(self, profile_env):
+        """"A distribution shipping tools/bin/ must not have tools/bin/ dropped
+        during install even though 'bin' is in USER_OWNED_EXCLUDE."""
+        staged = _make_staging_dir(profile_env, "src")
+        (staged / "tools" / "bin").mkdir(parents=True)
+        (staged / "tools" / "bin" / "tool.py").write_text("# tool\n")
+
+        plan = install_distribution(str(staged), name="nested_bin")
+        assert (plan.target_dir / "tools" / "bin").is_dir(), "nested bin/ was dropped"
+        assert (plan.target_dir / "tools" / "bin" / "tool.py").exists()
+
+    def test_nested_logs_dir_is_preserved(self, profile_env):
+        staged = _make_staging_dir(profile_env, "src")
+        (staged / "scripts" / "logs").mkdir(parents=True)
+        (staged / "scripts" / "logs" / "run.log").write_text("ok\n")
+
+        plan = install_distribution(str(staged), name="nested_logs")
+        assert (plan.target_dir / "scripts" / "logs").is_dir()
+        assert (plan.target_dir / "scripts" / "logs" / "run.log").read_text() == "ok\n"
+
+    def test_nested_cache_dir_is_preserved(self, profile_env):
+        staged = _make_staging_dir(profile_env, "src")
+        (staged / "control-plane" / "cache").mkdir(parents=True)
+        (staged / "control-plane" / "cache" / "data.json").write_text("{}\n")
+
+        plan = install_distribution(str(staged), name="nested_cache")
+        assert (plan.target_dir / "control-plane" / "cache").is_dir()
+        assert (plan.target_dir / "control-plane" / "cache" / "data.json").exists()
+
+    def test_top_level_user_owned_still_skipped(self, profile_env):
+        """Top-level entries in USER_OWNED_EXCLUDE must still be skipped —
+        only nested (deeper) directories should be preserved.
+
+        Note: _bootstrap_user_dirs creates some of these (logs/, sessions/,
+        memories/) in every fresh profile, so we check that the *staged content*
+        did not leak through rather than asserting the directory doesn't exist."""
+        staged = _make_staging_dir(profile_env, "src")
+        # Add top-level excluded entries alongside the legit ones
+        (staged / "bin").mkdir(exist_ok=True)
+        (staged / "bin" / "shipped_binary").write_text("x")
+        (staged / "logs").mkdir(exist_ok=True)
+        (staged / "logs" / "shipped.log").write_text("y\n")
+
+        plan = install_distribution(str(staged), name="top_filter")
+        # bin/ is not created by _bootstrap_user_dirs so absence means filtered
+        assert not (plan.target_dir / "bin").exists(), "top-level bin/ should be filtered"
+        # logs/ is created by _bootstrap_user_dirs even on a clean profile,
+        # so check that the staged file did NOT land there.
+        assert not (plan.target_dir / "logs" / "shipped.log").exists(), \
+            "staged logs/ content should not leak into target"
+
+    def test_both_nested_and_top_level_coexist(self, profile_env):
+        """Top-level bin/ filtered, but tools/bin/ kept."""
+        staged = _make_staging_dir(profile_env, "src")
+        (staged / "bin").mkdir(exist_ok=True)
+        (staged / "bin" / "top.sh").write_text("# top\n")
+        (staged / "tools" / "bin").mkdir(parents=True)
+        (staged / "tools" / "bin" / "helper.py").write_text("# helper\n")
+
+        plan = install_distribution(str(staged), name="coexist")
+        assert not (plan.target_dir / "bin").exists()
+        assert (plan.target_dir / "tools" / "bin" / "helper.py").exists()
+
 
 # ===========================================================================
 # Install-time metadata (installed_at stamp)
@@ -503,21 +579,17 @@ class TestInstalledAtStamp:
         staged = _make_staging_dir(profile_env, "src")
         plan = install_distribution(str(staged), name="stamped")
         mf = read_manifest(plan.target_dir)
-        assert mf is not None
         assert mf.installed_at, "installed_at should be set after install"
         # ISO-8601 UTC sanity: starts with 4-digit year, contains 'T', ends with '+00:00'.
-        assert mf is not None
         assert mf.installed_at[:4].isdigit()
-        assert mf is not None
         assert "T" in mf.installed_at
-        assert mf is not None
         assert mf.installed_at.endswith("+00:00")
 
     def test_update_refreshes_installed_at(self, profile_env, monkeypatch):
         staged = _make_staging_dir(profile_env, "src")
         install_distribution(str(staged), name="demo")
         from hermes_cli.profiles import get_profile_dir
-        first = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        first = read_manifest(get_profile_dir("demo")).installed_at
 
         # Freeze `datetime.now()` to a fixed future time so we can observe that
         # update writes a NEW stamp (installs within the same second otherwise
@@ -533,7 +605,7 @@ class TestInstalledAtStamp:
 
         from hermes_cli.profile_distribution import update_distribution
         update_distribution("demo")
-        refreshed = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        refreshed = read_manifest(get_profile_dir("demo")).installed_at
         assert refreshed != first, "installed_at should change on update"
         assert refreshed.startswith("2099-01-01"), refreshed
 
@@ -603,4 +675,3 @@ class TestErrorSurfaces:
         staged = _make_staging_dir(profile_env, "bad", manifest=mf)
         with pytest.raises((ValueError, DistributionError)):
             plan_install(str(staged), tmp_path / "work")
-

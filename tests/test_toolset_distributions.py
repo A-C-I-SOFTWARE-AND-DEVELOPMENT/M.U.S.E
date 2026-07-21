@@ -1,7 +1,6 @@
 """Tests for toolset_distributions.py — distribution CRUD, sampling, validation."""
 
 import pytest
-from unittest.mock import patch
 
 from toolset_distributions import (
     DISTRIBUTIONS,
@@ -66,7 +65,7 @@ class TestSampleToolsetsFromDistribution:
         assert len(result) > 0
         # With 100% probability, all valid toolsets should be present
         dist = get_distribution("default")
-        for ts in dist["toolsets"]:  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        for ts in dist["toolsets"]:
             assert ts in result
 
     def test_minimal_returns_web_only(self):
@@ -95,7 +94,7 @@ class TestDistributionStructure:
 
     def test_probabilities_are_valid_range(self):
         for name, dist in DISTRIBUTIONS.items():
-            for ts_name, prob in dist["toolsets"].items():  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            for ts_name, prob in dist["toolsets"].items():
                 assert 0 < prob <= 100, f"{name}.{ts_name} has invalid probability {prob}"
 
     def test_descriptions_non_empty(self):

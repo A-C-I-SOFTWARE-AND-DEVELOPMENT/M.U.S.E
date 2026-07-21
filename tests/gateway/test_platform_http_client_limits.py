@@ -12,7 +12,6 @@ behaviour is only observable at runtime under load.
 
 from __future__ import annotations
 
-import os
 
 import pytest
 
@@ -50,7 +49,6 @@ def test_env_override_keepalive_expiry(monkeypatch):
     monkeypatch.setenv("HERMES_GATEWAY_HTTPX_KEEPALIVE_EXPIRY", "7.5")
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
-    assert limits is not None
     assert limits.keepalive_expiry == 7.5
 
 
@@ -58,7 +56,6 @@ def test_env_override_max_keepalive(monkeypatch):
     monkeypatch.setenv("HERMES_GATEWAY_HTTPX_MAX_KEEPALIVE", "25")
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
-    assert limits is not None
     assert limits.max_keepalive_connections == 25
 
 
@@ -69,7 +66,6 @@ def test_env_override_rejects_garbage(monkeypatch):
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
     # Non-positive / non-numeric → fell back to defaults (not the override values)
-    assert limits is not None
     assert limits.keepalive_expiry is not None and limits.keepalive_expiry > 0
     assert limits.max_keepalive_connections is not None
     assert limits.max_keepalive_connections > 0
@@ -81,11 +77,11 @@ def test_helper_is_importable_from_every_platform_that_uses_it():
     the regression shows up as a runtime adapter-startup crash."""
     # Just importing exercises the helper's import path for each adapter.
     import gateway.platforms.qqbot.adapter  # noqa: F401
-    import gateway.platforms.wecom  # noqa: F401
-    import gateway.platforms.dingtalk  # noqa: F401
+    import plugins.platforms.wecom.adapter  # noqa: F401
+    import plugins.platforms.dingtalk.adapter  # noqa: F401
     import gateway.platforms.signal  # noqa: F401
     import gateway.platforms.bluebubbles  # noqa: F401
-    import gateway.platforms.wecom_callback  # noqa: F401
+    import plugins.platforms.wecom.callback_adapter  # noqa: F401
 
 
 class TestWhatsappTypingLeakFix:
@@ -102,7 +98,7 @@ class TestWhatsappTypingLeakFix:
 
     def test_bare_await_removed(self):
         import inspect
-        import gateway.platforms.whatsapp as mod
+        import plugins.platforms.whatsapp.adapter as mod
 
         src = inspect.getsource(mod.WhatsAppAdapter.send_typing)
         # The fix must be structural: the post() call is inside an

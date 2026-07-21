@@ -64,7 +64,7 @@ def _install_modal_test_modules(
     sys.modules["hermes_cli"] = hermes_cli
     hermes_home = tmp_path / "hermes-home"
     os.environ["HERMES_HOME"] = str(hermes_home)
-    sys.modules["hermes_cli.config"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["hermes_cli.config"] = types.SimpleNamespace(
         get_hermes_home=lambda: hermes_home,
     )
 
@@ -114,15 +114,15 @@ def _install_modal_test_modules(
         except OSError:
             return None
 
-    sys.modules["tools.environments.base"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.base"] = types.SimpleNamespace(
         BaseEnvironment=_DummyBaseEnvironment,
         _ThreadedProcessHandle=_DummyThreadedProcessHandle,
         _load_json_store=_load_json_store,
         _save_json_store=_save_json_store,
         _file_mtime_key=_file_mtime_key,
     )
-    sys.modules["tools.interrupt"] = types.SimpleNamespace(is_interrupted=lambda: False)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.credential_files"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.interrupt"] = types.SimpleNamespace(is_interrupted=lambda: False)
+    sys.modules["tools.credential_files"] = types.SimpleNamespace(
         get_credential_file_mounts=lambda: [],
         iter_skills_files=lambda **kw: [],
         iter_cache_files=lambda **kw: [],
@@ -182,7 +182,7 @@ def _install_modal_test_modules(
     class _FakeSandbox:
         create = types.SimpleNamespace(aio=_create_aio)
 
-    sys.modules["modal"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["modal"] = types.SimpleNamespace(
         Image=_FakeImage,
         App=_FakeApp,
         Sandbox=_FakeSandbox,

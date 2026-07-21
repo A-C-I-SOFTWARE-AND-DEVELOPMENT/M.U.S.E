@@ -12,7 +12,7 @@ The fix adds an explicit sweep of ``_agent_cache`` after
 import asyncio
 import threading
 from collections import OrderedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -54,16 +54,40 @@ class _FakeGateway:
     def _running_agent_count(self):
         return len(self._running_agents)
 
+    def _active_cron_job_count(self):
+        # stop() reads this alongside _running_agent_count when logging the
+        # drain snapshot (#60432) -- this fake has no cron scheduler, so
+        # there's never in-flight cron work to report.
+        return 0
+
+    def _active_api_run_count(self):
+        # The shutdown log also reports adapter-owned API work (#63529).
+        # This fake has no API server adapter, so it is always idle.
+        return 0
+
     def _update_runtime_status(self, *_a, **_kw):
         pass
 
+    async def _run_in_executor_with_context(self, func, *args):
+        # stop() offloads agent-resource cleanup off the loop (#53175); run
+        # inline in tests so the bounded-cleanup path is exercised.
+        return func(*args)
+
+    async def _cleanup_agent_resources_off_loop(self, agent, *, context=""):
+        # Mirror the real bounded helper, inline (no executor/timeout) so the
+        # fake exercises the same call shape stop() now uses.
+        self._cleanup_agent_resources(agent)
+
     async def _notify_active_sessions_of_shutdown(self):
+        pass
+
+    async def _cancel_secondary_profile_reconnect_tasks(self):
         pass
 
     async def _drain_active_agents(self, timeout):
         return {}, False
 
-    def _finalize_shutdown_agents(self, agents):
+    async def _finalize_shutdown_agents(self, agents):
         for agent in agents.values():
             self._cleanup_agent_resources(agent)
 
@@ -83,6 +107,12 @@ class _FakeGateway:
 
     def _evict_cached_agent(self, key):
         pass
+
+    def _release_running_agent_state(self, session_key, **_kwargs):
+        agent = self._running_agents.pop(session_key, None)
+        self._running_agents_ts.pop(session_key, None)
+        self._cleanup_agent_resources(agent)
+        return agent is not None
 
 
 def _make_mock_agent():
@@ -109,7 +139,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw._agent_cache["session-1"] = (agent, "sig-123")
 
         # Call the real stop() from GatewayRunner
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         agent.shutdown_memory_provider.assert_called_once()
 
@@ -120,7 +150,7 @@ class TestCachedAgentCleanupOnShutdown:
         agent = _make_mock_agent()
         gw._agent_cache["s1"] = (agent, "sig1")
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         assert len(gw._agent_cache) == 0
 
@@ -129,7 +159,7 @@ class TestCachedAgentCleanupOnShutdown:
         """stop() works fine when _agent_cache is empty."""
         gw = _FakeGateway()
 
-        await gw_mod.GatewayRunner.stop(gw)  # Should not raise  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)  # Should not raise
 
         assert len(gw._agent_cache) == 0
 
@@ -143,7 +173,7 @@ class TestCachedAgentCleanupOnShutdown:
             agents.append(a)
             gw._agent_cache[f"s{i}"] = (a, f"sig{i}")
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         for a in agents:
             a.shutdown_memory_provider.assert_called_once()
@@ -162,7 +192,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw._agent_cache["bad"] = (bad, "sig-bad")
         gw._agent_cache["good"] = (good, "sig-good")
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         # The good agent should still be cleaned up
         good.shutdown_memory_provider.assert_called_once()
@@ -174,7 +204,7 @@ class TestCachedAgentCleanupOnShutdown:
         agent = _make_mock_agent()
         gw._agent_cache["s1"] = agent  # Not a tuple
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         agent.shutdown_memory_provider.assert_called_once()
         assert len(gw._agent_cache) == 0
@@ -185,7 +215,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw = _FakeGateway()
         gw._agent_cache["s1"] = None
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         assert len(gw._agent_cache) == 0
 
@@ -203,7 +233,7 @@ class TestRunningAgentsNotDoubleCleaned:
         gw._running_agents["s1"] = shared
         gw._agent_cache["s1"] = (shared, "sig1")
 
-        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
+        await gw_mod.GatewayRunner.stop(gw)
 
         # Called at least once — either from _finalize_shutdown_agents
         # or from the cache sweep (or both)

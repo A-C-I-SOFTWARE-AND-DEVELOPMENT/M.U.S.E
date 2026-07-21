@@ -158,7 +158,7 @@ Only one engine can be registered. A second plugin attempting to register is rej
 
 ## Configuration
 
-Users select your engine via `muse plugins` → Provider Plugins → Context Engine, or by editing `config.yaml`:
+Users select your engine via `hermes plugins` → Provider Plugins → Context Engine, or by editing `config.yaml`:
 
 ```yaml
 context:
@@ -189,6 +189,6 @@ See `tests/agent/test_context_engine.py` for the full ABC contract test suite.
 
 ## See also
 
-- [Context Compression and Caching](/docs/developer-guide/context-compression-and-caching) — how the built-in compressor works
-- [Memory Provider Plugins](/docs/developer-guide/memory-provider-plugin) — analogous single-select plugin system for memory
-- [Plugins](/docs/user-guide/features/plugins) — general plugin system overview
+- [Context Compression and Caching](/developer-guide/context-compression-and-caching) — how the built-in compressor works
+- [Memory Provider Plugins](/developer-guide/memory-provider-plugin) — analogous single-select plugin system for memory
+- [Plugins](/user-guide/features/plugins) — general plugin system overview

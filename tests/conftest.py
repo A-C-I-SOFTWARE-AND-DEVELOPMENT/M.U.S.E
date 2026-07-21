@@ -20,14 +20,9 @@ test runner at ``scripts/run_tests.sh``.
 """
 
 import asyncio
-import logging
 import os
-import re
-import signal
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -35,6 +30,22 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+
+# ── Per-file process isolation ──────────────────────────────────────────────
+# Tests run via ``scripts/run_tests_parallel.py``, which spawns a fresh
+# ``python -m pytest <file>`` subprocess per test file. Cross-file state
+# leakage (module-level dicts, ContextVars, caches) is impossible: each
+# file gets a clean Python interpreter. Intra-file ordering is the test
+# author's responsibility — if test A in foo.py mutates state that test B
+# in foo.py reads, that's a real bug to fix in the file (it would also
+# bite anyone running ``pytest tests/foo.py`` directly).
+#
+# This replaces the historic _reset_module_state autouse fixture (manual
+# state clearing) and the brief experiment with subprocess-per-test
+# isolation (too slow at ~17k tests).
+#
+# See ``scripts/run_tests_parallel.py`` for the runner.
 
 
 # ── Credential env-var filter ──────────────────────────────────────────────
@@ -134,7 +145,6 @@ _CREDENTIAL_NAMES = frozenset({
     "TOOL_GATEWAY_USER_TOKEN",
     "TELEGRAM_WEBHOOK_SECRET",
     "WEBHOOK_SECRET",
-    "AI_GATEWAY_API_KEY",
     "VOICE_TOOLS_OPENAI_KEY",
     "BROWSER_USE_API_KEY",
     "CUSTOM_API_KEY",
@@ -145,7 +155,6 @@ _CREDENTIAL_NAMES = frozenset({
     "OLLAMA_BASE_URL",
     "GROQ_BASE_URL",
     "XAI_BASE_URL",
-    "AI_GATEWAY_BASE_URL",
     "ANTHROPIC_BASE_URL",
 })
 
@@ -173,12 +182,15 @@ _HERMES_BEHAVIORAL_VARS = frozenset({
     "HERMES_SESSION_SOURCE",
     "HERMES_SESSION_KEY",
     "HERMES_GATEWAY_SESSION",
+    "HERMES_CRON_SESSION",
+    "_HERMES_GATEWAY",
     "HERMES_PLATFORM",
     "HERMES_MODEL",
     "HERMES_INFERENCE_MODEL",
     "HERMES_INFERENCE_PROVIDER",
     "HERMES_TUI_PROVIDER",
     "HERMES_MANAGED",
+    "HERMES_MANAGED_DIR",
     "HERMES_DEV",
     "HERMES_CONTAINER",
     "HERMES_EPHEMERAL_SYSTEM_PROMPT",
@@ -202,13 +214,26 @@ _HERMES_BEHAVIORAL_VARS = frozenset({
     "HERMES_KANBAN_CLAIM_LOCK",
     "HERMES_KANBAN_DISPATCH_IN_GATEWAY",
     "HERMES_TENANT",
+    # Honcho host selection changes which nested config block wins. A local
+    # shell override leaked "myhost" into the full suite and flipped 20
+    # otherwise-unrelated config tests away from the default "hermes" host.
+    "HERMES_HONCHO_HOST",
+    # Dashboard OAuth auth gate (PR #30156). When set, the bundled
+    # dashboard-auth `nous` plugin auto-registers itself on plugin discovery,
+    # which is triggered by any `/api/status` call. That leaks a provider
+    # into the dashboard_auth registry across tests in the same worker and
+    # makes assertions like `auth_providers == []` flaky. CI never sets
+    # these, so production tests must not see them either.
+    "HERMES_DASHBOARD_OAUTH_CLIENT_ID",
+    "HERMES_DASHBOARD_PORTAL_URL",
     "TERMINAL_CWD",
     "TERMINAL_ENV",
-    "TERMINAL_VERCEL_RUNTIME",
     "TERMINAL_CONTAINER_CPU",
     "TERMINAL_CONTAINER_DISK",
     "TERMINAL_CONTAINER_MEMORY",
     "TERMINAL_CONTAINER_PERSISTENT",
+    "TERMINAL_DOCKER_PERSIST_ACROSS_PROCESSES",
+    "TERMINAL_DOCKER_ORPHAN_REAPER",
     "TERMINAL_DOCKER_RUN_AS_HOST_USER",
     "BROWSER_CDP_URL",
     "CAMOFOX_URL",
@@ -277,9 +302,18 @@ _HERMES_BEHAVIORAL_VARS = frozenset({
     "WECOM_HOME_CHANNEL",
     "WECOM_HOME_CHANNEL_THREAD_ID",
     "WECOM_HOME_CHANNEL_NAME",
+    # API server bind/auth settings are common in local gateway profiles and
+    # change adapter defaults plus load_gateway_config() enablement. Tests that
+    # need them set opt in explicitly with monkeypatch.
+    "API_SERVER_ENABLED",
+    "API_SERVER_HOST",
+    "API_SERVER_PORT",
+    "API_SERVER_KEY",
+    "API_SERVER_CORS_ORIGINS",
+    "API_SERVER_MODEL_NAME",
     # Platform gating — set by load_gateway_config() as a side effect when
     # a config.yaml is present, so individual test bodies that call the
-    # loader leak these values into later tests on the same xdist worker.
+    # loader leak these values into later tests in the same process.
     # Force-clear on every test setup so the leak can't happen.
     "SLACK_REQUIRE_MENTION",
     "SLACK_STRICT_MENTION",
@@ -311,6 +345,13 @@ def _hermetic_environment(tmp_path, monkeypatch):
     # 2. Blank behavioral HERMES_* vars that could change test semantics.
     for name in _HERMES_BEHAVIORAL_VARS:
         monkeypatch.delenv(name, raising=False)
+
+    # Honcho's fallback host/config resolution legitimately reads the user's
+    # global ~/.honcho/config.json. Keep HOME stable (subprocess tests depend
+    # on it), but pin the host so ordinary tests cannot inherit a developer's
+    # defaultHost and silently select the wrong nested config block. Tests of
+    # custom host resolution override/delete this explicitly.
+    monkeypatch.setenv("HERMES_HONCHO_HOST", "hermes")
 
     # 3. Redirect HERMES_HOME to a per-test tempdir. Code that reads
     #    ``~/.hermes/*`` via ``get_hermes_home()`` now gets the tempdir.
@@ -345,6 +386,10 @@ def _hermetic_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
     monkeypatch.setenv("AWS_METADATA_SERVICE_TIMEOUT", "1")
     monkeypatch.setenv("AWS_METADATA_SERVICE_NUM_ATTEMPTS", "1")
+    # Tirith auto-installs from GitHub when enabled and missing. Unit tests
+    # should never perform that implicit network/bootstrap path; Tirith-specific
+    # tests opt back in by patching the security config directly.
+    monkeypatch.setenv("TIRITH_ENABLED", "false")
 
     # 5. Reset plugin singleton so tests don't leak plugins from
     #    ~/.hermes/plugins/ (which, per step 3, is now empty — but the
@@ -359,20 +404,6 @@ def _hermetic_environment(tmp_path, monkeypatch):
     monkeypatch.delenv("GMI_API_KEY", raising=False)
     monkeypatch.delenv("GMI_BASE_URL", raising=False)
 
-    # 6. Make git subprocesses sign-agnostic. Some environments enforce
-    #    commit.gpgsign=true against a signing agent/server; that breaks the
-    #    throwaway-repo fixtures (commit fails -> no HEAD -> `git worktree add
-    #    HEAD` / `git ls-files` tests error). Inject commit/tag signing=false
-    #    via git's GIT_CONFIG_* env mechanism — additive, so the developer's
-    #    user.name/email (and any pre-set GIT_CONFIG_* entries) are preserved.
-    _base = int(os.environ.get("GIT_CONFIG_COUNT", "") or "0")
-    for _i, (_key, _val) in enumerate(
-        (("commit.gpgsign", "false"), ("tag.gpgsign", "false"))
-    ):
-        monkeypatch.setenv(f"GIT_CONFIG_KEY_{_base + _i}", _key)
-        monkeypatch.setenv(f"GIT_CONFIG_VALUE_{_base + _i}", _val)
-    monkeypatch.setenv("GIT_CONFIG_COUNT", str(_base + 2))
-
 
 # Backward-compat alias — old tests reference this fixture name. Keep it
 # as a no-op wrapper so imports don't break.
@@ -382,144 +413,21 @@ def _isolate_hermes_home(_hermetic_environment):
     return None
 
 
-# ── Module-level state reset ───────────────────────────────────────────────
+# ── Module-level state reset — replaced by per-file process isolation ──────
 #
-# Python modules are singletons per process, and pytest-xdist workers are
-# long-lived. Module-level dicts/sets (tool registries, approval state,
-# interrupt flags) and ContextVars persist across tests in the same worker,
-# causing tests that pass alone to fail when run with siblings.
+# Each test FILE runs in a freshly-spawned ``python -m pytest <file>``
+# subprocess via ``scripts/run_tests_parallel.py``, so module-level dicts /
+# sets / ContextVars from tests in one file cannot leak into tests in
+# another file. No manual per-module clearing needed.
 #
-# Each entry in this fixture clears state that belongs to a specific module.
-# New state buckets go here too — this is the single gate that prevents
-# "works alone, flakes in CI" bugs from state leakage.
+# Within a single file, ordering is the author's responsibility. If your
+# tests in the same file share mutable state, either reset it explicitly
+# in a fixture or split them across files.
 #
-# The skill `test-suite-cascade-diagnosis` documents the concrete patterns
-# this closes; the running example was `test_command_guards` failing 12/15
-# CI runs because ``tools.approval._session_approved`` carried approvals
-# from one test's session into another's.
-
-@pytest.fixture(autouse=True)
-def _reset_module_state():
-    """Clear module-level mutable state and ContextVars between tests.
-
-    Keeps state from leaking across tests on the same xdist worker. Modules
-    that don't exist yet (test collection before production import) are
-    skipped silently — production import later creates fresh empty state.
-    """
-    # --- logging — quiet/one-shot paths mutate process-global logger state ---
-    logging.disable(logging.NOTSET)
-    for _logger_name in ("tools", "run_agent", "trajectory_compressor", "cron", "hermes_cli"):
-        _logger = logging.getLogger(_logger_name)
-        _logger.disabled = False
-        _logger.setLevel(logging.NOTSET)
-        _logger.propagate = True
-
-    # --- tools.approval — the single biggest source of cross-test pollution ---
-    try:
-        from tools import approval as _approval_mod
-        _approval_mod._session_approved.clear()
-        _approval_mod._session_yolo.clear()
-        _approval_mod._permanent_approved.clear()
-        _approval_mod._pending.clear()
-        _approval_mod._gateway_queues.clear()
-        _approval_mod._gateway_notify_cbs.clear()
-        # ContextVar: reset to empty string so get_current_session_key()
-        # falls through to the env var / default path, matching a fresh
-        # process.
-        _approval_mod._approval_session_key.set("")
-    except Exception:
-        pass
-
-    # --- tools.interrupt — per-thread interrupt flag set ---
-    try:
-        from tools import interrupt as _interrupt_mod
-        with _interrupt_mod._lock:
-            _interrupt_mod._interrupted_threads.clear()
-    except Exception:
-        pass
-
-    # --- gateway.session_context — 9 ContextVars that represent
-    #     the active gateway session. If set in one test and not reset,
-    #     the next test's get_session_env() reads stale values.
-    try:
-        from gateway import session_context as _sc_mod
-        for _cv in (
-            _sc_mod._SESSION_PLATFORM,
-            _sc_mod._SESSION_CHAT_ID,
-            _sc_mod._SESSION_CHAT_NAME,
-            _sc_mod._SESSION_THREAD_ID,
-            _sc_mod._SESSION_USER_ID,
-            _sc_mod._SESSION_USER_NAME,
-            _sc_mod._SESSION_KEY,
-            _sc_mod._CRON_AUTO_DELIVER_PLATFORM,
-            _sc_mod._CRON_AUTO_DELIVER_CHAT_ID,
-            _sc_mod._CRON_AUTO_DELIVER_THREAD_ID,
-        ):
-            _cv.set(_sc_mod._UNSET)
-    except Exception:
-        pass
-
-    # --- tools.env_passthrough — ContextVar<set[str]> with no default ---
-    # LookupError is normal if the test never set it. Setting it to an
-    # empty set unconditionally normalizes the starting state.
-    try:
-        from tools import env_passthrough as _envp_mod
-        _envp_mod._allowed_env_vars_var.set(set())
-    except Exception:
-        pass
-
-    # --- tools.terminal_tool — active environment/cwd cache ---
-    # File tools prefer a live terminal cwd when one is cached for the task.
-    # Clear terminal environments between tests so a prior terminal call can't
-    # override TERMINAL_CWD in path-resolution tests.
-    try:
-        from tools import terminal_tool as _term_mod
-        _envs_to_cleanup = []
-        with _term_mod._env_lock:
-            _envs_to_cleanup = list(_term_mod._active_environments.values())
-            _term_mod._active_environments.clear()
-            _term_mod._last_activity.clear()
-            _term_mod._creation_locks.clear()
-        for _env in _envs_to_cleanup:
-            try:
-                _env.cleanup()
-            except Exception:
-                pass
-    except Exception:
-        pass
-
-    # --- tools.credential_files — ContextVar<dict> ---
-    try:
-        from tools import credential_files as _credf_mod
-        _credf_mod._registered_files_var.set({})
-    except Exception:
-        pass
-
-    # --- agent.auxiliary_client — runtime main provider/model override and
-    #     payment-error health cache. Both are process-global in production;
-    #     reset them per test so one worker's fallback/402 test does not make
-    #     later auxiliary-client tests skip otherwise-available providers.
-    try:
-        from agent import auxiliary_client as _aux_mod
-        _aux_mod.clear_runtime_main()
-        _aux_mod._reset_aux_unhealthy_cache()
-    except Exception:
-        pass
-
-    # --- tools.file_tools — per-task read history + file-ops cache ---
-    # _read_tracker accumulates per-task_id read history for loop detection,
-    # capped by _READ_HISTORY_CAP. If entries from a prior test persist, the
-    # cap is hit faster than expected and capacity-related tests flake.
-    try:
-        from tools import file_tools as _ft_mod
-        with _ft_mod._read_tracker_lock:
-            _ft_mod._read_tracker.clear()
-        with _ft_mod._file_ops_lock:
-            _ft_mod._file_ops_cache.clear()
-    except Exception:
-        pass
-
-    yield
+# The skill ``test-suite-cascade-diagnosis`` documents the cascade patterns
+# this replaces; the running example was ``test_command_guards`` failing
+# 12/15 CI runs because ``tools.approval._session_approved`` carried
+# approvals from one test's session into another's.
 
 
 @pytest.fixture()
@@ -546,13 +454,12 @@ def mock_config():
     }
 
 
-# ── Global test timeout ─────────────────────────────────────────────────────
-# Kill any individual test that takes longer than 30 seconds.
-# Prevents hanging tests (subprocess spawns, blocking I/O) from stalling the
-# entire test suite.
+# ── Per-test timeout — handled by the isolation plugin ─────────────────────
+#
+# The subprocess-per-test plugin enforces the configured ``isolate_timeout``
+# ini key by terminating the child if it overruns. The old SIGALRM-based
+# fixture (POSIX-only, didn't work on Windows) is gone.
 
-def _timeout_handler(signum, frame):
-    raise TimeoutError("Test exceeded 30 second timeout")
 
 @pytest.fixture(autouse=True)
 def _ensure_current_event_loop(request):
@@ -598,45 +505,6 @@ def _ensure_current_event_loop(request):
                 asyncio.set_event_loop(None)
 
 
-@pytest.fixture(autouse=True)
-def _enforce_test_timeout():
-    """Kill any individual test that takes longer than 30 seconds.
-    SIGALRM is Unix-only; skip on Windows."""
-    if sys.platform == "win32":
-        yield
-        return
-    old = signal.signal(signal.SIGALRM, _timeout_handler)
-    signal.alarm(30)
-    yield
-    signal.alarm(0)
-    signal.signal(signal.SIGALRM, old)
-
-
-@pytest.fixture(autouse=True)
-def _reset_tool_registry_caches():
-    """Clear tool-registry-level caches between tests.
-
-    The production registry caches ``check_fn()`` results for 30 s
-    (see tools/registry.py) and :func:`get_tool_definitions` memoizes
-    its result (see model_tools.py). Both are keyed on state that tests
-    routinely mutate (env vars, registry._generation, config.yaml mtime)
-    — but a stale result from test A can still be served to test B
-    because 30 s covers the entire suite, and xdist worker reuse means
-    one test's cache lands in another's process. Clearing before every
-    test keeps hermetic behavior.
-    """
-    try:
-        from tools.registry import invalidate_check_fn_cache
-        invalidate_check_fn_cache()
-    except ImportError:
-        pass
-    try:
-        from model_tools import _clear_tool_defs_cache
-        _clear_tool_defs_cache()
-    except ImportError:
-        pass
-
-
 # ── Live-system guard ──────────────────────────────────────────────────────
 #
 # Several test files exercise the gateway-restart / kill code paths
@@ -669,26 +537,6 @@ def _reset_tool_registry_caches():
 _LIVE_SYSTEM_GUARD_BYPASS_MARK = "live_system_guard_bypass"
 
 
-def pytest_addoption(parser):  # noqa: D401 — pytest hook
-    """Register CLI options for opt-in live-model smoke tests (WC-3).
-
-    The default test run is hermetic — no real model calls. Tests marked
-    ``@pytest.mark.live`` opt the user into hitting a real local agent CLI
-    (e.g. the ``claude`` worker) and asserting on its generated output.
-    They are skipped unless ``--run-live`` is passed or
-    ``HERMES_E2E_LIVE=1`` is set in the env.
-    """
-    parser.addoption(
-        "--run-live",
-        action="store_true",
-        default=False,
-        help=(
-            "Run @pytest.mark.live smoke tests that hit a real local agent CLI "
-            "(default: skipped). Equivalent to HERMES_E2E_LIVE=1."
-        ),
-    )
-
-
 def pytest_configure(config):  # noqa: D401 — pytest hook
     """Register markers used by hermetic conftest."""
     config.addinivalue_line(
@@ -697,32 +545,14 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
         "(only for tests that genuinely need real os.kill / subprocess "
         "behaviour — e.g. PTY tests that signal their own child).",
     )
-    # WC-3: opt-in live smoke marker. Tests so marked actually invoke a
-    # local agent CLI worker (e.g. ``claude``) and assert on the model-
-    # generated output — they are the "is this a tool or a demo" proof.
-    # Skipped by default to keep CI free/local and credential-less.
-    config.addinivalue_line(
-        "markers",
-        "live: real-model smoke test (requires --run-live or HERMES_E2E_LIVE=1; "
-        "skipped by default to keep CI free and hermetic).",
-    )
 
-
-def pytest_collection_modifyitems(config, items):  # noqa: D401 — pytest hook
-    """Skip ``@pytest.mark.live`` tests unless explicitly opted in.
-
-    WC-3: the live smoke lane (``tests/e2e/test_core_loop_live_smoke.py``)
-    exists to prove that the core loop actually produces model output on a
-    box with a free/local agent CLI installed — but it must not run on the
-    default CI lane (no credentials, no installed worker). Opt-in is
-    ``--run-live`` (test-runner flag) or ``HERMES_E2E_LIVE=1`` (env var).
-    """
-    if config.getoption("--run-live") or os.environ.get("HERMES_E2E_LIVE") == "1":
-        return
-    skip_live = pytest.mark.skip(reason="@pytest.mark.live; opt in with --run-live or HERMES_E2E_LIVE=1")
-    for item in items:
-        if "live" in item.keywords:
-            item.add_marker(skip_live)
+    # The pyproject addopts pin ``--timeout-method=signal`` relies on
+    # ``signal.SIGALRM``, which does not exist on Windows — pytest-timeout
+    # raises AttributeError at timer setup and the whole run aborts before any
+    # test executes. Fall back to the thread-based timer on Windows so the
+    # suite runs natively there (POSIX keeps the more reliable signal method).
+    if sys.platform == "win32" and getattr(config.option, "timeout_method", None) == "signal":
+        config.option.timeout_method = "thread"
 
 
 @pytest.fixture(autouse=True)
@@ -765,7 +595,7 @@ def _live_system_guard(request, monkeypatch):
             c.pid for c in _psutil.Process(test_pid).children(recursive=True)
         }
     except Exception:
-        _psutil = None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        _psutil = None
         _initial_children = set()
 
     def _is_own_subtree(pid: int) -> bool:
@@ -797,6 +627,13 @@ def _live_system_guard(request, monkeypatch):
     real_kill = _os.kill
 
     def _guarded_kill(pid, sig, *args, **kwargs):
+        # Signal 0 is a pure liveness probe — it cannot terminate anything.
+        # psutil.pid_exists() uses os.kill(pid, 0) on POSIX, and probing a
+        # just-killed grandchild that was reparented to init (zombie with a
+        # foreign parent chain) must not trip the guard. Flaked in CI on
+        # test_entire_tree_is_sigkilled_not_just_parent.
+        if int(sig) == 0:
+            return real_kill(pid, sig, *args, **kwargs)
         if _is_own_subtree(int(pid)):
             return real_kill(pid, sig, *args, **kwargs)
         raise RuntimeError(
@@ -822,6 +659,9 @@ def _live_system_guard(request, monkeypatch):
         own_pgid = _os.getpgrp()
 
         def _guarded_killpg(pgid, sig, *args, **kwargs):
+            # Signal 0 is a pure liveness probe — never destructive.
+            if int(sig) == 0:
+                return real_killpg(pgid, sig, *args, **kwargs)
             if int(pgid) == own_pgid or _is_own_subtree(int(pgid)):
                 return real_killpg(pgid, sig, *args, **kwargs)
             raise RuntimeError(
@@ -921,6 +761,41 @@ def _live_system_guard(request, monkeypatch):
                 "Mark with @pytest.mark.live_system_guard_bypass if "
                 "intentional."
             )
+        # Block any subprocess that would run `hermes update` (or the
+        # equivalent `python -m hermes_cli.main update`).  These commands
+        # run `git fetch origin + git pull` against the REAL checkout,
+        # overwriting files like pyproject.toml mid-test-run and corrupting
+        # every subsequent subprocess that reads them.  The corruption is
+        # especially insidious because the spawned process uses setsid/
+        # start_new_session=True, making it invisible to pytest's process
+        # tree (PPid=1) and nearly impossible to trace without explicit
+        # inotify/SHA watchdogs.  Any test that legitimately needs to exercise
+        # the update-spawn path must mock subprocess.Popen explicitly.
+        cmd_str = _cmd_to_string(cmd)
+        low = cmd_str.lower()
+        if "update" in low and (
+            # hermes update / hermes update --gateway / setsid bash -c ... hermes update
+            ("hermes" in low and "update" in low.split())
+            or
+            # python -m hermes_cli.main update --gateway
+            ("hermes_cli" in low and "update" in low.split())
+            or
+            # venv/bin/hermes update  (absolute path variant used in tests)
+            (".venv/bin/hermes" in low and "update" in low)
+        ):
+            raise RuntimeError(
+                f"tests/conftest.py live-system guard: blocked "
+                f"subprocess.{name}({cmd!r}) — this command would run "
+                "`hermes update` against the real checkout, fetching "
+                "from origin and overwriting repo files (e.g. "
+                "pyproject.toml) mid-test-run. This corrupts every "
+                "subsequent subprocess in the same runner. "
+                "Mock subprocess.Popen (and subprocess.run if used) "
+                "in the test instead, or mark with "
+                "@pytest.mark.live_system_guard_bypass if genuinely "
+                "needed (e.g. an integration test testing the update "
+                "flow against a dedicated throwaway repo)."
+            )
 
     def _wrap_subprocess(name, real):
         def _guarded(cmd, *args, **kwargs):
@@ -933,7 +808,7 @@ def _live_system_guard(request, monkeypatch):
         # ``Popen`` with a plain function breaks ``Popen[bytes]`` at
         # import time. Defer ``__class_getitem__`` to the original.
         if hasattr(real, "__class_getitem__"):
-            _guarded.__class_getitem__ = real.__class_getitem__  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            _guarded.__class_getitem__ = real.__class_getitem__
         return _guarded
 
     def _wrap_popen():
@@ -978,16 +853,16 @@ def _live_system_guard(request, monkeypatch):
     )
 
     # os.system / os.popen — same risk class, completely unwrapped before.
-    real_os_system = _os.system  # ty: ignore[deprecated]  # mock/duck-typed test fixture
-    real_os_popen = _os.popen  # ty: ignore[deprecated]  # mock/duck-typed test fixture
+    real_os_system = _os.system
+    real_os_popen = _os.popen
 
     def _guarded_os_system(command):
         _check_subprocess_cmd("os.system", command)
-        return real_os_system(command)  # ty: ignore[deprecated]  # mock/duck-typed test fixture
+        return real_os_system(command)
 
     def _guarded_os_popen(cmd, *args, **kwargs):
         _check_subprocess_cmd("os.popen", cmd)
-        return real_os_popen(cmd, *args, **kwargs)  # ty: ignore[deprecated]  # mock/duck-typed test fixture
+        return real_os_popen(cmd, *args, **kwargs)
 
     monkeypatch.setattr(_os, "system", _guarded_os_system)
     monkeypatch.setattr(_os, "popen", _guarded_os_popen)

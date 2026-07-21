@@ -53,7 +53,7 @@ def _ensure_discord_mock():
 
 _ensure_discord_mock()
 
-from gateway.platforms.discord import DiscordAdapter  # noqa: E402
+from plugins.platforms.discord.adapter import DiscordAdapter  # noqa: E402
 
 
 @pytest.fixture()
@@ -124,7 +124,7 @@ def _make_discord_adapter(reply_to_mode: str = "first"):
 
     adapter._client = mock_client
     # Return the reference sentinel alongside so tests can assert identity.
-    adapter._test_expected_reference = ref_reference  # ty: ignore[unresolved-attribute]
+    adapter._test_expected_reference = ref_reference
     return adapter, mock_channel, ref_reference
 
 
@@ -295,7 +295,7 @@ class TestEnvVarOverride:
 # library is installed — this guarantees isinstance() checks pass in
 # production code regardless of test ordering or monkeypatch state.
 try:
-    import discord as _discord_lib  # ty: ignore[unresolved-import]
+    import discord as _discord_lib
     _DMChannelBase = _discord_lib.DMChannel
 except (ImportError, AttributeError):
     _DMChannelBase = object
@@ -331,7 +331,7 @@ def reply_text_adapter(monkeypatch):
     adapter = DiscordAdapter(config)
     adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
     adapter._text_batch_delay_seconds = 0
-    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+    adapter.handle_message = AsyncMock()
     return adapter
 
 

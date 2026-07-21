@@ -39,7 +39,7 @@ def check_meet_requirements() -> bool:
     if _p.system().lower() not in {"linux", "darwin"}:
         return False
     try:
-        import playwright  # noqa: F401  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+        import playwright  # noqa: F401
     except ImportError:
         return False
     return True

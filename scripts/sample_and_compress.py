@@ -46,7 +46,7 @@ def load_dataset_from_hf(dataset_name: str) -> List[Dict[str, Any]]:
     Returns:
         List of trajectory entries
     """
-    from datasets import load_dataset  # ty: ignore[unresolved-import]
+    from datasets import load_dataset
     
     print(f"   Loading {dataset_name}...")
     
@@ -75,13 +75,13 @@ def load_dataset_from_hf(dataset_name: str) -> List[Dict[str, Any]]:
 
 
 # Global tokenizer for multiprocessing (set in worker init)
-_TOKENIZER: Any = None
+_TOKENIZER = None
 
 
 def _init_tokenizer_worker(tokenizer_name: str):
     """Initialize tokenizer in worker process."""
     global _TOKENIZER
-    from transformers import AutoTokenizer  # ty: ignore[unresolved-import]
+    from transformers import AutoTokenizer
     _TOKENIZER = AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True)
 
 
@@ -211,7 +211,7 @@ def sample_from_datasets(
         source = entry.get("_source_dataset", "unknown").split("/")[-1]
         source_counts[source] = source_counts.get(source, 0) + 1
     
-    print(f"\n📌 Sample distribution by source:")
+    print("\n📌 Sample distribution by source:")
     for source, count in sorted(source_counts.items()):
         print(f"      {source}: {count:,}")
     
@@ -269,7 +269,7 @@ def run_compression(input_dir: Path, output_dir: Path, config_path: str):
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from trajectory_compressor import TrajectoryCompressor, CompressionConfig
     
-    print(f"\n🗜️  Running trajectory compression...")
+    print("\n🗜️  Running trajectory compression...")
     print(f"   Input: {input_dir}")
     print(f"   Output: {output_dir}")
     print(f"   Config: {config_path}")
@@ -316,7 +316,7 @@ def merge_output_to_single_jsonl(input_dir: Path, output_file: Path):
 def main(
     total_samples: int = 2500,
     output_name: str = "compressed_agentic",
-    datasets: str | None = None,
+    datasets: str = None,
     config: str = "configs/trajectory_compression.yaml",
     seed: int = 42,
     batch_size: int = 100,
@@ -348,7 +348,7 @@ def main(
     else:
         dataset_list = DEFAULT_DATASETS
     
-    print(f"\n📋 Configuration:")
+    print("\n📋 Configuration:")
     print(f"   Total samples: {total_samples:,}")
     print(f"   Min tokens filter: {min_tokens:,}")
     print(f"   Parallel workers: {num_proc}")
@@ -401,7 +401,7 @@ def main(
     print(f"\n📁 Raw samples:        {sampled_dir}")
     print(f"📁 Compressed batches: {compressed_dir}")
     print(f"📁 Final output:       {final_output}")
-    print(f"\nTo upload to HuggingFace:")
+    print("\nTo upload to HuggingFace:")
     print(f"   huggingface-cli upload NousResearch/{output_name} {final_output}")
 
 

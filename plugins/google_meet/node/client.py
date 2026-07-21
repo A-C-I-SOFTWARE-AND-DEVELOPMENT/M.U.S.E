@@ -37,7 +37,7 @@ class NodeClient:
         or the response id doesn't match.
         """
         try:
-            from websockets.sync.client import connect
+            from websockets.sync.client import connect  # type: ignore
         except ImportError as exc:
             raise RuntimeError(
                 "NodeClient requires the 'websockets' package. "

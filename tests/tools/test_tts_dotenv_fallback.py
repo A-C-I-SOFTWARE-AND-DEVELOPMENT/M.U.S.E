@@ -191,7 +191,7 @@ class TestRegressionGuard:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(config_mod, "get_env_value", lambda name: "")
-            tts_tool = importlib.reload(tts_tool)  # ty: ignore[invalid-assignment]
+            tts_tool = importlib.reload(tts_tool)
 
         try:
             captured: dict = {}
@@ -269,6 +269,8 @@ class TestRegressionGuard:
         with patch(
             "hermes_cli.config.load_env",
             return_value={"MINIMAX_API_KEY": "dotenv-secret"},
+        ), patch.object(
+            tts_tool, "_load_tts_config", return_value={"provider": "minimax"}
         ), patch.object(tts_tool, "_import_edge_tts", side_effect=ImportError), \
              patch.object(tts_tool, "_import_elevenlabs", side_effect=ImportError), \
              patch.object(tts_tool, "_import_openai_client", side_effect=ImportError), \

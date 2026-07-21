@@ -197,7 +197,6 @@ def main(argv: list[str] | None = None) -> int:
                 future_to_idx[fut] = i
             for fut in as_completed(future_to_idx):
                 i = future_to_idx[fut]
-                r: dict
                 try:
                     r = fut.result()
                 except Exception as e:

@@ -1,8 +1,5 @@
 """Tests for acp_adapter.tools — tool kind mapping and ACP content building."""
 
-import pytest
-
-pytest.importorskip("acp")
 
 from acp_adapter.edit_approval import EditProposal
 from acp_adapter.tools import (
@@ -119,6 +116,18 @@ class TestBuildToolTitle:
         title = build_tool_title("web_search", {"query": "python asyncio"})
         assert "python asyncio" in title
 
+    def test_web_extract_title_unwraps_search_result_object(self):
+        title = build_tool_title("web_extract", {
+            "urls": [
+                {"url": "https://example.com/a", "title": "A"},
+                {"href": "https://example.org/b"},
+            ]
+        })
+        assert title == "extract: https://example.com/a (+1)"
+
+    def test_web_extract_title_handles_malformed_object(self):
+        assert build_tool_title("web_extract", {"urls": [{"title": "missing"}]}) == "extract: ?"
+
     def test_skill_view_title_includes_skill_name(self):
         title = build_tool_title("skill_view", {"name": "github-pitfalls"})
         assert title == "skill view (github-pitfalls)"
@@ -159,7 +168,6 @@ class TestBuildToolStart:
         result = build_tool_start("tc-1", "patch", args)
         assert isinstance(result, ToolCallStart)
         assert result.kind == "edit"
-        assert result.content is not None
         assert len(result.content) >= 1
         item = result.content[0]
         assert isinstance(item, ContentToolCallContent)
@@ -172,7 +180,6 @@ class TestBuildToolStart:
         result = build_tool_start("tc-w1", "write_file", args)
         assert isinstance(result, ToolCallStart)
         assert result.kind == "edit"
-        assert result.content is not None
         assert len(result.content) >= 1
         item = result.content[0]
         assert isinstance(item, ContentToolCallContent)
@@ -191,7 +198,6 @@ class TestBuildToolStart:
 
         assert isinstance(result, ToolCallStart)
         assert result.kind == "edit"
-        assert result.content is not None
         assert len(result.content) == 1
         item = result.content[0]
         assert isinstance(item, FileEditToolCallContent)
@@ -205,7 +211,6 @@ class TestBuildToolStart:
         result = build_tool_start("tc-2", "terminal", args)
         assert isinstance(result, ToolCallStart)
         assert result.kind == "execute"
-        assert result.content is not None
         assert len(result.content) >= 1
         content_item = result.content[0]
         assert isinstance(content_item, ContentToolCallContent)
@@ -221,6 +226,26 @@ class TestBuildToolStart:
         assert result.kind == "read"
         assert result.content is None
         assert result.raw_input is None
+
+    def test_build_tool_start_survives_non_string_command(self):
+        """A malformed (non-string) terminal command previously raised
+        TypeError in build_tool_title (len(None)) and aborted the render."""
+        result = build_tool_start("tc-bad-cmd", "terminal", {"command": None})
+        assert isinstance(result, ToolCallStart)
+        assert result.kind == "execute"  # tool identity preserved in the fallback
+
+    def test_build_tool_start_survives_non_string_path(self):
+        """A non-string read_file path previously raised a ToolCallLocation
+        pydantic ValidationError in extract_locations and aborted the render."""
+        result = build_tool_start("tc-bad-path", "read_file", {"path": {"p": "x"}})
+        assert isinstance(result, ToolCallStart)
+        assert result.kind == "read"
+
+    def test_build_tool_start_survives_non_string_goal(self):
+        """A non-string delegate_task goal previously raised TypeError
+        (len(123)) in build_tool_title and aborted the render."""
+        result = build_tool_start("tc-bad-goal", "delegate_task", {"goal": 123})
+        assert isinstance(result, ToolCallStart)
 
     def test_build_tool_start_for_web_extract_is_compact(self):
         """web_extract start should stay compact; title identifies URLs."""
@@ -239,7 +264,6 @@ class TestBuildToolStart:
         assert isinstance(result, ToolCallStart)
         assert result.title == "navigate: https://x.com"
         assert result.kind == "fetch"
-        assert result.content is not None
         assert result.content[0].content.text == '{\n  "url": "https://x.com"\n}'
         assert result.raw_input is None
 
@@ -249,7 +273,6 @@ class TestBuildToolStart:
         result = build_tool_start("tc-4", "search_files", args)
         assert isinstance(result, ToolCallStart)
         assert result.kind == "search"
-        assert result.content is not None
         assert "TODO" in result.content[0].content.text
         assert result.raw_input is None
 
@@ -257,14 +280,12 @@ class TestBuildToolStart:
         args = {"todos": [{"id": "one", "content": "Fix ACP rendering", "status": "in_progress"}]}
         result = build_tool_start("tc-todo", "todo", args)
         assert result.title == "todo (1 item)"
-        assert result.content is not None
         assert "Fix ACP rendering" in result.content[0].content.text
         assert result.raw_input is None
 
     def test_build_tool_start_for_skill_view_is_human_readable(self):
         result = build_tool_start("tc-skill", "skill_view", {"name": "github-pitfalls"})
         assert result.title == "skill view (github-pitfalls)"
-        assert result.content is not None
         assert "github-pitfalls" in result.content[0].content.text
         assert result.raw_input is None
 
@@ -272,9 +293,7 @@ class TestBuildToolStart:
         result = build_tool_start("tc-code", "execute_code", {"code": "print('hello')"})
         assert result.kind == "execute"
         assert result.title == "python: print('hello')"
-        assert result.content is not None
         assert "```python" in result.content[0].content.text
-        assert result.content is not None
         assert "print('hello')" in result.content[0].content.text
         assert result.raw_input is None
 
@@ -292,7 +311,6 @@ class TestBuildToolStart:
         )
         assert result.kind == "edit"
         assert result.title == "skill patch: hermes-agent-operations/references/acp.md"
-        assert result.content is not None
         assert isinstance(result.content[0], FileEditToolCallContent)
         assert result.content[0].path == "skills/hermes-agent-operations/references/acp.md"
         assert result.content[0].old_text == "old advice"
@@ -318,7 +336,6 @@ class TestBuildToolComplete:
         result = build_tool_complete("tc-2", "terminal", "total 42\ndrwxr-xr-x 2 root root 4096 ...")
         assert isinstance(result, ToolCallProgress)
         assert result.status == "completed"
-        assert result.content is not None
         assert len(result.content) >= 1
         content_item = result.content[0]
         assert isinstance(content_item, ContentToolCallContent)
@@ -331,7 +348,6 @@ class TestBuildToolComplete:
             "todo",
             '{"todos":[{"id":"a","content":"Inspect ACP","status":"completed"},{"id":"b","content":"Patch renderers","status":"in_progress"}],"summary":{"total":2,"pending":0,"in_progress":1,"completed":1,"cancelled":0}}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "✅ Inspect ACP" in text
         assert "- 🔄 Patch renderers" in text
@@ -344,7 +360,6 @@ class TestBuildToolComplete:
             "skill_view",
             '{"success":true,"name":"github-pitfalls","description":"GitHub gotchas","content":"# GitHub Pitfalls\\nUse gh carefully.","path":"github/github-pitfalls/SKILL.md"}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "**Skill loaded**" in text
         assert "`github-pitfalls`" in text
@@ -356,10 +371,30 @@ class TestBuildToolComplete:
 
     def test_build_tool_complete_for_execute_code_formats_output(self):
         result = build_tool_complete("tc-code", "execute_code", '{"output":"hello\\n","exit_code":0}')
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Exit code: 0" in text
         assert "hello" in text
+        assert result.raw_output is None
+
+    def test_build_tool_complete_for_execute_code_shows_truncation_metadata(self):
+        result = build_tool_complete(
+            "tc-code-truncated",
+            "execute_code",
+            (
+                '{"output":"HEAD\\n... [OUTPUT TRUNCATED - 10 bytes omitted out of 60 total] ...\\nTAIL",'
+                '"exit_code":0,'
+                '"stdout_truncated":true,'
+                '"stdout_bytes_captured":50,'
+                '"stdout_bytes_total":60,'
+                '"stdout_bytes_omitted":10,'
+                '"warning":"execute_code stdout was truncated; the script did run."}'
+            ),
+        )
+        text = result.content[0].content.text
+        assert "Exit code: 0" in text
+        assert "Output truncated: captured 50 of 60 bytes (10 omitted)." in text
+        assert "Warning:" in text
+        assert "the script did run" in text
         assert result.raw_output is None
 
     def test_build_tool_complete_marks_success_false_as_failed(self):
@@ -426,7 +461,6 @@ class TestBuildToolComplete:
                 "file_path": "references/hermes-acp-zed-rendering.md",
             },
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "**✅ Skill updated**" in text
         assert "`patch`" in text
@@ -442,7 +476,6 @@ class TestBuildToolComplete:
             '{"content":"1|hello\\n2|world","total_lines":2}',
             function_args={"path":"README.md","offset":1,"limit":20},
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Read README.md" in text
         assert "```\n1|hello\n2|world\n```" in text
@@ -454,7 +487,6 @@ class TestBuildToolComplete:
             "search_files",
             '{"total_count":2,"matches":[{"path":"README.md","line":3,"content":"TODO: fix this"},{"path":"src/app.py","line":9,"content":"needle"}],"truncated":true}\n\n[Hint: Results truncated. Use offset=12 to see more.]',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Search results" in text
         assert "Found 2 matches" in text
@@ -470,7 +502,6 @@ class TestBuildToolComplete:
             '{"processes":[{"session_id":"p1","status":"running","pid":123,"command":"npm run dev"}]}',
             function_args={"action":"list"},
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Processes: 1" in text
         assert "`p1`" in text
@@ -483,7 +514,6 @@ class TestBuildToolComplete:
             "delegate_task",
             '{"results":[{"task_index":0,"status":"completed","summary":"Reviewed ACP rendering.","model":"gpt-5.5","duration_seconds":3.2,"tool_trace":[{"tool":"read_file"}]}],"total_duration_seconds":3.4}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Delegation results: 1 task" in text
         assert "Reviewed ACP rendering" in text
@@ -497,7 +527,6 @@ class TestBuildToolComplete:
             "session_search",
             '{"success":true,"mode":"recent","results":[{"session_id":"s1","title":"ACP work","last_active":"2026-05-02","message_count":12,"preview":"Polished tool rendering."}],"count":1}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Recent sessions" in text
         assert "ACP work" in text
@@ -511,7 +540,6 @@ class TestBuildToolComplete:
             '{"success":true,"target":"user","entries":["private long memory"],"usage":"1% — 19/2000 chars","entry_count":1,"message":"Entry added."}',
             function_args={"action":"add","target":"user","content":"User likes concise ACP rendering."},
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Memory add saved" in text
         assert "User likes concise ACP rendering" in text
@@ -533,7 +561,6 @@ class TestBuildToolComplete:
             "web_extract",
             '{"results":[{"url":"https://example.com","title":"Example","error":"timeout"}]}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "Web extract failed" in text
         assert "https://example.com" in text
@@ -546,7 +573,6 @@ class TestBuildToolComplete:
             "memory_archive_search",
             '{"results":[{"id":"obs-1","status":"active","content":"Recall should render as a readable summary."}],"trust":"lower-trust archive evidence"}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "memory_archive_search result" in text
         assert "lower-trust archive evidence" in text
@@ -560,7 +586,6 @@ class TestBuildToolComplete:
             "some_plugin_tool",
             '[{"name":"alpha","status":"ok"},{"name":"beta","status":"ok"}]',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "some_plugin_tool: 2 items" in text
         assert "alpha" in text
@@ -572,7 +597,6 @@ class TestBuildToolComplete:
             "memory_archive_stats",
             '{"observations_by_status":{"active":12,"rejected":83},"capabilities":["sqlite-fts5-archive","hash-chain-audit"],"audit":{"ok":true,"count":208,"head":"abc123"}}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "**observations_by_status:**" in text
         assert "**active:** 12" in text
@@ -591,7 +615,6 @@ class TestBuildToolComplete:
             "search_files",
             '{"total_count":36,"files":["/home/nour/.hermes/config.yaml","/home/nour/.hermes/profiles/recall-test/config.yaml"],"truncated":true}',
         )
-        assert result.content is not None
         text = result.content[0].content.text
         assert "File search results" in text
         assert "Found 36 files; showing 2." in text
@@ -605,7 +628,6 @@ class TestBuildToolComplete:
         big_output = "x" * 10000
         result = build_tool_complete("tc-6", "read_file", big_output)
         assert isinstance(result, ToolCallProgress)
-        assert result.content is not None
         display_text = result.content[0].content.text
         assert len(display_text) < 6000
         assert "truncated" in display_text
@@ -618,7 +640,6 @@ class TestBuildToolComplete:
         )
         result = build_tool_complete("tc-p1", "patch", patch_result)
         assert isinstance(result, ToolCallProgress)
-        assert result.content is not None
         assert len(result.content) == 1
         item = result.content[0]
         assert isinstance(item, ContentToolCallContent)
@@ -628,7 +649,6 @@ class TestBuildToolComplete:
     def test_build_tool_complete_for_patch_falls_back_to_text_when_no_diff(self):
         result = build_tool_complete("tc-p2", "patch", '{"success": true}')
         assert isinstance(result, ToolCallProgress)
-        assert result.content is not None
         assert isinstance(result.content[0], ContentToolCallContent)
 
     def test_build_tool_complete_for_write_file_summarizes_without_repeating_diff(self, tmp_path):
@@ -644,7 +664,6 @@ class TestBuildToolComplete:
             snapshot=snapshot,
         )
         assert isinstance(result, ToolCallProgress)
-        assert result.content is not None
         assert len(result.content) == 1
         item = result.content[0]
         assert isinstance(item, ContentToolCallContent)

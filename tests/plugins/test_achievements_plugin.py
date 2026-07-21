@@ -48,22 +48,23 @@ def plugin_api(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location(
         f"plugin_api_test_{id(tmp_path)}", PLUGIN_MODULE_PATH
     )
-    module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
-    spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     # Stash monkeypatch so ``_install_fake_session_db`` can use it to
     # swap ``sys.modules['hermes_state']`` with auto-restoration. Without
     # this, a raw ``sys.modules[...] = fake`` assignment would leak the
     # fake into later tests in the same xdist worker — breaking every
     # test that does ``from hermes_state import SessionDB``.
-    module._test_monkeypatch = monkeypatch  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    module._test_monkeypatch = monkeypatch
     yield module
 
 
 class _FakeSessionDB:
     """Stand-in for hermes_state.SessionDB that records scan calls."""
 
-    def __init__(self, session_count: int):
+    def __init__(self, session_count: int, scan_delay: float = 0):
         self.session_count = session_count
+        self.scan_delay = scan_delay
         self.last_limit: Optional[int] = None
         self.last_include_children: Optional[bool] = None
         self.list_calls = 0
@@ -78,6 +79,8 @@ class _FakeSessionDB:
         include_children: bool = False,
         project_compression_tips: bool = True,
     ) -> List[Dict[str, Any]]:
+        if self.scan_delay:
+            time.sleep(self.scan_delay)
         self.last_limit = limit
         self.last_include_children = include_children
         self.list_calls += 1
@@ -120,7 +123,7 @@ def _install_fake_session_db(plugin_api, fake_db):
     and cannot leak into unrelated tests in the same xdist worker.
     """
     fake_module = type(sys)("hermes_state")
-    fake_module.SessionDB = lambda: fake_db  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_module.SessionDB = lambda: fake_db
     plugin_api._test_monkeypatch.setitem(sys.modules, "hermes_state", fake_module)
 
 
@@ -225,10 +228,8 @@ def test_evaluate_all_stale_cache_serves_stale_and_refreshes_in_background(plugi
     the stale data immediately and kicks a background refresh. Users don't
     stare at a loading spinner every time TTL expires.
     """
-    fake_db = _FakeSessionDB(session_count=10)
+    fake_db = _FakeSessionDB(session_count=10, scan_delay=2.0)
     _install_fake_session_db(plugin_api, fake_db)
-
-    # Seed a stale snapshot on disk.
     stale_generated_at = int(time.time()) - plugin_api.SNAPSHOT_TTL_SECONDS - 60
     stale_payload = {
         "achievements": [],

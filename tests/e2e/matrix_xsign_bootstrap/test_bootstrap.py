@@ -27,7 +27,6 @@ isn't reachable.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -37,7 +36,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 import urllib.error
 import urllib.request
@@ -137,7 +135,7 @@ class XsignBootstrapE2E(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            import mautrix  # noqa: F401  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+            import mautrix  # noqa: F401
         except ImportError:
             raise unittest.SkipTest("mautrix not installed")
         cls.first_tok = _first_time_token()
@@ -157,12 +155,12 @@ class XsignBootstrapE2E(unittest.IsolatedAsyncioTestCase):
         bootstrap sequence, capturing log lines so we can assert what fired.
         Returns (log_lines, recovery_key_or_None).
         """
-        from mautrix.api import HTTPAPI  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.client import Client  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.client.state_store.memory import MemoryStateStore  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.crypto import OlmMachine, PgCryptoStore  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.types import TrustState  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.util.async_db import Database  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+        from mautrix.api import HTTPAPI
+        from mautrix.client import Client
+        from mautrix.client.state_store.memory import MemoryStateStore
+        from mautrix.crypto import OlmMachine, PgCryptoStore
+        from mautrix.types import TrustState
+        from mautrix.util.async_db import Database
 
         # The actual bootstrap snippet from gateway/platforms/matrix.py
         # (copied so we can run it without importing the full hermes
@@ -243,11 +241,11 @@ class XsignBootstrapE2E(unittest.IsolatedAsyncioTestCase):
 
     async def _publish_device_keys(self, creds, store_dir):
         """Tiny helper: open OlmMachine, share device keys, close."""
-        from mautrix.api import HTTPAPI  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.client import Client  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.client.state_store.memory import MemoryStateStore  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.crypto import OlmMachine, PgCryptoStore  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-        from mautrix.util.async_db import Database  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+        from mautrix.api import HTTPAPI
+        from mautrix.client import Client
+        from mautrix.client.state_store.memory import MemoryStateStore
+        from mautrix.crypto import OlmMachine, PgCryptoStore
+        from mautrix.util.async_db import Database
 
         api = HTTPAPI(base_url=creds["homeserver"], token=creds["access_token"])
         client = Client(mxid=creds["user_id"], api=api, device_id=creds["device_id"],
@@ -315,7 +313,7 @@ class XsignBootstrapE2E(unittest.IsolatedAsyncioTestCase):
         fresh_store = Path(tempfile.mkdtemp(prefix="e2e-xsign-fresh-"))
         try:
             await self._publish_device_keys(self.creds, fresh_store)
-            os.environ["MATRIX_RECOVERY_KEY"] = rec_key  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+            os.environ["MATRIX_RECOVERY_KEY"] = rec_key
             try:
                 log, rec2 = await self._connect_with_bootstrap(self.creds, fresh_store)
                 self.assertIsNone(rec2, "bootstrap fired despite MATRIX_RECOVERY_KEY being set")

@@ -48,7 +48,6 @@ class TestRegisterAndGetPending:
         slash_confirm.register("sess1", "cid2", "reload-mcp", h2)
 
         pending = slash_confirm.get_pending("sess1")
-        assert pending is not None
         assert pending["confirm_id"] == "cid2"
         assert pending["handler"] is h2
 
@@ -59,11 +58,9 @@ class TestRegisterAndGetPending:
         slash_confirm.register("sess1", "cid1", "cmd", h)
 
         p1 = slash_confirm.get_pending("sess1")
-        assert p1 is not None
         p1["command"] = "mutated"
 
         p2 = slash_confirm.get_pending("sess1")
-        assert p2 is not None
         assert p2["command"] == "cmd"
 
 

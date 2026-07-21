@@ -19,13 +19,13 @@ from gateway.session import SessionSource, build_session_key
 
 
 class _StubAdapter(BasePlatformAdapter):
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         pass
 
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, text, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send(self, chat_id, text, **kwargs):
         return None
 
     async def get_chat_info(self, chat_id):
@@ -34,7 +34,7 @@ class _StubAdapter(BasePlatformAdapter):
 
 def _make_adapter():
     adapter = _StubAdapter(PlatformConfig(enabled=True, token="t"), Platform.TELEGRAM)
-    adapter._send_with_retry = AsyncMock(return_value=None)  # ty: ignore[invalid-assignment]
+    adapter._send_with_retry = AsyncMock(return_value=None)
     return adapter
 
 

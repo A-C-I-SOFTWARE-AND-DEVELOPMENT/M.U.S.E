@@ -16,7 +16,7 @@ pytestmark = pytest.mark.integration
 from unittest.mock import AsyncMock
 
 from gateway.config import Platform, PlatformConfig
-from gateway.platforms.homeassistant import HomeAssistantAdapter
+from plugins.platforms.homeassistant.adapter import HomeAssistantAdapter
 from tests.fakes.fake_ha_server import FakeHAServer, ENTITY_STATES
 from tools.homeassistant_tool import (
     _async_call_service,
@@ -72,7 +72,7 @@ class TestGatewayWebSocket:
         """Server pushes event -> adapter calls handle_message with correct MessageEvent."""
         async with FakeHAServer() as server:
             adapter = _adapter_for(server)
-            adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+            adapter.handle_message = AsyncMock()
 
             await adapter.connect()
 
@@ -90,12 +90,12 @@ class TestGatewayWebSocket:
 
             # Wait for the adapter to process it
             for _ in range(50):
-                if adapter.handle_message.call_count > 0:  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                if adapter.handle_message.call_count > 0:
                     break
                 await asyncio.sleep(0.05)
 
-            assert adapter.handle_message.call_count == 1  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-            msg_event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert adapter.handle_message.call_count == 1
+            msg_event = adapter.handle_message.call_args[0][0]
             assert "Bedroom Light" in msg_event.text
             assert "turned on" in msg_event.text
             assert msg_event.source.platform == Platform.HOMEASSISTANT
@@ -107,7 +107,7 @@ class TestGatewayWebSocket:
         """Events outside watch_domains are silently dropped."""
         async with FakeHAServer() as server:
             adapter = _adapter_for(server, watch_domains=["climate"])
-            adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+            adapter.handle_message = AsyncMock()
 
             await adapter.connect()
 
@@ -124,7 +124,7 @@ class TestGatewayWebSocket:
             })
 
             await asyncio.sleep(0.5)
-            assert adapter.handle_message.call_count == 0  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert adapter.handle_message.call_count == 0
 
             await adapter.disconnect()
 
@@ -142,7 +142,7 @@ class TestGatewayWebSocket:
             assert adapter._listen_task is None
             assert adapter._ws is None
             # The original WS reference should be closed
-            assert ws_ref.closed  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert ws_ref.closed
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ class TestSendNotification:
             result = await adapter.send("ha_events", "Should fail")
 
             assert result.success is False
-            assert "401" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+            assert "401" in result.error
 
 
 # ---------------------------------------------------------------------------

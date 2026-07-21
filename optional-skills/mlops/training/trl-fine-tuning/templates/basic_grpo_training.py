@@ -10,12 +10,12 @@ Adapt this for your specific task by modifying:
 4. Hyperparameters (GRPOConfig)
 """
 
-import torch  # ty: ignore[unresolved-import]
+import torch
 import re
-from datasets import load_dataset  # ty: ignore[unresolved-import]
-from transformers import AutoModelForCausalLM, AutoTokenizer  # ty: ignore[unresolved-import]
-from peft import LoraConfig  # ty: ignore[unresolved-import]
-from trl import GRPOTrainer, GRPOConfig  # ty: ignore[unresolved-import]
+from datasets import load_dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import LoraConfig
+from trl import GRPOTrainer, GRPOConfig
 
 # ==================== CONFIGURATION ====================
 

@@ -1,15 +1,15 @@
 ---
 sidebar_position: 8
 title: "Memory Provider Plugins"
-description: "How to build a memory provider plugin for muse"
+description: "How to build a memory provider plugin for Hermes Agent"
 ---
 
 # Building a Memory Provider Plugin
 
-Memory provider plugins give muse persistent, cross-session knowledge beyond the built-in MEMORY.md and USER.md. This guide covers how to build one.
+Memory provider plugins give Hermes Agent persistent, cross-session knowledge beyond the built-in MEMORY.md and USER.md. This guide covers how to build one.
 
 :::tip
-Memory providers are one of two **provider plugin** types. The other is [Context Engine Plugins](/docs/developer-guide/context-engine-plugin), which replace the built-in context compressor. Both follow the same pattern: single-select, config-driven, managed via `muse plugins`.
+Memory providers are one of two **provider plugin** types. The other is [Context Engine Plugins](/developer-guide/context-engine-plugin), which replace the built-in context compressor. Both follow the same pattern: single-select, config-driven, managed via `hermes plugins`.
 :::
 
 ## Directory Structure
@@ -61,13 +61,13 @@ class MyMemoryProvider(MemoryProvider):
 | `is_available()` | Agent init, before activation | **Yes** — no network calls |
 | `initialize(session_id, **kwargs)` | Agent startup | **Yes** |
 | `get_tool_schemas()` | After init, for tool injection | **Yes** |
-| `handle_tool_call(name, args)` | When agent uses your tools | **Yes** (if you have tools) |
+| `handle_tool_call(tool_name, args, **kwargs)` | When agent uses your tools | **Yes** (if you have tools) |
 
 ### Config
 
 | Method | Purpose | Must Implement? |
 |--------|---------|-----------------|
-| `get_config_schema()` | Declare config fields for `muse memory setup` | **Yes** |
+| `get_config_schema()` | Declare config fields for `hermes memory setup` | **Yes** |
 | `save_config(values, hermes_home)` | Write non-secret config to native location | **Yes** (unless env-var-only) |
 
 ### Optional Hooks
@@ -75,9 +75,9 @@ class MyMemoryProvider(MemoryProvider):
 | Method | When Called | Use Case |
 |--------|-----------|----------|
 | `system_prompt_block()` | System prompt assembly | Static provider info |
-| `prefetch(query)` | Before each API call | Return recalled context |
+| `prefetch(query, *, session_id="")` | Before each API call | Return recalled context |
 | `queue_prefetch(query)` | After each turn | Pre-warm for next turn |
-| `sync_turn(user, assistant)` | After each completed turn | Persist conversation |
+| `sync_turn(user, assistant, *, session_id="")` | After each completed turn | Persist conversation |
 | `on_session_end(messages)` | Conversation ends | Final extraction/flush |
 | `on_pre_compress(messages)` | Before context compression | Save insights before discard |
 | `on_memory_write(action, target, content)` | Built-in memory writes | Mirror to your backend |
@@ -85,7 +85,7 @@ class MyMemoryProvider(MemoryProvider):
 
 ## Config Schema
 
-`get_config_schema()` returns a list of field descriptors used by `muse memory setup`:
+`get_config_schema()` returns a list of field descriptors used by `hermes memory setup`:
 
 ```python
 def get_config_schema(self):
@@ -115,7 +115,7 @@ def get_config_schema(self):
 Fields with `secret: True` and `env_var` go to `.env`. Non-secret fields are passed to `save_config()`.
 
 :::tip Minimal vs Full Schema
-Every field in `get_config_schema()` is prompted during `muse memory setup`. Providers with many options should keep the schema minimal — only include fields the user **must** configure (API key, required credentials). Document optional settings in a config file reference (e.g. `$HERMES_HOME/myprovider.json`) rather than prompting for them all during setup. This keeps the setup wizard fast while still supporting advanced configuration. See the Supermemory provider for an example — it only prompts for the API key; all other options live in `supermemory.json`.
+Every field in `get_config_schema()` is prompted during `hermes memory setup`. Providers with many options should keep the schema minimal — only include fields the user **must** configure (API key, required credentials). Document optional settings in a config file reference (e.g. `$HERMES_HOME/myprovider.json`) rather than prompting for them all during setup. This keeps the setup wizard fast while still supporting advanced configuration. See the Supermemory provider for an example — it only prompts for the API key; all other options live in `supermemory.json`.
 :::
 
 ## Save Config
@@ -154,10 +154,10 @@ hooks:
 **`sync_turn()` MUST be non-blocking.** If your backend has latency (API calls, LLM processing), run the work in a daemon thread:
 
 ```python
-def sync_turn(self, user_content, assistant_content):
+def sync_turn(self, user_content, assistant_content, *, session_id="", messages=None):
     def _sync():
         try:
-            self._api.ingest(user_content, assistant_content)
+            self._api.ingest(user_content, assistant_content, session_id=session_id, messages=messages)
         except Exception as e:
             logger.warning("Sync failed: %s", e)
 
@@ -166,6 +166,16 @@ def sync_turn(self, user_content, assistant_content):
     self._sync_thread = threading.Thread(target=_sync, daemon=True)
     self._sync_thread.start()
 ```
+
+`messages` is optional OpenAI-style conversation context as of the completed
+turn. When present, it includes user/assistant messages, assistant tool calls,
+and tool result messages. Providers that do not need raw turn context can omit
+the `messages` parameter; Hermes will continue calling them with the legacy
+signature.
+
+Cloud providers should document what parts of `messages` are sent off-device.
+Tool calls and tool results may contain file paths, command output, or other
+workspace data.
 
 ## Profile Isolation
 
@@ -182,7 +192,7 @@ data_dir = Path("~/.hermes/my-provider").expanduser()
 
 ## Testing
 
-See `tests/agent/test_memory_plugin_e2e.py` for the complete E2E testing pattern using a real SQLite provider.
+See `tests/agent/test_memory_provider.py` and adjacent memory tests (`tests/agent/test_memory_session_switch.py`, `tests/agent/test_memory_user_id.py`, `tests/run_agent/test_memory_provider_init.py`) for end-to-end patterns.
 
 ```python
 from agent.memory_manager import MemoryManager
@@ -202,16 +212,16 @@ mgr.shutdown_all()
 
 ## Adding CLI Commands
 
-Memory provider plugins can register their own CLI subcommand tree (e.g. `muse my-provider status`, `muse my-provider config`). This uses a convention-based discovery system — no changes to core files needed.
+Memory provider plugins can register their own CLI subcommand tree (e.g. `hermes my-provider status`, `hermes my-provider config`). This uses a convention-based discovery system — no changes to core files needed.
 
 ### How it works
 
 1. Add a `cli.py` file to your plugin directory
 2. Define a `register_cli(subparser)` function that builds the argparse tree
 3. The memory plugin system discovers it at startup via `discover_plugin_cli_commands()`
-4. Your commands appear under `muse <provider-name> <subcommand>`
+4. Your commands appear under `hermes <provider-name> <subcommand>`
 
-**Active-provider gating:** Your CLI commands only appear when your provider is the active `memory.provider` in config. If a user hasn't configured your provider, your commands won't show in `muse --help`.
+**Active-provider gating:** Your CLI commands only appear when your provider is the active `memory.provider` in config. If a user hasn't configured your provider, your commands won't show in `hermes --help`.
 
 ### Example
 
@@ -226,10 +236,10 @@ def my_command(args):
     elif sub == "config":
         print("Showing config...")
     else:
-        print("Usage: muse my-provider <status|config>")
+        print("Usage: hermes my-provider <status|config>")
 
 def register_cli(subparser) -> None:
-    """Build the muse my-provider argparse tree.
+    """Build the hermes my-provider argparse tree.
 
     Called by discover_plugin_cli_commands() at argparse setup time.
     """

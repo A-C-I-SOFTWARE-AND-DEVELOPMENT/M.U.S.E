@@ -184,7 +184,7 @@ class ModalEnvironment(BaseEnvironment):
 
         self._persistent = persistent_filesystem
         self._task_id = task_id
-        self._sandbox: Any = None  # modal.Sandbox once created (SDK imported lazily)
+        self._sandbox = None
         self._app = None
         self._worker = _AsyncWorker()
         self._sync_manager: FileSyncManager | None = None  # initialized after sandbox creation
@@ -399,7 +399,6 @@ class ModalEnvironment(BaseEnvironment):
 
     def _before_execute(self) -> None:
         """Sync files to sandbox via FileSyncManager (rate-limited internally)."""
-        assert self._sync_manager is not None  # set in __init__ before any execute
         self._sync_manager.sync()
 
     # ------------------------------------------------------------------

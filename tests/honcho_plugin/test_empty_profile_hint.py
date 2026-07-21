@@ -78,7 +78,7 @@ class TestEmptyProfileHint:
     def test_populated_card_returns_card_without_hint(self):
         """Regression: a populated card should NOT trigger the hint path."""
         provider = _make_provider()
-        provider._manager.get_peer_card.return_value = ["Fact 1", "Fact 2"]  # ty: ignore[unresolved-attribute]  # _manager is a MagicMock
+        provider._manager.get_peer_card.return_value = ["Fact 1", "Fact 2"]
         raw = provider.handle_tool_call("honcho_profile", {})
         payload = json.loads(raw)
         assert payload["result"] == ["Fact 1", "Fact 2"]

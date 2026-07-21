@@ -3,16 +3,12 @@
 Covers:
   agent/model_metadata.py — query_ollama_num_ctx()
   run_agent.py — _ollama_num_ctx detection + extra_body injection
-  agent/chat_completion_helpers.py — opt-in native /api/chat transport
-    (ACTION #6) and opt-in fallback-on-timeout gate (ACTION #8)
 """
 
-from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
-import pytest
 
-from agent.model_metadata import query_ollama_num_ctx
+from agent.model_metadata import query_ollama_num_ctx, query_ollama_supports_vision
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -138,223 +134,43 @@ class TestQueryOllamaNumCtx:
         assert result is None
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# Level 2: native Ollama /api/chat transport (ACTION #6, opt-in)
-# ═══════════════════════════════════════════════════════════════════════
+class TestQueryOllamaSupportsVision:
+    """Test Ollama /api/show vision capability detection."""
 
-from agent import chat_completion_helpers as cch  # noqa: E402
+    def test_returns_true_when_capabilities_include_vision(self):
+        show_data = {"capabilities": ["completion", "vision"]}
+        mock_ctx, _ = _mock_httpx_client(show_data)
 
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"):
+            import httpx
+            with patch.object(httpx, "Client", return_value=mock_ctx):
+                result = query_ollama_supports_vision("gemma4:e2b", "http://localhost:11434/v1")
 
-def _agent_stub(*, base_url="http://localhost:11434/v1", api_mode="chat_completions"):
-    """Minimal AIAgent stand-in exposing only what the native path touches."""
-    return SimpleNamespace(
-        api_mode=api_mode,
-        base_url=base_url,
-        provider="custom",
-        model="qwen3.5:9b",
-        api_key="no-key-required",
-        _interrupt_requested=False,
-        _primary_runtime={"provider": "custom"},
-        _resolved_api_call_timeout=lambda: 60.0,
-        _touch_activity=lambda *a, **k: None,
-        _capture_rate_limits=lambda *a, **k: None,
-        _fire_stream_delta=lambda *a, **k: None,
-        _fire_reasoning_delta=lambda *a, **k: None,
-    )
+        assert result is True
 
+    def test_returns_false_when_capabilities_exclude_vision(self):
+        show_data = {"capabilities": ["completion", "tools"]}
+        mock_ctx, _ = _mock_httpx_client(show_data)
 
-class TestNativeOllamaGate:
-    """Native /api/chat is used for any Ollama (:11434) endpoint — no flag."""
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"):
+            import httpx
+            with patch.object(httpx, "Client", return_value=mock_ctx):
+                result = query_ollama_supports_vision("gemma4:31b", "http://localhost:11434/v1")
 
-    def test_native_default_on_for_local_ollama(self):
-        # localhost:11434 + chat_completions → native, no env/config needed.
-        assert cch._should_route_native_ollama(_agent_stub()) is True
+        assert result is False
 
-    def test_native_on_for_remote_ollama_default_port(self):
-        agent = _agent_stub(base_url="http://10.0.0.5:11434/v1")
-        assert cch._should_route_native_ollama(agent) is True
+    def test_falls_back_to_model_info_vision_block_count(self):
+        show_data = {"model_info": {"gemma3.vision.block_count": 27}}
+        mock_ctx, _ = _mock_httpx_client(show_data)
 
-    def test_gate_off_for_other_loopback_servers(self):
-        # llama.cpp (:8080) / LM Studio (:1234) share loopback but are NOT
-        # Ollama — they must stay on the unchanged /v1 path.
-        for url in ("http://127.0.0.1:8080/v1", "http://localhost:1234/v1"):
-            assert cch._should_route_native_ollama(_agent_stub(base_url=url)) is False
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"):
+            import httpx
+            with patch.object(httpx, "Client", return_value=mock_ctx):
+                result = query_ollama_supports_vision("llava", "http://localhost:11434")
 
-    def test_gate_off_for_non_local_endpoint(self):
-        agent = _agent_stub(base_url="https://api.openrouter.ai/api/v1")
-        assert cch._should_route_native_ollama(agent) is False
+        assert result is True
 
-    def test_gate_off_for_non_chat_completions_mode(self):
-        agent = _agent_stub(api_mode="anthropic_messages")
-        assert cch._should_route_native_ollama(agent) is False
-
-
-class TestNativeOllamaPayload:
-    """The native payload carries options.num_ctx (the whole point of #6)."""
-
-    def test_url_strips_v1_and_appends_api_chat(self):
-        assert cch._ollama_native_url("http://localhost:11434/v1") == (
-            "http://localhost:11434/api/chat"
-        )
-        assert cch._ollama_native_url("http://localhost:11434") == (
-            "http://localhost:11434/api/chat"
-        )
-
-    def test_payload_lifts_num_ctx_from_extra_body_options(self):
-        api_kwargs = {
-            "model": "qwen3.5:9b",
-            "messages": [{"role": "user", "content": "hi"}],
-            "extra_body": {"options": {"num_ctx": 16384}, "think": False},
-            "max_tokens": 512,
-        }
-        payload = cch._build_ollama_native_payload(api_kwargs)
-        assert payload["options"]["num_ctx"] == 16384
-        assert payload["think"] is False
-        # max_tokens maps to Ollama's num_predict.
-        assert payload["options"]["num_predict"] == 512
-
-    def test_keep_alive_promoted_to_top_level(self):
-        api_kwargs = {
-            "model": "m",
-            "messages": [],
-            "extra_body": {"options": {"num_ctx": 8192, "keep_alive": "30m"}},
-        }
-        payload = cch._build_ollama_native_payload(api_kwargs)
-        assert payload["keep_alive"] == "30m"
-        assert "keep_alive" not in payload["options"]
-        assert payload["options"]["num_ctx"] == 8192
-
-
-class TestNativeOllamaNonStreamingWire:
-    """When the flag is ON, the request hitting the wire carries num_ctx."""
-
-    def test_non_streaming_request_carries_num_ctx(self):
-        agent = _agent_stub()
-        api_kwargs = {
-            "model": "qwen3.5:9b",
-            "messages": [{"role": "user", "content": "hi"}],
-            "extra_body": {"options": {"num_ctx": 24576}},
-        }
-
-        captured = {}
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "model": "qwen3.5:9b",
-            "message": {"role": "assistant", "content": "hello"},
-            "done": True,
-            "done_reason": "stop",
-            "prompt_eval_count": 5,
-            "eval_count": 3,
-        }
-        mock_client = MagicMock()
-
-        def _post(url, json=None, headers=None):
-            captured["url"] = url
-            captured["json"] = json
-            return mock_resp
-
-        mock_client.post.side_effect = _post
-        mock_ctx = MagicMock()
-        mock_ctx.__enter__ = MagicMock(return_value=mock_client)
-        mock_ctx.__exit__ = MagicMock(return_value=False)
-
-        import httpx
-        with patch.object(httpx, "Client", return_value=mock_ctx):
-            resp = cch._ollama_native_chat(agent, api_kwargs, stream=False)
-
-        # Wire assertions: native endpoint + options.num_ctx present.
-        assert captured["url"] == "http://localhost:11434/api/chat"
-        assert captured["json"]["options"]["num_ctx"] == 24576
-        assert captured["json"]["stream"] is False
-        # Response is OpenAI-shaped for the rest of the agent loop.
-        assert resp.choices[0].message.content == "hello"
-        assert resp.choices[0].finish_reason == "stop"
-        assert resp.usage.total_tokens == 8
-
-    def test_tool_calls_map_to_finish_reason(self):
-        agent = _agent_stub()
-        api_kwargs = {"model": "m", "messages": [], "extra_body": {}}
-
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "model": "m",
-            "message": {
-                "role": "assistant",
-                "content": "",
-                "tool_calls": [
-                    {"function": {"name": "search", "arguments": {"q": "x"}}}
-                ],
-            },
-            "done": True,
-            "done_reason": "stop",
-        }
-        mock_client = MagicMock()
-        mock_client.post.return_value = mock_resp
-        mock_ctx = MagicMock()
-        mock_ctx.__enter__ = MagicMock(return_value=mock_client)
-        mock_ctx.__exit__ = MagicMock(return_value=False)
-
-        import httpx
-        with patch.object(httpx, "Client", return_value=mock_ctx):
-            resp = cch._ollama_native_chat(agent, api_kwargs, stream=False)
-
-        choice = resp.choices[0]
-        assert choice.finish_reason == "tool_calls"
-        assert choice.message.tool_calls[0].function.name == "search"
-        # arguments serialized to a JSON string (OpenAI shape).
-        assert choice.message.tool_calls[0].function.arguments == '{"q": "x"}'
-
-
-class TestNonOllamaKeepsV1Path:
-    """Non-Ollama endpoints never divert to the native /api/chat path."""
-
-    def test_non_ollama_endpoint_keeps_v1_path(self):
-        agent = _agent_stub(base_url="https://api.openrouter.ai/api/v1")
-        assert cch._should_route_native_ollama(agent) is False
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# Level 3: opt-in fallback-on-timeout gate (ACTION #8)
-# ═══════════════════════════════════════════════════════════════════════
-
-
-class TestFallbackOnTimeoutGate:
-    """fallback-on-timeout is ON by default; opt out per provider."""
-
-    def test_enabled_by_default(self):
-        with patch("hermes_cli.config.load_config_readonly", return_value={}):
-            assert cch.fallback_on_timeout_enabled("custom") is True
-
-    def test_opt_out_via_provider_config(self):
-        cfg = {"providers": {"custom": {"enable_fallback_on_timeout": False}}}
-        with patch("hermes_cli.config.load_config_readonly", return_value=cfg):
-            assert cch.fallback_on_timeout_enabled("custom") is False
-
-    def test_explicit_enable_still_true(self):
-        cfg = {"providers": {"custom": {"enable_fallback_on_timeout": True}}}
-        with patch("hermes_cli.config.load_config_readonly", return_value=cfg):
-            assert cch.fallback_on_timeout_enabled("custom") is True
-
-    def test_other_provider_defaults_enabled(self):
-        cfg = {"providers": {"custom": {"enable_fallback_on_timeout": False}}}
-        with patch("hermes_cli.config.load_config_readonly", return_value=cfg):
-            # openrouter has no explicit setting → default ON.
-            assert cch.fallback_on_timeout_enabled("openrouter") is True
-
-    def test_timeout_reason_blocked_when_flag_off(self):
-        """try_activate_fallback(reason=timeout) returns False with flag off,
-        without advancing the fallback chain (default behavior preserved)."""
-        from agent.error_classifier import FailoverReason
-
-        agent = SimpleNamespace(
-            provider="custom",
-            _primary_runtime={"provider": "custom"},
-            _fallback_index=0,
-            _fallback_chain=[{"provider": "openrouter", "model": "x/y"}],
-        )
-        with patch.object(cch, "fallback_on_timeout_enabled", return_value=False):
-            assert cch.try_activate_fallback(agent, reason=FailoverReason.timeout) is False
-        # Chain index must NOT advance — no escalation attempted.
-        assert agent._fallback_index == 0
+    def test_returns_none_for_non_ollama_server(self):
+        with patch("agent.model_metadata.detect_local_server_type", return_value="vllm"):
+            result = query_ollama_supports_vision("llava", "http://localhost:8000/v1")
+        assert result is None

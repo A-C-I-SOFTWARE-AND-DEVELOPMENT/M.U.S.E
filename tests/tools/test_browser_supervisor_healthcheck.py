@@ -65,7 +65,7 @@ def stub_cdp_supervisor(monkeypatch):
 
     Returns a callable that reads the last-constructed fake out.
     """
-    created: list = []
+    created: list[SimpleNamespace] = []
 
     class _StubSupervisor:
         def __init__(self, *, task_id, cdp_url, dialog_policy, dialog_timeout_s):

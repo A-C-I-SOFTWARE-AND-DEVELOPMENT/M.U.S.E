@@ -11,7 +11,7 @@ from gateway.session import SessionSource
 
 
 def _make_adapter(**extra_env):
-    from gateway.platforms.telegram import TelegramAdapter
+    from plugins.platforms.telegram.adapter import TelegramAdapter
 
     adapter = object.__new__(TelegramAdapter)
     adapter.platform = Platform.TELEGRAM
@@ -161,7 +161,7 @@ async def test_on_processing_start_handles_missing_ids(monkeypatch):
     event = MessageEvent(
         text="hello",
         message_type=MessageType.TEXT,
-        source=SimpleNamespace(chat_id=None),  # ty: ignore[invalid-argument-type]
+        source=SimpleNamespace(chat_id=None),
         message_id=None,
     )
 

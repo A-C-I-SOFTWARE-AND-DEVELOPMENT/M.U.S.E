@@ -102,7 +102,7 @@ def _manager_provider_with_context(storage: HermesTokenStorage, **context_attrs)
     """
     if _HERMES_PROVIDER_CLS is None:
         pytest.skip("MCP SDK auth not available")
-    provider = _HERMES_PROVIDER_CLS.__new__(_HERMES_PROVIDER_CLS)  # ty: ignore[no-matching-overload]
+    provider = _HERMES_PROVIDER_CLS.__new__(_HERMES_PROVIDER_CLS)
     provider._hermes_server_name = context_attrs.get("server_name", "srv")
     context = MagicMock()
     context.storage = storage
@@ -122,7 +122,6 @@ class TestManagerOAuthProviderMetadata:
         storage.save_oauth_metadata(_make_metadata("https://mgr.example.com/token"))
         provider = _manager_provider_with_context(storage, oauth_metadata=None)
 
-        assert _HERMES_PROVIDER_CLS is not None
         with patch.object(
             _HERMES_PROVIDER_CLS.__bases__[0], "_initialize", new=AsyncMock()
         ):
@@ -141,7 +140,6 @@ class TestManagerOAuthProviderMetadata:
 
         provider = _manager_provider_with_context(storage, oauth_metadata=in_memory)
 
-        assert _HERMES_PROVIDER_CLS is not None
         with patch.object(
             _HERMES_PROVIDER_CLS.__bases__[0], "_initialize", new=AsyncMock()
         ):
@@ -198,7 +196,6 @@ class TestManagerOAuthProviderMetadata:
         manager = MagicMock()
         manager.invalidate_if_disk_changed = AsyncMock(return_value=False)
 
-        assert _HERMES_PROVIDER_CLS is not None
         with patch.object(
             _HERMES_PROVIDER_CLS.__bases__[0],
             "async_auth_flow",

@@ -7,35 +7,34 @@ import { PluginSlot } from "@/plugins";
 
 export const HERMES_DOCS_URL = "https://hermes-agent.nousresearch.com/docs/";
 
+const DS_BUTTON_OUTLINED_LINK_CN = cn(
+  "group relative inline-grid grid-cols-[auto_1fr_auto] items-center",
+  "px-[.9em_.75em] py-[1.25em] gap-2",
+  "leading-0 font-bold tracking-[0.2em] uppercase",
+  "text-midground bg-transparent shadow-midground",
+  "shadow-[inset_-1px_-1px_0_0_#00000080,inset_1px_1px_0_0_#ffffff80]",
+);
+
 export default function DocsPage() {
   const { t } = useI18n();
-  const { setTitle, setAfterTitle, setEnd } = usePageHeader();
+  const { setEnd } = usePageHeader();
 
-  // Sentence-case header + one-line description + primary action (design 2.3).
   useLayoutEffect(() => {
-    setTitle("Documentation");
-    setAfterTitle(
-      <span className="hidden whitespace-nowrap text-xs text-[var(--fg-faint)] sm:inline">
-        The full muse agent manual, embedded.
-      </span>,
-    );
     setEnd(
       <a
         href={HERMES_DOCS_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] px-2.5 py-1 text-xs text-[var(--fg-dim)] transition-colors hover:bg-[var(--bg-mute)] hover:text-[var(--fg)]"
+        className={DS_BUTTON_OUTLINED_LINK_CN}
       >
         <ExternalLink className="size-3.5" />
         {t.app.openDocumentation}
       </a>,
     );
     return () => {
-      setTitle(null);
-      setAfterTitle(null);
       setEnd(null);
     };
-  }, [setTitle, setAfterTitle, setEnd, t]);
+  }, [setEnd, t]);
 
   return (
     <div
@@ -50,8 +49,7 @@ export default function DocsPage() {
         src={HERMES_DOCS_URL}
         className={cn(
           "min-h-0 w-full min-w-0 flex-1",
-          // Frame chrome: Singularity border token + 12px radius (design 2.3).
-          "rounded-xl border border-[var(--border)]",
+          "rounded-sm border border-current/20",
           // Docusaurus paints over a transparent <html> / <body> and
           // relies on the browser's canvas color (light by default) to
           // fill the viewport. Inheriting the dashboard's dark color

@@ -8,7 +8,6 @@ of tool-progress bubbles for calls that were already parsed from the LLM
 response — making the interrupt feel ignored.
 """
 
-import asyncio
 import importlib
 import sys
 import time
@@ -29,7 +28,7 @@ class ProgressCaptureAdapter(BasePlatformAdapter):
         self.edits = []
         self.typing = []
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         return True
 
     async def disconnect(self) -> None:
@@ -39,7 +38,7 @@ class ProgressCaptureAdapter(BasePlatformAdapter):
         self.sent.append({"chat_id": chat_id, "content": content})
         return SendResult(success=True, message_id="progress-1")
 
-    async def edit_message(self, chat_id, message_id, content) -> SendResult:  # ty: ignore[invalid-method-override]
+    async def edit_message(self, chat_id, message_id, content) -> SendResult:
         self.edits.append({"message_id": message_id, "content": content})
         return SendResult(success=True, message_id=message_id)
 
@@ -71,7 +70,6 @@ class PreInterruptAgent:
         return self._interrupt_requested
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
-        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "web_search", "first search", {})
         time.sleep(0.35)  # let the drain loop process
         return {"final_response": "done", "messages": [], "api_calls": 1}
@@ -99,7 +97,6 @@ class InterruptedAgent:
     def run_conversation(self, message, conversation_history=None, task_id=None):
         # Parallel tool batch — in production these come from one LLM
         # response with 5 tool_calls.  All are post-interrupt.
-        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "web_search", "cognee hermes", {})
         self.tool_progress_callback("tool.started", "web_search", "McBee deer hunting", {})
         self.tool_progress_callback("tool.started", "web_search", "kuzu graph db", {})
@@ -107,6 +104,29 @@ class InterruptedAgent:
         self.tool_progress_callback("tool.started", "web_search", "platform.moonshot.cn", {})
         time.sleep(0.35)  # let the drain loop attempt to process the queue
         return {"final_response": "interrupted", "messages": [], "api_calls": 1}
+
+
+class PartialTruncationAgent:
+    """Returns an incomplete turn with no visible assistant text."""
+
+    def __init__(self, **kwargs):
+        self.tool_progress_callback = kwargs.get("tool_progress_callback")
+        self.tools = []
+        self._interrupt_requested = False
+
+    @property
+    def is_interrupted(self) -> bool:
+        return self._interrupt_requested
+
+    def run_conversation(self, message, conversation_history=None, task_id=None):
+        return {
+            "final_response": None,
+            "messages": [],
+            "api_calls": 2,
+            "completed": False,
+            "partial": True,
+            "error": "Response truncated due to output length limit",
+        }
 
 
 def _make_runner(adapter):
@@ -137,11 +157,11 @@ async def _run_once(monkeypatch, tmp_path, agent_cls, session_id):
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = agent_cls  # ty: ignore[unresolved-attribute]
+    fake_run_agent.AIAgent = agent_cls
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter()
@@ -182,6 +202,20 @@ async def test_baseline_non_interrupted_agent_renders_progress(monkeypatch, tmp_
         "baseline agent should render its tool-progress event — "
         "if this fails the test harness is broken, not the fix"
     )
+
+
+@pytest.mark.asyncio
+async def test_partial_empty_agent_response_is_normalized(monkeypatch, tmp_path):
+    """Messaging gateways should not echo raw truncation errors as final text."""
+    adapter, result = await _run_once(
+        monkeypatch, tmp_path, PartialTruncationAgent, "sess-partial-empty"
+    )
+
+    assert result["final_response"].startswith("⚠️ Processing stopped:")
+    assert "Response truncated due to output length limit" in result["final_response"]
+    assert result["final_response"] != "⚠️ Response truncated due to output length limit"
+    assert result["partial"] is True
+    assert adapter.sent == []
 
 
 @pytest.mark.asyncio

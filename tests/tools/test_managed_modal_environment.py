@@ -1,4 +1,3 @@
-import json
 import sys
 import tempfile
 import threading
@@ -51,7 +50,7 @@ def _install_fake_tools_package(*, credential_mounts=None):
     hermes_cli = types.ModuleType("hermes_cli")
     hermes_cli.__path__ = []  # type: ignore[attr-defined]
     sys.modules["hermes_cli"] = hermes_cli
-    sys.modules["hermes_cli.config"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["hermes_cli.config"] = types.SimpleNamespace(
         get_hermes_home=lambda: Path(tempfile.gettempdir()) / "hermes-home",
     )
 
@@ -64,7 +63,7 @@ def _install_fake_tools_package(*, credential_mounts=None):
     sys.modules["tools.environments"] = env_package
 
     interrupt_event = threading.Event()
-    sys.modules["tools.interrupt"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.interrupt"] = types.SimpleNamespace(
         set_interrupt=lambda value=True: interrupt_event.set() if value else interrupt_event.clear(),
         is_interrupted=lambda: interrupt_event.is_set(),
         _interrupt_event=interrupt_event,
@@ -79,8 +78,8 @@ def _install_fake_tools_package(*, credential_mounts=None):
         def _prepare_command(self, command: str):
             return command, None
 
-    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyBaseEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.managed_tool_gateway"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyBaseEnvironment)
+    sys.modules["tools.managed_tool_gateway"] = types.SimpleNamespace(
         resolve_managed_tool_gateway=lambda vendor: types.SimpleNamespace(
             vendor=vendor,
             gateway_origin="https://modal-gateway.example.com",
@@ -88,7 +87,7 @@ def _install_fake_tools_package(*, credential_mounts=None):
             managed_mode=True,
         )
     )
-    sys.modules["tools.credential_files"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.credential_files"] = types.SimpleNamespace(
         get_credential_file_mounts=lambda: list(credential_mounts or []),
     )
 
@@ -120,7 +119,6 @@ def test_managed_modal_execute_polls_until_completed(monkeypatch):
         if method == "POST" and url.endswith("/v1/sandboxes"):
             return _FakeResponse(200, {"id": "sandbox-1"})
         if method == "POST" and url.endswith("/execs"):
-            assert json is not None
             return _FakeResponse(202, {"execId": json["execId"], "status": "running"})
         if method == "GET" and "/execs/" in url:
             poll_count["value"] += 1
@@ -183,7 +181,6 @@ def test_managed_modal_execute_cancels_on_interrupt(monkeypatch):
         if method == "POST" and url.endswith("/v1/sandboxes"):
             return _FakeResponse(200, {"id": "sandbox-1"})
         if method == "POST" and url.endswith("/execs"):
-            assert json is not None
             return _FakeResponse(202, {"execId": json["execId"], "status": "running"})
         if method == "GET" and "/execs/" in url:
             return _FakeResponse(200, {"execId": url.rsplit("/", 1)[-1], "status": "running"})
@@ -223,7 +220,6 @@ def test_managed_modal_execute_returns_descriptive_error_on_missing_exec(monkeyp
         if method == "POST" and url.endswith("/v1/sandboxes"):
             return _FakeResponse(200, {"id": "sandbox-1"})
         if method == "POST" and url.endswith("/execs"):
-            assert json is not None
             return _FakeResponse(202, {"execId": json["execId"], "status": "running"})
         if method == "GET" and "/execs/" in url:
             return _FakeResponse(404, {"error": "not found"}, text="not found")
@@ -306,7 +302,6 @@ def test_managed_modal_execute_times_out_and_cancels(monkeypatch):
         if method == "POST" and url.endswith("/v1/sandboxes"):
             return _FakeResponse(200, {"id": "sandbox-1"})
         if method == "POST" and url.endswith("/execs"):
-            assert json is not None
             return _FakeResponse(202, {"execId": json["execId"], "status": "running"})
         if method == "GET" and "/execs/" in url:
             return _FakeResponse(200, {"execId": url.rsplit("/", 1)[-1], "status": "running"})

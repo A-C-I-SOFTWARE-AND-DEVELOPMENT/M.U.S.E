@@ -1,7 +1,5 @@
 """Tests for gateway/hooks.py — event hook system."""
 
-import asyncio
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -129,7 +127,7 @@ class TestEmit:
 
         # Inject our results list into the handler's module globals
         handler_fn = reg._handlers["agent:start"][0]
-        handler_fn.__globals__["results"] = results  # ty: ignore[unresolved-attribute]
+        handler_fn.__globals__["results"] = results
 
         await reg.emit("agent:start", {"test": True})
         assert "agent:start" in results
@@ -155,7 +153,7 @@ class TestEmit:
             reg.discover_and_load()
 
         handler_fn = reg._handlers["agent:end"][0]
-        handler_fn.__globals__["results"] = results  # ty: ignore[unresolved-attribute]
+        handler_fn.__globals__["results"] = results
 
         await reg.emit("agent:end", {})
         assert "agent:end" in results
@@ -174,7 +172,7 @@ class TestEmit:
             reg.discover_and_load()
 
         handler_fn = reg._handlers["command:*"][0]
-        handler_fn.__globals__["results"] = results  # ty: ignore[unresolved-attribute]
+        handler_fn.__globals__["results"] = results
 
         await reg.emit("command:reset", {})
         assert "command:reset" in results
@@ -216,7 +214,7 @@ class TestEmit:
             reg.discover_and_load()
 
         handler_fn = reg._handlers["agent:start"][0]
-        handler_fn.__globals__["captured"] = captured  # ty: ignore[unresolved-attribute]
+        handler_fn.__globals__["captured"] = captured
 
         await reg.emit("agent:start")  # no context arg
         assert captured[0] == {}

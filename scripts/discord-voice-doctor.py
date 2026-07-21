@@ -65,7 +65,7 @@ def check_packages():
 
     # discord.py
     try:
-        import discord  # ty: ignore[unresolved-import]
+        import discord
         _discord_available = True
         check("discord.py", True, f"v{discord.__version__}")
     except ImportError:
@@ -74,10 +74,10 @@ def check_packages():
 
     # PyNaCl
     try:
-        import nacl  # ty: ignore[unresolved-import]
+        import nacl
         ver = getattr(nacl, "__version__", "unknown")
         try:
-            import nacl.secret  # ty: ignore[unresolved-import]
+            import nacl.secret
             nacl.secret.Aead(bytes(32))
             check("PyNaCl", True, f"v{ver}")
         except (AttributeError, Exception):
@@ -89,7 +89,7 @@ def check_packages():
 
     # davey (DAVE E2EE)
     try:
-        import davey  # ty: ignore[unresolved-import]
+        import davey
         check("davey (DAVE E2EE)", True, f"v{getattr(davey, '__version__', '?')}")
     except ImportError:
         check("davey (DAVE E2EE)", False, "pip install davey")
@@ -97,7 +97,7 @@ def check_packages():
 
     # Optional: local STT
     try:
-        import faster_whisper  # ty: ignore[unresolved-import]
+        import faster_whisper
         check("faster-whisper (local STT)", True)
     except ImportError:
         warn("faster-whisper (local STT)", "not installed — local STT unavailable")
@@ -126,7 +126,7 @@ def check_system_tools():
     # Opus codec
     if _discord_available:
         try:
-            import discord  # ty: ignore[unresolved-import]
+            import discord
             opus_loaded = discord.opus.is_loaded()
             if not opus_loaded:
                 import ctypes.util

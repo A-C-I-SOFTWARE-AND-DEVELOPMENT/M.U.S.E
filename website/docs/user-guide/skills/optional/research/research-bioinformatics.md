@@ -14,7 +14,7 @@ Gateway to 400+ bioinformatics skills from bioSkills and ClawBio. Covers genomic
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/research/bioinformatics` |
+| Source | Optional — install with `hermes skills install official/research/bioinformatics` |
 | Path | `optional-skills/research/bioinformatics` |
 | Version | `1.0.0` |
 | Platforms | linux, macos |
@@ -23,7 +23,7 @@ Gateway to 400+ bioinformatics skills from bioSkills and ClawBio. Covers genomic
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Bioinformatics Skills Gateway
@@ -244,7 +244,7 @@ conda install -c bioconda samtools bcftools blast minimap2 bedtools fastp kraken
 
 ## Pitfalls
 
-- The fetched skills are NOT in muse SKILL.md format. They use their own structure (bioSkills: code pattern cookbooks; ClawBio: README + Python scripts). Read them as expert reference material.
+- The fetched skills are NOT in Hermes SKILL.md format. They use their own structure (bioSkills: code pattern cookbooks; ClawBio: README + Python scripts). Read them as expert reference material.
 - bioSkills are reference guides — they show correct parameters and code patterns but aren't executable pipelines.
 - ClawBio skills are executable — many have `--demo` flags and can be run directly.
 - Both repos assume bioinformatics tools are installed. Check prerequisites before running pipelines.

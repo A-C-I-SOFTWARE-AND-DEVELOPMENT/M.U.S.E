@@ -7,12 +7,9 @@ export const SECTION_NAMES = ['thinking', 'tools', 'subagents', 'activity'] as c
 // Out-of-the-box per-section defaults — applied when the user hasn't pinned
 // an explicit override and layered ABOVE the global details_mode:
 //
-//   - thinking: expanded — reasoning streams open so the turn reads like a
-//     live transcript instead of a wall of chevrons the user has to click
-//     every turn.
-//   - tools: collapsed — genre one-liners `⏺ Name(key-arg)` + dim `⎿ summary`
-//     per design.md Part 0 #5 ("tool calls = one-line summaries"); expand
-//     with `/details tools expanded` or `display.sections.tools: expanded`.
+//   - thinking / tools: expanded — stream open so the turn reads like a
+//     live transcript (reasoning + tool calls side by side) instead of a
+//     wall of chevrons the user has to click every turn.
 //   - activity: hidden — ambient meta (gateway hints, terminal-parity
 //     nudges, background notifications) is noise for typical use.  Tool
 //     failures still render inline on the failing tool row, and ambient
@@ -25,7 +22,7 @@ export const SECTION_NAMES = ['thinking', 'tools', 'subagents', 'activity'] as c
 // or at runtime via `/details <name> collapsed|hidden`.
 const SECTION_DEFAULTS: SectionVisibility = {
   thinking: 'expanded',
-  tools: 'collapsed',
+  tools: 'expanded',
   activity: 'hidden'
 }
 

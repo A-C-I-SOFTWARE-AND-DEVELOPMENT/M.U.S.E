@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
 
 from hermes_cli.session_recap import build_recap
 
@@ -176,5 +175,19 @@ def test_tool_message_count_reported():
 def test_ignores_non_mapping_entries_gracefully():
     msgs = [None, "stray", _user("hi"), _assistant("hello")]
     # Should not raise.
-    out = build_recap(msgs)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    out = build_recap(msgs)
     assert "Session recap" in out
+
+
+def test_escape_sequences_sanitized_in_previews():
+    """Recap previews must not carry raw terminal escapes (codex#31494 class)."""
+    msgs = [
+        _user("please \x1b[2J\x1b]0;pwned\x07 do the thing"),
+        _assistant("done \x9b31m with it\x07"),
+    ]
+    out = build_recap(msgs)
+    assert "\x1b" not in out
+    assert "\x9b" not in out
+    assert "\x07" not in out
+    assert "do the thing" in out
+    assert "with it" in out

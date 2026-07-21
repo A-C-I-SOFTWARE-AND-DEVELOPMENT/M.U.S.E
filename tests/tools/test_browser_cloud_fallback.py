@@ -4,7 +4,7 @@ Covers the fallback logic in _get_session_info() when a cloud provider
 is configured but fails at runtime (issue #10883).
 """
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -85,9 +85,7 @@ class TestCloudProviderRuntimeFallback:
 
         session = browser_tool._get_session_info("task-4")
 
-        features = session["features"]
-        assert isinstance(features, dict)
-        assert features["local"] is True
+        assert session["features"]["local"] is True
         assert "fallback_from_cloud" not in session
 
     def test_cdp_override_bypasses_provider(self, monkeypatch):

@@ -39,7 +39,7 @@ class TestRegisterProvider:
 
     def test_rejects_non_provider(self):
         with pytest.raises(TypeError):
-            image_gen_registry.register_provider("not a provider")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+            image_gen_registry.register_provider("not a provider")  # type: ignore[arg-type]
 
     def test_rejects_empty_name(self):
         class Empty(ImageGenProvider):

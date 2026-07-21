@@ -55,13 +55,13 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
     fb_client.api_key = "sk-fallback"
     mock_resolve.return_value = (fb_client, None)
 
-    agent._is_direct_openai_url = lambda url: "api.openai.com" in url  # ty: ignore[invalid-assignment]
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._is_direct_openai_url = lambda url: "api.openai.com" in url
+    agent._emit_status = lambda msg: None
 
     result = agent._try_activate_fallback()
 
     assert result is True
-    assert agent._fallback_activated is True  # ty: ignore[unresolved-attribute]
+    assert agent._fallback_activated is True
 
     c = agent.context_compressor
     assert c.model == "gpt-4o"
@@ -84,8 +84,8 @@ def test_compressor_not_present_does_not_crash(mock_ctx_len, mock_resolve):
     fb_client.api_key = "sk-fallback"
     mock_resolve.return_value = (fb_client, None)
 
-    agent._is_direct_openai_url = lambda url: "api.openai.com" in url  # ty: ignore[invalid-assignment]
-    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
+    agent._is_direct_openai_url = lambda url: "api.openai.com" in url
+    agent._emit_status = lambda msg: None
 
     result = agent._try_activate_fallback()
     assert result is True

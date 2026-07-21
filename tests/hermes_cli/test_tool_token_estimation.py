@@ -1,13 +1,12 @@
 """Tests for tool token estimation and curses_ui status_fn support."""
 
-from unittest.mock import patch
 
 import pytest
 
 # tiktoken is not in core/[all] deps — skip estimation tests when unavailable
 _has_tiktoken = True
 try:
-    import tiktoken  # noqa: F401  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+    import tiktoken  # noqa: F401
 except ImportError:
     _has_tiktoken = False
 
@@ -20,7 +19,7 @@ _needs_tiktoken = pytest.mark.skipif(not _has_tiktoken, reason="tiktoken not ins
 @_needs_tiktoken
 def test_estimate_tool_tokens_returns_positive_counts():
     """_estimate_tool_tokens should return a non-empty dict with positive values."""
-    from hermes_cli.tools_config import _estimate_tool_tokens, _tool_token_cache
+    from hermes_cli.tools_config import _estimate_tool_tokens
 
     # Clear cache to force fresh computation
     import hermes_cli.tools_config as tc

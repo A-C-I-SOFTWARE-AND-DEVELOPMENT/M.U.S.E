@@ -13,12 +13,12 @@ def _ensure_discord_mock():
     if "discord" in sys.modules and hasattr(sys.modules["discord"], "__file__"):
         return
     discord_mod = types.ModuleType("discord")
-    discord_mod.Intents = MagicMock()  # ty: ignore[unresolved-attribute]
+    discord_mod.Intents = MagicMock()
     discord_mod.Intents.default.return_value = MagicMock()
-    discord_mod.DMChannel = type("DMChannel", (), {})  # ty: ignore[unresolved-attribute]
-    discord_mod.Thread = type("Thread", (), {})  # ty: ignore[unresolved-attribute]
-    discord_mod.ForumChannel = type("ForumChannel", (), {})  # ty: ignore[unresolved-attribute]
-    discord_mod.Interaction = object  # ty: ignore[unresolved-attribute]
+    discord_mod.DMChannel = type("DMChannel", (), {})
+    discord_mod.Thread = type("Thread", (), {})
+    discord_mod.ForumChannel = type("ForumChannel", (), {})
+    discord_mod.Interaction = object
     ext_mod = MagicMock()
     commands_mod = MagicMock()
     commands_mod.Bot = MagicMock
@@ -52,13 +52,13 @@ class _CapturingAgent:
 
 def _install_fake_agent(monkeypatch):
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
+    fake_run_agent.AIAgent = _CapturingAgent
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
 
 def _make_adapter():
     _ensure_discord_mock()
-    from gateway.platforms.discord import DiscordAdapter
+    from plugins.platforms.discord.adapter import DiscordAdapter
 
     adapter = object.__new__(DiscordAdapter)
     adapter.config = MagicMock()
@@ -172,7 +172,7 @@ class TestResolveChannelPrompts:
 
         await adapter._dispatch_thread_session(interaction, "999", "new-thread", "hello")
 
-        dispatched_event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+        dispatched_event = adapter.handle_message.await_args.args[0]
         assert dispatched_event.channel_prompt == "Parent prompt"
 
     def test_blank_prompts_are_ignored(self):
@@ -205,7 +205,7 @@ async def test_retry_preserves_channel_prompt(monkeypatch):
     result = await runner._handle_retry_command(event)
 
     assert result == "ok"
-    retried_event = runner._handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    retried_event = runner._handle_message.await_args.args[0]
     assert retried_event.channel_prompt == "Channel prompt"
 
 
@@ -253,7 +253,6 @@ async def test_run_agent_appends_channel_prompt_to_ephemeral_system_prompt(monke
     )
 
     assert result["final_response"] == "ok"
-    assert _CapturingAgent.last_init is not None
     assert _CapturingAgent.last_init["ephemeral_system_prompt"] == (
         "Context prompt\n\nChannel prompt\n\nGlobal prompt"
     )

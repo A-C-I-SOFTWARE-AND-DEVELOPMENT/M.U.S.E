@@ -129,13 +129,9 @@ def test_get_container_exec_info_docker_backend(container_env):
     with patch("hermes_constants.is_container", return_value=False):
         info = get_container_exec_info()
 
-    assert info is not None
     assert info["backend"] == "docker"
-    assert info is not None
     assert info["container_name"] == "hermes-custom"
-    assert info is not None
     assert info["exec_user"] == "myuser"
-    assert info is not None
     assert info["hermes_bin"] == "/opt/hermes/bin/hermes"
 
 

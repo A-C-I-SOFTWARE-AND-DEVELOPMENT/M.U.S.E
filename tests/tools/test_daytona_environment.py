@@ -2,7 +2,7 @@
 
 import threading
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -36,11 +36,11 @@ def _patch_daytona_imports(monkeypatch):
         ERROR = "error"
 
     daytona_mod = _types.ModuleType("daytona")
-    daytona_mod.Daytona = MagicMock  # ty: ignore[unresolved-attribute]
-    daytona_mod.CreateSandboxFromImageParams = MagicMock  # ty: ignore[unresolved-attribute]
-    daytona_mod.DaytonaError = type("DaytonaError", (Exception,), {})  # ty: ignore[unresolved-attribute]
-    daytona_mod.Resources = MagicMock(name="Resources")  # ty: ignore[unresolved-attribute]
-    daytona_mod.SandboxState = _SandboxState  # ty: ignore[unresolved-attribute]
+    daytona_mod.Daytona = MagicMock
+    daytona_mod.CreateSandboxFromImageParams = MagicMock
+    daytona_mod.DaytonaError = type("DaytonaError", (Exception,), {})
+    daytona_mod.Resources = MagicMock(name="Resources")
+    daytona_mod.SandboxState = _SandboxState
 
     monkeypatch.setitem(__import__("sys").modules, "daytona", daytona_mod)
     return daytona_mod
@@ -87,12 +87,11 @@ def make_env(daytona_sdk, monkeypatch):
             # Default: no existing sandbox found via get()
             mock_client.get.side_effect = daytona_sdk.DaytonaError("not found")
 
-        # Default: no legacy sandbox found via list().
-        # The SDK returns a PaginatedSandboxes model; sandboxes live in .items.
+        # Default: no legacy sandbox found via list()
         if list_return is not None:
-            mock_client.list.return_value = SimpleNamespace(items=list_return)
+            mock_client.list.return_value = list_return
         else:
-            mock_client.list.return_value = SimpleNamespace(items=[])
+            mock_client.list.return_value = iter([])
 
         daytona_sdk.Daytona = MagicMock(return_value=mock_client)
 
@@ -104,7 +103,7 @@ def make_env(daytona_sdk, monkeypatch):
             persistent_filesystem=persistent,
             **kwargs,
         )
-        env._mock_client = mock_client  # expose for assertions  # ty: ignore[unresolved-attribute]
+        env._mock_client = mock_client  # expose for assertions
         return env
 
     return _factory
@@ -414,3 +413,30 @@ class TestEnsureSandboxReady:
         env._sandbox.state = "started"
         env._ensure_sandbox_ready()
         env._sandbox.start.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Sync safety: shell-metacharacter quoting
+# ---------------------------------------------------------------------------
+
+class TestSyncSafety:
+    def test_single_upload_quotes_parent_path(self, make_env, tmp_path):
+        """A remote path with shell metacharacters must be quoted, not injected."""
+        env = make_env()
+        env._sandbox.process.exec.reset_mock()
+
+        host_file = tmp_path / "token.txt"
+        host_file.write_text("secret", encoding="utf-8")
+        remote_path = "/root/.hermes/skills/evil; touch /tmp/daytona-owned/file.txt"
+
+        env._daytona_upload(str(host_file), remote_path)
+
+        mkdir_cmd = env._sandbox.process.exec.call_args_list[0][0][0]
+        # The whole parent dir is a single quoted argument — the ';' cannot
+        # break out into a second command.
+        assert mkdir_cmd == (
+            "mkdir -p '/root/.hermes/skills/evil; touch /tmp/daytona-owned'"
+        )
+        assert "; touch" not in mkdir_cmd.replace(
+            "'/root/.hermes/skills/evil; touch /tmp/daytona-owned'", ""
+        )

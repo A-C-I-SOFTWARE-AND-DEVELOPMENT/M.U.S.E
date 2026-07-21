@@ -20,7 +20,7 @@ from pathlib import Path
 
 def _write_wav(path: str, samples, sample_rate: int = 24000) -> None:
     """Write a WAV file from float32 samples (no soundfile dependency)."""
-    import numpy as np  # ty: ignore[unresolved-import]
+    import numpy as np
 
     if not isinstance(samples, np.ndarray):
         samples = np.array(samples, dtype=np.float32)
@@ -73,7 +73,7 @@ def main():
 
     # Import and run NeuTTS
     try:
-        from neutts import NeuTTS  # ty: ignore[unresolved-import]
+        from neutts import NeuTTS
     except ImportError:
         print("Error: neutts not installed. Run: python -m pip install -U neutts[all]", file=sys.stderr)
         sys.exit(1)
@@ -92,7 +92,7 @@ def main():
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        import soundfile as sf  # ty: ignore[unresolved-import]
+        import soundfile as sf
         sf.write(str(out_path), wav, 24000)
     except ImportError:
         _write_wav(str(out_path), wav, 24000)

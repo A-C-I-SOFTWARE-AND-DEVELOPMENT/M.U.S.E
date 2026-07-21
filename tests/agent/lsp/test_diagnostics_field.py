@@ -6,12 +6,8 @@ having LSP output prepended to the lint string.
 """
 from __future__ import annotations
 
-import os
-import sys
-import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from tools.environments.local import LocalEnvironment
 from tools.file_operations import (
@@ -122,7 +118,6 @@ def test_write_file_skips_lsp_when_syntax_failed(tmp_path):
         res = fops.write_file(str(target), "def x(:\n")  # syntax error
     assert mock_lsp.call_count == 0
     assert res.lsp_diagnostics is None
-    assert res.lint is not None
     assert res.lint["status"] == "error"
 
 

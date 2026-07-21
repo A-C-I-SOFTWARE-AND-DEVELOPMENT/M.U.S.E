@@ -4,14 +4,13 @@ This uses a real AIAgent with mocked HTTP responses to test the complete
 interrupt flow through _run_single_child → child.run_conversation().
 """
 
-import json
 import os
 import threading
 import time
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-from tools.interrupt import set_interrupt, is_interrupted
+from tools.interrupt import set_interrupt
 
 
 def _make_slow_api_response(delay=5.0):
@@ -82,7 +81,7 @@ class TestRealSubagentInterrupt(unittest.TestCase):
         from tools.delegate_tool import _run_single_child
 
         child_started = threading.Event()
-        result_holder: list[dict | None] = [None]
+        result_holder = [None]
         error_holder = [None]
 
         def run_delegate():
@@ -120,7 +119,7 @@ class TestRealSubagentInterrupt(unittest.TestCase):
                                 skip_memory=True,
                                 platform="cli",
                             )
-                            child._delegate_depth = 1  # ty: ignore[unresolved-attribute]
+                            child._delegate_depth = 1
                             parent._active_children.append(child)
                             result = _run_single_child(
                                 task_index=0,
@@ -173,7 +172,6 @@ class TestRealSubagentInterrupt(unittest.TestCase):
 
         result = result_holder[0]
         self.assertIsNotNone(result, "Delegate returned no result")
-        assert result is not None
         print(f"Result status: {result['status']}, elapsed: {elapsed:.2f}s")
         print(f"Full result: {result}")
 

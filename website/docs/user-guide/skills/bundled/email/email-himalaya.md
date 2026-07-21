@@ -25,12 +25,17 @@ Himalaya CLI: IMAP/SMTP email from terminal.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Himalaya Email CLI
 
 Himalaya is a CLI email client that lets you manage emails from the terminal using IMAP, SMTP, Notmuch, or Sendmail backends.
+
+This skill is separate from the Hermes Email gateway adapter. The gateway
+adapter lets people email the agent and uses Hermes' built-in IMAP/SMTP
+adapter; this skill lets the agent operate a mailbox from terminal tools and
+requires the external `himalaya` CLI.
 
 ## References
 
@@ -109,7 +114,7 @@ folder.aliases.trash = "Trash"
 > emails to recipients. Always use `folder.aliases.X` (plural, dotted
 > keys, directly under `[accounts.NAME]`).
 
-## muse Integration Notes
+## Hermes Integration Notes
 
 - **Reading, listing, searching, moving, deleting** all work directly through the terminal tool
 - **Composing/replying/forwarding** — piped input (`cat << EOF | himalaya template send`) is recommended for reliability. Interactive `$EDITOR` mode works with `pty=true` + background + process tool, but requires knowing the editor and its commands
@@ -166,7 +171,7 @@ himalaya message export 42 --full
 
 ### Reply to an Email
 
-To reply non-interactively from muse read the original message, compose a reply, and pipe it:
+To reply non-interactively from Hermes, read the original message, compose a reply, and pipe it:
 
 ```bash
 # Get the reply template, edit it, and send
@@ -201,7 +206,7 @@ himalaya template forward 42 | sed 's/^To:.*/To: newrecipient@example.com/' | hi
 
 ### Write a New Email
 
-**Non-interactive (use this from muse)** — pipe the message via stdin:
+**Non-interactive (use this from Hermes)** — pipe the message via stdin:
 
 ```bash
 cat << 'EOF' | himalaya template send
@@ -226,13 +231,13 @@ Note: `himalaya message write` without piped input opens `$EDITOR`. This works w
 Move to folder:
 
 ```bash
-himalaya message move 42 "Archive"
+himalaya message move "Archive" 42
 ```
 
 Copy to folder:
 
 ```bash
-himalaya message copy 42 "Important"
+himalaya message copy "Important" 42
 ```
 
 ### Delete an Email
@@ -280,7 +285,7 @@ himalaya attachment download 42
 Save to specific directory:
 
 ```bash
-himalaya attachment download 42 --dir ~/Downloads
+himalaya attachment download 42 --downloads-dir ~/Downloads
 ```
 
 ## Output Formats

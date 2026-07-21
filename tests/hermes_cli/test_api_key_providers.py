@@ -1,12 +1,12 @@
-"""Tests for API-key provider support (z.ai/GLM, Kimi, MiniMax, AI Gateway)."""
+"""Tests for API-key provider support (z.ai/GLM, Kimi, MiniMax)."""
 
+import json
 import os
 
 import pytest
 
 from hermes_cli.auth import (
     PROVIDER_REGISTRY,
-    ProviderConfig,
     resolve_provider,
     get_api_key_provider_status,
     resolve_api_key_provider_credentials,
@@ -40,7 +40,6 @@ class TestProviderRegistry:
         ("stepfun", "StepFun Step Plan", "api_key"),
         ("minimax", "MiniMax", "api_key"),
         ("minimax-cn", "MiniMax (China)", "api_key"),
-        ("ai-gateway", "Vercel AI Gateway", "api_key"),
         ("kilocode", "Kilo Code", "api_key"),
         ("gmi", "GMI Cloud", "api_key"),
     ])
@@ -53,9 +52,7 @@ class TestProviderRegistry:
 
     def test_zai_env_vars(self):
         pconfig = PROVIDER_REGISTRY["zai"]
-        assert pconfig.api_key_env_vars == (
-            "GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY",
-        )
+        assert pconfig.api_key_env_vars == ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY")
         assert pconfig.base_url_env_var == "GLM_BASE_URL"
 
     def test_xai_env_vars(self):
@@ -66,9 +63,7 @@ class TestProviderRegistry:
 
     def test_nvidia_env_vars(self):
         pconfig = PROVIDER_REGISTRY["nvidia"]
-        assert pconfig.api_key_env_vars == (
-            "NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY",
-        )
+        assert pconfig.api_key_env_vars == ("NVIDIA_API_KEY",)
         assert pconfig.base_url_env_var == "NVIDIA_BASE_URL"
         assert pconfig.inference_base_url == "https://integrate.api.nvidia.com/v1"
 
@@ -81,11 +76,9 @@ class TestProviderRegistry:
         pconfig = PROVIDER_REGISTRY["kimi-coding"]
         # KIMI_API_KEY is the primary env var; KIMI_CODING_API_KEY is a
         # secondary fallback for Kimi Code sk-kimi- keys so users don't
-        # have to overload the same variable. MOONSHOT_API_KEY is the
-        # Vercel/public-chat alias.
+        # have to overload the same variable.
         assert "KIMI_API_KEY" in pconfig.api_key_env_vars
         assert "KIMI_CODING_API_KEY" in pconfig.api_key_env_vars
-        assert "MOONSHOT_API_KEY" in pconfig.api_key_env_vars
         assert pconfig.base_url_env_var == "KIMI_BASE_URL"
 
     def test_minimax_env_vars(self):
@@ -103,11 +96,6 @@ class TestProviderRegistry:
         assert pconfig.api_key_env_vars == ("MINIMAX_CN_API_KEY",)
         assert pconfig.base_url_env_var == "MINIMAX_CN_BASE_URL"
 
-    def test_ai_gateway_env_vars(self):
-        pconfig = PROVIDER_REGISTRY["ai-gateway"]
-        assert pconfig.api_key_env_vars == ("AI_GATEWAY_API_KEY",)
-        assert pconfig.base_url_env_var == "AI_GATEWAY_BASE_URL"
-
     def test_kilocode_env_vars(self):
         pconfig = PROVIDER_REGISTRY["kilocode"]
         assert pconfig.api_key_env_vars == ("KILOCODE_API_KEY",)
@@ -123,6 +111,17 @@ class TestProviderRegistry:
         assert pconfig.api_key_env_vars == ("HF_TOKEN",)
         assert pconfig.base_url_env_var == "HF_BASE_URL"
 
+    def test_deepinfra_registration(self):
+        pconfig = PROVIDER_REGISTRY["deepinfra"]
+        assert pconfig.id == "deepinfra"
+        assert pconfig.name == "DeepInfra"
+        assert pconfig.auth_type == "api_key"
+
+    def test_deepinfra_env_vars(self):
+        pconfig = PROVIDER_REGISTRY["deepinfra"]
+        assert pconfig.api_key_env_vars == ("DEEPINFRA_API_KEY",)
+        assert pconfig.base_url_env_var == "DEEPINFRA_BASE_URL"
+
     def test_base_urls(self):
         assert PROVIDER_REGISTRY["copilot"].inference_base_url == "https://api.githubcopilot.com"
         assert PROVIDER_REGISTRY["copilot-acp"].inference_base_url == "acp://copilot"
@@ -131,10 +130,10 @@ class TestProviderRegistry:
         assert PROVIDER_REGISTRY["stepfun"].inference_base_url == STEPFUN_STEP_PLAN_INTL_BASE_URL
         assert PROVIDER_REGISTRY["minimax"].inference_base_url == "https://api.minimax.io/anthropic"
         assert PROVIDER_REGISTRY["minimax-cn"].inference_base_url == "https://api.minimaxi.com/anthropic"
-        assert PROVIDER_REGISTRY["ai-gateway"].inference_base_url == "https://ai-gateway.vercel.sh/v1"
         assert PROVIDER_REGISTRY["kilocode"].inference_base_url == "https://api.kilo.ai/api/gateway"
         assert PROVIDER_REGISTRY["gmi"].inference_base_url == "https://api.gmi-serving.com/v1"
         assert PROVIDER_REGISTRY["huggingface"].inference_base_url == "https://router.huggingface.co/v1"
+        assert PROVIDER_REGISTRY["deepinfra"].inference_base_url == "https://api.deepinfra.com/v1/openai"
 
     def test_oauth_providers_unchanged(self):
         """Ensure we didn't break the existing OAuth providers."""
@@ -148,24 +147,27 @@ class TestProviderRegistry:
 # Provider Resolution tests
 # =============================================================================
 
-PROVIDER_ENV_VARS = (
-    "OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN",
-    "CLAUDE_CODE_OAUTH_TOKEN",
-    "LM_API_KEY", "LM_BASE_URL",
-    "GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY",
-    "KIMI_API_KEY", "KIMI_CODING_API_KEY", "MOONSHOT_API_KEY", "KIMI_BASE_URL",
-    "STEPFUN_API_KEY", "STEPFUN_BASE_URL",
-    "MINIMAX_API_KEY", "MINIMAX_CN_API_KEY",
-    "AI_GATEWAY_API_KEY", "AI_GATEWAY_BASE_URL",
-    "KILOCODE_API_KEY", "KILOCODE_BASE_URL",
-    "GMI_API_KEY", "GMI_BASE_URL",
-    "DASHSCOPE_API_KEY", "OPENCODE_ZEN_API_KEY", "OPENCODE_GO_API_KEY",
-    "NOUS_API_KEY", "GITHUB_TOKEN", "GH_TOKEN",
-    "NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY",
-    "GROQ_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY",
-    "PERPLEXITY_API_KEY", "MISTRAL_API_KEY",
-    "OPENAI_BASE_URL", "HERMES_COPILOT_ACP_COMMAND", "COPILOT_CLI_PATH",
+# Derived from the live PROVIDER_REGISTRY so the list can never drift when a
+# new provider (and its env var) is added — a hand-maintained tuple here was
+# missing HF_TOKEN/DEEPINFRA_API_KEY, which made the auto-detection tests
+# env-dependent (they failed on any machine with HF_TOKEN exported).
+from hermes_cli.auth import PROVIDER_REGISTRY as _REGISTRY
+
+_EXTRA_ENV_VARS = (
+    # Checked directly in resolve_provider("auto"), not via the registry.
+    "OPENROUTER_API_KEY", "NOUS_API_KEY",
+    # Base URLs / paths that influence detection but aren't api_key_env_vars.
+    "LM_BASE_URL", "KIMI_BASE_URL", "STEPFUN_BASE_URL", "KILOCODE_BASE_URL",
+    "GMI_BASE_URL", "OPENAI_BASE_URL",
+    "HERMES_COPILOT_ACP_COMMAND", "COPILOT_CLI_PATH",
     "HERMES_COPILOT_ACP_ARGS", "COPILOT_ACP_BASE_URL",
+)
+
+PROVIDER_ENV_VARS = tuple(
+    dict.fromkeys(
+        [var for cfg in _REGISTRY.values() for var in cfg.api_key_env_vars]
+        + list(_EXTRA_ENV_VARS)
+    )
 )
 
 
@@ -194,9 +196,6 @@ class TestResolveProvider:
     def test_explicit_minimax_cn(self):
         assert resolve_provider("minimax-cn") == "minimax-cn"
 
-    def test_explicit_ai_gateway(self):
-        assert resolve_provider("ai-gateway") == "ai-gateway"
-
     def test_explicit_gmi(self):
         assert resolve_provider("gmi") == "gmi"
 
@@ -220,12 +219,6 @@ class TestResolveProvider:
 
     def test_alias_minimax_underscore(self):
         assert resolve_provider("minimax_cn") == "minimax-cn"
-
-    def test_alias_aigateway(self):
-        assert resolve_provider("aigateway") == "ai-gateway"
-
-    def test_alias_vercel(self):
-        assert resolve_provider("vercel") == "ai-gateway"
 
     def test_alias_gmi_cloud(self):
         assert resolve_provider("gmi-cloud") == "gmi"
@@ -269,6 +262,12 @@ class TestResolveProvider:
     def test_alias_huggingface_hub(self):
         assert resolve_provider("huggingface-hub") == "huggingface"
 
+    def test_explicit_deepinfra(self):
+        assert resolve_provider("deepinfra") == "deepinfra"
+
+    def test_alias_deep_infra(self):
+        assert resolve_provider("deep-infra") == "deepinfra"
+
     def test_unknown_provider_raises(self):
         with pytest.raises(AuthError):
             resolve_provider("nonexistent-provider-xyz")
@@ -301,10 +300,6 @@ class TestResolveProvider:
         monkeypatch.setenv("MINIMAX_CN_API_KEY", "test-mm-cn-key")
         assert resolve_provider("auto") == "minimax-cn"
 
-    def test_auto_detects_ai_gateway_key(self, monkeypatch):
-        monkeypatch.setenv("AI_GATEWAY_API_KEY", "test-gw-key")
-        assert resolve_provider("auto") == "ai-gateway"
-
     def test_auto_detects_gmi_key(self, monkeypatch):
         monkeypatch.setenv("GMI_API_KEY", "test-gmi-key")
         assert resolve_provider("auto") == "gmi"
@@ -317,45 +312,9 @@ class TestResolveProvider:
         monkeypatch.setenv("HF_TOKEN", "hf_test_token")
         assert resolve_provider("auto") == "huggingface"
 
-    def test_auto_detects_groq_key(self, monkeypatch):
-        monkeypatch.setenv("GROQ_API_KEY", "test-groq-key")
-        assert resolve_provider("auto") == "groq"
-
-    def test_auto_detects_together_key(self, monkeypatch):
-        monkeypatch.setenv("TOGETHER_API_KEY", "test-together-key")
-        assert resolve_provider("auto") == "together"
-
-    def test_auto_detects_fireworks_key(self, monkeypatch):
-        monkeypatch.setenv("FIREWORKS_API_KEY", "test-fw-key")
-        assert resolve_provider("auto") == "fireworks"
-
-    def test_auto_detects_perplexity_key(self, monkeypatch):
-        monkeypatch.setenv("PERPLEXITY_API_KEY", "test-pplx-key")
-        assert resolve_provider("auto") == "perplexity"
-
-    def test_auto_detects_mistral_key(self, monkeypatch):
-        monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
-        assert resolve_provider("auto") == "mistral"
-
-    def test_auto_detects_zhipu_alias(self, monkeypatch):
-        monkeypatch.setenv("ZHIPU_API_KEY", "test-zhipu-key")
-        assert resolve_provider("auto") == "zai"
-
-    def test_auto_detects_nim_alias(self, monkeypatch):
-        monkeypatch.setenv("NIM_API_KEY", "test-nim-key")
-        assert resolve_provider("auto") == "nvidia"
-
-    def test_auto_detects_moonshot_alias(self, monkeypatch):
-        monkeypatch.setenv("MOONSHOT_API_KEY", "test-moonshot-key")
-        assert resolve_provider("auto") == "kimi-coding"
-
-    def test_explicit_groq_aliases(self):
-        assert resolve_provider("groq") == "groq"
-        assert resolve_provider("together") == "together"
-        assert resolve_provider("fireworks") == "fireworks"
-        assert resolve_provider("perplexity") == "perplexity"
-        assert resolve_provider("mistral") == "mistral"
-        assert resolve_provider("mistralai") == "mistral"
+    def test_auto_detects_deepinfra_key(self, monkeypatch):
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-di-key")
+        assert resolve_provider("auto") == "deepinfra"
 
     def test_openrouter_takes_priority_over_glm(self, monkeypatch):
         """OpenRouter API key should win over GLM in auto-detection."""
@@ -499,6 +458,15 @@ class TestResolveApiKeyProviderCredentials:
         assert creds["api_key"] == "lm-token"
         assert creds["base_url"] == "http://lmstudio.remote:4321/v1"
 
+    def test_resolve_lmstudio_normalizes_native_api_base_url_from_env(self, monkeypatch):
+        monkeypatch.setenv("LM_API_KEY", "lm-token")
+        monkeypatch.setenv("LM_BASE_URL", "http://lmstudio.remote:4321/api/v1")
+
+        creds = resolve_api_key_provider_credentials("lmstudio")
+
+        assert creds["provider"] == "lmstudio"
+        assert creds["base_url"] == "http://lmstudio.remote:4321/v1"
+
     def test_resolve_lmstudio_no_api_key_substitutes_placeholder(self, monkeypatch):
         # No-auth LM Studio: when LM_API_KEY isn't set, runtime credentials
         # carry a placeholder so gateway/TUI/cron paths see the local server
@@ -584,13 +552,6 @@ class TestResolveApiKeyProviderCredentials:
         assert creds["provider"] == "minimax-cn"
         assert creds["api_key"] == "mmcn-secret-key"
         assert creds["base_url"] == "https://api.minimaxi.com/anthropic"
-
-    def test_resolve_ai_gateway_with_key(self, monkeypatch):
-        monkeypatch.setenv("AI_GATEWAY_API_KEY", "gw-secret-key")
-        creds = resolve_api_key_provider_credentials("ai-gateway")
-        assert creds["provider"] == "ai-gateway"
-        assert creds["api_key"] == "gw-secret-key"
-        assert creds["base_url"] == "https://ai-gateway.vercel.sh/v1"
 
     def test_resolve_kilocode_with_key(self, monkeypatch):
         monkeypatch.setenv("KILOCODE_API_KEY", "kilo-secret-key")
@@ -690,15 +651,6 @@ class TestRuntimeProviderResolution:
         result = resolve_runtime_provider(requested="minimax")
         assert result["provider"] == "minimax"
         assert result["api_key"] == "mm-key"
-
-    def test_runtime_ai_gateway(self, monkeypatch):
-        monkeypatch.setenv("AI_GATEWAY_API_KEY", "gw-key")
-        from hermes_cli.runtime_provider import resolve_runtime_provider
-        result = resolve_runtime_provider(requested="ai-gateway")
-        assert result["provider"] == "ai-gateway"
-        assert result["api_mode"] == "chat_completions"
-        assert result["api_key"] == "gw-key"
-        assert "ai-gateway.vercel.sh" in result["base_url"]
 
     def test_runtime_kilocode(self, monkeypatch):
         monkeypatch.setenv("KILOCODE_API_KEY", "kilo-key")
@@ -1178,9 +1130,7 @@ class TestNovitaProvider:
     def test_novita_aliases(self):
         from providers import get_provider_profile
         profile = get_provider_profile("novita")
-        assert profile is not None
         assert "novita-ai" in profile.aliases
-        assert profile is not None
         assert "novitaai" in profile.aliases
 
     def test_novita_alias_resolves(self):
@@ -1296,7 +1246,7 @@ class TestNovitaProvider:
             return _FakeResp()
 
         monkeypatch.setattr(
-            models_mod.urllib.request, "urlopen", fake_urlopen
+            models_mod, "_urlopen_model_catalog_request", fake_urlopen
         )
 
         # First call hits the network.
@@ -1369,138 +1319,366 @@ class TestMinimaxOAuthProvider:
         assert len(models) >= 1
 
     def test_minimax_oauth_aux_model_registered(self):
-        from agent.auxiliary_client import _API_KEY_PROVIDER_AUX_MODELS
-        assert "minimax-oauth" in _API_KEY_PROVIDER_AUX_MODELS
-        assert _API_KEY_PROVIDER_AUX_MODELS["minimax-oauth"]  # non-empty
+        # Aux model for the minimax-oauth provider now lives on the
+        # ProviderProfile (plugins/model-providers/minimax/__init__.py),
+        # not the legacy _API_KEY_PROVIDER_AUX_MODELS dict in
+        # agent/auxiliary_client.py. The profile layer is the source
+        # of truth; _get_aux_model_for_provider() reads from it first
+        # and only falls back to the dict when no profile is registered.
+        import model_tools  # noqa: F401  -- triggers plugin discovery
+        import providers
+
+        profile = providers.get_provider_profile("minimax-oauth")
+        assert profile is not None, "minimax-oauth provider profile must be registered"
+        assert profile.default_aux_model, (
+            "minimax-oauth profile must advertise a non-empty default_aux_model "
+            "so the auxiliary client (compression / vision / session-search) "
+            "doesn't fire the 'No auxiliary LLM provider configured' warning "
+            "for every minimax-oauth session."
+        )
 
 
 # =============================================================================
-# WC-1: model_policy.json gate branch tests
+# DeepInfra provider tests
 # =============================================================================
+# Registration / alias / env-var invariants are asserted in
+# TestProviderRegistry + TestResolveProvider above. The classes below
+# cover the catalog/tag/pricing/profile machinery added on top of the
+# baseline provider wiring.
 
-class TestProviderGateReadsBootstrapPolicy:
-    """The first-run gate must read what ``muse models bootstrap`` writes.
 
-    Pre-WC-1 the gate read env vars, ``.env``, auth.json, and config.yaml but
-    never the ``jarvis_prime/model_policy.json`` file the bootstrap produces
-    — so a user who ran the README's headless instruction (``muse models
-    bootstrap``) was still told "not configured" on the next ``muse`` run.
-    These tests pin the fix: a bootstrap-written policy with a locally
-    executable enabled route satisfies the gate.
+@pytest.fixture
+def _deepinfra_cache_isolation(monkeypatch):
+    """Reset the module-level catalog cache around each DeepInfra test.
+
+    The cache is keyed by base URL and would otherwise leak fixture data
+    from one test into the next in the same session. The negative cache is
+    reset too, so a test that simulates an unreachable catalog can't suppress
+    a later test's fetch within the failure TTL.
     """
+    import hermes_cli.models as _models_mod
+    monkeypatch.setattr(_models_mod, "_deepinfra_catalog_cache", {})
+    monkeypatch.setattr(_models_mod, "_deepinfra_catalog_neg_cache", {})
+    yield
 
-    def _isolate(self, monkeypatch, tmp_path):
-        """Strip all provider env vars + point config/home at a clean tmpdir.
 
-        Mirrors ``test_claude_code_creds_ignored_on_fresh_install``'s isolation
-        so the new branch is the only thing that can flip the gate.
-        """
-        from hermes_cli import config as config_module
-        from hermes_cli.auth import PROVIDER_REGISTRY
+@pytest.mark.usefixtures("_deepinfra_cache_isolation")
+class TestFetchDeepInfraModels:
+    """Tests for _fetch_deepinfra_models() live model discovery."""
 
-        hermes_home = tmp_path / ".hermes"
-        hermes_home.mkdir()
-        monkeypatch.setattr(config_module, "get_env_path", lambda: hermes_home / ".env")
-        monkeypatch.setattr(config_module, "get_hermes_home", lambda: hermes_home)
-        monkeypatch.setattr("hermes_cli.copilot_auth.resolve_copilot_token", lambda: ("", ""))
-        all_vars = {"OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
-                    "ANTHROPIC_TOKEN", "OPENAI_BASE_URL"}
-        for pconfig in PROVIDER_REGISTRY.values():
-            if pconfig.auth_type == "api_key":
-                all_vars.update(pconfig.api_key_env_vars)
-        for var in all_vars:
-            monkeypatch.delenv(var, raising=False)
-        monkeypatch.setattr("hermes_cli.auth.get_auth_status", lambda _pid: {})
-        return hermes_home
+    def test_returns_filtered_models_on_success(self, monkeypatch):
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
 
-    def _write_policy(self, hermes_home, policy: dict) -> None:
-        import json as _json
+        class _Resp:
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                return False
+            def read(self):
+                return json.dumps({"data": [
+                    {"id": "meta-llama/Llama-3-70B-Instruct", "metadata": {}},
+                    {"id": "mistralai/Mistral-Nemo-Instruct-2407", "metadata": {}},
+                    {"id": "BAAI/bge-large-en-v1.5-embed", "metadata": {}},
+                    {"id": "stabilityai/stable-diffusion-xl-base-1.0", "metadata": {}},
+                ]}).encode()
 
-        jp_dir = hermes_home / "jarvis_prime"
-        jp_dir.mkdir(parents=True, exist_ok=True)
-        (jp_dir / "model_policy.json").write_text(_json.dumps(policy))
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models, "_urlopen_model_catalog_request", lambda *a, **kw: _Resp()
+        )
+        from hermes_cli.models import _fetch_deepinfra_models
+        result = _fetch_deepinfra_models()
 
-    def test_bootstrapped_claude_worker_with_binary_satisfies_gate(self, monkeypatch, tmp_path):
-        """The headline fix: bootstrap + `claude` on PATH ⇒ gate passes."""
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "claude_code_worker": {"enabled": True, "tool": "claude"},
+        assert result is not None
+        assert "meta-llama/Llama-3-70B-Instruct" in result
+        assert "mistralai/Mistral-Nemo-Instruct-2407" in result
+        # Embedding and image models should be excluded
+        assert not any("embed" in m.lower() for m in result)
+        assert not any("stable-diffusion" in m.lower() for m in result)
+
+    def test_works_without_api_key(self, monkeypatch):
+        monkeypatch.delenv("DEEPINFRA_API_KEY", raising=False)
+
+        class _Resp:
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                return False
+            def read(self):
+                return json.dumps({"data": [
+                    {"id": "meta-llama/Llama-3-70B-Instruct", "metadata": {}},
+                ]}).encode()
+
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models, "_urlopen_model_catalog_request", lambda *a, **kw: _Resp()
+        )
+        from hermes_cli.models import _fetch_deepinfra_models
+        result = _fetch_deepinfra_models()
+        assert result == ["meta-llama/Llama-3-70B-Instruct"]
+
+    def test_returns_none_on_network_failure(self, monkeypatch):
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models,
+            "_urlopen_model_catalog_request",
+            lambda *a, **kw: (_ for _ in ()).throw(Exception("timeout")),
+        )
+        from hermes_cli.models import _fetch_deepinfra_models
+        assert _fetch_deepinfra_models() is None
+
+    def test_catalog_uses_credential_safe_opener(self, monkeypatch):
+        import hermes_cli.models as models
+
+        seen = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps({"data": []}).encode()
+
+        def _safe_open(request, *, timeout):
+            seen["authorization"] = request.get_header("Authorization")
+            seen["timeout"] = timeout
+            return _Resp()
+
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
+        monkeypatch.setattr(models, "_urlopen_model_catalog_request", _safe_open)
+
+        assert models._fetch_deepinfra_catalog(force_refresh=True) == []
+        assert seen == {"authorization": "Bearer test-key", "timeout": 5.0}
+
+    def test_empty_filtered_catalog_never_falls_back_to_mixed_profile_catalog(
+        self, monkeypatch
+    ):
+        import hermes_cli.models as models
+        from providers import get_provider_profile
+
+        profile = get_provider_profile("deepinfra")
+        assert profile is not None
+        monkeypatch.setattr(
+            models, "_fetch_deepinfra_models", lambda **kwargs: None
+        )
+        monkeypatch.setattr(
+            profile,
+            "fetch_models",
+            lambda **kwargs: ["black-forest-labs/FLUX-1-dev"],
+        )
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
+
+        assert models.provider_model_ids("deepinfra") == []
+
+    def test_force_refresh_reaches_deepinfra_catalog(self, monkeypatch):
+        import hermes_cli.models as models
+
+        seen = []
+
+        def _fetch(*, force_refresh=False, **kwargs):
+            seen.append(force_refresh)
+            return ["vendor/chat"]
+
+        monkeypatch.setattr(models, "_fetch_deepinfra_models", _fetch)
+
+        assert models.provider_model_ids("deepinfra", force_refresh=True) == [
+            "vendor/chat"
+        ]
+        assert seen == [True]
+
+    def test_excludes_non_chat_models(self, monkeypatch):
+        monkeypatch.setenv("DEEPINFRA_API_KEY", "test-key")
+
+        class _Resp:
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                return False
+            def read(self):
+                return json.dumps({"data": [
+                    {"id": "Qwen/Qwen3-235B-A22B-Instruct-2507", "metadata": {}},
+                    {"id": "openai/whisper-large-v3", "metadata": {}},
+                    {"id": "some-org/flux-dev", "metadata": {}},
+                    {"id": "sentence-transformers/clip-ViT-B-32", "metadata": {}},
+                    {"id": "microsoft/vit-base-patch16-224", "metadata": {}},
+                    {"id": "some-org/rerank-v2", "metadata": {}},
+                    {"id": "some-org/bark-large", "metadata": {}},
+                    {"id": "nvidia/sdxl-turbo", "metadata": {}},
+                ]}).encode()
+
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models, "_urlopen_model_catalog_request", lambda *a, **kw: _Resp()
+        )
+        from hermes_cli.models import _fetch_deepinfra_models
+        result = _fetch_deepinfra_models()
+
+        assert result == ["Qwen/Qwen3-235B-A22B-Instruct-2507"]
+
+
+def _make_urlopen_returning(payload):
+    """Helper: build a urlopen() shim returning a fixed JSON payload."""
+    import json as _json
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return _json.dumps(payload).encode()
+
+    return lambda *a, **kw: _Resp()
+
+
+@pytest.mark.usefixtures("_deepinfra_cache_isolation")
+class TestDeepInfraTagFiltering:
+    """Contract tests for the shared _fetch_deepinfra_models_by_tag helper."""
+
+    def test_filters_by_surface_tag_and_handles_rollout_states(self, monkeypatch):
+        # One payload, several invariants in one test:
+        #  - explicit surface tags are honored (chat / image-gen / tts / stt / embed)
+        #  - capability-tags-only items fall through to the regex fallback
+        #    (used during the surface-tag rollout)
+        #  - the regex excludes id-name matches (whisper, embed, …)
+        #  - a surface tag takes priority over the regex
+        #  - ``metadata: None`` stubs are dropped
+        payload = {"data": [
+            {"id": "vendor/chat-tagged", "metadata": {"tags": ["chat"]}},
+            {"id": "vendor/image-tagged", "metadata": {"tags": ["image-gen"]}},
+            {"id": "vendor/tts-tagged", "metadata": {"tags": ["tts"]}},
+            {"id": "vendor/stt-tagged", "metadata": {"tags": ["stt"]}},
+            {"id": "vendor/embed-tagged", "metadata": {"tags": ["embed"]}},
+            # capability-only — rolls through regex fallback
+            {"id": "Qwen/Qwen3-30B", "metadata": {"tags": ["reasoning", "vision"]}},
+            {"id": "openai/whisper-large", "metadata": {"tags": ["reasoning"]}},
+            # surface tag overrides legacy regex exclusion
+            {"id": "some-org/whisper-finetune-chat", "metadata": {"tags": ["chat"]}},
+            # null metadata — stub model, must be skipped
+            {"id": "stub-model", "metadata": None},
+        ]}
+        from hermes_cli.models import _fetch_deepinfra_models_by_tag
+        import hermes_cli.models as _m
+
+        for surface in ("chat", "image-gen", "tts", "stt", "embed"):
+            monkeypatch.setattr(
+                _m,
+                "_urlopen_model_catalog_request",
+                _make_urlopen_returning(payload),
+            )
+            # Reset cache between iterations so each surface re-parses the payload.
+            _m._deepinfra_catalog_cache.clear()
+            got = _fetch_deepinfra_models_by_tag(surface)
+            assert got is not None
+            ids = {item["id"] for item in got}
+            assert "stub-model" not in ids  # null-metadata always skipped
+            if surface == "chat":
+                # explicit chat + capability-only (Qwen) + surface-tag-over-regex
+                assert "vendor/chat-tagged" in ids
+                assert "Qwen/Qwen3-30B" in ids
+                assert "some-org/whisper-finetune-chat" in ids
+                # regex still excludes capability-only items that match the excluder
+                assert "openai/whisper-large" not in ids
+            else:
+                # non-chat surfaces only see explicit surface-tagged items
+                for item in got:
+                    assert surface in item["metadata"]["tags"]
+
+    def test_returns_none_on_network_failure(self, monkeypatch):
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models, "_urlopen_model_catalog_request",
+            lambda *a, **kw: (_ for _ in ()).throw(Exception("timeout")),
+        )
+        from hermes_cli.models import _fetch_deepinfra_models_by_tag, _fetch_deepinfra_pricing
+        assert _fetch_deepinfra_models_by_tag("chat") is None
+        # Pricing rides the same catalog cache — same failure mode.
+        assert _fetch_deepinfra_pricing() == {}
+
+
+@pytest.mark.usefixtures("_deepinfra_cache_isolation")
+class TestDeepInfraPricingFetcher:
+    """_fetch_deepinfra_pricing reshapes $/MTok values into per-token strings
+    and is wired into the get_pricing_for_provider dispatch."""
+
+    def test_pricing_shape_and_dispatch(self, monkeypatch):
+        payload = {"data": [
+            {
+                "id": "vendor/model-a",
+                "metadata": {
+                    "tags": ["chat", "prompt_cache"],
+                    "pricing": {
+                        "input_tokens": 0.1,
+                        "output_tokens": 0.3,
+                        "cache_read_tokens": 0.02,
+                    },
+                },
             },
-        })
-        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/claude" if name == "claude" else None)
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is True
-
-    def test_bootstrapped_claude_worker_without_binary_does_not_satisfy_gate(self, monkeypatch, tmp_path):
-        """If the bootstrap is stale (binary removed) the gate stays closed."""
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "claude_code_worker": {"enabled": True, "tool": "claude"},
+            {
+                "id": "vendor/model-b",
+                "metadata": {"tags": ["chat"], "pricing": {"input_tokens": 1.0, "output_tokens": 5.0}},
             },
-        })
-        monkeypatch.setattr("shutil.which", lambda _name: None)
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is False
+            # non-chat — must not appear
+            {"id": "vendor/model-image", "metadata": {"tags": ["image-gen"], "pricing": {"per_image_unit": 0.05}}},
+        ]}
+        import hermes_cli.models as models
+        monkeypatch.setattr(
+            models,
+            "_urlopen_model_catalog_request",
+            _make_urlopen_returning(payload),
+        )
+        from hermes_cli.models import get_pricing_for_provider
 
-    def test_bootstrapped_codex_worker_with_binary_satisfies_gate(self, monkeypatch, tmp_path):
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "codex_worker": {"enabled": True, "tool": "codex"},
-            },
-        })
-        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/codex" if name == "codex" else None)
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is True
+        # get_pricing_for_provider → _fetch_deepinfra_pricing dispatch path
+        result = get_pricing_for_provider("deepinfra")
+        assert set(result) == {"vendor/model-a", "vendor/model-b"}
+        # Picker-shape: per-token strings under prompt/completion (+ cache_read when source had it)
+        assert float(result["vendor/model-a"]["prompt"]) == pytest.approx(0.1 / 1_000_000)
+        assert float(result["vendor/model-a"]["completion"]) == pytest.approx(0.3 / 1_000_000)
+        assert "input_cache_read" in result["vendor/model-a"]
+        assert "input_cache_read" not in result["vendor/model-b"]
 
-    def test_bootstrapped_local_oss_with_runtimes_satisfies_gate(self, monkeypatch, tmp_path):
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "local_oss": {"enabled": True, "runtimes": ["ollama"]},
-            },
-        })
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is True
 
-    def test_bootstrapped_local_oss_without_runtimes_does_not_satisfy_gate(self, monkeypatch, tmp_path):
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "local_oss": {"enabled": True, "runtimes": []},
-            },
-        })
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is False
+class TestDeepInfraProviderProfile:
+    """plugins/model-providers/deepinfra registration + aux resolution."""
 
-    def test_bootstrapped_disabled_routes_do_not_satisfy_gate(self, monkeypatch, tmp_path):
-        """A policy whose every route is `enabled: false` must not pass."""
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        self._write_policy(hermes_home, {
-            "routes": {
-                "claude_code_worker": {"enabled": False, "tool": "claude"},
-                "codex_worker": {"enabled": False, "tool": "codex"},
-                "local_oss": {"enabled": False, "runtimes": ["ollama"]},
-            },
-        })
-        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/" + name)
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is False
+    def test_profile_registered_with_alias_and_aux(self):
+        from providers import get_provider_profile
+        from agent.auxiliary_client import _get_aux_model_for_provider
+        from hermes_cli.auth import PROVIDER_REGISTRY, resolve_provider
+        from hermes_cli.config import OPTIONAL_ENV_VARS
+        from hermes_cli.models import CANONICAL_PROVIDERS
 
-    def test_missing_policy_file_does_not_break_gate(self, monkeypatch, tmp_path):
-        """Absence of model_policy.json is normal — the gate must not raise."""
-        self._isolate(monkeypatch, tmp_path)  # no policy written
-        from hermes_cli.main import _has_any_provider_configured
-        # Should return False (no provider) without raising.
-        assert _has_any_provider_configured() is False
+        profile = get_provider_profile("deepinfra")
+        assert profile is not None
+        assert profile.name == "deepinfra"
+        assert profile.auth_type == "api_key"
+        # Alias resolves to the same profile.
+        assert get_provider_profile("deep-infra") is profile
+        assert resolve_provider("deep-infra") == "deepinfra"
+        assert PROVIDER_REGISTRY["deepinfra"].inference_base_url == profile.base_url
+        assert any(entry.slug == "deepinfra" for entry in CANONICAL_PROVIDERS)
+        assert OPTIONAL_ENV_VARS["DEEPINFRA_API_KEY"]["password"] is True
+        assert OPTIONAL_ENV_VARS["DEEPINFRA_BASE_URL"]["password"] is False
+        # Aux model is resolved via the profile (not via the legacy
+        # _API_KEY_PROVIDER_AUX_MODELS_FALLBACK dict, which has no
+        # deepinfra entry).
+        assert _get_aux_model_for_provider("deepinfra")
+        # Fallback list intentionally empty — live catalog is the source
+        # of truth. Pin the shape only, not contents.
+        assert isinstance(profile.fallback_models, tuple)
 
-    def test_corrupted_policy_file_does_not_break_gate(self, monkeypatch, tmp_path):
-        """A truncated/corrupt JSON file must not crash the gate."""
-        hermes_home = self._isolate(monkeypatch, tmp_path)
-        jp_dir = hermes_home / "jarvis_prime"
-        jp_dir.mkdir(parents=True, exist_ok=True)
-        (jp_dir / "model_policy.json").write_text("{not json")
-        from hermes_cli.main import _has_any_provider_configured
-        assert _has_any_provider_configured() is False
+    def test_profile_does_not_force_one_output_cap_across_mixed_catalog(self):
+        """DeepInfra model output limits vary, so the server default is safest."""
+        from providers import get_provider_profile
+
+        profile = get_provider_profile("deepinfra")
+        assert profile is not None
+        assert profile.default_max_tokens is None
+        assert profile.get_max_tokens("deepseek-ai/DeepSeek-V4-Flash") is None

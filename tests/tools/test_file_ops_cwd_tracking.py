@@ -17,10 +17,7 @@ Fix: _exec() now prefers the LIVE ``env.cwd`` over the init-time
 
 from __future__ import annotations
 
-import os
-import tempfile
 
-import pytest
 
 from tools.file_operations import ShellFileOperations
 
@@ -38,7 +35,7 @@ class _FakeEnv:
         self.cwd = start_cwd
         self.calls: list[dict] = []
 
-    def execute(self, command: str, cwd: str | None = None, **kwargs) -> dict:
+    def execute(self, command: str, cwd: str = None, **kwargs) -> dict:
         import subprocess
         self.calls.append({"command": command, "cwd": cwd})
         # Simulate cd by updating self.cwd (the real env does the same

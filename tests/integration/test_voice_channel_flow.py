@@ -17,14 +17,13 @@ pytestmark = pytest.mark.integration
 pytest.importorskip("nacl.secret", reason="PyNaCl required for voice integration tests")
 discord = pytest.importorskip("discord", reason="discord.py required for voice integration tests")
 
-import nacl.secret  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+import nacl.secret
 
 try:
     if not discord.opus.is_loaded():
         import ctypes.util
         opus_path = ctypes.util.find_library("opus")
         if not opus_path:
-            import sys
             for p in ("/opt/homebrew/lib/libopus.dylib", "/usr/local/lib/libopus.dylib"):
                 import os
                 if os.path.isfile(p):
@@ -38,7 +37,7 @@ except Exception:
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
-from gateway.platforms.discord import VoiceReceiver
+from plugins.platforms.discord.adapter import VoiceReceiver
 
 
 # ---------------------------------------------------------------------------
@@ -130,7 +129,7 @@ def _make_voice_receiver(secret_key, dave_session=None, bot_ssrc=9999,
     vc.user = SimpleNamespace(id=bot_ssrc)
     vc.channel = MagicMock()
     vc.channel.members = members or []
-    receiver = VoiceReceiver(vc, allowed_user_ids=allowed_user_ids)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    receiver = VoiceReceiver(vc, allowed_user_ids=allowed_user_ids)
     receiver.start()
     return receiver
 

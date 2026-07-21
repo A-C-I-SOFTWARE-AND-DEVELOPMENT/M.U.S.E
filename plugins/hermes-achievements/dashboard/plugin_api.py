@@ -4,7 +4,6 @@ Mounted at /api/plugins/hermes-achievements/ by Hermes dashboard.
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import math
 import re
@@ -22,49 +21,15 @@ except ImportError:
         return Path(val) if val else Path.home() / ".hermes"
 
 try:
-    from fastapi import APIRouter  # ty: ignore[unresolved-import]  # optional dashboard dependency
+    from fastapi import APIRouter
 except Exception:  # Allows local unit tests without dashboard dependencies.
-    class APIRouter:
+    class APIRouter:  # type: ignore
         def get(self, *_args, **_kwargs):
             return lambda fn: fn
         def post(self, *_args, **_kwargs):
             return lambda fn: fn
 
 router = APIRouter()
-
-
-def _load_external_evidence_module():
-    path = Path(__file__).with_name("external_evidence.py")
-    spec = importlib.util.spec_from_file_location(
-        "hermes_achievements_external_evidence", path
-    )
-    if spec is None or spec.loader is None:
-        raise ImportError("could not load external evidence module")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-_external_evidence = _load_external_evidence_module()
-
-
-def record_external_evidence(envelope: Dict[str, Any]) -> Dict[str, str]:
-    """Explicit external-evidence seam.
-
-    muse_universe's AchievementBridge activates this sink only when it finds
-    this literal definition here (a bare re-export is not treated as an
-    explicit seam), so keep it a real ``def``.
-    """
-    return _external_evidence.record_external_evidence(envelope)
-
-
-def _with_external_evidence(payload: Dict[str, Any]) -> Dict[str, Any]:
-    records = _external_evidence.list_external_evidence()
-    return {
-        **payload,
-        "external_records": records,
-        "external_record_count": len(records),
-    }
 
 SNAPSHOT_TTL_SECONDS = 120
 _SCAN_LOCK = threading.Lock()
@@ -778,7 +743,7 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
             agg["local_model_chat_sessions"] += 1
         if s.get("started_at"):
             try:
-                lt = time.localtime(float(s.get("started_at")))  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+                lt = time.localtime(float(s.get("started_at")))
                 if lt.tm_wday >= 5:
                     agg["weekend_sessions"] += 1
                 if lt.tm_hour < 6 or lt.tm_hour >= 23:
@@ -998,7 +963,7 @@ def evaluate_all(force: bool = False) -> Dict[str, Any]:
     now = int(time.time())
 
     if not force and _cache_is_fresh(now):
-        return _with_external_evidence(_SNAPSHOT_CACHE or {})
+        return _SNAPSHOT_CACHE or {}
 
     # Lazy-load persisted snapshot from disk so fresh process starts
     # don't have to wait for a scan to serve cached data.
@@ -1014,38 +979,27 @@ def evaluate_all(force: bool = False) -> Dict[str, Any]:
         # No partial publishing: the caller is waiting for the final result.
         _run_scan_and_update_cache(publish_partial_snapshots=False)
         if _SNAPSHOT_CACHE is not None:
-            return _with_external_evidence(_SNAPSHOT_CACHE)
+            return _SNAPSHOT_CACHE
         # Scan failed with no prior cache — surface empty payload.
-        return _with_external_evidence(_build_pending_snapshot(now))
+        return _build_pending_snapshot(now)
 
     # Non-force path: serve whatever we have and refresh in background.
     if _SNAPSHOT_CACHE is not None:
         if not _cache_is_fresh(now):
             _start_background_scan()
-        return _with_external_evidence(_SNAPSHOT_CACHE)
+        return _SNAPSHOT_CACHE
 
     # First-ever run on this machine — no snapshot yet. Kick off a scan
     # and return a pending placeholder. The UI polls /scan-status and
     # re-fetches /achievements when the scan completes.
     _start_background_scan()
-    return _with_external_evidence(_build_pending_snapshot(now))
+    return _build_pending_snapshot(now)
 
 
 @router.get("/achievements")
 async def achievements():
     data = evaluate_all()
-    response_fields = (
-        "achievements",
-        "unlocked_count",
-        "discovered_count",
-        "secret_count",
-        "total_count",
-        "error",
-        "generated_at",
-        "external_records",
-        "external_record_count",
-    )
-    payload = {key: data[key] for key in response_fields if key in data}
+    payload = {k: data[k] for k in ["achievements", "unlocked_count", "discovered_count", "secret_count", "total_count", "error", "generated_at"] if k in data}
     payload["is_stale"] = _is_snapshot_stale(data)
     payload["scan_meta"] = {
         **(data.get("scan_meta") or {}),

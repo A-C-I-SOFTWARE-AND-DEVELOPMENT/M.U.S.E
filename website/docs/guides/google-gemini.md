@@ -1,23 +1,21 @@
 ---
 sidebar_position: 16
 title: "Google Gemini"
-description: "Use muse with Google Gemini — native AI Studio API, API-key setup, OAuth option, tool calling, streaming, and quota guidance"
+description: "Use Hermes Agent with Google Gemini — native AI Studio API, API-key setup, tool calling, streaming, and quota guidance"
 ---
 
 # Google Gemini
 
-muse supports Google Gemini as a native provider using the **Google AI Studio / Gemini API** — not the OpenAI-compatible endpoint. This lets muse translate its internal OpenAI-shaped message and tool loop into Gemini's native `generateContent` API while preserving tool calling, streaming, multimodal inputs, and Gemini-specific response metadata.
-
-muse also supports a separate **Google Gemini (OAuth)** provider that uses the same Cloud Code Assist backend as Google's Gemini CLI. Use the API-key provider (`gemini`) for the lowest-risk official API path.
+Hermes Agent supports Google Gemini as a native provider using the **Google AI Studio / Gemini API** — not the OpenAI-compatible endpoint. This lets Hermes translate its internal OpenAI-shaped message and tool loop into Gemini's native `generateContent` API while preserving tool calling, streaming, multimodal inputs, and Gemini-specific response metadata.
 
 ## Prerequisites
 
 - **Google AI Studio API key** — create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- **Billing-enabled Google Cloud project** — recommended for agent use. Gemini's free tier is too small for long-running agent sessions because muse may make several model calls per user turn.
-- **muse installed** — no extra Python package is required for the native Gemini provider.
+- **Billing-enabled Google Cloud project** — recommended for agent use. Gemini's free tier is too small for long-running agent sessions because Hermes may make several model calls per user turn.
+- **Hermes installed** — no extra Python package is required for the native Gemini provider.
 
 :::tip API key path
-Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`. muse checks both names for the `gemini` provider.
+Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`. Hermes checks both names for the `gemini` provider.
 :::
 
 ## Quick Start
@@ -27,13 +25,13 @@ Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`. muse checks both names for the `gemini
 echo "GOOGLE_API_KEY=..." >> ~/.hermes/.env
 
 # Select Gemini as your provider
-muse model
+hermes model
 # → Choose "More providers..." → "Google AI Studio"
-# → muse checks your key tier and shows Gemini models
+# → Hermes checks your key tier and shows Gemini models
 # → Select a model
 
 # Start chatting
-muse chat
+hermes chat
 ```
 
 If you prefer direct config editing, use the native Gemini API base URL:
@@ -47,7 +45,7 @@ model:
 
 ## Configuration
 
-After running `muse model`, your `~/.hermes/config.yaml` will contain:
+After running `hermes model`, your `~/.hermes/config.yaml` will contain:
 
 ```yaml
 model:
@@ -70,18 +68,18 @@ The recommended endpoint is:
 https://generativelanguage.googleapis.com/v1beta
 ```
 
-muse detects this endpoint and creates its native Gemini adapter. Internally, muse still keeps the agent loop in OpenAI-shaped messages, then translates each request to Gemini's native schema:
+Hermes detects this endpoint and creates its native Gemini adapter. Internally, Hermes still keeps the agent loop in OpenAI-shaped messages, then translates each request to Gemini's native schema:
 
 - `messages[]` → Gemini `contents[]`
 - system prompts → Gemini `systemInstruction`
 - tool schemas → Gemini `functionDeclarations`
 - tool results → Gemini `functionResponse` parts
-- streaming responses → OpenAI-shaped stream chunks for the muse loop
+- streaming responses → OpenAI-shaped stream chunks for the Hermes loop
 
 :::note Gemini 3 thought signatures
-For Gemini 3 tool use, muse preserves the `thoughtSignature` values attached to function-call parts and replays them on the next tool turn. That covers the validation-critical path for multi-step agent workflows.
+For Gemini 3 tool use, Hermes preserves the `thoughtSignature` values attached to function-call parts and replays them on the next tool turn. That covers the validation-critical path for multi-step agent workflows.
 
-Gemini 3 may also attach thought signatures to other response parts. muse' native adapter is optimized for agent tool loops today, so it does not yet replay every non-tool-call signature with full part-level fidelity.
+Gemini 3 may also attach thought signatures to other response parts. Hermes' native adapter is optimized for agent tool loops today, so it does not yet replay every non-tool-call signature with full part-level fidelity.
 :::
 
 ### Prefer the Native Endpoint
@@ -92,7 +90,7 @@ Google also exposes an OpenAI-compatible endpoint:
 https://generativelanguage.googleapis.com/v1beta/openai/
 ```
 
-For muse agent sessions, prefer the native Gemini endpoint above. muse includes a native Gemini adapter so it can map multi-turn tool use, tool-call results, streaming, multimodal inputs, and Gemini response metadata directly onto Gemini's `generateContent` API. The OpenAI-compatible endpoint is still useful when you specifically need OpenAI API compatibility.
+For Hermes agent sessions, prefer the native Gemini endpoint above. Hermes includes a native Gemini adapter so it can map multi-turn tool use, tool-call results, streaming, multimodal inputs, and Gemini response metadata directly onto Gemini's `generateContent` API. The OpenAI-compatible endpoint is still useful when you specifically need OpenAI API compatibility.
 
 If you previously set `GEMINI_BASE_URL` to the `/openai` URL, remove it or change it:
 
@@ -100,20 +98,9 @@ If you previously set `GEMINI_BASE_URL` to the `/openai` URL, remove it or chang
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 ```
 
-### OAuth Provider
-
-muse also has a `google-gemini-cli` provider:
-
-```bash
-muse model
-# → Choose "Google Gemini (OAuth)"
-```
-
-This uses browser PKCE login and the Cloud Code Assist backend. It can be useful for users who want Gemini CLI-style OAuth, but muse shows an explicit warning because Google may treat use of the Gemini CLI OAuth client from third-party software as a policy violation. For production or lowest-risk usage, prefer the API-key provider above.
-
 ## Available Models
 
-The `muse model` picker shows Gemini models maintained in muse' provider registry. Common choices include:
+The `hermes model` picker shows Gemini models maintained in Hermes' provider registry. Common choices include:
 
 | Model | ID | Notes |
 |-------|----|-------|
@@ -122,7 +109,7 @@ The `muse model` picker shows Gemini models maintained in muse' provider registr
 | Gemini 3 Flash Preview | `gemini-3-flash-preview` | Recommended default balance of speed and capability |
 | Gemini 3.1 Flash Lite Preview | `gemini-3.1-flash-lite-preview` | Fastest / lowest-cost option when available |
 
-Model availability changes over time. If a model disappears or is not enabled for your key, run `muse model` again and pick one from the current list.
+Model availability changes over time. If a model disappears or is not enabled for your key, run `hermes model` again and pick one from the current list.
 
 :::info Model IDs
 Use Gemini's native model IDs such as `gemini-3-flash-preview`, not OpenRouter-style IDs like `google/gemini-3-flash-preview`, when `provider: gemini`.
@@ -130,7 +117,7 @@ Use Gemini's native model IDs such as `gemini-3-flash-preview`, not OpenRouter-s
 
 ### Latest Aliases
 
-Google publishes moving aliases for the Pro and Flash Gemini families. `gemini-pro-latest` and `gemini-flash-latest` are useful when you want Google to advance the model automatically without changing your muse config.
+Google publishes moving aliases for the Pro and Flash Gemini families. `gemini-pro-latest` and `gemini-flash-latest` are useful when you want Google to advance the model automatically without changing your Hermes config.
 
 | Alias | Currently tracks | Notes |
 |-------|------------------|-------|
@@ -148,7 +135,7 @@ If you need strict reproducibility, prefer explicit model IDs such as `gemini-3.
 
 ### Gemma via the Gemini API
 
-Google also exposes Gemma models through the Gemini API. muse recognizes these as Google models, but hides very low-throughput Gemma entries from the default model picker so new users do not accidentally select an evaluation-tier model for a long-running agent session.
+Google also exposes Gemma models through the Gemini API. Hermes recognizes these as Google models, but hides very low-throughput Gemma entries from the default model picker so new users do not accidentally select an evaluation-tier model for a long-running agent session.
 
 Useful evaluation IDs include:
 
@@ -157,7 +144,7 @@ Useful evaluation IDs include:
 | Gemma 4 31B IT | `gemma-4-31b-it` | Larger Gemma model; useful for compatibility and quality evaluation |
 | Gemma 4 26B A4B IT | `gemma-4-26b-a4b-it` | Smaller active-parameter variant when available |
 
-These models are best treated as evaluation options on Gemini API keys. Google's Gemma API pricing is free-tier-only and the usage caps are low compared with production Gemini models, so sustained muse agent use should normally move to a paid Gemini model, a self-hosted deployment, or another provider with appropriate quota.
+These models are best treated as evaluation options on Gemini API keys. Google's Gemma API pricing is free-tier-only and the usage caps are low compared with production Gemini models, so sustained Hermes agent use should normally move to a paid Gemini model, a self-hosted deployment, or another provider with appropriate quota.
 
 To use a Gemma model that is hidden from the picker, set it directly:
 
@@ -181,35 +168,26 @@ Use the `/model` command during a conversation:
 /model gemini-3.1-flash-lite-preview
 ```
 
-If you have not configured Gemini yet, exit the session and run `muse model` first. `/model` switches among already-configured providers and models; it does not collect new API keys.
+If you have not configured Gemini yet, exit the session and run `hermes model` first. `/model` switches among already-configured providers and models; it does not collect new API keys.
 
 ## Diagnostics
 
 ```bash
-muse doctor
+hermes doctor
 ```
 
 The doctor checks:
 
 - Whether `GOOGLE_API_KEY` or `GEMINI_API_KEY` is available
-- Whether Gemini OAuth credentials exist for `google-gemini-cli`
 - Whether configured provider credentials can be resolved
-
-For OAuth quota usage, run this inside a muse session:
-
-```text
-/gquota
-```
-
-`/gquota` applies to the `google-gemini-cli` OAuth provider, not the AI Studio API-key provider.
 
 ## Gateway (Messaging Platforms)
 
-Gemini works with all muse gateway platforms (Telegram, Discord, Slack, WhatsApp, LINE, Feishu, etc.). Configure Gemini as your provider, then start the gateway normally:
+Gemini works with all Hermes gateway platforms (Telegram, Discord, Slack, WhatsApp, LINE, Feishu, etc.). Configure Gemini as your provider, then start the gateway normally:
 
 ```bash
-muse gateway setup
-muse gateway start
+hermes gateway setup
+hermes gateway start
 ```
 
 The gateway reads `config.yaml` and uses the same Gemini provider configuration.
@@ -218,7 +196,7 @@ The gateway reads `config.yaml` and uses the same Gemini provider configuration.
 
 ### "Gemini native client requires an API key"
 
-muse could not find a usable API key. Add one of these to `~/.hermes/.env`:
+Hermes could not find a usable API key. Add one of these to `~/.hermes/.env`:
 
 ```bash
 GOOGLE_API_KEY=...
@@ -226,25 +204,25 @@ GOOGLE_API_KEY=...
 GEMINI_API_KEY=...
 ```
 
-Then run `muse model` again.
+Then run `hermes model` again.
 
 ### "This Google API key is on the free tier"
 
-muse probes Gemini API keys during setup. Free-tier quotas can be exhausted after a handful of agent turns because tool use, retries, compression, and auxiliary tasks may require multiple model calls.
+Hermes probes Gemini API keys during setup. Free-tier quotas can be exhausted after a handful of agent turns because tool use, retries, compression, and auxiliary tasks may require multiple model calls.
 
 Enable billing on the Google Cloud project attached to your key, regenerate the key if needed, then run:
 
 ```bash
-muse model
+hermes model
 ```
 
 ### "404 model not found"
 
-The selected model is not available for your account, region, or key. Run `muse model` again and pick another Gemini model from the current list.
+The selected model is not available for your account, region, or key. Run `hermes model` again and pick another Gemini model from the current list.
 
-### Gemma model is not shown in `muse model`
+### Gemma model is not shown in `hermes model`
 
-muse may hide low-throughput Gemma models from the picker by default. If you intentionally want to evaluate one, set the model ID directly in `~/.hermes/config.yaml`.
+Hermes may hide low-throughput Gemma models from the picker by default. If you intentionally want to evaluate one, set the model ID directly in `~/.hermes/config.yaml`.
 
 ### "429 quota exceeded" on Gemma
 
@@ -264,17 +242,13 @@ Change it to the native endpoint or remove the override:
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 ```
 
-### OAuth login warning
-
-The `google-gemini-cli` provider uses a Gemini CLI / Cloud Code Assist OAuth flow. muse warns before starting it because this is distinct from the official AI Studio API-key path. Use `provider: gemini` with `GOOGLE_API_KEY` for the official API-key integration.
-
 ### Tool calling fails with schema errors
 
-Upgrade muse and rerun `muse model`. The native Gemini adapter sanitizes tool schemas for Gemini's stricter function-declaration format; older builds or custom endpoints may not.
+Upgrade Hermes and rerun `hermes model`. The native Gemini adapter sanitizes tool schemas for Gemini's stricter function-declaration format; older builds or custom endpoints may not.
 
 ## Related
 
-- [AI Providers](/docs/integrations/providers)
-- [Configuration](/docs/user-guide/configuration)
-- [Fallback Providers](/docs/user-guide/features/fallback-providers)
-- [AWS Bedrock](/docs/guides/aws-bedrock) — native cloud-provider integration using AWS credentials
+- [AI Providers](/integrations/providers)
+- [Configuration](/user-guide/configuration)
+- [Fallback Providers](/user-guide/features/fallback-providers)
+- [AWS Bedrock](/guides/aws-bedrock) — native cloud-provider integration using AWS credentials

@@ -1,192 +1,203 @@
-# muse — Desktop app (Tauri v2)
+# Hermes Desktop ☤
 
-A native desktop shell for **muse** (Multi-Use Synaptic Entity), built with
-**Tauri v2** wrapping a lean **Singularity** client (Vite + React 19 +
-TypeScript). The shell loads the bundled UI and talks to a locally-running muse
-**gateway** over HTTP. It does **not** bundle the Python backend — but it *can
-start it*: when the gateway is down and an installed `muse` CLI is found, the
-shell spawns `muse cockpit serve` as a managed child (see
-[One installable](#one-installable-the-app-starts-the-brain) below).
+<p align="center">
+  <a href="https://github.com/NousResearch/hermes-agent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
+  <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
+  <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+</p>
 
-> One white core that blazes in the void, wrapped by one thin spectral ring.
-> See [`docs/brand/muse-design-language.md`](../../docs/brand/muse-design-language.md).
+**The native desktop app for [Hermes Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://nousresearch.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
 
-## Layout
+<table>
+<tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Hermes surface.</td></tr>
+<tr><td><b>Side-by-side previews</b></td><td>Render web pages, files, and tool outputs in a right-hand pane while you keep chatting.</td></tr>
+<tr><td><b>File browser</b></td><td>Explore and preview the working directory without leaving the app.</td></tr>
+<tr><td><b>Voice</b></td><td>Talk to Hermes and hear it back.</td></tr>
+<tr><td><b>Settings & onboarding</b></td><td>Manage providers, models, tools, and credentials from a real UI. First-run setup gets you to your first message in seconds.</td></tr>
+<tr><td><b>Stays current</b></td><td>Built-in updates pull the latest agent and rebuild the app in place.</td></tr>
+</table>
 
-```
-apps/desktop/
-├── ui/             # Vite + React 19 + TS — the Singularity client
-│   ├── src/
-│   │   ├── App.tsx            # app shell: header lockup, nav, hash router
-│   │   ├── components/Glyph.tsx   # the animated incandescent mark (inline SVG)
-│   │   ├── lib/gateway.ts     # gateway client: health, pairing, SSE jobs, NDJSON chat
-│   │   ├── lib/brain.ts       # native bridge: gateway_start/stop/status, autostart
-│   │   ├── routes.ts          # APPEND-ONLY route registry (the extension seam)
-│   │   ├── routes.register.ts # registers the built-in Home route
-│   │   ├── views/             # Home, Chat, Jobs, Approvals, Autonomy, Observatory, Settings
-│   │   └── styles/tokens.css  # @import "@muse/design-system/tokens.css" + desktop motion aliases
-│   ├── public/                # favicon.svg + derived PWA icons
-│   └── vite.config.ts         # Vite + vite-plugin-pwa (manifest + service worker)
-└── src-tauri/      # Tauri v2 Rust shell
-    ├── src/lib.rs             # window + native menu + system tray + single-instance
-    ├── src/brain.rs           # gateway autostart: probe /v1/health, spawn `muse cockpit serve`
-    ├── src/main.rs            # thin binary entry → lib::run()
-    ├── tauri.conf.json        # dark window "muse", bundle id com.aci.muse
-    ├── capabilities/default.json  # minimal window/tray/menu permissions
-    ├── icons/                 # app icons derived from the glyph
-    ├── Cargo.toml
-    └── build.rs
-```
+---
 
-## Prerequisites
+## Install
 
-- **Node** ≥ 20 and **npm** ≥ 10.
-- **Rust** (stable, ≥ 1.77.2) + Cargo.
-- The **Tauri CLI**: `cargo install tauri-cli --version "^2"` (gives
-  `cargo tauri …`).
-- **Linux only:** the WebKitGTK / GTK system libraries Tauri's webview needs.
-  On Debian/Ubuntu:
+### Install with Hermes (recommended)
 
-  ```bash
-  sudo apt-get install -y \
-    libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
-    libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
-    libayatana-appindicator3-dev build-essential curl wget file pkg-config
-  ```
-
-  (macOS and Windows need no extra system libs beyond Xcode CLT / MSVC +
-  WebView2.)
-
-## Develop
-
-The UI and the shell can be run independently or together.
+Already have the Hermes CLI? Just run:
 
 ```bash
-# 1) UI only (browser / PWA), hot-reloading on http://127.0.0.1:1420
-cd apps/desktop/ui
-npm install
-npm run dev
-
-# 2) Full desktop app (spawns the UI dev server via beforeDevCommand)
-cd apps/desktop/src-tauri
-cargo tauri dev
+hermes desktop
 ```
 
-`cargo tauri dev` runs `npm --prefix ../ui run dev` and points the native
-window at `http://127.0.0.1:1420` (see `build.devUrl` in `tauri.conf.json`).
+It builds and launches the GUI against your existing install — same config, keys, sessions, and skills. On first launch Hermes walks you through picking a provider and model; nothing else to configure.
 
-### Pointing at a gateway
+### Prebuilt installers
 
-The app defaults to `http://127.0.0.1:8765`. Override it at runtime in-app
-(stored in `localStorage` under `muse.gateway.base`), or at build time with the
-`VITE_GATEWAY_BASE` env var for the UI. The native menu's **Help → Gateway**
-item reflects `MUSE_GATEWAY_URL` if set.
+Prebuilt installers are built and distributed via [the Hermes Desktop website.](https://hermes-agent.nousresearch.com/).
 
-### Zero-touch pairing (install → open → connected)
+---
 
-On a **loopback** gateway (the default) the desktop app pairs itself: at boot
-(and on every health tick while unpaired) it silently walks
-`pair/start → pair/confirm` and stores the minted per-device token — no code,
-no owner phrase, no gateway URL to type. This leans on the gateway's own
-loopback trust rule (`gateway/cockpit/handlers.py:pair_confirm`): anything that
-can reach `127.0.0.1` is already on the device, so the owner phrase is only
-enforced when the cockpit is started `--allow-external`. Point the app at a
-**remote** gateway and auto-pairing steps aside (the server answers 403), the
-manual owner-phrase pairing flow in Settings takes over, and nothing is minted
-silently.
+## Updating
 
-The gateway's default CORS allowlist includes the desktop webview origins
-(`tauri://localhost`, `http(s)://tauri.localhost`, and the Vite dev server on
-`:1420`), so the UI talks to the gateway directly — streaming SSE jobs and
-NDJSON chat. Against an older gateway without those origins, requests fall
-back to the shell's native HTTP proxy (buffered, non-streaming) and the jobs
-list degrades to polling; everything still works.
-
-## One installable: the app starts the brain
-
-The desktop app is designed to be the only thing a user launches. On startup
-the shell probes `GET /v1/health`; if the gateway ("the brain") is down **and
-autostart is enabled** (persisted in `app_config_dir/brain.json`, default on),
-it locates an installed `muse` binary — `PATH`, then common install locations
-(`~/.local/bin`, `~/.cargo/bin`, `/usr/local/bin`, `/opt/homebrew/bin`,
-`%LOCALAPPDATA%\Programs\…` on Windows) — and spawns **`muse cockpit serve`**
-as a managed child (`src-tauri/src/brain.rs`, via `tauri-plugin-shell`,
-Rust-side only; the webview gets no shell permission).
-
-Semantics:
-
-- It **never** spawns over a running gateway (probe first, every time) and
-  never spawns twice (the child handle is tracked).
-- Closing the window hides to tray and **keeps the brain running**; the child
-  is killed only on real quit (tray/menu Quit).
-- **Stop** only kills the child the app spawned — a gateway you started in a
-  terminal is never touched.
-- Settings → **Brain (gateway)** shows running/stopped + the detected binary,
-  the autostart toggle, and Start/Stop buttons. The **Observatory** view's
-  offline fallback offers the same Start.
-
-If no `muse` binary is installed, the app still runs (views show the offline
-fallback) and Settings links to the CLI install docs.
-
-### Designed follow-up: bundling the runtime as a sidecar
-
-Today the brain comes from an installed `muse` CLI. The fully self-contained
-installer is a **documented follow-up**: package the gateway as a PyInstaller
-single binary per OS and ship it as a Tauri *sidecar*, e.g.
-
-```jsonc
-// tauri.conf.json (sketch — not active)
-"bundle": {
-  "externalBin": ["binaries/muse-gateway"]  // resolves muse-gateway-<target-triple>[.exe]
-}
-```
-
-with `pyinstaller --onefile` producing `muse-gateway-x86_64-unknown-linux-gnu`,
-`muse-gateway-aarch64-apple-darwin`, `muse-gateway-x86_64-pc-windows-msvc.exe`,
-etc., and `brain.rs` preferring the sidecar (`shell.sidecar("muse-gateway")`)
-over the PATH search. Per-OS PyInstaller builds need real OS runners (they
-cannot be cross-compiled or verified in a Linux container), so this lands via
-the CI matrix in `muse-desktop-release.yml` when activated.
-
-## Build
+The app checks for updates in the background and offers a one-click update when one is ready. You can also update any time from the CLI:
 
 ```bash
-# Production UI bundle (also runs automatically as beforeBuildCommand)
-cd apps/desktop/ui && npm run build      # → ui/dist/
-
-# Native installers for the current OS (.dmg / .msi+.exe / .deb+.AppImage)
-cd apps/desktop/src-tauri && cargo tauri build
+hermes update
 ```
 
-Bundle identifier: `com.aci.muse`. Window: dark, titled **muse**, min
-880×600. Icons are derived from the brand glyph
-(`ui/public/favicon.svg`).
+---
 
-Auto-update is scaffolded but **inert**: `plugins.updater` ships an empty
-`pubkey` placeholder and the plugin is only registered when a real public key
-is configured. Activation is owner-gated — see [`RELEASE.md`](RELEASE.md).
+## Requirements
 
-## PWA
+The installer handles everything for you (Python 3.11+, a portable Git, ripgrep).
 
-The UI is also an installable PWA: `vite-plugin-pwa` emits
-`manifest.webmanifest` (name **muse**, `theme_color`/`background_color`
-`#050507`) and a service worker that precaches the app shell. The gateway API
-(`/v1/*`) is deliberately **not** cached — it's always live. Serve `ui/dist/`
-from any static host (or open the built `index.html`) to install it.
+---
 
-## CI note
+## Development
 
-Building the desktop app needs a **dual Rust + Node lane** in CI:
+Want to hack on the app itself? Install workspace deps from the repo root once, then run the dev server from this directory:
 
-1. Set up Node (≥ 20) and Rust (stable), with caching for `~/.cargo`,
-   `src-tauri/target`, and `ui/node_modules`.
-2. **On Linux runners, install the WebKitGTK system libs above** before
-   `cargo tauri build` / `cargo check` — without `libwebkit2gtk-4.1-dev` &
-   friends, the `*-sys` crates (`gdk-sys`, `webkit2gtk-sys`, …) fail at the
-   `pkg-config` probe, not at Rust compile time.
-3. The UI build (`npm ci && npm run build` in `ui/`) is the cheap, fast gate
-   and can run on any runner without system libs; gate PRs on it first, then
-   run the heavier Tauri compile/bundle on a matrix of macOS / Windows / Linux.
+```bash
+npm install          # from repo root — links apps/desktop, web, apps/shared
+cd apps/desktop
+npm run dev          # Vite renderer + Electron, which boots the Python backend
+```
 
-The official [`tauri-apps/tauri-action`](https://github.com/tauri-apps/tauri-action)
-GitHub Action wraps steps 1–2 and produces per-OS installers.
+Point the app at a specific source checkout, or sandbox it away from your real config:
+
+```bash
+# throwaway HERMES_HOME, separate Electron userData, distinct app name to avoid the single-instance lock
+../scripts/dev-sandbox.sh npm run dev
+HERMES_DESKTOP_HERMES_ROOT=/path/to/clone npm run dev
+HERMES_HOME=/tmp/throwaway npm run dev
+npm run dev:fake-boot   # exercise the startup overlay with deterministic delays
+```
+
+### Building installers
+
+```bash
+npm run dist:mac     # DMG + zip
+npm run dist:win     # NSIS + MSI
+npm run dist:linux   # AppImage + deb + rpm
+npm run pack         # unpacked app under release/ (no installer)
+```
+
+Installers are built and uploaded to GitHub Releases manually. macOS/Windows signing & notarization happen automatically when the relevant credentials are present in the environment (`CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_*` for macOS, `WIN_CSC_*` for Windows).
+
+### How it works
+
+The packaged app ships the Electron shell and a native React chat surface. On
+first launch it can install the Hermes Agent runtime into `HERMES_HOME`
+(`~/.hermes`, or `%LOCALAPPDATA%\hermes` on Windows), using the same layout as a
+CLI install.
+
+The app has three boundaries:
+
+- **Electron** resolves and validates a runnable backend, owns native
+  filesystem/git/window capabilities, and exposes a narrow preload bridge.
+- **React** owns the Desktop routes, panes, interaction state, and
+  `@assistant-ui/react` transcript.
+- **Hermes Agent** runs as a headless `hermes serve` process and exposes the
+  `tui_gateway` JSON-RPC/WebSocket API. The renderer connects through
+  [`apps/shared`](../shared/), which is also used by the browser dashboard.
+
+Backend resolution is an ordered ladder:
+
+1. `HERMES_DESKTOP_HERMES_ROOT`
+2. the current source checkout during development
+3. a completed managed install
+4. `HERMES_DESKTOP_HERMES`, or `hermes` on `PATH`
+5. a system Python that can import the Hermes runtime
+6. the first-launch bootstrap installer
+
+Candidates are probed before use; an existing shim or interpreter is not enough.
+A runtime that predates `serve` falls back to headless
+`dashboard --no-open`. This is compatibility for the backend command only and
+does not launch or embed the dashboard UI.
+
+The Electron orchestration entry point is `electron/main.ts`; pure resolution,
+probe, hardening, and platform policies live in focused modules beside it. The
+renderer is under `src/`, with shared atoms in `src/store` and transport/native
+adapters in `src/lib`.
+
+Before changing the app, read:
+
+- [`AGENTS.md`](./AGENTS.md): architecture, state ownership, resolver/fallback,
+  transport, performance, and testing rules.
+- [`DESIGN.md`](./DESIGN.md): visual system, information architecture, motion,
+  direct manipulation, and keyboard behavior.
+
+### Connections, projects, and switching
+
+Desktop supports a managed local backend, explicit remote gateways, and Hermes
+Cloud connections. Remote and cloud modes use the same remote-capability path;
+authentication and discovery differ, not the renderer feature model.
+
+Projects are the workspace abstraction. A project may own multiple folders,
+repositories, worktrees, and sessions; a bare new chat remains detached unless
+the user enters a project or configures a default project directory. Use the
+Projects UI rather than adding a second per-session folder-picker workflow.
+
+Changing profiles or connection modes is a soft workspace switch, not another
+cold boot. The shell and current management overlay remain mounted while
+gateway-bound nanostores are wiped, query-backed data is invalidated, and the
+new connection repopulates skeletons. This prevents rows or transcripts from
+the previous gateway bleeding into the next one.
+
+### Verification
+
+Run before opening a PR (lint may surface pre-existing warnings but must exit cleanly):
+
+```bash
+npm run fix
+npm run typecheck
+npm run lint
+npm run test:ui
+npm run test:desktop:platforms
+```
+
+Run `npm run test:desktop:all` for install, boot, update, packaging, or other
+release-path changes.
+
+### Troubleshooting
+
+Boot logs land in `HERMES_HOME/logs/desktop.log` (includes backend output and recent Python tracebacks) — check it first if the app reports a boot failure.
+
+**macOS / Linux:**
+
+```bash
+# Force a clean first-launch setup
+rm "$HOME/.hermes/hermes-agent/.hermes-bootstrap-complete"
+# Rebuild a broken Python venv
+rm -rf "$HOME/.hermes/hermes-agent/venv"
+# Reset a stuck macOS microphone prompt (macOS only)
+tccutil reset Microphone com.nousresearch.hermes
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Force a clean first-launch setup
+Remove-Item "$env:LOCALAPPDATA\hermes\hermes-agent\.hermes-bootstrap-complete"
+# Rebuild a broken Python venv
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\hermes\hermes-agent\venv"
+```
+
+> The default Hermes home on Windows is `%LOCALAPPDATA%\hermes`. Set the `HERMES_HOME` env var if you've relocated it.
+
+---
+
+## Community
+
+- 💬 [Discord](https://discord.gg/NousResearch)
+- 📖 [Documentation](https://hermes-agent.nousresearch.com/docs/)
+- 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+
+---
+
+## License
+
+MIT — see [LICENSE](../../LICENSE).
+
+Built by [Nous Research](https://nousresearch.com).

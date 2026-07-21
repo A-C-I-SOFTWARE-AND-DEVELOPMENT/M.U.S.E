@@ -22,27 +22,27 @@ class _TelegramError(Exception):
     pass
 
 
-_fake_telegram_error.TelegramError = _TelegramError  # ty: ignore[unresolved-attribute]
-_fake_telegram_error.BadRequest = type("BadRequest", (_TelegramError,), {})  # ty: ignore[unresolved-attribute]
-_fake_telegram_error.NetworkError = type("NetworkError", (_TelegramError,), {})  # ty: ignore[unresolved-attribute]
+_fake_telegram_error.TelegramError = _TelegramError
+_fake_telegram_error.BadRequest = type("BadRequest", (_TelegramError,), {})
+_fake_telegram_error.NetworkError = type("NetworkError", (_TelegramError,), {})
 
 _fake_telegram_constants = types.ModuleType("telegram.constants")
-_fake_telegram_constants.ParseMode = SimpleNamespace(HTML="HTML")  # ty: ignore[unresolved-attribute]
+_fake_telegram_constants.ParseMode = SimpleNamespace(HTML="HTML")
 
 _fake_telegram_request = types.ModuleType("telegram.request")
-_fake_telegram_request.HTTPXRequest = type("HTTPXRequest", (), {"__init__": lambda *a, **kw: None})  # ty: ignore[unresolved-attribute]
+_fake_telegram_request.HTTPXRequest = type("HTTPXRequest", (), {"__init__": lambda *a, **kw: None})
 
 _fake_telegram_ext = types.ModuleType("telegram.ext")
-_fake_telegram_ext.ApplicationBuilder = type("ApplicationBuilder", (), {  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.ApplicationBuilder = type("ApplicationBuilder", (), {
     "token": lambda self, *a: self,
     "build": lambda self: None,
 })
 
 _fake_telegram = types.ModuleType("telegram")
-_fake_telegram.error = _fake_telegram_error  # ty: ignore[unresolved-attribute]
-_fake_telegram.constants = _fake_telegram_constants  # ty: ignore[unresolved-attribute]
-_fake_telegram.ext = _fake_telegram_ext  # ty: ignore[unresolved-attribute]
-_fake_telegram.request = _fake_telegram_request  # ty: ignore[unresolved-attribute]
+_fake_telegram.error = _fake_telegram_error
+_fake_telegram.constants = _fake_telegram_constants
+_fake_telegram.ext = _fake_telegram_ext
+_fake_telegram.request = _fake_telegram_request
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +55,7 @@ def _inject_fake_telegram(monkeypatch):
 
 
 def _make_adapter():
-    from gateway.platforms.telegram import TelegramAdapter
+    from plugins.platforms.telegram.adapter import TelegramAdapter
 
     config = PlatformConfig(enabled=True, token="fake-token")
     adapter = object.__new__(TelegramAdapter)

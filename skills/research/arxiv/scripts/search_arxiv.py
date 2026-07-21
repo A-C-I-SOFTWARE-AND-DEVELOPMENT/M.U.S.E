@@ -59,15 +59,15 @@ def search(query=None, author=None, category=None, ids=None, max_results=5, sort
         print(f"Found {total.text} results (showing {len(entries)})\n")
     
     for i, entry in enumerate(entries):
-        title = entry.find('a:title', NS).text.strip().replace('\n', ' ')  # ty: ignore[unresolved-attribute]
-        raw_id = entry.find('a:id', NS).text.strip()  # ty: ignore[unresolved-attribute]
+        title = entry.find('a:title', NS).text.strip().replace('\n', ' ')
+        raw_id = entry.find('a:id', NS).text.strip()
         full_id = raw_id.split('/abs/')[-1] if '/abs/' in raw_id else raw_id
         arxiv_id = full_id.split('v')[0]  # base ID for links
-        published = entry.find('a:published', NS).text[:10]  # ty: ignore[not-subscriptable, unresolved-attribute]
-        updated = entry.find('a:updated', NS).text[:10]  # ty: ignore[not-subscriptable, unresolved-attribute]
-        authors = ', '.join(a.find('a:name', NS).text for a in entry.findall('a:author', NS))  # ty: ignore[no-matching-overload, unresolved-attribute]
-        summary = entry.find('a:summary', NS).text.strip().replace('\n', ' ')  # ty: ignore[unresolved-attribute]
-        cats = ', '.join(c.get('term') for c in entry.findall('a:category', NS))  # ty: ignore[no-matching-overload]
+        published = entry.find('a:published', NS).text[:10]
+        updated = entry.find('a:updated', NS).text[:10]
+        authors = ', '.join(a.find('a:name', NS).text for a in entry.findall('a:author', NS))
+        summary = entry.find('a:summary', NS).text.strip().replace('\n', ' ')
+        cats = ', '.join(c.get('term') for c in entry.findall('a:category', NS))
         
         version = full_id[len(arxiv_id):] if full_id != arxiv_id else ""
         print(f"{i+1}. {title}")

@@ -56,14 +56,14 @@ class TestOfferOpenclawMigration:
 
         # Build a fake migration module
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 3, "skipped": 1, "conflict": 0, "error": 0},
             "items": [{"kind": "config", "status": "migrated", "destination": "/tmp/x"}],
             "output_dir": str(hermes_home / "migration"),
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         script = tmp_path / "openclaw_to_hermes.py"
         script.write_text("# placeholder")
@@ -124,13 +124,13 @@ class TestOfferOpenclawMigration:
         config_path.write_text("agent:\n  max_turns: 90\n")
 
         fake_mod = ModuleType("openclaw_to_hermes")
-        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
             "summary": {"migrated": 3, "skipped": 0, "conflict": 0, "error": 0},
             "items": [{"kind": "config", "status": "migrated", "destination": "/tmp/x"}],
         }
-        fake_mod.Migrator = MagicMock(return_value=fake_migrator)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
         script = tmp_path / "openclaw_to_hermes.py"
         script.write_text("# placeholder")
@@ -430,8 +430,8 @@ class TestGetSectionConfigSummary:
         with patch.object(setup_mod, "get_env_value", side_effect=env_side), \
              patch.object(gateway_mod, "get_env_value", side_effect=env_side):
             result = setup_mod._get_section_config_summary({}, "gateway")
-        assert "Telegram" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert "Discord" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Telegram" in result
+        assert "Discord" in result
 
     def test_tools_returns_none_without_keys(self):
         with patch.object(setup_mod, "get_env_value", return_value=""):
@@ -444,7 +444,7 @@ class TestGetSectionConfigSummary:
 
         with patch.object(setup_mod, "get_env_value", side_effect=env_side):
             result = setup_mod._get_section_config_summary({}, "tools")
-        assert "Browser" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Browser" in result
 
     # Regression tests for issue #13025: the model / gateway summaries used
     # stale, hardcoded env-var allowlists that drifted from the real setup +
@@ -565,7 +565,7 @@ class TestGetSectionConfigSummary:
             with patch.object(setup_mod, "get_env_value", side_effect=env_side), \
                  patch.object(gateway_mod, "get_env_value", side_effect=env_side):
                 result = setup_mod._get_section_config_summary({}, "gateway")
-            expected = setup_mod._gateway_platform_short_label(label)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+            expected = setup_mod._gateway_platform_short_label(label)
             assert result is not None, f"{label} ({env_var}) not recognised"
             assert expected in result, (
                 f"{label} ({env_var}) recognised but label missing from summary: {result!r}"

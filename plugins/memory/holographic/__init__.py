@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List
 
 from agent.memory_provider import MemoryProvider
 from tools.registry import tool_error
@@ -153,14 +153,6 @@ class HolographicMemoryProvider(MemoryProvider):
             {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
             {"key": "default_trust", "description": "Default trust score for new facts", "default": "0.5"},
             {"key": "hrr_dim", "description": "HRR vector dimensions", "default": "1024"},
-            {"key": "embedding_weight", "description": "Weight of dense-embedding similarity in recall (0 = off)", "default": "0.0"},
-            {"key": "embeddings.enabled", "description": "Enable optional semantic recall via dense embeddings", "default": "false", "choices": ["true", "false"]},
-            {"key": "embeddings.backend", "description": "Embedding backend", "default": "auto", "choices": ["auto", "openai", "sentence-transformers"]},
-            {"key": "embeddings.model", "description": "Embedding model (backend-specific default if blank)", "default": ""},
-            {"key": "longevity.enabled", "description": "Importance-weighted recall + tiered decay + access tracking", "default": "false", "choices": ["true", "false"]},
-            {"key": "longevity.importance_weight", "description": "Weight of the importance prior in recall (0 = off)", "default": "0.2"},
-            {"key": "longevity.short_half_life_days", "description": "Decay half-life (days) for short-tier facts", "default": "7"},
-            {"key": "longevity.long_half_life_days", "description": "Decay half-life (days) for long-tier facts", "default": "180"},
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
@@ -179,46 +171,11 @@ class HolographicMemoryProvider(MemoryProvider):
         hrr_weight = float(self._config.get("hrr_weight", 0.3))
         temporal_decay = int(self._config.get("temporal_decay_half_life", 0))
 
-        # Optional dense-embedding backend (semantic recall). Returns None when
-        # embeddings are disabled in config, in which case behavior is unchanged.
-        embedding_backend = None
-        try:
-            from .embeddings import make_backend
-
-            embedding_backend = make_backend(self._config)
-        except Exception as exc:  # never block memory init on embeddings
-            logger.debug("Embedding backend init skipped: %s", exc)
-
-        # Default the dense-term weight to a sensible value when embeddings are
-        # enabled but the user didn't pin one — so "enabled: true" just works —
-        # while keeping the disabled default at 0.0 (identical to before).
-        _embeddings_enabled = embedding_backend is not None
-        _default_emb_weight = 0.3 if _embeddings_enabled else 0.0
-        embedding_weight = float(self._config.get("embedding_weight", _default_emb_weight))
-
-        # Longevity layer (importance-weighted recall + tiered decay). Opt-in;
-        # when disabled, the retriever behaves exactly as before.
-        longevity = self._config.get("longevity") or {}
-        longevity_on = bool(longevity.get("enabled", False))
-        importance_weight = float(longevity.get("importance_weight", 0.2 if longevity_on else 0.0))
-        short_half_life = int(longevity.get("short_half_life_days", 7 if longevity_on else 0))
-        long_half_life = int(longevity.get("long_half_life_days", 180 if longevity_on else 0))
-
-        self._store = MemoryStore(
-            db_path=db_path,
-            default_trust=default_trust,
-            hrr_dim=hrr_dim,
-            embedding_backend=embedding_backend,
-        )
+        self._store = MemoryStore(db_path=db_path, default_trust=default_trust, hrr_dim=hrr_dim)
         self._retriever = FactRetriever(
             store=self._store,
             temporal_decay_half_life=temporal_decay,
             hrr_weight=hrr_weight,
-            embedding_weight=embedding_weight,
-            importance_weight=importance_weight,
-            short_half_life_days=short_half_life,
-            long_half_life_days=long_half_life,
-            track_access=longevity_on,
             hrr_dim=hrr_dim,
         )
         self._session_id = session_id
@@ -284,7 +241,7 @@ class HolographicMemoryProvider(MemoryProvider):
             return
         self._auto_extract_facts(messages)
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
+    def on_memory_write(self, action: str, target: str, content: str) -> None:
         """Mirror built-in memory writes as facts."""
         if action == "add" and self._store and content:
             try:
@@ -294,6 +251,17 @@ class HolographicMemoryProvider(MemoryProvider):
                 logger.debug("Holographic memory_write mirror failed: %s", e)
 
     def shutdown(self) -> None:
+        # Release the shared SQLite connection deterministically on the
+        # caller's thread. Dropping the reference alone leaves fd finalization
+        # to GC, which keeps the connection (and its write lock) alive on a
+        # long-running gateway and prolongs the "database is locked" contention
+        # this store's shared-connection refcounting is meant to eliminate.
+        # close() is idempotent and refcount-guarded, so siblings stay safe.
+        if self._store is not None:
+            try:
+                self._store.close()
+            except Exception as e:
+                logger.debug("Holographic shutdown close() failed: %s", e)
         self._store = None
         self._retriever = None
 
@@ -302,10 +270,8 @@ class HolographicMemoryProvider(MemoryProvider):
     def _handle_fact_store(self, args: dict) -> str:
         try:
             action = args["action"]
-            # None before initialize(); an attribute access on None raises
-            # AttributeError, which the except below maps to tool_error.
-            store = cast(MemoryStore, self._store)
-            retriever = cast(FactRetriever, self._retriever)
+            store = self._store
+            retriever = self._retriever
 
             if action == "add":
                 fact_id = store.add_fact(
@@ -392,7 +358,7 @@ class HolographicMemoryProvider(MemoryProvider):
         try:
             fact_id = int(args["fact_id"])
             helpful = args["action"] == "helpful"
-            result = self._store.record_feedback(fact_id, helpful=helpful)  # ty: ignore[unresolved-attribute]  # None access raises into the except below
+            result = self._store.record_feedback(fact_id, helpful=helpful)
             return json.dumps(result)
         except KeyError as exc:
             return tool_error(f"Missing required argument: {exc}")
@@ -423,7 +389,7 @@ class HolographicMemoryProvider(MemoryProvider):
             for pattern in _PREF_PATTERNS:
                 if pattern.search(content):
                     try:
-                        self._store.add_fact(content[:400], category="user_pref")  # ty: ignore[unresolved-attribute]  # caller on_session_end guards _store
+                        self._store.add_fact(content[:400], category="user_pref")
                         extracted += 1
                     except Exception:
                         pass
@@ -432,7 +398,7 @@ class HolographicMemoryProvider(MemoryProvider):
             for pattern in _DECISION_PATTERNS:
                 if pattern.search(content):
                     try:
-                        self._store.add_fact(content[:400], category="project")  # ty: ignore[unresolved-attribute]  # caller on_session_end guards _store
+                        self._store.add_fact(content[:400], category="project")
                         extracted += 1
                     except Exception:
                         pass

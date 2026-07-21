@@ -58,7 +58,7 @@ def _ensure_discord_mock():
 
 _ensure_discord_mock()
 
-from gateway.platforms.discord import DiscordAdapter  # noqa: E402
+from plugins.platforms.discord.adapter import DiscordAdapter  # noqa: E402
 from gateway.platforms.base import MessageType  # noqa: E402
 
 
@@ -146,10 +146,10 @@ class TestCacheDiscordImage:
         att = _make_attachment_with_read(_PNG_BYTES)
 
         with patch(
-            "gateway.platforms.discord.cache_image_from_bytes",
+            "plugins.platforms.discord.adapter.cache_image_from_bytes",
             return_value="/tmp/cached.png",
         ) as mock_bytes, patch(
-            "gateway.platforms.discord.cache_image_from_url",
+            "plugins.platforms.discord.adapter.cache_image_from_url",
             new_callable=AsyncMock,
         ) as mock_url:
             result = await adapter._cache_discord_image(att, ".png")
@@ -165,9 +165,9 @@ class TestCacheDiscordImage:
         att = _make_attachment_without_read()
 
         with patch(
-            "gateway.platforms.discord.cache_image_from_bytes",
+            "plugins.platforms.discord.adapter.cache_image_from_bytes",
         ) as mock_bytes, patch(
-            "gateway.platforms.discord.cache_image_from_url",
+            "plugins.platforms.discord.adapter.cache_image_from_url",
             new_callable=AsyncMock,
             return_value="/tmp/from_url.png",
         ) as mock_url:
@@ -186,10 +186,10 @@ class TestCacheDiscordImage:
         att = _make_attachment_with_read(b"<html>forbidden</html>")
 
         with patch(
-            "gateway.platforms.discord.cache_image_from_bytes",
+            "plugins.platforms.discord.adapter.cache_image_from_bytes",
             side_effect=ValueError("not a valid image"),
         ), patch(
-            "gateway.platforms.discord.cache_image_from_url",
+            "plugins.platforms.discord.adapter.cache_image_from_url",
             new_callable=AsyncMock,
             return_value="/tmp/fallback.png",
         ) as mock_url:
@@ -210,10 +210,10 @@ class TestCacheDiscordAudio:
         att = _make_attachment_with_read(_OGG_BYTES)
 
         with patch(
-            "gateway.platforms.discord.cache_audio_from_bytes",
+            "plugins.platforms.discord.adapter.cache_audio_from_bytes",
             return_value="/tmp/voice.ogg",
         ) as mock_bytes, patch(
-            "gateway.platforms.discord.cache_audio_from_url",
+            "plugins.platforms.discord.adapter.cache_audio_from_url",
             new_callable=AsyncMock,
         ) as mock_url:
             result = await adapter._cache_discord_audio(att, ".ogg")
@@ -228,7 +228,7 @@ class TestCacheDiscordAudio:
         att = _make_attachment_without_read()
 
         with patch(
-            "gateway.platforms.discord.cache_audio_from_url",
+            "plugins.platforms.discord.adapter.cache_audio_from_url",
             new_callable=AsyncMock,
             return_value="/tmp/from_url.ogg",
         ) as mock_url:
@@ -267,7 +267,7 @@ class TestCacheDiscordDocument:
         att = _make_attachment_without_read()  # no .read → forces fallback
 
         with patch(
-            "gateway.platforms.discord.is_safe_url", return_value=False
+            "plugins.platforms.discord.adapter.is_safe_url", return_value=False
         ) as mock_safe, patch("aiohttp.ClientSession") as mock_session:
             with pytest.raises(ValueError, match="SSRF"):
                 await adapter._cache_discord_document(att, ".pdf")
@@ -295,7 +295,7 @@ class TestCacheDiscordDocument:
         session.__aexit__ = AsyncMock(return_value=False)
 
         with patch(
-            "gateway.platforms.discord.is_safe_url", return_value=True
+            "plugins.platforms.discord.adapter.is_safe_url", return_value=True
         ), patch("aiohttp.ClientSession", return_value=session):
             result = await adapter._cache_discord_document(att, ".pdf")
 
@@ -317,13 +317,13 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Image attachments with .read() never call cache_image_from_url."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.handle_message = AsyncMock()
 
         with patch(
-            "gateway.platforms.discord.cache_image_from_bytes",
+            "plugins.platforms.discord.adapter.cache_image_from_bytes",
             return_value="/tmp/img_from_read.png",
         ), patch(
-            "gateway.platforms.discord.cache_image_from_url",
+            "plugins.platforms.discord.adapter.cache_image_from_url",
             new_callable=AsyncMock,
         ) as mock_url_download:
             att = SimpleNamespace(
@@ -342,7 +342,7 @@ class TestHandleMessageUsesAuthenticatedRead:
 
             # Patch the DMChannel isinstance check so our fake counts as DM.
             monkeypatch.setattr(
-                "gateway.platforms.discord.discord.DMChannel",
+                "plugins.platforms.discord.adapter.discord.DMChannel",
                 _FakeDMChannel,
             )
             chan = _FakeDMChannel()
@@ -356,7 +356,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             await adapter._handle_message(msg)
 
         mock_url_download.assert_not_called()
-        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.call_args[0][0]
         assert event.media_urls == ["/tmp/img_from_read.png"]
         assert event.media_types == ["image/png"]
 
@@ -365,10 +365,10 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Discord native voice notes must enter the auto-STT voice path."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.handle_message = AsyncMock()
 
         with patch(
-            "gateway.platforms.discord.cache_audio_from_bytes",
+            "plugins.platforms.discord.adapter.cache_audio_from_bytes",
             return_value="/tmp/voice_from_read.ogg",
         ):
             att = SimpleNamespace(
@@ -386,7 +386,7 @@ class TestHandleMessageUsesAuthenticatedRead:
                 name = "dm"
 
             monkeypatch.setattr(
-                "gateway.platforms.discord.discord.DMChannel",
+                "plugins.platforms.discord.adapter.discord.DMChannel",
                 _FakeDMChannel,
             )
             chan = _FakeDMChannel()
@@ -399,7 +399,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             )
             await adapter._handle_message(msg)
 
-        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.call_args[0][0]
         assert event.message_type == MessageType.VOICE
         assert event.media_urls == ["/tmp/voice_from_read.ogg"]
         assert event.media_types == ["audio/ogg"]
@@ -409,10 +409,10 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Plain audio uploads should stay out of automatic voice-note STT."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.handle_message = AsyncMock()
 
         with patch(
-            "gateway.platforms.discord.cache_audio_from_bytes",
+            "plugins.platforms.discord.adapter.cache_audio_from_bytes",
             return_value="/tmp/audio_from_read.ogg",
         ):
             att = SimpleNamespace(
@@ -430,7 +430,7 @@ class TestHandleMessageUsesAuthenticatedRead:
                 name = "dm"
 
             monkeypatch.setattr(
-                "gateway.platforms.discord.discord.DMChannel",
+                "plugins.platforms.discord.adapter.discord.DMChannel",
                 _FakeDMChannel,
             )
             chan = _FakeDMChannel()
@@ -443,7 +443,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             )
             await adapter._handle_message(msg)
 
-        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.call_args[0][0]
         assert event.message_type == MessageType.AUDIO
         assert event.media_urls == ["/tmp/audio_from_read.ogg"]
         assert event.media_types == ["audio/ogg"]

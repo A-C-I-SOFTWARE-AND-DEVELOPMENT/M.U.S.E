@@ -1,7 +1,6 @@
 """Tests for _repair_tool_call_arguments — malformed JSON repair pipeline."""
 
 import json
-import pytest
 
 from run_agent import _repair_tool_call_arguments
 
@@ -19,7 +18,7 @@ class TestRepairToolCallArguments:
 
     def test_none_type_returns_empty_object(self):
         """Non-string input (e.g. None from a broken model response)."""
-        assert _repair_tool_call_arguments(None, "t") == "{}"  # ty: ignore[invalid-argument-type]
+        assert _repair_tool_call_arguments(None, "t") == "{}"
 
     # -- Stage 2: Python None literal --
 

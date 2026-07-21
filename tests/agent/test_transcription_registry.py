@@ -74,7 +74,7 @@ class TestRegistration:
 
     def test_rejects_non_provider_type(self):
         with pytest.raises(TypeError, match="expects a TranscriptionProvider instance"):
-            transcription_registry.register_provider("not a provider")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+            transcription_registry.register_provider("not a provider")  # type: ignore[arg-type]
         assert transcription_registry.list_providers() == []
 
     def test_rejects_empty_name(self):
@@ -91,7 +91,16 @@ class TestRegistration:
 
     @pytest.mark.parametrize(
         "builtin",
-        ["local", "local_command", "groq", "openai", "mistral", "xai"],
+        [
+            "local",
+            "local_command",
+            "groq",
+            "openai",
+            "mistral",
+            "xai",
+            "elevenlabs",
+            "deepinfra",
+        ],
     )
     def test_rejects_builtin_shadow_with_warning(self, builtin, caplog):
         p = _FakeProvider(name=builtin)
@@ -131,8 +140,8 @@ class TestLookup:
         assert transcription_registry.get_provider("nonexistent") is None
 
     def test_get_provider_non_string_returns_none(self):
-        assert transcription_registry.get_provider(None) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
-        assert transcription_registry.get_provider(123) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+        assert transcription_registry.get_provider(None) is None  # type: ignore[arg-type]
+        assert transcription_registry.get_provider(123) is None  # type: ignore[arg-type]
 
     def test_get_provider_case_insensitive(self):
         p = _FakeProvider(name="openrouter")
@@ -230,14 +239,7 @@ class TestBuiltinSync:
     """
 
     def test_registry_builtins_match_dispatcher_builtins(self):
-        try:
-            from tools.transcription_tools import BUILTIN_STT_PROVIDERS  # ty: ignore[unresolved-import]
-        except ImportError:
-            pytest.skip(
-                "tools.transcription_tools.BUILTIN_STT_PROVIDERS not present "
-                "in this checkout — the dispatcher-side built-in list is "
-                "part of a paired modification that ships in a follow-up PR."
-            )
+        from tools.transcription_tools import BUILTIN_STT_PROVIDERS
 
         assert transcription_registry._BUILTIN_NAMES == BUILTIN_STT_PROVIDERS, (
             "agent.transcription_registry._BUILTIN_NAMES and "

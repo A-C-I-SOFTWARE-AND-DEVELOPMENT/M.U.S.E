@@ -4,7 +4,7 @@ import { Box, renderSync } from '@hermes/ink'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 
-import { AUDIO_DIRECTIVE_RE, INLINE_RE, inlineCellRuns, Md, MEDIA_LINE_RE, stripInlineMarkup } from '../components/markdown.js'
+import { AUDIO_DIRECTIVE_RE, INLINE_RE, Md, MEDIA_LINE_RE, stripInlineMarkup } from '../components/markdown.js'
 import { stripAnsi } from '../lib/text.js'
 import { DEFAULT_THEME } from '../theme.js'
 
@@ -327,111 +327,5 @@ describe('renderTable CJK width alignment', () => {
     // The CJK row is the one that drifted before the fix.  It must
     // align with the rest now.
     expect(qwenCol2).toBe(headerCol2)
-  })
-})
-
-describe('inlineCellRuns (table cell inline markup)', () => {
-  it('extracts width-stable decoration spans with the right styling', () => {
-    expect(inlineCellRuns('**bold**')).toEqual([{ bold: true, text: 'bold' }])
-    // `_`-emphasis is intraword-safe: `__bold__` stays literal (like `__name__`),
-    // so it needs an internal space to read as emphasis.
-    expect(inlineCellRuns('__bold move__')).toEqual([{ bold: true, text: 'bold move' }])
-    expect(inlineCellRuns('*italic*')).toEqual([{ italic: true, text: 'italic' }])
-    expect(inlineCellRuns('`code`')).toEqual([{ code: true, text: 'code' }])
-    expect(inlineCellRuns('~~strike~~')).toEqual([{ strike: true, text: 'strike' }])
-    expect(inlineCellRuns('==hi==')).toEqual([{ highlight: true, text: 'hi' }])
-  })
-
-  it('mixes plain and styled runs in document order', () => {
-    expect(inlineCellRuns('status **OK** now')).toEqual([
-      { text: 'status ' },
-      { bold: true, text: 'OK' },
-      { text: ' now' }
-    ])
-  })
-
-  it('renders links as their stripped label (no width-changing styling)', () => {
-    expect(inlineCellRuns('see [docs](https://x.dev)')).toEqual([
-      { text: 'see ' },
-      { text: 'docs' }
-    ])
-  })
-
-  it('flattens nested emphasis to the outer style, staying width-stable', () => {
-    expect(inlineCellRuns('**bold _and italic_**')).toEqual([
-      { bold: true, text: 'bold and italic' }
-    ])
-  })
-
-  it('falls back (null) when markup inside code would change the stripped width', () => {
-    // stripInlineMarkup re-processes a code span's contents (`a**b**c` -> abc),
-    // but a styled code run is verbatim (a**b**c). They disagree, so the guard
-    // returns null and the caller renders plain text — never misaligned.
-    expect(inlineCellRuns('`a**b**c`')).toBeNull()
-  })
-
-  it('GUARANTEE: returned runs reconstruct stripInlineMarkup exactly', () => {
-    // The whole safety story rests on this invariant: whenever runs are
-    // returned, their concatenated visible text is byte-identical to the plain
-    // strip, so column-width math is unaffected. Exercise a hostile corpus.
-    const corpus = [
-      '', 'plain text', '**bold**', '`code`', '*it*', '~~s~~', '==h==',
-      'a **b** c `d` e', '[label](https://example.com)', '![alt](https://img.png)',
-      '<https://example.com>', 'foo@bar.com', 'H~2~O and CO~2~', 'x^2^ + y',
-      '$\\mathbb{Z}$ ring', 'see \\(a+b\\) ok', '[^1] footnote', 'snake_case_var',
-      'if __name__ == "__main__":', 'a*b*c', 'foo__bar__baz', '**bold _and italic_**',
-      'dangling ** asterisks * here', 'mixed ~! kaomoji ~?', '**', '`', '***',
-      '| pipe | cell |', 'emoji 🎉 and 配置 中文', 'trailing **bold',
-      '`unterminated code', '**a**b**c**', 'a `b` `c` d', '`a**b**c`'
-    ]
-    for (const cell of corpus) {
-      const runs = inlineCellRuns(cell)
-      if (runs !== null) {
-        expect(runs.map(r => r.text).join('')).toBe(stripInlineMarkup(cell))
-      }
-    }
-  })
-})
-
-describe('renderTable inline markup rendering', () => {
-  const tableLines = (md: string) =>
-    renderPlain(
-      React.createElement(Box, null, React.createElement(Md, { compact: true, t: DEFAULT_THEME, text: md }))
-    ).filter(line => line.trim().length > 0)
-
-  it('keeps column alignment when body cells contain inline markup', async () => {
-    const { stringWidth } = await import('@hermes/ink')
-    const lines = tableLines([
-      '| Feature | Status |',
-      '|---------|--------|',
-      '| **Bold** name | `code` |',
-      '| plain | *ok* |'
-    ].join('\n'))
-
-    const col2 = (line: string, anchor: string): number => {
-      const idx = line.indexOf(anchor)
-      return idx < 0 ? -1 : stringWidth(line.slice(0, idx))
-    }
-
-    const headerCol2 = lines.map(l => col2(l, 'Status')).find(v => v >= 0)
-    const codeCol2 = lines.map(l => col2(l, 'code')).find(v => v >= 0)
-    const okCol2 = lines.map(l => col2(l, 'ok')).find(v => v >= 0)
-
-    expect(headerCol2).toBeDefined()
-    expect(codeCol2).toBe(headerCol2)
-    expect(okCol2).toBe(headerCol2)
-  })
-
-  it('strips the markup syntax from the visible output (no leaked ** or `)', () => {
-    const text = tableLines([
-      '| Name | Value |',
-      '|------|-------|',
-      '| **Bold** | `mono` |'
-    ].join('\n')).join('\n')
-
-    expect(text).toContain('Bold')
-    expect(text).toContain('mono')
-    expect(text).not.toContain('**')
-    expect(text).not.toContain('`')
   })
 })

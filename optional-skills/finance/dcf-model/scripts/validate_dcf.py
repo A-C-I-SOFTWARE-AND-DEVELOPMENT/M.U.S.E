@@ -7,7 +7,6 @@ Validates Excel DCF models for formula errors and common DCF mistakes
 import sys
 import json
 from pathlib import Path
-from typing import Optional
 
 
 class DCFModelValidator:
@@ -15,7 +14,7 @@ class DCFModelValidator:
 
     def __init__(self, excel_path: str):
         try:
-            import openpyxl  # ty: ignore[unresolved-import]
+            import openpyxl
         except ImportError:
             raise ImportError("openpyxl not installed. Run: pip install openpyxl")
 

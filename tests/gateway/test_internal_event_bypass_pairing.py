@@ -9,7 +9,7 @@ pairing code to the chat.
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -17,6 +17,7 @@ from gateway.config import GatewayConfig, Platform
 from gateway.platforms.base import MessageEvent
 from gateway.run import GatewayRunner
 from gateway.session import SessionSource
+from tools.process_registry import ProcessRegistry, ProcessSession
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +53,7 @@ def _build_runner(monkeypatch, tmp_path) -> GatewayRunner:
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock(), handle_message=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.DISCORD] = adapter
     return runner
 
 
@@ -93,10 +94,50 @@ async def test_notify_on_complete_sets_internal_flag(monkeypatch, tmp_path):
 
     await runner._run_process_watcher(_watcher_dict_with_notify())
 
-    assert adapter.handle_message.await_count == 1  # ty: ignore[unresolved-attribute]
-    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    assert adapter.handle_message.await_count == 1
+    event = adapter.handle_message.await_args.args[0]
     assert isinstance(event, MessageEvent)
     assert event.internal is True, "Synthetic completion event must be marked internal"
+
+
+@pytest.mark.asyncio
+async def test_poll_does_not_suppress_notify_on_complete_watcher(monkeypatch, tmp_path):
+    """Regression: polling an exited process must not suppress watcher injection."""
+    import tools.process_registry as pr_module
+
+    registry = ProcessRegistry()
+    session = ProcessSession(
+        id="proc_polled_completion",
+        command="echo done",
+        output_buffer="done\n",
+        exited=True,
+        exit_code=0,
+        notify_on_complete=True,
+    )
+    registry._finished[session.id] = session
+
+    poll_result = registry.poll(session.id)
+    assert poll_result["status"] == "exited"
+    assert not registry.is_completion_consumed(session.id)
+
+    monkeypatch.setattr(pr_module, "process_registry", registry)
+
+    async def _instant_sleep(*_a, **_kw):
+        pass
+    monkeypatch.setattr(asyncio, "sleep", _instant_sleep)
+
+    runner = _build_runner(monkeypatch, tmp_path)
+    adapter = runner.adapters[Platform.DISCORD]
+
+    watcher = _watcher_dict_with_notify()
+    watcher["session_id"] = session.id
+
+    await runner._run_process_watcher(watcher)
+
+    assert adapter.handle_message.await_count == 1
+    event = adapter.handle_message.await_args.args[0]
+    assert session.id in event.text
+    assert event.internal is True
 
 
 @pytest.mark.asyncio
@@ -159,7 +200,7 @@ async def test_internal_event_does_not_trigger_pairing(monkeypatch, tmp_path):
     runner = GatewayRunner(GatewayConfig())
     # Add adapter so pairing would have somewhere to send
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.DISCORD] = adapter
 
     source = SessionSource(
         platform=Platform.DISCORD,
@@ -181,7 +222,7 @@ async def test_internal_event_does_not_trigger_pairing(monkeypatch, tmp_path):
         generate_called = True
         return original_generate(*args, **kwargs)
 
-    runner.pairing_store.generate_code = tracking_generate  # ty: ignore[invalid-assignment]
+    runner.pairing_store.generate_code = tracking_generate
 
     # Stop execution before the agent runner so the test doesn't block in
     # run_in_executor.  Pairing check happens before _handle_message_with_agent.
@@ -224,8 +265,8 @@ async def test_notify_on_complete_preserves_user_identity(monkeypatch, tmp_path)
 
     await runner._run_process_watcher(watcher)
 
-    assert adapter.handle_message.await_count == 1  # ty: ignore[unresolved-attribute]
-    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
+    assert adapter.handle_message.await_count == 1
+    event = adapter.handle_message.await_args.args[0]
     assert event.source.user_id == "user-42"
     assert event.source.user_name == "alice"
 
@@ -248,8 +289,8 @@ async def test_notify_on_complete_uses_session_store_origin_for_group_topic(monk
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock(), handle_message=AsyncMock())
-    runner.adapters[Platform.TELEGRAM] = adapter  # ty: ignore[invalid-assignment]
-    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.TELEGRAM] = adapter
+    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(
         origin=SessionSource(
             platform=Platform.TELEGRAM,
             chat_id="-100",
@@ -293,7 +334,7 @@ async def test_none_user_id_skips_pairing(monkeypatch, tmp_path):
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.TELEGRAM] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.TELEGRAM] = adapter
 
     source = SessionSource(
         platform=Platform.TELEGRAM,
@@ -324,7 +365,7 @@ async def test_none_user_id_does_not_generate_pairing_code(monkeypatch, tmp_path
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.DISCORD] = adapter
 
     generate_called = False
     original_generate = runner.pairing_store.generate_code
@@ -334,7 +375,7 @@ async def test_none_user_id_does_not_generate_pairing_code(monkeypatch, tmp_path
         generate_called = True
         return original_generate(*args, **kwargs)
 
-    runner.pairing_store.generate_code = tracking_generate  # ty: ignore[invalid-assignment]
+    runner.pairing_store.generate_code = tracking_generate
 
     source = SessionSource(
         platform=Platform.DISCORD,
@@ -377,7 +418,7 @@ async def test_non_internal_event_without_user_triggers_pairing(monkeypatch, tmp
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
+    runner.adapters[Platform.DISCORD] = adapter
 
     source = SessionSource(
         platform=Platform.DISCORD,

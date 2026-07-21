@@ -1,27 +1,27 @@
 ---
 sidebar_position: 9
 title: "Personality & SOUL.md"
-description: "Customize muse's personality with a global SOUL.md, built-in personalities, and custom persona definitions"
+description: "Customize Hermes Agent's personality with a global SOUL.md, built-in personalities, and custom persona definitions"
 ---
 
 # Personality & SOUL.md
 
-muse's personality is fully customizable. `SOUL.md` is the **primary identity** — it's the first thing in the system prompt and defines who the agent is.
+Hermes Agent's personality is fully customizable. `SOUL.md` is the **primary identity** — it's the first thing in the system prompt and defines who the agent is.
 
 - `SOUL.md` — a durable persona file that lives in `HERMES_HOME` and serves as the agent's identity (slot #1 in the system prompt)
 - built-in or custom `/personality` presets — session-level system-prompt overlays
 
-If you want to change who muse is — or replace it with an entirely different agent persona — edit `SOUL.md`.
+If you want to change who Hermes is — or replace it with an entirely different agent persona — edit `SOUL.md`.
 
 ## How SOUL.md works now
 
-muse now seeds a default `SOUL.md` automatically in:
+Hermes now seeds a default `SOUL.md` automatically in:
 
 ```text
 ~/.hermes/SOUL.md
 ```
 
-More precisely, it uses the current instance's `HERMES_HOME`, so if you run muse with a custom home directory, it will use:
+More precisely, it uses the current instance's `HERMES_HOME`, so if you run Hermes with a custom home directory, it will use:
 
 ```text
 $HERMES_HOME/SOUL.md
@@ -30,11 +30,11 @@ $HERMES_HOME/SOUL.md
 ### Important behavior
 
 - **SOUL.md is the agent's primary identity.** It occupies slot #1 in the system prompt, replacing the hardcoded default identity.
-- muse creates a starter `SOUL.md` automatically if one does not exist yet
+- Hermes creates a starter `SOUL.md` automatically if one does not exist yet
 - Existing user `SOUL.md` files are never overwritten
-- muse loads `SOUL.md` only from `HERMES_HOME`
-- muse does not look in the current working directory for `SOUL.md`
-- If `SOUL.md` exists but is empty, or cannot be loaded, muse falls back to a built-in default identity
+- Hermes loads `SOUL.md` only from `HERMES_HOME`
+- Hermes does not look in the current working directory for `SOUL.md`
+- If `SOUL.md` exists but is empty, or cannot be loaded, Hermes falls back to a built-in default identity
 - If `SOUL.md` has content, that content is injected verbatim after security scanning and truncation
 - SOUL.md is **not** duplicated in the context files section — it appears only once, as the identity
 
@@ -44,10 +44,10 @@ That makes `SOUL.md` a true per-user or per-instance identity, not just an addit
 
 This keeps personality predictable.
 
-If muse loaded `SOUL.md` from whatever directory you happened to launch it in, your personality could change unexpectedly between projects. By loading only from `HERMES_HOME`, the personality belongs to the muse instance itself.
+If Hermes loaded `SOUL.md` from whatever directory you happened to launch it in, your personality could change unexpectedly between projects. By loading only from `HERMES_HOME`, the personality belongs to the Hermes instance itself.
 
 That also makes it easier to teach users:
-- "Edit `~/.hermes/SOUL.md` to change muse' default personality."
+- "Edit `~/.hermes/SOUL.md` to change Hermes' default personality."
 
 ## Where to edit it
 
@@ -71,7 +71,7 @@ Use it for durable voice and personality guidance, such as:
 - level of directness
 - default interaction style
 - what to avoid stylistically
-- how muse should handle uncertainty, disagreement, or ambiguity
+- how Hermes should handle uncertainty, disagreement, or ambiguity
 
 Use it less for:
 - one-off project instructions
@@ -116,7 +116,7 @@ You optimize for truth, clarity, and usefulness over politeness theater.
 - Treat edge cases as part of the design, not cleanup
 ```
 
-## What muse injects into the prompt
+## What Hermes injects into the prompt
 
 `SOUL.md` content goes directly into slot #1 of the system prompt — the agent identity position. No wrapper language is added around it.
 
@@ -172,7 +172,7 @@ Examples:
 
 ## Built-in personalities
 
-muse ships with built-in personalities you can switch to with `/personality`.
+Hermes ships with built-in personalities you can switch to with `/personality`.
 
 | Name | Description |
 |------|-------------|
@@ -183,7 +183,7 @@ muse ships with built-in personalities you can switch to with `/personality`.
 | **teacher** | Patient educator with clear examples |
 | **kawaii** | Cute expressions, sparkles, and enthusiasm ★ |
 | **catgirl** | Neko-chan with cat-like expressions, nya~ |
-| **pirate** | Captain muse tech-savvy buccaneer |
+| **pirate** | Captain Hermes, tech-savvy buccaneer |
 | **shakespeare** | Bardic prose with dramatic flair |
 | **surfer** | Totally chill bro vibes |
 | **noir** | Hard-boiled detective narration |
@@ -207,7 +207,7 @@ muse ships with built-in personalities you can switch to with `/personality`.
 /personality teacher
 ```
 
-These are convenient overlays, but your global `SOUL.md` still gives muse its persistent default personality unless the overlay meaningfully changes it.
+These are convenient overlays, but your global `SOUL.md` still gives Hermes its persistent default personality unless the overlay meaningfully changes it.
 
 ## Custom personalities in config
 
@@ -256,16 +256,16 @@ At a high level, the prompt stack includes:
 
 ## Related docs
 
-- [Context Files](/docs/user-guide/features/context-files)
-- [Configuration](/docs/user-guide/configuration)
-- [Tips & Best Practices](/docs/guides/tips)
-- [SOUL.md Guide](/docs/guides/use-soul-with-hermes)
+- [Context Files](/user-guide/features/context-files)
+- [Configuration](/user-guide/configuration)
+- [Tips & Best Practices](/guides/tips)
+- [SOUL.md Guide](/guides/use-soul-with-hermes)
 
 ## CLI appearance vs conversational personality
 
 Conversational personality and CLI appearance are separate:
 
-- `SOUL.md`, `agent.system_prompt`, and `/personality` affect how muse speaks
-- `display.skin` and `/skin` affect how muse looks in the terminal
+- `SOUL.md`, `agent.system_prompt`, and `/personality` affect how Hermes speaks
+- `display.skin` and `/skin` affect how Hermes looks in the terminal
 
 For terminal appearance, see [Skins & Themes](./skins.md).

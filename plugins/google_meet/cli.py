@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -163,7 +162,7 @@ def _cmd_setup() -> int:
     print(f"  platform       : {system}  [{'ok' if system_ok else 'unsupported'}]")
 
     try:
-        import playwright  # noqa: F401  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+        import playwright  # noqa: F401
         pw_ok = True
         pw_msg = "installed"
     except ImportError:
@@ -175,7 +174,7 @@ def _cmd_setup() -> int:
     chromium_msg = "unknown"
     if pw_ok:
         try:
-            from playwright.sync_api import sync_playwright  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+            from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
                 try:
                     exe = p.chromium.executable_path
@@ -251,10 +250,9 @@ def _cmd_install(*, realtime: bool, assume_yes: bool) -> int:
     pip_pkgs = ["playwright", "websockets"]
     print(f"\n[1/3] pip install: {' '.join(pip_pkgs)}")
     try:
-        res = _sp.run(
-            [sys.executable, "-m", "pip", "install", "--upgrade", *pip_pkgs],
-            check=False,
-        )
+        from hermes_cli.tools_config import _pip_install
+
+        res = _pip_install(["--upgrade", *pip_pkgs], capture_output=False)
         if res.returncode != 0:
             print("  pip install failed")
             return 1
@@ -337,7 +335,7 @@ def _cmd_install(*, realtime: bool, assume_yes: bool) -> int:
 def _cmd_auth() -> int:
     """Open a headed Chromium, let the user sign in, save storage_state."""
     try:
-        from playwright.sync_api import sync_playwright  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+        from playwright.sync_api import sync_playwright
     except ImportError:
         print(
             "playwright is not installed. run:\n"
@@ -348,7 +346,7 @@ def _cmd_auth() -> int:
     path = _auth_state_path()
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"opening Chromium — sign in to Google, then return here and press Enter.")
+    print("opening Chromium — sign in to Google, then return here and press Enter.")
     print(f"saving storage state to: {path}")
     try:
         with sync_playwright() as pw:

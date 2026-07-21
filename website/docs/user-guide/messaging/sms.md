@@ -2,15 +2,15 @@
 sidebar_position: 8
 sidebar_label: "SMS (Twilio)"
 title: "SMS (Twilio)"
-description: "Set up muse as an SMS chatbot via Twilio"
+description: "Set up Hermes Agent as an SMS chatbot via Twilio"
 ---
 
 # SMS Setup (Twilio)
 
-muse connects to SMS through the [Twilio](https://www.twilio.com/) API. People text your Twilio phone number and get AI responses back — same conversational experience as Telegram or Discord, but over standard text messages.
+Hermes connects to SMS through the [Twilio](https://www.twilio.com/) API. People text your Twilio phone number and get AI responses back — same conversational experience as Telegram or Discord, but over standard text messages.
 
 :::info Shared Credentials
-The SMS gateway shares credentials with the optional [telephony skill](/docs/reference/skills-catalog). If you've already set up Twilio for voice calls or one-off SMS, the gateway works with the same `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER`.
+The SMS gateway shares credentials with the optional [telephony skill](/reference/skills-catalog). If you've already set up Twilio for voice calls or one-off SMS, the gateway works with the same `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE_NUMBER`.
 :::
 
 ---
@@ -20,7 +20,7 @@ The SMS gateway shares credentials with the optional [telephony skill](/docs/ref
 - **Twilio account** — [Sign up at twilio.com](https://www.twilio.com/try-twilio) (free trial available)
 - **A Twilio phone number** with SMS capability
 - **A publicly accessible server** — Twilio sends webhooks to your server when SMS arrives
-- **aiohttp** — `pip install 'hermes-agent[sms]'`
+- **aiohttp** — `cd ~/.hermes/hermes-agent && uv pip install -e ".[sms]"`
 
 ---
 
@@ -32,12 +32,12 @@ The SMS gateway shares credentials with the optional [telephony skill](/docs/ref
 
 ---
 
-## Step 2: Configure muse
+## Step 2: Configure Hermes
 
 ### Interactive setup (recommended)
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Select **SMS (Twilio)** from the platform list. The wizard will prompt for your credentials.
@@ -71,7 +71,7 @@ Twilio needs to know where to send incoming messages. In the [Twilio Console](ht
    - **HTTP Method**: `POST`
 
 :::tip Exposing Your Webhook
-If you're running muse locally, use a tunnel to expose the webhook:
+If you're running Hermes locally, use a tunnel to expose the webhook:
 
 ```bash
 # Using cloudflared
@@ -102,7 +102,7 @@ SMS_WEBHOOK_PORT=3000
 ## Step 4: Start the Gateway
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 You should see:
@@ -113,7 +113,7 @@ You should see:
 
 If you see `Refusing to start: SMS_WEBHOOK_URL is required`, set `SMS_WEBHOOK_URL` to the public URL configured in your Twilio Console (see Step 3).
 
-Text your Twilio number — muse will respond via SMS.
+Text your Twilio number — Hermes will respond via SMS.
 
 ---
 
@@ -126,7 +126,7 @@ Text your Twilio number — muse will respond via SMS.
 | `TWILIO_PHONE_NUMBER` | Yes | Your Twilio phone number (E.164 format) |
 | `SMS_WEBHOOK_URL` | Yes | Public URL for Twilio signature validation — must match the webhook URL in your Twilio Console |
 | `SMS_WEBHOOK_PORT` | No | Webhook listener port (default: `8080`) |
-| `SMS_WEBHOOK_HOST` | No | Webhook bind address (default: `0.0.0.0`) |
+| `SMS_WEBHOOK_HOST` | No | Webhook bind address (default: `127.0.0.1`) |
 | `SMS_INSECURE_NO_SIGNATURE` | No | Set to `true` to disable signature validation (local dev only — **not for production**) |
 | `SMS_ALLOWED_USERS` | No | Comma-separated E.164 phone numbers allowed to chat |
 | `SMS_ALLOW_ALL_USERS` | No | Set to `true` to allow anyone (not recommended) |
@@ -148,7 +148,7 @@ Text your Twilio number — muse will respond via SMS.
 
 ### Webhook signature validation
 
-muse validates that inbound webhooks genuinely originate from Twilio by verifying the `X-Twilio-Signature` header (HMAC-SHA1). This prevents attackers from injecting forged messages.
+Hermes validates that inbound webhooks genuinely originate from Twilio by verifying the `X-Twilio-Signature` header (HMAC-SHA1). This prevents attackers from injecting forged messages.
 
 **`SMS_WEBHOOK_URL` is required.** Set it to the public URL configured in your Twilio Console. The adapter will refuse to start without it.
 
@@ -190,7 +190,7 @@ SMS has no built-in encryption. Don't use SMS for sensitive operations unless yo
 
 1. Check `TWILIO_PHONE_NUMBER` is set correctly (E.164 format with `+`)
 2. Verify your Twilio account has SMS-capable numbers
-3. Check muse gateway logs for Twilio API errors
+3. Check Hermes gateway logs for Twilio API errors
 
 ### Webhook port conflicts
 

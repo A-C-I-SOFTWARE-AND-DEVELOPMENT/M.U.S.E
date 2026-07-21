@@ -91,7 +91,7 @@ def build_pipeline_runtime(gateway: Any) -> TeamsMeetingPipeline:
         graph_client=build_graph_client(),
         store=TeamsPipelineStore(resolve_teams_pipeline_store_path()),
         config=pipeline_config,
-        teams_sender=teams_sender,  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+        teams_sender=teams_sender,
     )
 
 

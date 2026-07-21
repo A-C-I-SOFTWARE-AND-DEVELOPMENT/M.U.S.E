@@ -65,7 +65,7 @@ def _enter_existing_install_patches(stack, **extra):
         ("hermes_cli.setup._print_setup_summary", {}),
         ("hermes_cli.setup._offer_openclaw_migration", {"return_value": False}),
     ]:
-        stack.enter_context(patch(target, **kwargs))  # ty: ignore[no-matching-overload]  # mock/duck-typed test fixture
+        stack.enter_context(patch(target, **kwargs))
 
     # Named mocks caller wants to assert on.
     named = {}
@@ -85,7 +85,7 @@ def _enter_fresh_install_patches(stack, **extra):
         ("hermes_cli.setup.get_env_value", {"return_value": None}),
         ("hermes_cli.setup._offer_openclaw_migration", {"return_value": False}),
     ]:
-        stack.enter_context(patch(target, **kwargs))  # ty: ignore[no-matching-overload]  # mock/duck-typed test fixture
+        stack.enter_context(patch(target, **kwargs))
 
     named = {}
     for name, target_spec in extra.items():
@@ -122,10 +122,11 @@ class TestExistingInstallDefault:
         m["prompt_choice"].assert_not_called()
         # Quick-setup path NOT taken.
         m["quick"].assert_not_called()
-        # All five sections ran.
+        # Model/terminal/gateway/tools run; agent settings are no longer
+        # prompted on existing installs (they keep their tuned values).
         m["model"].assert_called_once()
         m["terminal"].assert_called_once()
-        m["agent"].assert_called_once()
+        m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
 
@@ -149,7 +150,7 @@ class TestExistingInstallDefault:
         m["prompt_choice"].assert_not_called()
         m["model"].assert_called_once()
         m["terminal"].assert_called_once()
-        m["agent"].assert_called_once()
+        m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
 

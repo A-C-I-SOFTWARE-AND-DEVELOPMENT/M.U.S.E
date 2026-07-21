@@ -16,14 +16,6 @@ import pytest
 
 from hermes_cli import kanban as kanban_cli
 from hermes_cli import kanban_db as kb
-
-
-def _task(conn, task_id) -> kb.Task:
-    """Fetch a task that must exist (fails the test if missing)."""
-    task = kb.get_task(conn, task_id)
-    assert task is not None
-    return task
-
 from hermes_cli import kanban_specify as spec
 
 
@@ -56,15 +48,12 @@ def _mock_client_returning(content: str):
 
 
 def _patch_aux_client(content: str, *, model: str = "test-model"):
-    """Patch get_text_auxiliary_client at its source + at the module that
-    imported it lazily inside specify_task. Both patches are needed
-    because kanban_specify imports the function inside the function body.
+    """Patch call_llm at its source module — specify_task now routes through
+    it (#35566) instead of building a raw client. Returns (patcher, mock) so
+    callers can still assert on the call.
     """
-    client = _mock_client_returning(content)
-    return patch(
-        "agent.auxiliary_client.get_text_auxiliary_client",
-        return_value=(client, model),
-    ), client
+    mock_fn = MagicMock(return_value=_fake_aux_response(content))
+    return patch("agent.auxiliary_client.call_llm", mock_fn), mock_fn
 
 
 # ---------------------------------------------------------------------------
@@ -115,11 +104,8 @@ def test_specify_task_happy_path(kanban_home):
     with kb.connect() as conn:
         task = kb.get_task(conn, tid)
     # Parent-free → recompute_ready promotes to ready.
-    assert task is not None
     assert task.status == "ready"
-    assert task is not None
     assert task.title == "Refined rough"
-    assert task is not None
     assert "**Goal**" in (task.body or "")
 
 
@@ -137,10 +123,8 @@ def test_specify_task_falls_back_to_body_only_on_bad_json(kanban_home):
     with kb.connect() as conn:
         t = kb.get_task(conn, tid)
     # Title preserved (no JSON with a title key).
-    assert t is not None
     assert t.title == "keep title"
     # Body replaced with the raw response.
-    assert t is not None
     assert "Goal:" in (t.body or "")
 
 
@@ -172,16 +156,17 @@ def test_specify_task_no_aux_client_configured(kanban_home):
         tid = kb.create_task(conn, title="rough", triage=True)
 
     with patch(
-        "agent.auxiliary_client.get_text_auxiliary_client",
-        return_value=(None, ""),
+        "agent.auxiliary_client.call_llm",
+        side_effect=RuntimeError("No LLM provider configured"),
     ):
         outcome = spec.specify_task(tid)
 
     assert outcome.ok is False
-    assert "auxiliary client" in outcome.reason
+    # call_llm's no-provider RuntimeError surfaces via the LLM-error branch.
+    assert "LLM error" in outcome.reason
     # Task must stay in triage — we never touched it.
     with kb.connect() as conn:
-        assert _task(conn, tid).status == "triage"
+        assert kb.get_task(conn, tid).status == "triage"
 
 
 def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
@@ -189,17 +174,16 @@ def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
         tid = kb.create_task(conn, title="rough", triage=True)
 
     client = MagicMock()
-    client.chat.completions.create = MagicMock(side_effect=RuntimeError("429 rate limited"))
     with patch(
-        "agent.auxiliary_client.get_text_auxiliary_client",
-        return_value=(client, "test-model"),
+        "agent.auxiliary_client.call_llm",
+        side_effect=RuntimeError("429 rate limited"),
     ):
         outcome = spec.specify_task(tid)
 
     assert outcome.ok is False
     assert "LLM error" in outcome.reason
     with kb.connect() as conn:
-        assert _task(conn, tid).status == "triage"
+        assert kb.get_task(conn, tid).status == "triage"
 
 
 def test_specify_task_empty_llm_response(kanban_home):
@@ -212,7 +196,7 @@ def test_specify_task_empty_llm_response(kanban_home):
 
     assert outcome.ok is False
     with kb.connect() as conn:
-        assert _task(conn, tid).status == "triage"
+        assert kb.get_task(conn, tid).status == "triage"
 
 
 def test_list_triage_ids(kanban_home):
@@ -301,8 +285,8 @@ def test_cli_specify_all_returns_1_when_every_task_fails(kanban_home, capsys):
         kb.create_task(conn, title="b", triage=True)
 
     with patch(
-        "agent.auxiliary_client.get_text_auxiliary_client",
-        return_value=(None, ""),  # no aux client → every task fails
+        "agent.auxiliary_client.call_llm",
+        side_effect=RuntimeError("No LLM provider configured"),  # every task fails
     ):
         rc = _run_cli("specify", "--all")
 
@@ -331,9 +315,9 @@ def test_cli_specify_tenant_filter(kanban_home, capsys):
 
     # The outside task stays in triage.
     with kb.connect() as conn:
-        assert _task(conn, outside).status == "triage"
+        assert kb.get_task(conn, outside).status == "triage"
         # The inside task was promoted.
-        assert _task(conn, inside).status in {"todo", "ready"}
+        assert kb.get_task(conn, inside).status in {"todo", "ready"}
 
 
 def test_cli_specify_author_passed_through(kanban_home, capsys):

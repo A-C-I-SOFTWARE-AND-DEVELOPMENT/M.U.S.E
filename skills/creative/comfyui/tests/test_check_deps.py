@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from check_deps import (  # ty: ignore[unresolved-import]
+from check_deps import (
     NODE_TO_PACKAGE,
     model_present,
     normalize_for_match,

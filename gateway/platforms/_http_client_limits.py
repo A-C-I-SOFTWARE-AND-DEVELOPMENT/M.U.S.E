@@ -33,7 +33,7 @@ import os
 try:
     import httpx
 except ImportError:  # pragma: no cover — optional dep
-    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
+    httpx = None  # type: ignore[assignment]
 
 
 _DEFAULT_KEEPALIVE_EXPIRY_S = 2.0

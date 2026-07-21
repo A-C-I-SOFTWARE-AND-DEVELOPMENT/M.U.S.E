@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Creating Skills"
-description: "How to create skills for muse — SKILL.md format, guidelines, and publishing"
+description: "How to create skills for Hermes Agent — SKILL.md format, guidelines, and publishing"
 ---
 
 # Creating Skills
 
-Skills are the preferred way to add new capabilities to muse They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
+Skills are the preferred way to add new capabilities to Hermes Agent. They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
 
 ## Should it be a Skill or a Tool?
 
@@ -66,6 +66,11 @@ metadata:
         description: "What this setting controls"
         default: "sensible-default"
         prompt: "Display prompt for setup"
+    blueprint:                              # Optional — marks this skill a runnable automation
+      schedule: "0 9 * * *"              #   cron expr / "every 2h" / ISO timestamp
+      deliver: origin                    #   optional (default origin)
+      prompt: "Task instruction for each run"  # optional
+      no_agent: false                    # optional
 required_environment_variables:          # Optional — env vars the skill needs
   - name: MY_API_KEY
     prompt: "Enter your API key"
@@ -160,7 +165,7 @@ See `skills/apple/` for examples of macOS-only skills.
 
 ## Secure Setup on Load
 
-Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, muse prompts for them securely when the skill is loaded in the local CLI.
+Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, Hermes prompts for them securely when the skill is loaded in the local CLI.
 
 ```yaml
 required_environment_variables:
@@ -170,10 +175,10 @@ required_environment_variables:
     required_for: full functionality
 ```
 
-The user can skip setup and keep loading the skill. muse never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
+The user can skip setup and keep loading the skill. Hermes never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
 
 :::tip Sandbox Passthrough
-When your skill is loaded, any declared `required_environment_variables` that are set are **automatically passed through** to `execute_code` and `terminal` sandboxes — including remote backends like Docker and Modal. Your skill's scripts can access `$TENOR_API_KEY` (or `os.environ["TENOR_API_KEY"]` in Python) without the user needing to configure anything extra. See [Environment Variable Passthrough](/docs/user-guide/security#environment-variable-passthrough) for details.
+When your skill is loaded, any declared `required_environment_variables` that are set are **automatically passed through** to `execute_code` and `terminal` sandboxes — including remote backends like Docker and Modal. Your skill's scripts can access `$TENOR_API_KEY` (or `os.environ["TENOR_API_KEY"]` in Python) without the user needing to configure anything extra. See [Environment Variable Passthrough](/user-guide/security#environment-variable-passthrough) for details.
 :::
 
 Legacy `prerequisites.env_vars` remains supported as a backward-compatible alias.
@@ -200,7 +205,7 @@ Each entry supports:
 - `key` (required) — dotpath for the setting (e.g., `myplugin.path`)
 - `description` (required) — explains what the setting controls
 - `default` (optional) — default value if the user doesn't configure it
-- `prompt` (optional) — prompt text shown during `muse config migrate`; falls back to `description`
+- `prompt` (optional) — prompt text shown during `hermes config migrate`; falls back to `description`
 
 **How it works:**
 
@@ -212,7 +217,7 @@ Each entry supports:
          path: ~/my-data
    ```
 
-2. **Discovery:** `muse config migrate` scans all enabled skills, finds unconfigured settings, and prompts the user. Settings also appear in `muse config show` under "Skill Settings."
+2. **Discovery:** `hermes config migrate` scans all enabled skills, finds unconfigured settings, and prompts the user. Settings also appear in `hermes config show` under "Skill Settings."
 
 3. **Runtime injection:** When a skill loads, its config values are resolved and appended to the skill message:
    ```
@@ -224,7 +229,7 @@ Each entry supports:
 
 4. **Manual setup:** Users can also set values directly:
    ```bash
-   muse config set skills.config.myplugin.path ~/my-data
+   hermes config set skills.config.myplugin.path ~/my-data
    ```
 
 :::tip When to use which
@@ -247,7 +252,7 @@ Each entry supports:
 - `path` (required) — file path relative to `~/.hermes/`
 - `description` (optional) — explains what the file is and how it's created
 
-When loaded, muse checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
+When loaded, Hermes checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
 - **Mounted into Docker** containers as read-only bind mounts
 - **Synced into Modal** sandboxes (at creation + before each command, so mid-session OAuth works)
 - Available on **local** backend without any special handling
@@ -262,7 +267,7 @@ See the `skills/productivity/google-workspace/SKILL.md` for a complete example u
 
 ### No External Dependencies
 
-Prefer stdlib Python, curl, and existing muse tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
+Prefer stdlib Python, curl, and existing Hermes tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
 
 ### Progressive Disclosure
 
@@ -320,26 +325,84 @@ Snippets run with the skill directory as their working directory, and output is 
 Run the skill and verify the agent follows the instructions correctly:
 
 ```bash
-muse chat --toolsets skills -q "Use the X skill to do Y"
+hermes chat --toolsets skills -q "Use the X skill to do Y"
 ```
 
 ## Where Should the Skill Live?
 
-Bundled skills (in `skills/`) ship with every muse install. They should be **broadly useful to most users**:
+Bundled skills (in `skills/`) ship with every Hermes install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo, is discoverable via `muse skills browse` (labeled "official"), and installs with builtin trust.
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo, is discoverable via `hermes skills browse` (labeled "official"), and installs with built-in trust.
 
-If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a registry and share it via `muse skills install`.
+If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a registry and share it via `hermes skills install`.
+
+## Blueprints: skills that are also automations
+
+A **blueprint** is an ordinary skill that additionally declares a schedule in its frontmatter. Add a `metadata.hermes.blueprint` block and the skill becomes a shareable, runnable automation:
+
+```yaml
+metadata:
+  hermes:
+    tags: [blueprint, email]
+    blueprint:
+      schedule: "0 8 * * *"     # presence of `blueprint:` marks it runnable
+      deliver: telegram          # optional (default: origin)
+      prompt: "Summarize my unread email and today's calendar."  # optional
+      no_agent: false            # optional
+```
+
+Because a blueprint **is** a skill, it flows through the entire skills pipeline unchanged — search, inspect, install, security scan, provenance, taps, the centralized index, and `hermes skills publish` for sharing. Nothing new to learn.
+
+**Installing a blueprint.** When you install a skill that carries a `blueprint:` block, Hermes registers it as a **suggested cron job** rather than scheduling it. Scheduling is **opt-in** — installing never silently creates a recurring job. You review and accept it via `/suggestions`:
+
+```bash
+hermes skills install owner/morning-brief
+# → Blueprint: 'morning-brief' is an automation (schedule 0 8 * * *).
+#   Added to your suggestions — run /suggestions to schedule or dismiss it.
+
+# then, in a session:
+/suggestions             # lists pending suggestions, numbered
+/suggestions accept 1    # creates the cron job
+/suggestions dismiss 1   # never offer it again
+```
+
+Blueprints are one **source** of the unified Suggested Cron Jobs surface — the same place curated starter automations and (later) usage-pattern and integration suggestions appear. See [Suggested Cron Jobs](#suggested-cron-jobs) below.
+
+**Sharing an automation you built.** A blueprint loaded by a cron job (`hermes cron create --skill <name> ...`) can be exported back to a SKILL.md and published like any other skill, so an automation you tuned for yourself becomes a one-command install for someone else.
+
+The blueprint layer adds no new object type, store, or transport — the blueprint is a skill, the schedule is a cron job, and sharing is the existing publish/tap/index path.
+
+## Suggested Cron Jobs
+
+Hermes can *propose* automations and let you accept them with one tap, instead of making you assemble cron jobs by hand. Every proposal flows through one surface — the `/suggestions` command — regardless of where it came from:
+
+| Source | Trigger |
+|--------|---------|
+| `catalog` | Curated starter automations (`/suggestions catalog`) — daily briefing, important-mail monitor, weekly review, workday-start reminder |
+| `blueprint` | You installed a skill carrying a `blueprint:` block |
+| `usage` | The background review noticed a recurring ask a schedule would serve |
+| `integration` | You connected an account (Gmail, GitHub, ...) and the obvious automations are offered |
+
+```bash
+/suggestions             # list pending
+/suggestions accept N    # schedule suggestion N (creates the cron job)
+/suggestions dismiss N   # dismiss it — latched, never re-offered
+/suggestions catalog     # add the curated starter automations
+```
+
+Accepting a suggestion calls the same `cron.jobs.create_job` the `cronjob` tool uses — there is no second job engine. Suggestions **never** auto-create jobs; acceptance is always explicit. Dismissed suggestions latch by a stable key so the same proposal is never re-offered. The pending list is capped so it never becomes a nag wall.
+
+The **important-mail monitor** catalog entry is the poll→classify→surface pattern: it scores inbox items with a cheap classifier model (`auxiliary.monitor` in `config.yaml`) and delivers only the ones above an urgency threshold, staying silent otherwise.
 
 ## Publishing Skills
 
 ### To the Skills Hub
 
 ```bash
-muse skills publish skills/my-skill --to github --repo owner/repo
+hermes skills publish skills/my-skill --to github --repo owner/repo
 ```
 
 ### To a Custom Repository
@@ -347,7 +410,7 @@ muse skills publish skills/my-skill --to github --repo owner/repo
 Add your repo as a tap:
 
 ```bash
-muse skills tap add owner/repo
+hermes skills tap add owner/repo
 ```
 
 Users can then search and install from your repository.
@@ -362,12 +425,12 @@ All hub-installed skills go through a security scanner that checks for:
 - Shell injection
 
 Trust levels:
-- `builtin` — ships with muse (always trusted)
-- `official` — from `optional-skills/` in the repo (builtin trust, no third-party warning)
+- `builtin` — ships with Hermes (always trusted)
+- `official` — from `optional-skills/` in the repo (built-in trust, no third-party warning)
 - `trusted` — from openai/skills, anthropics/skills, huggingface/skills
 - `community` — non-dangerous findings can be overridden with `--force`; `dangerous` verdicts remain blocked
 
-muse can now consume third-party skills from multiple external discovery models:
+Hermes can now consume third-party skills from multiple external discovery models:
 - direct GitHub identifiers (for example `openai/skills/k8s`)
 - `skills.sh` identifiers (for example `skills-sh/vercel-labs/json-render/json-render-react`)
 - well-known endpoints served from `/.well-known/skills/index.json`

@@ -11,14 +11,12 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import numpy as np  # ty: ignore[unresolved-import]
-
     from .store import MemoryStore
 
 try:
     from . import holographic as hrr
 except ImportError:
-    import holographic as hrr  # type: ignore[no-redef]  # ty: ignore[unresolved-import]
+    import holographic as hrr  # type: ignore[no-redef]
 
 
 class FactRetriever:
@@ -31,27 +29,11 @@ class FactRetriever:
         fts_weight: float = 0.4,
         jaccard_weight: float = 0.3,
         hrr_weight: float = 0.3,
-        embedding_weight: float = 0.0,
-        importance_weight: float = 0.0,
-        short_half_life_days: int = 0,
-        long_half_life_days: int = 0,
-        track_access: bool = False,
         hrr_dim: int = 1024,
     ):
         self.store = store
         self.half_life = temporal_decay_half_life
         self.hrr_dim = hrr_dim
-        # Per-search cache so the query is embedded at most once, not per row.
-        self._query_emb_cache: tuple[str, "list[float] | None"] | None = None
-
-        # Longevity knobs (all opt-in; 0 / False preserve prior behavior).
-        # Tiered decay: long-tier facts fade slowly, short-tier quickly
-        # (FadeMem two-layer pattern). Active only when both half-lives are set.
-        self.short_half_life = short_half_life_days
-        self.long_half_life = long_half_life_days
-        self._tiered_decay_on = bool(short_half_life_days > 0 and long_half_life_days > 0)
-        # Recall records an access (recency/frequency signal for consolidation).
-        self.track_access = bool(track_access)
 
         # Auto-redistribute weights if numpy unavailable
         if hrr_weight > 0 and not hrr._HAS_NUMPY:
@@ -59,37 +41,9 @@ class FactRetriever:
             jaccard_weight = 0.4
             hrr_weight = 0.0
 
-        # The dense term only participates when a live embedding backend exists
-        # AND a positive weight was requested. Otherwise it stays at 0 so the
-        # scoring below is byte-for-byte identical to the pre-embeddings code.
-        self._embeddings_on = bool(
-            embedding_weight > 0 and getattr(store, "_embeddings_enabled", False)
-        )
-        if not self._embeddings_on:
-            embedding_weight = 0.0
-
-        # Importance contributes only when a positive weight is requested.
-        self._importance_on = bool(importance_weight > 0)
-        if not self._importance_on:
-            importance_weight = 0.0
-
-        # Re-normalize so the weights always sum to 1.0. With the defaults
-        # (0.4 + 0.3 + 0.3) and embedding_weight == importance_weight == 0 the
-        # sum is already 1.0, so this is a no-op and recall is unchanged. The
-        # extra terms only shrink the others when actually active.
-        total = fts_weight + jaccard_weight + hrr_weight + embedding_weight + importance_weight
-        if total > 0:
-            fts_weight /= total
-            jaccard_weight /= total
-            hrr_weight /= total
-            embedding_weight /= total
-            importance_weight /= total
-
         self.fts_weight = fts_weight
         self.jaccard_weight = jaccard_weight
         self.hrr_weight = hrr_weight
-        self.embedding_weight = embedding_weight
-        self.importance_weight = importance_weight
 
     def search(
         self,
@@ -116,7 +70,6 @@ class FactRetriever:
 
         # Stage 2: Rerank with Jaccard + trust + optional decay
         query_tokens = self._tokenize(query)
-        self._query_emb_cache = None  # reset per-search query-embedding cache
         scored = []
 
         for fact in candidates:
@@ -135,29 +88,17 @@ class FactRetriever:
             else:
                 hrr_sim = 0.5  # neutral
 
-            # Dense embedding similarity (only when a backend is live)
-            emb_sim = self._embedding_similarity(query, fact)
-
-            # Importance prior (longevity): a global [0,1] signal, neutral 0.5
-            # when the column is unset. Only contributes when weighted.
-            if self.importance_weight > 0:
-                imp = fact.get("importance")
-                importance = 0.5 if imp is None else float(imp)
-            else:
-                importance = 0.5
-
-            # Combine FTS5 + Jaccard + HRR + embeddings + importance
+            # Combine FTS5 + Jaccard + HRR
             relevance = (self.fts_weight * fts_score
                         + self.jaccard_weight * jaccard
-                        + self.hrr_weight * hrr_sim
-                        + self.embedding_weight * emb_sim
-                        + self.importance_weight * importance)
+                        + self.hrr_weight * hrr_sim)
 
             # Trust weighting
             score = relevance * fact["trust_score"]
 
-            # Optional temporal decay (tier-aware when longevity is on)
-            score *= self._decay_for(fact)
+            # Optional temporal decay
+            if self.half_life > 0:
+                score *= self._temporal_decay(fact.get("updated_at") or fact.get("created_at"))
 
             fact["score"] = score
             scored.append(fact)
@@ -165,70 +106,10 @@ class FactRetriever:
         # Sort by score descending, return top limit
         scored.sort(key=lambda x: x["score"], reverse=True)
         results = scored[:limit]
-        # Record the recall as an access event (recency/frequency signal).
-        if self.track_access and results:
-            try:
-                self.store.record_access([r["fact_id"] for r in results])
-            except Exception:
-                pass
-        # Strip raw vector bytes — callers expect JSON-serializable dicts
+        # Strip raw HRR bytes — callers expect JSON-serializable dicts
         for fact in results:
             fact.pop("hrr_vector", None)
-            fact.pop("embedding", None)
-            fact.pop("embedding_dim", None)
-            fact.pop("embedding_model", None)
         return results
-
-    def _decay_for(self, fact: dict) -> float:
-        """Temporal-decay multiplier for one fact.
-
-        When tiered decay is enabled, the half-life is chosen by the fact's
-        memory tier (long = slow fade, short = fast). Otherwise falls back to
-        the single ``half_life`` (which is 0/off by default — no change).
-        """
-        ts = fact.get("updated_at") or fact.get("created_at")
-        if self._tiered_decay_on:
-            tier = fact.get("memory_tier") or "short"
-            hl = self.long_half_life if tier == "long" else self.short_half_life
-            return self._temporal_decay(ts, half_life=hl)
-        if self.half_life > 0:
-            return self._temporal_decay(ts, half_life=self.half_life)
-        return 1.0
-
-    def _query_embedding(self, query: str) -> "list[float] | None":
-        """Embed the query once per search() call (memoized)."""
-        if self._query_emb_cache is not None and self._query_emb_cache[0] == query:
-            return self._query_emb_cache[1]
-        vec = None
-        backend = getattr(self.store, "_embedding_backend", None)
-        if backend is not None:
-            try:
-                vec = backend.embed(query)
-            except Exception:
-                vec = None
-        self._query_emb_cache = (query, vec)
-        return vec
-
-    def _embedding_similarity(self, query: str, fact: dict) -> float:
-        """Cosine similarity (shifted to [0,1]) between query and fact vectors.
-
-        Returns a neutral 0.5 whenever embeddings are off, the fact has no
-        stored vector, or the dimensions don't match (e.g. a model change that
-        hasn't been re-embedded yet).
-        """
-        if self.embedding_weight <= 0 or not fact.get("embedding"):
-            return 0.5
-        q_emb = self._query_embedding(query)
-        if not q_emb:
-            return 0.5
-        if fact.get("embedding_dim") not in (None, len(q_emb)):
-            return 0.5
-        from .embeddings import bytes_to_vector, cosine
-
-        fact_emb = bytes_to_vector(fact["embedding"])
-        if len(fact_emb) != len(q_emb):
-            return 0.5
-        return (cosine(q_emb, fact_emb) + 1.0) / 2.0
 
     def probe(
         self,
@@ -615,7 +496,11 @@ class FactRetriever:
         # We need to join facts_fts with facts to get all columns
         params: list = []
         where_clauses = ["facts_fts MATCH ?"]
-        params.append(query)
+        # FTS5 defaults to AND-between-tokens, which kills recall on
+        # natural-language queries ("what happened with the deployment
+        # rollback"). Sanitize: drop stopwords, OR-join content tokens, so
+        # any significant term can match.
+        params.append(self._sanitize_fts_query(query))
 
         if category:
             where_clauses.append("f.category = ?")
@@ -676,6 +561,63 @@ class FactRetriever:
                 tokens.add(cleaned)
         return tokens
 
+    # Stopwords dropped before FTS5 OR-expansion. Short English function
+    # words that carry no retrieval signal and force false-negative AND
+    # matches when left in the query.
+    _FTS_STOPWORDS = frozenset({
+        "a", "about", "above", "after", "again", "all", "am", "an", "and",
+        "any", "are", "as", "at", "be", "because", "been", "before", "being",
+        "between", "both", "but", "by", "can", "could", "did", "do", "does",
+        "doing", "don", "down", "during", "each", "few", "for", "from",
+        "further", "had", "has", "have", "having", "he", "her", "here",
+        "hers", "herself", "him", "himself", "his", "how", "i", "if", "in",
+        "into", "is", "it", "its", "itself", "just", "me", "more", "most",
+        "my", "myself", "no", "nor", "not", "now", "of", "off", "on", "once",
+        "only", "or", "other", "our", "ours", "ourselves", "out", "over",
+        "own", "same", "she", "should", "so", "some", "such", "than", "that",
+        "the", "their", "theirs", "them", "themselves", "then", "there",
+        "these", "they", "this", "those", "through", "to", "too", "under",
+        "until", "up", "very", "was", "we", "were", "what", "when", "where",
+        "which", "while", "who", "whom", "why", "will", "with", "would",
+        "you", "your", "yours", "yourself", "yourselves",
+    })
+
+    @classmethod
+    def _sanitize_fts_query(cls, query: str) -> str:
+        """Convert a natural-language query to an FTS5-safe OR expression.
+
+        FTS5 treats a multi-word MATCH argument as AND-joined by default,
+        which tanks recall on prose queries. This helper:
+          - tokenizes the query
+          - drops stopwords and short (<2 char) tokens
+          - strips FTS5 special characters from each token
+          - OR-joins the survivors
+
+        If nothing remains (pathological query), falls back to the raw
+        query so the caller sees zero results instead of a SQL error.
+        """
+        if not query:
+            return ""
+        # Strip FTS5 operator characters from EACH token to avoid
+        # accidentally creating a malformed query.
+        _FTS_SPECIAL = '"()*^:-+'
+        tokens: list[str] = []
+        for raw in query.lower().split():
+            cleaned = raw.strip(".,;:!?\"'()[]{}#@<>") .translate(
+                str.maketrans("", "", _FTS_SPECIAL)
+            )
+            if len(cleaned) < 2:
+                continue
+            if cleaned in cls._FTS_STOPWORDS:
+                continue
+            # FTS5 phrase-literal each token to ensure no special chars
+            # sneak through as operators.
+            tokens.append(f'"{cleaned}"')
+        if not tokens:
+            # Fallback: raw query (likely returns 0, but never crashes)
+            return query
+        return " OR ".join(tokens)
+
     @staticmethod
     def _jaccard_similarity(set_a: set, set_b: set) -> float:
         """Jaccard similarity coefficient: |A ∩ B| / |A ∪ B|."""
@@ -685,15 +627,12 @@ class FactRetriever:
         union = len(set_a | set_b)
         return intersection / union if union > 0 else 0.0
 
-    def _temporal_decay(self, timestamp_str: str | None, half_life: int | None = None) -> float:
+    def _temporal_decay(self, timestamp_str: str | None) -> float:
         """Exponential decay: 0.5^(age_days / half_life_days).
 
-        ``half_life`` defaults to the retriever's ``self.half_life`` for
-        backward compatibility; callers (tiered decay) may pass a per-fact
-        half-life. Returns 1.0 if decay is disabled or the timestamp is missing.
+        Returns 1.0 if decay is disabled or timestamp is missing.
         """
-        hl = self.half_life if half_life is None else half_life
-        if not hl or not timestamp_str:
+        if not self.half_life or not timestamp_str:
             return 1.0
 
         try:
@@ -710,6 +649,6 @@ class FactRetriever:
             if age_days < 0:
                 return 1.0
 
-            return math.pow(0.5, age_days / hl)
+            return math.pow(0.5, age_days / self.half_life)
         except (ValueError, TypeError):
             return 1.0

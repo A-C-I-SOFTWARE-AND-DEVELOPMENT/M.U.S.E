@@ -1,8 +1,6 @@
 import base64
 
 import pytest
-
-pytest.importorskip("acp")
 from acp.schema import (
     BlobResourceContents,
     EmbeddedResourceContentBlock,
@@ -18,7 +16,7 @@ from acp_adapter.server import HermesACPAgent, _content_blocks_to_openai_user_co
 def test_acp_image_blocks_convert_to_openai_multimodal_content():
     content = _content_blocks_to_openai_user_content([
         TextContentBlock(type="text", text="What is in this image?"),
-        ImageContentBlock(type="image", data="aGVsbG8=", mimeType="image/png"),  # ty: ignore[missing-argument, unknown-argument]
+        ImageContentBlock(type="image", data="aGVsbG8=", mimeType="image/png"),
     ])
 
     assert content == [
@@ -49,7 +47,7 @@ def test_acp_resource_link_file_is_inlined_as_text(tmp_path):
             name="notes.md",
             title="Project notes",
             uri=attached.as_uri(),
-            mimeType="text/markdown",  # ty: ignore[unknown-argument]
+            mimeType="text/markdown",
         ),
     ])
 
@@ -67,7 +65,7 @@ def test_acp_embedded_text_resource_is_inlined_as_text():
             type="resource",
             resource=TextResourceContents(
                 uri="file:///workspace/todo.txt",
-                mimeType="text/plain",  # ty: ignore[unknown-argument]
+                mimeType="text/plain",
                 text="first\nsecond",
             ),
         ),
@@ -106,7 +104,7 @@ def test_acp_resource_link_image_file_is_inlined_as_image_url(tmp_path):
             type="resource_link",
             name="shot.png",
             uri=attached.as_uri(),
-            mimeType="image/png",  # ty: ignore[unknown-argument]
+            mimeType="image/png",
         ),
     ])
 
@@ -146,7 +144,7 @@ def test_acp_embedded_blob_image_is_inlined_as_image_url():
             type="resource",
             resource=BlobResourceContents(
                 uri="file:///tmp/embed.png",
-                mimeType="image/png",  # ty: ignore[unknown-argument]
+                mimeType="image/png",
                 blob=b64,
             ),
         ),

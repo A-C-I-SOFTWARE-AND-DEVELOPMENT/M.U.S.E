@@ -14,13 +14,14 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc",
+    "typecheck": "tsc -p . --noEmit",
     "lint:diagrams": "ascii-guard lint --exclude-code-blocks docs"
   },
   "dependencies": {
     "@docusaurus/core": "3.9.2",
+    "@docusaurus/plugin-client-redirects": "3.9.2",
     "@docusaurus/preset-classic": "3.9.2",
-    "@docusaurus/theme-mermaid": "3.9.2",
+    "@docusaurus/theme-mermaid": "^3.9.2",
     "@easyops-cn/docusaurus-search-local": "^0.55.1",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
@@ -32,7 +33,11 @@
     "@docusaurus/module-type-aliases": "3.9.2",
     "@docusaurus/tsconfig": "3.9.2",
     "@docusaurus/types": "3.9.2",
-    "typescript": "~5.6.2"
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "uuid": "^14.0.0"
   },
   "browserslist": {
     "production": [
@@ -48,13 +53,5 @@
   },
   "engines": {
     "node": ">=20.0"
-  },
-  "overrides": {
-    "serialize-javascript": "^7.0.5",
-    "sockjs": {
-      "uuid": "^11.1.1"
-    },
-    "http-proxy-middleware": "^3.0.6",
-    "js-yaml": "^4.2.0"
   }
 }

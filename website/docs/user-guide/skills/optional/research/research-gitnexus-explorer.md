@@ -14,19 +14,19 @@ Index a codebase with GitNexus and serve an interactive knowledge graph via web 
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/research/gitnexus-explorer` |
+| Source | Optional — install with `hermes skills install official/research/gitnexus-explorer` |
 | Path | `optional-skills/research/gitnexus-explorer` |
 | Version | `1.0.0` |
-| Author | muse + Teknium |
+| Author | Hermes Agent + Teknium |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `gitnexus`, `code-intelligence`, `knowledge-graph`, `visualization` |
-| Related skills | [`native-mcp`](/docs/user-guide/skills/bundled/mcp/mcp-native-mcp), [`codebase-inspection`](/docs/user-guide/skills/bundled/github/github-codebase-inspection) |
+| Related skills | `native-mcp`, [`codebase-inspection`](/docs/user-guide/skills/bundled/github/github-codebase-inspection) |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GitNexus Explorer

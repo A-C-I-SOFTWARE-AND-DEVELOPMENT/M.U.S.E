@@ -503,15 +503,15 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
             try:
                 from plugins.google_meet.audio_bridge import AudioBridge
                 bridge = AudioBridge()
-                rt["bridge_info"] = bridge.setup()  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
-                rt["bridge"] = bridge  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
-                state.set(realtime=True, realtime_device=rt["bridge_info"].get("device_name"))  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+                rt["bridge_info"] = bridge.setup()
+                rt["bridge"] = bridge
+                state.set(realtime=True, realtime_device=rt["bridge_info"].get("device_name"))
             except Exception as e:
                 state.set(error=f"audio bridge setup failed: {e} — falling back to transcribe")
                 rt["enabled"] = False
 
     try:
-        from playwright.sync_api import sync_playwright  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+        from playwright.sync_api import sync_playwright
     except ImportError as e:
         state.set(error=f"playwright not installed: {e}", exited=True)
         sys.stderr.write(
@@ -519,7 +519,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
             "`pip install playwright && python -m playwright install chromium`\n"
         )
         if rt["bridge"]:
-            rt["bridge"].teardown()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+            rt["bridge"].teardown()
         return 3
 
     # Chrome env: if realtime is live on Linux, point PULSE_SOURCE at the
@@ -533,8 +533,8 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
         # v1-style fake device (silence) — we don't care about mic content
         # when we're not speaking.
         chrome_args.insert(1, "--use-fake-device-for-media-stream")
-    elif rt["bridge_info"] and rt["bridge_info"].get("platform") == "linux":  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
-        chrome_env["PULSE_SOURCE"] = rt["bridge_info"].get("device_name", "")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+    elif rt["bridge_info"] and rt["bridge_info"].get("platform") == "linux":
+        chrome_env["PULSE_SOURCE"] = rt["bridge_info"].get("device_name", "")
 
     try:
         with sync_playwright() as pw:
@@ -594,7 +594,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
                 _start_realtime_speaker(
                     rt=rt,
                     out_dir=out_dir,
-                    bridge_info=rt["bridge_info"],  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+                    bridge_info=rt["bridge_info"],
                     api_key=realtime_api_key,
                     model=realtime_model,
                     voice=realtime_voice,
@@ -699,7 +699,13 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
 
             context.close()
             browser.close()
-            # v2: teardown realtime speaker + audio bridge.
+            # v2: teardown PCM pump, speaker thread, and audio bridge.
+            if rt.get("pcm_pump"):
+                try:
+                    rt["pcm_pump"].terminate()
+                    rt["pcm_pump"].wait(timeout=3)
+                except Exception:
+                    pass
             if rt["speaker_stop"]:
                 try:
                     rt["speaker_stop"]()
@@ -717,7 +723,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
                     pass
             if rt["bridge"]:
                 try:
-                    rt["bridge"].teardown()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+                    rt["bridge"].teardown()
                 except Exception:
                     pass
             state.set(in_call=False, captioning=False, exited=True)

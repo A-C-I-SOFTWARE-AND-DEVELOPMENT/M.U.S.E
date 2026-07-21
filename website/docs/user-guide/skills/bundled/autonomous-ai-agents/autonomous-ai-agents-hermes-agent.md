@@ -52,22 +52,22 @@ People use Hermes for software development, research, system administration, dat
 
 ```bash
 # Install
-curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/main/scripts/install.sh | bash
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 
 # Interactive chat (default)
-muse
+hermes
 
 # Single query
-muse chat -q "What is the capital of France?"
+hermes chat -q "What is the capital of France?"
 
 # Setup wizard
-muse setup
+hermes setup
 
 # Change model/provider
-muse model
+hermes model
 
 # Check health
-muse doctor
+hermes doctor
 ```
 
 ---
@@ -77,7 +77,7 @@ muse doctor
 ### Global Flags
 
 ```
-muse [flags] [command]
+hermes [flags] [command]
 
   --version, -V             Show version
   --resume, -r SESSION      Resume session by ID or title
@@ -94,7 +94,7 @@ No subcommand defaults to `chat`.
 ### Chat
 
 ```
-muse chat [flags]
+hermes chat [flags]
   -q, --query TEXT          Single query, non-interactive
   -m, --model MODEL         Model (e.g. anthropic/claude-sonnet-4)
   -t, --toolsets LIST       Comma-separated toolsets
@@ -108,62 +108,68 @@ muse chat [flags]
 ### Configuration
 
 ```
-muse setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
-muse model                Interactive model/provider picker
-muse config               View current config
-muse config edit          Open config.yaml in $EDITOR
-muse config set KEY VAL   Set a config value
-muse config path          Print config.yaml path
-muse config env-path      Print .env path
-muse config check         Check for missing/outdated config
-muse config migrate       Update config with new options
-muse login [--provider P] OAuth login (nous, openai-codex)
-muse logout               Clear stored auth
-muse doctor [--fix]       Check dependencies and config
-muse status [--all]       Show component status
+hermes setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
+hermes model                Interactive model/provider picker
+hermes config               View current config
+hermes config edit          Open config.yaml in $EDITOR
+hermes config set KEY VAL   Set a config value
+hermes config path          Print config.yaml path
+hermes config env-path      Print .env path
+hermes config check         Check for missing/outdated config
+hermes config migrate       Update config with new options
+hermes auth                 Interactive credential manager
+hermes auth add PROVIDER    Add OAuth or API-key credential (e.g. nous, openai-codex, qwen-oauth)
+hermes auth list            List stored credentials
+hermes auth remove PROVIDER Remove a stored credential
+hermes doctor [--fix]       Check dependencies and config
+hermes status [--all]       Show component status
 ```
 
 ### Tools & Skills
 
 ```
-muse tools                Interactive tool enable/disable (curses UI)
-muse tools list           Show all tools and status
-muse tools enable NAME    Enable a toolset
-muse tools disable NAME   Disable a toolset
+hermes tools                Interactive tool enable/disable (curses UI)
+hermes tools list           Show all tools and status
+hermes tools enable NAME    Enable a toolset
+hermes tools disable NAME   Disable a toolset
 
-muse skills list          List installed skills
-muse skills search QUERY  Search the skills hub
-muse skills install ID    Install a skill (ID can be a hub identifier OR a direct https://…/SKILL.md URL; pass --name to override when frontmatter has no name)
-muse skills inspect ID    Preview without installing
-muse skills config        Enable/disable skills per platform
-muse skills check         Check for updates
-muse skills update        Update outdated skills
-muse skills uninstall N   Remove a hub skill
-muse skills publish PATH  Publish to registry
-muse skills browse        Browse all available skills
-muse skills tap add REPO  Add a GitHub repo as skill source
+hermes skills list          List installed skills
+hermes skills search QUERY  Search the skills hub
+hermes skills install ID    Install a skill (ID can be a hub identifier OR a direct https://…/SKILL.md URL; pass --name to override when frontmatter has no name)
+hermes skills inspect ID    Preview without installing
+hermes skills config        Enable/disable skills per platform
+hermes skills check         Check for updates
+hermes skills update        Update outdated skills
+hermes skills uninstall N   Remove a hub skill
+hermes skills publish PATH  Publish to registry
+hermes skills browse        Browse all available skills
+hermes skills tap add REPO  Add a GitHub repo as skill source
 ```
 
 ### MCP Servers
 
 ```
-muse mcp serve            Run Hermes as an MCP server
-muse mcp add NAME         Add an MCP server (--url or --command)
-muse mcp remove NAME      Remove an MCP server
-muse mcp list             List configured servers
-muse mcp test NAME        Test connection
-muse mcp configure NAME   Toggle tool selection
+hermes mcp serve            Run Hermes as an MCP server
+hermes mcp add NAME         Add an MCP server (--url or --command)
+hermes mcp remove NAME      Remove an MCP server
+hermes mcp list             List configured servers
+hermes mcp test NAME        Test connection
+hermes mcp configure NAME   Toggle tool selection
 ```
+
+How the built-in MCP client connects servers (stdio/HTTP), auto-discovers
+their tools, and exposes them as first-class tools, plus catalog install
+(`hermes mcp install <name>`): `skill_view(name="hermes-agent", file_path="references/native-mcp.md")`.
 
 ### Gateway (Messaging Platforms)
 
 ```
-muse gateway run          Start gateway foreground
-muse gateway install      Install as background service
-muse gateway start/stop   Control the service
-muse gateway restart      Restart the service
-muse gateway status       Check status
-muse gateway setup        Configure platforms
+hermes gateway run          Start gateway foreground
+hermes gateway install      Install as background service
+hermes gateway start/stop   Control the service
+hermes gateway restart      Restart the service
+hermes gateway status       Check status
+hermes gateway setup        Configure platforms
 ```
 
 Supported platforms: Telegram, Discord, Slack, WhatsApp, Signal, Email, SMS, Matrix, Mattermost, Home Assistant, DingTalk, Feishu, WeCom, BlueBubbles (iMessage), Weixin (WeChat), API Server, Webhooks. Open WebUI connects via the API Server adapter.
@@ -173,72 +179,75 @@ Platform docs: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
 ### Sessions
 
 ```
-muse sessions list        List recent sessions
-muse sessions browse      Interactive picker
-muse sessions export OUT  Export to JSONL
-muse sessions rename ID T Rename a session
-muse sessions delete ID   Delete a session
-muse sessions prune       Clean up old sessions (--older-than N days)
-muse sessions stats       Session store statistics
+hermes sessions list        List recent sessions
+hermes sessions browse      Interactive picker
+hermes sessions export OUT  Export to JSONL
+hermes sessions rename ID T Rename a session
+hermes sessions delete ID   Delete a session
+hermes sessions prune       Clean up old sessions (--older-than N days)
+hermes sessions stats       Session store statistics
 ```
 
 ### Cron Jobs
 
 ```
-muse cron list            List jobs (--all for disabled)
-muse cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
-muse cron edit ID         Edit schedule, prompt, delivery
-muse cron pause/resume ID Control job state
-muse cron run ID          Trigger on next tick
-muse cron remove ID       Delete a job
-muse cron status          Scheduler status
+hermes cron list            List jobs (--all for disabled)
+hermes cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
+hermes cron edit ID         Edit schedule, prompt, delivery
+hermes cron pause/resume ID Control job state
+hermes cron run ID          Trigger on next tick
+hermes cron remove ID       Delete a job
+hermes cron status          Scheduler status
 ```
 
 ### Webhooks
 
 ```
-muse webhook subscribe N  Create route at /webhooks/<name>
-muse webhook list         List subscriptions
-muse webhook remove NAME  Remove a subscription
-muse webhook test NAME    Send a test POST
+hermes webhook subscribe N  Create route at /webhooks/<name>
+hermes webhook list         List subscriptions
+hermes webhook remove NAME  Remove a subscription
+hermes webhook test NAME    Send a test POST
 ```
+
+Full setup, route config, payload templating, and event-driven agent-run
+patterns: `skill_view(name="hermes-agent", file_path="references/webhooks.md")`.
 
 ### Profiles
 
 ```
-muse profile list         List all profiles
-muse profile create NAME  Create (--clone, --clone-all, --clone-from)
-muse profile use NAME     Set sticky default
-muse profile delete NAME  Delete a profile
-muse profile show NAME    Show details
-muse profile alias NAME   Manage wrapper scripts
-muse profile rename A B   Rename a profile
-muse profile export NAME  Export to tar.gz
-muse profile import FILE  Import from archive
+hermes profile list         List all profiles
+hermes profile create NAME  Create (--clone, --clone-all, --clone-from)
+hermes profile use NAME     Set sticky default
+hermes profile delete NAME  Delete a profile
+hermes profile show NAME    Show details
+hermes profile alias NAME   Manage wrapper scripts
+hermes profile rename A B   Rename a profile
+hermes profile export NAME  Export to tar.gz
+hermes profile import FILE  Import from archive
 ```
 
 ### Credential Pools
 
 ```
-muse auth add             Interactive credential wizard
-muse auth list [PROVIDER] List pooled credentials
-muse auth remove P INDEX  Remove by provider + index
-muse auth reset PROVIDER  Clear exhaustion status
+hermes auth add             Interactive credential wizard
+hermes auth list [PROVIDER] List pooled credentials
+hermes auth remove P INDEX  Remove by provider + index
+hermes auth reset PROVIDER  Clear exhaustion status
 ```
 
 ### Other
 
 ```
-muse insights [--days N]  Usage analytics
-muse update               Update to latest version
-muse pairing list/approve/revoke  DM authorization
-muse plugins list/install/remove  Plugin management
-muse honcho setup/status  Honcho memory integration (requires honcho plugin)
-muse memory setup/status/off  Memory provider config
-muse completion bash|zsh  Shell completions
-muse acp                  ACP server (IDE integration)
-muse claw migrate         Migrate from OpenClaw
-muse uninstall            Uninstall Hermes
+hermes insights [--days N]  Usage analytics
+hermes update               Update to latest version
+hermes pairing list/approve/revoke  DM authorization
+hermes plugins list/install/remove  Plugin management
+hermes honcho setup/status  Honcho memory integration (requires honcho plugin)
+hermes memory setup/status/off  Memory provider config
+hermes completion bash|zsh  Shell completions
+hermes acp                  ACP server (IDE integration)
+hermes claw migrate         Migrate from OpenClaw
+hermes uninstall            Uninstall Hermes
 ```
 
 ---
@@ -277,7 +286,7 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 /config              Show config (CLI)
 /model [name]        Show or change model
 /personality [name]  Set personality
-/reasoning [level]   Set reasoning (none|minimal|low|medium|high|xhigh|show|hide)
+/reasoning [level]   Set reasoning (none|minimal|low|medium|high|xhigh|max|ultra|show|hide)
 /verbose             Cycle: off → new → all → verbose
 /voice [on|off|tts]  Voice mode
 /yolo                Toggle approval bypass
@@ -334,7 +343,6 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 /commands [page]     Browse all commands (gateway)
 /usage               Token usage
 /insights [days]     Usage analytics
-/gquota              Show Google Gemini Code Assist quota usage (CLI)
 /status              Session info (gateway)
 /profile             Active profile info
 /debug               Upload debug report (system info + logs) and get shareable links
@@ -351,9 +359,10 @@ The registry of record is `hermes_cli/commands.py` — every consumer
 
 ```
 ~/.hermes/config.yaml       Main configuration
-~/.hermes/.env              API keys and secrets
+~/.hermes/.env              API keys and secrets (under $HERMES_HOME if set)
 $HERMES_HOME/skills/        Installed skills
-~/.hermes/sessions/         Session transcripts
+~/.hermes/sessions/         Gateway routing index, request dumps, *.jsonl transcripts (and optional per-session JSON snapshots when sessions.write_json_snapshots: true)
+~/.hermes/state.db          Canonical session store (SQLite + FTS5)
 ~/.hermes/logs/             Gateway and error logs
 ~/.hermes/auth.json         OAuth tokens and credential pools
 ~/.hermes/hermes-agent/     Source code (if git-installed)
@@ -363,11 +372,11 @@ Profiles use `~/.hermes/profiles/<name>/` with the same layout.
 
 ### Config Sections
 
-Edit with `muse config edit` or `muse config set section.key value`.
+Edit with `hermes config edit` or `hermes config set section.key value`.
 
 | Section | Key options |
 |---------|-------------|
-| `model` | `default`, `provider`, `base_url`, `api_key`, `context_length` |
+| `model` | `default`, `provider`, `base_url`, `api_key`, `context_length` (explicit override; clear to `""` for auto-detect from server `/v1/models`) |
 | `agent` | `max_turns` (90), `tool_use_enforcement` |
 | `terminal` | `backend` (local/docker/ssh/modal), `cwd`, `timeout` (180) |
 | `compression` | `enabled`, `threshold` (0.50), `target_ratio` (0.20) |
@@ -383,14 +392,14 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 
 ### Providers
 
-20+ providers supported. Set via `muse model` or `muse setup`.
+20+ providers supported. Set via `hermes model` or `hermes setup`.
 
 | Provider | Auth | Key env var |
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `muse auth` |
-| OpenAI Codex | OAuth | `muse auth` |
+| Nous Portal | OAuth | `hermes auth` |
+| OpenAI Codex | OAuth | `hermes auth` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | Google Gemini | API key | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |
 | DeepSeek | API key | `DEEPSEEK_API_KEY` |
@@ -403,10 +412,9 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 | Alibaba / DashScope | API key | `DASHSCOPE_API_KEY` |
 | Xiaomi MiMo | API key | `XIAOMI_API_KEY` |
 | Kilo Code | API key | `KILOCODE_API_KEY` |
-| AI Gateway (Vercel) | API key | `AI_GATEWAY_API_KEY` |
 | OpenCode Zen | API key | `OPENCODE_ZEN_API_KEY` |
 | OpenCode Go | API key | `OPENCODE_GO_API_KEY` |
-| Qwen OAuth | OAuth | `muse login --provider qwen-oauth` |
+| Qwen OAuth | OAuth | `hermes auth add qwen-oauth` |
 | Custom endpoint | Config | `model.base_url` + `model.api_key` in config.yaml |
 | GitHub Copilot ACP | External | `COPILOT_CLI_PATH` or Copilot CLI |
 
@@ -414,7 +422,7 @@ Full provider docs: https://hermes-agent.nousresearch.com/docs/integrations/prov
 
 ### Toolsets
 
-Enable/disable via `muse tools` (interactive) or `muse tools enable/disable NAME`.
+Enable/disable via `hermes tools` (interactive) or `hermes tools enable/disable NAME`.
 
 | Toolset | What it provides |
 |---------|-----------------|
@@ -447,7 +455,6 @@ Enable/disable via `muse tools` (interactive) or `muse tools enable/disable NAME
 | `feishu_drive` | Feishu (Lark) drive tools |
 | `yuanbao` | Yuanbao integration tools |
 | `rl` | Reinforcement learning tools (off by default) |
-| `moa` | Mixture of Agents (off by default) |
 
 Full enumeration lives in `toolsets.py` as the `TOOLSETS` dict; `_HERMES_CORE_TOOLS` is the default bundle most platforms inherit from.
 
@@ -461,17 +468,17 @@ Common "why is Hermes doing X to my output / tool calls / commands?" toggles —
 
 ### Secret redaction in tool output
 
-Secret redaction is **off by default** — tool output (terminal stdout, `read_file`, web content, subagent summaries, etc.) passes through unmodified. If the user wants Hermes to auto-mask strings that look like API keys, tokens, and secrets before they enter the conversation context and logs:
+Secret redaction is **on by default** — tool output (terminal stdout, `read_file`, web content, subagent summaries, etc.) is scanned for strings that look like API keys, tokens, and secrets before it enters the conversation context and logs. Leave it enabled for normal use:
 
 ```bash
-muse config set security.redact_secrets true       # enable globally
+hermes config set security.redact_secrets true       # keep enabled globally
 ```
 
-**Restart required.** `security.redact_secrets` is snapshotted at import time — toggling it mid-session (e.g. via `export HERMES_REDACT_SECRETS=true` from a tool call) will NOT take effect for the running process. Tell the user to run `muse config set security.redact_secrets true` in a terminal, then start a new session. This is deliberate — it prevents an LLM from flipping the toggle on itself mid-task.
+**Restart required.** `security.redact_secrets` is snapshotted at import time — toggling it mid-session (e.g. via `export HERMES_REDACT_SECRETS=false` from a tool call) will NOT take effect for the running process. Tell the user to change it in config from a terminal, then start a new session. This is deliberate — it prevents an LLM from flipping the toggle on itself mid-task.
 
-Disable again with:
+Disable only when you deliberately need raw credential-like strings for debugging or redactor development:
 ```bash
-muse config set security.redact_secrets false
+hermes config set security.redact_secrets false
 ```
 
 ### PII redaction in gateway messages
@@ -479,25 +486,25 @@ muse config set security.redact_secrets false
 Separate from secret redaction. When enabled, the gateway hashes user IDs and strips phone numbers from the session context before it reaches the model:
 
 ```bash
-muse config set privacy.redact_pii true    # enable
-muse config set privacy.redact_pii false   # disable (default)
+hermes config set privacy.redact_pii true    # enable
+hermes config set privacy.redact_pii false   # disable (default)
 ```
 
 ### Command approval prompts
 
-By default (`approvals.mode: manual`), Hermes prompts the user before running shell commands flagged as destructive (`rm -rf`, `git reset --hard`, etc.). The modes are:
+By default (`approvals.mode: smart`), Hermes asks an auxiliary LLM to assess shell commands flagged as destructive (`rm -rf`, `git reset --hard`, etc.). The modes are:
 
-- `manual` — always prompt (default)
-- `smart` — use an auxiliary LLM to auto-approve low-risk commands, prompt on high-risk
+- `smart` — auto-approve a low-risk command once, deny high-risk commands, and prompt when uncertain (default)
+- `manual` — always prompt
 - `off` — skip all approval prompts (equivalent to `--yolo`)
 
 ```bash
-muse config set approvals.mode smart       # recommended middle ground
-muse config set approvals.mode off         # bypass everything (not recommended)
+hermes config set approvals.mode smart       # recommended middle ground
+hermes config set approvals.mode off         # bypass everything (not recommended)
 ```
 
 Per-invocation bypass without changing config:
-- `muse --yolo …`
+- `hermes --yolo …`
 - `export HERMES_YOLO_MODE=1`
 
 Note: YOLO / `approvals.mode: off` does NOT turn off secret redaction. They are independent.
@@ -508,7 +515,7 @@ Some shell-hook integrations require explicit allowlisting before they fire. Man
 
 ### Disabling the web/browser/image-gen tools
 
-To keep the model away from network or media tools entirely, open `muse tools` and toggle per-platform. Takes effect on next session (`/reset`). See the Tools & Skills section above.
+To keep the model away from network or media tools entirely, open `hermes tools` and toggle per-platform. Takes effect on next session (`/reset`). See the Tools & Skills section above.
 
 ---
 
@@ -565,10 +572,10 @@ Run additional Hermes processes as fully independent subprocesses — separate s
 ### One-Shot Mode
 
 ```
-terminal(command="muse chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
+terminal(command="hermes chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
 
 # Background for long tasks:
-terminal(command="muse chat -q 'Set up CI/CD for ~/myapp'", background=true)
+terminal(command="hermes chat -q 'Set up CI/CD for ~/myapp'", background=true)
 ```
 
 ### Interactive PTY Mode (via tmux)
@@ -596,11 +603,11 @@ terminal(command="tmux send-keys -t agent1 '/exit' Enter && sleep 2 && tmux kill
 
 ```
 # Agent A: backend
-terminal(command="tmux new-session -d -s backend -x 120 -y 40 'muse -w'", timeout=10)
+terminal(command="tmux new-session -d -s backend -x 120 -y 40 'hermes -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t backend 'Build REST API for user management' Enter", timeout=15)
 
 # Agent B: frontend
-terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'muse -w'", timeout=10)
+terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'hermes -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t frontend 'Build React dashboard for user management' Enter", timeout=15)
 
 # Check progress, relay context between them
@@ -612,10 +619,10 @@ terminal(command="tmux send-keys -t frontend 'Here is the API schema from the ba
 
 ```
 # Resume most recent session
-terminal(command="tmux new-session -d -s resumed 'muse --continue'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'hermes --continue'", timeout=10)
 
 # Resume specific session
-terminal(command="tmux new-session -d -s resumed 'muse --resume 20260225_143052_a1b2c3'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_143052_a1b2c3'", timeout=10)
 ```
 
 ### Tips
@@ -623,7 +630,7 @@ terminal(command="tmux new-session -d -s resumed 'muse --resume 20260225_143052_
 - **Prefer `delegate_task` for quick subtasks** — less overhead than spawning a full process
 - **Use `-w` (worktree mode)** when spawning agents that edit code — prevents git conflicts
 - **Set timeouts** for one-shot mode — complex tasks can take 5-10 minutes
-- **Use `muse chat -q` for fire-and-forget** — no PTY needed
+- **Use `hermes chat -q` for fire-and-forget** — no PTY needed
 - **Use tmux for interactive sessions** — raw PTY mode has `\r` vs `\n` issues with prompt_toolkit
 - **For scheduled tasks**, use the `cronjob` tool instead of spawning — handles delivery and retry
 
@@ -640,7 +647,7 @@ here; full developer notes live in `AGENTS.md`, user-facing docs under
 Synchronous subagent spawn — the parent waits for the child's summary
 before continuing its own loop. Isolated context + terminal session.
 
-- **Single:** `delegate_task(goal, context, toolsets)`.
+- **Single:** `delegate_task(goal, context)`.
 - **Batch:** `delegate_task(tasks=[{goal, ...}, ...])` runs children in
   parallel, capped by `delegation.max_concurrent_children` (default 3).
 - **Roles:** `leaf` (default; cannot re-delegate) vs `orchestrator`
@@ -654,7 +661,7 @@ Config: `delegation.*` in `config.yaml`.
 ### Cron (scheduled jobs)
 
 Durable scheduler — `cron/jobs.py` + `cron/scheduler.py`. Drive it via
-the `cronjob` tool, the `muse cron` CLI (`list`, `add`, `edit`,
+the `cronjob` tool, the `hermes cron` CLI (`list`, `add`, `edit`,
 `pause`, `resume`, `run`, `remove`), or the `/cron` slash command.
 
 - **Schedules:** duration (`"30m"`, `"2h"`), "every" phrase
@@ -678,7 +685,7 @@ Background maintenance for agent-created skills. Tracks usage, marks
 idle skills stale, archives stale ones, keeps a pre-run tar.gz backup
 so nothing is lost.
 
-- **CLI:** `muse curator <verb>` — `status`, `run`, `pause`, `resume`,
+- **CLI:** `hermes curator <verb>` — `status`, `run`, `pause`, `resume`,
   `pin`, `unpin`, `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Slash:** `/curator <subcommand>` mirrors the CLI.
 - **Scope:** only touches skills with `created_by: "agent"` provenance.
@@ -696,7 +703,7 @@ User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/curato
 ### Kanban (multi-agent work queue)
 
 Durable SQLite board for multi-profile / multi-worker collaboration.
-Users drive it via `muse kanban <verb>`; dispatcher-spawned workers
+Users drive it via `hermes kanban <verb>`; dispatcher-spawned workers
 see a focused `kanban_*` toolset gated by `HERMES_KANBAN_TASK`, and
 orchestrator profiles can opt into the broader `kanban` toolset. Normal
 sessions still have zero `kanban_*` schema footprint unless configured.
@@ -713,8 +720,9 @@ sessions still have zero `kanban_*` schema footprint unless configured.
 - **Dispatcher** runs inside the gateway by default
   (`kanban.dispatch_in_gateway: true`) — reclaims stale claims,
   promotes ready tasks, atomically claims, spawns assigned profiles.
-  Auto-blocks a task after the configured `kanban.failure_limit`
-  consecutive non-success attempts (default: 2).
+  Auto-blocks a task after `failure_limit` consecutive spawn failures
+  (default 2; configurable via `kanban.failure_limit` or per-task
+  `max_retries`).
 - **Isolation:** board is the hard boundary (workers get
   `HERMES_KANBAN_BOARD` pinned in env); tenant is a soft namespace
   within a board for workspace-path + memory-key isolation.
@@ -758,7 +766,7 @@ Ctrl+Enter?" This is how the Ctrl+Enter = c-j fact was established.
 
 **HTTP 400 "No models provided" on first run.** `config.yaml` was saved
 with a UTF-8 BOM (common when Windows apps write it). Re-save as UTF-8
-without BOM. `muse config edit` writes without BOM; manual edits in
+without BOM. `hermes config edit` writes without BOM; manual edits in
 Notepad are the usual culprit.
 
 ### `execute_code` / Sandbox
@@ -821,15 +829,15 @@ and logs — avoids shell-escaping backslashes in bash.
 3. In gateway: `/restart`. In CLI: exit and relaunch.
 
 ### Tool not available
-1. `muse tools` — check if toolset is enabled for your platform
+1. `hermes tools` — check if toolset is enabled for your platform
 2. Some tools need env vars (check `.env`)
 3. `/reset` after enabling tools
 
 ### Model/provider issues
-1. `muse doctor` — check config and dependencies
-2. `muse login` — re-authenticate OAuth providers
+1. `hermes doctor` — check config and dependencies
+2. `hermes auth` — re-authenticate OAuth providers (or `hermes auth add <provider>`)
 3. Check `.env` has the right API key
-4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `muse model` → GitHub Copilot.
+4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `hermes model` → GitHub Copilot.
 
 ### Changes not taking effect
 - **Tools/skills:** `/reset` starts a new session with updated toolset
@@ -837,9 +845,9 @@ and logs — avoids shell-escaping backslashes in bash.
 - **Code changes:** Restart the CLI or gateway process
 
 ### Skills not showing
-1. `muse skills list` — verify installed
-2. `muse skills config` — check platform enablement
-3. Load explicitly: `/skill name` or `muse -s name`
+1. `hermes skills list` — verify installed
+2. `hermes skills config` — check platform enablement
+3. Load explicitly: `/skill name` or `hermes -s name`
 
 ### Gateway issues
 Check logs first:
@@ -858,32 +866,48 @@ Common gateway problems:
 - **Windows-specific issues** (`Alt+Enter` newline, WinError 10106, UTF-8 BOM config, test suite, line endings): see the dedicated **Windows-Specific Quirks** section above.
 
 ### Auxiliary models not working
-If `auxiliary` tasks (vision, compression) fail silently, the `auto` provider can't find a backend. Either set `OPENROUTER_API_KEY` or `GOOGLE_API_KEY`, or explicitly configure each auxiliary task's provider:
+If `auxiliary` tasks (vision, compression, session_search) fail silently, the `auto` provider can't find a backend. Either set `OPENROUTER_API_KEY` or `GOOGLE_API_KEY`, or explicitly configure each auxiliary task's provider:
 ```bash
-muse config set auxiliary.vision.provider <your_provider>
-muse config set auxiliary.vision.model <model_name>
+hermes config set auxiliary.vision.provider <your_provider>
+hermes config set auxiliary.vision.model <model_name>
 ```
 
 ---
+### Context window shows wrong size
+
+If Hermes reports a smaller context window than your local model supports
+(e.g., 128k when llama-server has `-c 262144`):
+
+**Check if `model.context_length` is explicitly set.** Hermes uses a
+multi-source resolution chain (highest priority first):
+
+1. `model.context_length` in config.yaml — **blocks auto-detection if set**
+2. Custom provider per-model setting
+3. Persistent cache (survives restarts)
+4. `/v1/models` endpoint from your server — auto-detected when nothing
+   above overrides it
+
+**Fix:** Clear the override so auto-detection falls through:
+
 
 ## Where to Find Things
 
 | Looking for... | Location |
 |----------------|----------|
-| Config options | `muse config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
-| Available tools | `muse tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
+| Config options | `hermes config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
+| Available tools | `hermes tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
 | Slash commands | `/help` in session or [Slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands) |
-| Skills catalog | `muse skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `muse model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
-| Platform setup | `muse gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
-| MCP servers | `muse mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
-| Profiles | `muse profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
-| Cron jobs | `muse cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
-| Memory | `muse memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
-| Env variables | `muse config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
-| CLI commands | `muse --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
+| Skills catalog | `hermes skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
+| Provider setup | `hermes model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
+| Platform setup | `hermes gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
+| MCP servers | `hermes mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
+| Profiles | `hermes profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
+| Cron jobs | `hermes cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
+| Memory | `hermes memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
+| Env variables | `hermes config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
+| CLI commands | `hermes --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
 | Gateway logs | `~/.hermes/logs/gateway.log` |
-| Session files | `~/.hermes/sessions/` or `muse sessions browse` |
+| Session files | `hermes sessions browse` (reads state.db) |
 | Source code | `~/.hermes/hermes-agent/` |
 
 ---
@@ -917,7 +941,7 @@ hermes-agent/
 ```
 <!-- ascii-guard-ignore-end -->
 
-Config: `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys).
+Config: `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys) — both under `$HERMES_HOME` when it is set.
 
 ### Adding a Tool (3 files)
 
@@ -1010,7 +1034,7 @@ See `tests/agent/test_prompt_builder.py::TestEnvironmentHints` for a worked exam
 Factual guidance about the host OS, user home, cwd, terminal backend, and shell (bash vs. PowerShell on Windows) is emitted from `agent/prompt_builder.py::build_environment_hints()`. This is also where the WSL hint and per-backend probe logic live. The convention:
 
 - **Local terminal backend** → emit host info (OS, `$HOME`, cwd) + Windows-specific notes (hostname ≠ username, `terminal` uses bash not PowerShell).
-- **Remote terminal backend** (anything in `_REMOTE_TERMINAL_BACKENDS`: `docker, singularity, modal, daytona, ssh, vercel_sandbox, managed_modal`) → **suppress** host info entirely and describe only the backend. A live `uname`/`whoami`/`pwd` probe runs inside the backend via `tools.environments.get_environment(...).execute(...)`, cached per process in `_BACKEND_PROBE_CACHE`, with a static fallback if the probe times out.
+- **Remote terminal backend** (anything in `_REMOTE_TERMINAL_BACKENDS`: `docker, singularity, modal, daytona, ssh, managed_modal`) → **suppress** host info entirely and describe only the backend. A live `uname`/`whoami`/`pwd` probe runs inside the backend via `tools.environments.get_environment(...).execute(...)`, cached per process in `_BACKEND_PROBE_CACHE`, with a static fallback if the probe times out.
 - **Key fact for prompt authoring:** when `TERMINAL_ENV != "local"`, *every* file tool (`read_file`, `write_file`, `patch`, `search_files`) runs inside the backend container, not on the host. The system prompt must never describe the host in that case — the agent can't touch it.
 
 Full design notes, the exact emitted strings, and testing pitfalls:

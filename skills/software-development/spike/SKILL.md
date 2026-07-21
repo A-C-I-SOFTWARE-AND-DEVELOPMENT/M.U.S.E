@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [spike, prototype, experiment, feasibility, throwaway, exploration, research, planning, mvp, proof-of-concept]
-    related_skills: [sketch, writing-plans, subagent-driven-development, plan]
+    related_skills: [sketch, subagent-driven-development, plan]
 ---
 
 # Spike
@@ -20,7 +20,7 @@ Load this when the user says things like "let me try this", "I want to see if X 
 ## When NOT to use this
 
 - The answer is knowable from docs or reading code — just do research, don't build
-- The work is production path — use `writing-plans` / `plan` instead
+- The work is production path — use the `plan` skill instead
 - The idea is already validated — jump straight to implementation
 
 ## If the user has the full GSD system installed
@@ -194,4 +194,4 @@ Propose 2-4 candidates as Given/When/Then. Let the user pick.
 
 ## Attribution
 
-Adapted from the GSD (Get Shit Done) project's `/gsd-spike` workflow — MIT © 2025 Lex Christopherson ([gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done)). The full GSD system offers persistent spike state, MANIFEST tracking, and integration with a broader spec-driven development pipeline; install with `npx get-shit-done-cc --muse --global`.
+Adapted from the GSD (Get Shit Done) project's `/gsd-spike` workflow — MIT © 2025 Lex Christopherson ([gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done)). The full GSD system offers persistent spike state, MANIFEST tracking, and integration with a broader spec-driven development pipeline; install with `npx get-shit-done-cc --hermes --global`.

@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
 
 
 def _load_module():
@@ -57,10 +56,7 @@ class TestCamofoxConfigDefaults:
         from hermes_cli.config import DEFAULT_CONFIG
 
         browser_cfg = DEFAULT_CONFIG["browser"]
-        assert isinstance(browser_cfg, dict)
-        camofox_cfg = browser_cfg["camofox"]
-        assert isinstance(camofox_cfg, dict)
-        assert camofox_cfg["managed_persistence"] is False
-        assert camofox_cfg["user_id"] == ""
-        assert camofox_cfg["session_key"] == ""
-        assert camofox_cfg["adopt_existing_tab"] is False
+        assert browser_cfg["camofox"]["managed_persistence"] is False
+        assert browser_cfg["camofox"]["user_id"] == ""
+        assert browser_cfg["camofox"]["session_key"] == ""
+        assert browser_cfg["camofox"]["adopt_existing_tab"] is False

@@ -52,7 +52,7 @@ class TestInitSessionCwdRespect:
             mock.stdout = stdout
             return mock
 
-        env._run_bash = mock_run_bash  # ty: ignore[invalid-assignment]
+        env._run_bash = mock_run_bash
         env.init_session()
 
         assert "cmd" in captured, "init_session did not call _run_bash"
@@ -93,7 +93,7 @@ class TestInitSessionCwdRespect:
             mock.stdout = stdout
             return mock
 
-        env._run_bash = mock_run_bash  # ty: ignore[invalid-assignment]
+        env._run_bash = mock_run_bash
         env.init_session()
 
         assert env.cwd == configured_cwd, (
@@ -117,7 +117,7 @@ class TestInitSessionCwdRespect:
             mock.stdout = stdout
             return mock
 
-        env._run_bash = mock_run_bash  # ty: ignore[invalid-assignment]
+        env._run_bash = mock_run_bash
         env.init_session()
 
         assert env.cwd == "/tmp"
@@ -138,7 +138,7 @@ class TestInitSessionCwdRespect:
             mock.stdout = stdout
             return mock
 
-        env._run_bash = mock_run_bash  # ty: ignore[invalid-assignment]
+        env._run_bash = mock_run_bash
         env.init_session()
 
         bootstrap = captured["cmd"]

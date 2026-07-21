@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 try:
     import yaml
 except Exception:  # pragma: no cover - handled at runtime
-    yaml = None  # ty: ignore[invalid-assignment]  # optional dependency sentinel
+    yaml = None
 
 
 ENTRY_DELIMITER = "\n§\n"
@@ -810,8 +810,8 @@ class Migrator:
     def record(
         self,
         kind: str,
-        source: Path | str | None,
-        destination: Path | str | None,
+        source: Optional[Path],
+        destination: Optional[Path],
         status: str,
         reason: str = "",
         **details: Any,
@@ -1166,7 +1166,7 @@ class Migrator:
 
         existing = parse_existing_memory_entries(destination)
         merged, stats, overflowed = merge_entries(existing, incoming, limit)
-        details: Dict[str, Any] = {
+        details = {
             "existing_entries": stats["existing"],
             "added_entries": stats["added"],
             "duplicate_entries": stats["duplicates"],
@@ -1911,7 +1911,7 @@ class Migrator:
 
         existing = parse_existing_memory_entries(destination)
         merged, stats, overflowed = merge_entries(existing, all_incoming, self.memory_limit)
-        details: Dict[str, Any] = {
+        details = {
             "source_files": len(md_files),
             "existing_entries": stats["existing"],
             "added_entries": stats["added"],
@@ -2561,7 +2561,7 @@ class Migrator:
             return
 
         # Extended channel token/allowlist mapping
-        CHANNEL_ENV_MAP: Dict[str, Dict[str, Any]] = {
+        CHANNEL_ENV_MAP = {
             "matrix": {"token": "MATRIX...OKEN", "tokenField": "accessToken", "allowFrom": "MATRIX_ALLOWED_USERS",
                         "extras": {"homeserverUrl": "MATRIX_HOMESERVER_URL", "userId": "MATRIX_USER_ID"}},
             "mattermost": {"token": "MATTERMOST_BOT_TOKEN", "allowFrom": "MATTERMOST_ALLOWED_USERS",
@@ -3043,16 +3043,16 @@ def main() -> int:
     total = sum(s.values())
 
     print()
-    print(f"  ╔══════════════════════════════════════════════════════╗")
+    print("  ╔══════════════════════════════════════════════════════╗")
     print(f"  ║   OpenClaw -> Hermes Migration   [{mode_label:>8s}]   ║")
-    print(f"  ╠══════════════════════════════════════════════════════╣")
+    print("  ╠══════════════════════════════════════════════════════╣")
     print(f"  ║  Source:  {str(report['source_root'])[:42]:<42s}  ║")
     print(f"  ║  Target:  {str(report['target_root'])[:42]:<42s}  ║")
-    print(f"  ╠══════════════════════════════════════════════════════╣")
+    print("  ╠══════════════════════════════════════════════════════╣")
     print(f"  ║  ✔ Migrated:  {s.get('migrated', 0):>3d}    ◆ Archived:  {s.get('archived', 0):>3d}        ║")
     print(f"  ║  ⊘ Skipped:   {s.get('skipped', 0):>3d}    ⚠ Conflicts: {s.get('conflict', 0):>3d}        ║")
     print(f"  ║  ✖ Errors:    {s.get('error', 0):>3d}    Total:       {total:>3d}        ║")
-    print(f"  ╚══════════════════════════════════════════════════════╝")
+    print("  ╚══════════════════════════════════════════════════════╝")
 
     # Show what was migrated
     migrated = [i for i in items if i["status"] == "migrated"]

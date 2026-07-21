@@ -26,7 +26,7 @@ class HermesAgent < Formula
 
     pkgshare.install "skills", "optional-skills"
 
-    %w[muse muse-agent muse-acp].each do |exe|
+    %w[hermes hermes-agent hermes-acp].each do |exe|
       next unless (libexec/"bin"/exe).exist?
 
       (bin/exe).write_env_script(
@@ -39,9 +39,9 @@ class HermesAgent < Formula
   end
 
   test do
-    assert_match "Hermes Agent v#{version}", shell_output("#{bin}/muse version")
+    assert_match "Hermes Agent v#{version}", shell_output("#{bin}/hermes version")
 
-    managed = shell_output("#{bin}/muse update 2>&1")
+    managed = shell_output("#{bin}/hermes update 2>&1")
     assert_match "managed by Homebrew", managed
     assert_match "brew upgrade hermes-agent", managed
   end

@@ -13,7 +13,6 @@ the safety net in _run_agent discards leaked command text.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -30,13 +29,13 @@ from gateway.session import SessionSource, build_session_key
 class _StubAdapter(BasePlatformAdapter):
     """Concrete adapter with abstract methods stubbed out."""
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         pass
 
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, text, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send(self, chat_id, text, **kwargs):
         pass
 
     async def get_chat_info(self, chat_id):
@@ -47,7 +46,8 @@ def _make_adapter():
     """Create a minimal adapter for testing the active-session guard."""
     config = PlatformConfig(enabled=True, token="test-token")
     adapter = _StubAdapter(config, Platform.TELEGRAM)
-    adapter.sent_responses = []  # ty: ignore[unresolved-attribute]
+    adapter._busy_text_mode = ""
+    adapter.sent_responses = []
 
     async def _mock_handler(event):
         cmd = event.get_command()
@@ -56,9 +56,9 @@ def _make_adapter():
     adapter._message_handler = _mock_handler
 
     async def _mock_send_retry(chat_id, content, **kwargs):
-        adapter.sent_responses.append(content)  # ty: ignore[unresolved-attribute]
+        adapter.sent_responses.append(content)
 
-    adapter._send_with_retry = _mock_send_retry  # ty: ignore[invalid-assignment]
+    adapter._send_with_retry = _mock_send_retry
     return adapter
 
 
@@ -432,19 +432,19 @@ class TestPendingCommandSafetyNet:
         from hermes_cli.commands import resolve_command
 
         assert resolve_command("stop") is not None
-        assert resolve_command("stop").name == "stop"  # ty: ignore[unresolved-attribute]
+        assert resolve_command("stop").name == "stop"
 
     def test_new_command_detected(self):
         from hermes_cli.commands import resolve_command
 
         assert resolve_command("new") is not None
-        assert resolve_command("new").name == "new"  # ty: ignore[unresolved-attribute]
+        assert resolve_command("new").name == "new"
 
     def test_reset_alias_detected(self):
         from hermes_cli.commands import resolve_command
 
         assert resolve_command("reset") is not None
-        assert resolve_command("reset").name == "new"  # alias  # ty: ignore[unresolved-attribute]
+        assert resolve_command("reset").name == "new"  # alias
 
     def test_unknown_command_not_detected(self):
         from hermes_cli.commands import resolve_command

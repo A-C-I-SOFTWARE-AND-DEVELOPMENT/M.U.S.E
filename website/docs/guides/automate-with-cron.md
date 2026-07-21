@@ -1,22 +1,22 @@
 ---
 sidebar_position: 11
 title: "Automate Anything with Cron"
-description: "Real-world automation patterns using muse cron — monitoring, reports, pipelines, and multi-skill workflows"
+description: "Real-world automation patterns using Hermes cron — monitoring, reports, pipelines, and multi-skill workflows"
 ---
 
 # Automate Anything with Cron
 
-The [daily briefing bot tutorial](/docs/guides/daily-briefing-bot) covers the basics. This guide goes further — five real-world automation patterns you can adapt for your own workflows.
+The [daily briefing bot tutorial](/guides/daily-briefing-bot) covers the basics. This guide goes further — five real-world automation patterns you can adapt for your own workflows.
 
-For the full feature reference, see [Scheduled Tasks (Cron)](/docs/user-guide/features/cron).
+For the full feature reference, see [Scheduled Tasks (Cron)](/user-guide/features/cron).
 
 :::info Key Concept
 Cron jobs run in fresh agent sessions with no memory of your current chat. Prompts must be **completely self-contained** — include everything the agent needs to know.
 :::
 
 :::tip Don't need the LLM? You have two zero-token options.
-- **Recurring watchdog** where the script already produces the exact message (memory alerts, disk alerts, heartbeats): use [script-only cron jobs](/docs/guides/cron-script-only). Same scheduler, no LLM. You can ask muse to set one up for you in chat — the `cronjob` tool knows when to pick `no_agent=True` and writes the script for you.
-- **One-shot from a script that's already running** (CI step, post-commit hook, deploy script, externally-scheduled monitor): use [`muse send`](/docs/guides/pipe-script-output) to pipe stdout or a file straight to Telegram / Discord / Slack / etc. without setting up a cron entry.
+- **Recurring watchdog** where the script already produces the exact message (memory alerts, disk alerts, heartbeats): use [script-only cron jobs](/guides/cron-script-only). Same scheduler, no LLM. You can ask Hermes to set one up for you in chat — the `cronjob` tool knows when to pick `no_agent=True` and writes the script for you.
+- **One-shot from a script that's already running** (CI step, post-commit hook, deploy script, externally-scheduled monitor): use [`hermes send`](/guides/pipe-script-output) to pipe stdout or a file straight to Telegram / Discord / Slack / etc. without setting up a cron entry.
 :::
 
 ---
@@ -71,7 +71,7 @@ Set up the cron job:
 ```
 
 :::tip The [SILENT] Trick
-When the agent's final response contains `[SILENT]`, delivery is suppressed. This means you only get notified when something actually happens — no spam on quiet hours.
+For cron monitoring jobs, instruct the agent to respond with only `[SILENT]` when nothing changed. Cron delivery treats `[SILENT]` as the quiet marker, so you only get notified when something actually happens — no spam on quiet hours.
 :::
 
 ---
@@ -94,7 +94,7 @@ Keep it under 500 words — highlight only what matters." --name "Weekly AI dige
 From the CLI:
 
 ```bash
-muse cron create "0 9 * * 1" \
+hermes cron create "0 9 * * 1" \
   "Generate a weekly report covering the top AI news, trending ML GitHub repos, and most-discussed HN posts. Format with sections, include links, keep under 500 words." \
   --name "Weekly AI digest" \
   --deliver telegram
@@ -109,14 +109,14 @@ The `0 9 * * 1` is a standard cron expression: 9:00 AM every Monday.
 Monitor a repository for new issues, PRs, or releases.
 
 ```bash
-/cron add "every 6h" "Check the GitHub repository A-C-I-SOFTWARE-AND-DEVELOPMENT/muse for:
+/cron add "every 6h" "Check the GitHub repository NousResearch/hermes-agent for:
 - New issues opened in the last 6 hours
 - New PRs opened or merged in the last 6 hours
 - Any new releases
 
 Use the terminal to run gh commands:
-  gh issue list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state open --json number,title,author,createdAt --limit 10
-  gh pr list --repo A-C-I-SOFTWARE-AND-DEVELOPMENT/muse --state all --json number,title,author,createdAt,mergedAt --limit 10
+  gh issue list --repo NousResearch/hermes-agent --state open --json number,title,author,createdAt --limit 10
+  gh pr list --repo NousResearch/hermes-agent --state all --json number,title,author,createdAt,mergedAt --limit 10
 
 Filter to only items from the last 6 hours. If nothing new, respond with [SILENT].
 Otherwise, provide a concise summary of the activity." --name "Repo watcher" --deliver discord
@@ -253,7 +253,7 @@ The `--deliver` flag controls where results go:
 
 **Make prompts self-contained.** The agent in a cron job has no memory of your conversations. Include URLs, repo names, format preferences, and delivery instructions directly in the prompt.
 
-**Use `[SILENT]` liberally.** For monitoring jobs, always include instructions like "if nothing changed, respond with `[SILENT]`." This prevents notification noise.
+**Use `[SILENT]` deliberately.** For monitoring jobs, include instructions like "if nothing changed, respond with only `[SILENT]`." Do not ask the agent to explain the token in quiet cases — cron treats `[SILENT]` as the delivery-suppression marker.
 
 **Use scripts for data collection.** The `script` parameter lets a Python script handle the boring parts (HTTP requests, file I/O, state tracking). The agent only sees the script's stdout and applies reasoning to it. This is cheaper and more reliable than having the agent do the fetching itself.
 
@@ -263,4 +263,4 @@ The `--deliver` flag controls where results go:
 
 ---
 
-*For the complete cron reference — all parameters, edge cases, and internals — see [Scheduled Tasks (Cron)](/docs/user-guide/features/cron).*
+*For the complete cron reference — all parameters, edge cases, and internals — see [Scheduled Tasks (Cron)](/user-guide/features/cron).*

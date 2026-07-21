@@ -129,7 +129,7 @@ def fetch_object_info(url: str, headers: dict) -> tuple[set[str] | None, dict | 
         try:
             data = r.json()
             if isinstance(data, dict):
-                return set(data.keys()), None  # ty: ignore[invalid-return-type]
+                return set(data.keys()), None
         except Exception:
             pass
         return None, {"http_status": 200, "reason": "non-dict response"}

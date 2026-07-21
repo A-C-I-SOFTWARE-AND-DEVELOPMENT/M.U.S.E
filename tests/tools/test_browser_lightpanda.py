@@ -239,10 +239,8 @@ class TestConfigIntegration:
 
     def test_engine_in_default_config(self):
         from hermes_cli.config import DEFAULT_CONFIG
-        browser_cfg = DEFAULT_CONFIG["browser"]
-        assert isinstance(browser_cfg, dict)
-        assert "engine" in browser_cfg
-        assert browser_cfg["engine"] == "auto"
+        assert "engine" in DEFAULT_CONFIG["browser"]
+        assert DEFAULT_CONFIG["browser"]["engine"] == "auto"
 
     def test_env_var_registered(self):
         from hermes_cli.config import OPTIONAL_ENV_VARS

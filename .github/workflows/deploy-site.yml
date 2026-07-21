@@ -11,56 +11,61 @@ on:
       - 'optional-skills/**'
       - '.github/workflows/deploy-site.yml'
   workflow_dispatch:
+    inputs:
+      skills_index_run_id:
+        description: 'Optional Build Skills Index run ID whose skills-index artifact should be deployed'
+        required: false
+        type: string
+      rebuild_skills_index:
+        description: 'Force a fresh multi-source crawl instead of reusing the latest healthy index'
+        required: false
+        default: false
+        type: boolean
 
-# Least privilege: only the docs job writes (it pushes the built site to the
-# gh-pages branch, which is how this repo's GitHub Pages is served). The Vercel
-# job just curls a deploy hook and needs no write scope.
 permissions:
   contents: read
+  actions: read
+  pages: write
+  id-token: write
 
-# Shared with nexus-pages.yml: both publish to the gh-pages branch, so they must
-# not run concurrently (each clones→edits its own subtree→pushes). The retry
-# loop in the publish step is the safety net for any residual race.
 concurrency:
-  group: gh-pages-publish
+  group: pages
   cancel-in-progress: false
 
 jobs:
   deploy-vercel:
-    if: github.event_name == 'release' && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    # Triggered automatically on release publish (production cuts) and
+    # manually via `gh workflow run deploy-site.yml` when an out-of-band
+    # main commit needs to ship live before the next release tag — e.g.
+    # a skills-index PR that doesn't touch website/** paths and so
+    # doesn't auto-deploy via the deploy-docs path.
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      # Skips cleanly when no deploy hook is configured for this repo —
-      # previously this job ran unguarded on every release and curl'd an
-      # empty URL when the secret was absent. The check lives in the shell
-      # (not a step `if:`) because the `secrets` context is not available in
-      # `if:` expressions — referencing it there invalidates the whole
-      # workflow file ("Unrecognized named-value: 'secrets'").
       - name: Trigger Vercel Deploy
-        env:
-          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
-            echo "No VERCEL_DEPLOY_HOOK secret configured; skipping."
-            exit 0
-          fi
-          curl -X POST "$VERCEL_DEPLOY_HOOK"
+        run: curl -fsS --retry 3 --retry-delay 10 -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
 
   deploy-docs:
-    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
+    if: github.repository == 'NousResearch/hermes-agent'
     runs-on: ubuntu-latest
-    # Publishes to the gh-pages branch (this repo's Pages source), so it needs
-    # write access to repo contents. No `environment: github-pages` block: that
-    # gate enforced a deploy-branch policy that rejected the Actions-artifact
-    # path from main ("Deployments are only allowed from gh-pages").
-    permissions:
-      contents: write
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
+      - name: Get GitHub App token
+        id: app-token
+        uses: ./.github/actions/get-app-token
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: website/package-lock.json
 
@@ -69,7 +74,85 @@ jobs:
           python-version: '3.11'
 
       - name: Install PyYAML for skill extraction
-        run: pip install pyyaml==6.0.2 httpx==0.28.1
+        uses: ./.github/actions/retry
+        with:
+          command: pip install pyyaml==6.0.2 httpx==0.28.1
+
+      - name: Prepare skills index (unified multi-source catalog)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          SKILLS_INDEX_RUN_ID: ${{ github.event.inputs.skills_index_run_id || '' }}
+          REBUILD_SKILLS_INDEX: ${{ github.event.inputs.rebuild_skills_index || 'false' }}
+        run: |
+          # The unified external catalog is expensive to crawl and can burn
+          # through the repository installation's GitHub API quota when several
+          # docs deploys land close together.  Normal docs deploys therefore
+          # reuse the latest healthy catalog: first the artifact from a
+          # scheduled skills-index run, then the currently live index.  Only a
+          # manual force rebuild does a fresh crawl here.
+          #
+          # If we do crawl, the build remains fatal. build_skills_index.py runs
+          # the health check BEFORE writing and exits non-zero on source
+          # collapse, keeping the last good Pages deployment live instead of
+          # publishing a degenerate catalog.
+          set -euo pipefail
+          INDEX_PATH="website/static/api/skills-index.json"
+          mkdir -p "$(dirname "$INDEX_PATH")"
+
+          validate_index() {
+            python3 - "$INDEX_PATH" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          try:
+              data = json.loads(path.read_text(encoding="utf-8"))
+          except Exception as exc:
+              print(f"invalid skills index JSON: {exc}", file=sys.stderr)
+              sys.exit(1)
+          skills = data.get("skills")
+          if not isinstance(skills, list) or len(skills) < 1500:
+              count = len(skills) if isinstance(skills, list) else "missing"
+              print(f"skills index too small: {count}", file=sys.stderr)
+              sys.exit(1)
+          print(f"skills index ready: {len(skills)} skills")
+          PY
+          }
+
+          if [ "$REBUILD_SKILLS_INDEX" = "true" ]; then
+            python3 scripts/build_skills_index.py
+            validate_index
+            exit 0
+          fi
+
+          if [ -n "$SKILLS_INDEX_RUN_ID" ]; then
+            tmpdir="$(mktemp -d)"
+            echo "Downloading skills-index artifact from run $SKILLS_INDEX_RUN_ID"
+            if gh run download "$SKILLS_INDEX_RUN_ID" --name skills-index --dir "$tmpdir"; then
+              candidate="$(find "$tmpdir" -name skills-index.json -type f | head -n 1 || true)"
+              if [ -n "$candidate" ]; then
+                cp "$candidate" "$INDEX_PATH"
+                if validate_index; then
+                  exit 0
+                fi
+              fi
+            fi
+            echo "::warning::Could not use skills-index artifact from run $SKILLS_INDEX_RUN_ID; trying live index"
+          fi
+
+          echo "Downloading currently live skills index"
+          if curl -fsSL --retry 3 --retry-delay 5 \
+            "https://hermes-agent.nousresearch.com/docs/api/skills-index.json" \
+            -o "$INDEX_PATH" && validate_index; then
+            exit 0
+          fi
+
+          echo "::warning::Live skills index unavailable or unhealthy; falling back to a fresh crawl"
+          rm -f "$INDEX_PATH"
+          python3 scripts/build_skills_index.py
+          validate_index
 
       - name: Extract skill metadata for dashboard
         run: python3 website/scripts/extract-skills.py
@@ -77,17 +160,11 @@ jobs:
       - name: Regenerate per-skill docs pages + catalogs
         run: python3 website/scripts/generate-skill-docs.py
 
-      - name: Build skills index (if not already present)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ ! -f website/static/api/skills-index.json ]; then
-            python3 scripts/build_skills_index.py || echo "Skills index build failed (non-fatal)"
-          fi
-
       - name: Install dependencies
-        run: npm ci
-        working-directory: website
+        uses: ./.github/actions/retry
+        with:
+          command: npm ci
+          working-directory: website
 
       - name: Build Docusaurus
         run: npm run build
@@ -97,12 +174,8 @@ jobs:
         run: |
           mkdir -p _site/docs
           cp -r website/build/* _site/docs/
-          # .nojekyll disables GitHub Pages' Jekyll pass, which would otherwise
-          # strip Docusaurus's underscore-prefixed asset dirs on the branch
-          # source. The `cp * ` glob above skips dotfiles, so add it explicitly.
-          touch _site/.nojekyll
           # llms.txt / llms-full.txt are also published at the site root
-          # (https://a-c-i-software-and-development.github.io/muse/llms.txt) because some
+          # (https://hermes-agent.nousresearch.com/llms.txt) because some
           # agents and IDE plugins probe the classic root-level path rather
           # than /docs/llms.txt. Same file, two URLs, one source of truth.
           if [ -f website/build/llms.txt ]; then
@@ -112,47 +185,11 @@ jobs:
             cp website/build/llms-full.txt _site/llms-full.txt
           fi
 
-      # Publish the docs into the gh-pages /docs/ subtree WITHOUT disturbing the
-      # rest of the branch. gh-pages is CO-OWNED: nexus-pages.yml publishes the
-      # NEXUS PWA (+ /cockpit, /atlas, /observatory) at the root. An orphan
-      # force-push here would wipe the live NEXUS site — so instead we clone the
-      # existing branch, replace only docs/ (+ the root llms*.txt the docs emit),
-      # and push, retrying if a concurrent NEXUS deploy raced us to the branch.
-      - name: Publish docs to gh-pages/docs (preserve NEXUS)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          SRC="$PWD/_site"
-          publish() {
-            WT="$(mktemp -d)"
-            if ! git clone -q --depth 1 -b gh-pages "$REMOTE" "$WT" 2>/dev/null; then
-              rm -rf "$WT"; mkdir -p "$WT"; git -C "$WT" init -q -b gh-pages
-            fi
-            # Replace ONLY the docs-owned paths; leave NEXUS's root files intact.
-            # The root llms*.txt are docs-owned too: delete before the conditional
-            # copies so a build that stops emitting them doesn't leave stale
-            # agent-facing docs served forever (llms generation is non-fatal in
-            # website/scripts/prebuild.mjs, and nexus-pages.yml preserves these).
-            rm -rf "$WT/docs"; mkdir -p "$WT/docs"; cp -a "$SRC/docs/." "$WT/docs/"
-            rm -f "$WT/llms.txt" "$WT/llms-full.txt"
-            [ -f "$SRC/llms.txt" ] && cp "$SRC/llms.txt" "$WT/llms.txt" || true
-            [ -f "$SRC/llms-full.txt" ] && cp "$SRC/llms-full.txt" "$WT/llms-full.txt" || true
-            touch "$WT/.nojekyll"
-            git -C "$WT" config user.name  "github-actions[bot]"
-            git -C "$WT" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$WT" add -A
-            if git -C "$WT" diff --cached --quiet; then
-              echo "docs unchanged; nothing to publish"; rm -rf "$WT"; return 0
-            fi
-            git -C "$WT" commit -q -m "Deploy docs from ${GITHUB_SHA}"
-            if git -C "$WT" push "$REMOTE" HEAD:gh-pages 2>/dev/null; then
-              rm -rf "$WT"; return 0
-            fi
-            rm -rf "$WT"; return 1
-          }
-          for attempt in 1 2 3 4 5; do
-            if publish; then echo "published docs (attempt $attempt)"; exit 0; fi
-            echo "gh-pages push race on attempt $attempt; retrying"; sleep "$((attempt * 3))"
-          done
-          echo "failed to publish docs after 5 attempts"; exit 1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4

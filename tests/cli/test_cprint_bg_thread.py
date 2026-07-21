@@ -36,8 +36,8 @@ def test_cprint_no_app_direct_print(monkeypatch):
 
     # Patch the prompt_toolkit import the function performs internally.
     fake_pt_app = types.ModuleType("prompt_toolkit.application")
-    fake_pt_app.get_app_or_none = lambda: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_pt_app.run_in_terminal = lambda *a, **kw: calls.append(("run_in_terminal",))  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.get_app_or_none = lambda: None
+    fake_pt_app.run_in_terminal = lambda *a, **kw: calls.append(("run_in_terminal",))
     monkeypatch.setitem(sys.modules, "prompt_toolkit.application", fake_pt_app)
 
     cli._cprint("hello")
@@ -53,8 +53,8 @@ def test_cprint_app_not_running_direct_print(monkeypatch):
 
     fake_app = SimpleNamespace(_is_running=False, loop=None)
     fake_pt_app = types.ModuleType("prompt_toolkit.application")
-    fake_pt_app.get_app_or_none = lambda: fake_app  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_pt_app.run_in_terminal = lambda *a, **kw: calls.append(("run_in_terminal",))  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.get_app_or_none = lambda: fake_app
+    fake_pt_app.run_in_terminal = lambda *a, **kw: calls.append(("run_in_terminal",))
     monkeypatch.setitem(sys.modules, "prompt_toolkit.application", fake_pt_app)
 
     cli._cprint("x")
@@ -88,12 +88,12 @@ def test_cprint_bg_thread_schedules_on_app_loop(monkeypatch):
         def get_event_loop(self):
             return fake_current_loop
 
-    fake_asyncio.get_event_loop_policy = lambda: _Policy()  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_asyncio.get_event_loop_policy = lambda: _Policy()
     monkeypatch.setitem(sys.modules, "asyncio", fake_asyncio)
 
     fake_app = SimpleNamespace(_is_running=True, loop=fake_loop)
     fake_pt_app = types.ModuleType("prompt_toolkit.application")
-    fake_pt_app.get_app_or_none = lambda: fake_app  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.get_app_or_none = lambda: fake_app
 
     run_in_terminal_calls = []
 
@@ -104,7 +104,7 @@ def test_cprint_bg_thread_schedules_on_app_loop(monkeypatch):
         func()
         return None
 
-    fake_pt_app.run_in_terminal = _fake_run_in_terminal  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.run_in_terminal = _fake_run_in_terminal
     monkeypatch.setitem(sys.modules, "prompt_toolkit.application", fake_pt_app)
 
     cli._cprint("💾 Self-improvement review: Skill updated")
@@ -142,13 +142,13 @@ def test_cprint_same_thread_as_app_loop_direct_print(monkeypatch):
         def get_event_loop(self):
             return fake_loop  # same as app loop
 
-    fake_asyncio.get_event_loop_policy = lambda: _Policy()  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_asyncio.get_event_loop_policy = lambda: _Policy()
     monkeypatch.setitem(sys.modules, "asyncio", fake_asyncio)
 
     fake_app = SimpleNamespace(_is_running=True, loop=fake_loop)
     fake_pt_app = types.ModuleType("prompt_toolkit.application")
-    fake_pt_app.get_app_or_none = lambda: fake_app  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_pt_app.run_in_terminal = lambda *a, **kw: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.get_app_or_none = lambda: fake_app
+    fake_pt_app.run_in_terminal = lambda *a, **kw: None
     monkeypatch.setitem(sys.modules, "prompt_toolkit.application", fake_pt_app)
 
     cli._cprint("x")
@@ -170,8 +170,8 @@ def test_cprint_swallows_app_loop_attr_error(monkeypatch):
             raise RuntimeError("no loop for you")
 
     fake_pt_app = types.ModuleType("prompt_toolkit.application")
-    fake_pt_app.get_app_or_none = lambda: WeirdApp()  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_pt_app.run_in_terminal = lambda *a, **kw: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_pt_app.get_app_or_none = lambda: WeirdApp()
+    fake_pt_app.run_in_terminal = lambda *a, **kw: None
     monkeypatch.setitem(sys.modules, "prompt_toolkit.application", fake_pt_app)
 
     cli._cprint("fallback")

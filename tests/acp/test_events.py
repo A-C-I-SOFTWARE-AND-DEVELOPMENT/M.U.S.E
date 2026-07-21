@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-acp = pytest.importorskip("acp")
-from acp.schema import AgentPlanUpdate, ToolCallStart, ToolCallProgress, AgentThoughtChunk, AgentMessageChunk
+import acp
+from acp.schema import AgentPlanUpdate
 
 from acp_adapter.events import (
     _build_plan_update_from_todo_result,
@@ -171,7 +171,7 @@ class TestStepCallback:
         tool_call_ids = {"terminal": "tc-abc123"}
         loop = event_loop_fixture
 
-        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})  # ty: ignore[invalid-argument-type]
+        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})
 
         with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts:
             future = MagicMock(spec=Future)
@@ -201,7 +201,7 @@ class TestStepCallback:
         tool_call_ids = {"read_file": "tc-def456"}
         loop = event_loop_fixture
 
-        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})  # ty: ignore[invalid-argument-type]
+        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})
 
         with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts:
             future = MagicMock(spec=Future)
@@ -410,8 +410,8 @@ class TestSendUpdate:
 
         assert created["coro"] is not None
         assert created["coro"].cr_frame is None
-        # Only count warnings about THIS test's coroutine; other tests in the
-        # same xdist worker (or stdlib mock internals) may emit unrelated
+        # Only count warnings about THIS test's coroutine; other tests
+        #  may emit unrelated
         # "coroutine was never awaited" warnings that bleed through.
         runtime_warnings = [
             w for w in caught

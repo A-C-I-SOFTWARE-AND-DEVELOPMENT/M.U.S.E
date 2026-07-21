@@ -6,29 +6,25 @@
 #
 # Set HERMES_UID / HERMES_GID to the host user that owns ~/.hermes so
 # files created inside the container stay readable/writable on the host.
-# The entrypoint remaps the internal `hermes` user to these values via
-# usermod/groupmod + gosu.
+# The s6-overlay stage2 hook remaps the internal `hermes` user to these
+# values via usermod/groupmod; each supervised service then drops to that
+# user via `s6-setuidgid`.
 #
 # Security notes:
 #   - The dashboard service binds to 127.0.0.1 by default. It stores API
 #     keys; exposing it on LAN without auth is unsafe. If you want remote
 #     access, use an SSH tunnel or put it behind a reverse proxy that
 #     adds authentication — do NOT pass --insecure --host 0.0.0.0.
-#   - If you override entrypoint, keep /opt/hermes/docker/entrypoint.sh in
-#     the command chain. It drops root to the hermes user before gateway
-#     files such as gateway.lock are created.
+#   - If you override entrypoint, keep `/init` as the first command in
+#     the chain (or let docker use the image's default ENTRYPOINT,
+#     which is `["/init", "/opt/hermes/docker/main-wrapper.sh"]`).
+#     `/init` is s6-overlay's PID 1 — it runs the cont-init.d scripts
+#     (chown, profile reconcile, dashboard toggle) and sets up the
+#     supervision tree before any service starts. Bypassing it skips
+#     all of that setup and the gateway will not work correctly.
 #   - The gateway's API server is off unless you uncomment API_SERVER_KEY
 #     and API_SERVER_HOST. See docs/user-guide/api-server.md before doing
 #     this on an internet-facing host.
-#
-# One-click / VPS deployment:
-#   For a 24/7 cloud-VPS deployment (this compose + secure remote access),
-#   see docs/deploy/vps-deployment-guide.md.  The gateway service below sets
-#   HERMES_BOOTSTRAP_MODELS=1, so on first boot it wires every reachable model
-#   route (local OSS + any provider whose key is in ~/.hermes/.env) into the
-#   model policy.  Add your API keys to ~/.hermes/.env, then re-run
-#   `docker compose exec gateway hermes models bootstrap --free-first --jarvis`
-#   to pick up newly-added providers.
 #
 services:
   gateway:
@@ -42,19 +38,7 @@ services:
     environment:
       - HERMES_UID=${HERMES_UID:-10000}
       - HERMES_GID=${HERMES_GID:-10000}
-      # One-shot on first boot: wire every reachable model route into the
-      # model policy (local OSS + any provider key present in ~/.hermes/.env).
-      # Idempotent — guarded by ~/.hermes/.models_bootstrapped. Set to 0 to opt out.
-      - HERMES_BOOTSTRAP_MODELS=${HERMES_BOOTSTRAP_MODELS:-1}
-      # Microsoft Foundry / Azure AI Foundry connection for the M.U.S.E project.
-      # Preferred local/hosted auth is Entra ID (az login / managed identity).
-      - AZURE_FOUNDRY_BASE_URL=${AZURE_FOUNDRY_BASE_URL:-}
-      - AZURE_FOUNDRY_MODEL=${AZURE_FOUNDRY_MODEL:-}
-      - AZURE_FOUNDRY_API_KEY=${AZURE_FOUNDRY_API_KEY:-}
-      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
-      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
-
+      # To expose the OpenAI-compatible API server beyond localhost,
       # uncomment BOTH lines (API_SERVER_KEY is mandatory for auth):
       # - API_SERVER_HOST=0.0.0.0
       # - API_SERVER_KEY=${API_SERVER_KEY}

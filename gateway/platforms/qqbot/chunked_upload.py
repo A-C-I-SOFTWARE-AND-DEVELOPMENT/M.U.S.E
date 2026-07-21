@@ -37,7 +37,7 @@ import asyncio
 import functools
 import hashlib
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
@@ -154,13 +154,13 @@ def _parse_prepare_response(raw: Dict[str, Any]) -> _PrepareResult:
     The API may return the response directly or wrapped in ``data``.
     """
     src = raw.get("data") if isinstance(raw.get("data"), dict) else raw
-    upload_id = str(src.get("upload_id", ""))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+    upload_id = str(src.get("upload_id", ""))
     if not upload_id:
         raise ValueError(
             f"upload_prepare response missing upload_id: {str(raw)[:200]}"
         )
-    block_size = int(src.get("block_size", 0))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
-    raw_parts = src.get("parts") or src.get("part_list") or []  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+    block_size = int(src.get("block_size", 0))
+    raw_parts = src.get("parts") or src.get("part_list") or []
     if not isinstance(raw_parts, list) or not raw_parts:
         raise ValueError(
             f"upload_prepare response missing parts: {str(raw)[:200]}"
@@ -182,8 +182,8 @@ def _parse_prepare_response(raw: Dict[str, Any]) -> _PrepareResult:
         upload_id=upload_id,
         block_size=block_size,
         parts=parts,
-        concurrency=int(src.get("concurrency", _DEFAULT_CONCURRENT_PARTS)) or _DEFAULT_CONCURRENT_PARTS,  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
-        retry_timeout=float(src.get("retry_timeout", 0.0) or 0.0),  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+        concurrency=int(src.get("concurrency", _DEFAULT_CONCURRENT_PARTS)) or _DEFAULT_CONCURRENT_PARTS,
+        retry_timeout=float(src.get("retry_timeout", 0.0) or 0.0),
     )
 
 

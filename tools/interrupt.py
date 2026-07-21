@@ -17,7 +17,6 @@ Usage in tools:
 import logging
 import os
 import threading
-from typing import cast
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +44,7 @@ def set_interrupt(active: bool, thread_id: int | None = None) -> None:
         thread_id: Target thread ident.  When None, targets the
                    current thread (backward compat for CLI/tests).
     """
-    # The current thread is always started, so its ident is never None.
-    tid = thread_id if thread_id is not None else cast(int, threading.current_thread().ident)
+    tid = thread_id if thread_id is not None else threading.current_thread().ident
     with _lock:
         if active:
             _interrupted_threads.add(tid)
@@ -70,6 +68,21 @@ def is_interrupted() -> bool:
     tid = threading.current_thread().ident
     with _lock:
         return tid in _interrupted_threads
+
+
+def clear_current_thread_interrupt() -> None:
+    """Clear any interrupt bit on the CURRENT thread.
+
+    Gives a user-approved command a clean interrupt slate immediately before
+    it spawns its child process, so a stale bit that landed on this thread
+    during the blocking approval-wait cannot SIGINT the just-approved run
+    (exit 130 + "[Command interrupted]").  Single-thread ordering on this tid
+    keeps the DO-NOT-BREAK invariant intact: a *genuine* interrupt arriving
+    after this call re-sets the bit on the same thread and is still observed by
+    the executor's poll loop.  Call this directly, never via the
+    _interrupt_event proxy (its .clear() binds to whatever thread runs it).
+    """
+    set_interrupt(False)  # thread_id=None -> current thread (see set_interrupt)
 
 
 # ---------------------------------------------------------------------------

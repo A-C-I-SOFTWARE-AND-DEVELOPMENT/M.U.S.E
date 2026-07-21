@@ -62,21 +62,16 @@ def test_search_sessions_exposes_last_active_column(tmp_path, monkeypatch):
         # Force started_at ordering so the test is deterministic regardless
         # of how quickly the two inserts land.
         with db._lock:
-            assert db is not None
             db._conn.execute("UPDATE sessions SET started_at=? WHERE id=?", (2000.0, "s_started_later"))
-            assert db is not None
             db._conn.execute("UPDATE sessions SET started_at=? WHERE id=?", (1000.0, "s_active_later"))
-            assert db is not None
             db._conn.commit()
 
         db.append_message("s_active_later", role="user", content="hi")
         with db._lock:
-            assert db is not None
             db._conn.execute(
                 "UPDATE messages SET timestamp=? WHERE session_id=?",
                 (3000.0, "s_active_later"),
             )
-            assert db is not None
             db._conn.commit()
 
         rows = db.search_sessions(source="cli", limit=5)
@@ -141,23 +136,19 @@ def test_resolve_last_session_not_limited_to_newest_started_20(tmp_path, monkeyp
             sid = f"s_{i:02d}"
             db.create_session(sid, source="cli")
             with db._lock:
-                assert db is not None
                 db._conn.execute(
                     "UPDATE sessions SET started_at=? WHERE id=?",
                     (10_000.0 - i, sid),
                 )
-                assert db is not None
                 db._conn.commit()
 
         target = "s_24"
         db.append_message(target, role="user", content="latest activity")
         with db._lock:
-            assert db is not None
             db._conn.execute(
                 "UPDATE messages SET timestamp=? WHERE session_id=?",
                 (20_000.0, target),
             )
-            assert db is not None
             db._conn.commit()
     finally:
         db.close()

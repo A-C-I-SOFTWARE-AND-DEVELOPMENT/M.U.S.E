@@ -18,16 +18,15 @@ unknown templates get smart default text positioning based on their box_count.
 import json
 import os
 import sys
-import textwrap
 from io import BytesIO
 from pathlib import Path
 
 try:
     import requests as _requests
 except ImportError:
-    _requests = None  # ty: ignore[invalid-assignment]
+    _requests = None
 
-from PIL import Image, ImageDraw, ImageFont  # ty: ignore[unresolved-import]
+from PIL import Image, ImageDraw, ImageFont
 
 SCRIPT_DIR = Path(__file__).parent
 TEMPLATES_FILE = SCRIPT_DIR / "templates.json"
@@ -110,7 +109,7 @@ def _slugify(name: str) -> str:
     return name.lower().replace(" ", "-").replace("'", "").replace("\"", "")
 
 
-def resolve_template(identifier: str) -> dict | None:
+def resolve_template(identifier: str) -> dict:
     """Resolve a template by curated ID, imgflip name, or imgflip ID.
 
     Returns dict with: name, url, fields, source.

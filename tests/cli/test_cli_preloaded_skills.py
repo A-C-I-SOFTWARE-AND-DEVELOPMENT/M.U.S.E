@@ -41,7 +41,7 @@ def _make_real_cli(**kwargs):
     ):
         import cli as cli_mod
 
-        cli_mod = importlib.reload(cli_mod)  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        cli_mod = importlib.reload(cli_mod)
         with patch.object(cli_mod, "get_tool_definitions", return_value=[]), patch.dict(
             cli_mod.__dict__, {"CLI_CONFIG": clean_config}
         ):

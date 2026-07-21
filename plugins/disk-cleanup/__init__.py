@@ -27,7 +27,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
-from . import disk_cleanup as dg  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+from . import disk_cleanup as dg
 
 logger = logging.getLogger(__name__)
 

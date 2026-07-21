@@ -16,7 +16,7 @@ from utils import base_url_hostname, base_url_host_matches
 
 def test_empty_returns_empty_string():
     assert base_url_hostname("") == ""
-    assert base_url_hostname(None) == ""  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    assert base_url_hostname(None) == ""  # type: ignore[arg-type]
 
 
 def test_plain_host_without_scheme():
@@ -95,7 +95,7 @@ class TestBaseUrlHostMatchesNegatives:
 class TestBaseUrlHostMatchesEdgeCases:
     def test_empty_base_url_returns_false(self):
         assert base_url_host_matches("", "openrouter.ai") is False
-        assert base_url_host_matches(None, "openrouter.ai") is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert base_url_host_matches(None, "openrouter.ai") is False  # type: ignore[arg-type]
 
     def test_empty_domain_returns_false(self):
         assert base_url_host_matches("https://openrouter.ai/v1", "") is False

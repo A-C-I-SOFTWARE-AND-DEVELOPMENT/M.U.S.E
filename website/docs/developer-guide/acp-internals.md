@@ -6,7 +6,7 @@ description: "How the ACP adapter works: lifecycle, sessions, event bridge, appr
 
 # ACP Internals
 
-The ACP adapter wraps muse' synchronous `AIAgent` in an async JSON-RPC stdio server.
+The ACP adapter wraps Hermes' synchronous `AIAgent` in an async JSON-RPC stdio server.
 
 Key implementation files:
 
@@ -22,7 +22,7 @@ Key implementation files:
 ## Boot flow
 
 ```text
-muse acp / muse-acp / python -m acp_adapter
+hermes acp / hermes-acp / python -m acp_adapter
   -> acp_adapter.entry.main()
   -> parse --version / --check / --setup before server startup
   -> load ~/.hermes/.env
@@ -31,7 +31,7 @@ muse acp / muse-acp / python -m acp_adapter
   -> acp.run_agent(agent, use_unstable_protocol=True)
 ```
 
-The Zed ACP Registry path launches the same adapter through `uvx --from 'hermes-agent[acp]==<version>' muse-acp`, pointed at the `hermes-agent` PyPI release.
+The Zed ACP Registry path launches the same adapter through `uvx --from 'hermes-agent[acp]==<version>' hermes-acp`, pointed at the `hermes-agent` PyPI release.
 
 Stdout is reserved for ACP JSON-RPC transport. Human-readable logs go to stderr.
 
@@ -94,15 +94,15 @@ asyncio.run_coroutine_threadsafe(...)
 
 Mapping:
 
-- `allow_once` -> muse `once`
-- `allow_always` -> muse `always`
-- reject options -> muse `deny`
+- `allow_once` -> Hermes `once`
+- `allow_always` -> Hermes `always`
+- reject options -> Hermes `deny`
 
 Timeouts and bridge failures deny by default.
 
 ### Tool rendering helpers
 
-`acp_adapter/tools.py` maps muse tools to ACP tool kinds and builds editor-facing content.
+`acp_adapter/tools.py` maps Hermes tools to ACP tool kinds and builds editor-facing content.
 
 Examples:
 
@@ -144,12 +144,12 @@ prompt(..., session_id)
 
 ACP does not implement its own auth store.
 
-Instead it reuses muse' runtime resolver:
+Instead it reuses Hermes' runtime resolver:
 
 - `acp_adapter/auth.py`
 - `hermes_cli/runtime_provider.py`
 
-So ACP advertises and uses the currently configured muse provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open muse' interactive model/provider configuration before starting a normal ACP session.
+So ACP advertises and uses the currently configured Hermes provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open Hermes' interactive model/provider configuration before starting a normal ACP session.
 
 ## Working directory binding
 
@@ -180,5 +180,5 @@ ACP temporarily installs an approval callback on the terminal tool during prompt
 
 - `tests/acp/` — ACP test suite
 - `toolsets.py` — `hermes-acp` toolset definition
-- `hermes_cli/main.py` — `muse acp` CLI subcommand
-- `pyproject.toml` — `[acp]` optional dependency + `muse-acp` script
+- `hermes_cli/main.py` — `hermes acp` CLI subcommand
+- `pyproject.toml` — `[acp]` optional dependency + `hermes-acp` script

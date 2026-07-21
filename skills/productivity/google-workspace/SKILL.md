@@ -13,7 +13,7 @@ required_credential_files:
 metadata:
   hermes:
     tags: [Google, Gmail, Calendar, Drive, Sheets, Docs, Contacts, Email, OAuth]
-    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse
+    homepage: https://github.com/NousResearch/hermes-agent
     related_skills: [himalaya]
 ---
 

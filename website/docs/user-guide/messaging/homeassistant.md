@@ -1,13 +1,13 @@
 ---
 title: Home Assistant
-description: Control your smart home with muse via Home Assistant integration.
+description: Control your smart home with Hermes Agent via Home Assistant integration.
 sidebar_label: Home Assistant
 sidebar_position: 5
 ---
 
 # Home Assistant Integration
 
-muse integrates with [Home Assistant](https://www.home-assistant.io/) in two ways:
+Hermes Agent integrates with [Home Assistant](https://www.home-assistant.io/) in two ways:
 
 1. **Gateway platform** — subscribes to real-time state changes via WebSocket and responds to events
 2. **Smart home tools** — four LLM-callable tools for querying and controlling devices via the REST API
@@ -19,7 +19,7 @@ muse integrates with [Home Assistant](https://www.home-assistant.io/) in two way
 1. Open your Home Assistant instance
 2. Go to your **Profile** (click your name in the sidebar)
 3. Scroll to **Long-Lived Access Tokens**
-4. Click **Create Token**, give it a name like "muse"
+4. Click **Create Token**, give it a name like "Hermes Agent"
 5. Copy the token
 
 ### 2. Configure Environment Variables
@@ -41,14 +41,14 @@ The `homeassistant` toolset is automatically enabled when `HASS_TOKEN` is set. B
 ### 3. Start the Gateway
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 Home Assistant will appear as a connected platform alongside any other messaging platforms (Telegram, Discord, etc.).
 
 ## Available Tools
 
-muse registers four tools for smart home control:
+Hermes Agent registers four tools for smart home control:
 
 ### `ha_list_entities`
 
@@ -178,7 +178,7 @@ State changes are formatted as human-readable messages based on domain:
 
 ### Agent Responses
 
-Outbound messages from the agent are delivered as **Home Assistant persistent notifications** (via `persistent_notification.create`). These appear in the HA notification panel with the title "muse".
+Outbound messages from the agent are delivered as **Home Assistant persistent notifications** (via `persistent_notification.create`). These appear in the HA notification panel with the title "Hermes Agent".
 
 ### Connection Management
 
@@ -250,3 +250,20 @@ Agent automatically:
      entity_id="light.hallway")
 3. Sends notification: "Front door opened. Hallway lights turned on."
 ```
+
+## Troubleshooting
+
+**Environment variables not picked up.**
+The adapter reads credentials from `~/.hermes/.env` (auto-merged at startup) or
+from `config.yaml`. Double-check the file lives under the active Hermes profile
+home and that there's no stray quoting around the URL/token. Restart the gateway
+after editing — env changes are only applied on process start.
+
+
+**REST auth failing (`401 Unauthorized`).**
+The token must be a *Long-Lived Access Token* created from your HA user profile
+page (**Profile → Security → Long-lived access tokens**). Short-lived UI
+session tokens won't work. Also verify the base URL includes the scheme and
+port (e.g. `http://homeassistant.local:8123`) and is reachable from the host
+running Hermes — `curl -H "Authorization: Bearer <token>" <url>/api/` should
+return `{"message": "API running."}`.

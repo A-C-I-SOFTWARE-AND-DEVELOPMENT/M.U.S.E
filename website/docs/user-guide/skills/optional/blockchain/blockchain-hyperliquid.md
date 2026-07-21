@@ -14,10 +14,10 @@ Hyperliquid market data, account history, trade review.
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/blockchain/hyperliquid` |
+| Source | Optional — install with `hermes skills install official/blockchain/hyperliquid` |
 | Path | `optional-skills/blockchain/hyperliquid` |
 | Version | `0.1.0` |
-| Author | Hugo Sequier (Hugo-SEQUIER), muse |
+| Author | Hugo Sequier (Hugo-SEQUIER), Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Hyperliquid`, `Blockchain`, `Crypto`, `Trading`, `Perpetuals`, `Spot`, `DeFi` |
@@ -25,7 +25,7 @@ Hyperliquid market data, account history, trade review.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Hyperliquid Skill
@@ -53,7 +53,7 @@ Read-only — no API key, no signing, no order placement.
 
 Stdlib only — no external packages, no API key.
 
-The script reads `~/.hermes/.env` for two optional defaults:
+The script reads `${HERMES_HOME:-~/.hermes}/.env` for two optional defaults:
 
 - `HYPERLIQUID_API_URL` — defaults to `https://api.hyperliquid.xyz`. Set to
   `https://api.hyperliquid-testnet.xyz` for testnet.
@@ -97,7 +97,7 @@ hyperliquid_client.py export <coin> [--interval 1h] [--hours N] [--output PATH]
 ```
 
 For `state`, `spot-balances`, `fills`, `orders`, and `review`, the address is
-optional when `HYPERLIQUID_USER_ADDRESS` is set in `~/.hermes/.env`.
+optional when `HYPERLIQUID_USER_ADDRESS` is set in `${HERMES_HOME:-~/.hermes}/.env`.
 
 ---
 

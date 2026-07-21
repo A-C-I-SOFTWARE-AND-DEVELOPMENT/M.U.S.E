@@ -67,7 +67,6 @@ class TestRewriteSkillRefsNoop:
         assert report["jobs_scanned"] == 1
         # Job untouched
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["foo"]
 
 
@@ -85,10 +84,8 @@ class TestRewriteSkillRefsConsolidation:
 
         assert report["jobs_updated"] == 1
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["umbrella-skill"]
         # Legacy ``skill`` field realigned
-        assert loaded is not None
         assert loaded["skill"] == "umbrella-skill"
 
     def test_multiple_skills_one_consolidated(self, cron_env):
@@ -103,7 +100,6 @@ class TestRewriteSkillRefsConsolidation:
 
         loaded = get_job(job["id"])
         # Ordering preserved, legacy replaced in-place
-        assert loaded is not None
         assert loaded["skills"] == ["keep-a", "umbrella", "keep-b"]
 
     def test_umbrella_already_in_list_dedupes(self, cron_env):
@@ -119,7 +115,6 @@ class TestRewriteSkillRefsConsolidation:
 
         loaded = get_job(job["id"])
         # No duplicate — the umbrella stays exactly once
-        assert loaded is not None
         assert loaded["skills"] == ["umbrella"]
 
     def test_rewrite_report_records_mapping(self, cron_env):
@@ -161,9 +156,7 @@ class TestRewriteSkillRefsPruning:
 
         assert report["jobs_updated"] == 1
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["keep"]
-        assert loaded is not None
         assert loaded["skill"] == "keep"
 
     def test_all_skills_pruned_leaves_empty_list(self, cron_env):
@@ -173,9 +166,7 @@ class TestRewriteSkillRefsPruning:
         rewrite_skill_refs(consolidated={}, pruned=["gone"])
 
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == []
-        assert loaded is not None
         assert loaded["skill"] is None
 
     def test_pruned_report_records_drops(self, cron_env):
@@ -206,7 +197,6 @@ class TestRewriteSkillRefsMixed:
         )
 
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["keep", "umbrella"]
 
     def test_skill_in_both_maps_wins_as_consolidated(self, cron_env):
@@ -222,7 +212,6 @@ class TestRewriteSkillRefsMixed:
         )
 
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["umbrella"]
 
 
@@ -247,8 +236,8 @@ class TestRewriteSkillRefsMultipleJobs:
         assert report["rewrites"][0]["job_id"] == j1["id"]
 
         # Untouched jobs stay put
-        assert get_job(j2["id"])["skills"] == ["untouched"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
-        assert get_job(j3["id"])["skills"] == []  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(j2["id"])["skills"] == ["untouched"]
+        assert get_job(j3["id"])["skills"] == []
 
     def test_legacy_skill_field_also_rewritten(self, cron_env):
         """Old jobs may have the legacy single-skill ``skill`` field
@@ -264,9 +253,7 @@ class TestRewriteSkillRefsMultipleJobs:
         rewrite_skill_refs(consolidated={"legacy": "umbrella"}, pruned=[])
 
         loaded = get_job(job["id"])
-        assert loaded is not None
         assert loaded["skills"] == ["umbrella"]
-        assert loaded is not None
         assert loaded["skill"] == "umbrella"
 
 

@@ -85,7 +85,7 @@ class TestMicrosoftGraphTokenProvider:
                 expires_at=9_999_999_999,
             )
 
-        provider._fetch_access_token = _fake_fetch  # type: ignore[method-assign]  # ty: ignore[invalid-assignment]
+        provider._fetch_access_token = _fake_fetch  # type: ignore[method-assign]
 
         first, second = await asyncio.gather(
             provider.get_access_token(),

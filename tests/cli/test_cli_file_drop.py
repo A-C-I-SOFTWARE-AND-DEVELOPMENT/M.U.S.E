@@ -1,9 +1,6 @@
 """Tests for _detect_file_drop — file path detection that prevents
 dragged/pasted absolute paths from being mistaken for slash commands."""
 
-import os
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -59,7 +56,7 @@ class TestNonFileInputs:
         assert _detect_file_drop("hello world") is None
 
     def test_non_string_input(self):
-        assert _detect_file_drop(42) is None  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert _detect_file_drop(42) is None
 
     def test_nonexistent_path(self):
         assert _detect_file_drop("/nonexistent/path/to/file.png") is None

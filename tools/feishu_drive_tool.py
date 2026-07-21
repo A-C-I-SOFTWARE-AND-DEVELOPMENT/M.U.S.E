@@ -39,9 +39,9 @@ def _check_feishu():
 
 def _do_request(client, method, uri, paths=None, queries=None, body=None):
     """Build and execute a BaseRequest, return (code, msg, data_dict)."""
-    from lark_oapi import AccessTokenType  # ty: ignore[unresolved-import]
-    from lark_oapi.core.enum import HttpMethod  # ty: ignore[unresolved-import]
-    from lark_oapi.core.model.base_request import BaseRequest  # ty: ignore[unresolved-import]
+    from lark_oapi import AccessTokenType
+    from lark_oapi.core.enum import HttpMethod
+    from lark_oapi.core.model.base_request import BaseRequest
 
     http_method = HttpMethod.GET if method == "GET" else HttpMethod.POST
 

@@ -32,14 +32,14 @@ Honcho provides AI-native cross-session user modeling. It learns who the user is
 ### Cloud (app.honcho.dev)
 
 ```bash
-muse honcho setup
+hermes memory setup honcho
 # select "cloud", paste API key from https://app.honcho.dev
 ```
 
 ### Self-hosted
 
 ```bash
-muse honcho setup
+hermes memory setup honcho
 # select "local", enter base URL (e.g. http://localhost:8000)
 ```
 
@@ -48,7 +48,7 @@ See: https://docs.honcho.dev/v3/guides/integrations/hermes#running-honcho-locall
 ### Verify
 
 ```bash
-muse honcho status    # shows resolved config, connection test, peer info
+hermes honcho status    # shows resolved config, connection test, peer info
 ```
 
 ## Architecture
@@ -123,7 +123,7 @@ Honcho sessions scope where messages and observations land. Strategy options:
 | `per-session` | New Honcho session each Hermes run |
 | `global` | Single session across all directories |
 
-Manual override: `muse honcho map my-project-name`
+Manual override: `hermes honcho map my-project-name`
 
 ### Recall Modes
 
@@ -205,7 +205,7 @@ Each Hermes profile gets its own Honcho AI peer while sharing the same workspace
 ### Create a profile with Honcho peer
 
 ```bash
-muse profile create coder --clone
+hermes profile create coder --clone
 # creates host block hermes.coder, AI peer "coder", inherits config from default
 ```
 
@@ -218,7 +218,7 @@ What `--clone` does for Honcho:
 ### Backfill existing profiles
 
 ```bash
-muse honcho sync    # creates host blocks for all profiles that don't have one yet
+hermes honcho sync    # creates host blocks for all profiles that don't have one yet
 ```
 
 ### Per-profile config
@@ -389,13 +389,13 @@ This fix addresses edge cases where raw user conclusions containing markup or sp
 ## Troubleshooting
 
 ### "Honcho not configured"
-Run `muse honcho setup`. Ensure `memory.provider: honcho` is in `~/.hermes/config.yaml`.
+Run `hermes honcho setup`. Ensure `memory.provider: honcho` is in `~/.hermes/config.yaml`.
 
 ### Memory not persisting across sessions
-Check `muse honcho status` -- verify `saveMessages: true` and `writeFrequency` isn't `session` (which only writes on exit).
+Check `hermes honcho status` -- verify `saveMessages: true` and `writeFrequency` isn't `session` (which only writes on exit).
 
 ### Profile not getting its own peer
-Use `--clone` when creating: `muse profile create <name> --clone`. For existing profiles: `muse honcho sync`.
+Use `--clone` when creating: `hermes profile create <name> --clone`. For existing profiles: `hermes honcho sync`.
 
 ### Observation changes in dashboard not reflected
 Observation config is synced from the server on each session init. Start a new session after changing settings in the Honcho UI.
@@ -413,19 +413,19 @@ Session summary requires at least one prior turn in the current Honcho session. 
 
 | Command | Description |
 |---------|-------------|
-| `muse honcho setup` | Interactive setup wizard (cloud/local, identity, observation, recall, sessions) |
-| `muse honcho status` | Show resolved config, connection test, peer info for active profile |
-| `muse honcho enable` | Enable Honcho for the active profile (creates host block if needed) |
-| `muse honcho disable` | Disable Honcho for the active profile |
-| `muse honcho peer` | Show or update peer names (`--user <name>`, `--ai <name>`, `--reasoning <level>`) |
-| `muse honcho peers` | Show peer identities across all profiles |
-| `muse honcho mode` | Show or set recall mode (`hybrid`, `context`, `tools`) |
-| `muse honcho tokens` | Show or set token budgets (`--context <N>`, `--dialectic <N>`) |
-| `muse honcho sessions` | List known directory-to-session-name mappings |
-| `muse honcho map <name>` | Map current working directory to a Honcho session name |
-| `muse honcho identity` | Seed AI peer identity or show both peer representations |
-| `muse honcho sync` | Create host blocks for all Hermes profiles that don't have one yet |
-| `muse honcho migrate` | Step-by-step migration guide from OpenClaw native memory to Hermes + Honcho |
-| `muse memory setup` | Generic memory provider picker (selecting "honcho" runs the same wizard) |
-| `muse memory status` | Show active memory provider and config |
-| `muse memory off` | Disable external memory provider |
+| `hermes honcho setup` | Interactive setup wizard (cloud/local, identity, observation, recall, sessions) |
+| `hermes honcho status` | Show resolved config, connection test, peer info for active profile |
+| `hermes honcho enable` | Enable Honcho for the active profile (creates host block if needed) |
+| `hermes honcho disable` | Disable Honcho for the active profile |
+| `hermes honcho peer` | Show or update peer names (`--user <name>`, `--ai <name>`, `--reasoning <level>`) |
+| `hermes honcho peers` | Show peer identities across all profiles |
+| `hermes honcho mode` | Show or set recall mode (`hybrid`, `context`, `tools`) |
+| `hermes honcho tokens` | Show or set token budgets (`--context <N>`, `--dialectic <N>`) |
+| `hermes honcho sessions` | List known directory-to-session-name mappings |
+| `hermes honcho map <name>` | Map current working directory to a Honcho session name |
+| `hermes honcho identity` | Seed AI peer identity or show both peer representations |
+| `hermes honcho sync` | Create host blocks for all Hermes profiles that don't have one yet |
+| `hermes honcho migrate` | Step-by-step migration guide from OpenClaw native memory to Hermes + Honcho |
+| `hermes memory setup` | Generic memory provider picker (selecting "honcho" runs the same wizard) |
+| `hermes memory status` | Show active memory provider and config |
+| `hermes memory off` | Disable external memory provider |

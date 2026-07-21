@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import io
 import json
-from pathlib import Path
 
 import pytest
 
@@ -52,7 +51,7 @@ def fake_tool(monkeypatch):
     fake = _FakeTool({"success": True, "message_id": "m123"})
 
     mod = types.ModuleType("tools.send_message_tool")
-    mod.send_message_tool = fake  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    mod.send_message_tool = fake
     # Register the stub so ``from tools.send_message_tool import ...`` inside
     # cmd_send resolves to our fake. Also patch the parent ``tools`` package
     # entry so attribute lookup works.
@@ -173,7 +172,7 @@ def test_file_not_found_is_usage_error(fake_tool, capsys, monkeypatch):
     assert "cannot read" in err.lower()
 
 
-def test_file_decode_error_is_usage_error(fake_tool, capsys, monkeypatch, tmp_path):
+def test_file_decode_error_suggests_media_directive(fake_tool, capsys, monkeypatch, tmp_path):
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     bad = tmp_path / "bad-bytes.bin"
     bad.write_bytes(b"\xff\xfe\x00")
@@ -183,7 +182,9 @@ def test_file_decode_error_is_usage_error(fake_tool, capsys, monkeypatch, tmp_pa
         send_cmd.cmd_send(args)
     assert exc.value.code == 2
     err = capsys.readouterr().err
-    assert "cannot read" in err.lower()
+    assert "not a text file" in err.lower()
+    assert f"MEDIA:{bad}" in err
+    assert "[[as_document]]" in err
 
 
 def test_tool_error_returns_failure_exit(monkeypatch, capsys):
@@ -195,7 +196,7 @@ def test_tool_error_returns_failure_exit(monkeypatch, capsys):
     def _bad_tool(args, **_kw):
         return json.dumps({"error": "platform blew up"})
 
-    fake_mod.send_message_tool = _bad_tool  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_mod.send_message_tool = _bad_tool
     monkeypatch.setitem(_sys.modules, "tools.send_message_tool", fake_mod)
 
     args = _parse(["--to", "telegram", "nope"])
@@ -211,7 +212,7 @@ def test_skipped_result_is_success(monkeypatch):
     import types as _types
 
     fake_mod = _types.ModuleType("tools.send_message_tool")
-    fake_mod.send_message_tool = lambda args, **_kw: json.dumps(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_mod.send_message_tool = lambda args, **_kw: json.dumps(
         {"success": True, "skipped": True, "reason": "duplicate"}
     )
     monkeypatch.setitem(_sys.modules, "tools.send_message_tool", fake_mod)
@@ -232,8 +233,8 @@ def test_list_human_output(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "Available messaging targets:\n\nTelegram:\n  telegram:-100123\n"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.format_directory_for_display = lambda: "Available messaging targets:\n\nTelegram:\n  telegram:-100123\n"
+    fake_dir.load_directory = lambda: {
         "platforms": {"telegram": [{"id": "-100123", "name": "Test Group"}]}
     }
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
@@ -251,8 +252,8 @@ def test_list_json(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "(ignored in json mode)"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.format_directory_for_display = lambda: "(ignored in json mode)"
+    fake_dir.load_directory = lambda: {
         "platforms": {"telegram": [{"id": "-100123", "name": "Test Group"}]}
     }
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
@@ -271,8 +272,8 @@ def test_list_filter_platform(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "(should not be called when filter set)"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.format_directory_for_display = lambda: "(should not be called when filter set)"
+    fake_dir.load_directory = lambda: {
         "platforms": {
             "telegram": [{"id": "-100123", "name": "TG Chat"}],
             "discord": [{"id": "555", "name": "bot-home"}],
@@ -296,8 +297,8 @@ def test_list_unknown_platform_fails(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: ""  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    fake_dir.load_directory = lambda: {"platforms": {"telegram": []}}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.format_directory_for_display = lambda: ""
+    fake_dir.load_directory = lambda: {"platforms": {"telegram": []}}
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
 
     args = _parse(["--list", "pigeon-post"])

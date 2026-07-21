@@ -130,7 +130,7 @@ def _run_switch(raw_input: str, **extra):
         "hermes_cli.model_switch.list_provider_models",
         side_effect=fake_list_provider_models,
     ):
-        return switch_model(raw_input=raw_input, **defaults)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        return switch_model(raw_input=raw_input, **defaults)
 
 
 def test_deepseek_v4_flash_stays_on_opencode_go():

@@ -4,12 +4,13 @@ import json
 
 import pytest
 
+from hermes_cli.auth import AuthError
 from plugins.spotify import client as spotify_mod
 from plugins.spotify import tools as spotify_tool
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict | list | None = None, *, text: str = "", headers: dict | None = None):
+    def __init__(self, status_code: int, payload: dict | None = None, *, text: str = "", headers: dict | None = None):
         self.status_code = status_code
         self._payload = payload
         self.text = text or (json.dumps(payload) if payload is not None else "")
@@ -50,7 +51,6 @@ def test_spotify_client_retries_once_after_401(monkeypatch: pytest.MonkeyPatch) 
     )
 
     def fake_request(method, url, headers=None, params=None, json=None, timeout=None):
-        assert headers is not None
         calls.append(headers["Authorization"])
         if len(calls) == 1:
             return _FakeResponse(401, {"error": {"message": "expired token"}})
@@ -298,3 +298,25 @@ def test_spotify_playback_recently_played_action(monkeypatch: pytest.MonkeyPatch
     payload = json.loads(spotify_tool._handle_spotify_playback({"action": "recently_played", "limit": 5}))
     assert seen and seen[0]["limit"] == 5
     assert isinstance(payload, dict)
+
+
+def test_client_wraps_invalid_grant_as_spotify_auth_required_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """SpotifyClient._resolve_runtime wraps AuthError(code=spotify_refresh_invalid_grant) into SpotifyAuthRequiredError."""
+
+    def _raise_invalid_grant(**kwargs):
+        raise AuthError(
+            "Spotify refresh token has expired or was revoked. Run `hermes auth spotify` again.",
+            provider="spotify",
+            code="spotify_refresh_invalid_grant",
+            relogin_required=True,
+        )
+
+    monkeypatch.setattr(
+        spotify_mod,
+        "resolve_spotify_runtime_credentials",
+        _raise_invalid_grant,
+    )
+    with pytest.raises(spotify_mod.SpotifyAuthRequiredError, match="expired or was revoked"):
+        spotify_mod.SpotifyClient()

@@ -1,17 +1,17 @@
 ---
 sidebar_position: 6
 title: "Signal"
-description: "Set up muse as a Signal messenger bot via signal-cli daemon"
+description: "Set up Hermes Agent as a Signal messenger bot via signal-cli daemon"
 ---
 
 # Signal Setup
 
-muse connects to Signal through the [signal-cli](https://github.com/AsamK/signal-cli) daemon running in HTTP mode. The adapter streams messages in real-time via SSE (Server-Sent Events) and sends responses via JSON-RPC.
+Hermes connects to Signal through the [signal-cli](https://github.com/AsamK/signal-cli) daemon running in HTTP mode. The adapter streams messages in real-time via SSE (Server-Sent Events) and sends responses via JSON-RPC.
 
 Signal is the most privacy-focused mainstream messenger — end-to-end encrypted by default, open-source protocol, minimal metadata collection. This makes it ideal for security-sensitive agent workflows.
 
 :::info No New Python Dependencies
-The Signal adapter uses `httpx` (already a core muse dependency) for all communication. No additional Python packages are required. You just need signal-cli installed externally.
+The Signal adapter uses `httpx` (already a core Hermes dependency) for all communication. No additional Python packages are required. You just need signal-cli installed externally.
 :::
 
 ---
@@ -78,12 +78,12 @@ curl http://127.0.0.1:8080/api/v1/check
 
 ---
 
-## Step 3: Configure muse
+## Step 3: Configure Hermes
 
 The easiest way:
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Select **Signal** from the platform menu. The wizard will:
@@ -114,9 +114,9 @@ SIGNAL_HOME_CHANNEL=+1234567890                  # Default delivery target for c
 Then start the gateway:
 
 ```bash
-muse gateway              # Foreground
-muse gateway install      # Install as a user service
-sudo muse gateway install --system   # Linux only: boot-time system service
+hermes gateway              # Foreground
+hermes gateway install      # Install as a user service
+sudo hermes gateway install --system   # Linux only: boot-time system service
 ```
 
 ---
@@ -125,10 +125,10 @@ sudo muse gateway install --system   # Linux only: boot-time system service
 
 ### DM Access
 
-DM access follows the same pattern as all other muse platforms:
+DM access follows the same pattern as all other Hermes platforms:
 
 1. **`SIGNAL_ALLOWED_USERS` set** → only those users can message
-2. **No allowlist set** → unknown users get a DM pairing code (approve via `muse pairing approve signal CODE`)
+2. **No allowlist set** → unknown users get a DM pairing code (approve via `hermes pairing approve signal CODE`)
 3. **`SIGNAL_ALLOW_ALL_USERS=true`** → anyone can message (use with caution)
 
 ### Group Access
@@ -175,27 +175,33 @@ Attachment size limit: **100 MB** (both directions).
 
 Signal messages render with **native formatting** instead of literal markdown characters. The adapter converts markdown (`**bold**`, `*italic*`, `` `code` ``, `~~strike~~`, `||spoiler||`, headings) into Signal `bodyRanges` so the text shows up with real styling on the recipient's client rather than as visible `**` / `` ` `` characters.
 
-**Reply quotes.** When muse replies to a specific message, it now posts a native reply that quotes the original — same UI affordance Signal users see when they use "Reply" themselves. This is automatic for replies generated in response to an inbound message.
+**Reply quotes.** When Hermes replies to a specific message, it now posts a native reply that quotes the original — same UI affordance Signal users see when they use "Reply" themselves. This is automatic for replies generated in response to an inbound message.
 
 **Reactions.** The agent can react to messages via the standard reaction API; reactions surface in Signal as emoji reactions on the referenced message rather than as extra text.
 
-None of this requires additional config — it ships on by default in recent signal-cli builds. If your `signal-cli` version is too old, muse falls back to plaintext delivery and logs a one-time warning.
+None of this requires additional config — it ships on by default in recent signal-cli builds. If your `signal-cli` version is too old, Hermes falls back to plaintext delivery and logs a one-time warning.
 
 ### Typing Indicators
 
 The bot sends typing indicators while processing messages, refreshing every 8 seconds.
 
+### Tool Progress Display
+
+Signal does not support editing already-sent messages. Hermes therefore suppresses gateway tool-progress bubbles on Signal, even when `/verbose` is enabled and saves a non-`off` mode for the platform.
+
+You can still see tool activity in the CLI, and final Signal replies can include normal assistant output. If you need live per-tool progress in chat, use a messaging platform with message editing support.
+
 ### Phone Number Redaction
 
 All phone numbers are automatically redacted in logs:
 - `+15551234567` → `+155****4567`
-- This applies to both muse gateway logs and the global redaction system
+- This applies to both Hermes gateway logs and the global redaction system
 
 ### Note to Self (Single-Number Setup)
 
-If you run signal-cli as a **linked secondary device** on your own phone number (rather than a separate bot number), you can interact with muse through Signal's "Note to Self" feature.
+If you run signal-cli as a **linked secondary device** on your own phone number (rather than a separate bot number), you can interact with Hermes through Signal's "Note to Self" feature.
 
-Just send a message to yourself from your phone — signal-cli picks it up and muse responds in the same conversation.
+Just send a message to yourself from your phone — signal-cli picks it up and Hermes responds in the same conversation.
 
 **How it works:**
 - "Note to Self" messages arrive as `syncMessage.sentMessage` envelopes

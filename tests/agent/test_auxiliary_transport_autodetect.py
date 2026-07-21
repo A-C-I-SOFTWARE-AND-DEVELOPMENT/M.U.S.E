@@ -39,6 +39,8 @@ def _clean_env(monkeypatch):
     ("https://api.moonshot.ai/v1", False, "Moonshot legacy"),
     ("https://api.minimax.io/anthropic", True, "MiniMax /anthropic"),
     ("https://litellm.example.com/v1/anthropic", True, "/anthropic suffix"),
+    ("https://litellm.example.com/anthropic/v1", True, "/anthropic/v1 base"),
+    ("https://litellm.example.com/anthropic/v1/models", False, "/anthropic/v1 subpath"),
     ("https://api.anthropic.com", True, "native Anthropic"),
     ("https://api.anthropic.com/v1", True, "native Anthropic /v1"),
     ("https://openrouter.ai/api/v1", False, "OpenRouter"),
@@ -190,7 +192,7 @@ def test_maybe_wrap_anthropic_sdk_missing_falls_back():
         # module lookup itself.
         import sys as _sys
         saved = _sys.modules.get("agent.anthropic_adapter")
-        _sys.modules["agent.anthropic_adapter"] = None  # force ImportError  # ty: ignore[invalid-assignment]
+        _sys.modules["agent.anthropic_adapter"] = None  # force ImportError
         try:
             result = _maybe_wrap_anthropic(
                 plain_client, "kimi-for-coding", "sk-kimi-test",

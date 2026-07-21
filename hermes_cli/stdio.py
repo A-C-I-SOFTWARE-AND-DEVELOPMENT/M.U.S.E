@@ -56,7 +56,7 @@ def _flip_console_code_page_to_utf8() -> None:
     try:
         import ctypes
 
-        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # win32-only
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
         # Best-effort; if there's no console attached these just fail silently.
         kernel32.SetConsoleCP(65001)
         kernel32.SetConsoleOutputCP(65001)
@@ -216,7 +216,6 @@ def _augment_path_with_known_tools() -> None:
     if not is_windows():
         return
 
-    import shutil as _shutil
 
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     if not local_appdata:

@@ -1,31 +1,38 @@
-# Windows-compatible docker-compose override for Hermes Dashboard
-# network_mode: host is NOT supported on Windows Docker Desktop
-# Usage: docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+#
+# docker-compose.windows.yml — Windows Docker Desktop compatible
+#
+# Differences from docker-compose.yml:
+#   - Removes `network_mode: host` (not supported on Docker Desktop for Windows)
+#   - Uses explicit port mappings instead
+#   - Uses Windows-style volume path for ~/.hermes
+#
+# Usage:
+#   docker compose -f docker-compose.windows.yml up -d
+#
 services:
   gateway:
-    image: hermes-agent:latest
-    ports:
-      - "9118:9118"
-    network_mode: ""
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes
+    restart: unless-stopped
     volumes:
-      - /mnt/c/Users/Echer/.hermes:/opt/data
+      - ${USERPROFILE}/.hermes:/opt/data
     environment:
       - HERMES_UID=10000
       - HERMES_GID=10000
-      - HERMES_BOOTSTRAP_MODELS=0
-    entrypoint: ["/bin/bash", "-c"]
-    command: ["sed -i 's/\r$//' /opt/hermes/docker/entrypoint.sh && exec /usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run"]
+    command: ["gateway", "run"]
 
   dashboard:
-    image: hermes-agent:latest
-    ports:
-      - "9119:9119"
-    network_mode: ""
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    depends_on:
+      - gateway
     volumes:
-      - /mnt/c/Users/Echer/.hermes:/opt/data
+      - ${USERPROFILE}/.hermes:/opt/data
     environment:
       - HERMES_UID=10000
       - HERMES_GID=10000
-    entrypoint: ["/bin/bash", "-c"]
-    command: ["sed -i 's/\r$//' /opt/hermes/docker/entrypoint.sh && exec /usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh dashboard --host 0.0.0.0 --port 9119 --no-open --insecure"]
-
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+    ports:
+      - "127.0.0.1:9119:9119"
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open", "--insecure"]

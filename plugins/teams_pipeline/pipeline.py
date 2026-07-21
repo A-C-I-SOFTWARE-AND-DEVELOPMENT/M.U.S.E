@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import shutil
-import subprocess
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -19,7 +18,6 @@ import httpx
 from agent.auxiliary_client import async_call_llm, extract_content_or_reasoning
 from hermes_constants import get_hermes_home
 from plugins.teams_pipeline.meetings import (
-    TeamsMeetingArtifactNotFoundError,
     download_recording_artifact,
     enrich_meeting_with_call_record,
     fetch_preferred_transcript_text,
@@ -385,7 +383,7 @@ class TeamsMeetingPipeline:
             else:
                 job = self._persist_job(job, selected_artifact_strategy="transcript_first")
 
-            call_record_id = notification.get("callRecordId") or (meeting_ref.metadata or {}).get("call_record_id")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+            call_record_id = notification.get("callRecordId") or (meeting_ref.metadata or {}).get("call_record_id")
             call_record = await enrich_meeting_with_call_record(
                 self.graph_client,
                 resolved_meeting,
@@ -458,7 +456,17 @@ class TeamsMeetingPipeline:
         temp_root = self.config.tmp_dir or (get_hermes_home() / "tmp" / "teams_pipeline")
         temp_root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=str(temp_root), prefix="teams-recording-") as tmp_dir:
-            recording_name = recording.display_name or f"{recording.artifact_id}.mp4"
+            # display_name comes from Graph API and is ultimately set by
+            # the meeting organizer — strip any directory components so a
+            # crafted name like "../../etc/cron.d/evil" can't escape tmp_dir.
+            # Path(...).name reduces "." / ".." / "" to themselves, so the
+            # dot-only basenames must be rejected explicitly (joining "tmp/.."
+            # resolves to the parent dir); fall back to the artifact id.
+            fallback_name = f"{recording.artifact_id}.mp4"
+            raw_name = recording.display_name or fallback_name
+            recording_name = Path(raw_name).name
+            if recording_name in ("", ".", ".."):
+                recording_name = fallback_name
             recording_path = Path(tmp_dir) / recording_name
             await download_recording_artifact(
                 self.graph_client,
@@ -576,7 +584,7 @@ class TeamsMeetingPipeline:
             sink_key = f"teams:{payload.meeting_ref.meeting_id}"
             existing = self.store.get_sink_record(sink_key)
             if hasattr(self.teams_sender, "write_summary"):
-                result = await self.teams_sender.write_summary(payload, self.config.teams_delivery, existing)  # ty: ignore[call-non-callable]  # dynamic config/plugin path
+                result = await self.teams_sender.write_summary(payload, self.config.teams_delivery, existing)
             else:
                 result = await self.teams_sender(payload, self.config.teams_delivery, existing)
             self.store.upsert_sink_record(sink_key, result)

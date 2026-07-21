@@ -3,25 +3,19 @@ import { Box, Text } from '@hermes/ink'
 import { HOTKEYS } from '../content/hotkeys.js'
 import type { Theme } from '../theme.js'
 
-// Brand strings come from theme tokens, never hard-coded product names.
-const commonCommands = (brandName: string): [string, string][] => [
+const COMMON_COMMANDS: [string, string][] = [
   ['/help', 'full list of commands + hotkeys'],
   ['/clear', 'start a new session'],
-  ['/resume', 'resume a prior session'],
+  ['/resume', 'switch live or resume past sessions'],
   ['/details', 'control transcript detail level'],
   ['/copy', 'copy selection or last assistant message'],
-  ['/quit', `exit ${brandName}`]
+  ['/quit', 'exit hermes']
 ]
 
 const HOTKEY_PREVIEW = HOTKEYS.slice(0, 8)
 
 export function HelpHint({ t }: { t: Theme }) {
-  const COMMON_COMMANDS = commonCommands(t.brand.name)
-
-  const labelW = Math.max(
-    ...COMMON_COMMANDS.map(([k]) => k.length),
-    ...HOTKEY_PREVIEW.map(([k]) => k.length)
-  )
+  const labelW = Math.max(...COMMON_COMMANDS.map(([k]) => k.length), ...HOTKEY_PREVIEW.map(([k]) => k.length))
 
   const pad = (s: string) => s + ' '.repeat(Math.max(0, labelW - s.length + 2))
 
@@ -40,9 +34,7 @@ export function HelpHint({ t }: { t: Theme }) {
           <Text bold color={t.color.primary}>
             ? quick help
           </Text>
-          <Text color={t.color.muted}>
-            {'  ·  type /help for the full panel  ·  backspace to dismiss'}
-          </Text>
+          <Text color={t.color.muted}>{'  ·  type /help for the full panel  ·  backspace to dismiss'}</Text>
         </Text>
 
         <Box marginTop={1}>

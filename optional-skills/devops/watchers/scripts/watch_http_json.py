@@ -28,7 +28,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _watermark import Watermark, format_items_as_markdown
+from _watermark import Watermark, format_items_as_markdown  # type: ignore
 
 
 def _dig(obj, path: str):

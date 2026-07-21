@@ -63,7 +63,6 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import cast
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 
@@ -94,7 +93,7 @@ def validate_plan(plan: dict) -> list[str]:
             if "director" not in roles:
                 errors.append("team must include a director role")
             seen_profiles = set()
-            for i, t in enumerate(cast(list, plan["team"])):
+            for i, t in enumerate(plan["team"]):
                 for k in ["profile", "role", "toolsets", "skills",
                           "responsibilities"]:
                     if k not in t:
@@ -312,12 +311,12 @@ def render_team_md(plan: dict) -> str:
         "",
         "## Per-task workspace requirement",
         "",
-        f"All `kanban_create` calls MUST pass:",
-        f"```",
-        f'workspace_kind="dir"',
+        "All `kanban_create` calls MUST pass:",
+        "```",
+        'workspace_kind="dir"',
         f'workspace_path="$HOME/projects/video-pipeline/{plan["slug"]}"',
         f'tenant="{plan["tenant"]}"',
-        f"```",
+        "```",
     ])
     return "\n".join(lines)
 
@@ -424,8 +423,6 @@ def render_soul_md(team_member: dict, plan: dict) -> str:
             "- **Decompose, route, comment, approve — that's the whole job.**\n"
             "- **Read TEAM.md** for the canonical task graph. Do not invent "
             "new roles unless the brief truly demands it.\n"
-            "- **Load the `kanban-orchestrator` skill** for the deeper "
-            "decomposition playbook beyond the auto-injected baseline.\n"
         )
 
     common_commands = (

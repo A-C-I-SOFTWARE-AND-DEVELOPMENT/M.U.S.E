@@ -6,12 +6,28 @@ All tests use synthetic inputs — no filesystem or live server required.
 
 import sys
 import os
-import json
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import pytest
+
+@pytest.fixture(autouse=True)
+def _clear_local_ctx_probe_cache():
+    """Reset the in-process local-probe TTL cache around every test.
+
+    _query_local_context_length memoizes probes per (model, base_url) for a
+    short TTL to bound the probe rate on hot paths. In tests that mock httpx
+    to return different responses for the same (model, base_url), a stale
+    cache entry would leak across cases — clear it before and after each test.
+    """
+    import agent.model_metadata as _mm
+
+    _mm._LOCAL_CTX_PROBE_CACHE.clear()
+    yield
+    _mm._LOCAL_CTX_PROBE_CACHE.clear()
+
 
 
 # ---------------------------------------------------------------------------
@@ -426,23 +442,15 @@ class TestQueryLocalContextLengthLmStudio:
             "max_context_length (1048576) must not win over loaded_instances."
         )
 
-    def test_lmstudio_not_loaded_falls_back_to_max_context_length(self):
-        """When no instance is loaded, fall back to the v1 API's advertised window.
-
-        Regression for NousResearch/hermes-agent#47678: the probe returned None
-        whenever the model wasn't currently loaded, because it only read
-        loaded_instances[].config.context_length and ignored the top-level
-        max_context_length the /api/v1/models response provides.
-        """
+    def test_lmstudio_native_api_base_url_is_not_doubled(self):
         from agent.model_metadata import _query_local_context_length
 
         native_resp = self._make_resp(200, {
             "models": [
                 {
-                    "key": "nvidia/nvidia-nemotron-super-49b-v1",
-                    "id": "nvidia/nvidia-nemotron-super-49b-v1",
-                    "max_context_length": 131072,
-                    "loaded_instances": [],
+                    "key": "publisher/model-a",
+                    "id": "publisher/model-a",
+                    "loaded_instances": [{"config": {"context_length": 32768}}],
                 },
             ]
         })
@@ -454,41 +462,10 @@ class TestQueryLocalContextLengthLmStudio:
 
         with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
              patch("httpx.Client", return_value=client_mock):
-            result = _query_local_context_length(
-                "nvidia-nemotron-super-49b-v1", "http://192.168.1.22:1234/v1"
-            )
+            result = _query_local_context_length("publisher/model-a", "http://localhost:1234/api/v1")
 
-        assert result == 131072
-
-    def test_lmstudio_not_loaded_prefers_loaded_context_length(self):
-        """loaded_context_length (last runtime setting) wins over max_context_length
-        when the model is not currently loaded."""
-        from agent.model_metadata import _query_local_context_length
-
-        native_resp = self._make_resp(200, {
-            "models": [
-                {
-                    "key": "nvidia/nvidia-nemotron-super-49b-v1",
-                    "id": "nvidia/nvidia-nemotron-super-49b-v1",
-                    "max_context_length": 1_048_576,
-                    "loaded_context_length": 65536,
-                    "loaded_instances": [],
-                },
-            ]
-        })
-        client_mock = self._make_client(
-            native_resp,
-            self._make_resp(404, {}),
-            self._make_resp(404, {}),
-        )
-
-        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
-             patch("httpx.Client", return_value=client_mock):
-            result = _query_local_context_length(
-                "nvidia-nemotron-super-49b-v1", "http://192.168.1.22:1234/v1"
-            )
-
-        assert result == 65536
+        assert result == 32768
+        assert client_mock.get.call_args_list[0].args[0] == "http://127.0.0.1:1234/api/v1/models"
 
 
 class TestDetectLocalServerTypeAuth:
@@ -510,6 +487,84 @@ class TestDetectLocalServerTypeAuth:
         assert mock_client.call_args.kwargs["headers"] == {
             "Authorization": "Bearer lm-token"
         }
+
+    def test_native_api_base_url_is_not_doubled(self):
+        from agent.model_metadata import detect_local_server_type
+
+        resp = MagicMock()
+        resp.status_code = 200
+
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.get.return_value = resp
+
+        result = None
+        with patch("httpx.Client", return_value=client_mock):
+            result = detect_local_server_type("http://localhost:1234/api/v1")
+
+        assert result == "lm-studio"
+        assert client_mock.get.call_args_list[0].args[0] == "http://127.0.0.1:1234/api/v1/models"
+
+
+class TestDetectLocalServerTypeLocalhostIPv4:
+    """detect_local_server_type should resolve localhost to 127.0.0.1."""
+
+    def test_localhost_resolved_to_ipv4(self):
+        """Probes should use 127.0.0.1, not localhost, to avoid IPv6 timeout."""
+        from agent.model_metadata import detect_local_server_type
+
+        resp = MagicMock()
+        resp.status_code = 200
+
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.get.return_value = resp
+
+        with patch("httpx.Client", return_value=client_mock):
+            detect_local_server_type("http://localhost:8317/v1")
+
+        for call in client_mock.get.call_args_list:
+            url = call[0][0]
+            assert "localhost" not in url, f"Probe URL still uses localhost: {url}"
+            assert "127.0.0.1" in url
+
+    def test_non_localhost_urls_unchanged(self):
+        """Non-localhost URLs should not be modified."""
+        from agent.model_metadata import detect_local_server_type
+
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        resp = MagicMock()
+        resp.status_code = 404
+        client_mock.get.return_value = resp
+
+        with patch("httpx.Client", return_value=client_mock):
+            detect_local_server_type("http://192.168.1.100:8080")
+
+        for call in client_mock.get.call_args_list:
+            url = call[0][0]
+            assert "192.168.1.100" in url
+
+    def test_127_0_0_1_urls_unchanged(self):
+        """URLs already using 127.0.0.1 should pass through unchanged."""
+        from agent.model_metadata import detect_local_server_type
+
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        resp = MagicMock()
+        resp.status_code = 404
+        client_mock.get.return_value = resp
+
+        with patch("httpx.Client", return_value=client_mock):
+            detect_local_server_type("http://127.0.0.1:8317")
+
+        for call in client_mock.get.call_args_list:
+            url = call[0][0]
+            assert "127.0.0.1" in url
 
 
 class TestFetchEndpointModelMetadataLmStudio:
@@ -555,45 +610,18 @@ class TestFetchEndpointModelMetadataLmStudio:
         assert result["lmstudio-community/Qwen3.5-27B-GGUF/Qwen3.5-27B-Q8_0.gguf"]["context_length"] == 131072
         assert result["Qwen3.5-27B-GGUF/Qwen3.5-27B-Q8_0.gguf"]["context_length"] == 131072
 
-    def test_unloaded_model_uses_max_context_length(self):
-        """Models with no loaded instance still report a window from the v1 API's
-        top-level max_context_length (NousResearch/hermes-agent#47678)."""
+    def test_native_api_base_url_is_not_doubled(self):
         from agent.model_metadata import fetch_endpoint_model_metadata
 
         native_resp = self._make_resp(
             {
                 "models": [
                     {
-                        "key": "qwen/qwen3-coder-30b",
-                        "id": "qwen/qwen3-coder-30b",
-                        "max_context_length": 262144,
-                        "loaded_instances": [],
-                    }
-                ]
-            }
-        )
-
-        with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
-             patch("agent.model_metadata.requests.get", return_value=native_resp):
-            result = fetch_endpoint_model_metadata(
-                "http://localhost:1234/v1",
-                force_refresh=True,
-            )
-
-        assert result["qwen/qwen3-coder-30b"]["context_length"] == 262144
-
-    def test_remote_lmstudio_uses_native_endpoint_when_provider_set(self):
-        """A remote (non-local) LM Studio host still queries /api/v1/models when
-        provider='lmstudio' (NousResearch/hermes-agent#47200)."""
-        from agent.model_metadata import fetch_endpoint_model_metadata
-
-        native_resp = self._make_resp(
-            {
-                "models": [
-                    {
-                        "key": "qwen/qwen3-coder-30b",
-                        "id": "qwen/qwen3-coder-30b",
-                        "loaded_instances": [{"config": {"context_length": 100000}}],
+                        "key": "publisher/model-a",
+                        "id": "publisher/model-a",
+                        "loaded_instances": [
+                            {"config": {"context_length": 65536}}
+                        ],
                     }
                 ]
             }
@@ -602,33 +630,12 @@ class TestFetchEndpointModelMetadataLmStudio:
         with patch("agent.model_metadata.detect_local_server_type", return_value="lm-studio"), \
              patch("agent.model_metadata.requests.get", return_value=native_resp) as mock_get:
             result = fetch_endpoint_model_metadata(
-                "https://lmstudio.example.com/v1",
-                provider="lmstudio",
+                "http://localhost:1234/api/v1",
                 force_refresh=True,
             )
 
-        assert mock_get.call_args[0][0] == "https://lmstudio.example.com/api/v1/models"
-        assert result["qwen/qwen3-coder-30b"]["context_length"] == 100000
-
-    def test_remote_endpoint_without_lmstudio_provider_skips_native(self):
-        """Without provider='lmstudio', a remote host does NOT get the native
-        probe — behavior for arbitrary custom cloud endpoints is unchanged."""
-        from agent.model_metadata import fetch_endpoint_model_metadata
-
-        # Generic OpenAI-compat /models (no context_length) — the path a
-        # non-LM-Studio remote endpoint falls through to.
-        compat_resp = self._make_resp({"data": [{"id": "some-model"}]})
-
-        with patch("agent.model_metadata.detect_local_server_type") as mock_detect, \
-             patch("agent.model_metadata.requests.get", return_value=compat_resp) as mock_get:
-            fetch_endpoint_model_metadata(
-                "https://api.some-cloud.example.com/v1",
-                force_refresh=True,
-            )
-
-        mock_detect.assert_not_called()
-        # Only the OpenAI-compat /models path is hit, never /api/v1/models.
-        assert all("/api/v1/models" not in c[0][0] for c in mock_get.call_args_list)
+        assert mock_get.call_args[0][0] == "http://localhost:1234/api/v1/models"
+        assert result["publisher/model-a"]["context_length"] == 65536
 
 
 class TestQueryLocalContextLengthNetworkError:
@@ -649,189 +656,6 @@ class TestQueryLocalContextLengthNetworkError:
             result = _query_local_context_length("omnicoder-9b", "http://localhost:11434/v1")
 
         assert result is None
-
-
-# ---------------------------------------------------------------------------
-# _parse_param_size_billions / _estimate_model_size_gb — pure helpers
-# ---------------------------------------------------------------------------
-
-class TestModelSizeEstimation:
-    def test_parse_param_size_billions(self):
-        from agent.model_metadata import _parse_param_size_billions
-
-        assert _parse_param_size_billions("30.5B") == pytest.approx(30.5)
-        assert _parse_param_size_billions("8.95B") == pytest.approx(8.95)
-        assert _parse_param_size_billions("570M") == pytest.approx(0.57)
-        assert _parse_param_size_billions("12b") == pytest.approx(12.0)
-
-    def test_parse_param_size_invalid_returns_none(self):
-        from agent.model_metadata import _parse_param_size_billions
-
-        assert _parse_param_size_billions(None) is None
-        assert _parse_param_size_billions("") is None
-        assert _parse_param_size_billions("unknown") is None
-        assert _parse_param_size_billions(12) is None
-
-    def test_estimate_model_size_gb_q4(self):
-        from agent.model_metadata import _estimate_model_size_gb
-
-        # 30.5B @ Q4_K_M (~4.8 bits/weight) ≈ 18.3 GB
-        size = _estimate_model_size_gb("30.5B", "Q4_K_M")
-        assert size is not None
-        assert 16.0 < size < 20.0
-
-    def test_estimate_model_size_gb_unknown_quant_falls_back(self):
-        from agent.model_metadata import _estimate_model_size_gb
-
-        size = _estimate_model_size_gb("9B", "Q9_WEIRD")
-        assert size is not None
-        # Default reference is the Q4_K_M band.
-        assert 4.0 < size < 7.0
-
-    def test_estimate_model_size_gb_missing_params_returns_none(self):
-        from agent.model_metadata import _estimate_model_size_gb
-
-        assert _estimate_model_size_gb(None, "Q4_K_M") is None
-
-
-# ---------------------------------------------------------------------------
-# query_ollama_num_ctx — VRAM-aware capping
-# ---------------------------------------------------------------------------
-
-class _FakeHardware:
-    """Stand-in for HardwareProfile.vram_safe_context_limit."""
-
-    def __init__(self, limit):
-        self._limit = limit
-        self.calls = []
-
-    def vram_safe_context_limit(self, model_size_gb, quant="q4_k_m", kv_quant="q8_0"):
-        self.calls.append((model_size_gb, quant, kv_quant))
-        return self._limit
-
-
-class TestQueryOllamaNumCtxVramCap:
-    """query_ollama_num_ctx caps the resolved num_ctx to the VRAM-safe limit."""
-
-    def _make_resp(self, status_code, body):
-        resp = MagicMock()
-        resp.status_code = status_code
-        resp.json.return_value = body
-        return resp
-
-    def _client(self, body):
-        show_resp = self._make_resp(200, body)
-        client_mock = MagicMock()
-        client_mock.__enter__ = lambda s: client_mock
-        client_mock.__exit__ = MagicMock(return_value=False)
-        client_mock.post.return_value = show_resp
-        return client_mock
-
-    def test_no_hardware_returns_uncapped(self):
-        """Default (hardware=None) is byte-for-byte the old behaviour."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        body = {
-            "model_info": {"qwen3.context_length": 262144},
-            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx("qwen3-coder:30b", "http://localhost:11434/v1")
-
-        assert result == 262144
-
-    def test_caps_training_max_to_vram_limit(self):
-        """A 262K GGUF max on an 8GB box is capped to the VRAM-safe limit."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        hw = _FakeHardware(limit=8192)  # ~30B safe window on 8GB
-        body = {
-            "model_info": {"qwen3.context_length": 262144},
-            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx(
-                "qwen3-coder:30b", "http://localhost:11434/v1", hardware=hw
-            )
-
-        assert result == 8192
-        # The limit was queried with an estimated model size and the quant.
-        assert hw.calls, "vram_safe_context_limit was never called"
-        size_gb, quant, _kv = hw.calls[0]
-        assert 16.0 < size_gb < 20.0
-        assert quant == "Q4_K_M"
-
-    def test_does_not_raise_when_limit_above_resolved(self):
-        """When the safe limit exceeds num_ctx, the resolved value is kept."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        hw = _FakeHardware(limit=32768)
-        body = {
-            "model_info": {"qwen3.context_length": 16384},
-            "details": {"parameter_size": "9B", "quantization_level": "Q4_K_M"},
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx(
-                "qwen3.5:9b", "http://localhost:11434/v1", hardware=hw
-            )
-
-        assert result == 16384
-
-    def test_num_ctx_override_also_capped(self):
-        """An explicit Modelfile num_ctx is also subject to the VRAM cap."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        hw = _FakeHardware(limit=8192)
-        body = {
-            "parameters": "num_ctx                        131072\ntemperature 0.6\n",
-            "details": {"parameter_size": "20.9B", "quantization_level": "MXFP4"},
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx(
-                "gpt-oss:20b", "http://localhost:11434/v1", hardware=hw
-            )
-
-        assert result == 8192
-
-    def test_unestimatable_size_skips_cap(self):
-        """When details lack a parsable parameter_size, no cap is applied."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        hw = _FakeHardware(limit=8192)
-        body = {
-            "model_info": {"qwen3.context_length": 262144},
-            "details": {},  # no parameter_size
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx(
-                "mystery:latest", "http://localhost:11434/v1", hardware=hw
-            )
-
-        assert result == 262144
-        assert not hw.calls, "size could not be estimated, limit must not be queried"
-
-    def test_hardware_without_method_is_ignored(self):
-        """A hardware object lacking vram_safe_context_limit leaves ctx intact."""
-        from agent.model_metadata import query_ollama_num_ctx
-
-        body = {
-            "model_info": {"qwen3.context_length": 262144},
-            "details": {"parameter_size": "30.5B", "quantization_level": "Q4_K_M"},
-        }
-        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama"), \
-             patch("httpx.Client", return_value=self._client(body)):
-            result = query_ollama_num_ctx(
-                "qwen3-coder:30b",
-                "http://localhost:11434/v1",
-                hardware=object(),
-            )
-
-        assert result == 262144
 
 
 # ---------------------------------------------------------------------------
@@ -869,6 +693,70 @@ class TestGetModelContextLengthLocalFallback:
 
         mock_save.assert_called_once_with("omnicoder-9b", "http://localhost:11434/v1", 131072)
 
+    def test_local_endpoint_stale_cache_reconciled_from_live_probe(self):
+        """Stale disk cache must yield to a live local max_model_len probe."""
+        from agent.model_metadata import get_model_context_length
+
+        model = "NousResearch/Hermes-3-Llama-3.1-70B"
+        base = "http://192.168.1.50:8000/v1"
+
+        with patch("agent.model_metadata.get_cached_context_length", return_value=131072), \
+             patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
+             patch("agent.model_metadata.fetch_model_metadata", return_value={}), \
+             patch("agent.model_metadata._query_ollama_api_show", return_value=None), \
+             patch("agent.model_metadata._is_custom_endpoint", return_value=False), \
+             patch("agent.model_metadata.is_local_endpoint", return_value=True), \
+             patch("agent.model_metadata._query_local_context_length", return_value=32768), \
+             patch("agent.model_metadata._invalidate_cached_context_length") as mock_invalidate, \
+             patch("agent.model_metadata.save_context_length") as mock_save:
+            result = get_model_context_length(model, base, provider="custom")
+
+        assert result == 32768
+        mock_invalidate.assert_called_once_with(model, base)
+        mock_save.assert_not_called()
+
+    def test_local_endpoint_stale_cache_reconciled_to_valid_live_probe(self):
+        """Live probes at or above the 64K minimum are persisted."""
+        from agent.model_metadata import get_model_context_length
+
+        model = "NousResearch/Hermes-3-Llama-3.1-70B"
+        base = "http://192.168.1.50:8000/v1"
+
+        with patch("agent.model_metadata.get_cached_context_length", return_value=131072), \
+             patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
+             patch("agent.model_metadata.fetch_model_metadata", return_value={}), \
+             patch("agent.model_metadata._query_ollama_api_show", return_value=None), \
+             patch("agent.model_metadata._is_custom_endpoint", return_value=False), \
+             patch("agent.model_metadata.is_local_endpoint", return_value=True), \
+             patch("agent.model_metadata._query_local_context_length", return_value=65536), \
+             patch("agent.model_metadata._invalidate_cached_context_length") as mock_invalidate, \
+             patch("agent.model_metadata.save_context_length") as mock_save:
+            result = get_model_context_length(model, base, provider="custom")
+
+        assert result == 65536
+        mock_invalidate.assert_called_once_with(model, base)
+        mock_save.assert_called_once_with(model, base, 65536)
+
+    def test_local_endpoint_bypasses_stale_persistent_cache(self):
+        """Hermes-3-Llama names must not inherit the generic llama 131072 default."""
+        from agent.model_metadata import get_model_context_length
+
+        model = "NousResearch/Hermes-3-Llama-3.1-70B"
+        base = "http://spark1:8000/v1"
+
+        with patch("agent.model_metadata.get_cached_context_length", return_value=None), \
+             patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
+             patch("agent.model_metadata.fetch_model_metadata", return_value={}), \
+             patch("agent.model_metadata._query_ollama_api_show", return_value=None), \
+             patch("agent.model_metadata._is_custom_endpoint", return_value=False), \
+             patch("agent.model_metadata.is_local_endpoint", return_value=True), \
+             patch("agent.model_metadata._query_local_context_length", return_value=32768), \
+             patch("agent.model_metadata.save_context_length") as mock_save:
+            result = get_model_context_length(model, base, provider="custom")
+
+        assert result == 32768
+        mock_save.assert_not_called()
+
     def test_local_endpoint_server_returns_none_falls_back_to_2m(self):
         """When local server returns None, still falls back to 2M probe tier."""
         from agent.model_metadata import get_model_context_length, CONTEXT_PROBE_TIERS
@@ -884,7 +772,7 @@ class TestGetModelContextLengthLocalFallback:
 
     def test_non_local_endpoint_does_not_query_local_server(self):
         """For non-local endpoints, _query_local_context_length is not called."""
-        from agent.model_metadata import get_model_context_length, CONTEXT_PROBE_TIERS
+        from agent.model_metadata import get_model_context_length
 
         with patch("agent.model_metadata.get_cached_context_length", return_value=None), \
              patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
@@ -902,8 +790,11 @@ class TestGetModelContextLengthLocalFallback:
         from agent.model_metadata import get_model_context_length
 
         with patch("agent.model_metadata.get_cached_context_length", return_value=65536), \
+             patch("agent.model_metadata.is_local_endpoint", return_value=False), \
              patch("agent.model_metadata._query_local_context_length") as mock_query:
-            result = get_model_context_length("omnicoder-9b", "http://localhost:11434/v1")
+            result = get_model_context_length(
+                "omnicoder-9b", "https://api.example.com/v1"
+            )
 
         assert result == 65536
         mock_query.assert_not_called()
@@ -920,23 +811,78 @@ class TestGetModelContextLengthLocalFallback:
 
         mock_query.assert_not_called()
 
-    def test_remote_lmstudio_provider_resolves_native_context(self):
-        """A remote LM Studio endpoint (provider='lmstudio', non-local URL)
-        resolves its real context window from the native endpoint instead of
-        defaulting to 256K (NousResearch/hermes-agent#47200)."""
-        from agent.model_metadata import get_model_context_length
 
-        with patch("agent.model_metadata.get_cached_context_length", return_value=None), \
-             patch("agent.model_metadata._resolve_endpoint_context_length", return_value=100000) as mock_resolve, \
-             patch("agent.model_metadata.save_context_length") as mock_save:
-            result = get_model_context_length(
-                "qwen3-coder-30b",
-                "https://lmstudio.example.com/v1",
-                provider="lmstudio",
-            )
+class TestLocalContextProbeTTLCache:
+    """The in-process TTL cache collapses back-to-back probes for the same
+    (model, base_url) into one network round-trip (bounds probe rate on hot
+    paths like banner + /model switch + compressor update within one startup),
+    while a different key still probes."""
 
-        assert result == 100000
-        # provider must be forwarded so the native path is taken for the remote host
-        assert mock_resolve.call_args.kwargs.get("provider") == "lmstudio"
-        # LM Studio context is transient — never persisted to the on-disk cache
-        mock_save.assert_not_called()
+    def _make_resp(self, status_code, body):
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.json.return_value = body
+        return resp
+
+    def test_second_call_within_ttl_does_not_reprobe(self):
+        from agent.model_metadata import _query_local_context_length
+
+        show_resp = self._make_resp(200, {"model_info": {"llama.context_length": 32768}})
+        models_resp = self._make_resp(404, {})
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.post.return_value = show_resp
+        client_mock.get.return_value = models_resp
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama") as detect, \
+             patch("httpx.Client", return_value=client_mock):
+            first = _query_local_context_length("m", "http://localhost:11434/v1")
+            second = _query_local_context_length("m", "http://localhost:11434/v1")
+
+        assert first == 32768
+        assert second == 32768
+        # Only the first call hits the network; the second is served from cache.
+        assert detect.call_count == 1
+
+    def test_different_key_still_probes(self):
+        from agent.model_metadata import _query_local_context_length
+
+        show_resp = self._make_resp(200, {"model_info": {"llama.context_length": 32768}})
+        models_resp = self._make_resp(404, {})
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.post.return_value = show_resp
+        client_mock.get.return_value = models_resp
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value="ollama") as detect, \
+             patch("httpx.Client", return_value=client_mock):
+            _query_local_context_length("m1", "http://localhost:11434/v1")
+            _query_local_context_length("m2", "http://localhost:11434/v1")
+
+        assert detect.call_count == 2
+
+
+    def test_none_result_not_cached(self):
+        """A failed probe (None) must NOT be memoized — a retry within the TTL
+        window must re-probe so a server that comes up mid-startup is caught."""
+        from agent.model_metadata import _query_local_context_length
+
+        # First probe: server unreachable -> detect returns None, all queries miss -> None.
+        fail_resp = self._make_resp(404, {})
+        client_mock = MagicMock()
+        client_mock.__enter__ = lambda s: client_mock
+        client_mock.__exit__ = MagicMock(return_value=False)
+        client_mock.post.return_value = fail_resp
+        client_mock.get.return_value = fail_resp
+
+        with patch("agent.model_metadata.detect_local_server_type", return_value=None) as detect, \
+             patch("httpx.Client", return_value=client_mock):
+            first = _query_local_context_length("m", "http://localhost:11434/v1")
+            # Retry within TTL must re-probe (None was not cached).
+            second = _query_local_context_length("m", "http://localhost:11434/v1")
+
+        assert first is None
+        assert second is None
+        assert detect.call_count == 2, "None result was wrongly cached; retry did not re-probe"

@@ -50,7 +50,7 @@ def _run_display(monkeypatch, result):
     monkeypatch.setattr(cli_mod, "_cprint", lambda s, *a, **k: captured.append(str(s)))
     # Avoid writing to ~/.hermes/config.yaml during the test.
     monkeypatch.setattr(cli_mod, "save_config_value", lambda *a, **k: None)
-    cli_mod.HermesCLI._apply_model_switch_result(_StubCLI(), result, False)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    cli_mod.HermesCLI._apply_model_switch_result(_StubCLI(), result, False)
     return captured
 
 
@@ -68,9 +68,9 @@ def test_picker_path_uses_provider_aware_context_on_codex(monkeypatch):
         api_mode="codex_responses",
         warning_message="",
         provider_label="ChatGPT Codex",
-        resolved_via_alias=False,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        resolved_via_alias=False,
         capabilities=None,
-        model_info=_FakeModelInfo(),  # models.dev says 1.05M  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        model_info=_FakeModelInfo(),  # models.dev says 1.05M
         is_global=False,
     )
     with patch(
@@ -103,9 +103,9 @@ def test_picker_path_shows_vendor_value_when_no_provider_cap(monkeypatch):
         api_mode="chat_completions",
         warning_message="",
         provider_label="OpenRouter",
-        resolved_via_alias=False,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        resolved_via_alias=False,
         capabilities=None,
-        model_info=_FakeModelInfo(),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        model_info=_FakeModelInfo(),
         is_global=False,
     )
     with patch(
@@ -135,9 +135,9 @@ def test_picker_path_falls_back_to_model_info_when_resolver_empty(monkeypatch):
         api_mode="chat_completions",
         warning_message="",
         provider_label="Some Provider",
-        resolved_via_alias=False,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        resolved_via_alias=False,
         capabilities=None,
-        model_info=_FakeModelInfo(),  # context_window = 1_050_000  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        model_info=_FakeModelInfo(),  # context_window = 1_050_000
         is_global=False,
     )
     with patch(

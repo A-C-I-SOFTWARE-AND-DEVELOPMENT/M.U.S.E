@@ -6,15 +6,11 @@ Hand-placed and hub-installed skills have no hard limit.
 """
 
 import json
-import os
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from tools.skill_manager_tool import (
     MAX_SKILL_CONTENT_CHARS,
-    MAX_SKILL_FILE_BYTES,
     _validate_content_size,
     skill_manage,
 )
@@ -60,7 +56,6 @@ class TestValidateContentSize:
 
     def test_custom_label(self):
         err = _validate_content_size("a" * (MAX_SKILL_CONTENT_CHARS + 1), label="references/api.md")
-        assert err is not None
         assert "references/api.md" in err
 
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import json
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -57,7 +56,7 @@ def _fake_response(text: str, *, prompt: int = 4, completion: int = 6) -> Simple
 
 
 def _trusted_policy(plugin_id: str = "trusted-plugin", **overrides: Any) -> _TrustPolicy:
-    defaults: dict[str, Any] = dict(
+    defaults = dict(
         allow_provider_override=True,
         allowed_providers=None,
         allow_any_provider=True,
@@ -744,7 +743,7 @@ plugins:
         )
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         from hermes_cli import config as _config_mod
-        _config_mod._config_cache = None  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+        _config_mod._config_cache = None  # type: ignore[attr-defined]
 
         policy = _resolve_trust_policy("my-plugin")
         assert policy.allow_provider_override is True
@@ -763,7 +762,7 @@ plugins:
         (hermes_home / "config.yaml").write_text("plugins: {}\n", encoding="utf-8")
         monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         from hermes_cli import config as _config_mod
-        _config_mod._config_cache = None  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+        _config_mod._config_cache = None  # type: ignore[attr-defined]
 
         policy = _resolve_trust_policy("never-configured")
         assert policy.allow_provider_override is False

@@ -17,16 +17,16 @@ Debug Node.js via --inspect + Chrome DevTools Protocol CLI.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/node-inspect-debugger` |
 | Version | `1.0.0` |
-| Author | muse |
+| Author | Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `debugging`, `nodejs`, `node-inspect`, `cdp`, `breakpoints`, `ui-tui` |
-| Related skills | [`systematic-debugging`](/docs/user-guide/skills/bundled/software-development/software-development-systematic-debugging), [`python-debugpy`](/docs/user-guide/skills/bundled/software-development/software-development-python-debugpy), [`debugging-hermes-tui-commands`](/docs/user-guide/skills/bundled/software-development/software-development-debugging-hermes-tui-commands) |
+| Related skills | [`systematic-debugging`](/docs/user-guide/skills/bundled/software-development/software-development-systematic-debugging), [`python-debugpy`](/docs/user-guide/skills/bundled/software-development/software-development-python-debugpy), `debugging-hermes-tui-commands` |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Node.js Inspect Debugger
@@ -192,7 +192,7 @@ mkdir -p /tmp/cdp-tools && cd /tmp/cdp-tools && npm i chrome-remote-interface
 NODE_PATH=/tmp/cdp-tools/node_modules node /tmp/cdp-debug.js
 ```
 
-## Debugging muse ui-tui
+## Debugging Hermes ui-tui
 
 The TUI is built Ink + tsx. Two common scenarios:
 
@@ -217,13 +217,13 @@ cont
 
 When it pauses, `repl` → inspect `props`, state refs, `useInput` handler values, etc.
 
-### Debugging a running `muse --tui`
+### Debugging a running `hermes --tui`
 
 The TUI spawns Node from the Python CLI. Easiest path:
 
 ```bash
 # 1. Launch TUI
-muse --tui &
+hermes --tui &
 TUI_PID=$(pgrep -f 'ui-tui/dist/entry' | head -1)
 
 # 2. Enable inspector on that Node PID
@@ -292,7 +292,7 @@ require('fs').writeFileSync('/tmp/heap.heapsnapshot', chunks.join(''));
 
 5. **Background kills.** If you `Ctrl+C` out of `node inspect` while the target is paused, the target stays paused. Either `cont` first, or `kill` the target explicitly.
 
-6. **Running `node inspect` through an agent terminal.** It's a PTY-friendly REPL. In muse launch it with `terminal(pty=true)` or `background=true` + `process(action='submit', data='...')`. Non-PTY foreground mode will work for one-shot commands but not for interactive stepping.
+6. **Running `node inspect` through an agent terminal.** It's a PTY-friendly REPL. In Hermes, launch it with `terminal(pty=true)` or `background=true` + `process(action='submit', data='...')`. Non-PTY foreground mode will work for one-shot commands but not for interactive stepping.
 
 7. **Security.** `--inspect=0.0.0.0:9229` exposes arbitrary code execution. Always bind to `127.0.0.1` (the default) unless you have an isolated network.
 

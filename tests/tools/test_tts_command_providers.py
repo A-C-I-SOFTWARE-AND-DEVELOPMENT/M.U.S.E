@@ -14,10 +14,8 @@ differences) Windows.
 
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -139,8 +137,8 @@ class TestIsCommandProviderConfig:
         assert _is_command_provider_config({}) is False
 
     def test_non_dict_is_false(self):
-        assert _is_command_provider_config("foo") is False  # ty: ignore[invalid-argument-type]
-        assert _is_command_provider_config(None) is False  # ty: ignore[invalid-argument-type]
+        assert _is_command_provider_config("foo") is False
+        assert _is_command_provider_config(None) is False
 
     def test_type_mismatch_is_false(self):
         assert _is_command_provider_config({"type": "native", "command": "x"}) is False
@@ -495,6 +493,9 @@ class TestTextToSpeechToolWithCommandProvider:
 
 class TestCheckTtsRequirements:
     def test_configured_command_provider_satisfies_requirement(self):
-        cfg = {"providers": {"x": {"type": "command", "command": "echo x"}}}
+        cfg = {
+            "provider": "x",
+            "providers": {"x": {"type": "command", "command": "echo x"}},
+        }
         with patch("tools.tts_tool._load_tts_config", return_value=cfg):
             assert check_tts_requirements() is True

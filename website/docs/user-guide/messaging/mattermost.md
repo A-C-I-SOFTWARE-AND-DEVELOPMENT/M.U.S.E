@@ -1,28 +1,28 @@
 ---
 sidebar_position: 8
 title: "Mattermost"
-description: "Set up muse as a Mattermost bot"
+description: "Set up Hermes Agent as a Mattermost bot"
 ---
 
 # Mattermost Setup
 
-muse integrates with Mattermost as a bot, letting you chat with your AI assistant through direct messages or team channels. Mattermost is a self-hosted, open-source Slack alternative — you run it on your own infrastructure, keeping full control of your data. The bot connects via Mattermost's REST API (v4) and WebSocket for real-time events, processes messages through the muse pipeline (including tool use, memory, and reasoning), and responds in real time. It supports text, file attachments, images, and slash commands.
+Hermes Agent integrates with Mattermost as a bot, letting you chat with your AI assistant through direct messages or team channels. Mattermost is a self-hosted, open-source Slack alternative — you run it on your own infrastructure, keeping full control of your data. The bot connects via Mattermost's REST API (v4) and WebSocket for real-time events, processes messages through the Hermes Agent pipeline (including tool use, memory, and reasoning), and responds in real time. It supports text, file attachments, images, and slash commands.
 
-No external Mattermost library is required — the adapter uses `aiohttp`, which is already a muse dependency.
+No external Mattermost library is required — the adapter uses `aiohttp`, which is already a Hermes dependency.
 
-Before setup, here's the part most people want to know: how muse behaves once it's in your Mattermost instance.
+Before setup, here's the part most people want to know: how Hermes behaves once it's in your Mattermost instance.
 
-## How muse Behaves
+## How Hermes Behaves
 
 | Context | Behavior |
 |---------|----------|
-| **DMs** | muse responds to every message. No `@mention` needed. Each DM has its own session. |
-| **Public/private channels** | muse responds when you `@mention` it. Without a mention, muse ignores the message. |
-| **Threads** | If `MATTERMOST_REPLY_MODE=thread`, muse replies in a thread under your message. Thread context stays isolated from the parent channel. |
-| **Shared channels with multiple users** | By default, muse isolates session history per user inside the channel. Two people talking in the same channel do not share one transcript unless you explicitly disable that. |
+| **DMs** | Hermes responds to every message. No `@mention` needed. Each DM has its own session. |
+| **Public/private channels** | Hermes responds when you `@mention` it. Without a mention, Hermes ignores the message. |
+| **Threads** | If `MATTERMOST_REPLY_MODE=thread`, Hermes replies in a thread under your message. Thread context stays isolated from the parent channel. |
+| **Shared channels with multiple users** | By default, Hermes isolates session history per user inside the channel. Two people talking in the same channel do not share one transcript unless you explicitly disable that. |
 
 :::tip
-If you want muse to reply as threaded conversations (nested under your original message), set `MATTERMOST_REPLY_MODE=thread`. The default is `off`, which sends flat messages in the channel.
+If you want Hermes to reply as threaded conversations (nested under your original message), set `MATTERMOST_REPLY_MODE=thread`. The default is `off`, which sends flat messages in the channel.
 :::
 
 ### Session Model in Mattermost
@@ -72,7 +72,7 @@ If you don't have System Admin access, ask your Mattermost administrator to enab
 2. Click **Add Bot Account**.
 3. Fill in the details:
    - **Username**: e.g., `hermes`
-   - **Display Name**: e.g., `muse`
+   - **Display Name**: e.g., `Hermes Agent`
    - **Description**: optional
    - **Role**: `Member` is sufficient
 4. Click **Create Bot Account**.
@@ -85,7 +85,7 @@ The bot token is only displayed once when you create the bot account. If you los
 Store the token somewhere safe (a password manager, for example). You'll need it in Step 5.
 
 :::tip
-You can also use a **personal access token** instead of a bot account. Go to **Profile** → **Security** → **Personal Access Tokens** → **Create Token**. This is useful if you want muse to post as your own user rather than a separate bot user.
+You can also use a **personal access token** instead of a bot account. Go to **Profile** → **Security** → **Personal Access Tokens** → **Create Token**. This is useful if you want Hermes to post as your own user rather than a separate bot user.
 :::
 
 ## Step 3: Add the Bot to Channels
@@ -100,7 +100,7 @@ For DMs, simply open a direct message with the bot — it will be able to respon
 
 ## Step 4: Find Your Mattermost User ID
 
-muse uses your Mattermost User ID to control who can interact with the bot. To find it:
+Hermes Agent uses your Mattermost User ID to control who can interact with the bot. To find it:
 
 1. Click your **avatar** (top-left corner) → **Profile**.
 2. Your User ID is displayed in the profile dialog — click it to copy.
@@ -122,14 +122,14 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 To get a **Channel ID**: click the channel name → **View Info**. The Channel ID is shown in the info panel. You'll need this if you want to set a home channel manually.
 :::
 
-## Step 5: Configure muse
+## Step 5: Configure Hermes Agent
 
 ### Option A: Interactive Setup (Recommended)
 
 Run the guided setup command:
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Select **Mattermost** when prompted, then paste your server URL, bot token, and user ID when asked.
@@ -170,13 +170,13 @@ group_sessions_per_user: true
 Once configured, start the Mattermost gateway:
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 The bot should connect to your Mattermost server within a few seconds. Send it a message — either a DM or in a channel where it's been added — to test.
 
 :::tip
-You can run `muse gateway` in the background or as a systemd service for persistent operation. See the deployment docs for details.
+You can run `hermes gateway` in the background or as a systemd service for persistent operation. See the deployment docs for details.
 :::
 
 ## Home Channel
@@ -199,12 +199,12 @@ Replace the ID with the actual channel ID (click the channel name → View Info 
 
 ## Reply Mode
 
-The `MATTERMOST_REPLY_MODE` setting controls how muse posts responses:
+The `MATTERMOST_REPLY_MODE` setting controls how Hermes posts responses:
 
 | Mode | Behavior |
 |------|----------|
-| `off` (default) | muse posts flat messages in the channel, like a normal user. |
-| `thread` | muse replies in a thread under your original message. Keeps channels clean when there's lots of back-and-forth. |
+| `off` (default) | Hermes posts flat messages in the channel, like a normal user. |
+| `thread` | Hermes replies in a thread under your original message. Keeps channels clean when there's lots of back-and-forth. |
 
 Set it in your `~/.hermes/.env`:
 
@@ -298,9 +298,9 @@ If this returns your bot's user info, the token is valid. If it returns an error
 
 ### Bot is offline
 
-**Cause**: The muse gateway isn't running, or it failed to connect.
+**Cause**: The Hermes gateway isn't running, or it failed to connect.
 
-**Fix**: Check that `muse gateway` is running. Look at the terminal output for error messages. Common issues: wrong URL, expired token, Mattermost server unreachable.
+**Fix**: Check that `hermes gateway` is running. Look at the terminal output for error messages. Common issues: wrong URL, expired token, Mattermost server unreachable.
 
 ### "User not allowed" / Bot ignores you
 
@@ -331,10 +331,10 @@ Keys are Mattermost channel IDs (find them in the channel URL or via the API). A
 Always set `MATTERMOST_ALLOWED_USERS` to restrict who can interact with the bot. Without it, the gateway denies all users by default as a safety measure. Only add User IDs of people you trust — authorized users have full access to the agent's capabilities, including tool use and system access.
 :::
 
-For more information on securing your muse deployment, see the [Security Guide](../security.md).
+For more information on securing your Hermes Agent deployment, see the [Security Guide](../security.md).
 
 ## Notes
 
 - **Self-hosted friendly**: Works with any self-hosted Mattermost instance. No Mattermost Cloud account or subscription required.
-- **No extra dependencies**: The adapter uses `aiohttp` for HTTP and WebSocket, which is already included with muse
+- **No extra dependencies**: The adapter uses `aiohttp` for HTTP and WebSocket, which is already included with Hermes Agent.
 - **Team Edition compatible**: Works with both Mattermost Team Edition (free) and Enterprise Edition.

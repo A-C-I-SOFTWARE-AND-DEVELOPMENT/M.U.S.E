@@ -23,12 +23,12 @@ import json
 import logging
 import queue
 import threading
-from typing import Any, Optional
+from typing import Optional
 
 try:
     from websockets.sync.client import connect as ws_connect
 except ImportError:  # pragma: no cover - websockets is a required install path
-    ws_connect = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    ws_connect = None  # type: ignore[assignment]
 
 _log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class WsPublisherTransport:
     def __init__(self, url: str, *, connect_timeout: float = 2.0) -> None:
         self._url = url
         self._lock = threading.Lock()
-        self._ws: Optional[Any] = None
+        self._ws: Optional[object] = None
         self._dead = False
         self._q: queue.Queue[object] = queue.Queue(maxsize=_QUEUE_MAX)
         self._worker: Optional[threading.Thread] = None

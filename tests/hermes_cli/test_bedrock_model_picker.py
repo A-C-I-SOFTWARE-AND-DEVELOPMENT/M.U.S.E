@@ -16,12 +16,10 @@ Covers the three paths changed by fix/bedrock-provider-model-ids-live-discovery:
 All Bedrock API calls are mocked — no real AWS credentials needed.
 """
 
-import os
 from contextlib import contextmanager
 from types import ModuleType
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -35,8 +33,8 @@ def _mock_botocore_session(*, return_value=None):
     """Patch botocore.session even when botocore is not installed."""
     botocore_mod = ModuleType("botocore")
     session_mod = ModuleType("botocore.session")
-    session_mod.get_session = MagicMock(return_value=return_value)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    botocore_mod.session = session_mod  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    session_mod.get_session = MagicMock(return_value=return_value)
+    botocore_mod.session = session_mod
     with patch.dict("sys.modules", {"botocore": botocore_mod, "botocore.session": session_mod}):
         yield session_mod.get_session
 
@@ -95,7 +93,7 @@ class TestProviderModelIdsBedrock:
 
     def test_falls_back_to_static_list_when_discovery_empty(self, monkeypatch):
         """When discover_bedrock_models() returns [], fall back to curated static list."""
-        from hermes_cli.models import _PROVIDER_MODELS, provider_model_ids
+        from hermes_cli.models import provider_model_ids
 
         with patch("agent.bedrock_adapter.discover_bedrock_models", return_value=[]), \
              patch("agent.bedrock_adapter.resolve_bedrock_region", return_value="eu-central-1"):

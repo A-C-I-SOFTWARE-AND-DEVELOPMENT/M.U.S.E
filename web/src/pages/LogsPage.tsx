@@ -12,9 +12,8 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { FilterGroup, Segmented } from "@nous-research/ui/ui/components/segmented";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyStateCard } from "@/components/EmptyStateCard";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
+import { Label } from "@nous-research/ui/ui/components/label";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
@@ -24,9 +23,7 @@ const LEVELS = ["ALL", "DEBUG", "INFO", "WARNING", "ERROR"] as const;
 const COMPONENTS = ["all", "gateway", "agent", "tools", "cli", "cron"] as const;
 const LINE_COUNTS = [50, 100, 200, 500] as const;
 
-type Severity = "error" | "warning" | "info" | "debug";
-
-function classifyLine(line: string): Severity {
+function classifyLine(line: string): "error" | "warning" | "info" | "debug" {
   const upper = line.toUpperCase();
   if (
     upper.includes("ERROR") ||
@@ -39,30 +36,17 @@ function classifyLine(line: string): Severity {
   return "info";
 }
 
-/** Level-colored severity chip tones, routed through Singularity tokens. */
-const CHIP_STYLES: Record<Severity, string> = {
-  error: "border-[var(--err)]/40 bg-[var(--err)]/10 text-[var(--err)]",
-  warning: "border-[var(--warn)]/40 bg-[var(--warn)]/10 text-[var(--warn)]",
-  info: "border-[var(--info)]/40 bg-[var(--info)]/10 text-[var(--info)]",
-  debug: "border-[var(--border)] bg-[var(--bg-mute)] text-[var(--fg-faint)]",
+const LINE_COLORS: Record<string, string> = {
+  error: "text-destructive",
+  warning: "text-warning",
+  info: "text-foreground",
+  debug: "text-text-tertiary",
 };
 
-const CHIP_LABELS: Record<Severity, string> = {
-  error: "err",
-  warning: "warn",
-  info: "info",
-  debug: "debug",
-};
+const formatFilterLabel = (value: string) => value.toUpperCase();
 
-const LINE_COLORS: Record<Severity, string> = {
-  error: "text-[var(--err)]",
-  warning: "text-[var(--fg)]",
-  info: "text-[var(--fg-dim)]",
-  debug: "text-[var(--fg-faint)]",
-};
-
-const toOptions = <T extends string>(values: readonly T[]) =>
-  values.map((v) => ({ value: v, label: v }));
+const toSegmentOptions = <T extends string>(values: readonly T[]) =>
+  values.map((v) => ({ value: v, label: formatFilterLabel(v) }));
 
 const filterGroupClass =
   "flex min-w-0 w-full flex-col items-start gap-1.5 sm:w-auto sm:max-w-full sm:flex-row sm:items-center";
@@ -103,41 +87,42 @@ export default function LogsPage() {
 
   useLayoutEffect(() => {
     setAfterTitle(
-      <span className="flex items-center gap-2">
-        {loading && <Spinner className="shrink-0 text-base text-[var(--accent)]" />}
-        <Badge tone="secondary" className="text-[10px]">
-          {file} · {level} · {component}
+      <span className="flex items-center gap-1.5">
+        <Badge tone="secondary" className="text-xs">
+          {formatFilterLabel(file)} · {formatFilterLabel(level)} ·{" "}
+          {formatFilterLabel(component)}
         </Badge>
+        <Button
+          type="button"
+          ghost
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={fetchLogs}
+          disabled={loading}
+          aria-label={t.common.refresh}
+        >
+          {loading ? <Spinner /> : <RefreshCw />}
+        </Button>
       </span>,
     );
     setEnd(
-      <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 sm:gap-3">
+      <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end sm:gap-3">
         <div className="flex items-center gap-2">
+          <Label htmlFor="logs-auto-refresh" className="text-xs cursor-pointer">
+            {t.logs.autoRefresh}
+          </Label>
           <Switch
             checked={autoRefresh}
             onCheckedChange={setAutoRefresh}
             id="logs-auto-refresh"
           />
-          <Label htmlFor="logs-auto-refresh" className="text-xs cursor-pointer">
-            {t.logs.autoRefresh}
-          </Label>
           {autoRefresh && (
-            <Badge tone="success" className="text-[10px]">
+            <Badge tone="success" className="text-xs">
               <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
               {t.common.live}
             </Badge>
           )}
         </div>
-        <Button
-          type="button"
-          size="sm"
-          outlined
-          onClick={fetchLogs}
-          disabled={loading}
-          prefix={loading ? <Spinner /> : <RefreshCw />}
-        >
-          {t.common.refresh}
-        </Button>
       </div>,
     );
     return () => {
@@ -171,11 +156,6 @@ export default function LogsPage() {
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-4">
       <PluginSlot name="logs:top" />
-
-      <p className="text-sm text-[var(--fg-dim)]">
-        Tail agent, error, and gateway logs with live filters.
-      </p>
-
       <div
         role="toolbar"
         aria-label={t.logs.title}
@@ -186,7 +166,7 @@ export default function LogsPage() {
             className={segmentedClass}
             value={file}
             onChange={setFile}
-            options={toOptions(FILES)}
+            options={toSegmentOptions(FILES)}
           />
         </FilterGroup>
 
@@ -195,7 +175,7 @@ export default function LogsPage() {
             className={segmentedClass}
             value={level}
             onChange={setLevel}
-            options={toOptions(LEVELS)}
+            options={toSegmentOptions(LEVELS)}
           />
         </FilterGroup>
 
@@ -204,7 +184,7 @@ export default function LogsPage() {
             className={segmentedClass}
             value={component}
             onChange={setComponent}
-            options={toOptions(COMPONENTS)}
+            options={toSegmentOptions(COMPONENTS)}
           />
         </FilterGroup>
 
@@ -223,44 +203,37 @@ export default function LogsPage() {
         </FilterGroup>
       </div>
 
-      <Card className="min-w-0 max-w-full overflow-hidden rounded-xl bg-[var(--bg-elev)]">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="flex items-center gap-2 font-mono text-sm normal-case tracking-normal">
-            <FileText className="h-4 w-4 text-[var(--fg-dim)]" />
+      <Card className="min-w-0 max-w-full overflow-hidden">
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" />
             {file}.log
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {error && (
-            <div className="border-b border-[var(--err)]/30 bg-[var(--err)]/10 p-3">
-              <p className="text-sm text-[var(--err)]">{error}</p>
+            <div className="bg-destructive/10 border-b border-destructive/20 p-3">
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
           <div
             ref={scrollRef}
-            className="max-h-[calc(100vh-220px)] min-h-[400px] max-w-full overflow-auto p-4 font-mono text-xs leading-5 break-words"
+            className="max-w-full min-h-[400px] max-h-[calc(100vh-220px)] overflow-auto p-4 font-mono-ui text-xs leading-5 break-words"
           >
             {lines.length === 0 && !loading && (
-              <EmptyStateCard
-                icon={FileText}
-                title={t.logs.noLogLines}
-                className="border-transparent bg-transparent"
-              />
+              <p className="text-muted-foreground text-center py-8">
+                {t.logs.noLogLines}
+              </p>
             )}
             {lines.map((line, i) => {
-              const sev = classifyLine(line);
+              const cls = classifyLine(line);
               return (
                 <div
                   key={i}
-                  className="-mx-1 flex items-baseline gap-2 px-1 hover:bg-[var(--bg-mute)]/60"
+                  className={`${LINE_COLORS[cls]} hover:bg-secondary/20 px-1 -mx-1`}
                 >
-                  <span
-                    className={`inline-block w-12 shrink-0 rounded border px-1 text-center text-[9px] leading-4 ${CHIP_STYLES[sev]}`}
-                  >
-                    {CHIP_LABELS[sev]}
-                  </span>
-                  <span className={`min-w-0 ${LINE_COLORS[sev]}`}>{line}</span>
+                  {line}
                 </div>
               );
             })}

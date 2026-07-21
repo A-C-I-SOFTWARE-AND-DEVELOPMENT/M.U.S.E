@@ -23,8 +23,8 @@ def test_run_task_kimi_omits_temperature():
             env_type="local",
             max_iterations=1,
         )
-        runner._create_env = MagicMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-        runner._cleanup_env = MagicMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        runner._create_env = MagicMock()
+        runner._cleanup_env = MagicMock()
 
         result = runner.run_task("2+2")
 
@@ -51,8 +51,8 @@ def test_run_task_public_moonshot_kimi_k2_5_omits_temperature():
             env_type="local",
             max_iterations=1,
         )
-        runner._create_env = MagicMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-        runner._cleanup_env = MagicMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        runner._create_env = MagicMock()
+        runner._cleanup_env = MagicMock()
 
         result = runner.run_task("2+2")
 

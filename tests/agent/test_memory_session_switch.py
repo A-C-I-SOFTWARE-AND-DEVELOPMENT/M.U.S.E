@@ -7,7 +7,6 @@ state in initialize() (Hindsight, and any plugin that stores session_id
 for scoped writes) keep writing into the old session's record.
 """
 
-import json
 
 import pytest
 
@@ -130,7 +129,7 @@ def test_manager_ignores_empty_session_id():
     p = _RecordingProvider()
     mm.add_provider(p)
     mm.on_session_switch("")
-    mm.on_session_switch(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+    mm.on_session_switch(None)  # type: ignore[arg-type]
     assert p.switch_calls == []
 
 
@@ -180,6 +179,7 @@ def test_sync_all_propagates_session_id_to_providers():
     p = _RecordingProvider()
     mm.add_provider(p)
     mm.sync_all("hello", "world", session_id="sess-42")
+    mm.flush_pending(timeout=5)
     assert p.sync_calls == [
         {"user": "hello", "asst": "world", "session_id": "sess-42"}
     ]
@@ -190,6 +190,7 @@ def test_queue_prefetch_all_propagates_session_id_to_providers():
     p = _RecordingProvider()
     mm.add_provider(p)
     mm.queue_prefetch_all("next query", session_id="sess-42")
+    mm.flush_pending(timeout=5)
     assert p.queue_calls == [{"query": "next query", "session_id": "sess-42"}]
 
 

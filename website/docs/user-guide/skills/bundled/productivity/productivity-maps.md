@@ -25,7 +25,7 @@ Geocode, POIs, routes, timezones via OpenStreetMap/OSRM.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Maps Skill
@@ -121,7 +121,7 @@ and straight-line distance for comparison.
 ### directions — Turn-by-turn navigation
 
 ```bash
-python3 $MAPS directions "Eiffel Tower" --to "Louvre museum" --mode walking
+python3 $MAPS directions "Eiffel Tower" --to "Louvre Museum" --mode walking
 python3 $MAPS directions "JFK Airport" --to "Times Square" --mode driving
 ```
 

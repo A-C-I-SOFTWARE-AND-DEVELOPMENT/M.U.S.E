@@ -6,9 +6,6 @@ _sanitize_api_messages() and the CLI session-restore paths.
 """
 
 import logging
-import types
-from typing import Any
-from unittest.mock import MagicMock, patch
 
 from run_agent import AIAgent
 
@@ -30,7 +27,7 @@ class TestSanitizeApiMessagesRoleFilter:
         assert all(m["role"] != "session_meta" for m in out)
 
     def test_preserves_valid_roles(self):
-        msgs: list[dict[str, Any]] = [
+        msgs = [
             {"role": "system", "content": "you are helpful"},
             {"role": "user", "content": "hello"},
             {"role": "assistant", "content": "hi"},

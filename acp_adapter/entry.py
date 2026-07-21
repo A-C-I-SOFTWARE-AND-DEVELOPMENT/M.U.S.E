@@ -8,9 +8,9 @@ Usage::
 
     python -m acp_adapter.entry
     # or
-    muse acp
+    hermes acp
     # or
-    muse-acp
+    hermes-acp
 """
 
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
@@ -23,6 +23,11 @@ except ModuleNotFoundError:
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
     pass
+else:
+    # Stop a ``utils/``/``proxy/``/``ui/`` package in the launch directory from
+    # shadowing Hermes's own modules — ``hermes acp`` can be started from any
+    # cwd, including a project that has same-named packages on its path.
+    hermes_bootstrap.harden_import_path()
 
 import argparse
 import asyncio
@@ -110,10 +115,10 @@ def _load_env() -> None:
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="muse-acp",
-        description="Run M.U.S.E. as an ACP stdio server.",
+        prog="hermes-acp",
+        description="Run Hermes Agent as an ACP stdio server.",
     )
-    parser.add_argument("--version", action="store_true", help="Print M.U.S.E. version and exit")
+    parser.add_argument("--version", action="store_true", help="Print Hermes version and exit")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -122,7 +127,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--setup",
         action="store_true",
-        help="Run interactive M.U.S.E. provider/model setup for ACP terminal auth",
+        help="Run interactive Hermes provider/model setup for ACP terminal auth",
     )
     parser.add_argument(
         "--setup-browser",
@@ -151,7 +156,7 @@ def _run_check() -> None:
     import acp  # noqa: F401
     from acp_adapter.server import HermesACPAgent  # noqa: F401
 
-    print("M.U.S.E. ACP check OK")
+    print("Hermes ACP check OK")
 
 
 def _run_setup() -> None:
@@ -159,7 +164,7 @@ def _run_setup() -> None:
 
     old_argv = sys.argv[:]
     try:
-        sys.argv = [old_argv[0] if old_argv else "muse", "model"]
+        sys.argv = [old_argv[0] if old_argv else "hermes", "model"]
         hermes_main()
     finally:
         sys.argv = old_argv

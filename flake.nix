@@ -1,5 +1,5 @@
 {
-  description = "muse - AI agent framework (built on Hermes Agent by Nous Research)";
+  description = "Hermes Agent - AI agent framework by Nous Research";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,10 +14,13 @@
     uv2nix = {
       url = "github:pyproject-nix/uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
     };
     pyproject-build-systems = {
       url = "github:pyproject-nix/build-system-pkgs";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
     };
     npm-lockfile-fix = {
       url = "github:jeslie0/npm-lockfile-fix";

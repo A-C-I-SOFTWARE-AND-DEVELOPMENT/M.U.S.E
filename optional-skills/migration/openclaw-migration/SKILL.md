@@ -20,16 +20,16 @@ Use this skill when a user wants to move their OpenClaw setup into Hermes Agent 
 For a quick, non-interactive migration, use the built-in CLI command:
 
 ```bash
-muse claw migrate              # Full interactive migration
-muse claw migrate --dry-run    # Preview what would be migrated
-muse claw migrate --preset user-data   # Migrate without secrets
-muse claw migrate --overwrite  # Overwrite existing conflicts
-muse claw migrate --source /custom/path/.openclaw  # Custom source
+hermes claw migrate              # Full interactive migration
+hermes claw migrate --dry-run    # Preview what would be migrated
+hermes claw migrate --preset user-data   # Migrate without secrets
+hermes claw migrate --overwrite  # Overwrite existing conflicts
+hermes claw migrate --source /custom/path/.openclaw  # Custom source
 ```
 
 The CLI command runs the same migration script described below. Use this skill (via the agent) when you want an interactive, guided migration with dry-run previews and per-item conflict resolution.
 
-**First-time setup:** The `muse setup` wizard automatically detects `~/.openclaw` and offers migration before configuration begins.
+**First-time setup:** The `hermes setup` wizard automatically detects `~/.openclaw` and offers migration before configuration begins.
 
 ## What this skill does
 
@@ -38,7 +38,7 @@ It uses `scripts/openclaw_to_hermes.py` to:
 - import `SOUL.md` into the Hermes home directory as `SOUL.md`
 - transform OpenClaw `MEMORY.md` and `USER.md` into Hermes memory entries
 - merge OpenClaw command approval patterns into Hermes `command_allowlist`
-- migrate Hermes-compatible messaging settings such as `TELEGRAM_ALLOWED_USERS` and `MESSAGING_CWD`
+- migrate Hermes-compatible messaging settings such as `TELEGRAM_ALLOWED_USERS`, and map OpenClaw workspace settings to Hermes working-directory configuration
 - copy OpenClaw skills into `~/.hermes/skills/openclaw-imports/`
 - optionally copy the OpenClaw workspace instructions file into a chosen Hermes workspace
 - mirror compatible workspace assets such as `workspace/tts/` into `~/.hermes/tts/`

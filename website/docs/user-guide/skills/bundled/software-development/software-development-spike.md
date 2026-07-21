@@ -17,16 +17,16 @@ Throwaway experiments to validate an idea before build.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/spike` |
 | Version | `1.0.0` |
-| Author | muse (adapted from gsd-build/get-shit-done) |
+| Author | Hermes Agent (adapted from gsd-build/get-shit-done) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `spike`, `prototype`, `experiment`, `feasibility`, `throwaway`, `exploration`, `research`, `planning`, `mvp`, `proof-of-concept` |
-| Related skills | [`sketch`](/docs/user-guide/skills/bundled/creative/creative-sketch), [`writing-plans`](/docs/user-guide/skills/bundled/software-development/software-development-writing-plans), [`subagent-driven-development`](/docs/user-guide/skills/bundled/software-development/software-development-subagent-driven-development), [`plan`](/docs/user-guide/skills/bundled/software-development/software-development-plan) |
+| Related skills | [`sketch`](/docs/user-guide/skills/bundled/creative/creative-sketch), [`subagent-driven-development`](/docs/user-guide/skills/optional/software-development/software-development-subagent-driven-development), [`plan`](/docs/user-guide/skills/bundled/software-development/software-development-plan) |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Spike
@@ -38,7 +38,7 @@ Load this when the user says things like "let me try this", "I want to see if X 
 ## When NOT to use this
 
 - The answer is knowable from docs or reading code — just do research, don't build
-- The work is production path — use `writing-plans` / `plan` instead
+- The work is production path — use the `plan` skill instead
 - The idea is already validated — jump straight to implementation
 
 ## If the user has the full GSD system installed
@@ -94,7 +94,7 @@ Spikes are not research-free — you research enough to pick the right approach,
 3. **Pick one.** State why. If 2+ are credible, build quick variants within the spike.
 4. **Skip research** for pure logic with no external dependencies.
 
-Use muse tools for the research step:
+Use Hermes tools for the research step:
 
 - `web_search("python websocket streaming libraries 2025")` — find candidates
 - `web_extract(urls=["https://websockets.readthedocs.io/..."])` — read the actual docs (returns markdown)
@@ -214,4 +214,4 @@ Propose 2-4 candidates as Given/When/Then. Let the user pick.
 
 ## Attribution
 
-Adapted from the GSD (Get Shit Done) project's `/gsd-spike` workflow — MIT © 2025 Lex Christopherson ([gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done)). The full GSD system offers persistent spike state, MANIFEST tracking, and integration with a broader spec-driven development pipeline; install with `npx get-shit-done-cc --muse --global`.
+Adapted from the GSD (Get Shit Done) project's `/gsd-spike` workflow — MIT © 2025 Lex Christopherson ([gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done)). The full GSD system offers persistent spike state, MANIFEST tracking, and integration with a broader spec-driven development pipeline; install with `npx get-shit-done-cc --hermes --global`.

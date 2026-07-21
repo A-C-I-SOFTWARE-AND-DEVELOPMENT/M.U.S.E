@@ -1,42 +1,42 @@
 ---
 sidebar_position: 3
 title: "Discord"
-description: "Set up muse as a Discord bot"
+description: "Set up Hermes Agent as a Discord bot"
 ---
 
 # Discord Setup
 
-muse integrates with Discord as a bot, letting you chat with your AI assistant through direct messages or server channels. The bot receives your messages, processes them through the muse pipeline (including tool use, memory, and reasoning), and responds in real time. It supports text, voice messages, file attachments, and slash commands.
+Hermes Agent integrates with Discord as a bot, letting you chat with your AI assistant through direct messages or server channels. The bot receives your messages, processes them through the Hermes Agent pipeline (including tool use, memory, and reasoning), and responds in real time. It supports text, voice messages, file attachments, and slash commands.
 
-Before setup, here's the part most people want to know: how muse behaves once it's in your server.
+Before setup, here's the part most people want to know: how Hermes behaves once it's in your server.
 
-## How muse Behaves
+## How Hermes Behaves
 
 | Context | Behavior |
 |---------|----------|
-| **DMs** | muse responds to every message. No `@mention` needed. Each DM has its own session. |
-| **Server channels** | By default, muse only responds when you `@mention` it. If you post in a channel without mentioning it, muse ignores the message. |
+| **DMs** | Hermes responds to every message. No `@mention` needed. Each DM has its own session. |
+| **Server channels** | By default, Hermes only responds when you `@mention` it. If you post in a channel without mentioning it, Hermes ignores the message. |
 | **Free-response channels** | You can make specific channels mention-free with `DISCORD_FREE_RESPONSE_CHANNELS`, or disable mentions globally with `DISCORD_REQUIRE_MENTION=false`. Messages in these channels are answered inline — auto-threading is skipped so the channel stays a lightweight chat. |
-| **Threads** | muse replies in the same thread. Mention rules still apply unless that thread or its parent channel is configured as free-response. Threads stay isolated from the parent channel for session history. |
-| **Shared channels with multiple users** | By default, muse isolates session history per user inside the channel for safety and clarity. Two people talking in the same channel do not share one transcript unless you explicitly disable that. |
-| **Messages mentioning other users** | When `DISCORD_IGNORE_NO_MENTION` is `true` (the default), muse stays silent if a message @mentions other users but does **not** mention the bot. This prevents the bot from jumping into conversations directed at other people. Set to `false` if you want the bot to respond to all messages regardless of who is mentioned. This only applies in server channels, not DMs. |
+| **Threads** | Hermes replies in the same thread. Mention rules still apply unless that thread or its parent channel is configured as free-response. Threads stay isolated from the parent channel for session history. |
+| **Shared channels with multiple users** | By default, Hermes isolates session history per user inside the channel for safety and clarity. Two people talking in the same channel do not share one transcript unless you explicitly disable that. |
+| **Messages mentioning other users** | When `DISCORD_IGNORE_NO_MENTION` is `true` (the default), Hermes stays silent if a message @mentions other users but does **not** mention the bot. This prevents the bot from jumping into conversations directed at other people. Set to `false` if you want the bot to respond to all messages regardless of who is mentioned. This only applies in server channels, not DMs. |
 
 :::tip
-If you want a normal bot-help channel where people can talk to muse without tagging it every time, add that channel to `DISCORD_FREE_RESPONSE_CHANNELS`.
+If you want a normal bot-help channel where people can talk to Hermes without tagging it every time, add that channel to `DISCORD_FREE_RESPONSE_CHANNELS`.
 :::
 
 ### Discord Gateway Model
 
-muse on Discord is not a webhook that replies statelessly. It runs through the full messaging gateway, which means each incoming message goes through:
+Hermes on Discord is not a webhook that replies statelessly. It runs through the full messaging gateway, which means each incoming message goes through:
 
 1. authorization (`DISCORD_ALLOWED_USERS`)
 2. mention / free-response checks
 3. session lookup
 4. session transcript loading
-5. normal muse agent execution, including tools, memory, and slash commands
+5. normal Hermes agent execution, including tools, memory, and slash commands
 6. response delivery back to Discord
 
-That matters because behavior in a busy server depends on both Discord routing and muse session policy.
+That matters because behavior in a busy server depends on both Discord routing and Hermes session policy.
 
 ### Session Model in Discord
 
@@ -46,7 +46,7 @@ By default:
 - each server thread gets its own session namespace
 - each user in a shared channel gets their own session inside that channel
 
-So if Alice and Bob both talk to muse in `#research`, muse treats those as separate conversations by default even though they are using the same visible Discord channel.
+So if Alice and Bob both talk to Hermes in `#research`, Hermes treats those as separate conversations by default even though they are using the same visible Discord channel.
 
 This is controlled by `config.yaml`:
 
@@ -68,7 +68,7 @@ Shared sessions can be useful for a collaborative room, but they also mean:
 
 ### Interrupts and Concurrency
 
-muse tracks running agents by session key.
+Hermes tracks running agents by session key.
 
 With the default `group_sessions_per_user: true`:
 
@@ -82,11 +82,29 @@ With `group_sessions_per_user: false`:
 
 This guide walks you through the full setup process — from creating your bot on Discord's Developer Portal to sending your first message.
 
+### Gateway WebSocket health
+
+Discord REST and the Gateway WebSocket are separate transports. A successful REST response (including `fetch_user()` returning HTTP 200) does not prove that the bot can still receive Gateway events. Hermes therefore combines the ready state, client/socket closure state, socket openness, heartbeat ACK age, and finite heartbeat latency.
+
+After the configured number of consecutive unhealthy samples, the adapter emits one retryable fatal event. The existing gateway reconnect watcher creates a fresh adapter; the Discord adapter does not start a second unbounded reconnect loop.
+
+Configure the non-secret thresholds in `config.yaml`:
+
+```yaml
+discord:
+  websocket_liveness_interval_seconds: 15
+  websocket_liveness_failure_threshold: 2
+  websocket_heartbeat_ack_max_age_seconds: 60
+  websocket_max_latency_seconds: 30
+```
+
+The old `liveness_interval_seconds` and `liveness_failure_threshold` names remain compatibility aliases only; they no longer mean REST probing.
+
 ## Step 1: Create a Discord Application
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and sign in with your Discord account.
 2. Click **New Application** in the top-right corner.
-3. Enter a name for your application (e.g., "muse") and accept the Developer Terms of Service.
+3. Enter a name for your application (e.g., "Hermes Agent") and accept the Developer Terms of Service.
 4. Click **Create**.
 
 You'll land on the **General Information** page. Note the **Application ID** — you'll need it later to build the invite URL.
@@ -136,7 +154,7 @@ Click **Save Changes** at the bottom of the page.
 
 ## Step 4: Get the Bot Token
 
-The bot token is the credential muse uses to log in as your bot. Still on the **Bot** page:
+The bot token is the credential Hermes Agent uses to log in as your bot. Still on the **Bot** page:
 
 1. Under the **Token** section, click **Reset Token**.
 2. If you have two-factor authentication enabled on your Discord account, enter your 2FA code.
@@ -208,11 +226,11 @@ These are the minimum permissions your bot needs:
 You need the **Manage Server** permission on the Discord server to invite a bot. If you don't see your server in the dropdown, ask a server admin to use the invite link instead.
 :::
 
-After authorizing, the bot will appear in your server's member list (it will show as offline until you start the muse gateway).
+After authorizing, the bot will appear in your server's member list (it will show as offline until you start the Hermes gateway).
 
 ## Step 7: Find Your Discord User ID
 
-muse uses your Discord User ID to control who can interact with the bot. To find it:
+Hermes Agent uses your Discord User ID to control who can interact with the bot. To find it:
 
 1. Open Discord (desktop or web app).
 2. Go to **Settings** → **Advanced** → toggle **Developer Mode** to **ON**.
@@ -225,14 +243,14 @@ Your User ID is a long number like `284102345871466496`.
 Developer Mode also lets you copy **Channel IDs** and **Server IDs** the same way — right-click the channel or server name and select Copy ID. You'll need a Channel ID if you want to set a home channel manually.
 :::
 
-## Step 8: Configure muse
+## Step 8: Configure Hermes Agent
 
 ### Option A: Interactive Setup (Recommended)
 
 Run the guided setup command:
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Select **Discord** when prompted, then paste your bot token and user ID when asked.
@@ -253,13 +271,13 @@ DISCORD_ALLOWED_USERS=284102345871466496
 Then start the gateway:
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 The bot should come online in Discord within a few seconds. Send it a message — either a DM or in a channel it can see — to test.
 
 :::tip
-You can run `muse gateway` in the background or as a systemd service for persistent operation. See the deployment docs for details.
+You can run `hermes gateway` in the background or as a systemd service for persistent operation. See the deployment docs for details.
 :::
 
 ## Configuration Reference
@@ -271,8 +289,10 @@ Discord behavior is controlled through two files: **`~/.hermes/.env`** for crede
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DISCORD_BOT_TOKEN` | **Yes** | — | Bot token from the [Discord Developer Portal](https://discord.com/developers/applications). |
-| `DISCORD_ALLOWED_USERS` | **Yes** | — | Comma-separated Discord user IDs allowed to interact with the bot. Without this **or** `DISCORD_ALLOWED_ROLES`, the gateway denies all users. |
+| `DISCORD_ALLOWED_USERS` | Conditional | — | Comma-separated Discord user IDs allowed to interact with the bot. Without this **or** `DISCORD_ALLOWED_ROLES`, the gateway denies all users unless `DISCORD_ALLOW_ALL_USERS=true`, `GATEWAY_ALLOW_ALL_USERS=true`, or `DISCORD_ALLOWED_CHANNELS` explicitly scopes guild access. |
 | `DISCORD_ALLOWED_ROLES` | No | — | Comma-separated Discord role IDs. Any member with one of these roles is authorized — OR semantics with `DISCORD_ALLOWED_USERS`. Auto-enables the **Server Members Intent** on connect. Useful when moderation teams churn: new mods get access as soon as the role is granted, no config push needed. |
+| `DISCORD_ALLOW_ALL_USERS` | No | `false` | Explicit opt-in to allow every Discord user who can reach the bot. This restores the pre-0.18 open behavior for Discord only; use only for trusted/private guilds or development. |
+| `GATEWAY_ALLOW_ALL_USERS` | No | `false` | Global allow-all opt-in for every gateway platform. Prefer the platform-specific `DISCORD_ALLOW_ALL_USERS` unless you intentionally want all connected platforms open. |
 | `DISCORD_HOME_CHANNEL` | No | — | Channel ID where the bot sends proactive messages (cron output, reminders, notifications). |
 | `DISCORD_HOME_CHANNEL_NAME` | No | `"Home"` | Display name for the home channel in logs and status output. |
 | `DISCORD_COMMAND_SYNC_POLICY` | No | `"safe"` | Controls native slash-command startup sync. `"safe"` diffs existing global commands and only updates what changed, recreating commands when Discord metadata changes cannot be applied via patch. `"bulk"` preserves the old `tree.sync()` behavior. `"off"` skips startup sync entirely. |
@@ -281,7 +301,7 @@ Discord behavior is controlled through two files: **`~/.hermes/.env`** for crede
 | `DISCORD_FREE_RESPONSE_CHANNELS` | No | — | Comma-separated channel IDs where the bot responds without requiring an `@mention`, even when `DISCORD_REQUIRE_MENTION` is `true`. |
 | `DISCORD_IGNORE_NO_MENTION` | No | `true` | When `true`, the bot stays silent if a message `@mentions` other users but does **not** mention the bot. Prevents the bot from jumping into conversations directed at other people. Only applies in server channels, not DMs. |
 | `DISCORD_AUTO_THREAD` | No | `true` | When `true`, automatically creates a new thread for every `@mention` in a text channel, so each conversation is isolated (similar to Slack behavior). Messages already inside threads or DMs are unaffected. |
-| `DISCORD_ALLOW_BOTS` | No | `"none"` | Controls how the bot handles messages from other Discord bots. `"none"` — ignore all other bots. `"mentions"` — only accept bot messages that `@mention` muse `"all"` — accept all bot messages. |
+| `DISCORD_ALLOW_BOTS` | No | `"none"` | Controls how the bot handles messages from other Discord bots. `"none"` — ignore all other bots. `"mentions"` — only accept bot messages that `@mention` Hermes. `"all"` — accept all bot messages. |
 | `DISCORD_REACTIONS` | No | `true` | When `true`, the bot adds emoji reactions to messages during processing (👀 when starting, ✅ on success, ❌ on error). Set to `false` to disable reactions entirely. |
 | `DISCORD_IGNORED_CHANNELS` | No | — | Comma-separated channel IDs where the bot **never** responds, even when `@mentioned`. Takes priority over all other channel settings. |
 | `DISCORD_ALLOWED_CHANNELS` | No | — | Comma-separated channel IDs. When set, the bot **only** responds in these channels (plus DMs if allowed). Overrides `config.yaml` `discord.allowed_channels`. Combine with `DISCORD_IGNORED_CHANNELS` to express allow/deny rules. |
@@ -299,6 +319,12 @@ Discord behavior is controlled through two files: **`~/.hermes/.env`** for crede
 | `HERMES_DISCORD_TEXT_BATCH_DELAY_SECONDS` | No | `0.6` | Grace window the adapter waits before flushing a queued text chunk. Useful for smoothing streamed output. |
 | `HERMES_DISCORD_TEXT_BATCH_SPLIT_DELAY_SECONDS` | No | `2.0` | Delay between split chunks when a single message exceeds Discord's length limit. |
 
+:::warning Bot-to-bot conversation is not supported
+`DISCORD_ALLOW_BOTS` exists to accept input from a specific trusted bot (e.g. a relay or webhook bot), not to let two Hermes profiles talk to each other. The default, `"none"`, ignores all other bots and is the safe setting.
+
+Wiring multiple Hermes profiles to reply to one another in a shared channel — by setting `"mentions"` or `"all"` across several profiles — is an unsupported topology. Discord auto-`@mentions` the replied-to author on every reply, so under `"mentions"` two bots will satisfy each other's mention gate indefinitely and ack-loop. There is no circuit breaker for this because the supported configuration is simply to leave `DISCORD_ALLOW_BOTS` at `"none"`. If you must accept a particular bot, scope the acceptance narrowly and never to another auto-replying agent.
+:::
+
 ### Config File (`config.yaml`)
 
 The `discord` section in `~/.hermes/config.yaml` mirrors the env vars above. Config.yaml settings are applied as defaults — if the equivalent env var is already set, the env var wins.
@@ -315,6 +341,12 @@ discord:
   no_thread_channels: []          # Channel IDs where bot responds without threading
   history_backfill: true          # Prepend recent channel scrollback on mention (default: true)
   history_backfill_limit: 50      # Max messages to scan backwards (default: 50)
+  missed_message_backfill:        # Replay messages missed while disconnected (opt-in)
+    enabled: false
+    channels: []                  # Empty uses free_response_channels
+    window_seconds: 21600         # Look back at most 6 hours
+    limit: 100                    # Global scan cap per reconnect
+    max_dispatches: 10            # Recovery dispatch cap per reconnect
   channel_prompts: {}             # Per-channel ephemeral system prompts
   allow_mentions:                 # What the bot is allowed to ping (safe defaults)
     everyone: false               # @everyone / @here pings (default: false)
@@ -440,7 +472,7 @@ discord:
 
 Behavior:
 - Exact thread/channel ID matches win.
-- If a message arrives inside a thread or forum post and that thread has no explicit entry, muse falls back to the parent channel/forum ID.
+- If a message arrives inside a thread or forum post and that thread has no explicit entry, Hermes falls back to the parent channel/forum ID.
 - Prompts are applied ephemerally at runtime, so changing them affects future turns immediately without rewriting past session history.
 
 #### `discord.history_backfill`
@@ -484,13 +516,31 @@ discord:
   history_backfill_limit: 50
 ```
 
+#### `discord.missed_message_backfill`
+
+**Type:** object — **Default:** disabled
+
+Discord's WebSocket resume window can expire during a restart or network outage. Messages sent during that gap are not delivered as live gateway events. When this option is enabled, Hermes scans a bounded set of configured channel and thread histories after Discord reconnects, then sends still-unhandled messages through the same authorization, mention, channel, deduplication, and dispatch path as live events.
+
+```yaml
+discord:
+  missed_message_backfill:
+    enabled: true
+    channels: ["123456789012345678"]
+    window_seconds: 3600
+    limit: 100
+    max_dispatches: 10
+```
+
+If `channels` is empty, Hermes uses `discord.free_response_channels`. Set it to `"*"` only when the bot should inspect every reachable server text channel. The recovery ledger is stored per profile under `gateway/discord_message_recovery.db`, preventing a successfully answered message from being replayed again after a later restart.
+
 #### `group_sessions_per_user`
 
 **Type:** boolean — **Default:** `true`
 
 This is a global gateway setting (not Discord-specific) that controls whether users in the same channel get isolated session histories.
 
-When `true`: Alice and Bob talking in `#research` each have their own separate conversation with muse When `false`: the entire channel shares one conversation transcript and one running-agent slot.
+When `true`: Alice and Bob talking in `#research` each have their own separate conversation with Hermes. When `false`: the entire channel shares one conversation transcript and one running-agent slot.
 
 ```yaml
 group_sessions_per_user: true
@@ -578,18 +628,18 @@ The picker times out after 120 seconds. Only authorized users (those in `DISCORD
 
 ## Native Slash Commands for Skills
 
-muse automatically registers installed skills as **native Discord Application Commands**. This means skills appear in Discord's autocomplete `/` menu alongside built-in commands.
+Hermes automatically registers installed skills as **native Discord Application Commands**. This means skills appear in Discord's autocomplete `/` menu alongside built-in commands.
 
 - Each skill becomes a Discord slash command (e.g., `/code-review`, `/ascii-art`)
 - Skills accept an optional `args` string parameter
 - Discord has a limit of 100 application commands per bot — if you have more skills than available slots, extra skills are skipped with a warning in the logs
 - Skills are registered during bot startup alongside built-in commands like `/model`, `/reset`, and `/background`
 
-No extra configuration is needed — any skill installed via `muse skills install` is automatically registered as a Discord slash command on the next gateway restart.
+No extra configuration is needed — any skill installed via `hermes skills install` is automatically registered as a Discord slash command on the next gateway restart.
 
 ### Disabling Slash Command Registration
 
-If you run multiple muse gateways against the same Discord application (e.g. staging + production), only one of them should own the global slash-command registration — otherwise the last startup wins and the registrations flap. Turn slash registration off on the "follower" gateway:
+If you run multiple Hermes gateways against the same Discord application (e.g. staging + production), only one of them should own the global slash-command registration — otherwise the last startup wins and the registrations flap. Turn slash registration off on the "follower" gateway:
 
 ```yaml
 gateway:
@@ -601,9 +651,9 @@ gateway:
 
 Leaving this at `true` on the "primary" gateway keeps the normal behavior — global `/`-menu commands for built-ins and installed skills.
 
-## Sending Media (`send_message` + `MEDIA:` tags)
+## Sending Media (inline `MEDIA:` tags)
 
-The Discord adapter supports native file uploads for every common media type via the `send_message` tool and inline `MEDIA:/path/to/file` tags emitted by the agent:
+The Discord adapter supports native file uploads for every common media type via inline `MEDIA:/path/to/file` tags emitted in the agent's response — the adapter strips the tag and auto-uploads the file:
 
 | Type | How it's delivered |
 |---|---|
@@ -613,28 +663,29 @@ The Discord adapter supports native file uploads for every common media type via
 | Audio / Voice | `send_voice` — native voice message when possible, file attachment otherwise |
 | Documents (PDF/ZIP/docx/etc.) | `send_document` — native attachment with download button |
 
-Discord's per-upload size limit depends on the server's boost tier (25 MB free, up to 500 MB). If muse gets an HTTP 413, the adapter falls back to a link pointing at the local cache path rather than failing silently.
+Discord's per-upload size limit depends on the server's boost tier (25 MB free, up to 500 MB). If Hermes gets an HTTP 413, the adapter falls back to a link pointing at the local cache path rather than failing silently.
 
 ## Receiving Arbitrary File Types
 
-By default the bot caches uploads that match a built-in allowlist — images, audio, video, PDF, text/markdown/csv/log, JSON/XML/YAML/TOML, zip, docx/xlsx/pptx. Anything else (a `.wav`, a `.bin`, a custom-extension dump) gets logged as `Unsupported document type` and dropped before the agent sees it.
+Any file type a user uploads is accepted. Authorization to message the agent is the gate — not the file extension. Every upload is downloaded, cached under `~/.hermes/cache/documents/`, and surfaced to the agent as a `DOCUMENT`-typed message event so it can inspect the file with `terminal` (`ffprobe`, `unzip`, `file`, `strings`, etc.) or `read_file`.
 
-To accept arbitrary file types, enable `discord.allow_any_attachment`:
+- Known types (PDF, docx/xlsx/pptx, zip, images/audio/video, etc.) keep their precise MIME.
+- Unknown types fall back to the upload's reported content type, or `application/octet-stream` when none is given.
+- Small UTF-8-decodable files (text, code, config, HTML, CSS, JSON, YAML, ...) have their contents auto-injected into the prompt up to 100 KiB. Binary files that can't be decoded are surfaced as a path-pointing context note only (auto-translated for Docker/Modal sandboxed terminals via `to_agent_visible_cache_path`), so they don't blow up the context window.
+
+The only inbound limit is the per-file size cap (default 32 MiB):
 
 ```yaml
 discord:
-  allow_any_attachment: true
   # Optional — raise/disable the per-file size cap. Default is 32 MiB.
   # The whole file is held in memory while being cached, so unlimited
   # uploads carry a real memory cost.
   max_attachment_bytes: 33554432   # bytes; 0 = unlimited
 ```
 
-When the flag is on, any uploaded file is downloaded, cached under `~/.hermes/cache/documents/`, and surfaced to the agent as a `DOCUMENT`-typed message event with `application/octet-stream` MIME. The agent receives a context note pointing at the local path (auto-translated for Docker/Modal sandboxed terminals via `to_agent_visible_cache_path`) and can inspect the file with `terminal` (`ffprobe`, `unzip`, `file`, `strings`, etc.) or `read_file`. The file body is **not** inlined into the prompt — only the path — so binary uploads don't blow up the context window.
+Equivalent env var: `DISCORD_MAX_ATTACHMENT_BYTES=33554432` (or `0` for no cap).
 
-Known-text formats already in the allowlist (`.txt`, `.md`, `.log`) continue to have their contents auto-injected up to 100 KiB; that behavior is unchanged when the flag is on.
-
-Equivalent env vars: `DISCORD_ALLOW_ANY_ATTACHMENT=true` and `DISCORD_MAX_ATTACHMENT_BYTES=33554432` (or `0` for no cap).
+The legacy `discord.allow_any_attachment` flag is now a no-op — any file type is always accepted — and is kept only so existing configs don't error.
 
 :::warning Memory cost of unlimited
 Disabling the size cap (`max_attachment_bytes: 0`) means a user can drop a multi-GB file on the bot and the gateway will dutifully buffer it through memory while caching to disk. Only set this in trusted single-user installs. For shared bots, keep the default 32 MiB or raise it conservatively.
@@ -673,19 +724,50 @@ Replace the ID with the actual channel ID (right-click → Copy Channel ID with 
 
 ## Voice Messages
 
-muse supports Discord voice messages:
+Hermes Agent supports Discord voice messages:
 
 - **Incoming voice messages** are automatically transcribed using the configured STT provider: local `faster-whisper` (no key), Groq Whisper (`GROQ_API_KEY`), or OpenAI Whisper (`VOICE_TOOLS_OPENAI_KEY`).
 - **Text-to-speech**: Use `/voice tts` to have the bot send spoken audio responses alongside text replies.
-- **Discord voice channels**: muse can also join a voice channel, listen to users speaking, and talk back in the channel.
+- **Discord voice channels**: Hermes can also join a voice channel, listen to users speaking, and talk back in the channel.
 
 For the full setup and operational guide, see:
-- [Voice Mode](/docs/user-guide/features/voice-mode)
-- [Use Voice Mode with Hermes](/docs/guides/use-voice-mode-with-hermes)
+- [Voice Mode](/user-guide/features/voice-mode)
+- [Use Voice Mode with Hermes](/guides/use-voice-mode-with-hermes)
+
+### Voice Channel Audio Effects (ambient + verbal acks)
+
+When the bot is in a voice channel, you can give it a more conversational feel: a short verbal acknowledgement ("let me look into that") before it starts working, and a subtle ambient "thinking" bed that plays underneath while tools run — the speech ducks the ambient down and swells it back when finished, similar to Grok voice mode.
+
+discord.py plays only one audio stream per connection, so Hermes installs a software mixer on the outgoing stream that sums an ambient loop, acknowledgements, and TTS replies into that single stream — they overlap instead of cutting each other off.
+
+This is **off by default**. Enable it in `config.yaml`:
+
+```yaml
+discord:
+  voice_fx:
+    enabled: true          # master switch
+    ambient_enabled: true  # idle "thinking" bed while tools run
+    ambient_path: ""       # custom loop file (any audio format); "" = built-in synthesised pad
+    ambient_gain: 0.18     # idle bed loudness (0.0–1.0)
+    duck_gain: 0.06        # ambient loudness while the bot is speaking
+    speech_gain: 1.0       # TTS / acknowledgement loudness
+    ack_enabled: true      # speak a short phrase before the first tool call of a turn
+    ack_phrases:           # picked at random; set to [] to disable the spoken ack
+      - "Let me look into that."
+      - "One moment."
+      - "Checking on that now."
+```
+
+Notes:
+- The acknowledgement fires at most once per turn, only when the bot is in a voice channel and the mixer is active. It uses your configured TTS provider.
+- `ambient_path` accepts any file `ffmpeg` can decode; it's looped seamlessly. Leave it empty to use the built-in synthesised pad (no asset needed).
+- All settings live in `config.yaml` (not `.env`) — they're behavioral, not secrets.
+- When `voice_fx.enabled` is `false`, voice playback uses the original one-shot path and nothing changes.
+
 
 ## Forum Channels
 
-Discord forum channels (type 15) don't accept direct messages — every post in a forum must be a thread. muse auto-detects forum channels and creates a new thread post whenever it needs to send there, so `send_message`, TTS, images, voice messages, and file attachments all work without special handling from the agent.
+Discord forum channels (type 15) don't accept direct messages — every post in a forum must be a thread. Hermes auto-detects forum channels and creates a new thread post whenever it needs to send there, so text replies, TTS, images, voice messages, and file attachments all work without special handling from the agent.
 
 - **Thread name** is derived from the first line of the message (markdown heading prefix stripped, capped at 100 chars). When the message is attachment-only, the filename is used as the fallback thread name.
 - **Attachments** ride along on the starter message of the new thread — no separate upload step, no partial sends.
@@ -698,9 +780,34 @@ Refreshing the directory (`/channels refresh` on platforms that expose it, or a 
 
 ### Bot is online but not responding to messages
 
-**Cause**: Message Content Intent is disabled.
+**Cause**: Either Message Content Intent is disabled, or Discord auth is failing closed because no access policy is configured.
 
-**Fix**: Go to [Developer Portal](https://discord.com/developers/applications) → your app → Bot → Privileged Gateway Intents → enable **Message Content Intent** → Save Changes. Restart the gateway.
+**Fix**:
+
+1. Go to [Developer Portal](https://discord.com/developers/applications) → your app → Bot → Privileged Gateway Intents → enable **Message Content Intent** → Save Changes.
+2. Verify that at least one Discord access policy is configured:
+
+   ```bash
+   # recommended: allow specific users
+   DISCORD_ALLOWED_USERS=284102345871466496
+
+   # or allow a trusted guild/dev bot to behave like pre-0.18 Discord
+   DISCORD_ALLOW_ALL_USERS=true
+   ```
+
+3. Restart the gateway:
+
+   ```bash
+   hermes gateway restart
+   ```
+
+If the gateway log says Discord is connected and REST API checks work, but every inbound message is silent, look for this warning in `~/.hermes/logs/gateway.log`:
+
+```text
+No Discord access policy configured; inbound Discord messages will be denied by default.
+```
+
+Hermes 0.18 intentionally fails closed on externally reachable adapters. A Discord bot with no `DISCORD_ALLOWED_USERS`, no `DISCORD_ALLOWED_ROLES`, no `DISCORD_ALLOWED_CHANNELS`, and no explicit allow-all flag will connect successfully but deny inbound users before normal message handling.
 
 ### "Disallowed Intents" error on startup
 
@@ -722,9 +829,9 @@ Refreshing the directory (`/channels refresh` on platforms that expose it, or a 
 
 ### Bot is offline
 
-**Cause**: The muse gateway isn't running, or the token is incorrect.
+**Cause**: The Hermes gateway isn't running, or the token is incorrect.
 
-**Fix**: Check that `muse gateway` is running. Verify `DISCORD_BOT_TOKEN` in your `.env` file. If you recently reset the token, update it.
+**Fix**: Check that `hermes gateway` is running. Verify `DISCORD_BOT_TOKEN` in your `.env` file. If you recently reset the token, update it.
 
 ### "User not allowed" / Bot ignores you
 
@@ -770,7 +877,7 @@ This is the preferred pattern when the moderation team churns — new moderators
 
 ### Mention Control
 
-By default, muse blocks the bot from pinging `@everyone`, `@here`, and role mentions, even if its reply contains those tokens. This prevents a poorly-worded prompt or echoed user content from spamming a whole server. Individual `@user` pings and reply-reference pings (the little "replying to…" chip) stay enabled so normal conversation still works.
+By default, Hermes blocks the bot from pinging `@everyone`, `@here`, and role mentions, even if its reply contains those tokens. This prevents a poorly-worded prompt or echoed user content from spamming a whole server. Individual `@user` pings and reply-reference pings (the little "replying to…" chip) stay enabled so normal conversation still works.
 
 You can relax these defaults via either env vars or `config.yaml`:
 
@@ -796,6 +903,6 @@ DISCORD_ALLOW_MENTION_REPLIED_USER=true
 Leave `everyone` and `roles` at `false` unless you know exactly why you need them. It is very easy for an LLM to produce the string `@everyone` inside a normal-looking response; without this protection, that would notify every member of your server.
 :::
 
-For more information on securing your muse deployment, see the [Security Guide](../security.md).
+For more information on securing your Hermes Agent deployment, see the [Security Guide](../security.md).
 
 

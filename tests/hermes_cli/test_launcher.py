@@ -16,7 +16,7 @@ def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
     def fake_main():
         called.append("hermes_cli.main")
 
-    fake_main_module.main = fake_main  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_main_module.main = fake_main
     monkeypatch.setitem(sys.modules, "hermes_cli.main", fake_main_module)
 
     fake_cli_module = types.ModuleType("cli")
@@ -24,7 +24,7 @@ def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
     def legacy_cli_main(*args, **kwargs):
         raise AssertionError("launcher should not import cli.main")
 
-    fake_cli_module.main = legacy_cli_main  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_cli_module.main = legacy_cli_main
     monkeypatch.setitem(sys.modules, "cli", fake_cli_module)
 
     fake_fire_module = types.ModuleType("fire")
@@ -32,7 +32,7 @@ def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
     def legacy_fire(*args, **kwargs):
         raise AssertionError("launcher should not invoke fire.Fire")
 
-    fake_fire_module.Fire = legacy_fire  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_fire_module.Fire = legacy_fire
     monkeypatch.setitem(sys.modules, "fire", fake_fire_module)
 
     monkeypatch.setattr(sys, "argv", [str(launcher_path), "gateway", "status"])

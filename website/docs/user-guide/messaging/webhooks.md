@@ -1,12 +1,12 @@
 ---
 sidebar_position: 13
 title: "Webhooks"
-description: "Receive events from GitHub, GitLab, and other services to trigger muse agent runs"
+description: "Receive events from GitHub, GitLab, and other services to trigger Hermes agent runs"
 ---
 
 # Webhooks
 
-Receive events from external services (GitHub, GitLab, JIRA, Stripe, etc.) and trigger muse agent runs automatically. The webhook adapter runs an HTTP server that accepts POST requests, validates HMAC signatures, transforms payloads into agent prompts, and routes responses back to the source or to another configured platform.
+Receive events from external services (GitHub, GitLab, JIRA, Stripe, etc.) and trigger Hermes agent runs automatically. The webhook adapter runs an HTTP server that accepts POST requests, validates HMAC signatures, transforms payloads into agent prompts, and routes responses back to the source or to another configured platform.
 
 The agent processes the event and can respond by posting comments on PRs, sending messages to Telegram/Discord, or logging the result.
 
@@ -15,7 +15,7 @@ The agent processes the event and can respond by posting comments on PRs, sendin
 <div style={{position: 'relative', width: '100%', aspectRatio: '16 / 9', marginBottom: '1.5rem'}}>
   <iframe
     src="https://www.youtube.com/embed/WNYe5mD4fY8"
-    title="muse — Webhooks Tutorial"
+    title="Hermes Agent — Webhooks Tutorial"
     style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0}}
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowFullScreen
@@ -26,8 +26,8 @@ The agent processes the event and can respond by posting comments on PRs, sendin
 
 ## Quick Start
 
-1. Enable via `muse gateway setup` or environment variables
-2. Define routes in `config.yaml` **or** create them dynamically with `muse webhook subscribe`
+1. Enable via `hermes gateway setup` or environment variables
+2. Define routes in `config.yaml` **or** create them dynamically with `hermes webhook subscribe`
 3. Point your service at `http://your-server:8644/webhooks/<route-name>`
 
 ---
@@ -39,7 +39,7 @@ There are two ways to enable the webhook adapter.
 ### Via setup wizard
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Follow the prompts to enable webhooks, set the port, and set a global HMAC secret.
@@ -80,7 +80,9 @@ Routes define how different webhook sources are handled. Each route is a named e
 |----------|----------|-------------|
 | `events` | No | List of event types to accept (e.g. `["pull_request"]`). If empty, all events are accepted. Event type is read from `X-GitHub-Event`, `X-GitLab-Event`, or `event_type` in the payload. |
 | `secret` | **Yes** | HMAC secret for signature validation. Falls back to the global `secret` if not set on the route. Set to `"INSECURE_NO_AUTH"` for testing only (skips validation). |
-| `prompt` | No | Template string with dot-notation payload access (e.g. `{pull_request.title}`). If omitted, the full JSON payload is dumped into the prompt. |
+| `prompt` | No | Template string with dot-notation payload access (e.g. `{pull_request.title}`). If omitted, the full JSON payload is dumped into the prompt. Payload fields are untrusted — see [Authenticated does not mean trusted](#authenticated-does-not-mean-trusted). |
+| `filters` | No | Declarative payload filters evaluated after auth/body/event filtering and before agent or direct delivery work. Non-matches return `{"status":"ignored","reason":"filter"}` with HTTP 200. |
+| `script` | No | Filter/transform script under `~/.hermes/scripts/`. The webhook payload is passed as JSON on stdin. JSON object stdout replaces the payload before templating; text stdout is exposed as `script_output`; empty stdout, `[SILENT]`, or a nonzero exit code ignores the webhook. |
 | `skills` | No | List of skill names to load for the agent run. |
 | `deliver` | No | Where to send the response: `github_comment`, `telegram`, `discord`, `slack`, `signal`, `sms`, `whatsapp`, `matrix`, `mattermost`, `homeassistant`, `email`, `dingtalk`, `feishu`, `wecom`, `weixin`, `bluebubbles`, `qqbot`, or `log` (default). |
 | `deliver_extra` | No | Additional delivery config — keys depend on `deliver` type (e.g. `repo`, `pr_number`, `chat_id`). Values support the same `{dot.notation}` templates as `prompt`. |
@@ -116,8 +118,74 @@ platforms:
           events: ["push"]
           secret: "deploy-secret"
           prompt: "New push to {repository.full_name} branch {ref}: {head_commit.message}"
+          filters:
+            - field: "ref"
+              equals: "refs/heads/main"
           deliver: "telegram"
 ```
+
+### Payload Filters
+
+Use `filters` when a provider sends a broad event stream but only some payloads should wake the agent or trigger `deliver_only` delivery. Filters run after signature validation, body parsing, and `events`, but before prompt rendering, idempotency, agent dispatch, or direct delivery.
+
+```yaml
+platforms:
+  webhook:
+    extra:
+      routes:
+        todoist:
+          events: ["item:updated"]
+          secret: "todoist-secret"
+          filters:
+            - field: "payload.labels"
+              contains: "hermes"
+            - any:
+                - field: "payload.priority"
+                  equals: 4
+                - field: "payload.project_id"
+                  in_file: "~/.hermes/data/todoist/watchlist.json"
+          prompt: "Todoist task changed: {payload.content}"
+```
+
+Supported operators:
+
+- `exists: true|false`
+- `missing: true`
+- `equals` / `not_equals`
+- `contains` for strings, lists, and dict keys
+- `in` for inline lists
+- `in_file` for JSON arrays, JSON objects (keys are used), or newline-delimited text files
+- `regex`
+- `all`, `any`, and `not` groups
+
+Field paths use dot notation. `payload.foo` reads from a top-level `payload` object when one exists, or from the root webhook body for flat payloads. `event` / `event_type` match the resolved event type, and `headers.<Name>` reads request headers.
+
+### Script Filters and Transforms
+
+Use `script` when declarative filters are not enough. Scripts must live under `~/.hermes/scripts/` for the active profile; relative paths resolve there, and path traversal outside that directory is blocked. `.sh` and `.bash` scripts run with bash, and all other extensions run with the current Python interpreter.
+
+The route payload is sent to stdin as JSON:
+
+```python
+# ~/.hermes/scripts/todoist-hermes-label.py
+import json
+import sys
+
+payload = json.load(sys.stdin)
+labels = payload.get("payload", {}).get("labels", [])
+if "hermes" not in labels:
+    print("[SILENT]")
+    raise SystemExit(0)
+
+payload["body"] = payload["payload"]["content"]
+print(json.dumps(payload))
+```
+
+Script outcomes:
+
+- JSON object stdout replaces the payload used by `prompt` and `deliver_extra`.
+- Non-JSON text stdout is added to the payload as `script_output`.
+- Empty stdout, exact `[SILENT]`, `{"__hermes_ignore__": true}`, timeout, missing script, or nonzero exit code returns HTTP 200 with `{"status":"ignored","reason":"script"}`.
 
 ### Prompt Templates
 
@@ -186,7 +254,7 @@ gh auth login
 
 ### 4. Test it
 
-Open a pull request on the repository. The webhook fires, muse processes the event, and posts a review comment on the PR.
+Open a pull request on the repository. The webhook fires, Hermes processes the event, and posts a review comment on the PR.
 
 ---
 
@@ -297,7 +365,7 @@ Your Supabase edge function signs the payload with HMAC-SHA256 and POSTs to `htt
 ### Example: Dynamic subscription via CLI
 
 ```bash
-muse webhook subscribe antenna-matches \
+hermes webhook subscribe antenna-matches \
   --deliver telegram \
   --deliver-chat-id "123456789" \
   --deliver-only \
@@ -329,12 +397,12 @@ muse webhook subscribe antenna-matches \
 
 ## Dynamic Subscriptions (CLI) {#dynamic-subscriptions}
 
-In addition to static routes in `config.yaml`, you can create webhook subscriptions dynamically using the `muse webhook` CLI command. This is especially useful when the agent itself needs to set up event-driven triggers.
+In addition to static routes in `config.yaml`, you can create webhook subscriptions dynamically using the `hermes webhook` CLI command. This is especially useful when the agent itself needs to set up event-driven triggers.
 
 ### Create a subscription
 
 ```bash
-muse webhook subscribe github-issues \
+hermes webhook subscribe github-issues \
   --events "issues" \
   --prompt "New issue #{issue.number}: {issue.title}\nBy: {issue.user.login}\n\n{issue.body}" \
   --deliver telegram \
@@ -347,20 +415,20 @@ This returns the webhook URL and an auto-generated HMAC secret. Configure your s
 ### List subscriptions
 
 ```bash
-muse webhook list
+hermes webhook list
 ```
 
 ### Remove a subscription
 
 ```bash
-muse webhook remove github-issues
+hermes webhook remove github-issues
 ```
 
 ### Test a subscription
 
 ```bash
-muse webhook test github-issues
-muse webhook test github-issues --payload '{"issue": {"number": 42, "title": "Test"}}'
+hermes webhook test github-issues
+hermes webhook test github-issues --payload '{"issue": {"number": 42, "title": "Test"}}'
 ```
 
 ### How dynamic subscriptions work
@@ -373,7 +441,7 @@ muse webhook test github-issues --payload '{"issue": {"number": 42, "title": "Te
 
 ### Agent-driven subscriptions
 
-The agent can create subscriptions via the terminal tool when guided by the `webhook-subscriptions` skill. Ask the agent to "set up a webhook for GitHub issues" and it will run the appropriate `muse webhook subscribe` command.
+The agent can create subscriptions via the terminal tool when guided by the `webhook-subscriptions` skill. Ask the agent to "set up a webhook for GitHub issues" and it will run the appropriate `hermes webhook subscribe` command.
 
 ---
 
@@ -387,7 +455,8 @@ The adapter validates incoming webhook signatures using the appropriate method f
 
 - **GitHub**: `X-Hub-Signature-256` header — HMAC-SHA256 hex digest prefixed with `sha256=`
 - **GitLab**: `X-Gitlab-Token` header — plain secret string match
-- **Generic**: `X-Webhook-Signature` header — raw HMAC-SHA256 hex digest
+- **Generic (V2, recommended)**: `X-Webhook-Signature-V2` + `X-Webhook-Timestamp` headers — HMAC-SHA256 hex digest of `<timestamp>.<body>`. The timestamp (Unix seconds) must be within ±300 seconds of the server clock, which prevents captured requests from being replayed later.
+- **Generic (V1, legacy)**: `X-Webhook-Signature` header — raw HMAC-SHA256 hex digest of the body only. Still accepted for backward compatibility, but it has no replay protection (a captured request replays indefinitely); the gateway logs a deprecation warning once per route. Switch senders to V2.
 
 If a secret is configured but no recognized signature header is present, the request is rejected.
 
@@ -425,10 +494,17 @@ platforms:
       max_body_bytes: 2097152  # 2 MB
 ```
 
-### Prompt injection risk
+### Authenticated does not mean trusted
 
 :::warning
-Webhook payloads contain attacker-controlled data — PR titles, commit messages, issue descriptions, etc. can all contain malicious instructions. Run the gateway in a sandboxed environment (Docker, VM) when exposed to the internet. Consider using the Docker or SSH terminal backend for isolation.
+**HMAC validation authenticates the _sender_, not the _content_.** A valid signature only proves the request came from a party holding the route's secret (e.g. GitHub). It says nothing about who wrote the _business fields_ inside the payload — PR titles, commit messages, issue descriptions, and any other upstream text are authored by arbitrary third parties and must be treated as untrusted.
+
+This is the same trust model that applies to everything the agent reads: web pages, files, and tool output are all untrusted input. Hermes does not — and cannot reliably — sanitize untrusted text with a blocklist; phrasing, encoding, and translation make that trivially bypassable. **The trust boundary is the agent's capability surface, not the input channel.** Harden there:
+
+- **Sandbox the runtime.** Run the gateway with the Docker or SSH terminal backend (or in a VM) when exposed to the internet, so a hijacked turn cannot touch the host.
+- **Scope the toolset.** Disable `terminal`, `file`, and outbound-action tools on webhook-triggered sessions if the route only needs to read and summarize. Fewer capabilities means a smaller blast radius if a payload field carries injected instructions.
+- **Keep approvals on** for any destructive or outbound operation, so an injected instruction cannot act unattended.
+- **Template narrowly.** Prefer a specific `prompt` with named fields (`{pull_request.title}`) over `{__raw__}` or an empty template that dumps the whole payload, so only the fields you intend reach the prompt.
 :::
 
 ---
@@ -458,7 +534,7 @@ Webhook payloads contain attacker-controlled data — PR titles, commit messages
 
 ### Agent not responding
 
-- Run the gateway in foreground to see logs: `muse gateway run`
+- Run the gateway in foreground to see logs: `hermes gateway run`
 - Check that the prompt template is rendering correctly
 - Verify the delivery target is configured and connected
 

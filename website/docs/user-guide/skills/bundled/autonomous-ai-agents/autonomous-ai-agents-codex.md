@@ -17,7 +17,7 @@ Delegate coding to OpenAI Codex CLI (features, PRs).
 | Source | Bundled (installed by default) |
 | Path | `skills/autonomous-ai-agents/codex` |
 | Version | `1.0.0` |
-| Author | muse |
+| Author | Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `Codex`, `OpenAI`, `Code-Review`, `Refactoring` |
@@ -26,12 +26,12 @@ Delegate coding to OpenAI Codex CLI (features, PRs).
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Codex CLI
 
-Delegate coding tasks to [Codex](https://github.com/openai/codex) via the muse terminal. Codex is OpenAI's autonomous coding agent CLI.
+Delegate coding tasks to [Codex](https://github.com/openai/codex) via the Hermes terminal. Codex is OpenAI's autonomous coding agent CLI.
 
 ## When to use
 
@@ -50,8 +50,8 @@ Requires the codex CLI and a git repository.
 - **Must run inside a git repository** — Codex refuses to run outside one
 - Use `pty=true` in terminal calls — Codex is an interactive terminal app
 
-For muse itself, `model.provider: openai-codex` uses Hermes-managed Codex
-OAuth from `~/.hermes/auth.json` after `muse auth add openai-codex`. For the
+For Hermes itself, `model.provider: openai-codex` uses Hermes-managed Codex
+OAuth from `~/.hermes/auth.json` after `hermes auth add openai-codex`. For the
 standalone Codex CLI, a valid CLI OAuth session may live under
 `~/.codex/auth.json`; do not treat a missing `OPENAI_API_KEY` alone as proof
 that Codex auth is missing.
@@ -92,6 +92,25 @@ process(action="kill", session_id="<id>")
 | `exec "prompt"` | One-shot execution, exits when done |
 | `--full-auto` | Sandboxed but auto-approves file changes in workspace |
 | `--yolo` | No sandbox, no approvals (fastest, most dangerous) |
+| `--sandbox danger-full-access` | No Codex sandbox; useful when the host service context breaks bubblewrap |
+
+## Hermes Gateway Caveat
+
+When invoking the Codex CLI from a Hermes gateway/service context (for example,
+Telegram-driven agent sessions), Codex `workspace-write` sandboxing may fail even
+when the same command works in the user's interactive shell. A typical symptom is
+bubblewrap/user-namespace errors such as `setting up uid map: Permission denied`
+or `loopback: Failed RTM_NEWADDR: Operation not permitted`.
+
+In that context, prefer:
+
+```
+codex exec --sandbox danger-full-access "<task>"
+```
+
+Use process boundaries as the safety layer instead: explicit `workdir`, clean git
+status before launch, narrow task prompts, `git diff` review, targeted tests, and
+human/agent confirmation before committing broad changes.
 
 ## PR Reviews
 

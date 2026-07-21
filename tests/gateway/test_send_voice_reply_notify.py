@@ -79,7 +79,6 @@ async def test_voice_reply_marks_metadata_notify_true_for_dm(monkeypatch, tmp_pa
     await runner._send_voice_reply(event, "Hello there.")
 
     send_voice.assert_awaited_once()
-    assert send_voice.await_args is not None
     kwargs = send_voice.await_args.kwargs
     assert kwargs["metadata"] is not None, "metadata must be set so notify flag reaches adapter"
     assert kwargs["metadata"].get("notify") is True
@@ -104,7 +103,6 @@ async def test_voice_reply_marks_existing_thread_metadata_without_mutation(monke
     await runner._send_voice_reply(event, "Hello there.")
 
     send_voice.assert_awaited_once()
-    assert send_voice.await_args is not None
     kwargs = send_voice.await_args.kwargs
     assert kwargs["metadata"].get("notify") is True
     # All pre-existing thread keys are preserved.

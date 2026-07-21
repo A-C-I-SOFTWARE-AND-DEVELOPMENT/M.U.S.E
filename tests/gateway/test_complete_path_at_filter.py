@@ -36,8 +36,6 @@ def _fixture(tmp_path: Path):
 def _items(word: str):
     resp = server.handle_request({"id": "1", "method": "complete.path", "params": {"word": word}})
 
-    assert resp is not None
-    assert resp["result"] is not None
     return [(it["text"], it["display"], it.get("meta", "")) for it in resp["result"]["items"]]
 
 

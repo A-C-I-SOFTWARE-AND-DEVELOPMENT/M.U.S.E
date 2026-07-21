@@ -19,8 +19,7 @@ import hashlib
 import hmac
 import base64
 import json
-import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -423,7 +422,6 @@ class TestRegister:
     def test_register_advertises_required_env(self):
         ctx = self._FakeCtx()
         register(ctx)
-        assert ctx.kwargs is not None
         assert set(ctx.kwargs["required_env"]) == {
             "LINE_CHANNEL_ACCESS_TOKEN",
             "LINE_CHANNEL_SECRET",
@@ -432,26 +430,22 @@ class TestRegister:
     def test_register_wires_allowlist_envs(self):
         ctx = self._FakeCtx()
         register(ctx)
-        assert ctx.kwargs is not None
         assert ctx.kwargs["allowed_users_env"] == "LINE_ALLOWED_USERS"
         assert ctx.kwargs["allow_all_env"] == "LINE_ALLOW_ALL_USERS"
 
     def test_register_wires_cron_home_channel(self):
         ctx = self._FakeCtx()
         register(ctx)
-        assert ctx.kwargs is not None
         assert ctx.kwargs["cron_deliver_env_var"] == "LINE_HOME_CHANNEL"
 
     def test_register_provides_standalone_sender(self):
         ctx = self._FakeCtx()
         register(ctx)
-        assert ctx.kwargs is not None
         assert callable(ctx.kwargs["standalone_sender_fn"])
 
     def test_register_provides_env_enablement(self):
         ctx = self._FakeCtx()
         register(ctx)
-        assert ctx.kwargs is not None
         assert callable(ctx.kwargs["env_enablement_fn"])
 
     def test_register_factory_yields_line_adapter(self):
@@ -462,7 +456,6 @@ class TestRegister:
             "channel_access_token": "tok",
             "channel_secret": "sec",
         })
-        assert ctx.kwargs is not None
         ad = ctx.kwargs["adapter_factory"](cfg)
         assert isinstance(ad, LineAdapter)
 
@@ -470,7 +463,6 @@ class TestRegister:
         ctx = self._FakeCtx()
         register(ctx)
         # LINE per-bubble limit is 5000; we register 4500 to leave headroom.
-        assert ctx.kwargs is not None
         assert ctx.kwargs["max_message_length"] <= 5000
 
 
@@ -649,3 +641,36 @@ class TestAdapterInit:
         assert asyncio.run(ad.get_chat_info("U123"))["type"] == "dm"
         assert asyncio.run(ad.get_chat_info("C123"))["type"] == "group"
         assert asyncio.run(ad.get_chat_info("R123"))["type"] == "channel"
+
+
+# ---------------------------------------------------------------------------
+# 9. Inbound message-type classification
+# ---------------------------------------------------------------------------
+
+class TestMessageTypeMapping:
+    """LINE webhook message types must map to the right normalized
+    MessageType so the gateway routes media correctly (e.g. voice → STT,
+    files → document handling). Regression guard for the old code that
+    referenced the non-existent ``MessageType.IMAGE`` and collapsed every
+    non-text message onto a single type."""
+
+    def test_image_event_not_attributeerror_regression(self):
+        # The bug: MessageType.IMAGE doesn't exist on the enum.
+        MessageType = _line.MessageType
+        assert not hasattr(MessageType, "IMAGE")
+
+    def test_every_line_type_maps_to_correct_enum(self):
+        MessageType = _line.MessageType
+        mapping = _line._LINE_MESSAGE_TYPES
+        assert mapping["text"] == MessageType.TEXT
+        assert mapping["image"] == MessageType.PHOTO
+        assert mapping["video"] == MessageType.VIDEO
+        # LINE has no separate voice type — audio clips are voice notes.
+        assert mapping["audio"] == MessageType.VOICE
+        assert mapping["file"] == MessageType.DOCUMENT
+        assert mapping["location"] == MessageType.LOCATION
+        assert mapping["sticker"] == MessageType.STICKER
+
+    def test_unknown_type_falls_back_to_text(self):
+        MessageType = _line.MessageType
+        assert _line._LINE_MESSAGE_TYPES.get("flex", MessageType.TEXT) == MessageType.TEXT

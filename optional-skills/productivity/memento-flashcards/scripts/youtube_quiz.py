@@ -16,7 +16,7 @@ def _out(obj: object) -> None:
     sys.stdout.write("\n")
 
 
-def _normalize_segments(segments) -> str:
+def _normalize_segments(segments: list) -> str:
     parts = []
     for seg in segments:
         text = str(seg.get("text", "")).strip()

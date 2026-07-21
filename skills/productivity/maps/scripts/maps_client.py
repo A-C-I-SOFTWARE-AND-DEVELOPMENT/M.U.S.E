@@ -18,13 +18,11 @@ Commands:
 import argparse
 import json
 import math
-import os
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import NoReturn
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -153,7 +151,7 @@ def print_json(data):
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
-def error_exit(message, code=1) -> NoReturn:
+def error_exit(message, code=1):
     """Print an error result as JSON and exit."""
     print_json({"error": message, "status": "error"})
     sys.exit(code)

@@ -119,7 +119,7 @@ def test_clear_goal_pending_continuations_removes_slot_and_overflow_only():
     """
     runner = GatewayRunner.__new__(GatewayRunner)
     adapter = FakeAdapter()
-    adapter._pending_messages = {}  # ty: ignore[unresolved-attribute]
+    adapter._pending_messages = {}
     runner._queued_events = {}
 
     source = SessionSource(
@@ -134,7 +134,7 @@ def test_clear_goal_pending_continuations_removes_slot_and_overflow_only():
         source=source,
     )
 
-    adapter._pending_messages[session_key] = _goal_continuation_event(source)  # ty: ignore[unresolved-attribute]
+    adapter._pending_messages[session_key] = _goal_continuation_event(source)
     runner._queued_events[session_key] = [
         normal_event,
         _goal_continuation_event(source, goal="second continuation"),
@@ -143,5 +143,5 @@ def test_clear_goal_pending_continuations_removes_slot_and_overflow_only():
     removed = runner._clear_goal_pending_continuations(session_key, adapter)
 
     assert removed == 2
-    assert adapter._pending_messages.get(session_key) is None  # ty: ignore[unresolved-attribute]
+    assert adapter._pending_messages.get(session_key) is None
     assert runner._queued_events[session_key] == [normal_event]

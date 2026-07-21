@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
+from hermes_cli.nous_account import NousPortalAccountInfo
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "tools"
@@ -69,10 +71,17 @@ def _enable_managed_nous_tools(monkeypatch):
     The _install_fake_tools_package() helper resets and reimports tool modules,
     so a simple monkeypatch on tool_backend_helpers doesn't survive.  We patch
     the *source* modules that the reimported modules will import from — both
-    hermes_cli.auth and hermes_cli.models — so the function body returns True.
+    hermes_cli.nous_account — so the function body returns True.
     """
-    monkeypatch.setattr("hermes_cli.auth.get_nous_auth_status", lambda: {"logged_in": True})
-    monkeypatch.setattr("hermes_cli.models.check_nous_free_tier", lambda: False)
+    monkeypatch.setattr(
+        "hermes_cli.nous_account.get_nous_portal_account_info",
+        lambda: NousPortalAccountInfo(
+            logged_in=True,
+            source="jwt",
+            fresh=False,
+            paid_service_access=True,
+        ),
+    )
 
 
 def _install_fake_tools_package():
@@ -89,7 +98,7 @@ def _install_fake_tools_package():
     agent_package = types.ModuleType("agent")
     agent_package.__path__ = []  # type: ignore[attr-defined]
     sys.modules["agent"] = agent_package
-    sys.modules["agent.auxiliary_client"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["agent.auxiliary_client"] = types.SimpleNamespace(
         call_llm=lambda *args, **kwargs: "",
     )
 
@@ -102,10 +111,10 @@ def _install_fake_tools_package():
     class _StubBrowserProvider:
         """Minimal BrowserProvider stub for ``from agent.browser_provider import BrowserProvider``."""
 
-    sys.modules["agent.browser_provider"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["agent.browser_provider"] = types.SimpleNamespace(
         BrowserProvider=_StubBrowserProvider,
     )
-    sys.modules["agent.browser_registry"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["agent.browser_registry"] = types.SimpleNamespace(
         get_provider=lambda name: None,
         list_providers=lambda: [],
         register_provider=lambda provider: None,
@@ -131,7 +140,7 @@ def _install_fake_tools_package():
         _vendor_pkg.__path__ = []  # type: ignore[attr-defined]
         sys.modules[f"plugins.browser.{_name}"] = _vendor_pkg
         _provider_stub_cls = type(_classname, (_StubBrowserProvider,), {})
-        sys.modules[f"plugins.browser.{_name}.provider"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+        sys.modules[f"plugins.browser.{_name}.provider"] = types.SimpleNamespace(
             **{_classname: _provider_stub_cls},
         )
 
@@ -141,12 +150,12 @@ def _install_fake_tools_package():
     )
 
     interrupt_event = threading.Event()
-    sys.modules["tools.interrupt"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.interrupt"] = types.SimpleNamespace(
         set_interrupt=lambda value=True: interrupt_event.set() if value else interrupt_event.clear(),
         is_interrupted=lambda: interrupt_event.is_set(),
         _interrupt_event=interrupt_event,
     )
-    sys.modules["tools.approval"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.approval"] = types.SimpleNamespace(
         detect_dangerous_command=lambda *args, **kwargs: None,
         check_dangerous_command=lambda *args, **kwargs: {"approved": True},
         check_all_command_guards=lambda *args, **kwargs: {"approved": True},
@@ -160,7 +169,7 @@ def _install_fake_tools_package():
 
     from tools.registry import tool_error
 
-    sys.modules["tools.registry"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.registry"] = types.SimpleNamespace(
         registry=_Registry(), tool_error=tool_error,
     )
 
@@ -172,16 +181,16 @@ def _install_fake_tools_package():
         def cleanup(self):
             return None
 
-    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.environments.local"] = types.SimpleNamespace(LocalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.environments.singularity"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.local"] = types.SimpleNamespace(LocalEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.singularity"] = types.SimpleNamespace(
         _get_scratch_dir=lambda: Path(tempfile.gettempdir()),
         SingularityEnvironment=_DummyEnvironment,
     )
-    sys.modules["tools.environments.ssh"] = types.SimpleNamespace(SSHEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.environments.docker"] = types.SimpleNamespace(DockerEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.environments.modal"] = types.SimpleNamespace(ModalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
-    sys.modules["tools.environments.managed_modal"] = types.SimpleNamespace(ManagedModalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.ssh"] = types.SimpleNamespace(SSHEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.docker"] = types.SimpleNamespace(DockerEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.modal"] = types.SimpleNamespace(ModalEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.managed_modal"] = types.SimpleNamespace(ManagedModalEnvironment=_DummyEnvironment)
 
 
 def test_browser_use_explicit_local_mode_stays_local_even_when_managed_gateway_is_ready(tmp_path):
@@ -223,6 +232,44 @@ def test_browserbase_does_not_use_gateway_only_configuration():
         provider = browserbase_module.BrowserbaseBrowserProvider()
 
     assert provider.is_available() is False
+
+
+def test_browser_use_availability_skips_refresh_for_expired_cached_gateway_token(tmp_path, monkeypatch):
+    _install_fake_tools_package()
+    monkeypatch.delenv("TOOL_GATEWAY_USER_TOKEN", raising=False)
+    expired_at = "2000-01-01T00:00:00+00:00"
+    (tmp_path / "auth.json").write_text(
+        '{"providers":{"nous":{"access_token":"expired-token","refresh_token":"refresh-token","expires_at":"%s"}}}'
+        % expired_at,
+        encoding="utf-8",
+    )
+    refresh_calls = []
+
+    def _record_refresh(*, refresh_skew_seconds=120, **_kwargs):
+        refresh_calls.append(refresh_skew_seconds)
+        return "fresh-token"
+
+    monkeypatch.setattr(
+        "hermes_cli.auth.resolve_nous_access_token",
+        _record_refresh,
+    )
+
+    env = os.environ.copy()
+    env.pop("BROWSER_USE_API_KEY", None)
+    env.update({
+        "HERMES_HOME": str(tmp_path),
+        "BROWSER_USE_GATEWAY_URL": "http://127.0.0.1:3009",
+    })
+
+    with patch.dict(os.environ, env, clear=True):
+        browser_use_module = _load_plugin_module(
+            "plugins.browser.browser_use.provider",
+            "browser/browser_use/provider.py",
+        )
+        provider = browser_use_module.BrowserUseBrowserProvider()
+        assert provider.is_available() is True
+
+    assert refresh_calls == []
 
 
 def test_browser_use_managed_gateway_adds_idempotency_key_and_persists_external_call_id():
@@ -546,3 +593,27 @@ def test_terminal_tool_respects_direct_modal_mode_without_falling_back_to_manage
                     },
                     task_id="task-modal-direct-only",
                 )
+
+
+class TestShellEscapeBypass:
+    """Regression for #36846/#36847: backslash escapes and empty-string
+    literals split tokens so a denylisted command (rm) slips past detection
+    while the shell still executes it."""
+
+    def test_backslash_escape_bypass_caught(self):
+        from tools.approval import detect_dangerous_command
+        # literal: r-backslash-m -rf /  (shell collapses r\m -> rm)
+        assert detect_dangerous_command("r\\m -rf /")[0] is True
+
+    def test_empty_string_literal_bypass_caught(self):
+        from tools.approval import detect_dangerous_command
+        assert detect_dangerous_command("r''m -rf /")[0] is True
+        assert detect_dangerous_command('r""m -rf /')[0] is True
+
+    def test_plain_dangerous_still_caught(self):
+        from tools.approval import detect_dangerous_command
+        assert detect_dangerous_command("rm -rf /")[0] is True
+
+    def test_benign_command_not_flagged(self):
+        from tools.approval import detect_dangerous_command
+        assert detect_dangerous_command("ls -la")[0] is False

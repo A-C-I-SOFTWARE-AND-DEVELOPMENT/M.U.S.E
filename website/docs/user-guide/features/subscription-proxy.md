@@ -17,7 +17,7 @@ This is different from the [API server](./api-server.md):
 | | API server | Subscription proxy |
 |---|---|---|
 | What it serves | Your agent (full toolset, memory, skills) | Raw model inference |
-| Use case | "Use muse as a chat backend" | "Use my Portal sub from another app" |
+| Use case | "Use Hermes as a chat backend" | "Use my Portal sub from another app" |
 | Auth | Your `API_SERVER_KEY` | Any bearer (proxy attaches the real one) |
 | Tool calls | Yes — the agent runs tools | No — passthrough only |
 
@@ -29,21 +29,21 @@ proxy when you just want **the model** through your subscription.
 ### 1. Log into your provider (one-time)
 
 ```bash
-muse login nous
+hermes portal
 ```
 
-This opens your browser for the Nous Portal OAuth flow. muse stores
-the refresh token in `~/.hermes/auth.json` — the same place all muse
+This opens your browser for the Nous Portal OAuth flow. Hermes stores
+the refresh token in `~/.hermes/auth.json` — the same place all Hermes
 provider logins live.
 
 ### 2. Start the proxy
 
 ```bash
-muse proxy start
+hermes proxy start
 ```
 
 ```
-Starting muse proxy for Nous Portal
+Starting Hermes proxy for Nous Portal
   Listening on:  http://127.0.0.1:8645/v1
   Forwarding to: (resolved per-request from your subscription)
   Use any bearer token in the client — the proxy attaches your real credential.
@@ -69,29 +69,29 @@ automatically when the bearer approaches expiry.
 ## Available providers
 
 ```bash
-muse proxy providers
+hermes proxy providers
 ```
 
-Currently shipped: `nous` (Nous Portal). More OAuth providers can be
-added by implementing the `UpstreamAdapter` interface in
-`hermes_cli/proxy/adapters/`.
+Currently shipped: `nous` (Nous Portal) and `xai` (xAI / Grok). More
+OAuth providers can be added by implementing the `UpstreamAdapter`
+interface in `hermes_cli/proxy/adapters/`.
 
 ## Check status
 
 ```bash
-muse proxy status
+hermes proxy status
 ```
 
 ```
-muse proxy upstream adapters
+Hermes proxy upstream adapters
 
   [nous    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
 ```
 
-If you see `not logged in`, run `muse login nous`. If you see
+If you see `not logged in`, run `hermes portal`. If you see
 `credentials need attention`, your refresh token was revoked (rare —
 happens if you signed out from the Portal web UI) — just re-run
-`muse login nous`.
+`hermes portal`.
 
 ## Allowed paths
 
@@ -133,7 +133,7 @@ Then start your proxy in a terminal alongside `openviking-server`:
 
 ```bash
 # Terminal 1
-muse proxy start
+hermes proxy start
 
 # Terminal 2
 openviking-server
@@ -165,7 +165,7 @@ By default the proxy binds `127.0.0.1` (localhost only). To let other
 machines on your network use it:
 
 ```bash
-muse proxy start --host 0.0.0.0 --port 8645
+hermes proxy start --host 0.0.0.0 --port 8645
 ```
 
 ⚠ **Be aware:** anyone on your network can now use your Portal

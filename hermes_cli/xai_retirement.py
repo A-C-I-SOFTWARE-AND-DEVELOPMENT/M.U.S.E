@@ -81,7 +81,7 @@ def find_retired_xai_refs(config: Dict[str, Any]) -> List[RetirementIssue]:
         issues.append(RetirementIssue(
             config_path=path,
             current_model=model,
-            replacement=entry["replacement"],  # ty: ignore[invalid-argument-type]  # replacement is always set
+            replacement=entry["replacement"],
             reasoning_effort=entry.get("reasoning_effort"),
             note=entry.get("note"),
         ))
@@ -242,6 +242,9 @@ def apply_migration(
         )
         shutil.copy2(config_path, backup_path)
 
+    from hermes_cli.config import require_readable_config_before_write
+
+    require_readable_config_before_write(config_path)
     with config_path.open("w", encoding="utf-8") as fh:
         yaml.dump(doc, fh)
 

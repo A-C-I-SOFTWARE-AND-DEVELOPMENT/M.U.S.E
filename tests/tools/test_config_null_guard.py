@@ -5,9 +5,7 @@ return ``None`` instead of the default — calling ``.lower()`` on that raises
 ``AttributeError``.  These tests verify the ``or`` coalescing guards.
 """
 
-from typing import Any
 from unittest.mock import patch
-import pytest
 
 
 # ── TTS tool ──────────────────────────────────────────────────────────────
@@ -23,7 +21,7 @@ class TestTTSProviderNullGuard:
         assert result == DEFAULT_PROVIDER.lower().strip()
 
     def test_missing_provider_returns_default(self):
-        """No ``provider`` key at all should also return default."""
+        """No ``provider`` key + non-TTS active provider should return default."""
         from tools.tts_tool import _get_provider, DEFAULT_PROVIDER
 
         result = _get_provider({})
@@ -34,6 +32,27 @@ class TestTTSProviderNullGuard:
 
         result = _get_provider({"provider": "OPENAI"})
         assert result == "openai"
+
+    def test_missing_provider_keeps_free_default_with_cloud_credentials(self):
+        """A chat-provider key must not silently opt the user into paid TTS."""
+        from tools.tts_tool import _get_provider, DEFAULT_PROVIDER
+
+        assert _get_provider({}) == DEFAULT_PROVIDER
+        assert _get_provider({"provider": None}) == DEFAULT_PROVIDER
+
+    def test_active_provider_without_credentials_keeps_edge(self):
+        """A TTS-capable active provider that can't authenticate must NOT
+        silently displace the free Edge default (no surprise billing / hard
+        errors for a credential-less deployment)."""
+        from tools.tts_tool import _get_provider, DEFAULT_PROVIDER
+
+        assert _get_provider({}) == DEFAULT_PROVIDER.lower().strip()
+
+    def test_explicit_provider_wins_over_active(self):
+        """An explicit tts.provider always overrides the active-provider fallback."""
+        from tools.tts_tool import _get_provider
+
+        assert _get_provider({"provider": "edge"}) == "edge"
 
 
 # ── Web tools ─────────────────────────────────────────────────────────────
@@ -66,17 +85,17 @@ class TestMCPAuthNullGuard:
     def test_explicit_null_auth_does_not_crash(self):
         """YAML ``auth: null`` in MCP server config should not raise."""
         # Test the expression directly — MCPServerTask.__init__ has many deps
-        config: dict[str, Any] = {"auth": None, "timeout": 30}
+        config = {"auth": None, "timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == ""
 
     def test_missing_auth_defaults_to_empty(self):
-        config: dict[str, Any] = {"timeout": 30}
+        config = {"timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == ""
 
     def test_valid_auth_passed_through(self):
-        config: dict[str, Any] = {"auth": "OAUTH", "timeout": 30}
+        config = {"auth": "OAUTH", "timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == "oauth"
 
@@ -91,7 +110,7 @@ class TestTrajectoryCompressorNullGuard:
         from trajectory_compressor import CompressionConfig, TrajectoryCompressor
 
         config = CompressionConfig()
-        config.base_url = None  # ty: ignore[invalid-assignment]
+        config.base_url = None
 
         compressor = TrajectoryCompressor.__new__(TrajectoryCompressor)
         compressor.config = config

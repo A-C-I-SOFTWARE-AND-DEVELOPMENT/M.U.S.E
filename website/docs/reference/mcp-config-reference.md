@@ -1,7 +1,7 @@
 ---
 sidebar_position: 8
 title: "MCP Config Reference"
-description: "Reference for muse MCP configuration keys, filtering semantics, and utility-tool policy"
+description: "Reference for Hermes Agent MCP configuration keys, filtering semantics, and utility-tool policy"
 ---
 
 # MCP Config Reference
@@ -9,8 +9,8 @@ description: "Reference for muse MCP configuration keys, filtering semantics, an
 This page is the compact reference companion to the main MCP docs.
 
 For conceptual guidance, see:
-- [MCP (Model Context Protocol)](/docs/user-guide/features/mcp)
-- [Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)
+- [MCP (Model Context Protocol)](/user-guide/features/mcp)
+- [Use MCP with Hermes](/guides/use-mcp-with-hermes)
 
 ## Root config shape
 
@@ -24,6 +24,11 @@ mcp_servers:
     # OR
     url: "..."          # HTTP servers
     headers: {}
+
+    # Optional HTTP/SSE TLS settings:
+    ssl_verify: true                # bool or path to a CA bundle (PEM)
+    client_cert: "/path/to/cert.pem"  # mTLS client certificate (see below)
+    # client_key: "/path/to/key.pem"  # optional, when key lives in a separate file
 
     enabled: true
     timeout: 120
@@ -45,10 +50,14 @@ mcp_servers:
 | `env` | mapping | stdio | Environment passed to the subprocess |
 | `url` | string | HTTP | Remote MCP endpoint |
 | `headers` | mapping | HTTP | Headers for remote server requests |
+| `ssl_verify` | bool or string | HTTP | TLS verification. `true` (default) uses system CAs, `false` disables verification (insecure), or a string path to a custom CA bundle (PEM) |
+| `client_cert` | string or list | HTTP | mTLS client certificate. String = path to a PEM file containing cert + key. List `[cert, key]` = separate files. List `[cert, key, password]` = encrypted key |
+| `client_key` | string | HTTP | Path to the client private key, when `client_cert` is a string and the key is in a separate file |
 | `enabled` | bool | both | Skip the server entirely when false |
-| `timeout` | number | both | Tool call timeout |
-| `connect_timeout` | number | both | Initial connection timeout |
+| `timeout` | number | both | Tool call timeout in seconds (default: `300`) |
+| `connect_timeout` | number | both | Initial connection timeout in seconds (default: `60`) |
 | `supports_parallel_tool_calls` | bool | both | Allow tools from this server to run concurrently |
+| `skip_preflight` | bool | HTTP | Bypass the fail-fast content-type probe for valid Streamable HTTP endpoints whose HEAD/GET answers a non-MCP content type (default: `false`) |
 | `tools` | mapping | both | Filtering and utility-tool policy |
 | `auth` | string | HTTP | Authentication method. Set to `oauth` to enable OAuth 2.1 with PKCE |
 | `sampling` | mapping | both | Server-initiated LLM request policy (see MCP guide) |
@@ -98,7 +107,7 @@ Result:
 
 ## Utility-tool policy
 
-muse may register these utility wrappers per MCP server:
+Hermes may register these utility wrappers per MCP server:
 
 Resources:
 - `list_resources`
@@ -124,7 +133,7 @@ tools:
 
 ### Capability-aware registration
 
-Even when `resources: true` or `prompts: true`, muse only registers those utility tools if the MCP session actually exposes the corresponding capability.
+Even when `resources: true` or `prompts: true`, Hermes only registers those utility tools if the MCP session actually exposes the corresponding capability.
 
 So this is normal:
 - you enable prompts
@@ -148,7 +157,7 @@ Behavior:
 
 ## Empty result behavior
 
-If filtering removes all server-native tools and no utility tools are registered, muse does not create an empty MCP runtime toolset for that server.
+If filtering removes all server-native tools and no utility tools are registered, Hermes does not create an empty MCP runtime toolset for that server.
 
 ## Example configs
 
@@ -190,6 +199,40 @@ mcp_servers:
       resources: true
       prompts: false
 ```
+
+### TLS client certificate (mTLS)
+
+For HTTP/SSE servers that require a client certificate, set `client_cert` (and optionally `client_key`):
+
+```yaml
+mcp_servers:
+  # Combined cert + key in a single PEM file
+  internal_api:
+    url: "https://mcp.internal.example.com/mcp"
+    client_cert: "~/secrets/mcp-client.pem"
+
+  # Separate cert and key files
+  partner_api:
+    url: "https://mcp.partner.example.com/mcp"
+    client_cert: "~/secrets/client.crt"
+    client_key: "~/secrets/client.key"
+
+  # Encrypted key with a passphrase (3-element list form)
+  bank_api:
+    url: "https://mcp.bank.example.com/mcp"
+    client_cert: ["~/secrets/client.crt", "~/secrets/client.key", "my-passphrase"]
+
+  # Custom CA bundle (private CA / self-signed server)
+  lab_api:
+    url: "https://mcp.lab.local/mcp"
+    ssl_verify: "~/secrets/lab-ca.pem"
+    client_cert: "~/secrets/lab-client.pem"
+```
+
+Notes:
+- Paths support `~` expansion. Missing files fail fast at connect time with a server-scoped error message.
+- `ssl_verify: false` disables server certificate verification entirely. Don't use this with real services.
+- Works on both Streamable HTTP and SSE transports.
 
 ## Reloading config
 
@@ -242,7 +285,7 @@ mcp_servers:
 ```
 
 Behavior:
-- muse uses the MCP SDK's OAuth 2.1 PKCE flow (metadata discovery, dynamic client registration, token exchange, and refresh)
+- Hermes uses the MCP SDK's OAuth 2.1 PKCE flow (metadata discovery, dynamic client registration, token exchange, and refresh)
 - On first connect, a browser window opens for authorization
 - Tokens are persisted to `~/.hermes/mcp-tokens/<server>.json` and reused across sessions
 - Token refresh is automatic; re-authorization only happens when refresh fails

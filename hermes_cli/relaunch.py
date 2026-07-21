@@ -82,7 +82,7 @@ def resolve_hermes_bin() -> Optional[str]:
 
     Priority:
       1. ``sys.argv[0]`` if it resolves to a real executable.
-      2. ``shutil.which("muse")`` (or the legacy ``hermes`` alias) on PATH.
+      2. ``shutil.which("hermes")`` on PATH.
       3. ``None`` → caller should fall back to ``python -m hermes_cli.main``.
 
     Windows note: ``os.access(path, os.X_OK)`` returns True for ``.py`` and
@@ -92,8 +92,8 @@ def resolve_hermes_bin() -> Optional[str]:
     directly — CreateProcessW needs a real .exe, not a script associated
     with the Python launcher.  On Windows we therefore skip the argv[0]
     fast-path when it points at a .py file and fall through to either
-    ``muse.exe`` / ``hermes.exe`` on PATH or the ``sys.executable -m
-    hermes_cli.main`` fallback.
+    ``hermes.exe`` on PATH or the ``sys.executable -m hermes_cli.main``
+    fallback.
     """
     argv0 = sys.argv[0]
     _is_windows = sys.platform == "win32"
@@ -113,12 +113,10 @@ def resolve_hermes_bin() -> Optional[str]:
             if not (_is_windows and _is_python_script(abs_path)):
                 return abs_path
 
-    # PATH lookup — prefer the canonical `muse` shim; fall back to the legacy
-    # `hermes` alias.
-    for cmd in ("muse", "hermes"):
-        path_bin = shutil.which(cmd)
-        if path_bin:
-            return path_bin
+    # PATH lookup
+    path_bin = shutil.which("hermes")
+    if path_bin:
+        return path_bin
 
     return None
 
@@ -197,7 +195,7 @@ def relaunch(
             # cryptic.  Common causes: ``hermes`` not on PATH yet (install
             # hasn't propagated User PATH into this shell) or a stale shim.
             print(
-                f"\nmuse relaunch failed: {exc}\n"
+                f"\nHermes relaunch failed: {exc}\n"
                 f"Command: {' '.join(new_argv)}\n"
                 f"Fix: open a new terminal so PATH picks up, then re-run hermes.",
                 file=sys.stderr,

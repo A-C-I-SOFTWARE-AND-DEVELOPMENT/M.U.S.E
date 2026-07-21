@@ -1,8 +1,5 @@
 """Tests for gateway proxy mode — forwarding messages to a remote API server."""
 
-import asyncio
-import json
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -265,14 +262,12 @@ class TestRunAgentViaProxy:
         assert session.captured_url == "http://host:8642/v1/chat/completions"
 
         # Verify auth header
-        assert session.captured_headers is not None
         assert session.captured_headers["Authorization"] == "Bearer test-key-123"
 
         # Verify session ID header
         assert session.captured_headers["X-Hermes-Session-Id"] == "session-abc"
 
         # Verify messages include system, history, and current message
-        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         assert messages[0] == {"role": "system", "content": "You are helpful."}
         assert messages[1] == {"role": "user", "content": "Hello"}
@@ -340,6 +335,32 @@ class TestRunAgentViaProxy:
         assert "Proxy connection error" in result["final_response"]
 
     @pytest.mark.asyncio
+    async def test_rejects_proxy_sse_without_line_boundary_after_buffer_cap(self, monkeypatch):
+        monkeypatch.setenv("GATEWAY_PROXY_URL", "http://host:8642")
+        monkeypatch.delenv("GATEWAY_PROXY_KEY", raising=False)
+        monkeypatch.setattr("gateway.run._GATEWAY_PROXY_SSE_BUFFER_MAX_CHARS", 16)
+        runner = _make_runner()
+        source = _make_source()
+
+        resp = _FakeSSEResponse(status=200, sse_chunks=[b"data: ", b"x" * 20])
+        session = _FakeSession(resp)
+
+        with patch("gateway.run._load_gateway_config", return_value={}):
+            with _patch_aiohttp(session):
+                with patch("aiohttp.ClientTimeout"):
+                    result = await runner._run_agent_via_proxy(
+                        message="hi",
+                        context_prompt="",
+                        history=[],
+                        source=source,
+                        session_id="test",
+                    )
+
+        assert "Proxy connection error" in result["final_response"]
+        assert "exceeded max buffer size" in result["final_response"]
+        assert result["api_calls"] == 0
+
+    @pytest.mark.asyncio
     async def test_skips_tool_messages_in_history(self, monkeypatch):
         monkeypatch.setenv("GATEWAY_PROXY_URL", "http://host:8642")
         monkeypatch.delenv("GATEWAY_PROXY_KEY", raising=False)
@@ -371,7 +392,6 @@ class TestRunAgentViaProxy:
                     )
 
         # Only user and assistant with content should be forwarded
-        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         roles = [m["role"] for m in messages]
         assert "tool" not in roles
@@ -471,7 +491,7 @@ class TestRunAgentViaProxy:
                         session_id="test",
                     )
 
-        assert "Authorization" not in session.captured_headers  # ty: ignore[unsupported-operator]
+        assert "Authorization" not in session.captured_headers
 
     @pytest.mark.asyncio
     async def test_no_system_message_when_context_empty(self, monkeypatch):
@@ -498,7 +518,6 @@ class TestRunAgentViaProxy:
                     )
 
         # No system message should appear when context_prompt is empty
-        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         assert len(messages) == 1
         assert messages[0]["role"] == "user"

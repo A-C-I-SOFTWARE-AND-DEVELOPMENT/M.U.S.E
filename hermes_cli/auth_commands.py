@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from getpass import getpass
 import math
 import sys
 import time
@@ -14,6 +13,7 @@ from agent.credential_pool import (
     AUTH_TYPE_OAUTH,
     CUSTOM_POOL_PREFIX,
     SOURCE_MANUAL,
+    SOURCE_MANUAL_DEVICE_CODE,
     STATUS_EXHAUSTED,
     STRATEGY_FILL_FIRST,
     STRATEGY_ROUND_ROBIN,
@@ -30,10 +30,11 @@ from agent.credential_pool import (
 import hermes_cli.auth as auth_mod
 from hermes_cli.auth import PROVIDER_REGISTRY
 from hermes_constants import OPENROUTER_BASE_URL
+from hermes_cli.secret_prompt import masked_secret_prompt
 
 
 # Providers that support OAuth login in addition to API keys.
-_OAUTH_CAPABLE_PROVIDERS = {"anthropic", "nous", "openai-codex", "xai-oauth", "qwen-oauth", "google-gemini-cli", "minimax-oauth"}
+_OAUTH_CAPABLE_PROVIDERS = {"anthropic", "nous", "openai-codex", "xai-oauth", "qwen-oauth", "minimax-oauth"}
 
 
 def _get_custom_provider_names() -> list:
@@ -196,7 +197,7 @@ def auth_add_command(args) -> None:
     if requested_type == AUTH_TYPE_API_KEY:
         token = (getattr(args, "api_key", None) or "").strip()
         if not token:
-            token = getpass("Paste your API key: ").strip()
+            token = masked_secret_prompt("Paste your API key: ").strip()
         if not token:
             raise SystemExit("No API key provided.")
         default_label = _api_key_default_label(len(pool.entries()) + 1)
@@ -272,9 +273,6 @@ def auth_add_command(args) -> None:
                 print("Rehydrating Nous session from shared credentials...")
                 rehydrated = auth_mod._try_import_shared_nous_state(
                     timeout_seconds=getattr(args, "timeout", None) or 15.0,
-                    min_key_ttl_seconds=max(
-                        60, int(getattr(args, "min_key_ttl_seconds", 5 * 60))
-                    ),
                 )
                 if rehydrated is not None:
                     custom_label = (getattr(args, "label", None) or "").strip() or None
@@ -297,7 +295,6 @@ def auth_add_command(args) -> None:
             timeout_seconds=getattr(args, "timeout", None) or 15.0,
             insecure=bool(getattr(args, "insecure", False)),
             ca_bundle=getattr(args, "ca_bundle", None),
-            min_key_ttl_seconds=max(60, int(getattr(args, "min_key_ttl_seconds", 5 * 60))),
         )
         # Honor `--label <name>` so nous matches other providers' UX.  The
         # helper embeds this into providers.nous so that label_from_token
@@ -311,79 +308,87 @@ def auth_add_command(args) -> None:
         return
 
     if provider == "openai-codex":
-        # Clear any existing suppression marker so a re-link after `hermes auth
-        # remove openai-codex` works without the new tokens being skipped.
-        auth_mod.unsuppress_credential_source(provider, "device_code")
         creds = auth_mod._codex_device_code_login()
         label = (getattr(args, "label", None) or "").strip() or label_from_token(
             creds["tokens"]["access_token"],
             _oauth_default_label(provider, len(pool.entries()) + 1),
         )
+        # Add a distinct, self-contained pool entry per account (matching the
+        # qwen-oauth / minimax-oauth multi-account patterns, and the
+        # xai-oauth path below) instead of routing through the singleton
+        # ``_save_codex_tokens`` save path.
+        # The singleton round-trip collapsed every added account into the
+        # latest login: a second ``hermes auth add openai-codex`` overwrote
+        # the first account's singleton-mirrored ``device_code`` entry rather
+        # than creating an independent one (#39236). ``manual:device_code``
+        # entries refresh from their own token pair, so they need no singleton
+        # shadow.
         entry = PooledCredential(
             provider=provider,
             id=uuid.uuid4().hex[:6],
             label=label,
             auth_type=AUTH_TYPE_OAUTH,
             priority=0,
-            source=f"{SOURCE_MANUAL}:device_code",
+            source=SOURCE_MANUAL_DEVICE_CODE,
             access_token=creds["tokens"]["access_token"],
             refresh_token=creds["tokens"].get("refresh_token"),
             base_url=creds.get("base_url"),
             last_refresh=creds.get("last_refresh"),
         )
+        first_credential = not pool.entries()
         pool.add_entry(entry)
+        # Adding the first Codex credential should make it the active provider
+        # (the old singleton save path did this implicitly via
+        # _save_provider_state). Subsequent adds leave the active provider as-is.
+        if first_credential:
+            auth_mod.mark_provider_active_if_unset(provider)
         print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
         return
 
     if provider == "xai-oauth":
-        creds = auth_mod._xai_oauth_loopback_login(
+        creds = auth_mod._xai_oauth_device_code_login(
             timeout_seconds=getattr(args, "timeout", None) or 20.0,
             open_browser=not getattr(args, "no_browser", False),
-            manual_paste=bool(getattr(args, "manual_paste", False)),
         )
         label = (getattr(args, "label", None) or "").strip() or label_from_token(
             creds["tokens"]["access_token"],
             _oauth_default_label(provider, len(pool.entries()) + 1),
         )
+        # Add a distinct, self-contained pool entry per account (matching the
+        # openai-codex / qwen-oauth / minimax-oauth patterns) instead of
+        # routing through the singleton ``_save_xai_oauth_tokens`` save path.
+        # The singleton round-trip collapsed every added account into the
+        # latest login: a second ``hermes auth add xai-oauth`` overwrote the
+        # first account's singleton-mirrored ``device_code`` entry rather than
+        # creating an independent one. ``manual:device_code`` entries refresh
+        # from their own token pair (``_sync_xai_oauth_entry_from_auth_store``
+        # only adopts the singleton for ``source=="device_code"``), so they
+        # need no singleton shadow.
         entry = PooledCredential(
             provider=provider,
             id=uuid.uuid4().hex[:6],
             label=label,
             auth_type=AUTH_TYPE_OAUTH,
             priority=0,
-            source=f"{SOURCE_MANUAL}:xai_pkce",
+            source=SOURCE_MANUAL_DEVICE_CODE,
             access_token=creds["tokens"]["access_token"],
             refresh_token=creds["tokens"].get("refresh_token"),
-            base_url=creds.get("base_url"),
+            base_url=creds.get("base_url") or auth_mod.DEFAULT_XAI_OAUTH_BASE_URL,
             last_refresh=creds.get("last_refresh"),
         )
+        first_credential = not pool.entries()
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
-        return
-
-    if provider == "google-gemini-cli":
-        from agent.google_oauth import run_gemini_oauth_login_pure
-
-        creds = run_gemini_oauth_login_pure()
-        label = (getattr(args, "label", None) or "").strip() or (
-            creds.get("email") or _oauth_default_label(provider, len(pool.entries()) + 1)
-        )
-        entry = PooledCredential(
-            provider=provider,
-            id=uuid.uuid4().hex[:6],
-            label=label,
-            auth_type=AUTH_TYPE_OAUTH,
-            priority=0,
-            source=f"{SOURCE_MANUAL}:google_pkce",
-            access_token=creds["access_token"],
-            refresh_token=creds.get("refresh_token"),
-        )
-        pool.add_entry(entry)
+        # Adding the first xAI credential should make it the active provider
+        # (the old singleton save path did this implicitly via
+        # _save_provider_state). Subsequent adds leave the active provider as-is.
+        if first_credential:
+            auth_mod.mark_provider_active_if_unset(provider)
         print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
         return
 
     if provider == "qwen-oauth":
         creds = auth_mod.resolve_qwen_runtime_credentials(refresh_if_expiring=False)
+        auth_mod._mark_qwen_oauth_active(creds)
         label = (getattr(args, "label", None) or "").strip() or label_from_token(
             creds["api_key"],
             _oauth_default_label(provider, len(pool.entries()) + 1),
@@ -427,160 +432,6 @@ def auth_add_command(args) -> None:
         return
 
     raise SystemExit(f"`hermes auth add {provider}` is not implemented for auth type {requested_type} yet.")
-
-
-# Providers the unified headless login walks through, in order. Each rides a
-# URL-paste / device-code ("backdoor URL") flow that works on browser-less
-# remotes (phone/Termux, SSH jump-box, Cloud Shell).
-_HEADLESS_LOGIN_PROVIDERS = ("openai-codex", "anthropic")
-
-
-def _configure_openai_dual_entity_defaults() -> None:
-    """After a Codex login, make GPT-5.5 the chat entity and wire auto-switch.
-
-    Codex and GPT share the one ChatGPT OAuth login; this sets the persisted
-    config so the user *talks to* GPT-5.5 by default and Hermes auto-switches
-    to a Codex model on coding turns (see agent/openai_entity_router.py).
-    """
-    from hermes_cli.config import load_config, save_config
-
-    try:
-        from agent.openai_entity_router import resolve_entity_models
-
-        available = []
-        try:
-            from hermes_cli.codex_models import get_codex_model_ids
-
-            available = get_codex_model_ids()
-        except Exception:
-            available = []
-        chat_model, codex_model = resolve_entity_models(
-            default_model="gpt-5.5",
-            available_models=available,
-        )
-    except Exception:
-        chat_model, codex_model = "gpt-5.5", "gpt-5.3-codex"
-
-    config = load_config()
-    if not isinstance(config.get("model"), dict):
-        config["model"] = {}
-    config["model"]["provider"] = "openai-codex"
-    config["model"]["default"] = chat_model
-    config["model"]["chat_model"] = chat_model
-    config["model"]["codex_model"] = codex_model
-    config["model"].setdefault("openai_dual_entity", True)
-    save_config(config)
-    print(
-        f"  Configured: talk to {chat_model} by default; "
-        f"auto-switch to {codex_model} on coding turns."
-    )
-
-
-def _capture_claude_code_token() -> None:
-    """Prompt for a Claude Code OAuth token and store it in ~/.hermes/.env.
-
-    Claude Code is not a provider Hermes logs into — it mints its own token
-    via ``claude setup-token`` (a URL-paste flow). Hermes simply *reads*
-    CLAUDE_CODE_OAUTH_TOKEN, so we capture it here for completeness.
-    """
-    from hermes_cli.config import save_env_value
-
-    print()
-    print("Claude Code (optional) — muse reads a token you mint yourself:")
-    print("  1. Run `claude setup-token` (opens a URL; paste the code back).")
-    print("  2. Paste the resulting token below (or press Enter to skip).")
-    try:
-        token = getpass("Claude Code OAuth token (hidden, Enter to skip): ").strip()
-    except (EOFError, KeyboardInterrupt):
-        token = ""
-    if not token:
-        print("  Skipped Claude Code token.")
-        return
-    try:
-        save_env_value("CLAUDE_CODE_OAUTH_TOKEN", token)
-        print("  Saved CLAUDE_CODE_OAUTH_TOKEN to ~/.hermes/.env")
-    except Exception as exc:
-        print(f"  Could not save token: {exc}")
-
-
-def headless_login_command(args) -> None:
-    """Unified headless login across Codex/GPT and Claude via URL-paste flows.
-
-    Runs each provider's browser-less OAuth in sequence so a phone/Termux or
-    SSH-only user can authenticate everything from one command. Codex login
-    also configures the GPT-5.5 chat entity + Codex auto-switch. A failed or
-    skipped provider does not abort the rest.
-
-    ``--provider <id>`` delegates to ``auth add`` for a single provider.
-    """
-    import argparse
-
-    # Single-provider mode: delegate to the per-provider OAuth path.
-    requested = (getattr(args, "provider", "") or "").strip()
-    if requested:
-        single = argparse.Namespace(
-            provider=requested,
-            auth_type="oauth",
-            manual_paste=bool(getattr(args, "manual_paste", True)),
-            no_browser=bool(getattr(args, "no_browser", True)),
-            label=None,
-            api_key=None,
-            timeout=getattr(args, "timeout", None),
-            insecure=bool(getattr(args, "insecure", False)),
-            ca_bundle=getattr(args, "ca_bundle", None),
-        )
-        auth_add_command(single)
-        if requested == "openai-codex":
-            _configure_openai_dual_entity_defaults()
-        return
-
-    # Unified mode: walk every provider, URL-paste / device-code by default.
-    manual_paste = bool(getattr(args, "manual_paste", True))
-    no_browser = bool(getattr(args, "no_browser", True))
-    succeeded: list[str] = []
-    skipped: list[str] = []
-
-    print("Unified headless login — authorize each in any browser, paste back.")
-    print("(Press Ctrl-C at a prompt to skip that provider.)")
-    for provider in _HEADLESS_LOGIN_PROVIDERS:
-        label = {"openai-codex": "Codex + GPT-5.5", "anthropic": "Claude"}.get(provider, provider)
-        print()
-        print(f"── {label} ({provider}) ──")
-        sub = argparse.Namespace(
-            provider=provider,
-            auth_type="oauth",
-            manual_paste=manual_paste,
-            no_browser=no_browser,
-            label=None,
-            api_key=None,
-            timeout=getattr(args, "timeout", None),
-            insecure=bool(getattr(args, "insecure", False)),
-            ca_bundle=getattr(args, "ca_bundle", None),
-        )
-        try:
-            auth_add_command(sub)
-            succeeded.append(provider)
-            if provider == "openai-codex":
-                _configure_openai_dual_entity_defaults()
-        except (KeyboardInterrupt, EOFError):
-            print(f"  Skipped {provider}.")
-            skipped.append(provider)
-        except SystemExit as exc:
-            print(f"  {provider} login did not complete: {exc}")
-            skipped.append(provider)
-        except Exception as exc:
-            print(f"  {provider} login failed: {exc}")
-            skipped.append(provider)
-
-    _capture_claude_code_token()
-
-    print()
-    print("Done.")
-    if succeeded:
-        print(f"  Logged in: {', '.join(succeeded)}")
-    if skipped:
-        print(f"  Skipped/failed: {', '.join(skipped)}")
-    print("  Switch models any time with `hermes model`.")
 
 
 def auth_list_command(args) -> None:
@@ -707,7 +558,7 @@ def _interactive_auth() -> None:
         if has_aws_credentials():
             auth_source = resolve_aws_auth_env_var() or "unknown"
             region = resolve_bedrock_region()
-            print(f"bedrock (AWS SDK credential chain):")
+            print("bedrock (AWS SDK credential chain):")
             print(f"  Auth: {auth_source}")
             print(f"  Region: {region}")
             try:
@@ -717,7 +568,7 @@ def _interactive_auth() -> None:
                 arn = identity.get("Arn", "unknown")
                 print(f"  Identity: {arn}")
             except Exception:
-                print(f"  Identity: (could not resolve — boto3 STS call failed)")
+                print("  Identity: (could not resolve — boto3 STS call failed)")
             print()
     except ImportError:
         pass  # boto3 or bedrock_adapter not available
@@ -745,7 +596,7 @@ def _interactive_auth() -> None:
                     str(_entra.get("scope") or "").strip()
                     or SCOPE_AI_AZURE_DEFAULT
                 )
-                print(f"azure-foundry (Microsoft Entra ID):")
+                print("azure-foundry (Microsoft Entra ID):")
                 print(f"  Endpoint: {_base_url or '(not configured)'}")
                 print(f"  Scope: {_scope}")
                 if not has_azure_identity_installed():

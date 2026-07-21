@@ -4,21 +4,22 @@ sidebar_position: 7
 
 # Profile Commands Reference
 
-This page covers all commands related to [muse profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md).
+This page covers all commands related to [Hermes profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md).
 
-## `muse profile`
+## `hermes profile`
 
 ```bash
-muse profile <subcommand>
+hermes profile <subcommand>
 ```
 
-Top-level command for managing profiles. Running `muse profile` without a subcommand shows help.
+Top-level command for managing profiles. Running `hermes profile` without a subcommand shows help.
 
 | Subcommand | Description |
 |------------|-------------|
 | `list` | List all profiles. |
 | `use` | Set the active (default) profile. |
 | `create` | Create a new profile. |
+| `describe` | Read or set a profile's description (used by the kanban orchestrator for routing). |
 | `delete` | Delete a profile. |
 | `show` | Show details about a profile. |
 | `alias` | Regenerate the shell alias for a profile. |
@@ -29,10 +30,10 @@ Top-level command for managing profiles. Running `muse profile` without a subcom
 | `update` | Re-pull a distribution-managed profile and re-apply its bundle. |
 | `info` | Show distribution metadata for a profile (origin URL, commit, last update). |
 
-## `muse profile list`
+## `hermes profile list`
 
 ```bash
-muse profile list
+hermes profile list
 ```
 
 Lists all profiles. The currently active profile is marked with `*`.
@@ -40,7 +41,7 @@ Lists all profiles. The currently active profile is marked with `*`.
 **Example:**
 
 ```bash
-$ muse profile list
+$ hermes profile list
   default
 * work
   dev
@@ -49,10 +50,10 @@ $ muse profile list
 
 No options.
 
-## `muse profile use`
+## `hermes profile use`
 
 ```bash
-muse profile use <name>
+hermes profile use <name>
 ```
 
 Sets `<name>` as the active profile. All subsequent `hermes` commands (without `-p`) will use this profile.
@@ -64,14 +65,14 @@ Sets `<name>` as the active profile. All subsequent `hermes` commands (without `
 **Example:**
 
 ```bash
-muse profile use work
-muse profile use default
+hermes profile use work
+hermes profile use default
 ```
 
-## `muse profile create`
+## `hermes profile create`
 
 ```bash
-muse profile create <name> [options]
+hermes profile create <name> [options]
 ```
 
 Creates a new profile.
@@ -79,12 +80,12 @@ Creates a new profile.
 | Argument / Option | Description |
 |-------------------|-------------|
 | `<name>` | Name for the new profile. Must be a valid directory name (alphanumeric, hyphens, underscores). |
-| `--clone` | Copy `config.yaml`, `.env`, and `SOUL.md` from the current profile. |
-| `--clone-all` | Copy everything (config, memories, skills, sessions, state) from the current profile. |
-| `--clone-from <profile>` | Clone from a specific profile instead of the current one. Used with `--clone` or `--clone-all`. |
+| `--clone` | Copy `config.yaml`, `.env`, `SOUL.md`, and skills from the current profile. |
+| `--clone-all` | Copy everything (config, memories, skills, cron, plugins) from the current profile. Excludes per-profile history: sessions, `state.db`, backups, state-snapshots, checkpoints. |
+| `--clone-from <profile>` | Clone config/skills/SOUL from a specific profile instead of the current one. Implies `--clone` unless paired with `--clone-all`. |
 | `--no-alias` | Skip wrapper script creation. |
-| `--description "<text>"` | One- or two-sentence description of what this profile is good at. Used by the kanban orchestrator to route tasks based on role instead of profile name alone. Skip and add later via `muse profile describe`. Persisted in `<profile_dir>/profile.yaml`. |
-| `--no-skills` | Create an **empty** profile with zero bundled skills enabled. Writes a `.no-skills` marker into the profile so future `muse update` runs won't re-seed the bundled set, and refuses to combine with `--clone` / `--clone-all` (which would copy skills in anyway). Useful for narrow orchestrator profiles or sandbox profiles that should not inherit the full skill catalog. |
+| `--description "<text>"` | One- or two-sentence description of what this profile is good at. Used by the kanban orchestrator to route tasks based on role instead of profile name alone. Skip and add later via `hermes profile describe`. Persisted in `<profile_dir>/profile.yaml`. |
+| `--no-skills` | Create an **empty** profile with zero bundled skills enabled. Writes a `.no-bundled-skills` marker into the profile so future `hermes update` runs won't re-seed the bundled set, and refuses to combine with `--clone`, `--clone-from`, or `--clone-all` (which would copy skills in anyway). Useful for narrow orchestrator profiles or sandbox profiles that should not inherit the full skill catalog. To toggle this on an already-created profile (including the default `~/.hermes`), use `hermes skills opt-out` / `hermes skills opt-in`. |
 
 Creating a profile does **not** make that profile directory the default project/workspace directory for terminal commands. If you want a profile to start in a specific project, set `terminal.cwd` in that profile's `config.yaml`.
 
@@ -92,22 +93,25 @@ Creating a profile does **not** make that profile directory the default project/
 
 ```bash
 # Blank profile — needs full setup
-muse profile create mybot
+hermes profile create mybot
 
 # Clone config only from current profile
-muse profile create work --clone
+hermes profile create work --clone
 
 # Clone everything from current profile
-muse profile create backup --clone-all
+hermes profile create backup --clone-all
 
 # Clone config from a specific profile
-muse profile create work2 --clone --clone-from work
+hermes profile create work2 --clone-from work
+
+# Clone everything from a specific profile
+hermes profile create work2-backup --clone-from work --clone-all
 ```
 
-## `muse profile describe`
+## `hermes profile describe`
 
 ```bash
-muse profile describe [<name>] [options]
+hermes profile describe [<name>] [options]
 ```
 
 Read or set a profile's description. The description is consumed by the kanban orchestrator to route tasks based on what each profile is good at, rather than guessing from the profile name alone. Persisted in `<profile_dir>/profile.yaml` so it survives reboots and is shared with the gateway.
@@ -126,22 +130,22 @@ With no flags, prints the current description (or `(no description set for '<nam
 
 ```bash
 # Read the current description
-muse profile describe researcher
+hermes profile describe researcher
 
 # Set it explicitly
-muse profile describe researcher --text "Reads source code and writes findings."
+hermes profile describe researcher --text "Reads source code and writes findings."
 
 # Let the LLM generate one
-muse profile describe researcher --auto
+hermes profile describe researcher --auto
 
 # Fill in descriptions for every profile that doesn't have one
-muse profile describe --all --auto
+hermes profile describe --all --auto
 ```
 
-## `muse profile delete`
+## `hermes profile delete`
 
 ```bash
-muse profile delete <name> [options]
+hermes profile delete <name> [options]
 ```
 
 Deletes a profile and removes its shell alias.
@@ -154,23 +158,23 @@ Deletes a profile and removes its shell alias.
 **Example:**
 
 ```bash
-muse profile delete mybot
-muse profile delete mybot --yes
+hermes profile delete mybot
+hermes profile delete mybot --yes
 ```
 
 :::warning
 This permanently deletes the profile's entire directory including all config, memories, sessions, and skills. Cannot delete the currently active profile.
 :::
 
-## `muse profile show`
+## `hermes profile show`
 
 ```bash
-muse profile show <name>
+hermes profile show <name>
 ```
 
 Displays details about a profile including its home directory, configured model, gateway status, skills count, and configuration file status.
 
-This shows the profile's muse home directory, not the terminal working directory. Terminal commands start from `terminal.cwd` (or the launch directory on the local backend when `cwd: "."`).
+This shows the profile's Hermes home directory, not the terminal working directory. Terminal commands start from `terminal.cwd` (or the launch directory on the local backend when `cwd: "."`).
 
 | Argument | Description |
 |----------|-------------|
@@ -179,7 +183,7 @@ This shows the profile's muse home directory, not the terminal working directory
 **Example:**
 
 ```bash
-$ muse profile show work
+$ hermes profile show work
 Profile: work
 Path:    ~/.hermes/profiles/work
 Model:   anthropic/claude-sonnet-4 (anthropic)
@@ -190,13 +194,13 @@ SOUL.md: exists
 Alias:   ~/.local/bin/work
 ```
 
-## `muse profile alias`
+## `hermes profile alias`
 
 ```bash
-muse profile alias <name> [options]
+hermes profile alias <name> [options]
 ```
 
-Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias was accidentally deleted or if you need to update it after moving your muse installation.
+Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias was accidentally deleted or if you need to update it after moving your Hermes installation.
 
 | Argument / Option | Description |
 |-------------------|-------------|
@@ -207,20 +211,20 @@ Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias
 **Example:**
 
 ```bash
-muse profile alias work
+hermes profile alias work
 # Creates/updates ~/.local/bin/work
 
-muse profile alias work --name mywork
+hermes profile alias work --name mywork
 # Creates ~/.local/bin/mywork
 
-muse profile alias work --remove
+hermes profile alias work --remove
 # Removes the wrapper script
 ```
 
-## `muse profile rename`
+## `hermes profile rename`
 
 ```bash
-muse profile rename <old-name> <new-name>
+hermes profile rename <old-name> <new-name>
 ```
 
 Renames a profile. Updates the directory and shell alias.
@@ -233,15 +237,15 @@ Renames a profile. Updates the directory and shell alias.
 **Example:**
 
 ```bash
-muse profile rename mybot assistant
+hermes profile rename mybot assistant
 # ~/.hermes/profiles/mybot → ~/.hermes/profiles/assistant
 # ~/.local/bin/mybot → ~/.local/bin/assistant
 ```
 
-## `muse profile export`
+## `hermes profile export`
 
 ```bash
-muse profile export <name> [options]
+hermes profile export <name> [options]
 ```
 
 Exports a profile as a compressed tar.gz archive.
@@ -254,16 +258,16 @@ Exports a profile as a compressed tar.gz archive.
 **Example:**
 
 ```bash
-muse profile export work
+hermes profile export work
 # Creates work.tar.gz in the current directory
 
-muse profile export work -o ./work-2026-03-29.tar.gz
+hermes profile export work -o ./work-2026-03-29.tar.gz
 ```
 
-## `muse profile import`
+## `hermes profile import`
 
 ```bash
-muse profile import <archive> [options]
+hermes profile import <archive> [options]
 ```
 
 Imports a profile from a tar.gz archive.
@@ -276,10 +280,10 @@ Imports a profile from a tar.gz archive.
 **Example:**
 
 ```bash
-muse profile import ./work-2026-03-29.tar.gz
+hermes profile import ./work-2026-03-29.tar.gz
 # Infers profile name from the archive
 
-muse profile import ./work-2026-03-29.tar.gz --name work-restored
+hermes profile import ./work-2026-03-29.tar.gz --name work-restored
 ```
 
 ## Distribution commands
@@ -301,16 +305,16 @@ The recipient's user data (memories, sessions, auth, their own edits to
 updates.
 
 :::info
-`muse profile export` / `import` are still the right commands for
+`hermes profile export` / `import` are still the right commands for
 **local backup and restore** of a profile on your own machine. Distribution
 (`install` / `update` / `info`) is a separate concept: ship a profile via
 git so someone else can install it.
 :::
 
-### `muse profile install`
+### `hermes profile install`
 
 ```bash
-muse profile install <source> [--name <name>] [--alias] [--force] [--yes]
+hermes profile install <source> [--name <name>] [--alias] [--force] [--yes]
 ```
 
 Installs a profile distribution from a git URL or a local directory.
@@ -319,7 +323,7 @@ Installs a profile distribution from a git URL or a local directory.
 |--------|-------------|
 | `<source>` | Git URL (`github.com/user/repo`, `https://...`, `git@...`, `ssh://`, `git://`) or a local directory containing `distribution.yaml` at its root. |
 | `--name NAME` | Override the profile name from the manifest. |
-| `--alias` | Also create a shell wrapper (e.g. `telemetry` → `muse -p telemetry`). |
+| `--alias` | Also create a shell wrapper (e.g. `telemetry` → `hermes -p telemetry`). |
 | `--force` | Overwrite an existing profile of the same name. User data is still preserved. |
 | `-y`, `--yes` | Skip the manifest-preview confirmation prompt. |
 
@@ -331,22 +335,22 @@ cron jobs before asking for confirmation. Required env vars go into a
 
 ```bash
 # Install from a GitHub repo (shorthand)
-muse profile install github.com/kyle/telemetry-distribution --alias
+hermes profile install github.com/kyle/telemetry-distribution --alias
 
 # Install from a full HTTPS git URL
-muse profile install https://github.com/kyle/telemetry-distribution.git
+hermes profile install https://github.com/kyle/telemetry-distribution.git
 
 # Install from SSH
-muse profile install git@github.com:kyle/telemetry-distribution.git
+hermes profile install git@github.com:kyle/telemetry-distribution.git
 
 # Install from a local directory during development
-muse profile install ./telemetry/
+hermes profile install ./telemetry/
 ```
 
-### `muse profile update`
+### `hermes profile update`
 
 ```bash
-muse profile update <name> [--force-config] [--yes]
+hermes profile update <name> [--force-config] [--yes]
 ```
 
 Re-clones the distribution from its recorded source and applies updates.
@@ -356,21 +360,21 @@ overwritten; user data (memories, sessions, auth, .env) is never touched.
 `config.yaml` is preserved by default to keep your local overrides.
 Pass `--force-config` to reset it to the distribution's shipped config.
 
-### `muse profile info`
+### `hermes profile info`
 
 ```bash
-muse profile info <name>
+hermes profile info <name>
 ```
 
 Prints the profile's distribution manifest — name, version, required
-muse version, author, env var requirements, the source URL/path, and
+Hermes version, author, env var requirements, the source URL/path, and
 the `Installed:` timestamp recorded when the distribution was last
 `install`-ed or `update`-d. Useful for checking what a shared profile
 needs before installing it, and for spotting "this profile was installed
 6 months ago and hasn't been updated."
 
-`muse profile list` also shows the distribution name and version in a
-`Distribution` column, and `muse profile show <name>` / `delete <name>`
+`hermes profile list` also shows the distribution name and version in a
+`Distribution` column, and `hermes profile show <name>` / `delete <name>`
 surface the source URL so you can tell at a glance which profiles came
 from a git repo vs. were created locally.
 
@@ -384,10 +388,10 @@ transparently.
 
 ```bash
 # Uses your SSH key, the same as any other `git clone`
-muse profile install git@github.com:your-org/internal-assistant.git
+hermes profile install git@github.com:your-org/internal-assistant.git
 
 # Uses your git credential helper
-muse profile install https://github.com/your-org/internal-assistant.git
+hermes profile install https://github.com/your-org/internal-assistant.git
 ```
 
 If a clone prompts for credentials interactively in your terminal during
@@ -422,7 +426,7 @@ distribution_owned:   # optional; defaults to SOUL.md, config.yaml,
 
 `hermes_requires` supports `>=`, `<=`, `==`, `!=`, `>`, `<`, or a bare
 version (treated as `>=`). Install fails with a clear error if the current
-muse version doesn't satisfy the spec.
+Hermes version doesn't satisfy the spec.
 
 `distribution_owned` is optional. If set, only those paths are replaced on
 update; anything else in the profile stays user-owned. If omitted, the
@@ -435,20 +439,20 @@ Authoring a distribution is just a git push:
 1. In your profile directory, create `distribution.yaml` with at least `name`
    and `version`.
 2. Initialize a git repo (or use an existing one) and push to GitHub /
-   GitLab / any host muse can clone from.
-3. Tell recipients to run `muse profile install <your-repo-url>`.
+   GitLab / any host Hermes can clone from.
+3. Tell recipients to run `hermes profile install <your-repo-url>`.
 
 Use git tags for versioned releases — recipients who clone `HEAD` get your
 latest state, and you can always bump `version:` in the manifest.
 
-## `muse -p` / `muse --profile`
+## `hermes -p` / `hermes --profile`
 
 ```bash
-muse -p <name> <command> [options]
-muse --profile <name> <command> [options]
+hermes -p <name> <command> [options]
+hermes --profile <name> <command> [options]
 ```
 
-Global flag to run any muse command under a specific profile without changing the sticky default. This overrides the active profile for the duration of the command.
+Global flag to run any Hermes command under a specific profile without changing the sticky default. This overrides the active profile for the duration of the command.
 
 | Option | Description |
 |--------|-------------|
@@ -457,16 +461,16 @@ Global flag to run any muse command under a specific profile without changing th
 **Examples:**
 
 ```bash
-muse -p work chat -q "Check the server status"
-muse --profile dev gateway start
-muse -p personal skills list
-muse -p work config edit
+hermes -p work chat -q "Check the server status"
+hermes --profile dev gateway start
+hermes -p personal skills list
+hermes -p work config edit
 ```
 
-## `muse completion`
+## `hermes completion`
 
 ```bash
-muse completion <shell>
+hermes completion <shell>
 ```
 
 Generates shell completion scripts. Includes completions for profile names and profile subcommands.
@@ -479,18 +483,18 @@ Generates shell completion scripts. Includes completions for profile names and p
 
 ```bash
 # Install completions
-muse completion bash >> ~/.bashrc
-muse completion zsh >> ~/.zshrc
-muse completion fish > ~/.config/fish/completions/hermes.fish
+hermes completion bash >> ~/.bashrc
+hermes completion zsh >> ~/.zshrc
+hermes completion fish > ~/.config/fish/completions/hermes.fish
 
 # Reload shell
 source ~/.bashrc
 ```
 
 After installation, tab completion works for:
-- `muse profile <TAB>` — subcommands (list, use, create, etc.)
-- `muse profile use <TAB>` — profile names
-- `muse -p <TAB>` — profile names
+- `hermes profile <TAB>` — subcommands (list, use, create, etc.)
+- `hermes profile use <TAB>` — profile names
+- `hermes -p <TAB>` — profile names
 
 ## See also
 

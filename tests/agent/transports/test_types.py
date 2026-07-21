@@ -1,7 +1,6 @@
 """Tests for agent/transports/types.py — dataclass construction + helpers."""
 
 import json
-import pytest
 
 from agent.transports.types import (
     NormalizedResponse,
@@ -35,7 +34,6 @@ class TestToolCall:
             arguments="{}",
             provider_data={"call_id": "call_x", "response_item_id": "fc_x"},
         )
-        assert tc.provider_data is not None
         assert tc.provider_data["call_id"] == "call_x"
         assert tc.provider_data["response_item_id"] == "fc_x"
 
@@ -75,7 +73,6 @@ class TestNormalizedResponse:
         tcs = [ToolCall(id="call_1", name="terminal", arguments='{"cmd":"pwd"}')]
         r = NormalizedResponse(content=None, tool_calls=tcs, finish_reason="tool_calls")
         assert r.finish_reason == "tool_calls"
-        assert r.tool_calls is not None
         assert len(r.tool_calls) == 1
         assert r.tool_calls[0].name == "terminal"
 
@@ -95,7 +92,6 @@ class TestNormalizedResponse:
             finish_reason="stop",
             provider_data={"reasoning_details": [{"type": "thinking", "thinking": "hmm"}]},
         )
-        assert r.provider_data is not None
         assert r.provider_data["reasoning_details"][0]["type"] == "thinking"
 
 

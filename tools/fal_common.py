@@ -48,7 +48,7 @@ def import_fal_client() -> Any:
         pass
     except Exception as exc:  # noqa: BLE001 — lazy_deps surfaces install hints
         raise ImportError(str(exc))
-    import fal_client  # noqa: WPS433 — intentionally lazy
+    import fal_client  # type: ignore  # noqa: WPS433 — intentionally lazy
     return fal_client
 
 
@@ -99,9 +99,9 @@ class _ManagedFalSyncClient:
         self._queue_url_format = _normalize_fal_queue_url_format(queue_run_origin)
         self._sync_client = sync_client_class(key=key)
         self._http_client = getattr(self._sync_client, "_client", None)
-        self._maybe_retry_request: Any = getattr(client_module, "_maybe_retry_request", None)
-        self._raise_for_status: Any = getattr(client_module, "_raise_for_status", None)
-        self._request_handle_class: Any = getattr(client_module, "SyncRequestHandle", None)
+        self._maybe_retry_request = getattr(client_module, "_maybe_retry_request", None)
+        self._raise_for_status = getattr(client_module, "_raise_for_status", None)
+        self._request_handle_class = getattr(client_module, "SyncRequestHandle", None)
         self._add_hint_header = getattr(client_module, "add_hint_header", None)
         self._add_priority_header = getattr(client_module, "add_priority_header", None)
         self._add_timeout_header = getattr(client_module, "add_timeout_header", None)

@@ -13,7 +13,7 @@ import pytest
 
 if "dotenv" not in sys.modules:
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
     sys.modules["dotenv"] = fake_dotenv
 
 from hermes_cli.auth import resolve_provider
@@ -80,14 +80,6 @@ class TestGmiConfigRegistry:
 
 
 class TestGmiModelCatalog:
-    def test_static_model_fallback_exists(self):
-        assert "gmi" in _PROVIDER_MODELS
-        models = _PROVIDER_MODELS["gmi"]
-        assert "zai-org/GLM-5.1-FP8" in models
-        assert "deepseek-ai/DeepSeek-V3.2" in models
-        assert "moonshotai/Kimi-K2.5" in models
-        assert "anthropic/claude-sonnet-4.6" in models
-
     def test_canonical_provider_entry(self):
         slugs = [p.slug for p in CANONICAL_PROVIDERS]
         assert "gmi" in slugs
@@ -126,17 +118,11 @@ class TestGmiModelCatalog:
             },
         )
         monkeypatch.setattr("hermes_cli.models.fetch_api_models", lambda api_key, base_url: None)
-        # provider_model_ids("gmi") has two live-fetch layers: the explicit GMI
-        # branch (fetch_api_models, mocked above) and the generic profile block,
-        # which calls ProviderProfile.fetch_models — a real urllib GET to
-        # api.gmi-serving.com/v1/models. Left unmocked, that endpoint's response
-        # varies by runner/network (200 -> live list; 4xx/timeout -> fallback),
-        # which made this assertion flaky under xdist. Force the offline path so
-        # we exercise only the static fallback this test is named for (the
-        # profile's fallback_models equals _PROVIDER_MODELS["gmi"]).
+        # Generic profile path uses ProviderProfile.fetch_models (urllib), not
+        # fetch_api_models — must stub it or CI can hit the real endpoint.
         monkeypatch.setattr(
             "providers.base.ProviderProfile.fetch_models",
-            lambda self, **kwargs: None,
+            lambda self, *, api_key=None, base_url=None, timeout=8.0: None,
         )
 
         assert provider_model_ids("gmi") == list(_PROVIDER_MODELS["gmi"])
@@ -195,7 +181,6 @@ class TestGmiDoctor:
             "DASHSCOPE_API_KEY",
             "MINIMAX_API_KEY",
             "MINIMAX_CN_API_KEY",
-            "AI_GATEWAY_API_KEY",
             "KILOCODE_API_KEY",
             "OPENCODE_ZEN_API_KEY",
             "OPENCODE_GO_API_KEY",
@@ -280,11 +265,6 @@ class TestGmiModelMetadata:
 
 
 class TestGmiAuxiliary:
-    def test_aux_default_model(self):
-        from agent.auxiliary_client import _get_aux_model_for_provider
-
-        assert _get_aux_model_for_provider("gmi") == "google/gemini-3.1-flash-lite-preview"
-
     def test_resolve_provider_client_uses_gmi_aux_default(self, monkeypatch):
         monkeypatch.setenv("GMI_API_KEY", "gmi-test-key")
 

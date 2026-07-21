@@ -106,7 +106,7 @@ and straight-line distance for comparison.
 ### directions — Turn-by-turn navigation
 
 ```bash
-python3 $MAPS directions "Eiffel Tower" --to "Louvre museum" --mode walking
+python3 $MAPS directions "Eiffel Tower" --to "Louvre Museum" --mode walking
 python3 $MAPS directions "JFK Airport" --to "Times Square" --mode driving
 ```
 

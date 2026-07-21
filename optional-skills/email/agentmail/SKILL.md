@@ -115,7 +115,7 @@ All 11 AgentMail tools are now available automatically.
 ## Verification
 After setup, test with:
 ```
-muse --toolsets mcp -q "Create an AgentMail inbox called test-agent and tell me its email address"
+hermes --toolsets mcp -q "Create an AgentMail inbox called test-agent and tell me its email address"
 ```
 You should see the new inbox address returned.
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "plugin_api.py"
 spec = importlib.util.spec_from_file_location("plugin_api", MODULE_PATH)
-plugin_api = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
-spec.loader.exec_module(plugin_api)  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+plugin_api = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(plugin_api)
 
 
 class AchievementEngineTests(unittest.TestCase):
@@ -150,6 +150,21 @@ class AchievementEngineTests(unittest.TestCase):
         self.assertEqual(stats["config_events"], 0)
         stats = plugin_api.analyze_messages("s2", "Real config", [{"content": "edited config.yaml, manifest.json, and .env.local"}])
         self.assertGreaterEqual(stats["config_events"], 3)
+
+    def test_dashboard_card_hover_does_not_move_click_target(self):
+        style_css = (
+            Path(__file__).resolve().parents[1]
+            / "dashboard"
+            / "dist"
+            / "style.css"
+        ).read_text(encoding="utf-8")
+
+        hover_rule = next(
+            line for line in style_css.splitlines() if line.startswith(".ha-card:hover")
+        )
+        self.assertNotIn("transform:", hover_rule)
+        self.assertIn("border-color: var(--ha-tier)", hover_rule)
+        self.assertIn("box-shadow:", hover_rule)
 
 
 if __name__ == "__main__":

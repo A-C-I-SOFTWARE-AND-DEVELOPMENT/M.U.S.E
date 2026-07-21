@@ -49,8 +49,7 @@ from gateway.platforms.base import (
     MessageEvent,
     MessageType,
 )
-from gateway.session import SessionSource
-from gateway.config import PlatformConfig, Platform
+from gateway.config import Platform
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +107,10 @@ class IRCAdapter(BasePlatformAdapter):
 
         # Connection settings (env vars override config.yaml)
         self.server = os.getenv("IRC_SERVER") or extra.get("server", "")
-        self.port = int(os.getenv("IRC_PORT") or extra.get("port", 6697))
+        try:
+            self.port = int(os.getenv("IRC_PORT") or extra.get("port", 6697))
+        except (ValueError, TypeError):
+            self.port = 6697
         self.nickname = os.getenv("IRC_NICKNAME") or extra.get("nickname", "hermes-bot")
         self.channel = os.getenv("IRC_CHANNEL") or extra.get("channel", "")
         self.use_tls = (
@@ -150,7 +152,7 @@ class IRCAdapter(BasePlatformAdapter):
 
     # ── Connection lifecycle ──────────────────────────────────────────────
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to the IRC server, register, and join the channel."""
         if not self.server or not self.channel:
             logger.error("IRC: server and channel must be configured")
@@ -191,7 +193,7 @@ class IRCAdapter(BasePlatformAdapter):
         if self.server_password:
             await self._send_raw(f"PASS {self.server_password}")
         await self._send_raw(f"NICK {self.nickname}")
-        await self._send_raw(f"USER {self.nickname} 0 * :muse")
+        await self._send_raw(f"USER {self.nickname} 0 * :Hermes Agent")
 
         # Start receive loop
         self._recv_task = asyncio.create_task(self._receive_loop())
@@ -223,13 +225,13 @@ class IRCAdapter(BasePlatformAdapter):
         if getattr(self, "_lock_key", None):
             try:
                 from gateway.status import release_scoped_lock
-                release_scoped_lock("irc", self._lock_key)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+                release_scoped_lock("irc", self._lock_key)
             except Exception:
                 pass
         self._mark_disconnected()
         if self._writer and not self._writer.is_closing():
             try:
-                await self._send_raw("QUIT :muse shutting down")
+                await self._send_raw("QUIT :Hermes Agent shutting down")
                 await asyncio.sleep(0.5)
             except Exception:
                 pass
@@ -557,7 +559,7 @@ def interactive_setup() -> None:
         if not prompt_yes_no("Reconfigure IRC?", False):
             return
 
-    print_info("Connect muse to an IRC network. Uses Python stdlib — no extra packages needed.")
+    print_info("Connect Hermes to an IRC network. Uses Python stdlib — no extra packages needed.")
     print_info("   Works with Libera.Chat, OFTC, your own ZNC/InspIRCd, etc.")
     print()
 
@@ -798,7 +800,7 @@ async def _standalone_send(
         if server_password:
             await _raw(f"PASS {_strip_irc_control_chars(server_password)}")
         await _raw(f"NICK {standalone_nick}")
-        await _raw(f"USER {standalone_nick} 0 * :muse (cron)")
+        await _raw(f"USER {standalone_nick} 0 * :Hermes Agent (cron)")
 
         loop = asyncio.get_running_loop()
         deadline = loop.time() + 15.0

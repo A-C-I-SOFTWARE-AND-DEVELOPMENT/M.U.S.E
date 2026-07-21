@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from agent.gemini_native_adapter import (
     gemini_http_error,
@@ -87,7 +86,7 @@ class TestProbeGeminiTier:
     def test_empty_key_returns_unknown(self):
         assert probe_gemini_tier("") == "unknown"
         assert probe_gemini_tier("   ") == "unknown"
-        assert probe_gemini_tier(None) == "unknown"  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+        assert probe_gemini_tier(None) == "unknown"  # type: ignore[arg-type]
 
     def test_malformed_rpd_header_falls_through(self):
         # Non-integer header value shouldn't crash; 200 with no usable header -> paid.
@@ -127,7 +126,7 @@ class TestIsFreeTierQuotaError:
         assert not is_free_tier_quota_error("")
 
     def test_none(self):
-        assert not is_free_tier_quota_error(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+        assert not is_free_tier_quota_error(None)  # type: ignore[arg-type]
 
 
 class TestGeminiHttpErrorFreeTierGuidance:
@@ -145,22 +144,22 @@ class TestGeminiHttpErrorFreeTierGuidance:
             "generativelanguage.googleapis.com/generate_content_free_tier_requests, "
             'limit: 20","status":"RESOURCE_EXHAUSTED"}}'
         )
-        err = gemini_http_error(self._FakeResp(429, body))  # ty: ignore[invalid-argument-type]
+        err = gemini_http_error(self._FakeResp(429, body))
         msg = str(err)
         assert "free tier" in msg.lower()
         assert "aistudio.google.com/apikey" in msg
 
     def test_paid_429_has_no_billing_url(self):
         body = '{"error":{"code":429,"message":"Rate limited","status":"RESOURCE_EXHAUSTED"}}'
-        err = gemini_http_error(self._FakeResp(429, body))  # ty: ignore[invalid-argument-type]
+        err = gemini_http_error(self._FakeResp(429, body))
         assert "aistudio.google.com/apikey" not in str(err)
 
     def test_non_429_has_no_billing_url(self):
         body = '{"error":{"code":400,"message":"bad request","status":"INVALID_ARGUMENT"}}'
-        err = gemini_http_error(self._FakeResp(400, body))  # ty: ignore[invalid-argument-type]
+        err = gemini_http_error(self._FakeResp(400, body))
         assert "aistudio.google.com/apikey" not in str(err)
 
     def test_401_has_no_billing_url(self):
         body = '{"error":{"code":401,"message":"API key invalid","status":"UNAUTHENTICATED"}}'
-        err = gemini_http_error(self._FakeResp(401, body))  # ty: ignore[invalid-argument-type]
+        err = gemini_http_error(self._FakeResp(401, body))
         assert "aistudio.google.com/apikey" not in str(err)

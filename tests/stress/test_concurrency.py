@@ -21,7 +21,6 @@ import multiprocessing as mp
 import os
 import random
 import sqlite3
-import subprocess
 import sys
 import tempfile
 import time
@@ -86,7 +85,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                 "kind": "claimed",
                 "task": tid,
                 "worker": worker_id,
-                "run_id": run.id,  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                "run_id": run.id,
                 "t": time.monotonic() - start,
             })
 
@@ -98,7 +97,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                     conn, tid,
                     result=f"done by worker-{worker_id}",
                     summary=f"worker-{worker_id} finished task {tid}",
-                    metadata={"worker_id": worker_id, "run_id": run.id},  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                    metadata={"worker_id": worker_id, "run_id": run.id},
                 )
             except sqlite3.OperationalError as e:
                 events.append({"kind": "sqlite_err_on_complete", "task": tid, "err": str(e)})
@@ -107,7 +106,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                 "kind": "completed",
                 "task": tid,
                 "worker": worker_id,
-                "run_id": run.id,  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+                "run_id": run.id,
                 "t": time.monotonic() - start,
             })
         finally:
@@ -279,7 +278,7 @@ def main():
     print(f"Lost claim races:  {total_lost_races}  (expected contention; not a bug)")
     print(f"Elapsed:           {elapsed:.2f}s")
     print(f"Throughput:        {NUM_TASKS/elapsed:.1f} tasks/sec")
-    print(f"Per-worker completions:")
+    print("Per-worker completions:")
     for w in sorted(per_worker.keys()):
         print(f"  worker-{w}: {per_worker[w]}")
 

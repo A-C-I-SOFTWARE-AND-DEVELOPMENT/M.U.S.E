@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import re
 import sys
 import urllib.parse
@@ -71,7 +70,7 @@ def _wp_summary(title: str) -> dict:
     """Pull the REST summary for a title — short bio, image, type."""
     url = f"{WP_SUMMARY}{urllib.parse.quote(title.replace(' ', '_'))}"
     try:
-        return get_json(url)  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
+        return get_json(url)  # type: ignore[return-value]
     except Exception as e:  # noqa: BLE001
         print(f"Wikipedia summary lookup for {title!r} failed: {e}", file=sys.stderr)
         return {}

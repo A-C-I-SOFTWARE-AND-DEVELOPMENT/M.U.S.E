@@ -53,9 +53,9 @@ def _make_agent(*tool_names: str, max_iterations: int = 10, config: dict | None 
         )
     agent.client = MagicMock()
     agent._cached_system_prompt = "You are helpful."
-    agent._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
-    agent.tool_delay = 0  # ty: ignore[unresolved-attribute]
-    agent.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
+    agent._use_prompt_caching = False
+    agent.tool_delay = 0
+    agent.compression_enabled = False
     agent.save_trajectories = False
     return agent
 
@@ -92,7 +92,7 @@ def test_default_sequential_path_warns_repeated_exact_failure_without_blocking_e
     _seed_exact_failures(agent, "web_search", args)
     starts = []
     progress = []
-    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))  # ty: ignore[unresolved-attribute]
+    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))
     agent.tool_progress_callback = lambda *a, **k: progress.append((a, k))
     tc = _mock_tool_call("web_search", json.dumps(args), "c-soft")
     msg = SimpleNamespace(content="", tool_calls=[tc])
@@ -118,7 +118,7 @@ def test_config_enabled_hard_stop_blocks_repeated_exact_failure_before_execution
     _seed_exact_failures(agent, "web_search", args)
     starts = []
     progress = []
-    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))  # ty: ignore[unresolved-attribute]
+    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))
     agent.tool_progress_callback = lambda *a, **k: progress.append((a, k))
     tc = _mock_tool_call("web_search", json.dumps(args), "c-block")
     msg = SimpleNamespace(content="", tool_calls=[tc])
@@ -191,7 +191,7 @@ def test_config_enabled_hard_stop_concurrent_path_does_not_submit_blocked_calls_
     _seed_exact_failures(agent, "web_search", blocked_args)
     starts = []
     progress_events = []
-    agent.tool_start_callback = lambda tool_call_id, name, args: starts.append((tool_call_id, name, args))  # ty: ignore[unresolved-attribute]
+    agent.tool_start_callback = lambda tool_call_id, name, args: starts.append((tool_call_id, name, args))
     agent.tool_progress_callback = lambda event, name, preview, args, **kw: progress_events.append((event, name, args, kw))
     calls = [
         _mock_tool_call("web_search", json.dumps(blocked_args), "c-block"),
@@ -228,7 +228,7 @@ def test_plugin_pre_tool_block_wins_without_counting_as_toolguard_block():
     messages = []
 
     with (
-        patch("hermes_cli.plugins.get_pre_tool_call_block_message", return_value="plugin policy"),
+        patch("hermes_cli.plugins.resolve_pre_tool_block", return_value="plugin policy"),
         patch("run_agent.handle_function_call", return_value="SHOULD_NOT_RUN") as mock_hfc,
     ):
         agent._execute_tool_calls_sequential(msg, messages, "task-1")
@@ -250,7 +250,6 @@ def test_default_run_conversation_warns_without_guardrail_halt():
         for i in range(1, 4)
     ]
     responses.append(_mock_response(content="done", finish_reason="stop", tool_calls=None))
-    assert agent.client is not None
     agent.client.chat.completions.create.side_effect = responses
 
     with (
@@ -280,7 +279,6 @@ def test_config_enabled_hard_stop_run_conversation_returns_controlled_guardrail_
         )
         for i in range(1, 10)
     ]
-    assert agent.client is not None
     agent.client.chat.completions.create.side_effect = responses
 
     with (
@@ -306,3 +304,52 @@ def test_config_enabled_hard_stop_run_conversation_returns_controlled_guardrail_
         call_ids = [tc["id"] for tc in assistant_msg["tool_calls"]]
         following_results = [m for m in result["messages"] if m.get("role") == "tool" and m.get("tool_call_id") in call_ids]
         assert len(following_results) == len(call_ids)
+
+
+def test_guardrail_halt_emits_final_response_through_stream_delta_callback():
+    """Regression for #30770: when the guardrail halts the loop, the
+    synthesized halt message must be pushed through ``stream_delta_callback``
+    so SSE/TUI clients see why the agent stopped instead of a silent stream
+    close.  Without this the chat-completions SSE writer drains an empty
+    queue and emits a finish chunk with zero content (indistinguishable
+    from a crash for Open WebUI and similar clients).
+    """
+    agent = _make_agent("web_search", max_iterations=10, config=_hard_stop_config())
+    same_args = {"query": "same"}
+    responses = [
+        _mock_response(
+            content="",
+            finish_reason="tool_calls",
+            tool_calls=[_mock_tool_call("web_search", json.dumps(same_args), f"c{i}")],
+        )
+        for i in range(1, 10)
+    ]
+    agent.client.chat.completions.create.side_effect = responses
+
+    deltas: list = []
+    agent.stream_delta_callback = lambda d: deltas.append(d)
+    # The mocked client returns SimpleNamespace responses which aren't
+    # iterable as streaming chunks; force the non-streaming code path so
+    # the guardrail-halt branch is reached without engaging the real
+    # streaming machinery.
+    agent._disable_streaming = True
+
+    with (
+        patch("run_agent.handle_function_call", return_value=json.dumps({"error": "boom"})),
+        patch.object(agent, "_persist_session"),
+        patch.object(agent, "_save_trajectory"),
+        patch.object(agent, "_cleanup_task_resources"),
+    ):
+        result = agent.run_conversation("search repeatedly")
+
+    assert result["turn_exit_reason"] == "guardrail_halt"
+    halt_text = result["final_response"]
+    assert "stopped retrying" in halt_text
+
+    # The halt message must have been pushed through the callback at least
+    # once.  Empty-queue SSE writers were the bug — clients saw no content
+    # delta before the finish chunk.
+    text_deltas = [d for d in deltas if isinstance(d, str)]
+    assert halt_text in text_deltas, (
+        f"halt message was never streamed; callback only saw {deltas!r}"
+    )

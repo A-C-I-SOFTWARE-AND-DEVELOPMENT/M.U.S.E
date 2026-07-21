@@ -1,11 +1,8 @@
 """Tests for the IRC platform adapter plugin."""
 
 import asyncio
-import os
-import sys
 import pytest
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from tests.gateway._plugin_adapter_loader import load_plugin_adapter
 
@@ -581,7 +578,7 @@ class TestIRCStandaloneSend:
         # NICK uses the cron-suffixed identity to avoid colliding with the
         # long-running gateway adapter that may already hold the nickname.
         assert any(line.startswith("NICK hermesbot-cron") for line in sent_lines)
-        assert any(line.startswith("USER hermesbot-cron 0 * :muse (cron)")
+        assert any(line.startswith("USER hermesbot-cron 0 * :Hermes Agent (cron)")
                    for line in sent_lines)
         assert any(line == "PRIVMSG #cron :hello from cron" for line in sent_lines)
         assert any(line.startswith("QUIT ") for line in sent_lines)

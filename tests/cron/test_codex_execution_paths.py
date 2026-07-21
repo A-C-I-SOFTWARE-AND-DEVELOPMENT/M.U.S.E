@@ -4,9 +4,9 @@ import types
 from types import SimpleNamespace
 
 
-sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))  # ty: ignore[no-matching-overload]  # mock/duck-typed test fixture
-sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))  # ty: ignore[no-matching-overload]  # mock/duck-typed test fixture
-sys.modules.setdefault("fal_client", types.SimpleNamespace())  # ty: ignore[no-matching-overload]  # mock/duck-typed test fixture
+sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))
+sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))
+sys.modules.setdefault("fal_client", types.SimpleNamespace())
 
 import cron.scheduler as cron_scheduler
 import gateway.run as gateway_run
@@ -71,16 +71,15 @@ class _Codex401ThenSuccessAgent(run_agent.AIAgent):
         kwargs.setdefault("max_iterations", 4)
         type(self).last_init = dict(kwargs)
         super().__init__(*args, **kwargs)
-        self._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-        self._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-        self._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-        self._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        self._cleanup_task_resources = lambda task_id: None
+        self._persist_session = lambda messages, history=None: None
+        self._save_trajectory = lambda messages, user_message, completed: None
 
     def _try_refresh_codex_client_credentials(self, *, force: bool = True) -> bool:
         type(self).refresh_attempts += 1
         return True
 
-    def run_conversation(self, user_message: str, conversation_history=None, task_id=None):  # ty: ignore[invalid-method-override]  # mock/duck-typed test fixture
+    def run_conversation(self, user_message: str, conversation_history=None, task_id=None):
         calls = {"api": 0}
 
         def _fake_api_call(api_kwargs):
@@ -89,7 +88,7 @@ class _Codex401ThenSuccessAgent(run_agent.AIAgent):
                 raise _UnauthorizedError()
             return _codex_message_response("Recovered via refresh")
 
-        self._interruptible_api_call = _fake_api_call  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        self._interruptible_api_call = _fake_api_call
         return super().run_conversation(user_message, conversation_history=conversation_history, task_id=task_id)
 
 
@@ -99,7 +98,7 @@ def test_cron_run_job_codex_path_handles_internal_401_refresh(monkeypatch):
     monkeypatch.setattr(run_agent, "AIAgent", _Codex401ThenSuccessAgent)
     monkeypatch.setattr(
         "hermes_cli.runtime_provider.resolve_runtime_provider",
-        lambda requested=None: {
+        lambda requested=None, **kwargs: {
             "provider": "openai-codex",
             "api_mode": "codex_responses",
             "base_url": "https://chatgpt.com/backend-api/codex",

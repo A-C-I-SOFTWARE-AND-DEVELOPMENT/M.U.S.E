@@ -76,7 +76,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import quote as _urlquote
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,6 @@ from gateway.platforms.base import (
     cache_image_from_bytes,
 )
 from gateway.config import Platform
-from gateway.session import SessionSource
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +132,21 @@ DEFAULT_INTERRUPTED_TEXT = "Run was interrupted before completion."
 MEDIA_TOKEN_TTL_SECONDS = 1800  # 30 minutes; LINE caches the URL aggressively
 LINE_IMAGE_MAX_BYTES = 10 * 1024 * 1024  # 10 MB per LINE docs
 LINE_AV_MAX_BYTES = 200 * 1024 * 1024  # 200 MB for voice/video
+
+# Map LINE webhook message types to the normalized MessageType the gateway
+# routes on. LINE has no separate "voice" type — audio messages are recorded
+# voice clips, so they map to VOICE (which the gateway sends through STT),
+# mirroring how Telegram/WhatsApp classify voice notes. Anything unknown
+# falls back to TEXT.
+_LINE_MESSAGE_TYPES = {
+    "text": MessageType.TEXT,
+    "image": MessageType.PHOTO,
+    "video": MessageType.VIDEO,
+    "audio": MessageType.VOICE,
+    "file": MessageType.DOCUMENT,
+    "location": MessageType.LOCATION,
+    "sticker": MessageType.STICKER,
+}
 
 # A 1×1 transparent PNG used as fallback video preview thumbnail when no
 # explicit preview is supplied — LINE requires ``previewImageUrl`` for
@@ -259,7 +273,9 @@ def verify_line_signature(body: bytes, signature: str, channel_secret: str) -> b
         expected = base64.b64encode(digest).decode("utf-8")
     except Exception:
         return False
-    return hmac.compare_digest(expected, signature)
+    # Compare as bytes: compare_digest raises TypeError on a str with
+    # non-ASCII characters, and the signature is a raw request header.
+    return hmac.compare_digest(expected.encode(), signature.encode())
 
 
 # ---------------------------------------------------------------------------
@@ -726,7 +742,7 @@ class LineAdapter(BasePlatformAdapter):
     # Connection lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         if not self.channel_access_token or not self.channel_secret:
             self._set_fatal_error(
                 "config_missing",
@@ -969,7 +985,7 @@ class LineAdapter(BasePlatformAdapter):
 
         event_obj = MessageEvent(
             text=text,
-            message_type=MessageType.TEXT if msg_type == "text" else MessageType.IMAGE,  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+            message_type=_LINE_MESSAGE_TYPES.get(msg_type, MessageType.TEXT),
             source=source_obj,
             raw_message=event,
             message_id=message_id,
@@ -1192,7 +1208,7 @@ class LineAdapter(BasePlatformAdapter):
                 self.pending_text, self.button_label, rid
             )
             try:
-                await self._client.reply(token, [msg])  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+                await self._client.reply(token, [msg])
                 logger.info("LINE: sent slow-LLM postback button for chat %s (rid=%s)", chat_id, rid)
             except Exception as exc:
                 logger.warning("LINE: postback button send failed: %s", exc)
@@ -1308,9 +1324,7 @@ class LineAdapter(BasePlatformAdapter):
         chat_id: str,
         image_path: str,
         caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs,
     ) -> SendResult:
         path = Path(image_path)
         if not path.exists() or not path.is_file():
@@ -1339,12 +1353,8 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        *,
         duration_ms: int = 1000,
-        **kwargs,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> SendResult:
         path = Path(audio_path)
         if not path.exists() or not path.is_file():
@@ -1367,12 +1377,8 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        *,
         preview_path: Optional[str] = None,
-        **kwargs,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> SendResult:
         path = Path(video_path)
         if not path.exists() or not path.is_file():
@@ -1585,7 +1591,7 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from hermes_cli.config import get_env_var, set_env_var  # ty: ignore[unresolved-import]  # dynamic config/plugin path
+        from hermes_cli.config import get_env_var, set_env_var
     except ImportError:
         print("hermes_cli.config not available; set LINE_* vars manually in ~/.hermes/.env")
         return
@@ -1595,8 +1601,8 @@ def interactive_setup() -> None:
         suffix = " [keep current]" if existing else ""
         try:
             if secret:
-                import getpass
-                value = getpass.getpass(f"{prompt}{suffix}: ")
+                from hermes_cli.secret_prompt import masked_secret_prompt
+                value = masked_secret_prompt(f"{prompt}{suffix}: ")
             else:
                 value = input(f"{prompt}{suffix}: ").strip()
         except (EOFError, KeyboardInterrupt):

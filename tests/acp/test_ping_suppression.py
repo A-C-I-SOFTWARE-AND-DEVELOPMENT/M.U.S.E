@@ -16,8 +16,6 @@ from io import StringIO
 
 import pytest
 
-pytest.importorskip("acp")
-
 from acp.exceptions import RequestError
 
 from acp_adapter.entry import _BenignProbeMethodFilter
@@ -172,7 +170,7 @@ async def test_bare_ping_request_produces_proper_response_and_no_stderr_noise(
 
         agent_task = asyncio.create_task(
             acp.run_agent(
-                _FakeAgent(),  # ty: ignore[invalid-argument-type]
+                _FakeAgent(),
                 input_stream=agent_output,
                 output_stream=agent_input,
                 use_unstable_protocol=True,

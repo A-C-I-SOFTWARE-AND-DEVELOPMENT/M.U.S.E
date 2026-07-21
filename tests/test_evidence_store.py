@@ -1,5 +1,3 @@
-import os
-import json
 import pytest
 from pathlib import Path
 import importlib.util
@@ -9,8 +7,8 @@ repo_root = Path(__file__).parent.parent
 script_path = repo_root / "optional-skills" / "security" / "oss-forensics" / "scripts" / "evidence-store.py"
 
 spec = importlib.util.spec_from_file_location("evidence_store", str(script_path))
-evidence_store = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
-spec.loader.exec_module(evidence_store)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+evidence_store = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(evidence_store)
 EvidenceStore = evidence_store.EvidenceStore
 
 

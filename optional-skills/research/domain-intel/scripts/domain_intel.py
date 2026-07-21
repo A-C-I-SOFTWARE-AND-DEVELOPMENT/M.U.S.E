@@ -23,7 +23,6 @@ import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from typing import cast
 
 
 # ─── Subdomain Discovery (crt.sh) ──────────────────────────────────────────
@@ -87,7 +86,7 @@ def check_ssl(host, port=443, timeout=10):
         ctx = ssl.create_default_context()
         with socket.create_connection((host, port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as s:
-                cert, cipher, proto = cast(dict, s.getpeercert()), s.cipher(), s.version()
+                cert, cipher, proto = s.getpeercert(), s.cipher(), s.version()
     except ssl.SSLCertVerificationError as e:
         warning = str(e)
         ctx = ssl.create_default_context()
@@ -95,7 +94,7 @@ def check_ssl(host, port=443, timeout=10):
         ctx.verify_mode = ssl.CERT_NONE
         with socket.create_connection((host, port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as s:
-                cert, cipher, proto = cast(dict, s.getpeercert()), s.cipher(), s.version()
+                cert, cipher, proto = s.getpeercert(), s.cipher(), s.version()
 
     not_after = parse_date(cert.get("notAfter", ""))
     now = datetime.now(timezone.utc)

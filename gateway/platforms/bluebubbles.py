@@ -14,8 +14,9 @@ import logging
 import os
 import re
 import uuid
+from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 import httpx
@@ -39,9 +40,22 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 DEFAULT_WEBHOOK_HOST = "127.0.0.1"
+# BlueBubbles webhook events are small JSON/form payloads; attachments come
+# through the REST API, not the webhook. 1 MiB is generous headroom while
+# keeping oversized/chunked bodies from being buffered unbounded.
+_WEBHOOK_MAX_BODY_BYTES = 1_048_576
 DEFAULT_WEBHOOK_PORT = 8645
 DEFAULT_WEBHOOK_PATH = "/bluebubbles-webhook"
 MAX_TEXT_LENGTH = 4000
+
+# BlueBubbles/iMessage does not expose a stable bot mention identity like
+# Slack (<@U...>), Telegram (@botname), or Matrix (MXID). When users opt into
+# group mention gating without custom aliases, use conservative Hermes wake
+# words so `require_mention: true` is a one-line enablement path.
+DEFAULT_MENTION_PATTERNS = [
+    r"(?<![\w@])@?hermes\s+agent\b[,:\-]?",
+    r"(?<![\w@])@?hermes\b[,:\-]?",
+]
 
 # Tapback reaction codes (BlueBubbles associatedMessageType values)
 _TAPBACK_ADDED = {
@@ -59,6 +73,8 @@ _MESSAGE_EVENTS = {"new-message", "message", "updated-message"}
 # Log redaction patterns
 _PHONE_RE = re.compile(r"\+?\d{7,15}")
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+
+_GUID_CACHE_SIZE = 500  # LRU cap for resolved chat-GUID lookups
 
 
 def _redact(text: str) -> str:
@@ -101,6 +117,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
     platform = Platform.BLUEBUBBLES
     SUPPORTS_MESSAGE_EDITING = False
     MAX_MESSAGE_LENGTH = MAX_TEXT_LENGTH
+    splits_long_messages = True  # send() chunks via truncate_message(MAX_MESSAGE_LENGTH)
 
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.BLUEBUBBLES)
@@ -124,11 +141,20 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         if not str(self.webhook_path).startswith("/"):
             self.webhook_path = f"/{self.webhook_path}"
         self.send_read_receipts = bool(extra.get("send_read_receipts", True))
+        _require_mention = extra.get("require_mention")
+        if _require_mention is None:
+            _require_mention = os.getenv("BLUEBUBBLES_REQUIRE_MENTION")
+        self.require_mention = str(_require_mention).strip().lower() in {"true", "1", "yes", "on"}
+        self._mention_patterns = self._compile_mention_patterns(
+            extra["mention_patterns"]
+            if "mention_patterns" in extra
+            else os.getenv("BLUEBUBBLES_MENTION_PATTERNS")
+        )
         self.client: Optional[httpx.AsyncClient] = None
         self._runner = None
         self._private_api_enabled: Optional[bool] = None
         self._helper_connected: bool = False
-        self._guid_cache: Dict[str, str] = {}
+        self._guid_cache: OrderedDict[str, str] = OrderedDict()
 
     # ------------------------------------------------------------------
     # API helpers
@@ -137,6 +163,62 @@ class BlueBubblesAdapter(BasePlatformAdapter):
     def _api_url(self, path: str) -> str:
         sep = "&" if "?" in path else "?"
         return f"{self.server_url}{path}{sep}password={quote(self.password, safe='')}"
+
+    @staticmethod
+    def _compile_mention_patterns(raw: Any) -> List[re.Pattern]:
+        """Compile group-mention wake words from config/env.
+
+        ``raw`` is a list (from config or env JSON), a string (raw env var:
+        JSON list, or comma/newline-separated), or None (use Hermes defaults).
+        """
+        if raw is None:
+            patterns = list(DEFAULT_MENTION_PATTERNS)
+        elif isinstance(raw, str):
+            text = raw.strip()
+            try:
+                loaded = json.loads(text) if text else []
+            except Exception:
+                loaded = None
+            patterns = loaded if isinstance(loaded, list) else [
+                part.strip()
+                for line in text.splitlines()
+                for part in line.split(",")
+            ]
+        elif isinstance(raw, list):
+            patterns = raw
+        else:
+            patterns = [raw]
+
+        compiled: List["re.Pattern"] = []
+        for pattern in patterns:
+            text = str(pattern).strip()
+            if not text:
+                continue
+            try:
+                compiled.append(re.compile(text, re.IGNORECASE))
+            except re.error as exc:
+                logger.warning("[bluebubbles] Invalid mention pattern %r: %s", text, exc)
+        return compiled
+
+    def _message_matches_mention_patterns(self, text: str) -> bool:
+        if not text or not self._mention_patterns:
+            return False
+        return any(pattern.search(text) for pattern in self._mention_patterns)
+
+    def _clean_mention_text(self, text: str) -> str:
+        """Strip a leading BlueBubbles wake word before dispatch.
+
+        Custom mention patterns are regular expressions, so stripping only a
+        leading match avoids deleting ordinary words later in the prompt.
+        """
+        if not text:
+            return text
+        for pattern in self._mention_patterns:
+            match = pattern.match(text.lstrip())
+            if match:
+                cleaned = text.lstrip()[match.end():].lstrip(" ,:-")
+                return cleaned or text
+        return text
 
     async def _api_get(self, path: str) -> Dict[str, Any]:
         assert self.client is not None
@@ -154,7 +236,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         if not self.server_url or not self.password:
             logger.error(
                 "[bluebubbles] BLUEBUBBLES_SERVER_URL and BLUEBUBBLES_PASSWORD are required"
@@ -164,7 +246,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
 
         # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
         from gateway.platforms._http_client_limits import platform_httpx_limits
-        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
+        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())
         try:
             await self._api_get("/api/v1/ping")
             info = await self._api_get("/api/v1/server/info")
@@ -186,10 +268,17 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                 self.client = None
             return False
 
-        app = web.Application()
-        app.router.add_get("/health", lambda _: web.Response(text="ok"))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
+        # Explicit body cap: BlueBubbles webhook events are small JSON (or
+        # form-encoded) payloads. client_max_size makes aiohttp enforce the
+        # cap on every read path — including chunked requests that carry no
+        # Content-Length (same pattern as webhook.py / raft, #58536/#58902).
+        app = web.Application(client_max_size=_WEBHOOK_MAX_BODY_BYTES)
+        app.router.add_get("/health", lambda _: web.Response(text="ok"))
         app.router.add_post(self.webhook_path, self._handle_webhook)
-        self._runner = web.AppRunner(app)
+        # The webhook auth value is carried in the query string because the
+        # BlueBubbles webhook API cannot send custom headers. Do not let
+        # aiohttp access logs write that request target to agent.log.
+        self._runner = web.AppRunner(app, access_log=None)
         await self._runner.setup()
         site = web.TCPSite(self._runner, self.webhook_host, self.webhook_port)
         await site.start()
@@ -242,6 +331,14 @@ class BlueBubblesAdapter(BasePlatformAdapter):
             return f"{base}?password={quote(self.password, safe='')}"
         return base
 
+    @property
+    def _webhook_register_url_for_log(self) -> str:
+        """Webhook registration URL safe for logs."""
+        base = self._webhook_url
+        if self.password:
+            return f"{base}?password=***"
+        return base
+
     async def _find_registered_webhooks(self, url: str) -> list:
         """Return list of BB webhook entries matching *url*."""
         try:
@@ -269,7 +366,8 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         existing = await self._find_registered_webhooks(webhook_url)
         if existing:
             logger.info(
-                "[bluebubbles] webhook already registered: %s", webhook_url
+                "[bluebubbles] webhook already registered: %s",
+                self._webhook_register_url_for_log,
             )
             return True
 
@@ -284,7 +382,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
             if 200 <= status < 300:
                 logger.info(
                     "[bluebubbles] webhook registered with server: %s",
-                    webhook_url,
+                    self._webhook_register_url_for_log,
                 )
                 return True
             else:
@@ -324,7 +422,8 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                     removed = True
             if removed:
                 logger.info(
-                    "[bluebubbles] webhook unregistered: %s", webhook_url
+                    "[bluebubbles] webhook unregistered: %s",
+                    self._webhook_register_url_for_log,
                 )
         except Exception as exc:
             logger.debug(
@@ -342,8 +441,15 @@ class BlueBubblesAdapter(BasePlatformAdapter):
 
         If *target* already contains a semicolon (raw GUID format like
         ``iMessage;-;user@example.com``), it is returned as-is.  Otherwise
-        the adapter queries the BlueBubbles chat list and matches on
-        ``chatIdentifier`` or participant address.
+        the adapter queries the BlueBubbles chat list and matches strictly
+        on ``chatIdentifier`` / ``identifier``.
+
+        Participant membership is intentionally NOT used as a fallback:
+        the same contact can appear in a 1:1 DM and in any number of group
+        chats, so a participant match would let an outbound DM reply leak
+        into a group thread (see #24157). When no exact chat identity
+        matches, return ``None`` and let the caller create a fresh DM
+        explicitly via ``_create_chat_for_handle``.
         """
         target = (target or "").strip()
         if not target:
@@ -352,11 +458,12 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         if ";" in target:
             return target
         if target in self._guid_cache:
+            self._guid_cache.move_to_end(target)
             return self._guid_cache[target]
         try:
             payload = await self._api_post(
                 "/api/v1/chat/query",
-                {"limit": 100, "offset": 0, "with": ["participants"]},
+                {"limit": 100, "offset": 0},
             )
             for chat in payload.get("data", []) or []:
                 guid = chat.get("guid") or chat.get("chatGuid")
@@ -364,11 +471,9 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                 if identifier == target:
                     if guid:
                         self._guid_cache[target] = guid
+                        while len(self._guid_cache) > _GUID_CACHE_SIZE:
+                            self._guid_cache.popitem(last=False)
                     return guid
-                for part in chat.get("participants", []) or []:
-                    if (part.get("address") or "").strip() == target and guid:
-                        self._guid_cache[target] = guid
-                        return guid
         except Exception:
             pass
         return None
@@ -380,7 +485,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         payload = {
             "addresses": [address],
             "message": message,
-            "tempGuid": f"temp-{datetime.utcnow().timestamp()}",  # ty: ignore[deprecated]  # duck-typed platform/adapter path
+            "tempGuid": f"temp-{datetime.utcnow().timestamp()}",
         }
         try:
             res = await self._api_post("/api/v1/chat/new", payload)
@@ -395,14 +500,10 @@ class BlueBubblesAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def truncate_message(
-        content: str,
-        max_length: int = MAX_TEXT_LENGTH,
-        len_fn: Optional["Callable[[str], int]"] = None,
-    ) -> List[str]:
+    def truncate_message(content: str, max_length: int = MAX_TEXT_LENGTH) -> List[str]:
         # Use the base splitter but skip pagination indicators — iMessage
         # bubbles flow naturally without "(1/3)" suffixes.
-        chunks = BasePlatformAdapter.truncate_message(content, max_length, len_fn)
+        chunks = BasePlatformAdapter.truncate_message(content, max_length)
         return [re.sub(r"\s*\(\d+/\d+\)$", "", c) for c in chunks]
 
     async def send(
@@ -440,7 +541,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                 )
             payload: Dict[str, Any] = {
                 "chatGuid": guid,
-                "tempGuid": f"temp-{datetime.utcnow().timestamp()}",  # ty: ignore[deprecated]  # duck-typed platform/adapter path
+                "tempGuid": f"temp-{datetime.utcnow().timestamp()}",
                 "message": chunk,
             }
             if reply_to and self._private_api_enabled and self._helper_connected:
@@ -538,7 +639,6 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(chat_id, image_path, caption=caption)
@@ -549,7 +649,6 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(
@@ -562,7 +661,6 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(chat_id, video_path, caption=caption)
@@ -574,7 +672,6 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(
@@ -908,8 +1005,15 @@ class BlueBubblesAdapter(BasePlatformAdapter):
 
         session_chat_id = chat_guid or chat_identifier
         is_group = bool(record.get("isGroup")) or (";+;" in (chat_guid or ""))
+        if is_group and self.require_mention:
+            if not self._message_matches_mention_patterns(text):
+                logger.debug(
+                    "[bluebubbles] ignoring group message (require_mention=true, no mention pattern matched)"
+                )
+                return web.Response(text="ok")
+            text = self._clean_mention_text(text)
         source = self.build_source(
-            chat_id=session_chat_id,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
+            chat_id=session_chat_id,
             chat_name=chat_identifier or sender,
             chat_type="group" if is_group else "dm",
             user_id=sender,
@@ -942,4 +1046,3 @@ class BlueBubblesAdapter(BasePlatformAdapter):
             asyncio.create_task(self.mark_read(session_chat_id))
 
         return web.Response(text="ok")
-

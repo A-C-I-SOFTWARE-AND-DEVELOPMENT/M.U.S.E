@@ -74,7 +74,7 @@ def test_session_search_lazily_opens_db_when_entrypoint_did_not_pass_one(monkeyp
             return sentinel_db
 
     hermes_state = ModuleType("hermes_state")
-    hermes_state.SessionDB = FakeSessionDB  # ty: ignore[unresolved-attribute]
+    hermes_state.SessionDB = FakeSessionDB
     monkeypatch.setitem(sys.modules, "hermes_state", hermes_state)
 
     session_search_mod = ModuleType("tools.session_search_tool")
@@ -83,7 +83,7 @@ def test_session_search_lazily_opens_db_when_entrypoint_did_not_pass_one(monkeyp
         captured.update(kwargs)
         return json.dumps({"success": True, "results": []})
 
-    session_search_mod.session_search = fake_session_search  # ty: ignore[unresolved-attribute]
+    session_search_mod.session_search = fake_session_search
     monkeypatch.setitem(sys.modules, "tools.session_search_tool", session_search_mod)
 
     agent = _make_agent(None, platform="acp")

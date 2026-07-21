@@ -8,7 +8,6 @@ from __future__ import annotations
 from gateway.config import GatewayConfig, Platform, PlatformConfig
 from gateway.session import SessionSource
 from gateway.slash_access import (
-    SlashAccessPolicy,
     policy_for_source,
     policy_from_extra,
 )
@@ -88,7 +87,7 @@ class TestPolicyFromExtra:
         p = policy_from_extra({"allow_admin_from": [12345, 67890]}, "dm")
         assert p.admin_user_ids == frozenset({"12345", "67890"})
         assert p.is_admin("12345") is True
-        assert p.is_admin(12345) is True  # is_admin also stringifies  # ty: ignore[invalid-argument-type]
+        assert p.is_admin(12345) is True  # is_admin also stringifies
 
     def test_id_coercion_csv_string(self):
         p = policy_from_extra({"allow_admin_from": "111, 222 ,333"}, "dm")

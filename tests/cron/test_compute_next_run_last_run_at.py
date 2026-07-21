@@ -81,9 +81,7 @@ class TestCronComputeNextRunUsesLastRunAt:
         interval_result = compute_next_run(interval_schedule, last_run_at=last_run.isoformat())
 
         # Both should be after last_run_at
-        assert cron_result is not None
         cron_dt = datetime.fromisoformat(cron_result)
-        assert interval_result is not None
         interval_dt = datetime.fromisoformat(interval_result)
         assert cron_dt > last_run, f"Cron next {cron_dt} should be after last_run {last_run}"
         assert interval_dt > last_run, f"Interval next {interval_dt} should be after last_run {last_run}"

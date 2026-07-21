@@ -19,7 +19,7 @@ Optional knobs (under ``web.xai`` in ``config.yaml``)::
 
     web:
       xai:
-        model: "grok-4.3"             # reasoning model required by web_search
+        model: "grok-build-0.1"       # reasoning model required by web_search
         allowed_domains: ["x.ai"]     # max 5 — mutually exclusive with excluded_domains
         excluded_domains: ["bad.com"] # max 5 — mutually exclusive with allowed_domains
         timeout: 90                   # seconds (default 90)
@@ -35,7 +35,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-from urllib.parse import urlsplit
 from typing import Any, Dict, List, Optional
 
 from agent.web_search_provider import WebSearchProvider
@@ -47,7 +46,7 @@ from tools.xai_http import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "grok-4.3"
+DEFAULT_MODEL = "grok-build-0.1"
 DEFAULT_TIMEOUT = 90
 _MAX_DOMAIN_FILTERS = 5  # xAI hard cap on allowed_domains / excluded_domains
 
@@ -144,9 +143,6 @@ class XAIWebSearchProvider(WebSearchProvider):
     def supports_extract(self) -> bool:
         return False
 
-    def supports_crawl(self) -> bool:
-        return False
-
     # -- Search -----------------------------------------------------------
 
     def search(self, query: str, limit: int = 5) -> Dict[str, Any]:
@@ -187,7 +183,7 @@ class XAIWebSearchProvider(WebSearchProvider):
 
         cfg = _load_xai_web_config()
         model = cfg.get("model") if isinstance(cfg.get("model"), str) else DEFAULT_MODEL
-        model = model.strip() or DEFAULT_MODEL  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+        model = model.strip() or DEFAULT_MODEL
 
         try:
             timeout = float(cfg.get("timeout", DEFAULT_TIMEOUT))
@@ -238,11 +234,9 @@ class XAIWebSearchProvider(WebSearchProvider):
                 "error": "httpx is not installed (required for xAI web search)",
             }
 
-        parsed_base_url = urlsplit(base_url)
-        logged_base_url = parsed_base_url.hostname or "unknown"
         logger.info(
             "xAI web search via %s: '%s' (limit=%d, model=%s)",
-            logged_base_url, query, limit, model,
+            base_url, query, limit, model,
         )
 
         # Two-attempt loop: if the first call returns 401 and our creds came
@@ -276,7 +270,10 @@ class XAIWebSearchProvider(WebSearchProvider):
                         "refresh and retrying once.",
                     )
                     try:
-                        refreshed = resolve_xai_http_credentials(force_refresh=True)  # ty: ignore[unknown-argument]  # dynamic config/plugin path
+                        refreshed = resolve_xai_http_credentials(
+                            force_refresh=True,
+                            api_key_hint=api_key,
+                        )
                         refreshed_key = str(refreshed.get("api_key") or "").strip()
                         if refreshed_key and refreshed_key != api_key:
                             api_key = refreshed_key

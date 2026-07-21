@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "CLI Commands Reference"
-description: "Authoritative reference for muse terminal commands and command families"
+description: "Authoritative reference for Hermes terminal commands and command families"
 ---
 
 # CLI Commands Reference
@@ -13,7 +13,7 @@ For in-chat slash commands, see [Slash Commands Reference](./slash-commands.md).
 ## Global entrypoint
 
 ```bash
-muse [global-options] <command> [subcommand/options]
+hermes [global-options] <command> [subcommand/options]
 ```
 
 ### Global options
@@ -21,7 +21,7 @@ muse [global-options] <command> [subcommand/options]
 | Option | Description |
 |--------|-------------|
 | `--version`, `-V` | Show version and exit. |
-| `--profile <name>`, `-p <name>` | Select which muse profile to use for this invocation. Overrides the sticky default set by `muse profile use`. |
+| `--profile <name>`, `-p <name>` | Select which Hermes profile to use for this invocation. Overrides the sticky default set by `hermes profile use`. |
 | `--resume <session>`, `-r <session>` | Resume a previous session by ID or title. |
 | `--continue [name]`, `-c [name]` | Resume the most recent session, or the most recent session matching a title. |
 | `--worktree`, `-w` | Start in an isolated git worktree for parallel-agent workflows. |
@@ -29,61 +29,73 @@ muse [global-options] <command> [subcommand/options]
 | `--pass-session-id` | Include the session ID in the agent's system prompt. |
 | `--ignore-user-config` | Ignore `~/.hermes/config.yaml` and fall back to built-in defaults. Credentials in `.env` are still loaded. |
 | `--ignore-rules` | Skip auto-injection of `AGENTS.md`, `SOUL.md`, `.cursorrules`, memory, and preloaded skills. |
-| `--tui` | Launch the [TUI](../user-guide/tui.md) instead of the classic CLI. Equivalent to `HERMES_TUI=1`. |
+| `--tui` | Launch the [TUI](../user-guide/tui.md) instead of the classic CLI. Equivalent to `HERMES_TUI=1`. Always wins over `display.interface`. |
+| `--cli` | Force the classic prompt_toolkit REPL. Use this to override `display.interface: tui` for a single invocation. |
 | `--dev` | With `--tui`: run the TypeScript sources directly via `tsx` instead of the prebuilt bundle (for TUI contributors). |
 
 ## Top-level commands
 
 | Command | Purpose |
 |---------|---------|
-| `muse chat` | Interactive or one-shot chat with the agent. |
-| `muse model` | Interactively choose the default provider and model. |
-| `muse fallback` | Manage fallback providers tried when the primary model errors. |
-| `muse gateway` | Run or manage the messaging gateway service. |
-| `muse proxy` | Local OpenAI-compatible proxy that attaches OAuth provider credentials. See [Subscription Proxy](../user-guide/features/subscription-proxy.md). |
-| `muse lsp` | Manage Language Server Protocol integration (semantic diagnostics for write_file/patch). |
-| `muse setup` | Interactive setup wizard for all or part of the configuration. |
-| `muse whatsapp` | Configure and pair the WhatsApp bridge. |
-| `muse slack` | Slack helpers (currently: generate the app manifest with every command as a native slash). |
-| `muse auth` | Manage credentials — add, list, remove, reset, set strategy. Handles OAuth flows for Codex/Nous/Anthropic. |
-| `muse login` / `logout` | **Deprecated** — use `muse auth` instead. |
-| `muse status` | Show agent, auth, and platform status. |
-| `muse cron` | Inspect and tick the cron scheduler. |
-| `muse kanban` | Multi-profile collaboration board (tasks, links, dispatcher). |
-| `muse webhook` | Manage dynamic webhook subscriptions for event-driven activation. |
-| `muse hooks` | Inspect, approve, or remove shell-script hooks declared in `config.yaml`. |
-| `muse doctor` | Diagnose config and dependency issues. |
-| `muse dump` | Copy-pasteable setup summary for support/debugging. |
-| `muse debug` | Debug tools — upload logs and system info for support. |
-| `muse backup` | Back up muse home directory to a zip file. |
-| `muse checkpoints` | Inspect / prune / clear `~/.hermes/checkpoints/` (the shadow store used by `/rollback`). Run with no args for a status overview. |
-| `muse import` | Restore a muse backup from a zip file. |
-| `muse logs` | View, tail, and filter agent/gateway/error log files. |
-| `muse config` | Show, edit, migrate, and query configuration files. |
-| `muse pairing` | Approve or revoke messaging pairing codes. |
-| `muse skills` | Browse, install, publish, audit, and configure skills. |
-| `muse bundles` | Group several skills under a single `/<name>` slash command. See [Skill Bundles](../user-guide/features/skills.md#skill-bundles). |
-| `muse curator` | Background skill maintenance — status, run, pause, pin. See [Curator](../user-guide/features/curator.md). |
-| `muse memory` | Configure external memory provider. Plugin-specific subcommands (e.g. `muse honcho`) register automatically when their provider is active. |
-| `muse acp` | Run muse as an ACP server for editor integration. |
-| `muse mcp` | Manage MCP server configurations and run muse as an MCP server. |
-| `muse plugins` | Manage muse plugins (install, enable, disable, remove). |
-| `muse tools` | Configure enabled tools per platform. |
-| `muse computer-use` | Install or check the cua-driver backend (macOS Computer Use). |
-| `muse sessions` | Browse, export, prune, rename, and delete sessions. |
-| `muse insights` | Show token/cost/activity analytics. |
-| `muse claw` | OpenClaw migration helpers. |
-| `muse dashboard` | Launch the web dashboard for managing config, API keys, and sessions. |
-| `muse profile` | Manage profiles — multiple isolated muse instances. |
-| `muse completion` | Print shell completion scripts (bash/zsh/fish). |
-| `muse version` | Show version information. |
-| `muse update` | Pull latest code and reinstall dependencies (git installs), or check PyPI and `pip install --upgrade` (pip installs). `--check` previews without installing; `--backup` takes a pre-pull `HERMES_HOME` snapshot. |
-| `muse uninstall` | Remove muse from the system. |
+| `hermes chat` | Interactive or one-shot chat with the agent. |
+| `hermes model` | Interactively choose the default provider and model. |
+| `hermes moa` | Configure named Mixture of Agents presets selectable from the model picker. |
+| `hermes fallback` | Manage fallback providers tried when the primary model errors. |
+| `hermes gateway` | Run or manage the messaging gateway service. |
+| `hermes proxy` | Local OpenAI-compatible proxy that attaches OAuth provider credentials. See [Subscription Proxy](../user-guide/features/subscription-proxy.md). |
+| `hermes lsp` | Manage Language Server Protocol integration (semantic diagnostics for write_file/patch). |
+| `hermes setup` | Interactive setup wizard for all or part of the configuration. |
+| `hermes whatsapp` | Configure and pair the WhatsApp bridge. |
+| `hermes whatsapp-cloud` | Configure the official Meta WhatsApp Business Cloud API adapter (Business account + public webhook required). Distinct from `hermes whatsapp` (Baileys personal-account bridge). |
+| `hermes slack` | Slack helpers (currently: generate the app manifest with every command as a native slash). |
+| `hermes auth` | Manage credentials — add, list, remove, reset, status, logout. Handles OAuth flows for Codex/Nous/Anthropic. |
+| `hermes login` / `logout` | **Deprecated** — use `hermes auth` instead. |
+| `hermes send` | Send a one-shot message to a configured messaging platform (Telegram, Discord, Slack, Signal, SMS, …). Useful from shell scripts, cron jobs, CI hooks, and monitoring daemons — no agent loop, no LLM. |
+| `hermes secrets` | Manage external secret sources (currently Bitwarden Secrets Manager) for pulling API keys at process startup instead of from `~/.hermes/.env`. |
+| `hermes migrate` | Diagnose and (optionally) rewrite `config.yaml` to replace references to retired models or deprecated settings (e.g. `migrate xai`). |
+| `hermes status` | Show agent, auth, and platform status. |
+| `hermes cron` | Inspect and tick the cron scheduler. |
+| `hermes kanban` | Multi-profile collaboration board (tasks, links, dispatcher). |
+| `hermes project` | Manage named, multi-folder workspaces (projects). Anchors desktop session grouping and, when bound to a kanban board, gives tasks a deterministic worktree + branch convention. State is per-profile. |
+| `hermes webhook` | Manage dynamic webhook subscriptions for event-driven activation. |
+| `hermes hooks` | Inspect, approve, or remove shell-script hooks declared in `config.yaml`. |
+| `hermes doctor` | Diagnose config and dependency issues. |
+| `hermes security audit` | On-demand supply-chain audit (OSV.dev) for the venv, plugin requirements, and pinned MCP servers. |
+| `hermes dump` | Copy-pasteable setup summary for support/debugging. |
+| `hermes prompt-size` | Show a byte breakdown of the system prompt + tool schemas (skills index, memory, profile). Runs offline. |
+| `hermes debug` | Debug tools — upload logs and system info for support. |
+| `hermes backup` | Back up Hermes home directory to a zip file. |
+| `hermes checkpoints` | Inspect / prune / clear `~/.hermes/checkpoints/` (the shadow store used by `/rollback`). Run with no args for a status overview. |
+| `hermes import` | Restore a Hermes backup from a zip file. |
+| `hermes logs` | View, tail, and filter agent/gateway/error log files. |
+| `hermes config` | Show, edit, migrate, and query configuration files. |
+| `hermes pairing` | Approve or revoke messaging pairing codes. |
+| `hermes skills` | Browse, install, publish, audit, and configure skills. |
+| `hermes bundles` | Group several skills under a single `/<name>` slash command. See [Skill Bundles](../user-guide/features/skills.md#skill-bundles). |
+| `hermes curator` | Background skill maintenance — status, run, pause, pin. See [Curator](../user-guide/features/curator.md). |
+| `hermes memory` | Configure external memory provider. Plugin-specific subcommands (e.g. `hermes honcho`) register automatically when their provider is active. |
+| `hermes acp` | Run Hermes as an ACP server for editor integration. |
+| `hermes mcp` | Manage MCP server configurations and run Hermes as an MCP server. |
+| `hermes plugins` | Manage Hermes Agent plugins (install, enable, disable, remove). |
+| `hermes portal` | Nous Portal status, subscription link, and Tool Gateway routing. See [Tool Gateway](../user-guide/features/tool-gateway.md). |
+| `hermes tools` | Configure enabled tools per platform. |
+| `hermes computer-use` | Install or check the cua-driver backend (macOS Computer Use). |
+| `hermes pets` | Browse, install, and select [petdex](../user-guide/features/pets.md) animated pets shown across the CLI, TUI, and desktop app. Subcommands: `list`, `install`, `select`, `show`, `off`, `scale`, `remove`, `doctor`. |
+| `hermes sessions` | Browse, export, prune, rename, and delete sessions. |
+| `hermes insights` | Show token/cost/activity analytics. |
+| `hermes claw` | OpenClaw migration helpers. |
+| `hermes dashboard` | Launch the web dashboard for managing config, API keys, and sessions. |
+| `hermes desktop` (alias `gui`) | Build and launch the native Electron desktop app. |
+| `hermes profile` | Manage profiles — multiple isolated Hermes instances. |
+| `hermes completion` | Print shell completion scripts (bash/zsh/fish). |
+| `hermes version` | Show version information. |
+| `hermes update` | Pull latest code and reinstall dependencies. `--check` previews without installing; `--backup` takes a pre-pull `HERMES_HOME` snapshot. |
+| `hermes uninstall` | Remove Hermes from the system. |
 
-## `muse chat`
+## `hermes chat`
 
 ```bash
-muse chat [options]
+hermes chat [options]
 ```
 
 Common options:
@@ -93,7 +105,7 @@ Common options:
 | `-q`, `--query "..."` | One-shot, non-interactive prompt. |
 | `-m`, `--model <model>` | Override the model for this run. |
 | `-t`, `--toolsets <csv>` | Enable a comma-separated set of toolsets. |
-| `--provider <provider>` | Force a provider: `auto`, `openrouter`, `nous`, `openai-codex`, `copilot-acp`, `copilot`, `anthropic`, `gemini`, `google-gemini-cli`, `huggingface`, `novita`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `alibaba`, `alibaba-coding-plan` (alias `alibaba_coding`), `deepseek`, `nvidia`, `ollama-cloud`, `xai` (alias `grok`), `xai-oauth` (alias `grok-oauth`), `qwen-oauth`, `bedrock`, `opencode-zen`, `opencode-go`, `ai-gateway`, `azure-foundry`, `lmstudio`, `stepfun`, `tencent-tokenhub` (alias `tencent`, `tokenhub`). |
+| `--provider <provider>` | Force a provider: `auto`, `openrouter`, `nous`, `openai-codex`, `copilot-acp`, `copilot`, `anthropic`, `gemini`, `huggingface`, `novita` (aliases `novita-ai`, `novitaai`), `openai-api`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `upstage` (alias `solar`), `alibaba`, `alibaba-coding-plan` (alias `alibaba_coding`), `deepseek`, `nvidia`, `ollama-cloud`, `xai` (alias `grok`), `xai-oauth` (alias `grok-oauth`), `qwen-oauth`, `bedrock`, `opencode-zen`, `opencode-go`, `azure-foundry`, `lmstudio`, `stepfun`, `tencent-tokenhub` (alias `tencent`, `tokenhub`). |
 | `-s`, `--skills <name>` | Preload one or more skills for the session (can be repeated or comma-separated). |
 | `-v`, `--verbose` | Verbose output. |
 | `-Q`, `--quiet` | Programmatic mode: suppress banner/spinner/tool previews. |
@@ -105,31 +117,33 @@ Common options:
 | `--pass-session-id` | Pass the session ID into the system prompt. |
 | `--ignore-user-config` | Ignore `~/.hermes/config.yaml` and use built-in defaults. Credentials in `.env` are still loaded. Useful for isolated CI runs, reproducible bug reports, and third-party integrations. |
 | `--ignore-rules` | Skip auto-injection of `AGENTS.md`, `SOUL.md`, `.cursorrules`, persistent memory, and preloaded skills. Combine with `--ignore-user-config` for a fully isolated run. |
+| `--safe-mode` | Troubleshooting mode: disable ALL customizations — user config, rules/memory injection, plugins, shell hooks, and MCP servers (implies `--ignore-user-config` and `--ignore-rules`). Use to isolate whether a problem comes from your setup or from Hermes itself. |
 | `--source <tag>` | Session source tag for filtering (default: `cli`). Use `tool` for third-party integrations that should not appear in user session lists. |
 | `--max-turns <N>` | Maximum tool-calling iterations per conversation turn (default: 90, or `agent.max_turns` in config). |
 
 Examples:
 
 ```bash
-muse
-muse chat -q "Summarize the latest PRs"
-muse chat --provider openrouter --model anthropic/claude-sonnet-4.6
-muse chat --toolsets web,terminal,skills
-muse chat --quiet -q "Return only JSON"
-muse chat --worktree -q "Review this repo and open a PR"
-muse chat --ignore-user-config --ignore-rules -q "Repro without my personal setup"
+hermes
+hermes chat -q "Summarize the latest PRs"
+hermes chat --provider openrouter --model anthropic/claude-sonnet-4.6
+hermes chat --toolsets web,terminal,skills
+hermes chat --quiet -q "Return only JSON"
+hermes chat --worktree -q "Review this repo and open a PR"
+hermes chat --ignore-user-config --ignore-rules -q "Repro without my personal setup"
+hermes chat --safe-mode -q "Is this bug mine or Hermes'?"
 ```
 
-### `muse -z <prompt>` — scripted one-shot
+### `hermes -z <prompt>` — scripted one-shot
 
-For programmatic callers (shell scripts, CI, cron, parent processes piping in a prompt), `muse -z` is the purest one-shot entry point: **single prompt in, final response text out, nothing else on stdout or stderr.** No banner, no spinner, no tool previews, no `Session:` line — just the agent's final reply as plain text.
+For programmatic callers (shell scripts, CI, cron, parent processes piping in a prompt), `hermes -z` is the purest one-shot entry point: **single prompt in, final response text out, nothing else on stdout or stderr.** No banner, no spinner, no tool previews, no `Session:` line — just the agent's final reply as plain text.
 
 ```bash
-muse -z "What's the capital of France?"
+hermes -z "What's the capital of France?"
 # → Paris.
 
 # Parent scripts can cleanly capture the response:
-answer=$(muse -z "summarize this" < /path/to/file.txt)
+answer=$(hermes -z "summarize this" < /path/to/file.txt)
 ```
 
 Per-run overrides (no mutation to `~/.hermes/config.yaml`):
@@ -137,22 +151,22 @@ Per-run overrides (no mutation to `~/.hermes/config.yaml`):
 | Flag | Equivalent env var | Purpose |
 |---|---|---|
 | `-m` / `--model <model>` | `HERMES_INFERENCE_MODEL` | Override the model for this run |
-| `--provider <provider>` | `HERMES_INFERENCE_PROVIDER` | Override the provider for this run |
+| `--provider <provider>` | _(none)_ | Override the provider for this run |
 
 ```bash
-muse -z "…" --provider openrouter --model openai/gpt-5.5
+hermes -z "…" --provider openrouter --model openai/gpt-5.5
 # or:
-HERMES_INFERENCE_MODEL=anthropic/claude-sonnet-4.6 muse -z "…"
+HERMES_INFERENCE_MODEL=anthropic/claude-sonnet-4.6 hermes -z "…"
 ```
 
-Same agent, same tools, same skills — just strips every interactive / cosmetic layer. If you need tool output in the transcript too, use `muse chat -q` instead; `-z` is explicitly for "I only want the final answer".
+Same agent, same tools, same skills — just strips every interactive / cosmetic layer. If you need tool output in the transcript too, use `hermes chat -q` instead; `-z` is explicitly for "I only want the final answer".
 
-## `muse model`
+## `hermes model`
 
-Interactive provider + model selector. **This is the command for adding new providers, setting up API keys, and running OAuth flows.** Run it from your terminal — not from inside an active muse chat session.
+Interactive provider + model selector. **This is the command for adding new providers, setting up API keys, and running OAuth flows.** Run it from your terminal — not from inside an active Hermes chat session.
 
 ```bash
-muse model
+hermes model
 ```
 
 Use this when you want to:
@@ -163,12 +177,12 @@ Use this when you want to:
 - configure a custom/self-hosted endpoint
 - save the new default into config
 
-:::warning muse model vs /model — know the difference
-**`muse model`** (run from your terminal, outside any muse session) is the **full provider setup wizard**. It can add new providers, run OAuth flows, prompt for API keys, and configure endpoints.
+:::warning hermes model vs /model — know the difference
+**`hermes model`** (run from your terminal, outside any Hermes session) is the **full provider setup wizard**. It can add new providers, run OAuth flows, prompt for API keys, and configure endpoints.
 
-**`/model`** (typed inside an active muse chat session) can only **switch between providers and models you've already set up**. It cannot add new providers, run OAuth, or prompt for API keys.
+**`/model`** (typed inside an active Hermes chat session) can only **switch between providers and models you've already set up**. It cannot add new providers, run OAuth, or prompt for API keys.
 
-**If you need to add a new provider:** Exit your muse session first (`Ctrl+C` or `/quit`), then run `muse model` from your terminal prompt.
+**If you need to add a new provider:** Exit your Hermes session first (`Ctrl+C` or `/quit`), then run `hermes model` from your terminal prompt.
 :::
 
 ### `/model` slash command (mid-session)
@@ -185,22 +199,22 @@ Switch between already-configured models without leaving a session:
 /model openrouter:anthropic/claude-sonnet-4  # Switch back to cloud
 ```
 
-By default, `/model` changes apply **to the current session only**. Add `--global` to persist the change to `config.yaml`:
+By default, `/model` changes apply **to the current session only**. Add `--global` to persist the change to `config.yaml` (or set `model.persist_switch_by_default: true` to make every switch persist):
 
 ```
 /model claude-sonnet-4 --global     # Switch and save as new default
 ```
 
 :::info What if I only see OpenRouter models?
-If you've only configured OpenRouter, `/model` will only show OpenRouter models. To add another provider (Anthropic, DeepSeek, Copilot, etc.), exit your session and run `muse model` from the terminal.
+If you've only configured OpenRouter, `/model` will only show OpenRouter models. To add another provider (Anthropic, DeepSeek, Copilot, etc.), exit your session and run `hermes model` from the terminal.
 :::
 
-Provider and base URL changes are persisted to `config.yaml` automatically. When switching away from a custom endpoint, the stale base URL is cleared to prevent it leaking into other providers.
+On a `--global` switch, provider and base URL changes are persisted to `config.yaml` alongside the model. When switching away from a custom endpoint, the stale base URL is cleared to prevent it leaking into other providers.
 
-## `muse gateway`
+## `hermes gateway`
 
 ```bash
-muse gateway <subcommand>
+hermes gateway <subcommand>
 ```
 
 Subcommands:
@@ -216,21 +230,35 @@ Subcommands:
 | `install` | Install as a systemd (Linux) or launchd (macOS) background service. |
 | `uninstall` | Remove the installed service. |
 | `setup` | Interactive messaging-platform setup. |
+| `migrate-legacy` | Remove legacy `hermes.service` units left over from pre-rename installs. Profile units (`hermes-gateway-<profile>.service`) and unrelated services are never touched. Flags: `--dry-run`, `-y`/`--yes`. |
+| `enroll` | Experimental: enroll this gateway with a relay connector and save relay credentials for connector-backed platforms. |
 
 Options:
 
 | Option | Description |
 |--------|-------------|
-| `--all` | On `start` / `restart` / `stop`: act on **every profile's** gateway, not just the active `HERMES_HOME`. Useful if you run multiple profiles side-by-side and want to restart them all after `muse update`. |
+| `--all` | On `start` / `restart` / `stop`: act on **every profile's** gateway, not just the active `HERMES_HOME`. Useful if you run multiple profiles side-by-side and want to restart them all after `hermes update`. |
+| `--no-supervise` | On `run`: inside the s6-overlay Docker image, opt out of auto-supervision and use pre-s6 foreground semantics — gateway runs as the container's main process with no auto-restart. No-op outside the s6 image. Equivalent to setting `HERMES_GATEWAY_NO_SUPERVISE=1`. |
+| `--external-supervisor` | On `run`: declare that a wrapper-provided process manager owns the foreground gateway. Use this when `sudo`, `env -i`, or another wrapper strips launchd/systemd's native environment marker. In-chat restarts and updates exit back to that manager instead of spawning a detached replacement. |
+
+`--external-supervisor` is a restart-policy contract: an in-chat restart or
+service-restart update exits with status `75`, so the wrapper's supervisor must
+relaunch the gateway after that nonzero exit. For systemd, use
+`Restart=on-failure` or `Restart=always` and do not include `75` in
+`RestartPreventExitStatus`; for launchd, configure `KeepAlive` to relaunch after
+unsuccessful exits. Without that policy, a requested restart leaves the gateway
+stopped.
+
+`hermes gateway enroll` accepts `--token`, `--connector-url`, `--gateway-id`, and `--wake-url`. It exchanges the enrollment token with the connector and writes the resulting `GATEWAY_RELAY_ID`, `GATEWAY_RELAY_SECRET`, `GATEWAY_RELAY_DELIVERY_KEY`, optional `GATEWAY_RELAY_URL`, and (when `--wake-url` is given) `GATEWAY_RELAY_WAKE_URL` values to the active profile's `.env`.
 
 :::tip WSL users
-Use `muse gateway run` instead of `muse gateway start` — WSL's systemd support is unreliable. Wrap it in tmux for persistence: `tmux new -s hermes 'muse gateway run'`. See [WSL FAQ](/docs/reference/faq#wsl-gateway-keeps-disconnecting-or-muse-gateway-start-fails) for details.
+Use `hermes gateway run` instead of `hermes gateway start` — WSL's systemd support is unreliable. Wrap it in tmux for persistence: `tmux new -s hermes 'hermes gateway run'`. See [WSL FAQ](/reference/faq#wsl-gateway-keeps-disconnecting-or-hermes-gateway-start-fails) for details.
 :::
 
-## `muse lsp`
+## `hermes lsp`
 
 ```bash
-muse lsp <subcommand>
+hermes lsp <subcommand>
 ```
 
 Manage the Language Server Protocol integration. LSP runs real
@@ -251,14 +279,16 @@ Subcommands:
 | `restart` | Tear down running clients so the next edit re-spawns. |
 | `which <id>` | Print the resolved binary path for one server. |
 
-See [LSP — Semantic Diagnostics](/docs/user-guide/features/lsp) for
+See [LSP — Semantic Diagnostics](/user-guide/features/lsp) for
 the full guide, supported languages, and configuration knobs.
 
-## `muse setup`
+## `hermes setup`
 
 ```bash
-muse setup [model|tts|terminal|gateway|tools|agent|trio] [--non-interactive] [--reset] [--quick] [--reconfigure]
+hermes setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure] [--portal]
 ```
+
+**Easiest path:** `hermes setup --portal` — OAuth into Nous Portal and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md) in one shot.
 
 **First run:** launches the first-time wizard.
 
@@ -273,7 +303,6 @@ Jump into one section instead of the full wizard:
 | `gateway` | Messaging platform setup. |
 | `tools` | Enable/disable tools per platform. |
 | `agent` | Agent behavior settings. |
-| `trio` | Orchestrator seats — install the planner/executor/critic trio or the full six-seat roster. See [orchestrator-trio](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/orchestration/orchestrator-trio.md). |
 
 Options:
 
@@ -282,22 +311,39 @@ Options:
 | `--quick` | On returning-user runs: only prompt for items that are missing or unset. Skip items you already have configured. |
 | `--non-interactive` | Use defaults / environment values without prompts. |
 | `--reset` | Reset configuration to defaults before setup. |
-| `--reconfigure` | Backwards-compat alias — bare `muse setup` on an existing install now does this by default. |
+| `--reconfigure` | Backwards-compat alias — bare `hermes setup` on an existing install now does this by default. |
+| `--portal` | One-shot Nous Portal setup: log in via OAuth, set Nous as the inference provider, and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md). Skips the rest of the wizard. |
 
-## `muse whatsapp`
+## `hermes portal`
 
 ```bash
-muse whatsapp
+hermes portal [status|open|tools]
+```
+
+Inspect Nous Portal auth, Tool Gateway routing, and reach the subscription page. Subcommand-less invocation runs `status`.
+
+| Subcommand | Description |
+|------------|-------------|
+| `status` (default) | Portal auth state + per-tool Tool Gateway routing summary. Also shown when no subcommand is given. |
+| `open` | Open `portal.nousresearch.com/manage-subscription` in your default browser. |
+| `tools` | List every Tool Gateway partner (Firecrawl, FAL, OpenAI TTS, Browser Use, Modal) and which are routed via Nous. |
+
+For configuration of the gateway itself, see [Tool Gateway](../user-guide/features/tool-gateway.md). For the one-shot setup path, see `hermes setup --portal` above.
+
+## `hermes whatsapp`
+
+```bash
+hermes whatsapp
 ```
 
 Runs the WhatsApp pairing/setup flow, including mode selection and QR-code pairing.
 
-## `muse slack`
+## `hermes slack`
 
 ```bash
-muse slack manifest              # print manifest to stdout
-muse slack manifest --write      # write to ~/.hermes/slack-manifest.json
-muse slack manifest --slashes-only  # just the features.slash_commands array
+hermes slack manifest              # print manifest to stdout
+hermes slack manifest --write      # write to ~/.hermes/slack-manifest.json
+hermes slack manifest --slashes-only  # just the features.slash_commands array
 ```
 
 Generates a Slack app manifest that registers every gateway command in
@@ -315,39 +361,172 @@ reinstall if scopes or slash commands changed.
 | `--description DESC` | default blurb | Bot description shown in the Slack app directory. |
 | `--slashes-only` | off | Emit only `features.slash_commands` for merging into a manually-maintained manifest. |
 
-Run `muse slack manifest --write` again after `muse update` to pick
+Run `hermes slack manifest --write` again after `hermes update` to pick
 up any new commands.
 
 
-## `muse login` / `muse logout` *(Deprecated)*
-
-:::caution
-`muse login` has been removed. Use `muse auth` to manage OAuth credentials, `muse model` to select a provider, or `muse setup` for full interactive setup.
-:::
-
-## `muse auth`
-
-Manage credential pools for same-provider key rotation. See [Credential Pools](/docs/user-guide/features/credential-pools) for full documentation.
+## `hermes send`
 
 ```bash
-muse auth                                              # Interactive wizard
-muse auth list                                         # Show all pools
-muse auth list openrouter                              # Show specific provider
-muse auth add openrouter --api-key sk-or-v1-xxx        # Add API key
-muse auth add anthropic --type oauth                   # Add OAuth credential
-muse auth remove openrouter 2                          # Remove by index
-muse auth reset openrouter                             # Clear cooldowns
-muse auth status anthropic                             # Show auth status for a provider
-muse auth logout anthropic                             # Log out and clear stored auth state
-muse auth spotify                                      # Authenticate muse with Spotify via PKCE
+hermes send --to <target> "message text"
+hermes send --to <target> --file <path>
+echo "message" | hermes send --to <target>
+hermes send --list [platform]
+```
+
+Send a one-shot message to a configured messaging platform without spinning up an agent or gateway loop. Reuses the gateway's already-configured credentials (`~/.hermes/.env` + `~/.hermes/config.yaml`) so ops scripts, cron jobs, CI hooks, and monitoring daemons can post status updates without reimplementing each platform's REST client.
+
+For bot-token platforms (Telegram, Discord, Slack, Signal, SMS, WhatsApp-CloudAPI) no running gateway is required — `hermes send` talks directly to the platform's REST endpoint. Plugin platforms that need a persistent adapter still require a live gateway.
+
+| Option | Description |
+|--------|-------------|
+| `-t`, `--to <TARGET>` | Delivery target. Formats: `platform` (uses home channel), `platform:chat_id`, `platform:chat_id:thread_id`, or `platform:#channel-name`. Examples: `telegram`, `telegram:-1001234567890`, `discord:#ops`, `slack:C0123ABCD`, `signal:+15551234567`. |
+| `-f`, `--file <PATH>` | Read the message body from `PATH` (text files only — logs, reports, markdown). Pass `-` to force reading from stdin. To send an image or other binary file, use `MEDIA:<path>` (see below). |
+| `-s`, `--subject <LINE>` | Prepend a subject/header line before the message body. |
+| `-l`, `--list [platform]` | List configured targets across all platforms (or only the given platform). |
+| `-q`, `--quiet` | Suppress stdout on success — useful in scripts (rely on exit code only). |
+| `--json` | Emit raw JSON result instead of human-readable output. |
+
+If neither a positional `message` argument nor `--file` is provided, `hermes send` reads from stdin when it is not a TTY. Exit codes: `0` on success, `1` on delivery/backend failure, `2` on usage errors.
+
+### Sending images and other media
+
+`--file` is for *text* bodies only. To deliver an image, document, video, or audio file as a native platform attachment, reference it inside the message text with the `MEDIA:<local_path>` directive:
+
+```bash
+hermes send --to telegram "MEDIA:/tmp/screenshot.png"
+hermes send --to telegram "Build chart for today MEDIA:/tmp/chart.png"   # with caption
+hermes send --to discord:#ops "MEDIA:/tmp/report.pdf"
+```
+
+By default, image files are sent as photos (platforms like Telegram recompress these). Add `[[as_document]]` to the message to deliver them as uncompressed file attachments instead:
+
+```bash
+hermes send --to telegram "[[as_document]] MEDIA:/tmp/screenshot.png"
+```
+
+Examples:
+
+```bash
+hermes send --to telegram "deploy finished"
+echo "RAM 92%" | hermes send --to telegram:-1001234567890
+hermes send --to discord:#ops --file /tmp/report.md
+hermes send --to slack:#eng --subject "[CI]" --file build.log
+hermes send --list                  # all platforms
+hermes send --list telegram         # filter by platform
+```
+
+
+## `hermes secrets`
+
+```bash
+hermes secrets bitwarden <subcommand>
+hermes secrets bw <subcommand>          # short alias
+```
+
+Pull API keys from an external secret manager at process startup instead of storing them in `~/.hermes/.env`. Currently supports **Bitwarden Secrets Manager**. See the full guide: [Bitwarden integration](../user-guide/secrets/bitwarden.md).
+
+`bitwarden` (alias `bw`) subcommands:
+
+| Subcommand | Description |
+|------------|-------------|
+| `setup` | Interactive wizard: install the pinned `bws` binary, store an access token, and pick a project. Accepts `--project-id`, `--access-token`, and `--server-url` for non-interactive use. |
+| `status` | Show current config, binary path/version, and last fetch info. |
+| `token` | Rotate the access token: validates the new token against Bitwarden before storing it in `.env` (a rejected token changes nothing). Accepts `--access-token` for non-interactive use and `--no-verify` to skip the probe. |
+| `sync` | Fetch secrets now and report what changed. Add `--apply` to actually export the secrets into the current shell's environment (default is dry-run). |
+| `install` | Download and verify the pinned `bws` binary. `--force` re-downloads even if a managed copy already exists. |
+| `disable` | Turn off the Bitwarden integration. |
+
+
+## `hermes migrate`
+
+```bash
+hermes migrate <type>
+```
+
+Diagnose and (optionally) rewrite the active `config.yaml` to replace references to retired models or deprecated settings. A timestamped backup of the original `config.yaml` is taken before any rewrite (skip with `--no-backup`).
+
+| Subcommand | Description |
+|------------|-------------|
+| `xai` | Scan `config.yaml` for references to xAI models scheduled for retirement on May 15, 2026 and (with `--apply`) rewrite them in-place to the official replacements per the xAI migration guide. Defaults to dry-run. |
+
+Common flags for migration subcommands:
+
+| Flag | Description |
+|------|-------------|
+| `--apply` | Rewrite `config.yaml` in-place (default: dry-run, no writes). |
+| `--no-backup` | Skip the timestamped backup of `config.yaml` when applying. |
+
+> Not to be confused with `hermes claw migrate` (one-shot import of OpenClaw configuration into Hermes) — `hermes migrate` is the top-level config-rewrite command.
+
+
+## `hermes proxy`
+
+```bash
+hermes proxy <subcommand>
+```
+
+Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. Nous Portal, xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
+
+| Subcommand | Description |
+|------------|-------------|
+| `start` | Run the proxy in the foreground. Flags: `--provider <nous\|xai>` (default `nous`), `--host <addr>` (default `127.0.0.1`; use `0.0.0.0` to expose on LAN), `--port <int>` (default `8645`). |
+| `status` | Show which proxy upstreams are ready (credentials present, OAuth valid). |
+| `providers` | List available proxy upstream providers. |
+
+
+## `hermes security`
+
+```bash
+hermes security <subcommand>
+```
+
+On-demand vulnerability scan against [OSV.dev](https://osv.dev). Covers the Hermes venv (installed PyPI distributions), Python dependencies declared by plugins under `~/.hermes/plugins/`, and pinned `npx`/`uvx` MCP servers in `config.yaml`. Does NOT scan globally-installed packages or editor/browser extensions.
+
+| Subcommand | Description |
+|------------|-------------|
+| `audit` | Run a one-shot supply-chain audit. |
+
+`audit` flags:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--json` | off | Emit machine-readable JSON instead of human-readable text. |
+| `--fail-on <level>` | `critical` | Exit non-zero when any finding meets this severity (`low`, `moderate`, `high`, `critical`). |
+| `--skip-venv` | off | Skip scanning the Hermes Python venv. |
+| `--skip-plugins` | off | Skip scanning plugin requirements files. |
+| `--skip-mcp` | off | Skip scanning pinned MCP servers in `config.yaml`. |
+
+
+## `hermes login` / `hermes logout` *(Deprecated)*
+
+:::caution
+`hermes login` has been removed. Use `hermes auth` to manage OAuth credentials, `hermes model` to select a provider, or `hermes setup` for full interactive setup.
+:::
+
+## `hermes auth`
+
+Manage credential pools for same-provider key rotation. See [Credential Pools](/user-guide/features/credential-pools) for full documentation.
+
+```bash
+hermes auth                                              # Interactive wizard
+hermes auth list                                         # Show all pools
+hermes auth list openrouter                              # Show specific provider
+hermes auth add openrouter --api-key sk-or-v1-xxx        # Add API key
+hermes auth add anthropic --type oauth                   # Add OAuth credential
+hermes auth remove openrouter 2                          # Remove by index
+hermes auth reset openrouter                             # Clear cooldowns
+hermes auth status anthropic                             # Show auth status for a provider
+hermes auth logout anthropic                             # Log out and clear stored auth state
+hermes auth spotify                                      # Authenticate Hermes with Spotify via PKCE
 ```
 
 Subcommands: `add`, `list`, `remove`, `reset`, `status`, `logout`, `spotify`. When called with no subcommand, launches the interactive management wizard.
 
-## `muse status`
+## `hermes status`
 
 ```bash
-muse status [--all] [--deep]
+hermes status [--all] [--deep]
 ```
 
 | Option | Description |
@@ -355,10 +534,10 @@ muse status [--all] [--deep]
 | `--all` | Show all details in a shareable redacted format. |
 | `--deep` | Run deeper checks that may take longer. |
 
-## `muse cron`
+## `hermes cron`
 
 ```bash
-muse cron <list|create|edit|pause|resume|run|remove|status|tick>
+hermes cron <list|create|edit|pause|resume|run|remove|status|tick>
 ```
 
 | Subcommand | Description |
@@ -373,10 +552,19 @@ muse cron <list|create|edit|pause|resume|run|remove|status|tick>
 | `status` | Check whether the cron scheduler is running. |
 | `tick` | Run due jobs once and exit. |
 
-## `muse kanban`
+The cron **trigger** is pluggable via the `cron.provider` config key. Empty
+(the default) uses the built-in in-process ticker. Set it to `chronos` (the
+NAS-managed provider for scale-to-zero hosted gateways) — configured via the
+`cron.chronos.*` keys (`portal_url`, `callback_url`, `expected_audience`,
+`nas_jwks_url`) — or name a custom provider under `plugins/cron/<name>/` or
+`$HERMES_HOME/plugins/<name>/`. An unknown or unavailable provider falls back to
+the built-in, so cron is never left without a trigger. See the
+[cron internals](../developer-guide/cron-internals.md#gateway-integration) doc.
+
+## `hermes kanban`
 
 ```bash
-muse kanban [--board <slug>] <action> [options]
+hermes kanban [--board <slug>] <action> [options]
 ```
 
 Multi-profile, multi-project collaboration board. Each install can host many boards (one per project, repo, or domain); each board is a standalone queue with its own SQLite DB and dispatcher scope. New installs start with one board called `default`, whose DB is `~/.hermes/kanban.db` for back-compat; additional boards live at `~/.hermes/kanban/boards/<slug>/kanban.db`. The gateway-embedded dispatcher sweeps every board per tick.
@@ -385,9 +573,9 @@ Multi-profile, multi-project collaboration board. Each install can host many boa
 
 | Flag | Purpose |
 |------|---------|
-| `--board <slug>` | Operate on a specific board. Defaults to the current board (set via `muse kanban boards switch`, the `HERMES_KANBAN_BOARD` env var, or `default`). |
+| `--board <slug>` | Operate on a specific board. Defaults to the current board (set via `hermes kanban boards switch`, the `HERMES_KANBAN_BOARD` env var, or `default`). |
 
-**This is the human / scripting surface.** Agent workers spawned by the dispatcher drive the board through a dedicated `kanban_*` [toolset](/docs/user-guide/features/kanban#how-workers-interact-with-the-board) (`kanban_show`, `kanban_complete`, `kanban_block`, `kanban_create`, `kanban_link`, `kanban_comment`, `kanban_heartbeat`; orchestrator profiles also get `kanban_list` and `kanban_unblock`) instead of shelling to `muse kanban`. Workers have `HERMES_KANBAN_BOARD` pinned in their env so they physically cannot see other boards.
+**This is the human / scripting surface.** Agent workers spawned by the dispatcher drive the board through a dedicated `kanban_*` [toolset](/user-guide/features/kanban#how-workers-interact-with-the-board) (`kanban_show`, `kanban_complete`, `kanban_block`, `kanban_create`, `kanban_link`, `kanban_comment`, `kanban_heartbeat`; orchestrator profiles also get `kanban_list` and `kanban_unblock`) instead of shelling to `hermes kanban`. Workers have `HERMES_KANBAN_BOARD` pinned in their env so they physically cannot see other boards.
 
 | Action | Purpose |
 |--------|---------|
@@ -415,35 +603,57 @@ Multi-profile, multi-project collaboration board. Each install can host many boa
 | `dispatch` | One dispatcher pass on the active board. Flags: `--dry-run`, `--max N`, `--failure-limit N`, `--json`. |
 | `context <id>` | Print the full context a worker would see (title + body + parent results + comments). |
 | `specify <id>` / `specify --all` | Flesh out a triage-column task into a concrete spec (title + body with goal, approach, acceptance criteria) via the auxiliary LLM, then promote it to `todo`. Flags: `--tenant` (scope `--all` to one tenant), `--author`, `--json`. Configure the model under `auxiliary.triage_specifier` in `config.yaml`. |
-| `decompose <id>` / `decompose --all` | Fan a triage-column task out into a graph of child tasks routed to specialist profiles by description (the orchestrator-driven path). Falls back to specify-style single-task promotion when the LLM decides the task doesn't benefit from fan-out. Same flags as `specify`. Configure the model under `auxiliary.kanban_decomposer` in `config.yaml`. Also runs automatically every dispatcher tick when `kanban.auto_decompose: true` (the default). See [Auto vs Manual orchestration](/docs/user-guide/features/kanban#auto-vs-manual-orchestration). |
+| `decompose <id>` / `decompose --all` | Fan a triage-column task out into a graph of child tasks routed to specialist profiles by description. Falls back to specify-style single-task promotion when the LLM decides the task doesn't benefit from fan-out. Same flags as `specify`. Configure the decomposer model under `auxiliary.kanban_decomposer` in `config.yaml`; `kanban.orchestrator_profile` only controls who owns the root/orchestration task after fan-out. Also runs automatically every dispatcher tick when `kanban.auto_decompose: true` (the default). See [Auto vs Manual orchestration](/user-guide/features/kanban#auto-vs-manual-orchestration). |
 | `gc` | Remove scratch workspaces for archived tasks. |
 
 Examples:
 
 ```bash
 # Create a second board and put a task on it without switching away.
-muse kanban boards create atm10-server --name "ATM10 Server" --icon 🎮
-muse kanban --board atm10-server create "Restart server" --assignee ops
+hermes kanban boards create atm10-server --name "ATM10 Server" --icon 🎮
+hermes kanban --board atm10-server create "Restart server" --assignee ops
 
 # Switch the active board for subsequent calls.
-muse kanban boards switch atm10-server
-muse kanban list                  # shows atm10-server tasks
+hermes kanban boards switch atm10-server
+hermes kanban list                  # shows atm10-server tasks
 
 # Archive a board (recoverable) or hard-delete it.
-muse kanban boards rm atm10-server
-muse kanban boards rm atm10-server --delete
+hermes kanban boards rm atm10-server
+hermes kanban boards rm atm10-server --delete
 ```
 
 Board resolution order (highest precedence first): `--board <slug>` flag → `HERMES_KANBAN_BOARD` env var → `~/.hermes/kanban/current` file → `default`.
 
 All actions are also available as a slash command in the gateway (`/kanban …`), with the same argument surface — including `boards` subcommands and the `--board` flag.
 
-For the full design — comparison with Cline Kanban / Paperclip / NanoClaw / Gemini Enterprise, eight collaboration patterns, four user stories, concurrency correctness proof — see `docs/hermes-kanban-v1-spec.pdf` in the repository or the [Kanban user guide](/docs/user-guide/features/kanban).
+For the full design — comparison with Cline Kanban / Paperclip / NanoClaw / Gemini Enterprise, eight collaboration patterns, four user stories, concurrency correctness proof — see `docs/hermes-kanban-v1-spec.pdf` in the repository or the [Kanban user guide](/user-guide/features/kanban).
 
-## `muse webhook`
+## `hermes project`
 
 ```bash
-muse webhook <subscribe|list|remove|test>
+hermes project <create|list|show|add-folder|remove-folder|rename|set-primary|use|archive|restore|bind-board>
+```
+
+Projects are human-named workspaces that can span multiple folders / repos. They anchor desktop session grouping and, when bound to a kanban board, give tasks a deterministic worktree + branch convention. State is per-profile.
+
+| Subcommand | Description |
+|------------|-------------|
+| `create` | Create a new project. |
+| `list` (alias `ls`) | List projects. |
+| `show` | Show a project's details. |
+| `add-folder` | Add a folder / repo to a project. |
+| `remove-folder` | Remove a folder from a project. |
+| `rename` | Rename a project. |
+| `set-primary` | Set the primary folder. |
+| `use` | Set the active project. |
+| `archive` | Archive a project (recoverable). |
+| `restore` | Restore an archived project. |
+| `bind-board` | Bind a kanban board to this project. |
+
+## `hermes webhook`
+
+```bash
+hermes webhook <subscribe|list|remove|test>
 ```
 
 Manage dynamic webhook subscriptions for event-driven agent activation. Requires the webhook platform to be enabled in config — if not configured, prints setup instructions.
@@ -455,10 +665,10 @@ Manage dynamic webhook subscriptions for event-driven agent activation. Requires
 | `remove` / `rm` | Delete a dynamic subscription. Static routes from config.yaml are not affected. |
 | `test` | Send a test POST to verify a subscription is working. |
 
-### `muse webhook subscribe`
+### `hermes webhook subscribe`
 
 ```bash
-muse webhook subscribe <name> [options]
+hermes webhook subscribe <name> [options]
 ```
 
 | Option | Description |
@@ -471,26 +681,27 @@ muse webhook subscribe <name> [options]
 | `--deliver-chat-id` | Target chat/channel ID for cross-platform delivery. |
 | `--secret` | Custom HMAC secret. Auto-generated if omitted. |
 | `--deliver-only` | Skip the agent — deliver the rendered `--prompt` as the literal message. Zero LLM cost, sub-second delivery. Requires `--deliver` to be a real target (not `log`). |
+| `--script` | Filter/transform script under `~/.hermes/scripts/`. The webhook payload is passed as JSON on stdin; JSON stdout replaces the payload, and empty stdout, `[SILENT]`, or a nonzero exit code ignores the webhook. See [Script Filters and Transforms](../user-guide/messaging/webhooks.md#script-filters-and-transforms). |
 
 Subscriptions persist to `~/.hermes/webhook_subscriptions.json` and are hot-reloaded by the webhook adapter without a gateway restart.
 
-## `muse doctor`
+## `hermes doctor`
 
 ```bash
-muse doctor [--fix]
+hermes doctor [--fix]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--fix` | Attempt automatic repairs where possible. |
 
-## `muse dump`
+## `hermes dump`
 
 ```bash
-muse dump [--show-keys]
+hermes dump [--show-keys]
 ```
 
-Outputs a compact, plain-text summary of your entire muse setup. Designed to be copy-pasted into Discord, GitHub issues, or Telegram when asking for support — no ANSI colors, no special formatting, just data.
+Outputs a compact, plain-text summary of your entire Hermes setup. Designed to be copy-pasted into Discord, GitHub issues, or Telegram when asking for support — no ANSI colors, no special formatting, just data.
 
 | Option | Description |
 |--------|-------------|
@@ -500,7 +711,7 @@ Outputs a compact, plain-text summary of your entire muse setup. Designed to be 
 
 | Section | Details |
 |---------|---------|
-| **Header** | muse version, release date, git commit hash |
+| **Header** | Hermes version, release date, git commit hash |
 | **Environment** | OS, Python version, OpenAI SDK version |
 | **Identity** | Active profile name, HERMES_HOME path |
 | **Model** | Configured default model and provider |
@@ -514,7 +725,7 @@ Outputs a compact, plain-text summary of your entire muse setup. Designed to be 
 ### Example output
 
 ```
---- muse dump ---
+--- hermes dump ---
 version:          0.8.0 (2026.4.8) [af4abd2f]
 os:               Linux 6.14.0-37-generic x86_64
 python:           3.11.14
@@ -557,13 +768,13 @@ config_overrides:
 - Quick sanity check when something isn't working
 
 :::tip
-`muse dump` is specifically designed for sharing. For interactive diagnostics, use `muse doctor`. For a visual overview, use `muse status`.
+`hermes dump` is specifically designed for sharing. For interactive diagnostics, use `hermes doctor`. For a visual overview, use `hermes status`.
 :::
 
-## `muse debug`
+## `hermes debug`
 
 ```bash
-muse debug share [options]
+hermes debug share [options]
 ```
 
 Upload a debug report (system info + recent logs) to a paste service and get a shareable URL. Useful for quick support requests — includes everything a helper needs to diagnose your issue.
@@ -572,28 +783,31 @@ Upload a debug report (system info + recent logs) to a paste service and get a s
 |--------|-------------|
 | `--lines <N>` | Number of log lines to include per log file (default: 200). |
 | `--expire <days>` | Paste expiry in days (default: 7). |
+| `--nous` | Upload to Nous-internal diagnostics storage instead of a public paste service. Use this when Nous support asks for a private diagnostic bundle. |
 | `--local` | Print the report locally instead of uploading. |
+| `--no-redact` | Disable upload-time secret redaction. By default, uploads are redacted. |
 
-The report includes system info (OS, Python version, muse version), recent agent and gateway logs (512 KB limit per file), and redacted API key status. Keys are always redacted — no secrets are uploaded.
+The report includes system info (OS, Python version, Hermes version), recent agent, gateway, GUI/dashboard, and desktop logs (512 KB limit per file), and redacted API key status. By default, uploads are redacted so secrets are not included.
 
-Paste services tried in order: paste.rs, dpaste.com.
+Default uploads use public paste services tried in order: paste.rs, dpaste.com. `--nous` uploads the same debug bundle to private Nous diagnostics storage instead; the returned viewer link is for the Nous team and auto-deletes after 14 days.
 
 ### Examples
 
 ```bash
-muse debug share              # Upload debug report, print URL
-muse debug share --lines 500  # Include more log lines
-muse debug share --expire 30  # Keep paste for 30 days
-muse debug share --local      # Print report to terminal (no upload)
+hermes debug share              # Upload debug report, print URL
+hermes debug share --lines 500  # Include more log lines
+hermes debug share --expire 30  # Keep paste for 30 days
+hermes debug share --nous       # Upload a private diagnostics bundle for Nous support
+hermes debug share --local      # Print report to terminal (no upload)
 ```
 
-## `muse backup`
+## `hermes backup`
 
 ```bash
-muse backup [options]
+hermes backup [options]
 ```
 
-Create a zip archive of your muse configuration, skills, sessions, and data. The backup excludes the hermes-agent codebase itself.
+Create a zip archive of your Hermes configuration, skills, sessions, and data. The backup excludes the hermes-agent codebase itself.
 
 | Option | Description |
 |--------|-------------|
@@ -601,7 +815,7 @@ Create a zip archive of your muse configuration, skills, sessions, and data. The
 | `-q`, `--quick` | Quick snapshot: only critical state files (config.yaml, state.db, .env, auth, cron jobs). Much faster than a full backup. |
 | `-l`, `--label <name>` | Label for the snapshot (only used with `--quick`). |
 
-The backup uses SQLite's `backup()` API for safe copying, so it works correctly even when muse is running (WAL-mode safe).
+The backup uses SQLite's `backup()` API for safe copying, so it works correctly even when Hermes is running (WAL-mode safe).
 
 **What's excluded from the zip:**
 
@@ -612,23 +826,23 @@ The backup uses SQLite's `backup()` API for safe copying, so it works correctly 
 ### Examples
 
 ```bash
-muse backup                           # Full backup to ~/hermes-backup-*.zip
-muse backup -o /tmp/hermes.zip        # Full backup to specific path
-muse backup --quick                   # Quick state-only snapshot
-muse backup --quick --label "pre-upgrade"  # Quick snapshot with label
+hermes backup                           # Full backup to ~/hermes-backup-*.zip
+hermes backup -o /tmp/hermes.zip        # Full backup to specific path
+hermes backup --quick                   # Quick state-only snapshot
+hermes backup --quick --label "pre-upgrade"  # Quick snapshot with label
 ```
 
-## `muse checkpoints`
+## `hermes checkpoints`
 
 ```bash
-muse checkpoints [COMMAND]
+hermes checkpoints [COMMAND]
 ```
 
 Inspect and manage the shadow git store at `~/.hermes/checkpoints/` — the storage layer behind the in-session `/rollback` command. Safe to run any time; does not require the agent to be running.
 
 | Subcommand | Description |
 |------------|-------------|
-| `status` (default) | Show total size, project count, and per-project breakdown. Bare `muse checkpoints` is equivalent. |
+| `status` (default) | Show total size, project count, and per-project breakdown. Bare `hermes checkpoints` is equivalent. |
 | `list` | Alias for `status`. |
 | `prune` | Force a cleanup sweep — delete orphan and stale projects, GC the store, enforce the size cap. Ignores the 24h idempotency marker. |
 | `clear` | Delete the entire checkpoint base. Irreversible; asks for confirmation unless `-f`. |
@@ -647,22 +861,22 @@ Inspect and manage the shadow git store at `~/.hermes/checkpoints/` — the stor
 ### Examples
 
 ```bash
-muse checkpoints                                  # status overview
-muse checkpoints prune --retention-days 3         # aggressive cleanup
-muse checkpoints prune --max-size-mb 200          # tighten size cap once
-muse checkpoints clear-legacy -f                  # drop v1 archive dirs
-muse checkpoints clear -f                         # wipe everything
+hermes checkpoints                                  # status overview
+hermes checkpoints prune --retention-days 3         # aggressive cleanup
+hermes checkpoints prune --max-size-mb 200          # tighten size cap once
+hermes checkpoints clear-legacy -f                  # drop v1 archive dirs
+hermes checkpoints clear -f                         # wipe everything
 ```
 
 See [Checkpoints and `/rollback`](../user-guide/checkpoints-and-rollback.md) for the full architecture and the in-session commands.
 
-## `muse import`
+## `hermes import`
 
 ```bash
-muse import <zipfile> [options]
+hermes import <zipfile> [options]
 ```
 
-Restore a previously created muse backup into your muse home directory. All files in the archive overwrite existing files in your muse home; `--force` only skips the confirmation prompt that fires when the target already has a muse installation.
+Restore a previously created Hermes backup into your Hermes home directory. All files in the archive overwrite existing files in your Hermes home; `--force` only skips the confirmation prompt that fires when the target already has a Hermes installation.
 
 | Option | Description |
 |--------|-------------|
@@ -674,17 +888,17 @@ Stop the gateway before importing to avoid conflicts with running processes.
 
 ### Examples
 ```bash
-muse import ~/hermes-backup-20260423.zip           # Prompts before overwriting existing config
-muse import ~/hermes-backup-20260423.zip --force   # Overwrite without prompting
+hermes import ~/hermes-backup-20260423.zip           # Prompts before overwriting existing config
+hermes import ~/hermes-backup-20260423.zip --force   # Overwrite without prompting
 ```
 
-## `muse logs`
+## `hermes logs`
 
 ```bash
-muse logs [log_name] [options]
+hermes logs [log_name] [options]
 ```
 
-View, tail, and filter muse log files. All logs are stored in `~/.hermes/logs/` (or `<profile>/logs/` for non-default profiles).
+View, tail, and filter Hermes log files. All logs are stored in `~/.hermes/logs/` (or `<profile>/logs/` for non-default profiles).
 
 ### Log files
 
@@ -693,6 +907,8 @@ View, tail, and filter muse log files. All logs are stored in `~/.hermes/logs/` 
 | `agent` (default) | `agent.log` | All agent activity — API calls, tool dispatch, session lifecycle (INFO and above) |
 | `errors` | `errors.log` | Warnings and errors only — a filtered subset of agent.log |
 | `gateway` | `gateway.log` | Messaging gateway activity — platform connections, message dispatch, webhook events |
+| `gui` | `gui.log` | Dashboard / TUI-gateway / PTY-bridge / websocket events |
+| `desktop` | `desktop.log` | Electron desktop app — boot, backend spawn output, and recent Python tracebacks |
 
 ### Options
 
@@ -710,25 +926,25 @@ View, tail, and filter muse log files. All logs are stored in `~/.hermes/logs/` 
 
 ```bash
 # View the last 50 lines of agent.log (default)
-muse logs
+hermes logs
 
 # Follow agent.log in real time
-muse logs -f
+hermes logs -f
 
 # View the last 100 lines of gateway.log
-muse logs gateway -n 100
+hermes logs gateway -n 100
 
 # Show only warnings and errors from the last hour
-muse logs --level WARNING --since 1h
+hermes logs --level WARNING --since 1h
 
 # Filter by a specific session
-muse logs --session abc123
+hermes logs --session abc123
 
 # Follow errors.log, starting from 30 minutes ago
-muse logs errors --since 30m -f
+hermes logs errors --since 30m -f
 
 # List all log files with their sizes
-muse logs list
+hermes logs list
 ```
 
 ### Filtering
@@ -737,19 +953,63 @@ Filters can be combined. When multiple filters are active, a log line must pass 
 
 ```bash
 # WARNING+ lines from the last 2 hours containing session "tg-12345"
-muse logs --level WARNING --since 2h --session tg-12345
+hermes logs --level WARNING --since 2h --session tg-12345
 ```
 
 Lines without a parseable timestamp are included when `--since` is active (they may be continuation lines from a multi-line log entry). Lines without a detectable level are included when `--level` is active.
 
 ### Log rotation
 
-muse uses Python's `RotatingFileHandler`. Old logs are rotated automatically — look for `agent.log.1`, `agent.log.2`, etc. The `muse logs list` subcommand shows all log files including rotated ones.
+Hermes uses Python's `RotatingFileHandler`. Old logs are rotated automatically — look for `agent.log.1`, `agent.log.2`, etc. The `hermes logs list` subcommand shows all log files including rotated ones.
 
-## `muse config`
+
+## `hermes prompt-size`
 
 ```bash
-muse config <subcommand>
+hermes prompt-size [--platform <name>] [--json]
+```
+
+Reports the fixed prompt budget for a fresh session — what gets sent on every
+API call *before* any conversation content. Useful when a downstream adapter or
+proxy has a tighter prompt budget than the model's context window, or when you
+want to see which block (skills index, memory, profile) dominates.
+
+It builds the same system prompt the agent would, then breaks it down:
+
+- **System prompt total** — full assembled prompt (identity, guidance, skills
+  index, context files, memory, profile, timestamp).
+- **Skills index** — the `<available_skills>` block. This is often the largest
+  single block when many skills are installed.
+- **Memory** and **user profile** — your `MEMORY.md` / `USER.md` snapshots.
+- **Prompt tiers** — stable / context / volatile, matching how Hermes layers
+  the prompt for cache-friendliness.
+- **Tool schemas** — the JSON for all enabled tools (the other half of the
+  fixed per-call payload).
+
+Runs entirely offline — no API call, works with no credentials configured.
+
+```bash
+# Human-readable breakdown for the CLI platform (default)
+hermes prompt-size
+
+# Simulate a messaging platform's prompt (different platform hint)
+hermes prompt-size --platform telegram
+
+# Machine-readable output for scripts
+hermes prompt-size --json
+```
+
+:::tip
+The skills index and tool schemas scale with how many skills and tools you have
+enabled. To shrink the prompt, disable unused toolsets (`hermes tools`) or
+uninstall skills you don't need (`hermes skills`). Context files (AGENTS.md,
+.cursorrules) in your current directory also count toward the total.
+:::
+
+## `hermes config`
+
+```bash
+hermes config <subcommand>
 ```
 
 Subcommands:
@@ -764,10 +1024,10 @@ Subcommands:
 | `check` | Check for missing or stale config. |
 | `migrate` | Add newly introduced options interactively. |
 
-## `muse pairing`
+## `hermes pairing`
 
 ```bash
-muse pairing <list|approve|revoke|clear-pending>
+hermes pairing <list|approve|revoke|clear-pending>
 ```
 
 | Subcommand | Description |
@@ -777,10 +1037,10 @@ muse pairing <list|approve|revoke|clear-pending>
 | `revoke <platform> <user-id>` | Revoke a user's access. |
 | `clear-pending` | Clear pending pairing codes. |
 
-## `muse skills`
+## `hermes skills`
 
 ```bash
-muse skills <subcommand>
+hermes skills <subcommand>
 ```
 
 Subcommands:
@@ -797,6 +1057,8 @@ Subcommands:
 | `audit` | Re-scan installed hub skills. |
 | `uninstall` | Remove a hub-installed skill. |
 | `reset` | Un-stick a bundled skill flagged as `user_modified` by clearing its manifest entry. With `--restore`, also replaces the user copy with the bundled version. |
+| `opt-out` | Stop bundled skills from being seeded into the active profile. Writes a `.no-bundled-skills` marker so the installer, `hermes update`, and any sync skip bundled-skill seeding. Safe by default — nothing on disk is touched. With `--remove`, also deletes already-present bundled skills that are **unmodified** (user-edited, hub-installed, and hand-written skills are never removed; previews and confirms first, `--yes` to skip). |
+| `opt-in` | Undo `opt-out` by removing the `.no-bundled-skills` marker so bundled skills are seeded again on the next `hermes update`. With `--sync`, re-seed immediately. |
 | `publish` | Publish a skill to a registry. |
 | `snapshot` | Export/import skill configurations. |
 | `tap` | Manage custom skill sources. |
@@ -805,35 +1067,38 @@ Subcommands:
 Common examples:
 
 ```bash
-muse skills browse
-muse skills browse --source official
-muse skills search react --source skills-sh
-muse skills search https://mintlify.com/docs --source well-known
-muse skills inspect official/security/1password
-muse skills inspect skills-sh/vercel-labs/json-render/json-render-react
-muse skills install official/migration/openclaw-migration
-muse skills install skills-sh/anthropics/skills/pdf --force
-muse skills install https://sharethis.chat/SKILL.md                     # Direct URL (single-file SKILL.md)
-muse skills install https://example.com/SKILL.md --name my-skill        # Override name when frontmatter has none
-muse skills check
-muse skills update
-muse skills config
-muse skills reset google-workspace
-muse skills reset google-workspace --restore --yes
+hermes skills browse
+hermes skills browse --source official
+hermes skills search react --source skills-sh
+hermes skills search https://mintlify.com/docs --source well-known
+hermes skills inspect official/security/1password
+hermes skills inspect skills-sh/vercel-labs/json-render/json-render-react
+hermes skills install official/migration/openclaw-migration
+hermes skills install skills-sh/anthropics/skills/pdf --force
+hermes skills install https://sharethis.chat/SKILL.md                     # Direct URL (+ referenced support files)
+hermes skills install https://example.com/SKILL.md --name my-skill        # Override name when frontmatter has none
+hermes skills check
+hermes skills update
+hermes skills config
+hermes skills reset google-workspace
+hermes skills reset google-workspace --restore --yes
+hermes skills opt-out                  # stop future bundled-skill seeding (nothing deleted)
+hermes skills opt-out --remove --yes   # also delete UNMODIFIED bundled skills
+hermes skills opt-in --sync            # undo: remove marker and re-seed now
 ```
 
 Notes:
 - `--force` can override non-dangerous policy blocks for third-party/community skills.
 - `--force` does not override a `dangerous` scan verdict.
 - `--source skills-sh` searches the public `skills.sh` directory.
-- `--source well-known` lets you point muse at a site exposing `/.well-known/skills/index.json`.
+- `--source well-known` lets you point Hermes at a site exposing `/.well-known/skills/index.json`.
 - `--source browse-sh` searches [browse.sh](https://browse.sh)'s catalog of 200+ site-specific browser-automation skills. Identifiers look like `browse-sh/airbnb.com/search-listings-ddgioa`.
-- Passing an `http(s)://…/*.md` URL installs a single-file SKILL.md directly. When frontmatter has no `name:` and the URL slug isn't a valid identifier, an interactive terminal prompts for a name; non-interactive surfaces (`/skills install` inside the TUI, gateway platforms) require `--name <x>` instead.
+- Passing an `http(s)://…/*.md` URL installs `SKILL.md` plus explicitly referenced files under `references/`, `templates/`, `scripts/`, `assets/`, and `examples/`. When frontmatter has no `name:` and the URL slug isn't a valid identifier, an interactive terminal prompts for a name; non-interactive surfaces (`/skills install` inside the TUI, gateway platforms) require `--name <x>` instead.
 
-## `muse bundles`
+## `hermes bundles`
 
 ```bash
-muse bundles <subcommand>
+hermes bundles <subcommand>
 ```
 
 Skill bundles group several skills under one `/<bundle-name>` slash command. Invoking the bundle loads every referenced skill into a single combined user message. Storage: `~/.hermes/skill-bundles/<slug>.yaml`. See [Skill Bundles](../user-guide/features/skills.md#skill-bundles) for the YAML schema and behavior.
@@ -851,23 +1116,23 @@ Subcommands:
 Examples:
 
 ```bash
-muse bundles create backend-dev \
+hermes bundles create backend-dev \
   --skill github-code-review \
   --skill test-driven-development \
   --skill github-pr-workflow \
   -d "Backend feature work"
 
-muse bundles list
-muse bundles show backend-dev
-muse bundles delete backend-dev
+hermes bundles list
+hermes bundles show backend-dev
+hermes bundles delete backend-dev
 ```
 
 In a chat session, `/bundles` lists installed bundles and `/<bundle-name>` loads one.
 
-## `muse curator`
+## `hermes curator`
 
 ```bash
-muse curator <subcommand>
+hermes curator <subcommand>
 ```
 
 The curator is an auxiliary-model background task that periodically reviews agent-created skills, prunes stale ones, consolidates overlaps, and archives obsolete skills. Bundled and hub-installed skills are never touched. Archives are recoverable; auto-deletion never happens.
@@ -892,14 +1157,26 @@ The curator is an auxiliary-model background task that periodically reviews agen
 | `prune` | Manually prune skills the curator would normally clean up |
 | `list-archived` | List archived skills (recoverable via `restore`) |
 
-On a fresh install the first scheduled pass is deferred by one full `interval_hours` (7 days by default) — the gateway will not curate immediately on the first tick after `muse update`. Use `muse curator run --dry-run` to preview before that happens.
+On a fresh install the first scheduled pass is deferred by one full `interval_hours` (7 days by default) — the gateway will not curate immediately on the first tick after `hermes update`. Use `hermes curator run --dry-run` to preview before that happens.
 
 See [Curator](../user-guide/features/curator.md) for behavior and config.
 
-## `muse fallback`
+## `hermes moa`
+
+Configure named Mixture of Agents presets. Presets appear as selectable models under a `Mixture of Agents` provider in every model picker; `/moa <prompt>` runs one prompt through the default preset.
 
 ```bash
-muse fallback <subcommand>
+hermes moa list
+hermes moa configure [name]
+hermes moa delete <name>
+```
+
+`hermes moa configure` reuses Hermes' provider → model picker for each reference model and the aggregator. A preset is an execution-mode configuration, not a primary model or provider.
+
+## `hermes fallback`
+
+```bash
+hermes fallback <subcommand>
 ```
 
 Manage the fallback provider chain. Fallback providers are tried in order when the primary model fails with rate-limit, overload, or connection errors.
@@ -907,16 +1184,16 @@ Manage the fallback provider chain. Fallback providers are tried in order when t
 | Subcommand | Description |
 |------------|-------------|
 | `list` (alias: `ls`) | Show the current fallback chain (default when no subcommand) |
-| `add` | Pick a provider + model (same picker as `muse model`) and append to the chain |
+| `add` | Pick a provider + model (same picker as `hermes model`) and append to the chain |
 | `remove` (alias: `rm`) | Pick an entry to delete from the chain |
 | `clear` | Remove all fallback entries |
 
 See [Fallback Providers](../user-guide/features/fallback-providers.md).
 
-## `muse hooks`
+## `hermes hooks`
 
 ```bash
-muse hooks <subcommand>
+hermes hooks <subcommand>
 ```
 
 Inspect shell-script hooks declared in `~/.hermes/config.yaml`, test them against synthetic payloads, and manage the first-use consent allowlist at `~/.hermes/shell-hooks-allowlist.json`.
@@ -930,10 +1207,10 @@ Inspect shell-script hooks declared in `~/.hermes/config.yaml`, test them agains
 
 See [Hooks](../user-guide/features/hooks.md) for event signatures and payload shapes.
 
-## `muse memory`
+## `hermes memory`
 
 ```bash
-muse memory <subcommand>
+hermes memory <subcommand>
 ```
 
 Set up and manage external memory provider plugins. Available providers: honcho, openviking, mem0, hindsight, holographic, retaindb, byterover, supermemory. Only one external provider can be active at a time. Built-in memory (MEMORY.md/USER.md) is always active.
@@ -947,16 +1224,16 @@ Subcommands:
 | `off` | Disable external provider (built-in only). |
 
 :::info Provider-specific subcommands
-When an external memory provider is active, it may register its own top-level `muse <provider>` command for provider-specific management (e.g. `muse honcho` when Honcho is active). Inactive providers do not expose their subcommands. Run `muse --help` to see what's currently wired in.
+When an external memory provider is active, it may register its own top-level `hermes <provider>` command for provider-specific management (e.g. `hermes honcho` when Honcho is active). Inactive providers do not expose their subcommands. Run `hermes --help` to see what's currently wired in.
 :::
 
-## `muse acp`
+## `hermes acp`
 
 ```bash
-muse acp
+hermes acp
 ```
 
-Starts muse as an ACP (Agent Client Protocol) stdio server for editor integration.
+Starts Hermes as an ACP (Agent Client Protocol) stdio server for editor integration.
 
 Related entrypoints:
 
@@ -968,38 +1245,41 @@ python -m acp_adapter
 Install support first:
 
 ```bash
-pip install -e '.[acp]'
+cd ~/.hermes/hermes-agent && uv pip install -e '.[acp]'
 ```
 
 See [ACP Editor Integration](../user-guide/features/acp.md) and [ACP Internals](../developer-guide/acp-internals.md).
 
-## `muse mcp`
+## `hermes mcp`
 
 ```bash
-muse mcp <subcommand>
+hermes mcp <subcommand>
 ```
 
-Manage MCP (Model Context Protocol) server configurations and run muse as an MCP server.
+Manage MCP (Model Context Protocol) server configurations and run Hermes as an MCP server.
 
 | Subcommand | Description |
 |------------|-------------|
-| `serve [-v\|--verbose]` | Run muse as an MCP server — expose conversations to other agents. |
-| `add <name> [--url URL] [--command CMD] [--args ...] [--auth oauth\|header]` | Add an MCP server with automatic tool discovery. |
+| *(none)* or `picker` | Interactive catalog picker — browse Nous-approved MCPs and install/enable/disable. |
+| `catalog` | List Nous-approved MCPs (plain text, scriptable). |
+| `install <name>` | Install a catalog entry (e.g. `hermes mcp install n8n`). |
+| `serve [-v\|--verbose]` | Run Hermes as an MCP server — expose conversations to other agents. |
+| `add <name> [--url URL] [--command CMD] [--auth oauth\|header] [--args ...]` | Add a custom MCP server with automatic tool discovery. `--args` passes the remaining argv to the stdio command, so put it last. |
 | `remove <name>` (alias: `rm`) | Remove an MCP server from config. |
 | `list` (alias: `ls`) | List configured MCP servers. |
 | `test <name>` | Test connection to an MCP server. |
 | `configure <name>` (alias: `config`) | Toggle tool selection for a server. |
 | `login <name>` | Force re-authentication for an OAuth-based MCP server. |
 
-See [MCP Config Reference](./mcp-config-reference.md), [Use MCP with Hermes](../guides/use-mcp-with-hermes.md), and [MCP Server Mode](../user-guide/features/mcp.md#running-muse-as-an-mcp-server).
+See [MCP Config Reference](./mcp-config-reference.md), [Use MCP with Hermes](../guides/use-mcp-with-hermes.md), and [MCP Server Mode](../user-guide/features/mcp.md#running-hermes-as-an-mcp-server).
 
-## `muse plugins`
+## `hermes plugins`
 
 ```bash
-muse plugins [subcommand]
+hermes plugins [subcommand]
 ```
 
-Unified plugin management — general plugins, memory providers, and context engines in one place. Running `muse plugins` with no subcommand opens a composite interactive screen with two sections:
+Unified plugin management — general plugins, memory providers, and context engines in one place. Running `hermes plugins` with no subcommand opens a composite interactive screen with two sections:
 
 - **General Plugins** — multi-select checkboxes to enable/disable installed plugins
 - **Provider Plugins** — single-select configuration for Memory Provider and Context Engine. Press ENTER on a category to open a radio picker.
@@ -1020,12 +1300,12 @@ Provider plugin selections are saved to `config.yaml`:
 
 General plugin disabled list is stored in `config.yaml` under `plugins.disabled`.
 
-See [Plugins](../user-guide/features/plugins.md) and [Build a muse Plugin](../guides/build-a-hermes-plugin.md).
+See [Plugins](../user-guide/features/plugins.md) and [Build a Hermes Plugin](../developer-guide/plugins/index.md).
 
-## `muse tools`
+## `hermes tools`
 
 ```bash
-muse tools [--summary]
+hermes tools [--summary]
 ```
 
 | Option | Description |
@@ -1034,36 +1314,57 @@ muse tools [--summary]
 
 Without `--summary`, this launches the interactive per-platform tool configuration UI.
 
-## `muse computer-use`
+## `hermes computer-use`
 
 ```bash
-muse computer-use <subcommand>
+hermes computer-use <subcommand>
 ```
 
 Subcommands:
 
 | Subcommand | Description |
 |------------|-------------|
-| `install` | Run the upstream cua-driver installer (macOS only). |
+| `install` | Run the upstream cua-driver installer (macOS, Windows, and Linux). |
 | `install --upgrade` | Re-run the installer even if cua-driver is already on PATH. The upstream script always pulls the latest release, so this performs an in-place upgrade. |
 | `status` | Print whether `cua-driver` is on `$PATH` and which version is installed. |
 
-`muse computer-use install` is the stable entry point for installing the
+`hermes computer-use install` is the stable entry point for installing the
 [cua-driver](https://github.com/trycua/cua) binary used by the
 `computer_use` toolset. It runs the same upstream installer that
-`muse tools` invokes when you first enable Computer Use, so it's safe
+`hermes tools` invokes when you first enable Computer Use, so it's safe
 to use for re-running the install if the toolset toggle didn't trigger
 it (for example, on returning-user setups).
 
-`muse update` automatically re-runs the upstream installer at the end
+`hermes update` automatically re-runs the upstream installer at the end
 of the update if cua-driver is on PATH, so most users will not need to
 call `--upgrade` manually. Use it when upstream ships a fix you want
-right now without waiting for the next muse update.
+right now without waiting for the next Hermes update.
 
-## `muse sessions`
+## `hermes pets`
 
 ```bash
-muse sessions <subcommand>
+hermes pets <list|install|select|show|off|scale|remove|doctor>
+```
+
+[Petdex](https://github.com/crafter-station/petdex) is a public gallery of animated sprite pets for coding agents. Install one and Hermes shows it reacting to agent activity across the CLI, TUI, and desktop app.
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | Browse the petdex gallery. |
+| `install` | Install a pet from the gallery. |
+| `select` | Set the active pet (writes `display.pet.*`). |
+| `show` | Animate the active pet in the terminal. |
+| `off` | Disable the pet display. |
+| `scale` | Resize the pet everywhere (`display.pet.scale`). |
+| `remove` | Delete an installed pet. |
+| `doctor` | Check pet setup + terminal graphics support. |
+
+You can also generate a brand-new pet from a text description with the `/hatch` slash command. See [Pets](../user-guide/features/pets.md).
+
+## `hermes sessions`
+
+```bash
+hermes sessions <subcommand>
 ```
 
 Subcommands:
@@ -1074,14 +1375,15 @@ Subcommands:
 | `browse` | Interactive session picker with search and resume. |
 | `export <output> [--session-id ID]` | Export sessions to JSONL. |
 | `delete <session-id>` | Delete one session. |
-| `prune` | Delete old sessions. |
+| `prune` | Delete sessions matching filters: time bounds `--older-than`/`--newer-than`/`--before`/`--after` (durations like `5h`/`2d`, bare days, or ISO timestamps); attributes `--source`, `--title`, `--model`, `--provider`, `--branch`, `--end-reason`, `--user`, `--chat-id`, `--chat-type`, `--cwd`; numeric bounds `--min/--max-messages`, `--min/--max-tokens`, `--min/--max-cost`, `--min/--max-tool-calls`; plus `--include-archived`, `--dry-run`, `--yes`. Default: older than 90 days. |
+| `archive` | Bulk-archive (soft-hide, no deletion) sessions matching the same filters as `prune`. Requires at least one filter. |
 | `stats` | Show session-store statistics. |
 | `rename <session-id> <title>` | Set or change a session title. |
 
-## `muse insights`
+## `hermes insights`
 
 ```bash
-muse insights [--days N] [--source platform]
+hermes insights [--days N] [--source platform]
 ```
 
 | Option | Description |
@@ -1089,21 +1391,21 @@ muse insights [--days N] [--source platform]
 | `--days <n>` | Analyze the last `n` days (default: 30). |
 | `--source <platform>` | Filter by source such as `cli`, `telegram`, or `discord`. |
 
-## `muse claw`
+## `hermes claw`
 
 ```bash
-muse claw migrate [options]
+hermes claw migrate [options]
 ```
 
-Migrate your OpenClaw setup to muse Reads from `~/.openclaw` (or a custom path) and writes to `~/.hermes`. Automatically detects legacy directory names (`~/.clawdbot`, `~/.moltbot`) and config filenames (`clawdbot.json`, `moltbot.json`).
+Migrate your OpenClaw setup to Hermes. Reads from `~/.openclaw` (or a custom path) and writes to `~/.hermes`. Automatically detects legacy directory names (`~/.clawdbot`, `~/.moltbot`) and config filenames (`clawdbot.json`, `moltbot.json`).
 
 | Option | Description |
 |--------|-------------|
 | `--dry-run` | Preview what would be migrated without writing anything. |
 | `--preset <name>` | Migration preset: `full` (all compatible settings) or `user-data` (excludes infrastructure config). Neither preset imports secrets — pass `--migrate-secrets` explicitly. |
-| `--overwrite` | Overwrite existing muse files on conflicts (default: refuse to apply when the plan has conflicts). |
+| `--overwrite` | Overwrite existing Hermes files on conflicts (default: refuse to apply when the plan has conflicts). |
 | `--migrate-secrets` | Include API keys in migration. Required even under `--preset full`. |
-| `--no-backup` | Skip the pre-migration zip snapshot of `~/.hermes/` (by default a single restore-point archive is written to `~/.hermes/backups/pre-migration-*.zip` before apply; restorable with `muse import`). |
+| `--no-backup` | Skip the pre-migration zip snapshot of `~/.hermes/` (by default a single restore-point archive is written to `~/.hermes/backups/pre-migration-*.zip` before apply; restorable with `hermes import`). |
 | `--source <path>` | Custom OpenClaw directory (default: `~/.openclaw`). |
 | `--workspace-target <path>` | Target directory for workspace instructions (AGENTS.md). |
 | `--skill-conflict <mode>` | Handle skill name collisions: `skip` (default), `overwrite`, or `rename`. |
@@ -1111,7 +1413,7 @@ Migrate your OpenClaw setup to muse Reads from `~/.openclaw` (or a custom path) 
 
 ### What gets migrated
 
-The migration covers 30+ categories across persona, memory, skills, model providers, messaging platforms, agent behavior, session policies, MCP servers, TTS, and more. Items are either **directly imported** into muse equivalents or **archived** for manual review.
+The migration covers 30+ categories across persona, memory, skills, model providers, messaging platforms, agent behavior, session policies, MCP servers, TTS, and more. Items are either **directly imported** into Hermes equivalents or **archived** for manual review.
 
 **Directly imported:** SOUL.md, MEMORY.md, USER.md, AGENTS.md, skills (4 source directories), default model, custom providers, MCP servers, messaging platform tokens and allowlists (Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost), agent defaults (reasoning effort, compression, human delay, timezone, sandbox), session reset policies, approval rules, TTS config, browser settings, tool settings, exec timeout, command allowlist, gateway config, and API keys from 3 sources.
 
@@ -1125,63 +1427,83 @@ For the complete config key mapping, SecretRef handling details, and post-migrat
 
 ```bash
 # Preview what would be migrated
-muse claw migrate --dry-run
+hermes claw migrate --dry-run
 
 # Full migration (all compatible settings, no secrets)
-muse claw migrate --preset full
+hermes claw migrate --preset full
 
 # Full migration including API keys
-muse claw migrate --preset full --migrate-secrets
+hermes claw migrate --preset full --migrate-secrets
 
 # Migrate user data only (no secrets), overwrite conflicts
-muse claw migrate --preset user-data --overwrite
+hermes claw migrate --preset user-data --overwrite
 
 # Migrate from a custom OpenClaw path
-muse claw migrate --source /home/user/old-openclaw
+hermes claw migrate --source /home/user/old-openclaw
 ```
 
-## `muse dashboard`
+## `hermes serve`
 
 ```bash
-muse dashboard [options]
+hermes serve [options]
 ```
 
-Launch the web dashboard — a browser-based UI for managing configuration, API keys, and monitoring sessions. Requires `pip install hermes-agent[web]` (FastAPI + Uvicorn). The embedded browser Chat tab requires `--tui` plus the `pty` extra. See [Web Dashboard](/docs/user-guide/features/web-dashboard) for full documentation.
+Start the Hermes **backend server** — the JSON-RPC/WebSocket gateway the [desktop app](/user-guide/desktop) and remote clients connect to. It is the same server `hermes dashboard` runs, but **headless**: it never opens a browser UI. The desktop app launches its own `hermes serve` backend; use this command directly when you want a headless backend on a remote host. Accepts the same `--host` / `--port` / `--insecure` / `--skip-build` / `--stop` / `--status` options as `hermes dashboard` below (a non-loopback bind engages the same auth gate). Requires the `[web]` extra; the embedded Chat socket additionally needs `[pty]` on a POSIX host.
+
+## `hermes dashboard`
+
+```bash
+hermes dashboard [options]
+```
+
+Launch the web dashboard — a browser-based UI for managing configuration, API keys, and monitoring sessions. (For a headless backend with no browser UI — e.g. what the desktop app spawns — use [`hermes serve`](#hermes-serve) above.) Requires `cd ~/.hermes/hermes-agent && uv pip install -e ".[web]"` (FastAPI + Uvicorn). The embedded browser Chat tab is always available and additionally needs the `pty` extra (`cd ~/.hermes/hermes-agent && uv pip install -e ".[web,pty]"`) plus a POSIX PTY environment such as Linux, macOS, or WSL2. See [Web Dashboard](/user-guide/features/web-dashboard) for full documentation.
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--port` | `9119` | Port to run the web server on |
 | `--host` | `127.0.0.1` | Bind address |
 | `--no-open` | — | Don't auto-open the browser |
-| `--tui` | off | Enable the in-browser Chat tab by running `muse --tui` behind a PTY/WebSocket bridge. Requires `pip install 'hermes-agent[web,pty]'` and a POSIX PTY environment such as Linux, macOS, or WSL2. |
-| `--insecure` | off | Allow binding to non-localhost hosts. Exposes dashboard credentials on the network; use only behind trusted network controls. |
-| `--stop` | — | Stop running `muse dashboard` processes and exit. |
-| `--status` | — | List running `muse dashboard` processes and exit. |
+| `--insecure` | off | **Deprecated / no-op.** Formerly bypassed auth on a non-loopback bind. Since the June 2026 hardening a public bind *always* requires an auth provider (password or OAuth). Bind `127.0.0.1` and tunnel to keep it local. |
+| `--skip-build` | off | Skip the web UI build step and serve the existing `dist` directly. Useful for non-interactive contexts (Windows Scheduled Tasks, CI) where npm isn't available. Pre-build with `cd web && npm run build`. |
+| `--isolated` | off | When launched from a named profile (`worker dashboard`), run a dedicated per-profile server instead of routing to the machine dashboard. |
+| `--stop` | — | Stop running `hermes dashboard` processes and exit. |
+| `--status` | — | List running `hermes dashboard` processes and exit. |
+
+### `hermes dashboard register`
+
+Register this install as a self-hosted dashboard with your Nous Portal account. Creates an OAuth client, writes `HERMES_DASHBOARD_OAUTH_CLIENT_ID` into `~/.hermes/.env`, and prints how to engage the login gate. Requires being logged in (`hermes setup`).
+
+| Option | Description |
+|--------|-------------|
+| `--name` | Human-readable label for the dashboard (default: auto-generated). |
+| `--redirect-uri` | Public HTTPS OAuth redirect URI (e.g. `https://hermes.example.com/auth/callback`). Omit for localhost-only use. |
+| `--portal-url` | Override the Nous Portal base URL for registration (default: the portal you logged into). Also settable via `HERMES_DASHBOARD_PORTAL_URL`. |
 
 ```bash
 # Default — opens browser to http://127.0.0.1:9119
-muse dashboard
+hermes dashboard
 
 # Custom port, no browser
-muse dashboard --port 8080 --no-open
+hermes dashboard --port 8080 --no-open
 
-# Enable the browser Chat tab
-muse dashboard --tui
+# From a profile alias — routes to the machine dashboard with the
+# profile preselected in the sidebar switcher (attach if running)
+worker dashboard
 ```
 
-## `muse profile`
+## `hermes profile`
 
 ```bash
-muse profile <subcommand>
+hermes profile <subcommand>
 ```
 
-Manage profiles — multiple isolated muse instances, each with its own config, sessions, skills, and home directory.
+Manage profiles — multiple isolated Hermes instances, each with its own config, sessions, skills, and home directory.
 
 | Subcommand | Description |
 |------------|-------------|
 | `list` | List all profiles. |
 | `use <name>` | Set a sticky default profile. |
-| `create <name> [--clone] [--clone-all] [--clone-from <source>] [--no-alias]` | Create a new profile. `--clone` copies config, `.env`, and `SOUL.md` from the active profile. `--clone-all` copies all state. `--clone-from` specifies a source profile. |
+| `create <name> [--clone] [--clone-all] [--clone-from <source>] [--no-alias]` | Create a new profile. `--clone` copies config, `.env`, `SOUL.md`, and skills from the active profile. `--clone-all` copies all state. `--clone-from` specifies a source profile and implies config clone unless paired with `--clone-all`. |
 | `delete <name> [-y]` | Delete a profile. |
 | `show <name>` | Show profile details (home directory, config, etc.). |
 | `alias <name> [--remove] [--name NAME]` | Manage wrapper scripts for quick profile access. |
@@ -1195,70 +1517,73 @@ Manage profiles — multiple isolated muse instances, each with its own config, 
 Examples:
 
 ```bash
-muse profile list
-muse profile create work --clone
-muse profile use work
-muse profile alias work --name h-work
-muse profile export work -o work-backup.tar.gz
-muse profile import work-backup.tar.gz --name restored
-muse profile install github.com/user/my-distro --alias
-muse profile update work
-muse -p work chat -q "Hello from work profile"
+hermes profile list
+hermes profile create work --clone
+hermes profile use work
+hermes profile alias work --name h-work
+hermes profile export work -o work-backup.tar.gz
+hermes profile import work-backup.tar.gz --name restored
+hermes profile install github.com/user/my-distro --alias
+hermes profile update work
+hermes -p work chat -q "Hello from work profile"
 ```
 
-## `muse completion`
+## `hermes completion`
 
 ```bash
-muse completion [bash|zsh|fish]
+hermes completion [bash|zsh|fish]
 ```
 
-Print a shell completion script to stdout. Source the output in your shell profile for tab-completion of muse commands, subcommands, and profile names.
+Print a shell completion script to stdout. Source the output in your shell profile for tab-completion of Hermes commands, subcommands, and profile names.
 
 Examples:
 
 ```bash
 # Bash
-muse completion bash >> ~/.bashrc
+hermes completion bash >> ~/.bashrc
 
 # Zsh
-muse completion zsh >> ~/.zshrc
+hermes completion zsh >> ~/.zshrc
 
 # Fish
-muse completion fish > ~/.config/fish/completions/hermes.fish
+hermes completion fish > ~/.config/fish/completions/hermes.fish
 ```
 
-## `muse update`
+## `hermes update`
 
 ```bash
-muse update [--check] [--backup] [--restart-gateway]
+hermes update [--gateway] [--check] [--no-backup] [--backup] [--yes]
 ```
 
-Pulls the latest `hermes-agent` code and reinstalls dependencies in your venv, then re-runs the post-install hooks (MCP servers, skills sync, completion install). Safe to run on a live install.
+Pulls the latest `hermes-agent` code and reinstalls dependencies in the managed venv, then re-runs the post-install hooks (MCP servers, skills sync, completion install). Safe to run on a live install. Use `--check` to see whether your checkout is behind `origin/main` without installing.
 
-**pip installs:** `muse update` detects pip-based installations automatically — it queries PyPI for the latest release and runs `pip install --upgrade hermes-agent` instead of `git pull`. PyPI releases track tagged versions (major/minor releases), not every commit on `main`. Use `--check` to see if a newer PyPI release is available without installing.
+`hermes update` pulls the configured update branch (default: `main`). If your checkout is on another branch, Hermes may check out the update branch before pulling. Commit branch work before updating when you want to keep it outside the update autostash flow.
 
 | Option | Description |
 |--------|-------------|
-| `--check` | Print the current commit and the latest `origin/main` commit side by side, and exit 0 if in sync or 1 if behind. Does not pull, install, or restart anything. |
-| `--backup` | Create a labeled pre-update snapshot of `HERMES_HOME` (config, auth, sessions, skills, pairing data) before pulling. Default is **off** — the previous always-backup behavior was adding minutes to every update on large homes. Flip it on permanently via `update.backup: true` in `config.yaml`. |
-| `--restart-gateway` | After a successful update, restart the running gateway service. Implies `--all` semantics if multiple profiles are installed. |
-| `--no-consolidate` | **Forks only.** Skip merging `upstream/main` + your current branch into `main`; just fast-forward `main` from your fork's `origin`. Use this when your fork has diverged from upstream and `muse update` stops with merge conflicts ("no model is configured for auto-resolution"). Make it the default permanently with `update.consolidate: false` in `config.yaml` (or `HERMES_NO_CONSOLIDATE=1`). |
+| `--gateway` | Internal mode used by the messaging `/update` command. Uses file-based IPC for prompts and progress streaming instead of reading from terminal stdin. Not a gateway restart flag. |
+| `--check` | Check whether an update is available without pulling, installing dependencies, or restarting anything. |
+| `--no-backup` | Skip all pre-update backups for this run (both the quick state snapshot and the full zip), regardless of `updates.pre_update_backup`. |
+| `--backup` | Force a **full** pre-update backup for this run: the quick state snapshot plus a complete zip of `HERMES_HOME` (config, auth, sessions, skills, pairing data). The default mode is `quick` — a lightweight state snapshot only. Set the permanent mode via `updates.pre_update_backup: quick | full | off` in `config.yaml`. |
+| `--yes`, `-y` | Assume yes for interactive prompts such as config migration and stash restore. API-key entry is skipped; run `hermes config migrate` separately for those. |
 
 Additional behavior:
 
-- **Fork consolidation.** When `origin` is a fork, `muse update` defaults to bringing `upstream/main` and your working branch together into `main` (with optional model-assisted conflict resolution). A heavily-diverged fork can hit unresolvable conflicts and safe-stop without touching `main`; in that case re-run with `--no-consolidate` (or set `update.consolidate: false`) to update only from your fork's `origin/main`.
-
-- **Pairing data snapshot.** Even when `--backup` is off, `muse update` takes a lightweight snapshot of `~/.hermes/pairing/` and the Feishu comment rules before `git pull`. You can roll it back with `muse backup restore --state pre-update` if a pull rewrites a file you were editing.
-- **Legacy `hermes.service` warning.** If muse detects a pre-rename `hermes.service` systemd unit (instead of the current `hermes-gateway.service`), it prints a one-time migration hint so you can avoid flap-loop issues.
+- **Gateway restart.** After a successful update, Hermes attempts to restart all running gateway profiles automatically so they pick up the new code. Use `hermes gateway restart` when you want to restart a gateway without applying an update.
+- **Local source changes.** For git installs, dirty tracked files and untracked files are auto-stashed before branch checkout or pull (`git stash push --include-untracked`). Interactive terminal updates ask before restoring the stash. Non-interactive updates restore it by default; set `updates.non_interactive_local_changes: discard` only on managed installs where local source edits should be thrown away after a successful pull. If stash restore conflicts or the pull fails, the stash is left in place for manual recovery.
+- **npm lockfile churn.** Before stashing or switching branches, Hermes makes a best-effort cleanup of tracked `package-lock.json` diffs produced by npm install/build steps. Commit or manually stash intentional lockfile edits before running `hermes update`.
+- **Pairing data snapshot.** Even when `--backup` is off, `hermes update` takes a lightweight snapshot of `~/.hermes/pairing/` and the Feishu comment rules before `git pull`. You can roll it back with `hermes backup restore --state pre-update` if a pull rewrites a file you were editing.
+- **Legacy `hermes.service` warning.** If Hermes detects a pre-rename `hermes.service` systemd unit (instead of the current `hermes-gateway.service`), it prints a one-time migration hint so you can avoid flap-loop issues.
 - **Exit codes.** `0` on success, `1` on pull/install/post-install errors, `2` on unexpected working-tree changes that block `git pull`.
 
 ## Maintenance commands
 
 | Command | Description |
 |---------|-------------|
-| `muse version` | Print version information. |
-| `muse update` | Pull latest changes and reinstall dependencies. |
-| `muse uninstall [--full] [--yes]` | Remove muse optionally deleting all config/data. |
+| `hermes version` | Print version information. |
+| `hermes update` | Pull latest changes and reinstall dependencies. |
+| `hermes postinstall` | Internal bootstrap. Runs once after the install script provisions Hermes (or after `hermes update`) to install non-Python dependencies that pip cannot provide — Node.js runtime, headless browser, ripgrep, ffmpeg — and then trigger `hermes setup` if the profile has not been configured yet. Safe to re-run idempotently. |
+| `hermes uninstall [--full] [--gui] [--yes]` | Remove Hermes, optionally deleting all config/data. `--gui` removes only the desktop Chat GUI, leaving the agent intact; `--full` also deletes config/data; `--yes` skips prompts. |
 
 ## See also
 

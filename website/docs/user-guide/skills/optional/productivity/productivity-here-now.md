@@ -14,7 +14,7 @@ Publish static sites to &#123;slug&#125;.here.now and store private files in clo
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/productivity/here-now` |
+| Source | Optional — install with `hermes skills install official/productivity/here-now` |
 | Path | `optional-skills/productivity/here-now` |
 | Version | `1.15.3` |
 | Author | here.now |
@@ -25,7 +25,7 @@ Publish static sites to &#123;slug&#125;.here.now and store private files in clo
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # here.now

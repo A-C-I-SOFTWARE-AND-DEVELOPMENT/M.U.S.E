@@ -1,14 +1,5 @@
-import json
 
 from hermes_cli import kanban_db as kb
-
-
-def _task(conn, task_id) -> kb.Task:
-    """Fetch a task that must exist (fails the test if missing)."""
-    task = kb.get_task(conn, task_id)
-    assert task is not None
-    return task
-
 from hermes_cli.kanban_swarm import (
     SwarmWorkerSpec,
     create_swarm,
@@ -38,19 +29,15 @@ def test_create_swarm_builds_parallel_workers_verifier_and_synthesizer(tmp_path)
         verifier = kb.get_task(conn, created.verifier_id)
         synthesizer = kb.get_task(conn, created.synthesizer_id)
 
-        assert root is not None
         assert root.status == "done"
-        assert root is not None
         assert root.assignee == "orchestrator"
-        assert [task.status for task in workers] == ["ready", "ready"]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-        assert [task.assignee for task in workers] == ["researcher-a", "researcher-b"]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-        assert verifier is not None
+        assert [task.status for task in workers] == ["ready", "ready"]
+        assert [task.assignee for task in workers] == ["researcher-a", "researcher-b"]
         assert verifier.status == "todo"
-        assert synthesizer is not None
         assert synthesizer.status == "todo"
         assert set(kb.parent_ids(conn, created.verifier_id)) == set(created.worker_ids)
         assert kb.parent_ids(conn, created.synthesizer_id) == [created.verifier_id]
-        assert all(created.root_id in (task.body or "") for task in workers)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert all(created.root_id in (task.body or "") for task in workers)
     finally:
         conn.close()
 
@@ -110,13 +97,13 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"confidence": 0.8},
         )
         kb.recompute_ready(conn)
-        assert _task(conn, created.verifier_id).status == "todo"
-        assert _task(conn, created.synthesizer_id).status == "todo"
+        assert kb.get_task(conn, created.verifier_id).status == "todo"
+        assert kb.get_task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(conn, created.worker_ids[1], summary="B done")
         kb.recompute_ready(conn)
-        assert _task(conn, created.verifier_id).status == "ready"
-        assert _task(conn, created.synthesizer_id).status == "todo"
+        assert kb.get_task(conn, created.verifier_id).status == "ready"
+        assert kb.get_task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(
             conn,
@@ -125,6 +112,6 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"gate": "pass"},
         )
         kb.recompute_ready(conn)
-        assert _task(conn, created.synthesizer_id).status == "ready"
+        assert kb.get_task(conn, created.synthesizer_id).status == "ready"
     finally:
         conn.close()

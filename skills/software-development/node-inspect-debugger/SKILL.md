@@ -199,13 +199,13 @@ cont
 
 When it pauses, `repl` → inspect `props`, state refs, `useInput` handler values, etc.
 
-### Debugging a running `muse --tui`
+### Debugging a running `hermes --tui`
 
 The TUI spawns Node from the Python CLI. Easiest path:
 
 ```bash
 # 1. Launch TUI
-muse --tui &
+hermes --tui &
 TUI_PID=$(pgrep -f 'ui-tui/dist/entry' | head -1)
 
 # 2. Enable inspector on that Node PID

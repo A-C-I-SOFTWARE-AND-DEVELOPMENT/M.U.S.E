@@ -23,7 +23,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, TypeGuard
+from typing import Any, Iterator
 from urllib.parse import urlparse
 
 # Optional: prefer `requests` if installed (better redirects, streaming, header handling)
@@ -584,7 +584,7 @@ def _http_once(
             self.original_host = original_host
             self.follow = follow
 
-        def redirect_request(self, req2, fp, code, msg, hdrs, newurl):  # ty: ignore[invalid-method-override]
+        def redirect_request(self, req2, fp, code, msg, hdrs, newurl):
             if not self.follow:
                 return None
             new_host = (urlparse(newurl).hostname or "").lower()
@@ -671,7 +671,7 @@ def unwrap_workflow(payload: Any) -> dict:
     )
 
 
-def is_link(value: Any) -> TypeGuard[list]:
+def is_link(value: Any) -> bool:
     """True if `value` is a [node_id, output_index] connection (length-2 list)."""
     return (
         isinstance(value, list)

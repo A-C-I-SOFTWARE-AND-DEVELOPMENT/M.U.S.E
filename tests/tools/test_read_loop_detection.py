@@ -46,7 +46,7 @@ class _FakeSearchResult:
     def __init__(self):
         self.matches = []
 
-    def to_dict(self):
+    def to_dict(self, densify=False):
         return {"matches": [{"file": "test.py", "line": 1, "text": "match"}]}
 
 
@@ -297,7 +297,6 @@ class TestTodoInjectionFiltering(unittest.TestCase):
             {"id": "4", "content": "Abandoned", "status": "cancelled"},
         ])
         injection = store.format_for_injection()
-        assert injection is not None
         self.assertNotIn("Read codebase", injection)
         self.assertNotIn("Abandoned", injection)
         self.assertIn("Write fix", injection)
@@ -325,7 +324,6 @@ class TestTodoInjectionFiltering(unittest.TestCase):
             {"id": "2", "content": "Task B", "status": "in_progress"},
         ])
         injection = store.format_for_injection()
-        assert injection is not None
         self.assertIn("Task A", injection)
         self.assertIn("Task B", injection)
 

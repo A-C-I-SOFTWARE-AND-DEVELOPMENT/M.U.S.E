@@ -4,7 +4,7 @@ description: >
   Connect to a running NeuroSkill instance and incorporate the user's real-time
   cognitive and emotional state (focus, relaxation, mood, cognitive load, drowsiness,
   heart rate, HRV, sleep staging, and 40+ derived EXG scores) into responses.
-  Requires a BCI wearable (muse 2/S or OpenBCI) and the NeuroSkill desktop app
+  Requires a BCI wearable (Muse 2/S or OpenBCI) and the NeuroSkill desktop app
   running locally.
 platforms: [linux, macos, windows]
 version: 1.0.0
@@ -37,7 +37,7 @@ for intervention protocols, and `references/api.md` for the WebSocket/HTTP API.
 
 - **Node.js 20+** installed (`node --version`)
 - **NeuroSkill desktop app** running with a connected BCI device
-- **BCI hardware**: muse 2, muse S, or OpenBCI (4-channel EEG + PPG + IMU via BLE)
+- **BCI hardware**: Muse 2, Muse S, or OpenBCI (4-channel EEG + PPG + IMU via BLE)
 - `npx neuroskill status` returns data without errors
 
 ### Verify Setup

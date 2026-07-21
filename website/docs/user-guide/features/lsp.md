@@ -6,7 +6,7 @@ description: "Real language servers (pyright, gopls, rust-analyzer, …) wired i
 
 # Language Server Protocol (LSP)
 
-muse runs full language servers — pyright, gopls, rust-analyzer,
+Hermes runs full language servers — pyright, gopls, rust-analyzer,
 typescript-language-server, clangd, and ~20 more — as background
 subprocesses and feeds their semantic diagnostics into the post-write
 lint check used by `write_file` and `patch`. When the agent edits a
@@ -14,7 +14,7 @@ file, it sees exactly the errors that edit introduced — not just
 syntax errors, but **type errors, undefined names, missing imports,
 and project-wide semantic issues** the language server detects.
 
-This is the same architecture top-tier coding agents use. muse
+This is the same architecture top-tier coding agents use. Hermes
 ships it self-contained: no editor host required, no plugins to
 install, no separate daemon to manage.
 
@@ -33,7 +33,7 @@ falls back silently to the syntax-only result.
 
 Concretely, on every successful `write_file` or `patch`:
 
-1. muse captures a baseline of current diagnostics for the file.
+1. Hermes captures a baseline of current diagnostics for the file.
 2. Performs the write.
 3. Re-queries the language server, filters out diagnostics that were
    already in the baseline, and surfaces only the new ones.
@@ -86,31 +86,54 @@ agent sees a syntax-clean file with semantic problems as
 | Prisma | `prisma language-server` | manual |
 | Kotlin | `kotlin-language-server` | manual |
 | Java | `jdtls` | manual |
+| PowerShell | `PowerShellEditorServices` (`pwsh` host) | manual (release zip) |
 
 For "manual" entries, install the server through whatever toolchain
 manager makes sense for that language (rustup, ghcup, opam, brew,
-…). muse auto-detects the binary on PATH or in
+…). Hermes auto-detects the binary on PATH or in
 `<HERMES_HOME>/lsp/bin/`.
+
+### PowerShell
+
+PowerShellEditorServices isn't a single binary — it's a PowerShell
+module bundle launched by a `pwsh` (PowerShell 7+) or `powershell`
+host. Setup:
+
+1. Install [PowerShell](https://github.com/PowerShell/PowerShell) so
+   `pwsh` (or Windows `powershell`) is on PATH.
+2. Download the latest release zip from
+   [PowerShellEditorServices releases](https://github.com/PowerShell/PowerShellEditorServices/releases)
+   and extract it.
+3. Point Hermes at the extracted bundle — the directory that contains
+   `PowerShellEditorServices/Start-EditorServices.ps1`. Either:
+   - set `lsp.servers.powershell.command: ["/path/to/bundle"]` in
+     `config.yaml`, or
+   - extract it to `<HERMES_HOME>/lsp/PowerShellEditorServices`, or
+   - export `PSES_BUNDLE_PATH=/path/to/bundle`.
+
+`hermes lsp status` reports `installed` once `pwsh` is found; if the
+bundle is missing you'll see a one-time warning in the logs with the
+download link.
 
 A few servers are installed alongside a peer dependency that npm
 won't auto-pull. The current case is `typescript-language-server`,
 which requires the `typescript` SDK importable from the same
-`node_modules` tree — muse installs both packages together when you
-run `muse lsp install typescript` or auto-install fires on first
+`node_modules` tree — Hermes installs both packages together when you
+run `hermes lsp install typescript` or auto-install fires on first
 use.
 
 ## CLI
 
 ```
-muse lsp status          # service state + per-server install status
-muse lsp list            # registry, optionally --installed-only
-muse lsp install <id>    # eagerly install one server
-muse lsp install-all     # try every server with a known recipe
-muse lsp restart         # tear down running clients
-muse lsp which <id>      # print resolved binary path
+hermes lsp status          # service state + per-server install status
+hermes lsp list            # registry, optionally --installed-only
+hermes lsp install <id>    # eagerly install one server
+hermes lsp install-all     # try every server with a known recipe
+hermes lsp restart         # tear down running clients
+hermes lsp which <id>      # print resolved binary path
 ```
 
-`muse lsp status` is the best starting point — it shows which
+`hermes lsp status` is the best starting point — it shows which
 languages will get semantic diagnostics today and which need a
 binary installed.
 
@@ -128,6 +151,12 @@ lsp:
 
   # How long to wait for diagnostics after each write.
   wait_mode: document      # "document" or "full"
+  # Max seconds to wait for the server to re-check the file after an
+  # edit. Only *fresh* diagnostics (produced for the post-edit
+  # content) are ever reported; if the server doesn't finish within
+  # this budget, the edit reports "no LSP data" rather than stale
+  # errors from before the edit. Raise this for slow servers on big
+  # projects (tsserver, rust-analyzer mid-indexing).
   wait_timeout: 5.0
 
   # How to handle missing server binaries.
@@ -162,7 +191,7 @@ lsp:
 
 ## Installation locations
 
-When `install_strategy: auto`, muse installs binaries into
+When `install_strategy: auto`, Hermes installs binaries into
 `<HERMES_HOME>/lsp/bin/`. NPM packages land in
 `<HERMES_HOME>/lsp/node_modules/` with bin symlinks one level up.
 Go binaries come from `go install` with `GOBIN` pointed at the
@@ -186,7 +215,14 @@ budget is `wait_timeout` seconds — typically the server responds in
 tens of milliseconds for pyright/tsserver and a few seconds for
 rust-analyzer mid-indexing.
 
-Servers are kept alive for the life of the muse process. There's
+Diagnostics are **freshness-gated**: a result only counts when the
+server produced it for the content of the current edit (a
+`publishDiagnostics` push at/after the change, or a pull request
+answered after it). Slow servers that haven't re-checked yet result
+in "no data" for that edit — never in yesterday's errors being
+re-reported as current.
+
+Servers are kept alive for the life of the Hermes process. There's
 no idle-timeout reaper — the cost of restarting the server's index
 on every write would be far higher than holding the daemon.
 
@@ -208,19 +244,19 @@ lsp:
 
 ## Troubleshooting
 
-**`muse lsp status` shows a server as "missing"**
+**`hermes lsp status` shows a server as "missing"**
 
 The binary isn't on PATH and isn't in `<HERMES_HOME>/lsp/bin/`. Run
-`muse lsp install <server_id>` to attempt an auto-install, or
+`hermes lsp install <server_id>` to attempt an auto-install, or
 install the binary manually through the language's normal toolchain.
 
-**`Backend warnings` section in `muse lsp status`**
+**`Backend warnings` section in `hermes lsp status`**
 
 Some servers ship as thin wrappers around an external CLI for actual
 diagnostics — they spawn cleanly and accept requests but never emit
 errors when the sidecar binary is missing. The most common case is
 `bash-language-server`, which delegates diagnostics to `shellcheck`.
-When `muse lsp status` shows a `Backend warnings` section, install
+When `hermes lsp status` shows a `Backend warnings` section, install
 the named tool through your OS package manager:
 
 ```
@@ -244,7 +280,7 @@ subsequent edits picking them up.
 **Server crashed**
 
 A crashed server is added to the broken-set and won't be retried for
-the rest of the session. Run `muse lsp restart` to clear the set;
+the rest of the session. Run `hermes lsp restart` to clear the set;
 the next edit re-spawns.
 
 **Editing a file outside any git repo**

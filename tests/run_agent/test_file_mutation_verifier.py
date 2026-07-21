@@ -28,6 +28,7 @@ from run_agent import (
     _FILE_MUTATING_TOOLS,
     _extract_error_preview,
     _extract_file_mutation_targets,
+    _extract_landed_file_mutation_paths,
 )
 
 
@@ -128,6 +129,7 @@ def _bare_agent() -> AIAgent:
     """
     agent = object.__new__(AIAgent)
     agent._turn_failed_file_mutations = {}
+    agent._turn_file_mutation_paths = set()
     return agent
 
 
@@ -137,7 +139,7 @@ class TestRecordFileMutationResult:
         agent._record_file_mutation_result(
             "read_file", {"path": "/tmp/x"}, "{}", is_error=True,
         )
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_failure_recorded(self):
         agent = _bare_agent()
@@ -146,7 +148,7 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             result, is_error=True,
         )
-        state = agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        state = agent._turn_failed_file_mutations
         assert "/tmp/a.md" in state
         assert state["/tmp/a.md"]["tool"] == "patch"
         assert "Could not find old_string" in state["/tmp/a.md"]["error_preview"]
@@ -158,13 +160,38 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             json.dumps({"error": "not found"}), is_error=True,
         )
-        assert "/tmp/a.md" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.md" in agent._turn_failed_file_mutations
         # Second attempt with corrected old_string succeeds
         agent._record_file_mutation_result(
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "real", "new_string": "fixed"},
             json.dumps({"success": True, "diff": "..."}), is_error=False,
         )
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_file_mutation_paths == {"/tmp/a.md"}
+
+    def test_success_records_landed_paths_for_verify_on_stop(self):
+        agent = _bare_agent()
+
+        agent._record_file_mutation_result(
+            "write_file",
+            {"path": "a.py", "content": "print('ok')\n"},
+            json.dumps({"bytes_written": 12, "files_modified": ["/tmp/project/a.py"]}),
+            is_error=False,
+        )
+
+        assert agent._turn_file_mutation_paths == {"/tmp/project/a.py"}
+
+    def test_landed_paths_prefer_resolved_tool_result(self):
+        paths = _extract_landed_file_mutation_paths(
+            "patch",
+            {"mode": "replace", "path": "src/app.py"},
+            json.dumps({
+                "success": True,
+                "files_modified": ["/tmp/project/src/app.py"],
+            }),
+        )
+
+        assert paths == ["/tmp/project/src/app.py"]
 
     def test_write_file_with_lint_error_counts_as_landed(self):
         agent = _bare_agent()
@@ -174,7 +201,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "write failed"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations
 
         result = json.dumps({
             "bytes_written": 24,
@@ -188,7 +215,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_patch_with_lsp_diagnostics_counts_as_landed(self):
         agent = _bare_agent()
@@ -198,7 +225,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "Could not find old_string"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations
 
         result = json.dumps({
             "success": True,
@@ -214,7 +241,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_repeated_failure_keeps_first_error(self):
         agent = _bare_agent()
@@ -228,7 +255,7 @@ class TestRecordFileMutationResult:
         )
         # Keep the original error — swapping to the latest would obscure
         # the initial root cause.
-        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]  # ty: ignore[unresolved-attribute]
+        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]
 
     def test_v4a_multi_file_all_tracked(self):
         agent = _bare_agent()
@@ -242,7 +269,7 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "patch", "patch": body},
             json.dumps({"error": "parse failure"}), is_error=True,
         )
-        assert set(agent._turn_failed_file_mutations) == {"/tmp/a.md", "/tmp/b.md"}  # ty: ignore[unresolved-attribute]
+        assert set(agent._turn_failed_file_mutations) == {"/tmp/a.md", "/tmp/b.md"}
 
     def test_no_state_dict_silent_noop(self):
         """When called outside run_conversation the state dict is absent.
@@ -266,7 +293,7 @@ class TestRecordFileMutationResult:
         )
         # No path → nothing to key on, state stays empty.  The per-turn
         # state is about file paths, not individual tool-call IDs.
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +326,57 @@ class TestFormatFooter:
         lines = out.split("\n")
         bullet_lines = [ln for ln in lines if ln.lstrip().startswith("•")]
         assert len(bullet_lines) == 11  # 10 shown + 1 summary
+
+    def test_paths_are_backtick_wrapped(self):
+        """Footer paths must be inline-code wrapped so the gateway's bare-path
+        media extractor can't auto-attach them (#35584 defense-in-depth)."""
+        out = AIAgent._format_file_mutation_failure_footer(
+            {"/home/u/.hermes/config.yaml": {
+                "tool": "patch",
+                "error_preview": (
+                    "Write denied: '/home/u/.hermes/config.yaml' is a "
+                    "protected system/credential file."
+                ),
+            }},
+        )
+        # Path still human-readable.
+        assert "/home/u/.hermes/config.yaml" in out
+        # Bullet path is backticked.
+        assert "`/home/u/.hermes/config.yaml`" in out
+        # The path echoed inside the preview is ALSO backticked (the real
+        # file_operations.py denial message embeds it in single quotes, which
+        # do NOT block the gateway extractor's regex).
+        assert "'`/home/u/.hermes/config.yaml`'" in out
+        # No double-backticking anywhere.
+        assert "``" not in out
+
+    def test_footer_path_not_extracted_by_gateway(self):
+        """End-to-end: the gateway's extract_local_files must NOT pull a
+        config.yaml path out of the rendered footer (#35584)."""
+        import os
+        import tempfile
+        from gateway.platforms.base import BasePlatformAdapter
+
+        tmp = tempfile.mkdtemp(prefix="hermes_footer_")
+        try:
+            cfg = os.path.join(tmp, "config.yaml")
+            with open(cfg, "w") as fh:
+                fh.write("openrouter_api_key: sk-LEAK\n")
+            footer = AIAgent._format_file_mutation_failure_footer(
+                {cfg: {
+                    "tool": "patch",
+                    "error_preview": (
+                        f"Write denied: '{cfg}' is a protected "
+                        "system/credential file."
+                    ),
+                }},
+            )
+            response = "I updated your config.\n\n" + footer
+            paths, _ = BasePlatformAdapter.extract_local_files(response)
+            assert paths == [], f"footer leaked deliverable path(s): {paths}"
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------

@@ -88,7 +88,7 @@ class TestSignatureBeforeRateLimit:
         async def _capture(event):
             captured_events.append(event)
 
-        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
+        adapter.handle_message = _capture
         app = _create_app(adapter)
 
         body = json.dumps(SIMPLE_PAYLOAD).encode()
@@ -160,7 +160,7 @@ class TestSignatureBeforeRateLimit:
         async def _capture(event):
             captured_events.append(event)
 
-        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
+        adapter.handle_message = _capture
         app = _create_app(adapter)
 
         body = json.dumps(SIMPLE_PAYLOAD).encode()
@@ -220,7 +220,7 @@ class TestSignatureBeforeRateLimit:
         async def _capture(event):
             captured_events.append(event)
 
-        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
+        adapter.handle_message = _capture
         app = _create_app(adapter)
 
         body = json.dumps(SIMPLE_PAYLOAD).encode()

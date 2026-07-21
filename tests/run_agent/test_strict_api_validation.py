@@ -2,13 +2,11 @@
 
 import sys
 import types
-from unittest.mock import patch, MagicMock
 
-import pytest
 
-sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))  # ty: ignore[no-matching-overload]
-sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))  # ty: ignore[no-matching-overload]
-sys.modules.setdefault("fal_client", types.SimpleNamespace())  # ty: ignore[no-matching-overload]
+sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))
+sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))
+sys.modules.setdefault("fal_client", types.SimpleNamespace())
 
 from run_agent import AIAgent
 

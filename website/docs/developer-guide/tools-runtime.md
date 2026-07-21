@@ -6,7 +6,7 @@ description: "Runtime behavior of the tool registry, toolsets, dispatch, and ter
 
 # Tools Runtime
 
-muse tools are self-registering functions grouped into toolsets and executed through a central registry/dispatch system.
+Hermes tools are self-registering functions grouped into toolsets and executed through a central registry/dispatch system.
 
 Primary files:
 
@@ -94,7 +94,7 @@ Key behaviors:
 
 ## Toolset resolution
 
-Toolsets are named bundles of tools. muse resolves them through:
+Toolsets are named bundles of tools. Hermes resolves them through:
 
 - explicit enabled/disabled toolset lists
 - platform presets (`hermes-cli`, `hermes-telegram`, etc.)
@@ -213,7 +213,6 @@ The terminal system supports multiple backends:
 - singularity
 - modal
 - daytona
-- vercel_sandbox
 
 It also supports:
 

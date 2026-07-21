@@ -361,7 +361,7 @@ def get_sticker_by_name(name: str) -> Optional[dict]:
     return matches[0] if matches else None
 
 
-def get_random_sticker(category: str = None) -> dict:  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
+def get_random_sticker(category: str = None) -> dict:
     """
     随机返回一个贴纸。
 

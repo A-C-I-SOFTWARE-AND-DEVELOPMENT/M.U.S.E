@@ -5,7 +5,7 @@ description: "Runbook, go-live checklist, and operator worksheet for the Microso
 
 # Operate the Teams Meeting Pipeline
 
-Use this guide after you have already enabled the feature from [Teams Meetings](/docs/user-guide/messaging/teams-meetings).
+Use this guide after you have already enabled the feature from [Teams Meetings](/user-guide/messaging/teams-meetings).
 
 This page covers:
 - operator CLI flows
@@ -19,7 +19,7 @@ This page covers:
 ### Validate the config snapshot
 
 ```bash
-muse teams-pipeline validate
+hermes teams-pipeline validate
 ```
 
 Use this first after any config change.
@@ -27,8 +27,8 @@ Use this first after any config change.
 ### Inspect token health
 
 ```bash
-muse teams-pipeline token-health
-muse teams-pipeline token-health --force-refresh
+hermes teams-pipeline token-health
+hermes teams-pipeline token-health --force-refresh
 ```
 
 Use `--force-refresh` when you suspect stale auth state.
@@ -36,14 +36,14 @@ Use `--force-refresh` when you suspect stale auth state.
 ### Inspect subscriptions
 
 ```bash
-muse teams-pipeline subscriptions
+hermes teams-pipeline subscriptions
 ```
 
 ### Renew near-expiry subscriptions
 
 ```bash
-muse teams-pipeline maintain-subscriptions
-muse teams-pipeline maintain-subscriptions --dry-run
+hermes teams-pipeline maintain-subscriptions
+hermes teams-pipeline maintain-subscriptions --dry-run
 ```
 
 ### Automating subscription renewal (REQUIRED for production)
@@ -52,15 +52,15 @@ muse teams-pipeline maintain-subscriptions --dry-run
 
 You MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:
 
-#### Option 1: muse cron (recommended if you already run the muse gateway)
+#### Option 1: Hermes cron (recommended if you already run the Hermes gateway)
 
-muse ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
+Hermes ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
 
 ```bash
 mkdir -p ~/.hermes/scripts
 cat > ~/.hermes/scripts/maintain-teams-subscriptions.sh <<'EOF'
 #!/usr/bin/env bash
-exec muse teams-pipeline maintain-subscriptions
+exec hermes teams-pipeline maintain-subscriptions
 EOF
 chmod +x ~/.hermes/scripts/maintain-teams-subscriptions.sh
 ```
@@ -68,7 +68,7 @@ chmod +x ~/.hermes/scripts/maintain-teams-subscriptions.sh
 Then register a script-only cron job that runs every 12 hours (gives 6x headroom against the 72h expiry window):
 
 ```bash
-muse cron create "0 */12 * * *" \
+hermes cron create "0 */12 * * *" \
   --name "teams-pipeline-maintain-subscriptions" \
   --no-agent \
   --script maintain-teams-subscriptions.sh \
@@ -78,8 +78,8 @@ muse cron create "0 */12 * * *" \
 Verify it was registered and inspect the next run time:
 
 ```bash
-muse cron list
-muse cron status        # scheduler status
+hermes cron list
+hermes cron status        # scheduler status
 ```
 
 #### Option 2: systemd timer (recommended for Linux production deployments)
@@ -88,21 +88,21 @@ Create `/etc/systemd/system/hermes-teams-pipeline-maintain.service`:
 
 ```ini
 [Unit]
-Description=muse Teams pipeline subscription maintenance
+Description=Hermes Teams pipeline subscription maintenance
 After=network-online.target
 
 [Service]
 Type=oneshot
 User=hermes
 EnvironmentFile=/etc/hermes/env
-ExecStart=/usr/local/bin/muse teams-pipeline maintain-subscriptions
+ExecStart=/usr/local/bin/hermes teams-pipeline maintain-subscriptions
 ```
 
 And `/etc/systemd/system/hermes-teams-pipeline-maintain.timer`:
 
 ```ini
 [Unit]
-Description=Run muse Teams pipeline subscription maintenance every 12 hours
+Description=Run Hermes Teams pipeline subscription maintenance every 12 hours
 
 [Timer]
 OnBootSec=5min
@@ -124,7 +124,7 @@ systemctl list-timers hermes-teams-pipeline-maintain.timer
 #### Option 3: Plain crontab
 
 ```cron
-0 */12 * * * /usr/local/bin/muse teams-pipeline maintain-subscriptions >> /var/log/hermes/teams-pipeline-maintain.log 2>&1
+0 */12 * * * /usr/local/bin/hermes teams-pipeline maintain-subscriptions >> /var/log/hermes/teams-pipeline-maintain.log 2>&1
 ```
 
 Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.hermes/.env` at the top of a wrapper script that crontab calls.
@@ -134,8 +134,8 @@ Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: so
 After you've set up the schedule, check renewal activity after the first scheduled run:
 
 ```bash
-muse teams-pipeline subscriptions   # should show expirationDateTime advanced
-muse teams-pipeline maintain-subscriptions --dry-run   # should show "0 expiring soon" most of the time
+hermes teams-pipeline subscriptions   # should show expirationDateTime advanced
+hermes teams-pipeline maintain-subscriptions --dry-run   # should show "0 expiring soon" most of the time
 ```
 
 If you ever see your Graph webhook mysteriously "stop working" after exactly ~72 hours, this is the first thing to check: did the renewal job actually run?
@@ -143,22 +143,22 @@ If you ever see your Graph webhook mysteriously "stop working" after exactly ~72
 ### Inspect recent jobs
 
 ```bash
-muse teams-pipeline list
-muse teams-pipeline list --status failed
-muse teams-pipeline show <job-id>
+hermes teams-pipeline list
+hermes teams-pipeline list --status failed
+hermes teams-pipeline show <job-id>
 ```
 
 ### Replay a stored job
 
 ```bash
-muse teams-pipeline run <job-id>
+hermes teams-pipeline run <job-id>
 ```
 
 ### Dry-run meeting artifact fetches
 
 ```bash
-muse teams-pipeline fetch --meeting-id <meeting-id>
-muse teams-pipeline fetch --join-web-url "<join-url>"
+hermes teams-pipeline fetch --meeting-id <meeting-id>
+hermes teams-pipeline fetch --join-web-url "<join-url>"
 ```
 
 ## Routine Runbook
@@ -168,28 +168,28 @@ muse teams-pipeline fetch --join-web-url "<join-url>"
 Run these in order:
 
 ```bash
-muse teams-pipeline validate
-muse teams-pipeline token-health --force-refresh
-muse teams-pipeline subscriptions
+hermes teams-pipeline validate
+hermes teams-pipeline token-health --force-refresh
+hermes teams-pipeline subscriptions
 ```
 
 Then trigger or wait for a real meeting event and confirm:
 
 ```bash
-muse teams-pipeline list
-muse teams-pipeline show <job-id>
+hermes teams-pipeline list
+hermes teams-pipeline show <job-id>
 ```
 
 ### Daily or periodic checks
 
-- run `muse teams-pipeline maintain-subscriptions --dry-run`
-- inspect `muse teams-pipeline list --status failed`
+- run `hermes teams-pipeline maintain-subscriptions --dry-run`
+- inspect `hermes teams-pipeline list --status failed`
 - verify the Teams delivery target is still the correct chat or channel
 
 ### Before changing webhook URLs or delivery targets
 
 - update the public notification URL or Teams target config
-- run `muse teams-pipeline validate`
+- run `hermes teams-pipeline validate`
 - renew or recreate affected subscriptions
 - confirm new events land in the expected sink
 
@@ -223,7 +223,7 @@ Check:
 ### Duplicate or unexpected replays
 
 Check:
-- whether you manually replayed a job with `muse teams-pipeline run`
+- whether you manually replayed a job with `hermes teams-pipeline run`
 - whether the sink record already exists for that meeting
 - whether you intentionally enabled a resend path in your local config
 
@@ -237,9 +237,9 @@ Check:
 - [ ] `ffmpeg` is installed if recording fallback is enabled
 - [ ] Teams outbound delivery target is configured and verified
 - [ ] Notion and Linear sinks are configured only if actually needed
-- [ ] `muse teams-pipeline validate` returns an OK snapshot
-- [ ] `muse teams-pipeline token-health --force-refresh` succeeds
-- [ ] **`maintain-subscriptions` is scheduled** (muse cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
+- [ ] `hermes teams-pipeline validate` returns an OK snapshot
+- [ ] `hermes teams-pipeline token-health --force-refresh` succeeds
+- [ ] **`maintain-subscriptions` is scheduled** (Hermes cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
 - [ ] a real end-to-end meeting event has produced a stored job
 - [ ] at least one summary has reached the intended delivery sink
 
@@ -284,5 +284,5 @@ Use this before changing the deployment:
 
 ## Related Docs
 
-- [Teams Meetings setup](/docs/user-guide/messaging/teams-meetings)
-- [Microsoft Teams bot setup](/docs/user-guide/messaging/teams)
+- [Teams Meetings setup](/user-guide/messaging/teams-meetings)
+- [Microsoft Teams bot setup](/user-guide/messaging/teams)

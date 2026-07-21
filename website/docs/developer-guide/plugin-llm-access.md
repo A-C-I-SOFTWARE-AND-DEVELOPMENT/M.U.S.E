@@ -84,7 +84,7 @@ model couldn't produce valid JSON, `result.parsed` is `None` and
   objects.
 * **Host-owned credentials.** OAuth tokens, refresh flows, the
   credential pool, per-task aux overrides — every credential
-  concept muse already has applies. The plugin never sees a
+  concept Hermes already has applies. The plugin never sees a
   token; the host attributes the call back through `result.audit`.
 * **Bounded.** Single sync or async call. No streaming, no tool
   loops, no conversation state to manage. State the input, get the
@@ -215,7 +215,7 @@ timeout, vision routing — is the same across all four.
 ```python
 result = ctx.llm.complete(
     messages=[{"role": "user", "content": "Hi"}],
-    provider=None,         # optional, gated — muse provider id (e.g. "openrouter")
+    provider=None,         # optional, gated — Hermes provider id (e.g. "openrouter")
     model=None,            # optional, gated — whatever string that provider expects
     temperature=None,
     max_tokens=None,
@@ -335,9 +335,9 @@ plugins:
   entries:
     my-plugin:
       llm:
-        # Allow this plugin to choose a different muse provider
-        # (must be one muse already knows about — same names as
-        # `muse model` and config.yaml model.provider).
+        # Allow this plugin to choose a different Hermes provider
+        # (must be one Hermes already knows about — same names as
+        # `hermes model` and config.yaml model.provider).
         allow_provider_override: true
 
         # Optionally restrict which providers. Use ["*"] for any.
@@ -350,7 +350,7 @@ plugins:
 
         # Optionally restrict which models. Use ["*"] for any.
         # Models are matched literally against whatever string the
-        # plugin sends — muse does not look anything up.
+        # plugin sends — Hermes does not look anything up.
         allowed_models:
           - openai/gpt-4o-mini
           - anthropic/claude-3-5-haiku
@@ -408,7 +408,7 @@ don't have to:
   active text model is text-only, the host falls back to the
   configured vision model automatically.
 * **Fallback chain.** If the user's primary provider 5xxs or 429s,
-  the request goes through muse' usual aggregator-aware fallback
+  the request goes through Hermes' usual aggregator-aware fallback
   before it returns an error to the plugin.
 * **Timeout.** Honours your `timeout=` argument, falling back to
   `auxiliary.<task>.timeout` config or the global aux default.
@@ -438,7 +438,7 @@ don't have to:
 
 ## Where this fits in the plugin surface
 
-Existing `ctx.*` methods extend an existing muse subsystem:
+Existing `ctx.*` methods extend an existing Hermes subsystem:
 
 | `ctx.register_tool` | adds a tool the agent can call |
 | `ctx.register_platform` | wires a new gateway adapter |
@@ -456,10 +456,10 @@ own model call — for any reason, structured or not — `ctx.llm`.
 
 ## Reference
 
-* Implementation: [`agent/plugin_llm.py`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/agent/plugin_llm.py)
-* Tests: [`tests/agent/test_plugin_llm.py`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/tests/agent/test_plugin_llm.py)
+* Implementation: [`agent/plugin_llm.py`](https://github.com/NousResearch/hermes-agent/blob/main/agent/plugin_llm.py)
+* Tests: [`tests/agent/test_plugin_llm.py`](https://github.com/NousResearch/hermes-agent/blob/main/tests/agent/test_plugin_llm.py)
 * Reference plugins (companion repo):
   * [`plugin-llm-example`](https://github.com/NousResearch/hermes-example-plugins/tree/main/plugin-llm-example) — sync structured extraction with image input
   * [`plugin-llm-async-example`](https://github.com/NousResearch/hermes-example-plugins/tree/main/plugin-llm-async-example) — async with `asyncio.gather()`
 * Auxiliary client (the engine under the hood): see
-  [Provider Runtime](/docs/developer-guide/provider-runtime).
+  [Provider Runtime](/developer-guide/provider-runtime).

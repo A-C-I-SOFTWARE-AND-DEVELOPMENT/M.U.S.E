@@ -96,7 +96,7 @@ def test_handles_non_json_tool_content_gracefully():
 
 def test_empty_inputs():
     assert _summarize([], []) == []
-    assert _summarize(None, None) == []  # ty: ignore[invalid-argument-type]
+    assert _summarize(None, None) == []
 
 
 def test_added_message_relabels_by_target():

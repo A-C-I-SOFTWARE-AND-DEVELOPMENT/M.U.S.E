@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import threading
 from pathlib import Path
 
 import pytest
@@ -43,16 +44,12 @@ def test_parse_workspace_flag_valid(value, expected):
 def test_parse_workspace_flag_expands_user():
     kind, path = kc._parse_workspace_flag("dir:~/vault")
     assert kind == "dir"
-    assert path is not None
     assert path.endswith("/vault")
-    assert path is not None
     assert not path.startswith("~")
 
     kind, path = kc._parse_workspace_flag("worktree:~/trees/t6-wire")
     assert kind == "worktree"
-    assert path is not None
     assert path.endswith("/trees/t6-wire")
-    assert path is not None
     assert not path.startswith("~")
 
 @pytest.mark.parametrize("bad", ["cloud", "dir:", "worktree:", ""])
@@ -136,7 +133,7 @@ def test_run_slash_create_with_parent_and_cascade(kanban_home):
 def test_run_slash_show_includes_comments(kanban_home):
     out = kc.run_slash("create 'x'")
     import re
-    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)
     kc.run_slash(f"comment {tid} 'remember to include performance section'")
     show = kc.run_slash(f"show {tid}")
     assert "performance section" in show
@@ -145,7 +142,7 @@ def test_run_slash_show_includes_comments(kanban_home):
 def test_run_slash_comment_max_len_trims_long_body(kanban_home):
     out = kc.run_slash("create 'x'")
     import re
-    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)
     kc.run_slash(f"comment {tid} '{'x' * 30}' --max-len 20")
     show = kc.run_slash(f"show {tid}")
     assert "trimmed to 20 chars by --max-len" in show
@@ -155,7 +152,7 @@ def test_run_slash_comment_max_len_trims_long_body(kanban_home):
 def test_run_slash_block_unblock_cycle(kanban_home):
     out = kc.run_slash("create 'x' --assignee alice")
     import re
-    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)
     # Claim first so block() finds it running
     kc.run_slash(f"claim {tid}")
     assert "Blocked" in kc.run_slash(f"block {tid} 'need decision'")
@@ -180,7 +177,7 @@ def test_run_slash_dispatch_dry_run_counts(kanban_home):
 def test_run_slash_context_output_format(kanban_home):
     out = kc.run_slash("create 'tech spec' --assignee alice --body 'write an RFC'")
     import re
-    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)
     kc.run_slash(f"comment {tid} 'remember to include performance section'")
     ctx = kc.run_slash(f"context {tid}")
     assert "tech spec" in ctx
@@ -248,7 +245,7 @@ def test_run_slash_usage_error_returns_message(kanban_home):
 def test_run_slash_assign_reassigns(kanban_home):
     out = kc.run_slash("create 'x' --assignee alice")
     import re
-    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    tid = re.search(r"(t_[a-f0-9]+)", out).group(1)
     assert "Assigned" in kc.run_slash(f"assign {tid} bob")
     show = kc.run_slash(f"show {tid}")
     assert "bob" in show
@@ -258,13 +255,59 @@ def test_run_slash_link_unlink(kanban_home):
     a = kc.run_slash("create 'a'")
     b = kc.run_slash("create 'b'")
     import re
-    ta = re.search(r"(t_[a-f0-9]+)", a).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    tb = re.search(r"(t_[a-f0-9]+)", b).group(1)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    ta = re.search(r"(t_[a-f0-9]+)", a).group(1)
+    tb = re.search(r"(t_[a-f0-9]+)", b).group(1)
     assert "Linked" in kc.run_slash(f"link {ta} {tb}")
     # After link, b is todo
     show = kc.run_slash(f"show {tb}")
     assert "todo" in show
     assert "Unlinked" in kc.run_slash(f"unlink {ta} {tb}")
+
+
+def test_board_override_is_isolated_per_concurrent_call(kanban_home, monkeypatch):
+    kb.create_board("alpha")
+    kb.create_board("beta")
+
+    parser = argparse.ArgumentParser(prog="hermes", add_help=False)
+    sub = parser.add_subparsers(dest="command")
+    kc.build_parser(sub)
+
+    barrier = threading.Barrier(2)
+    original_init_db = kb.init_db
+
+    def slow_init_db(*args, **kwargs):
+        try:
+            barrier.wait(timeout=5)
+        except threading.BrokenBarrierError:
+            pass
+        return original_init_db(*args, **kwargs)
+
+    monkeypatch.setattr(kb, "init_db", slow_init_db)
+
+    failures: list[str] = []
+
+    def worker(board: str, title: str) -> None:
+        args = parser.parse_args(["kanban", "--board", board, "create", title])
+        rc = kc.kanban_command(args)
+        if rc != 0:
+            failures.append(f"{board}:{rc}")
+
+    t1 = threading.Thread(target=worker, args=("alpha", "alpha-task"))
+    t2 = threading.Thread(target=worker, args=("beta", "beta-task"))
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    assert failures == []
+
+    with kb.connect_closing(board="alpha") as conn:
+        alpha_titles = [row.title for row in kb.list_tasks(conn, limit=100)]
+    with kb.connect_closing(board="beta") as conn:
+        beta_titles = [row.title for row in kb.list_tasks(conn, limit=100)]
+
+    assert alpha_titles == ["alpha-task"]
+    assert beta_titles == ["beta-task"]
 
 
 # ---------------------------------------------------------------------------
@@ -371,7 +414,6 @@ def test_run_slash_reassign_with_reclaim_flag(kanban_home):
 
     out1 = kc.run_slash("create 'switch model' --assignee orig")
     m = re.search(r"(t_[a-f0-9]+)", out1)
-    assert m is not None
     tid = m.group(1)
 
     # Simulate a running claim.
@@ -423,11 +465,10 @@ def test_run_slash_specify_end_to_end(kanban_home, monkeypatch):
     resp.choices[0].message.content = (
         '{"title": "Spec: rough idea", "body": "**Goal**\\nShip it."}'
     )
-    fake_client = MagicMock()
-    fake_client.chat.completions.create = MagicMock(return_value=resp)
+    # specify_task routes through call_llm now (#35566) — mock it directly.
     monkeypatch.setattr(
-        "agent.auxiliary_client.get_text_auxiliary_client",
-        lambda *a, **kw: (fake_client, "test-model"),
+        "agent.auxiliary_client.call_llm",
+        MagicMock(return_value=resp),
     )
 
     # Specify via slash.
@@ -438,9 +479,7 @@ def test_run_slash_specify_end_to_end(kanban_home, monkeypatch):
     # Task is promoted and retitled.
     with kb.connect() as conn:
         task = kb.get_task(conn, tid)
-    assert task is not None
     assert task.status in {"todo", "ready"}
-    assert task is not None
     assert task.title == "Spec: rough idea"
 
 

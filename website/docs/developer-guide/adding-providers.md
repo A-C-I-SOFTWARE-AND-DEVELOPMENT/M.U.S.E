@@ -1,16 +1,16 @@
 ---
 sidebar_position: 5
 title: "Adding Providers"
-description: "How to add a new inference provider to muse — auth, runtime resolution, CLI flows, adapters, tests, and docs"
+description: "How to add a new inference provider to Hermes Agent — auth, runtime resolution, CLI flows, adapters, tests, and docs"
 ---
 
 # Adding Providers
 
-muse can already talk to any OpenAI-compatible endpoint through the custom provider path. Do not add a built-in provider unless you want first-class UX for that service:
+Hermes can already talk to any OpenAI-compatible endpoint through the custom provider path. Do not add a built-in provider unless you want first-class UX for that service:
 
 - provider-specific auth or token refresh
 - a curated model catalog
-- setup / `muse model` menu entries
+- setup / `hermes model` menu entries
 - provider aliases for `provider:model` syntax
 - a non-OpenAI API shape that needs an adapter
 
@@ -84,7 +84,7 @@ This path includes everything from Path A plus:
 8. user-facing docs under `website/docs/`
 
 :::tip
-`hermes_cli/setup.py` does **not** need changes. The setup wizard delegates provider/model selection to `select_provider_and_model()` in `main.py` — any provider added there is automatically available in `muse setup`.
+`hermes_cli/setup.py` does **not** need changes. The setup wizard delegates provider/model selection to `select_provider_and_model()` in `main.py` — any provider added there is automatically available in `hermes setup`.
 :::
 
 ### Additional for native / non-OpenAI providers
@@ -112,26 +112,26 @@ When you add a plugin and it calls `register_provider()`, the following wire up 
 4. `env_vars` checked in priority order for the API key
 5. `fallback_models` list registered for the provider
 6. `--provider` CLI flag accepts the provider id
-7. `muse model` menu includes the provider
-8. `muse setup` wizard delegates to `main.py` automatically
+7. `hermes model` menu includes the provider
+8. `hermes setup` wizard delegates to `main.py` automatically
 9. `provider:model` alias syntax works
 10. Runtime resolver returns the correct `base_url` and `api_key`
-11. `HERMES_INFERENCE_PROVIDER` env-var override accepts the provider id
+11. `--provider <name>` CLI flag accepts the provider id
 12. Fallback model activation can switch into the provider cleanly
 
 User plugins at `$HERMES_HOME/plugins/model-providers/<name>/` override bundled plugins of the same name (last-writer-wins in `register_provider()`) — so third parties can monkey-patch or replace any built-in profile without editing the repo.
 
-See `plugins/model-providers/nvidia/` or `plugins/model-providers/gmi/` as a template, and the full [Model Provider Plugin guide](/docs/developer-guide/model-provider-plugin) for field reference, hook idioms, and end-to-end examples.
+See `plugins/model-providers/nvidia/` or `plugins/model-providers/gmi/` as a template, and the full [Model Provider Plugin guide](/developer-guide/model-provider-plugin) for field reference, hook idioms, and end-to-end examples.
 
 ## Full path: OAuth and complex providers
 
 Use the full checklist below when your provider needs any of the following:
 
-- OAuth or token refresh (Nous Portal, Codex, Google Gemini, Qwen Portal, Copilot)
+- OAuth or token refresh (Nous Portal, Codex, Qwen Portal, Copilot)
 - A non-OpenAI API shape that requires a new adapter (Anthropic Messages, Codex Responses)
 - Custom endpoint detection or multi-region probing (z.ai, Kimi)
 - A curated static model catalog or live `/models` fetch
-- Provider-specific `muse model` menu entries with bespoke auth flows
+- Provider-specific `hermes model` menu entries with bespoke auth flows
 
 ## Step 1: Pick one canonical provider id
 
@@ -177,7 +177,7 @@ Use the existing providers as templates:
 
 Questions to answer here:
 
-- What env vars should muse check, and in what priority order?
+- What env vars should Hermes check, and in what priority order?
 - Does the provider need base-URL overrides?
 - Does it need endpoint probing or token refresh?
 - What should the auth error say when credentials are missing?
@@ -226,11 +226,11 @@ Add a branch that returns a dict with at least:
 
 If the provider is OpenAI-compatible, `api_mode` should usually stay `chat_completions`.
 
-Be careful with API-key precedence. muse already contains logic to avoid leaking an OpenRouter key to unrelated endpoints. A new provider should be equally explicit about which key goes to which base URL.
+Be careful with API-key precedence. Hermes already contains logic to avoid leaking an OpenRouter key to unrelated endpoints. A new provider should be equally explicit about which key goes to which base URL.
 
 ## Step 5: Wire the CLI in `hermes_cli/main.py`
 
-A provider is not discoverable until it shows up in the interactive `muse model` flow.
+A provider is not discoverable until it shows up in the interactive `hermes model` flow.
 
 Update these in `hermes_cli/main.py`:
 
@@ -242,7 +242,7 @@ Update these in `hermes_cli/main.py`:
 - a `_model_flow_<provider>()` function, or reuse `_model_flow_api_key_provider()` if it fits
 
 :::tip
-`hermes_cli/setup.py` does not need changes — it calls `select_provider_and_model()` from `main.py`, so your new provider appears in both `muse model` and `muse setup` automatically.
+`hermes_cli/setup.py` does not need changes — it calls `select_provider_and_model()` from `main.py`, so your new provider appears in both `hermes model` and `hermes setup` automatically.
 :::
 
 ## Step 6: Keep auxiliary calls working
@@ -313,7 +313,7 @@ Examples already in-tree:
 - OpenRouter gets provider-routing fields
 - not every provider should receive every request-side option
 
-When you add a native provider, double-check that muse is only sending fields that provider actually understands.
+When you add a native provider, double-check that Hermes is only sending fields that provider actually understands.
 
 ## Step 8: Tests
 
@@ -321,12 +321,12 @@ At minimum, touch the tests that guard provider wiring.
 
 Common places:
 
-- `tests/test_runtime_provider_resolution.py`
-- `tests/test_cli_provider_resolution.py`
-- `tests/test_cli_model_command.py`
-- `tests/test_setup_model_selection.py`
-- `tests/test_provider_parity.py`
-- `tests/test_run_agent.py`
+- `tests/hermes_cli/test_runtime_provider_resolution.py`
+- `tests/cli/test_cli_provider_resolution.py`
+- `tests/hermes_cli/test_model_switch_custom_providers.py` (and adjacent `tests/hermes_cli/test_model_switch_*.py`)
+- `tests/hermes_cli/test_setup_model_provider.py`
+- `tests/run_agent/test_provider_parity.py`
+- `tests/run_agent/test_run_agent.py`
 - `tests/test_<provider>_adapter.py` for a native provider
 
 For docs-only examples, the exact file set may differ. The point is to cover:
@@ -342,7 +342,7 @@ Run tests with xdist disabled:
 
 ```bash
 source venv/bin/activate
-python -m pytest tests/test_runtime_provider_resolution.py tests/test_cli_provider_resolution.py tests/test_cli_model_command.py tests/test_setup_model_selection.py -n0 -q
+python -m pytest tests/hermes_cli/test_runtime_provider_resolution.py tests/cli/test_cli_provider_resolution.py tests/hermes_cli/test_setup_model_provider.py tests/run_agent/test_provider_parity.py -n0 -q
 ```
 
 For deeper changes, run the full suite before pushing:
@@ -434,7 +434,7 @@ Search for `api_mode` and `self.client.`. Do not assume the obvious request path
 
 Fields like provider routing belong only on the providers that support them.
 
-### 7. Updating `muse model` but not `muse setup`
+### 7. Updating `hermes model` but not `hermes setup`
 
 Both flows need to know about the provider.
 

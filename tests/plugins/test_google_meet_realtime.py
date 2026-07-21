@@ -8,10 +8,7 @@ from __future__ import annotations
 import base64
 import json
 import sys
-import threading
 import types
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -71,9 +68,9 @@ def _install_fake_websockets(monkeypatch, fake_ws):
         )
         return fake_ws
 
-    mod_sync_client.connect = _connect  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    mod_sync.client = mod_sync_client  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    mod_websockets.sync = mod_sync  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    mod_sync_client.connect = _connect
+    mod_sync.client = mod_sync_client
+    mod_websockets.sync = mod_sync
 
     monkeypatch.setitem(sys.modules, "websockets", mod_websockets)
     monkeypatch.setitem(sys.modules, "websockets.sync", mod_sync)
@@ -245,7 +242,7 @@ def test_speaker_run_until_stopped_processes_queue(tmp_path):
     )
 
     stub = _StubSession()
-    speaker = RealtimeSpeaker(stub, queue_path=queue, processed_path=processed)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    speaker = RealtimeSpeaker(stub, queue_path=queue, processed_path=processed)
 
     # Stop once the queue is empty.
     def _stop():
@@ -271,7 +268,7 @@ def test_speaker_exits_immediately_when_stop_fn_true(tmp_path):
     queue.write_text(json.dumps({"id": "x", "text": "never spoken"}) + "\n")
 
     stub = _StubSession()
-    speaker = RealtimeSpeaker(stub, queue_path=queue)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    speaker = RealtimeSpeaker(stub, queue_path=queue)
     speaker.run_until_stopped(lambda: True, poll_interval=0.01)
     assert stub.spoken == []
 
@@ -283,7 +280,7 @@ def test_speaker_drops_line_without_processed_path_when_none(tmp_path):
     queue.write_text(json.dumps({"id": "only", "text": "once"}) + "\n")
 
     stub = _StubSession()
-    speaker = RealtimeSpeaker(stub, queue_path=queue, processed_path=None)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    speaker = RealtimeSpeaker(stub, queue_path=queue, processed_path=None)
 
     def _stop():
         return queue.read_text().strip() == ""

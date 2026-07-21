@@ -14,7 +14,6 @@ Covers four fix paths:
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -22,8 +21,6 @@ from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
     BasePlatformAdapter,
     MessageEvent,
-    MessageType,
-    ProcessingOutcome,
     SendResult,
 )
 from gateway.session import SessionSource, build_session_key
@@ -40,7 +37,7 @@ class StubAdapter(BasePlatformAdapter):
         super().__init__(PlatformConfig(enabled=True, token="fake"), Platform.DISCORD)
         self.sent = []
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         return True
 
     async def disconnect(self):
@@ -225,7 +222,7 @@ class TestOnlyFinalStreamDeliverySuppressesFinalSend:
             _streamed = bool(sc and getattr(sc, "final_response_sent", False))
             _previewed = bool(response.get("response_previewed"))
             if not _is_empty_sentinel and (_streamed or _previewed):
-                response["already_sent"] = True  # ty: ignore[invalid-assignment]
+                response["already_sent"] = True
 
         assert response.get("already_sent") is True
 

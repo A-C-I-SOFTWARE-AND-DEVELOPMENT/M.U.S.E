@@ -14,7 +14,7 @@ Generate flat, minimal light/dark-aware SVG diagrams as standalone HTML files, u
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/creative/concept-diagrams` |
+| Source | Optional — install with `hermes skills install official/creative/concept-diagrams` |
 | Path | `optional-skills/creative/concept-diagrams` |
 | Version | `0.1.0` |
 | Author | v1k22 (original PR), ported into hermes-agent |
@@ -26,7 +26,7 @@ Generate flat, minimal light/dark-aware SVG diagrams as standalone HTML files, u
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Concept Diagrams

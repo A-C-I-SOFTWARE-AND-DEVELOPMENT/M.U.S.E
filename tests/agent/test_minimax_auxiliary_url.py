@@ -39,4 +39,4 @@ class TestToOpenaiBaseUrl:
         assert _to_openai_base_url("") == ""
 
     def test_none(self):
-        assert _to_openai_base_url(None) == ""  # ty: ignore[invalid-argument-type]
+        assert _to_openai_base_url(None) == ""

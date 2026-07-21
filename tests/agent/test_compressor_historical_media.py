@@ -212,7 +212,7 @@ class TestStripHistoricalMedia:
             {"role": "assistant", "content": "ok"},
             {"role": "user", "content": [TEXT, IMG_URL]},
         ]
-        out = _strip_historical_media(msgs)  # ty: ignore[invalid-argument-type]
+        out = _strip_historical_media(msgs)
         assert out[0] == "not-a-dict"
         # Image-bearing user at index 1 is before the anchor (index 3) → stripped.
         assert not _content_has_images(out[1]["content"])

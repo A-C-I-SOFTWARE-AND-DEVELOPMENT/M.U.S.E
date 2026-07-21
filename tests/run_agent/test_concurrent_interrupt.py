@@ -1,9 +1,8 @@
 """Tests for interrupt handling in concurrent tool execution."""
 
-import concurrent.futures
 import threading
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -42,7 +41,7 @@ def _make_agent(monkeypatch):
         _turns_since_memory = 0
         _iters_since_skill = 0
         _current_tool = None
-        _last_activity: float = 0
+        _last_activity = 0
         _print_fn = print
         # Worker-thread tracking state mirrored from AIAgent.__init__ so the
         # real interrupt() method can fan out to concurrent-tool workers.
@@ -74,14 +73,14 @@ def _make_agent(monkeypatch):
 
     stub = _Stub()
     # Bind the real methods under test
-    stub._execute_tool_calls_concurrent = _ra.AIAgent._execute_tool_calls_concurrent.__get__(stub)  # ty: ignore[unresolved-attribute]
-    stub.interrupt = _ra.AIAgent.interrupt.__get__(stub)  # ty: ignore[unresolved-attribute]
-    stub.clear_interrupt = _ra.AIAgent.clear_interrupt.__get__(stub)  # ty: ignore[unresolved-attribute]
+    stub._execute_tool_calls_concurrent = _ra.AIAgent._execute_tool_calls_concurrent.__get__(stub)
+    stub.interrupt = _ra.AIAgent.interrupt.__get__(stub)
+    stub.clear_interrupt = _ra.AIAgent.clear_interrupt.__get__(stub)
     # /steer injection (added in PR #12116) fires after every concurrent
     # tool batch. Stub it as a no-op — this test exercises interrupt
     # fanout, not steer injection.
-    stub._apply_pending_steer_to_tool_results = lambda *a, **kw: None  # ty: ignore[unresolved-attribute]
-    stub._invoke_tool = MagicMock(side_effect=lambda *a, **kw: '{"ok": true}')  # ty: ignore[unresolved-attribute]
+    stub._apply_pending_steer_to_tool_results = lambda *a, **kw: None
+    stub._invoke_tool = MagicMock(side_effect=lambda *a, **kw: '{"ok": true}')
     return stub
 
 

@@ -97,7 +97,7 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
 
     cases_str = "\n".join(cases)
 
-    return f"""# M.U.S.E. bash completion
+    return f"""# Hermes Agent bash completion
 # Add to ~/.bashrc:
 #   eval "$(hermes completion bash)"
 
@@ -105,7 +105,9 @@ _hermes_profiles() {{
     local profiles_dir="$HOME/.hermes/profiles"
     local profiles="default"
     if [ -d "$profiles_dir" ]; then
-        profiles="$profiles $(ls "$profiles_dir" 2>/dev/null)"
+        for f in "$profiles_dir"/*/; do
+            [ -d "$f" ] && profiles="$profiles $(basename "$f")"
+        done
     fi
     echo "$profiles"
 }}
@@ -198,7 +200,7 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
     sub_cases_str = "\n".join(sub_cases)
 
     return f"""#compdef hermes
-# M.U.S.E. zsh completion
+# Hermes Agent zsh completion
 # Add to ~/.zshrc:
 #   eval "$(hermes completion zsh)"
 
@@ -206,7 +208,7 @@ _hermes_profiles() {{
     local -a profiles
     profiles=(default)
     if [[ -d "$HOME/.hermes/profiles" ]]; then
-        profiles+=("${{(@f)$(ls $HOME/.hermes/profiles 2>/dev/null)}}")
+        profiles+=($HOME/.hermes/profiles/*(N/:t))
     fi
     _describe 'profile' profiles
 }}
@@ -252,7 +254,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
     top_cmds_str = " ".join(top_cmds)
 
     lines: list[str] = [
-        "# M.U.S.E. fish completion",
+        "# Hermes Agent fish completion",
         "# Add to your config:",
         "#   hermes completion fish | source",
         "",
@@ -260,7 +262,9 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         "function __hermes_profiles",
         "    echo default",
         "    if test -d $HOME/.hermes/profiles",
-        "        ls $HOME/.hermes/profiles 2>/dev/null",
+        "        for d in $HOME/.hermes/profiles/*/",
+        "            basename $d",
+        "        end",
         "    end",
         "end",
         "",

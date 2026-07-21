@@ -6,7 +6,7 @@ description: "Detailed walkthrough of AIAgent execution, API modes, tools, callb
 
 # Agent Loop Internals
 
-The core orchestration engine is `run_agent.py`'s `AIAgent` class — a large file (15k+ lines) that handles everything from prompt assembly to tool dispatch to provider failover.
+The core orchestration engine is `run_agent.py`'s `AIAgent` class — a large file that handles everything from prompt assembly to tool dispatch to provider failover.
 
 ## Core Responsibilities
 
@@ -40,7 +40,7 @@ result = agent.run_conversation(
 
 ## API Modes
 
-muse supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
+Hermes supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
 
 | API mode | Used for | Client type |
 |----------|----------|-------------|
@@ -216,7 +216,7 @@ The fallback system also covers auxiliary tasks independently — vision, compre
 After each turn:
 - Messages are saved to the session store (SQLite via `hermes_state.py`)
 - Memory changes are flushed to `MEMORY.md` / `USER.md`
-- The session can be resumed later via `/resume` or `muse chat --resume`
+- The session can be resumed later via `/resume` or `hermes chat --resume`
 
 ## Key Source Files
 
