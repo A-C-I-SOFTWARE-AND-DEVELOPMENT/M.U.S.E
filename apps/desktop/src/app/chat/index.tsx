@@ -352,7 +352,7 @@ export function ChatView({
       }
 
       if (!gateway) {
-        throw new Error('Hermes gateway unavailable')
+        throw new Error('muse gateway unavailable')
       }
 
       return gateway.request<ModelOptionsResponse>('model.options', {

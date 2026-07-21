@@ -65,7 +65,7 @@ describe('deriveBillingView', () => {
     const buyCredits = view.accountRows.find(row => row.id === 'buy_credits')
 
     expect(buyCredits?.description).toBe(
-      "Remote spending is off for this account — a billing admin can turn it on from the portal's Hermes Agent page."
+      "Remote spending is off for this account — a billing admin can turn it on from the portal's muse agent page."
     )
     expect(buyCredits?.chips).toBeUndefined()
     expect(view.accountRows.find(row => row.id === 'auto_reload')).toMatchObject({

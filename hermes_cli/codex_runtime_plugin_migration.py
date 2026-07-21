@@ -84,7 +84,7 @@ class MigrationReport:
                 )
                 lines.append(f"  - {name}{note}")
         else:
-            lines.append("No MCP servers found in Hermes config.")
+            lines.append("No MCP servers found in muse config.")
         if self.migrated_plugins:
             lines.append(
                 f"Migrated {len(self.migrated_plugins)} native Codex plugin(s):"
@@ -191,7 +191,7 @@ def _translate_one_server(
         if key in _KEYS_DROPPED_WITH_WARNING:
             skipped.append(f"{key} (no codex equivalent)")
         elif key not in _KNOWN_HERMES_KEYS:
-            skipped.append(f"{key} (unknown Hermes key)")
+            skipped.append(f"{key} (unknown muse key)")
 
     return out, skipped
 
@@ -263,7 +263,7 @@ def render_codex_toml_section(
     """
     out = [MIGRATION_MARKER]
     if not servers and not plugins and not default_permission_profile:
-        out.append("# (no MCP servers, plugins, or permissions configured by Hermes)")
+        out.append("# (no MCP servers, plugins, or permissions configured by muse)")
         out.append(MIGRATION_END_MARKER)
         return "\n".join(out) + "\n"
 
@@ -649,7 +649,7 @@ def migrate(
     hermes_servers = (hermes_config or {}).get("mcp_servers") or {}
     if not isinstance(hermes_servers, dict):
         report.errors.append(
-            "mcp_servers in Hermes config is not a dict; cannot migrate."
+            "mcp_servers in muse config is not a dict; cannot migrate."
         )
         return report
 

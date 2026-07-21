@@ -110,7 +110,7 @@ def expensive_model_warning(
     lines = [
         "!!! EXPENSIVE MODEL WARNING !!!",
         "",
-        f"{model} has known pricing above Hermes' safety threshold.",
+        f"{model} has known pricing above muse's safety threshold.",
         f"Input tokens: {_format_money(input_cost)}",
         f"Output tokens: {_format_money(output_cost)}",
         (

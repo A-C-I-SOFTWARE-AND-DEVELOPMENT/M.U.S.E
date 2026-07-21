@@ -251,7 +251,7 @@ def auto_title_session(
         # names the likely cause so "restart the process" is discoverable.
         logger.warning(
             "Auto-title failed (harmless; if this started after an update, "
-            "restart the running Hermes process): %s",
+            "restart the running muse process): %s",
             e,
         )
         logger.debug("Auto-title traceback", exc_info=True)

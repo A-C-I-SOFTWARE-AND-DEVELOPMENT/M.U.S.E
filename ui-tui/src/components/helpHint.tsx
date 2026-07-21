@@ -3,18 +3,20 @@ import { Box, Text } from '@hermes/ink'
 import { HOTKEYS } from '../content/hotkeys.js'
 import type { Theme } from '../theme.js'
 
-const COMMON_COMMANDS: [string, string][] = [
+// Brand strings come from theme tokens, never hard-coded product names.
+const commonCommands = (brandName: string): [string, string][] => [
   ['/help', 'full list of commands + hotkeys'],
   ['/clear', 'start a new session'],
   ['/resume', 'switch live or resume past sessions'],
   ['/details', 'control transcript detail level'],
   ['/copy', 'copy selection or last assistant message'],
-  ['/quit', 'exit hermes']
+  ['/quit', `exit ${brandName}`]
 ]
 
 const HOTKEY_PREVIEW = HOTKEYS.slice(0, 8)
 
 export function HelpHint({ t }: { t: Theme }) {
+  const COMMON_COMMANDS = commonCommands(t.brand.name)
   const labelW = Math.max(...COMMON_COMMANDS.map(([k]) => k.length), ...HOTKEY_PREVIEW.map(([k]) => k.length))
 
   const pad = (s: string) => s + ' '.repeat(Math.max(0, labelW - s.length + 2))

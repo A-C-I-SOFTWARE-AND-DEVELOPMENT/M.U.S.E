@@ -43,7 +43,7 @@ class HttpJarvisChatGateway(
     private val tokenProvider: () -> String? = { null },
 ) : JarvisChatGateway {
 
-    override val displayName: String = "Hermes gateway"
+    override val displayName: String = "muse gateway"
     override val supportsStreaming: Boolean = true
 
     override fun send(history: List<JarvisChatMessage>, prompt: String): Flow<JarvisChatChunk> = flow {
@@ -56,7 +56,7 @@ class HttpJarvisChatGateway(
         val connection = runCatching { openConnection(url, payload) }
             .getOrElse {
                 logBuffer.warn("gateway", "Gateway call failed: ${it.message}")
-                emit(JarvisChatChunk.Failure("Couldn't reach Hermes at $url", "Check the gateway is running."))
+                emit(JarvisChatChunk.Failure("Couldn't reach muse at $url", "Check the gateway is running."))
                 return@flow
             }
 

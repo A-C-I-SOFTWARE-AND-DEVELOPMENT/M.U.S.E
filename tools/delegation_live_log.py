@@ -130,7 +130,7 @@ class LiveTranscriptWriter:
             d.mkdir(parents=True, exist_ok=True)
             self.path: Optional[Path] = d / f"task-{task_index}.log"
             header = [
-                "=== Hermes subagent live transcript ===",
+                "=== muse subagent live transcript ===",
                 f"delegation: {delegation_id}   task: {task_index}",
                 # Header bypasses event(), so redact here too — a goal string
                 # can carry a key the caller pasted into the task.

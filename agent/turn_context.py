@@ -627,8 +627,8 @@ def build_turn_context(
             )
         elif _codex_native_auto:
             logger.info(
-                "Skipping Hermes preflight compression for codex app-server "
-                "(mode=%s); Hermes will not start thread compaction here.",
+                "Skipping muse preflight compression for codex app-server "
+                "(mode=%s); muse will not start thread compaction here.",
                 getattr(agent, "codex_app_server_auto_compaction", "native"),
             )
         elif _compressor.should_compress(_preflight_tokens):

@@ -505,7 +505,7 @@ object JarvisHomeStateDeriver {
             )
         }
         if (!serviceRunning) {
-            return SuggestedAction(label = "Start HermesService", kind = SuggestedKind.START_SERVICE)
+            return SuggestedAction(label = "Start muse service", kind = SuggestedKind.START_SERVICE)
         }
         val critical = pendingApprovals.firstOrNull { it.risk == ApprovalRisk.CRITICAL }
         if (critical != null) {

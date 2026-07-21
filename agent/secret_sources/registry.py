@@ -113,7 +113,7 @@ def register_source(source: SecretSource, *, replace: bool = False) -> bool:
     if getattr(source, "api_version", None) != SECRET_SOURCE_API_VERSION:
         logger.warning(
             "Ignoring secret source '%s': built against secret-source API v%s, "
-            "this Hermes speaks v%s",
+            "this muse speaks v%s",
             name, getattr(source, "api_version", "?"), SECRET_SOURCE_API_VERSION,
         )
         return False

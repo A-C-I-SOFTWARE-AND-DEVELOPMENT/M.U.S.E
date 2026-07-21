@@ -3820,7 +3820,7 @@ def _load_hermes_index() -> Optional[dict]:
                 headers={"Accept-Encoding": accept_encoding},
             )
             if resp.status_code != 200:
-                logger.debug("Hermes index fetch returned %d", resp.status_code)
+                logger.debug("muse index fetch returned %d", resp.status_code)
                 return _load_stale_index_cache()
             data = resp.json()
             break
@@ -3828,13 +3828,13 @@ def _load_hermes_index() -> Optional[dict]:
             # Content-Encoding decode failed — retry once uncompressed before
             # giving up on the network path entirely.
             logger.debug(
-                "Hermes index decode failed (Accept-Encoding=%s): %s",
+                "muse index decode failed (Accept-Encoding=%s): %s",
                 accept_encoding,
                 e,
             )
             continue
         except (httpx.HTTPError, json.JSONDecodeError) as e:
-            logger.debug("Hermes index fetch failed: %s", e)
+            logger.debug("muse index fetch failed: %s", e)
             return _load_stale_index_cache()
 
     if data is None:

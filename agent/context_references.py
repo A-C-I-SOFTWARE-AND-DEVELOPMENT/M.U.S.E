@@ -379,7 +379,7 @@ def _ensure_reference_path_allowed(path: Path) -> None:
             path.relative_to(blocked_dir)
         except ValueError:
             continue
-        raise ValueError("path is a sensitive credential or internal Hermes path and cannot be attached")
+        raise ValueError("path is a sensitive credential or internal muse path and cannot be attached")
 
     # Anchor to the canonical read deny-list (agent/file_safety.get_read_block_error),
     # the single source of truth used by the file/terminal read path. The narrow
@@ -396,7 +396,7 @@ def _ensure_reference_path_allowed(path: Path) -> None:
 
         if get_read_block_error(str(path)) is not None:
             raise ValueError(
-                "path is a sensitive credential or internal Hermes path and cannot be attached"
+                "path is a sensitive credential or internal muse path and cannot be attached"
             )
     except ValueError:
         raise

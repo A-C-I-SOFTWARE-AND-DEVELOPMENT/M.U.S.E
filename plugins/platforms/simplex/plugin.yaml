@@ -3,9 +3,9 @@ label: SimpleX Chat
 kind: platform
 version: 1.1.0
 description: >
-  SimpleX Chat gateway adapter for Hermes Agent.
+  SimpleX Chat gateway adapter for muse.
   Connects to a local simplex-chat daemon via WebSocket and relays
-  messages between SimpleX contacts/groups and the Hermes agent.
+  messages between SimpleX contacts/groups and the muse agent.
   SimpleX is decentralised and assigns no persistent user IDs —
   every contact is an opaque internal ID generated at connection
   time, making it one of the most private messengers available.

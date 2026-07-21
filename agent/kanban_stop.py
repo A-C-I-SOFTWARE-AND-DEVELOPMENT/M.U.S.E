@@ -87,7 +87,7 @@ def build_kanban_stop_nudge(
 
     tid = (task_id or os.environ.get("HERMES_KANBAN_TASK") or "").strip() or "this task"
     return (
-        "[System: You are a Hermes kanban worker. A plain-text reply is NOT a "
+        "[System: You are a muse kanban worker. A plain-text reply is NOT a "
         "terminal state for the board.\n\n"
         f"Task `{tid}` is still `running`. Ending now without a board tool "
         "causes a protocol violation (clean exit with no "

@@ -18,7 +18,7 @@
         "category": "App activity",
         "data_types": ["App interactions", "In-app search history", "Installed apps", "Other user-generated content"],
         "collected": true,
-        "description": "App interactions with the local MUSE gateway (chat prompts, task requests, approval decisions) are sent to the user's local Hermes gateway over loopback/LAN. No data leaves the device or local network.",
+        "description": "App interactions with the local MUSE gateway (chat prompts, task requests, approval decisions) are sent to the user's local muse gateway over loopback/LAN. No data leaves the device or local network.",
         "optional": true,
         "purpose": "App functionality"
       },
@@ -31,7 +31,7 @@
         "category": "Audio files",
         "data_types": ["Voice recordings", "Music files", "Other audio"],
         "collected": true,
-        "description": "Voice recordings (RECORD_AUDIO) are processed on-device by ML Kit face-presence detection and/or sent to the local Hermes gateway for voice chat. No audio is sent to remote servers or third parties. VoiceLoopService runs only with explicit consent.",
+        "description": "Voice recordings (RECORD_AUDIO) are processed on-device by ML Kit face-presence detection and/or sent to the local muse gateway for voice chat. No audio is sent to remote servers or third parties. VoiceLoopService runs only with explicit consent.",
         "optional": true,
         "purpose": "App functionality"
       },
@@ -57,7 +57,7 @@
     "data_shared": [
       {
         "category": "App functionality",
-        "shared_with": "Local Hermes gateway (user's own device/LAN)",
+        "shared_with": "Local muse gateway (user's own device/LAN)",
         "data_types": ["Chat prompts", "Task requests", "Approval decisions", "Voice audio (with consent)"],
         "purpose": "Core MUSE functionality — all processing happens locally"
       }
@@ -86,7 +86,7 @@
       },
       {
         "permission": "android.permission.INTERNET",
-        "reason": "Reach the local Hermes gateway (default http://127.0.0.1:8765) over loopback/LAN. Never connects to remote AI providers.",
+        "reason": "Reach the local muse gateway (default http://127.0.0.1:8765) over loopback/LAN. Never connects to remote AI providers.",
         "type": "normal"
       },
       {
@@ -142,7 +142,7 @@
       {
         "name": "HermesService",
         "foreground_service_type": "dataSync",
-        "purpose": "Background sync with local Hermes gateway; posts local notifications for jobs/approvals"
+        "purpose": "Background sync with local muse gateway; posts local notifications for jobs/approvals"
       },
       {
         "name": "WorkWatchService",

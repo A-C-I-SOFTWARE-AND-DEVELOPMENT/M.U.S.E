@@ -60,28 +60,64 @@ def _skin_color(key: str, fallback: str) -> str:
 
 from hermes_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
-[bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
-[#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
-[#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
-[#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
-[#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
+HERMES_AGENT_LOGO = """[bold #FFD700]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #FFD700]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[#FFBF00]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[#FFBF00]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[#CD7F32]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[#CD7F32]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
 
-HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
+HERMES_CADUCEUS = """           [#DE9C21]╭[/][#E0A11F]─[/][#E3A61C]─[/][#E6AB19]─[/][#E9B016]─[/][#ECB513]─[/][#EEBA11]╮[/]
+        [#D58E2A]╭[/][#D89327]─[/][#DB9724]╯[/]       [#F1BF0E]╰[/][#F4C30B]─[/][#F7C808]╮[/]
+      [#D0842F]╭[/][#D3892C]─[/][#D58E2A]╯[/]           [#F7C808]╰[/][#F9CD06]─[/][#FCD203]╮[/]
+     [#CD7F32]╭[/][#D0842F]╯[/]               [#FCD203]╰[/][#FFD700]╮[/]
+     [#CD7F32]│[/]        [bold #FFD700]◉[/]        [#FFD700]│[/]
+     [#CD7F32]╰[/][#D0842F]╮[/]               [#FCD203]╭[/][#FFD700]╯[/]
+      [#D0842F]╰[/][#D3892C]─[/][#D58E2A]╮[/]           [#F7C808]╭[/][#F9CD06]─[/][#FCD203]╯[/]
+        [#D58E2A]╰[/][#D89327]─[/][#DB9724]╮[/]
+           [#DE9C21]╰[/][#E0A11F]─[/][#E3A61C]─[/][#E6AB19]─[/][#E9B016]─[/][#ECB513]─[/][#EEBA11]╯[/]
+
+        [#B8860B]Multi-Use Synaptic Entity[/]
+         [dim #8B6914]One mind, many pathways.[/]"""
+
+# -------------------------------------------------------------------------
+# muse "Singularity" art (default skin)
+# -------------------------------------------------------------------------
+# Design language: docs/brand/muse-design-language.md — a white core blazing
+# in the void, wrapped by one thin spectral ring with a single gap. White is
+# the hero; the ring is the only spectral accent (matte cyan→violet, never
+# glowed); the wordmark is near-white so the core owns the brightest pixel.
+#
+# MUSE_WORDMARK — crisp block-letter "muse" in a single near-white fill
+# (#EEF2F7), the same full-block style as HERMES_AGENT_LOGO. The wordmark is
+# uniform; the value ladder lives across tiers (core → wordmark → tagline),
+# not within the letters.
+MUSE_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
+
+# MUSE_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
+# ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
+# left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
+# brand tiers: the acronym expansion (signal-dim) and the motto (dim).
+MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+        [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
+      [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
+     [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
+     [#7AE0FF]│[/]        [bold #FFFFFF]◉[/]        [#B388FF]│[/]
+     [#7AE0FF]╰[/][#7DDBFF]╮[/]               [#B08DFF]╭[/][#B388FF]╯[/]
+      [#7DDBFF]╰[/][#80D6FF]─[/][#84D1FF]╮[/]           [#AA97FF]╭[/][#AD92FF]─[/][#B08DFF]╯[/]
+        [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
+           [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
+
+        [#AAB2C4]Multi-Use Synaptic Entity[/]
+         [dim #8B93A6]One mind, many pathways.[/]"""
+
+
+
 
 
 
@@ -505,7 +541,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"Hermes Agent v{VERSION} ({RELEASE_DATE})"
+    base = f"muse v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base

@@ -164,7 +164,7 @@ class SkinConfig:
 _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
     "default": {
         "name": "default",
-        "description": "Classic Hermes — gold and kawaii",
+        "description": "Classic muse — gold and kawaii",
         "colors": {
             "banner_border": "#CD7F32",
             "banner_title": "#FFD700",
@@ -187,10 +187,133 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             # Empty = use hardcoded defaults in display.py
         },
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! ⚕",
-            "response_label": " ⚕ Hermes ",
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
+            "prompt_symbol": "❯",
+            "help_header": "(^_^)? Available Commands",
+        },
+        "tool_prefix": "┊",
+    },
+    "singularity": {
+        "name": "singularity",
+        "description": "muse — a white core in the void, one thin spectral ring",
+        "colors": {
+            # The void is the field; the white core is the hero; the spectral
+            # ring (cyan→violet) is the only accent. ≤3 color roles. See
+            # docs/brand/muse-design-language.md.
+            "banner_border": "#7AE0FF",   # ring — cyan stop
+            "banner_title": "#FFFFFF",    # the core: brightest pixel
+            "banner_accent": "#7AE0FF",   # section headers ride the ring's cyan
+            "banner_dim": "#AAB2C4",      # signal-dim — secondary text
+            "banner_text": "#EEF2F7",     # near-white body, cedes peak to core
+            "ui_accent": "#7AE0FF",
+            "ui_label": "#B388FF",        # ring — violet stop
+            "ui_ok": "#5BE3A0",
+            "ui_error": "#FF5C63",
+            "ui_warn": "#F5C451",
+            "prompt": "#FFFFFF",          # prompt symbol blazes white
+            "input_rule": "#7AE0FF",
+            "response_border": "#7AE0FF",
+            "status_bar_bg": "#0B0D12",   # void-2 raised surface
+            "status_bar_text": "#AAB2C4",
+            "status_bar_strong": "#FFFFFF",
+            "status_bar_dim": "#6B7388",  # signal-mute
+            "status_bar_good": "#5BE3A0",
+            "status_bar_warn": "#F5C451",
+            "status_bar_bad": "#B388FF",
+            "status_bar_critical": "#FF5C63",
+            "session_label": "#7AE0FF",
+            "session_border": "#6B7388",
+            "voice_status_bg": "#0B0D12",
+            "selection_bg": "#1C2030",    # edge
+            "completion_menu_bg": "#0B0D12",
+            "completion_menu_current_bg": "#1C2030",
+            "completion_menu_meta_bg": "#0B0D12",
+            "completion_menu_meta_current_bg": "#1C2030",
+        },
+        "spinner": {
+            "waiting_faces": ["(◯)", "(◉)", "(◌)", "(●)", "(⦿)"],
+            "thinking_faces": ["(◉)", "(◯)", "(◌)", "(⦿)", "(●)"],
+            "thinking_verbs": [
+                "converging pathways", "aligning the core", "tracing the ring",
+                "synthesizing", "holding the center", "drawing the synapse",
+                "routing the signal", "gathering the light",
+            ],
+            "wings": [
+                ["⟪◯", "◯⟫"],
+                ["⟪◉", "◉⟫"],
+                ["⟪◌", "◌⟫"],
+                ["⟪⦿", "⦿⟫"],
+            ],
+        },
+        "branding": {
+            "agent_name": "muse",
+            "welcome": "Welcome to muse — one mind, many pathways. Type your message or /help for commands.",
+            "goodbye": "Goodbye. ◯",
+            "response_label": " ◉ muse ",
+            "prompt_symbol": "❯",
+            "help_header": "✦ muse Commands",
+        },
+        "tool_prefix": "│",
+        # muse wordmark — crisp block "muse" in a single near-white
+        # fill; the core (in the hero) owns the brightest pixel.
+        "banner_logo": """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]""",
+        # The Singularity mark: a bright white core (◉) inside one thin ring
+        # with a gap at lower-right, matte cyan→violet left→right. Then the
+        # two brand tiers (acronym expansion + motto). No glow on the ring.
+        "banner_hero": """          [#90BEFF]╭[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╮[/]
+       [#89C8FF]╭[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╯[/]     [#9DAAFF]╰[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╮[/]
+     [#85CFFF]╭[/][#87CCFF]─[/][#89C8FF]╯[/]           [#A4A0FF]╰[/][#A69CFF]─[/][#A899FF]╮[/]
+    [#83D2FF]╭[/][#85CFFF]╯[/]               [#A899FF]╰[/][#AA96FF]╮[/]
+   [#81D6FF]╭[/][#83D2FF]╯[/]                 [#AA96FF]╰[/][#AC92FF]╮[/]
+   [#81D6FF]│[/]                   [#AC92FF]│[/]
+   [#81D6FF]│[/]         [bold #FFFFFF]◉[/]         [#AC92FF]│[/]
+   [#81D6FF]│[/]
+   [#81D6FF]╰[/][#83D2FF]╮[/]
+    [#83D2FF]╰[/][#85CFFF]╮[/]                [#AA96FF]╭[/]
+     [#85CFFF]╰[/][#87CCFF]─[/][#89C8FF]╮[/]           [#A4A0FF]╭[/][#A69CFF]─[/][#A899FF]╯[/]
+       [#89C8FF]╰[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╮[/]     [#9DAAFF]╭[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╯[/]
+          [#90BEFF]╰[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╯[/]
+
+        [#AAB2C4]Multi-Use Synaptic Entity[/]
+         [dim #8B93A6]One mind, many pathways.[/]""",
+    },
+    "caduceus": {
+        "name": "caduceus",
+        "description": "Classic muse — gold and kawaii (the former default)",
+        "colors": {
+            "banner_border": "#CD7F32",
+            "banner_title": "#FFD700",
+            "banner_accent": "#FFBF00",
+            "banner_dim": "#B8860B",
+            "banner_text": "#FFF8DC",
+            "ui_accent": "#FFBF00",
+            "ui_label": "#DAA520",
+            "ui_ok": "#4caf50",
+            "ui_error": "#ef5350",
+            "ui_warn": "#ffa726",
+            "prompt": "#FFF8DC",
+            "input_rule": "#CD7F32",
+            "response_border": "#FFD700",
+            "status_bar_bg": "#1a1a2e",
+            "session_label": "#DAA520",
+            "session_border": "#8B8682",
+        },
+        "spinner": {
+            # Empty = use hardcoded defaults in display.py
+        },
+        "branding": {
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
             "prompt_symbol": "❯",
             "help_header": "(^_^)? Available Commands",
         },
@@ -298,10 +421,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! ⚕",
-            "response_label": " ⚕ Hermes ",
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -337,10 +460,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! ⚕",
-            "response_label": " ⚕ Hermes ",
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
             "prompt_symbol": "❯",
             "help_header": "(^_^)? Available Commands",
         },
@@ -374,10 +497,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! ⚕",
-            "response_label": " ⚕ Hermes ",
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -411,10 +534,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Hermes Agent",
-            "welcome": "Welcome to Hermes Agent! Type your message or /help for commands.",
-            "goodbye": "Goodbye! \u2695",
-            "response_label": " \u2695 Hermes ",
+            "agent_name": "M.U.S.E.",
+            "welcome": "Welcome to muse! Type your message or /help for commands.",
+            "goodbye": "Goodbye! ✦",
+            "response_label": " ✦ M.U.S.E. ",
             "prompt_symbol": "\u276f",
             "help_header": "(^_^)? Available Commands",
         },
@@ -650,7 +773,11 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 # =============================================================================
 
 _active_skin: Optional[SkinConfig] = None
-_active_skin_name: str = "default"
+# The runtime default skin is the muse "Singularity" look. The ``default``
+# key in _BUILTIN_SKINS remains the classic gold Hermes look (also exposed as
+# ``caduceus``) and is the inheritance base for every other skin's unspecified
+# fields; this only sets which skin a fresh, unconfigured session activates.
+_active_skin_name: str = "singularity"
 
 
 def _skins_dir() -> Path:
@@ -795,11 +922,12 @@ def init_skin_from_config(config: dict) -> None:
     display = config.get("display") or {}
     if not isinstance(display, dict):
         display = {}
-    skin_name = display.get("skin", "default")
+    # No configured skin → the muse "Singularity" default.
+    skin_name = display.get("skin", "singularity")
     if isinstance(skin_name, str) and skin_name.strip():
         set_active_skin(skin_name.strip())
     else:
-        set_active_skin("default")
+        set_active_skin("singularity")
 
 
 # =============================================================================

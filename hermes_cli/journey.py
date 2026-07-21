@@ -198,7 +198,7 @@ def _cmd_show(args: argparse.Namespace) -> int:
 
     if not payload.get("nodes"):
         console.print(
-            "[grey62]No learning yet — use Hermes a while and your learned skills and "
+            "[grey62]No learning yet — use muse a while and your learned skills and "
             "memories will start mapping out here.[/grey62]"
         )
         return 0

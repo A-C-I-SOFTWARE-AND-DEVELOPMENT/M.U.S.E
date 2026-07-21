@@ -92,7 +92,7 @@ function OverviewScreen({ ctx, onClose, onPatch, s, t }: ScreenProps) {
   const note = !s.is_admin
     ? 'Billing actions need someone with billing permissions (owner, admin, or finance admin).'
     : !s.cli_billing_enabled
-      ? "Remote spending is off for this org — a billing admin can turn it on from the portal's Hermes Agent page."
+      ? "Remote spending is off for this org — a billing admin can turn it on from the portal's muse agent page."
       : null
 
   // Always show the full billing menu for an admin/billing-on org — a missing

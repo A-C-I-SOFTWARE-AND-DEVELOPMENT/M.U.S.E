@@ -1,9 +1,9 @@
 {
   "name": "hermes",
-  "productName": "Hermes",
+  "productName": "muse",
   "private": true,
   "version": "0.17.0",
-  "description": "Native desktop shell for Hermes Agent.",
+  "description": "Native desktop shell for M.U.S.E.",
   "author": "Nous Research",
   "type": "module",
   "main": "dist/electron-main.mjs",
@@ -162,7 +162,7 @@
   "build": {
     "electronVersion": "40.10.2",
     "appId": "com.nousresearch.hermes",
-    "productName": "Hermes",
+    "productName": "muse",
     "executableName": "Hermes",
     "protocols": [
       {
@@ -208,11 +208,11 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
+        "CFBundleDisplayName": "M.U.S.E.",
         "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations."
+        "CFBundleName": "M.U.S.E.",
+        "NSAudioCaptureUsageDescription": "muse uses audio capture for voice conversations.",
+        "NSMicrophoneUsageDescription": "muse uses the microphone for voice input and voice conversations."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
@@ -222,7 +222,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "Install M.U.S.E.",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -244,7 +244,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "M.U.S.E.",
       "target": [
         "nsis",
         "msi"
@@ -254,7 +254,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "Nous Research <support@nousresearch.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "synopsis": "Native desktop shell for M.U.S.E.",
       "target": [
         "AppImage",
         "deb",
@@ -265,8 +265,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "M.U.S.E.",
+      "uninstallDisplayName": "M.U.S.E.",
       "warningsAsErrors": false
     }
   }

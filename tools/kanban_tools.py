@@ -1662,7 +1662,7 @@ KANBAN_ATTACH_SCHEMA = {
 KANBAN_ATTACH_URL_SCHEMA = {
     "name": "kanban_attach_url",
     "description": (
-        "Attach a file to a task by URL — Hermes downloads it server-side "
+        "Attach a file to a task by URL — muse downloads it server-side "
         "and stores it as a real attachment (capped at 25 MB). Use when "
         "you have a link rather than the bytes. Only http/https URLs are "
         "accepted."

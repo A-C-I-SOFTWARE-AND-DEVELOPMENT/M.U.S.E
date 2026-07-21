@@ -53,7 +53,7 @@ enum class DeviceControlCapability(
     BACKEND_CONNECTION(
         id = "backend",
         title = "Local backend connection",
-        explanation = "Lets the cockpit reach your Hermes backend (orchestration, memory, " +
+        explanation = "Lets the cockpit reach your muse backend (orchestration, memory, " +
             "worker lanes). Device actions stay on-device; this is for full cockpit power.",
     );
 

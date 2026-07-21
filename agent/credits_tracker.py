@@ -433,7 +433,7 @@ def parse_credits_headers(
             if version_val > 1 and not _version_warning_emitted:
                 _version_warning_emitted = True
                 logger.warning(
-                    "credits header version %d unsupported, ignoring — update Hermes",
+                    "credits header version %d unsupported, ignoring — update muse",
                     version_val,
                 )
             return None

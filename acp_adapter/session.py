@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def _translate_acp_cwd(cwd: str) -> str:
     """Translate Windows ACP cwd values when Hermes itself is running in WSL.
 
-    Windows ACP clients can launch ``hermes acp`` inside WSL while still sending
+    Windows ACP clients can launch ``muse acp`` inside WSL while still sending
     editor workspaces as Windows drive paths (``E:\\Projects``) or
     ``\\\\wsl.localhost\\`` UNC paths. Store and execute against the POSIX form so
     agents, tools, and persisted ACP sessions all agree on the usable workspace.

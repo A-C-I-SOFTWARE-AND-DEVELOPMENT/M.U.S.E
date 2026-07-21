@@ -3,10 +3,10 @@ label: ntfy
 kind: platform
 version: 1.0.0
 description: >
-  ntfy push-notification gateway adapter for Hermes Agent.
+  ntfy push-notification gateway adapter for muse.
   Subscribes to a topic on ntfy.sh or any self-hosted ntfy server via
   HTTP streaming, and publishes replies via HTTP POST. Lightweight —
-  no external SDK, only httpx (already a Hermes dependency).
+  no external SDK, only httpx (already a muse dependency).
 
   ntfy has no native user-identity primitive; the adapter treats each
   topic as a single trusted channel and never derives user identity

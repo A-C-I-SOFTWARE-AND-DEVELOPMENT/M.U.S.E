@@ -806,7 +806,7 @@ def interactive_setup() -> None:
             print_info(f"Keeping RAFT_PROFILE={existing_profile}.")
             return
 
-    print_info("Connect Hermes to Raft as an external agent.")
+    print_info("Connect muse to Raft as an external agent.")
     print_info("Create the External Agent in Raft first, then run:")
     print_info("  raft agent login --server <server-url> --agent <agent-id> --profile-slug <slug>")
     print()
