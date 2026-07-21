@@ -127,3 +127,6 @@ cockpit-dist/
 # `export*` ignore above; force them back into version control.
 !skills/creative/game-studio/scripts/export_godot_slice.py
 !skills/creative/game-studio/reference-slice/export_presets.cfg
+
+# research-fabric P3 smoke-test fixture repos (throwaway embedded git repos)
+.hermes/research_fabric/smoke/p3_fixture_repo*/
