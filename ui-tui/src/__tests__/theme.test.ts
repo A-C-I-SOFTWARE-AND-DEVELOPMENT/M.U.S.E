@@ -43,7 +43,7 @@ describe('DEFAULT_THEME', () => {
   it('has brand defaults', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.brand.name).toBe('Hermes Agent')
+    expect(DEFAULT_THEME.brand.name).toBe('muse')
     expect(DEFAULT_THEME.brand.prompt).toBe('❯')
     expect(DEFAULT_THEME.brand.tool).toBe('┊')
   })
@@ -51,8 +51,8 @@ describe('DEFAULT_THEME', () => {
   it('has color palette', async () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
-    expect(DEFAULT_THEME.color.primary).toBe('#FFD700')
-    expect(DEFAULT_THEME.color.error).toBe('#ef5350')
+    expect(DEFAULT_THEME.color.primary).toBe('#FFFFFF')
+    expect(DEFAULT_THEME.color.error).toBe('#E06C75')
   })
 })
 
@@ -71,6 +71,26 @@ describe('LIGHT_THEME', () => {
 
     expect(Object.keys(LIGHT_THEME.color).sort()).toEqual(Object.keys(DARK_THEME.color).sort())
     expect(LIGHT_THEME.brand).toEqual(DARK_THEME.brand)
+  })
+
+  it('carries no gold-era remnants (Singularity rebrand)', async () => {
+    const { LIGHT_THEME } = await importThemeWithCleanEnv()
+    const GOLD_ERA = /7A5A0F|A0651C|8B6914|FFD700|FFBF00|B8860B/i
+
+    for (const [key, value] of Object.entries(LIGHT_THEME.color)) {
+      expect(value, `color.${key}`).not.toMatch(GOLD_ERA)
+    }
+  })
+
+  it('ships the brand lockup for light terminals', async () => {
+    const { LIGHT_THEME } = await importThemeWithCleanEnv()
+
+    // Wordmark + glyph render with primary-ink fill on white, keeping the
+    // violet ramp ring stops (accentDim → accent, the Singularity accent family).
+    expect(LIGHT_THEME.bannerLogo).toContain('#12151D')
+    expect(LIGHT_THEME.bannerHero).toContain('#12151D')
+    expect(LIGHT_THEME.bannerHero).toContain('#7E5FA8')
+    expect(LIGHT_THEME.bannerHero).toContain('#D8B4FE')
   })
 })
 

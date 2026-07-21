@@ -516,6 +516,49 @@ export interface SubagentInterruptResponse {
   subagent_id?: string
 }
 
+// ── Fusion / MOA (design.md 1.3B — hoisted from fusionOverlay.tsx) ────
+
+export type FusionDepth = 'adaptive' | 'deep' | 'light' | 'skip' | 'standard'
+
+export interface FusionModelRouterEntry {
+  calls?: number
+  ema_bias?: number
+  model?: string
+  specialty?: string
+}
+
+export interface FusionMoaStatus {
+  enabled?: boolean
+  key_present?: boolean
+}
+
+export interface FusionStatus {
+  available?: boolean
+  current_round?: number
+  depth?: string
+  enabled?: boolean
+  lti_alpha?: number
+  moa?: FusionMoaStatus
+  model_router?: FusionModelRouterEntry[]
+  role?: string
+  rounds_planned?: number
+}
+
+export interface FusionSetParams {
+  depth?: FusionDepth
+  enabled?: boolean
+  moa?: boolean
+  rounds_cap?: number
+}
+
+export interface FusionProgressPayload {
+  model?: string
+  phase?: string
+  role?: string
+  round?: number
+  rounds?: number
+}
+
 // ── Spawn-tree snapshots ─────────────────────────────────────────────
 
 export interface SpawnTreeListEntry {
@@ -567,6 +610,7 @@ export type GatewayEvent =
     }
   | { payload?: { state?: 'idle' | 'listening' | 'transcribing' }; session_id?: string; type: 'voice.status' }
   | { payload?: { no_speech_limit?: boolean; text?: string }; session_id?: string; type: 'voice.transcript' }
+  | { payload?: FusionProgressPayload; session_id?: string; type: 'fusion.progress' }
   | { payload?: { reason?: string }; session_id?: string; type: 'dashboard.new_session_requested' }
   | { payload: { line: string }; session_id?: string; type: 'gateway.stderr' }
   | {

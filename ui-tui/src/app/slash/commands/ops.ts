@@ -326,6 +326,15 @@ export const opsCommands: SlashCommand[] = [
   },
 
   {
+    aliases: ['hubs'],
+    help: 'open the hub browser (agents, automation, skills, providers, memory)',
+    name: 'hub',
+    run: () => {
+      patchOverlayState({ hub: true })
+    }
+  },
+
+  {
     aliases: ['learning', 'memory-graph'],
     help: 'open your learning journey — skills + memories on a timeline',
     name: 'journey',

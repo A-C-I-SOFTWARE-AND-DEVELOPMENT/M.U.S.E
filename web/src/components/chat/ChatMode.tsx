@@ -293,9 +293,9 @@ export function ChatMode({
   useEffect(() => {
     if (!isActive) return;
     if (
-      gw.state === "idle" ||
-      gw.state === "closed" ||
-      gw.state === "error"
+      gw.connectionState === "idle" ||
+      gw.connectionState === "closed" ||
+      gw.connectionState === "error"
     ) {
       gw.connect().catch((e: unknown) => {
         setError(
@@ -313,8 +313,8 @@ export function ChatMode({
   // just fired), so senders subscribe to the state machine instead of
   // racing ahead and issuing requests against a half-open socket.
   const ensureConnected = useCallback(async (): Promise<void> => {
-    if (gw.state === "open") return;
-    if (gw.state !== "connecting") {
+    if (gw.connectionState === "open") return;
+    if (gw.connectionState !== "connecting") {
       // Failure surfaces through the "error" state transition below.
       gw.connect().catch(() => {});
     }

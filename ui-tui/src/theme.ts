@@ -32,6 +32,16 @@ export interface ThemeColors {
   diffRemovedWord: string
 
   shellDollar: string
+
+  // ── Singularity additive tokens (design.md Part 0) ─────────────────
+  // Optional so existing Theme literals/skins keep type-checking;
+  // consumers fall back (`t.color.accentDim ?? t.color.muted` etc.).
+  /** Dimmed accent: inactive borders, SOLO badge (dark `#7E5FA8`). */
+  accentDim?: string
+  /** Informational badges, timestamps, spinner line (dark `#6CB3E0`). */
+  info?: string
+  /** Placeholders, separators, hints (dark `#4A4E5C`). */
+  faint?: string
 }
 
 export interface ThemeBrand {
@@ -84,7 +94,10 @@ const ANSI_LIGHT_TARGET_LUMINANCE = 0.34
 const ANSI_LIGHT_MIN_SATURATION = 0.22
 const ANSI_MUTED_BUCKET = 245
 
-const ANSI_NORMALIZED_FOREGROUNDS: readonly (keyof ThemeColors)[] = [
+// Only the required-string color keys — the optional Singularity additive
+// tokens (accentDim/info/faint) are deliberately excluded so ANSI
+// normalization below reads `color[key]` as a definite string.
+const ANSI_NORMALIZED_FOREGROUNDS = [
   'text',
   'label',
   'ok',
@@ -97,9 +110,9 @@ const ANSI_NORMALIZED_FOREGROUNDS: readonly (keyof ThemeColors)[] = [
   'statusBad',
   'statusCritical',
   'shellDollar'
-]
+] as const
 
-const ANSI_MUTED_FOREGROUNDS: readonly (keyof ThemeColors)[] = ['muted', 'sessionLabel', 'sessionBorder']
+const ANSI_MUTED_FOREGROUNDS = ['muted', 'sessionLabel', 'sessionBorder'] as const
 
 function xtermEightBitRgb(colorNumber: number): [number, number, number] {
   if (colorNumber >= 232) {
@@ -234,14 +247,53 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
-  icon: '⚕',
+  name: 'muse',
+  icon: '◉',
   prompt: '❯',
-  welcome: 'Type your message or /help for commands.',
-  goodbye: 'Goodbye! ⚕',
+  welcome: 'one mind, many pathways. Type your message or /help for commands.',
+  goodbye: 'Goodbye. ◯',
   tool: '┊',
-  helpHeader: '(^_^)? Commands'
+  helpHeader: '✦ muse Commands'
 }
+
+// muse "Singularity" banner art — Rich markup parsed per-character by
+// banner.ts parseRichMarkup: a block wordmark and a core+ring glyph with a
+// lower-right gap and a violet ramp ring (accentDim #7E5FA8 → accent
+// #D8B4FE, the contract's ONE accent family). The wordmark/core fill is
+// parameterized so the light theme can swap near-white for primary ink
+// (#12151D) while keeping the violet ring stops — they read fine on white.
+const MUSE_WORDMARK_ART = [
+  '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
+  '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',
+  '██╔████╔██║   ██║   ██║   ███████╗   █████╗',
+  '██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝',
+  '██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████║██╗',
+  '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
+] as const
+
+const museWordmark = (fill: string) => MUSE_WORDMARK_ART.map(line => `[bold ${fill}]${line}[/]`).join('\n')
+
+const museGlyph = (core: string, expansion: string, tagline: string) => `           [#9C7BC5]╭[/][#A180C9]─[/][#A685CE]─[/][#AB8AD3]─[/][#B08ED8]─[/][#B593DC]─[/][#BA98E1]╮[/]
+        [#8D6DB6]╭[/][#9272BB]─[/][#9777C0]╯[/]       [#BF9CE6]╰[/][#C4A1EB]─[/][#C9A6EF]╮[/]
+      [#8364AD]╭[/][#8868B2]─[/][#8D6DB6]╯[/]           [#C9A6EF]╰[/][#CEAAF4]─[/][#D3AFF9]╮[/]
+     [#7E5FA8]╭[/][#8364AD]╯[/]               [#D3AFF9]╰[/][#D8B4FE]╮[/]
+     [#7E5FA8]│[/]        [bold ${core}]◉[/]        [#D8B4FE]│[/]
+     [#7E5FA8]╰[/][#8364AD]╮[/]               [#D3AFF9]╭[/][#D8B4FE]╯[/]
+      [#8364AD]╰[/][#8868B2]─[/][#8D6DB6]╮[/]           [#C9A6EF]╭[/][#CEAAF4]─[/][#D3AFF9]╯[/]
+        [#8D6DB6]╰[/][#9272BB]─[/][#9777C0]╮[/]
+           [#9C7BC5]╰[/][#A180C9]─[/][#A685CE]─[/][#AB8AD3]─[/][#B08ED8]─[/][#B593DC]─[/][#BA98E1]╯[/]
+
+        [${expansion}]Multi-Use Synaptic Entity[/]
+         [dim ${tagline}]One mind, many pathways.[/]`
+
+// Dark (canonical): near-white wordmark, white core, signal-dim/mute tiers.
+const MUSE_WORDMARK = museWordmark('#EEF2F7')
+const MUSE_GLYPH = museGlyph('#FFFFFF', '#AAB2C4', '#8B93A6')
+
+// Light: same lockup with primary-ink fill so the wordmark/core stay the
+// value hero on a white field; text tiers darken one step for contrast.
+const MUSE_WORDMARK_LIGHT = museWordmark('#12151D')
+const MUSE_GLYPH_LIGHT = museGlyph('#12151D', '#6B7388', '#8B93A6')
 
 const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
   const cleaned = String(s ?? '')
@@ -253,82 +305,87 @@ const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
 
 export const DARK_THEME: Theme = {
   color: {
-    primary: '#FFD700',
-    accent: '#FFBF00',
-    border: '#CD7F32',
-    text: '#FFF8DC',
-    muted: '#CC9B1F',
-    // Bumped from the old `#B8860B` darkgoldenrod (~53% luminance) which
-    // read as barely-visible on dark terminals for long body text.  The
-    // new value sits ~60% luminance — readable without losing the "muted /
-    // secondary" semantic.  Field labels still use `label` (65%) which
-    // stays brighter so hierarchy holds.
-    completionBg: '#1a1a2e',
-    completionCurrentBg: '#333355',
-    completionMetaBg: '#1a1a2e',
-    completionMetaCurrentBg: '#333355',
+    // Singularity palette (design.md Part 0): ONE violet accent + neutral
+    // grays + ok/warn/err semantics on a near-black field.
+    primary: '#FFFFFF',
+    accent: '#D8B4FE',
+    border: '#26262E',
+    text: '#E8ECF4',
+    muted: '#8B90A0',
+    accentDim: '#7E5FA8',
+    info: '#6CB3E0',
+    faint: '#4A4E5C',
+    // bg ladder: bg #050507 (terminal default bg) → bgElev → bgMute.
+    completionBg: '#0D0D12',
+    completionCurrentBg: '#16161D',
+    completionMetaBg: '#0D0D12',
+    completionMetaCurrentBg: '#16161D',
 
-    label: '#DAA520',
-    ok: '#4caf50',
-    error: '#ef5350',
-    warn: '#ffa726',
+    label: '#D8B4FE',
+    ok: '#7BD88F',
+    error: '#E06C75',
+    warn: '#E5C07B',
 
-    prompt: '#FFF8DC',
-    // sessionLabel/sessionBorder intentionally track the `dim` value — they
-    // are "same role, same colour" by design.  fromSkin's banner_dim fallback
-    // relies on this pairing (#11300).
-    sessionLabel: '#CC9B1F',
-    sessionBorder: '#CC9B1F',
+    prompt: '#D8B4FE',
+    sessionLabel: '#8B90A0',
+    sessionBorder: '#4A4E5C',
 
-    statusBg: '#1a1a2e',
-    statusFg: '#C0C0C0',
-    statusGood: '#8FBC8F',
-    statusWarn: '#FFD700',
-    statusBad: '#FF8C00',
-    statusCritical: '#FF6B6B',
-    selectionBg: '#3a3a55',
+    statusBg: '#0D0D12',
+    statusFg: '#8B90A0',
+    statusGood: '#7BD88F',
+    statusWarn: '#E5C07B',
+    statusBad: '#E06C75',
+    statusCritical: '#E06C75',
+    selectionBg: '#16161D',
 
     diffAdded: 'rgb(220,255,220)',
     diffRemoved: 'rgb(255,220,220)',
     diffAddedWord: 'rgb(36,138,61)',
     diffRemovedWord: 'rgb(207,34,46)',
-    shellDollar: '#4dabf7'
+    shellDollar: '#D8B4FE'
   },
 
   brand: BRAND,
 
-  bannerLogo: '',
-  bannerHero: ''
+  bannerLogo: MUSE_WORDMARK,
+  bannerHero: MUSE_GLYPH
 }
 
-// Light-terminal palette: darker golds/ambers that stay legible on white
-// backgrounds. Same shape as DARK_THEME so `fromSkin` still layers on top
-// cleanly (#11300).
+// Light-terminal palette: Singularity on a white field, derived by inversion
+// from DARK_THEME — primary ink (#12151D) is the hero, and the ONE accent is
+// the dark theme's accentDim violet (#7E5FA8, ~5.1:1 on white; #D8B4FE itself
+// is unreadable on white). Deeper violet #6B4FA3 (~6.4:1) carries accentDim +
+// session chrome. Status hues keep their established readable values; `info`
+// is a deep sky (#2F6F9F, ~5.4:1) derived from dark #6CB3E0. Same shape as
+// DARK_THEME so `fromSkin` still layers on top cleanly (#11300).
 export const LIGHT_THEME: Theme = {
   color: {
-    primary: '#8B6914',
-    accent: '#A0651C',
-    border: '#7A4F1F',
-    text: '#3D2F13',
-    muted: '#7A5A0F',
+    primary: '#12151D',
+    accent: '#7E5FA8',
+    border: '#C8CEDA',
+    text: '#1C2030',
+    muted: '#6B7388',
+    accentDim: '#6B4FA3',
+    info: '#2F6F9F',
+    faint: '#9AA0B0',
     completionBg: '#F5F5F5',
-    completionCurrentBg: mix('#F5F5F5', '#A0651C', 0.25),
+    completionCurrentBg: '#DCE3EE',
     completionMetaBg: '#F5F5F5',
-    completionMetaCurrentBg: mix('#F5F5F5', '#A0651C', 0.25),
+    completionMetaCurrentBg: '#DCE3EE',
 
-    label: '#7A5A0F',
+    label: '#7E5FA8',
     ok: '#2E7D32',
     error: '#C62828',
     warn: '#E65100',
 
-    prompt: '#2B2014',
-    sessionLabel: '#7A5A0F',
-    sessionBorder: '#7A5A0F',
+    prompt: '#7E5FA8',
+    sessionLabel: '#6B4FA3',
+    sessionBorder: '#6B4FA3',
 
     statusBg: '#F5F5F5',
     statusFg: '#333333',
     statusGood: '#2E7D32',
-    statusWarn: '#8B6914',
+    statusWarn: '#946300',
     statusBad: '#D84315',
     statusCritical: '#B71C1C',
     selectionBg: '#D4E4F7',
@@ -337,13 +394,13 @@ export const LIGHT_THEME: Theme = {
     diffRemoved: 'rgb(240,200,200)',
     diffAddedWord: 'rgb(27,94,32)',
     diffRemovedWord: 'rgb(183,28,28)',
-    shellDollar: '#1565C0'
+    shellDollar: '#7E5FA8'
   },
 
   brand: BRAND,
 
-  bannerLogo: '',
-  bannerHero: ''
+  bannerLogo: MUSE_WORDMARK_LIGHT,
+  bannerHero: MUSE_GLYPH_LIGHT
 }
 
 const TRUE_RE = /^(?:1|true|yes|on)$/
@@ -553,8 +610,10 @@ export function fromSkin(
         warn: c('ui_warn') ?? d.color.warn,
 
         prompt: c('prompt') ?? c('banner_text') ?? d.color.prompt,
-        sessionLabel: c('session_label') ?? muted,
-        sessionBorder: c('session_border') ?? muted,
+        // With skin colors present, session chrome coheres with the skin's
+        // muted tone; an empty skin must reproduce the default theme exactly.
+        sessionLabel: c('session_label') ?? (hasSkinColors ? muted : d.color.sessionLabel),
+        sessionBorder: c('session_border') ?? (hasSkinColors ? muted : d.color.sessionBorder),
 
         statusBg: d.color.statusBg,
         statusFg: d.color.statusFg,
@@ -571,7 +630,14 @@ export function fromSkin(
         diffRemoved: d.color.diffRemoved,
         diffAddedWord: d.color.diffAddedWord,
         diffRemovedWord: d.color.diffRemovedWord,
-        shellDollar: c('shell_dollar') ?? d.color.shellDollar
+        shellDollar: c('shell_dollar') ?? d.color.shellDollar,
+
+        // Singularity additive tokens: skin-overridable; with skin colors
+        // present, accentDim derives from the resolved accent so the dim tier
+        // stays in-family. Empty skin reproduces the default theme exactly.
+        accentDim: c('ui_accent_dim') ?? (hasSkinColors ? mix(accent, d.color.border, 0.45) : d.color.accentDim),
+        info: c('ui_info') ?? d.color.info,
+        faint: c('ui_faint') ?? d.color.faint
       },
 
       brand: {

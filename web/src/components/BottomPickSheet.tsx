@@ -33,7 +33,10 @@ export function BottomPickSheet({
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
   const [dragActive, setDragActive] = useState(false);
 
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Typed as `number`: assignments below use `window.setTimeout`, which
+  // returns a browser handle — `ReturnType<typeof setTimeout>` resolves to
+  // NodeJS.Timeout under this project's @types/node and rejects it.
+  const closeTimerRef = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragTrackingRef = useRef(false);
   const dragStartYRef = useRef(0);

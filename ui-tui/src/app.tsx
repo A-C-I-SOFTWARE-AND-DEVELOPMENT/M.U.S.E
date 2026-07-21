@@ -1,5 +1,8 @@
 import { useStore } from '@nanostores/react'
 
+// Boot-time side effect: installs globalThis.__museAgentMode so Wave-1 chrome
+// (status badge, composer border/glyph) lights up immediately.
+import './app/agentModeStore.js'
 import { GatewayProvider } from './app/gatewayContext.js'
 import { $uiState } from './app/uiStore.js'
 import { useMainApp } from './app/useMainApp.js'

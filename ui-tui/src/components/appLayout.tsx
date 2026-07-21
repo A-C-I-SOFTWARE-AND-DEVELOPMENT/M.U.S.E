@@ -25,6 +25,7 @@ import { GoodVibesHeart, StatusRule, StickyPromptTracker, TranscriptScrollbar } 
 import { FloatingOverlays, PromptZone } from './appOverlays.js'
 import { Banner, Panel, SessionPanel } from './branding.js'
 import { FpsOverlay } from './fpsOverlay.js'
+import { FusionOverlay } from './fusionOverlay.js'
 import { HelpHint } from './helpHint.js'
 import { Journey } from './journey.js'
 import { MessageLine } from './messageLine.js'
@@ -370,6 +371,7 @@ const ComposerPane = memo(function ComposerPane({
           onNewLiveSession={actions.newLiveSession}
           onNewPromptSession={actions.newPromptSession}
           onResumeSelect={actions.resumeById}
+          onRunSlash={actions.runSlash}
           pagerPageSize={composer.pagerPageSize}
         />
 
@@ -430,7 +432,7 @@ const ComposerPane = memo(function ComposerPane({
         )}
       </Box>
 
-      {!composer.empty && !ui.sid && <Text color={ui.theme.color.muted}>⚕ {ui.status}</Text>}
+      {!composer.empty && !ui.sid && <Text color={ui.theme.color.muted}>✦ {ui.status}</Text>}
 
       <StatusRulePane at="bottom" composer={composer} status={status} />
     </NoSelect>
@@ -450,6 +452,15 @@ const AgentsOverlayPane = memo(function AgentsOverlayPane() {
       t={ui.theme}
     />
   )
+})
+
+// Fullscreen fusion/MOA center (design.md 1.3B) — mirrors AgentsOverlayPane:
+// a full-screen swap surface, not a float (fusion.manifest.md §4).
+const FusionOverlayPane = memo(function FusionOverlayPane() {
+  const { gw } = useGateway()
+  const ui = useStore($uiState)
+
+  return <FusionOverlay gw={gw} onClose={() => patchOverlayState({ fusion: false })} t={ui.theme} />
 })
 
 const JourneyPane = memo(function JourneyPane() {
@@ -518,7 +529,11 @@ export const AppLayout = memo(function AppLayout({
     <Shell {...shellProps}>
       <Box flexDirection="column" flexGrow={1} position="relative">
         <Box flexDirection="row" flexGrow={1}>
-          {overlay.agents ? (
+          {overlay.fusion ? (
+            <PerfPane id="fusion">
+              <FusionOverlayPane />
+            </PerfPane>
+          ) : overlay.agents ? (
             <PerfPane id="agents">
               <AgentsOverlayPane />
             </PerfPane>
@@ -533,7 +548,7 @@ export const AppLayout = memo(function AppLayout({
           )}
         </Box>
 
-        {!overlay.agents && !overlay.journey && (
+        {!overlay.fusion && !overlay.agents && !overlay.journey && (
           <>
             <PerfPane id="prompt">
               <PromptZone

@@ -9,6 +9,8 @@ import { $uiSessionId, $uiTheme } from '../app/uiStore.js'
 import { ActiveSessionSwitcher } from './activeSessionSwitcher.js'
 import { FloatBox } from './appChrome.js'
 import { BillingOverlay } from './billingOverlay.js'
+import { CommandPalette } from './commandPalette.js'
+import { HubOverlay } from './hubOverlay.js'
 import { MaskedPrompt } from './maskedPrompt.js'
 import { ModelPicker } from './modelPicker.js'
 import { OverlayHint } from './overlayControls.js'
@@ -137,6 +139,7 @@ export function FloatingOverlays({
   onNewLiveSession,
   onNewPromptSession,
   onResumeSelect,
+  onRunSlash,
   pagerPageSize
 }: Pick<
   AppOverlaysProps,
@@ -149,6 +152,7 @@ export function FloatingOverlays({
   | 'onNewLiveSession'
   | 'onNewPromptSession'
   | 'onResumeSelect'
+  | 'onRunSlash'
   | 'pagerPageSize'
 >) {
   const { gw } = useGateway()
@@ -163,6 +167,8 @@ export function FloatingOverlays({
     overlay.sessions ||
     overlay.skillsHub ||
     overlay.pluginsHub ||
+    overlay.hub ||
+    overlay.palette ||
     completions.length
 
   if (!hasAny) {
@@ -178,6 +184,17 @@ export function FloatingOverlays({
 
   return (
     <Box alignItems="flex-start" bottom="100%" flexDirection="column" left={0} position="absolute" right={0}>
+      {/* HubOverlay draws its own rounded accent border — mount BARE (no
+          FloatBox wrapper), first in the stack so the palette (mounted last,
+          below) stays topmost. */}
+      {overlay.hub && (
+        <HubOverlay
+          onClose={() => patchOverlayState({ hub: false })}
+          onRunSlash={onRunSlash}
+          t={theme}
+        />
+      )}
+
       {overlay.sessions && (
         <FloatBox color={theme.color.border}>
           <ActiveSessionSwitcher
@@ -287,6 +304,16 @@ export function FloatingOverlays({
             })}
           </Box>
         </FloatBox>
+      )}
+
+      {/* CommandPalette draws its own rounded accent border — mount BARE and
+          LAST so it is the topmost float (palette.manifest.md §3). */}
+      {overlay.palette && (
+        <CommandPalette
+          onClose={() => patchOverlayState({ palette: false })}
+          onRunSlash={onRunSlash}
+          t={theme}
+        />
       )}
     </Box>
   )

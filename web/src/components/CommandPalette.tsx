@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
   BookOpen,
+  Brain,
   Clock,
   Code,
   Cpu,
@@ -13,9 +14,9 @@ import {
   Puzzle,
   RotateCw,
   Settings,
-  Sparkles,
   Terminal,
   Users,
+  Waypoints,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -55,7 +56,8 @@ export function CommandPalette({ onSystemAction }: CommandPaletteProps) {
       { id: "sessions", label: "Sessions", icon: MessageSquare, action: () => navigate("/sessions"), keywords: ["history", "chat"] },
       { id: "chat", label: "Chat", icon: Terminal, action: () => navigate("/chat"), keywords: ["terminal", "tui"] },
       { id: "studio", label: "Studio", icon: Zap, action: () => navigate("/studio"), keywords: ["mission control", "dashboard"] },
-      { id: "fusion", label: "Fusion", hint: "Studio", icon: Sparkles, action: () => navigate("/studio"), keywords: ["moa", "agents", "mixture", "rounds"] },
+      { id: "fusion", label: "Fusion", icon: Waypoints, action: () => navigate("/fusion"), keywords: ["agents", "pipeline", "orchestrate"] },
+      { id: "moa", label: "MoA", icon: Brain, action: () => navigate("/moa"), keywords: ["moa", "mixture of agents", "rounds", "synthesis"] },
       { id: "models", label: "Models", icon: Cpu, action: () => navigate("/models"), keywords: ["provider", "llm"] },
       { id: "analytics", label: "Analytics", icon: BarChart3, action: () => navigate("/analytics"), keywords: ["stats", "usage", "tokens"] },
       { id: "logs", label: "Logs", icon: BookOpen, action: () => navigate("/logs"), keywords: ["debug", "errors"] },

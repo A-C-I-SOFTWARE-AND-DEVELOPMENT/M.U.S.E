@@ -594,7 +594,7 @@ export function useMainApp(gw: GatewayClient) {
   const tabCwd = ui.info?.cwd
 
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Hermes'
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'M.U.S.E.'
   )
 
   useEffect(() => {
@@ -966,6 +966,12 @@ export function useMainApp(gw: GatewayClient) {
     slashRef.current(`/model ${value}`)
   }, [])
 
+  // Palette / hub rows emit slash commands verbatim; the ref form stays
+  // stable across renders (mirrors useSubmission.ts consumption).
+  const onRunSlash = useCallback((cmd: string) => {
+    slashRef.current(cmd)
+  }, [])
+
   const closeLiveSession = useCallback(
     async (id: string) => {
       patchUiState({ status: 'closing session…' })
@@ -1080,6 +1086,7 @@ export function useMainApp(gw: GatewayClient) {
 
         session.resumeById(id)
       },
+      runSlash: onRunSlash,
       setStickyPrompt
     }),
     [
@@ -1091,6 +1098,7 @@ export function useMainApp(gw: GatewayClient) {
       closeLiveSession,
       newPromptSession,
       onModelSelect,
+      onRunSlash,
       session
     ]
   )

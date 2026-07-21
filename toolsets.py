@@ -163,7 +163,13 @@ TOOLSETS = {
         "tools": ["terminal", "process"],
         "includes": []
     },
-    
+
+    "moa": {
+        "description": "Advanced reasoning and problem-solving tools",
+        "tools": ["mixture_of_agents"],
+        "includes": []
+    },
+
     "skills": {
         "description": "Access, create, edit, and manage skill documents with specialized instructions and knowledge",
         "tools": ["skills_list", "skill_view", "skill_manage"],

@@ -269,9 +269,12 @@ export interface OverlayState {
   billing: BillingOverlayState | null
   clarify: ClarifyReq | null
   confirm: ConfirmReq | null
+  fusion: boolean
+  hub: boolean
   journey: boolean
   modelPicker: boolean | { refresh?: boolean }
   pager: null | PagerState
+  palette: boolean
   petPicker: boolean
   pluginsHub: boolean
   secret: null | SecretReq
@@ -523,6 +526,7 @@ export interface AppLayoutActions {
   newPromptSession: (prompt: string, modelArg?: string) => void
   onModelSelect: (value: string) => void
   resumeById: (id: string) => void
+  runSlash: (cmd: string) => void
   setStickyPrompt: (value: string) => void
 }
 
@@ -586,6 +590,7 @@ export interface AppOverlaysProps {
   onNewLiveSession: () => void
   onNewPromptSession: (prompt: string, modelArg?: string) => void
   onResumeSelect: (sessionId: string) => void
+  onRunSlash: (cmd: string) => void
   onSecretSubmit: (value: string) => void
   onSudoSubmit: (pw: string) => void
   pagerPageSize: number

@@ -737,6 +737,36 @@ class PluginContext:
             self.manifest.name, provider.name,
         )
 
+    # -- asset3d gen provider registration ------------------------------------
+
+    def register_asset3d_gen_provider(self, provider) -> None:
+        """Register a text-to-3D mesh generation backend.
+
+        ``provider`` must be an instance of
+        :class:`agent.asset3d_gen_provider.Asset3DGenProvider`. The
+        ``provider.name`` attribute is what ``asset3d_gen.provider`` in
+        ``config.yaml`` matches against when routing ``asset3d_generate``
+        tool calls.
+
+        Mirrors :meth:`register_image_gen_provider` /
+        :meth:`register_video_gen_provider` exactly.
+        """
+        from agent.asset3d_gen_provider import Asset3DGenProvider
+        from agent.asset3d_gen_registry import register_provider as _register_asset3d_provider
+
+        if not isinstance(provider, Asset3DGenProvider):
+            logger.warning(
+                "Plugin '%s' tried to register an asset3d_gen provider that "
+                "does not inherit from Asset3DGenProvider. Ignoring.",
+                self.manifest.name,
+            )
+            return
+        _register_asset3d_provider(provider)
+        logger.info(
+            "Plugin '%s' registered asset3d_gen provider: %s",
+            self.manifest.name, provider.name,
+        )
+
     # -- web search/extract provider registration ----------------------------
 
     def register_web_search_provider(self, provider) -> None:

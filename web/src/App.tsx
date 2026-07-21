@@ -22,6 +22,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  Brain,
   Clock,
   Code,
   Cpu,
@@ -49,6 +50,7 @@ import {
   Star,
   Terminal,
   Users,
+  Waypoints,
   Webhook,
   Wrench,
   X,
@@ -57,9 +59,15 @@ import {
 import { Button } from "@nous-research/ui/ui/components/button";
 import { SelectionSwitcher } from "@nous-research/ui/ui/components/selection-switcher";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Typography } from "@nous-research/ui/ui/components/typography/index";
 import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { Backdrop } from "@/components/Backdrop";
+import { ObservatoryCanvas } from "@/components/observatory/ObservatoryCanvas";
+import { CursorRing } from "@/components/cursor/CursorRing";
+import { BootSplash } from "@/components/BootSplash";
+import { CrossSpaBanner } from "@/components/CrossSpaBanner";
+import { CommandPalette } from "@/components/CommandPalette";
+import { MuseChatBox } from "@/components/chat/MuseChatBox";
 import { SidebarFooter } from "@/components/SidebarFooter";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
@@ -91,6 +99,9 @@ import ChannelsPage from "@/pages/ChannelsPage";
 import WebhooksPage from "@/pages/WebhooksPage";
 import SystemPage from "@/pages/SystemPage";
 import ChatPage from "@/pages/ChatPage";
+import StudioPage from "@/pages/StudioPage";
+import FusionPage from "@/pages/FusionPage";
+import MoaPage from "@/pages/MoaPage";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useI18n } from "@/i18n";
@@ -150,6 +161,9 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/config": ConfigPage,
   "/env": EnvPage,
   "/docs": DocsPage,
+  "/studio": StudioPage,
+  "/fusion": FusionPage,
+  "/moa": MoaPage,
 };
 
 // Route placeholder for /chat.  The persistent ChatPage host (rendered
@@ -161,6 +175,24 @@ function ChatRouteSink() {
 }
 
 const BUILTIN_NAV_REST: NavItem[] = [
+  {
+    path: "/studio",
+    labelKey: "studio",
+    label: "Studio",
+    icon: Sparkles,
+  },
+  {
+    path: "/fusion",
+    labelKey: "fusion",
+    label: "Fusion",
+    icon: Waypoints,
+  },
+  {
+    path: "/moa",
+    labelKey: "moa",
+    label: "MoA",
+    icon: Brain,
+  },
   {
     path: "/sessions",
     labelKey: "sessions",
@@ -349,8 +381,10 @@ const SIDEBAR_COLLAPSED_KEY = "hermes-sidebar-collapsed";
 export default function App() {
   const { t } = useI18n();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { manifests, loading: pluginsLoading } = usePlugins();
   const { theme } = useTheme();
+  const { runAction } = useSystemActions();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -378,6 +412,28 @@ export default function App() {
   const normalizedPath = pathname.replace(/\/$/, "") || "/";
   const isChatRoute = normalizedPath === "/chat";
   const embeddedChat = isDashboardEmbeddedChatEnabled();
+
+  // One-shot version fetch for the sidebar wordmark (the 10s polling
+  // instance stays in SidebarFooter — no second poller added here).
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    api
+      .getStatus()
+      .then((st) => setVersion(st.version ?? null))
+      .catch(() => {});
+  }, []);
+
+  // CommandPalette system actions: restart/update have real endpoints via
+  // the SystemActions provider (api.restartGateway / api.updateHermes), so
+  // wire them through — never leave a silent no-op in the palette. Mirrors
+  // SidebarSystemActions: kick the action, then land on /sessions.
+  const handlePaletteSystemAction = useCallback(
+    (action: SystemAction) => {
+      void runAction(action);
+      navigate("/sessions");
+    },
+    [runAction, navigate],
+  );
 
   // `dashboard.show_token_analytics` gates the Analytics nav item.  The
   // page itself remains reachable by URL (it renders an explanation when
@@ -487,12 +543,21 @@ export default function App() {
     >
       <SelectionSwitcher />
 
+      {/* M.U.S.E. Observatory identity layer — fixed, pointer-events-none
+          ambience (backdrop texture, WebGL observatory, cursor ring) plus
+          the one-shot boot splash. Mounted exactly once at the app root. */}
+      <Backdrop />
+      <ObservatoryCanvas />
+      <CursorRing />
+      <BootSplash />
+
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
       >
         <PluginSlot name="backdrop" />
       </div>
+      <CrossSpaBanner />
 
       <header
         className={cn(
@@ -515,13 +580,14 @@ export default function App() {
           aria-expanded={mobileOpen}
           aria-controls="app-sidebar"
           className="text-text-secondary hover:text-midground"
+          data-magnetic
         >
           <Menu />
         </Button>
 
-        <Typography className="font-bold text-[0.95rem] leading-[0.95] tracking-[0.05em] text-midground">
-          {t.app.brand}
-        </Typography>
+        <span className="muse-wordmark font-display font-bold text-[0.95rem] leading-none tracking-[0.04em] text-midground">
+          M.U.S.E.
+        </span>
       </header>
 
       {mobileOpen && (
@@ -569,17 +635,24 @@ export default function App() {
             >
               <div
                 className={cn(
-                  "flex items-center gap-2",
+                  "flex min-w-0 items-baseline gap-2",
                   collapsed && "lg:hidden",
                 )}
               >
                 <PluginSlot name="header-left" />
 
-                <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  Hermes
-                  <br />
-                  Agent
-                </Typography>
+                <span className="muse-wordmark font-display font-bold text-[1.125rem] leading-none tracking-[0.04em] text-midground">
+                  M.U.S.E.
+                </span>
+                <span aria-hidden className="muse-status-dot shrink-0 self-center" />
+                {version != null && (
+                  <span
+                    className="shrink-0 font-mono text-[11px]"
+                    style={{ color: "var(--fg-faint)" }}
+                  >
+                    v{version}
+                  </span>
+                )}
               </div>
 
               <Button
@@ -588,6 +661,7 @@ export default function App() {
                 onClick={closeMobile}
                 aria-label={t.app.closeNavigation}
                 className="lg:hidden text-text-secondary hover:text-midground"
+                data-magnetic
               >
                 <X />
               </Button>
@@ -718,7 +792,7 @@ export default function App() {
           <PageHeaderProvider pluginTabs={pluginTabMeta}>
             <div
               className={cn(
-                "relative z-2 flex min-w-0 min-h-0 flex-1 flex-col",
+                "relative z-10 flex min-w-0 min-h-0 flex-1 flex-col",
                 "px-3 sm:px-6",
                 isChatRoute
                   ? "pb-0 pt-1 sm:pt-2 lg:pt-4"
@@ -728,8 +802,9 @@ export default function App() {
             >
               <PluginSlot name="pre-main" />
               <div
+                key={pathname}
                 className={cn(
-                  "w-full min-w-0",
+                  "muse-route-enter w-full min-w-0",
                   !isChatRoute &&
                     "pb-[calc(2rem+env(safe-area-inset-bottom,0px))] lg:pb-8",
                   (isDocsRoute || isChatRoute) &&
@@ -749,8 +824,13 @@ export default function App() {
                     />
                   </Routes>
                 </ProfileKeyedRoutes>
+              </div>
 
-                {embeddedChat &&
+              {/* Persistent chat host lives OUTSIDE the pathname-keyed
+                  route container above — keying remounts on every route
+                  change, and remounting the host would kill the PTY,
+                  WebSocket, and xterm instance it exists to preserve. */}
+              {embeddedChat &&
                   !chatOverriddenByPlugin &&
                   (pluginsLoading ? (
                     isChatRoute ? (
@@ -777,7 +857,6 @@ export default function App() {
                       <ChatPage isActive={isChatRoute} />
                     </div>
                   ))}
-              </div>
               <PluginSlot name="post-main" />
             </div>
           </PageHeaderProvider>
@@ -785,6 +864,8 @@ export default function App() {
       </div>
 
       <PluginSlot name="overlay" />
+      <MuseChatBox />
+      <CommandPalette onSystemAction={handlePaletteSystemAction} />
     </div>
     </ProfileProvider>
   );
@@ -838,6 +919,7 @@ function SidebarNavLink({
         end={path === "/sessions"}
         onClick={closeMobile}
         aria-label={collapsed ? navLabel : undefined}
+        data-magnetic
         onFocus={collapsed ? showTooltip : undefined}
         onBlur={collapsed ? hideTooltip : undefined}
         className={({ isActive }) =>

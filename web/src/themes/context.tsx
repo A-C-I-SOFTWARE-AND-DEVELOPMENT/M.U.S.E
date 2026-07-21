@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { BUILTIN_THEMES, defaultTheme } from "./presets";
+import { BUILTIN_THEMES, museTheme } from "./presets";
 import {
   FONT_CHOICES,
   THEME_DEFAULT_FONT_ID,
@@ -42,7 +42,7 @@ const FONT_STORAGE_KEY = "hermes-dashboard-font";
 
 /** Renames of built-in theme keys we've shipped previously. Without this,
  *  users who saved one of the old names in localStorage (or had it
- *  persisted server-side) would silently fall back to `defaultTheme`
+ *  persisted server-side) would silently fall back to `museTheme`
  *  because the lookup in `resolveTheme` no longer finds the stale key.
  *  Keep entries here until enough release cycles have passed that we can
  *  reasonably assume nobody still has the old value persisted. */
@@ -411,8 +411,8 @@ function applyTheme(theme: DashboardTheme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   /** Name of the currently active theme (built-in id or user YAML name). */
   const [themeName, setThemeName] = useState<string>(() => {
-    if (typeof window === "undefined") return "default";
-    const stored = window.localStorage.getItem(STORAGE_KEY) ?? "default";
+    if (typeof window === "undefined") return "muse";
+    const stored = window.localStorage.getItem(STORAGE_KEY) ?? "muse";
     const migrated = migrateThemeName(stored);
     // Write the migrated name back so future reads converge on the new
     // key and we eventually retire the alias entry.
@@ -455,7 +455,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return (
         BUILTIN_THEMES[name] ??
         userThemeDefs[name] ??
-        defaultTheme
+        museTheme
       );
     },
     [userThemeDefs],
@@ -548,7 +548,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         ...availableThemes.map((t) => t.name),
         ...Object.keys(userThemeDefs),
       ]);
-      const next = knownNames.has(name) ? name : "default";
+      const next = knownNames.has(name) ? name : "muse";
       setThemeName(next);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(STORAGE_KEY, next);
@@ -588,8 +588,8 @@ export function useTheme(): ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: defaultTheme,
-  themeName: "default",
+  theme: museTheme,
+  themeName: "muse",
   availableThemes: Object.values(BUILTIN_THEMES).map((t) => ({
     name: t.name,
     label: t.label,

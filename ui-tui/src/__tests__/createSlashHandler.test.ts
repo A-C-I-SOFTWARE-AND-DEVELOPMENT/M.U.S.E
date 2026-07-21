@@ -881,7 +881,7 @@ describe('createSlashHandler', () => {
     expect(title).toBe('History')
     expect(body).toContain('[You #1]')
     expect(body).toContain('hello')
-    expect(body).toContain('[Hermes #2]')
+    expect(body).toContain('[M.U.S.E. #2]')
     expect(body).toContain('hi there')
     expect(body).toContain('[You #3]')
     expect(body).not.toContain('ignore me')
