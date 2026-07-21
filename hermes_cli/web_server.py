@@ -19040,6 +19040,18 @@ _mount_plugin_api_routes()
 from hermes_cli.dashboard_auth.routes import router as _dashboard_auth_router  # noqa: E402
 app.include_router(_dashboard_auth_router)
 
+# M.U.S.E. dashboard — Fusion + MoA API routers (local additive routes:
+# /api/fusion/{status,config,override,run} and /api/moa/{status,run}).
+# Mounted before the SPA catch-all so /{full_path:path} doesn't swallow
+# them. Neither prefix is in PUBLIC_API_PATHS, so both auth gates (legacy
+# session-token middleware and the OAuth gate) protect them — same
+# convention as every other non-public /api/* route.
+from hermes_cli import web_fusion_api as _web_fusion_api  # noqa: E402
+from hermes_cli import web_moa_api as _web_moa_api  # noqa: E402
+
+app.include_router(_web_fusion_api.router)
+app.include_router(_web_moa_api.router)
+
 mount_spa(app)
 
 

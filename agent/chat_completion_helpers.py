@@ -1101,7 +1101,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
     _is_nous = "nousresearch" in agent._base_url_lower
     _is_nvidia = "integrate.api.nvidia.com" in agent._base_url_lower
     _is_kimi = (
-        base_url_host_matches(agent.base_url, "api.kimi.com")
+        base_url_host_matches(agent.base_url, "kimi.com")
         or base_url_host_matches(agent.base_url, "moonshot.ai")
         or base_url_host_matches(agent.base_url, "moonshot.cn")
     )
@@ -1675,6 +1675,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             fb_provider == "anthropic"
             or fb_base_url.rstrip("/").lower().endswith("/anthropic")
             or base_url_hostname(fb_base_url) == "api.anthropic.com"
+            or (base_url_host_matches(fb_base_url, "kimi.com") and "/coding" in fb_base_url.lower())
         ):
             # Custom providers (e.g. cron-anthropic) point at the native
             # api.anthropic.com host with no "/anthropic" path suffix, so the
@@ -1682,6 +1683,8 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             # chat_completions → POST /v1/chat/completions → 404. Match the
             # host the same way determine_api_mode() and _detect_api_mode_for_url()
             # do on the primary path. (#32243, #49247)
+            # Kimi /coding gateways (api.kimi.com/coding, agent-gw.kimi.com/coding)
+            # speak Anthropic Messages natively — same 404 failure mode.
             fb_api_mode = "anthropic_messages"
         elif _fb_is_azure:
             # Azure OpenAI serves gpt-5.x on /chat/completions — does NOT

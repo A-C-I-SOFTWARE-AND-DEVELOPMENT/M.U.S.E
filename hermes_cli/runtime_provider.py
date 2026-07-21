@@ -134,7 +134,9 @@ def _detect_api_mode_for_url(base_url: str) -> Optional[str]:
     path = urlparse(normalized).path.rstrip("/")
     if path.endswith("/anthropic") or path.endswith("/anthropic/v1"):
         return "anthropic_messages"
-    if hostname == "api.kimi.com" and "/coding" in normalized:
+    # Kimi /coding gateways (api.kimi.com/coding, agent-gw.kimi.com/coding)
+    # speak Anthropic Messages natively — match the whole kimi.com host family.
+    if base_url_host_matches(base_url, "kimi.com") and "/coding" in normalized:
         return "anthropic_messages"
     return None
 

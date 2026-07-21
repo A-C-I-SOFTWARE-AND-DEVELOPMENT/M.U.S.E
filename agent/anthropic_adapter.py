@@ -448,11 +448,17 @@ def _is_third_party_anthropic_endpoint(base_url: str | None) -> bool:
 
 
 def _is_kimi_coding_endpoint(base_url: str | None) -> bool:
-    """Return True for Kimi's /coding endpoint that requires claude-code UA."""
+    """Return True for Kimi's /coding endpoint that requires claude-code UA.
+
+    Matches the whole kimi.com host family (api.kimi.com/coding,
+    agent-gw.kimi.com/coding) — the Kimi Work gateway speaks the same
+    Anthropic Messages wire on the /coding route.
+    """
     normalized = _normalize_base_url_text(base_url)
     if not normalized:
         return False
-    return normalized.rstrip("/").lower().startswith("https://api.kimi.com/coding")
+    n = normalized.rstrip("/").lower()
+    return base_url_host_matches(n, "kimi.com") and "/coding" in n
 
 
 # Model-name prefixes that identify the Kimi / Moonshot family.  Covers
@@ -497,7 +503,7 @@ def _is_kimi_family_endpoint(base_url: str | None, model: str | None = None) -> 
     Broader than ``_is_kimi_coding_endpoint`` — matches:
 
     - Kimi's official ``/coding`` URL (legacy check, preserved)
-    - Any ``api.kimi.com`` / ``moonshot.ai`` / ``moonshot.cn`` host
+    - Any ``kimi.com`` / ``moonshot.ai`` / ``moonshot.cn`` host
     - Custom or proxied endpoints whose *model* name is in the Kimi / Moonshot
       family (``kimi-*``, ``moonshot-*``, ``k1.*``, ``k2.*``, …).  Users with
       ``api_mode: anthropic_messages`` on a private gateway fronting Kimi
@@ -511,7 +517,7 @@ def _is_kimi_family_endpoint(base_url: str | None, model: str | None = None) -> 
     """
     if _is_kimi_coding_endpoint(base_url):
         return True
-    for _domain in ("api.kimi.com", "moonshot.ai", "moonshot.cn"):
+    for _domain in ("kimi.com", "moonshot.ai", "moonshot.cn"):
         if base_url_host_matches(base_url or "", _domain):
             return True
     if _model_name_is_kimi_family(model):

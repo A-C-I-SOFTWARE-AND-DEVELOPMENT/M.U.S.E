@@ -790,7 +790,7 @@ def _to_openai_base_url(base_url: str) -> str:
         rewritten = url[: -len("/anthropic")] + "/v1"
         logger.debug("Auxiliary client: rewrote base URL %s → %s", url, rewritten)
         return rewritten
-    if "api.kimi.com" in url and url.endswith("/coding"):
+    if base_url_host_matches(url, "kimi.com") and url.endswith("/coding"):
         # Kimi Code uses /coding/v1/messages for Anthropic SDK (appends /v1/messages)
         # but /coding/v1/chat/completions for OpenAI SDK (appends /chat/completions)
         # Without /v1 here, OpenAI SDK hits /coding/chat/completions — a 404.
@@ -1589,7 +1589,7 @@ def _endpoint_speaks_anthropic_messages(base_url: str) -> bool:
     hostname = base_url_hostname(normalized)
     if hostname == "api.anthropic.com":
         return True
-    if hostname == "api.kimi.com" and "/coding" in normalized:
+    if base_url_host_matches(normalized, "kimi.com") and "/coding" in normalized:
         return True
     return False
 
@@ -1968,7 +1968,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
                 if is_native_gemini_base_url(base_url):
                     return GeminiNativeClient(api_key=api_key, base_url=base_url), model
             extra = {}
-            if base_url_host_matches(base_url, "api.kimi.com"):
+            if base_url_host_matches(base_url, "kimi.com"):
                 extra["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
             elif base_url_host_matches(base_url, "githubcopilot.com"):
                 from hermes_cli.models import copilot_default_headers
@@ -2008,7 +2008,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
             if is_native_gemini_base_url(base_url):
                 return GeminiNativeClient(api_key=api_key, base_url=base_url), model
         extra = {}
-        if base_url_host_matches(base_url, "api.kimi.com"):
+        if base_url_host_matches(base_url, "kimi.com"):
             extra["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
         elif base_url_host_matches(base_url, "githubcopilot.com"):
             from hermes_cli.models import copilot_default_headers
@@ -3499,7 +3499,7 @@ def _recoverable_pool_provider(
         return "anthropic"
     if base_url_host_matches(base, "githubcopilot.com"):
         return "copilot"
-    if base_url_host_matches(base, "api.kimi.com"):
+    if base_url_host_matches(base, "kimi.com"):
         return "kimi-coding"
     if base_url_host_matches(base, "api.x.ai"):
         return "xai-oauth"
@@ -4620,7 +4620,7 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
         async_kwargs["default_headers"] = copilot_request_headers(
             is_agent_turn=True, is_vision=is_vision
         )
-    elif base_url_host_matches(sync_base_url, "api.kimi.com"):
+    elif base_url_host_matches(sync_base_url, "kimi.com"):
         async_kwargs["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
     elif base_url_host_matches(sync_base_url, "integrate.api.nvidia.com"):
         async_kwargs["default_headers"] = build_nvidia_nim_headers(sync_base_url)
@@ -4943,7 +4943,7 @@ def resolve_provider_client(
             _clean_base, _dq = _extract_url_query_params(custom_base)
             if _dq:
                 extra["default_query"] = _dq
-            if base_url_host_matches(custom_base, "api.kimi.com"):
+            if base_url_host_matches(custom_base, "kimi.com"):
                 extra["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
             elif base_url_host_matches(custom_base, "githubcopilot.com"):
                 from hermes_cli.copilot_auth import copilot_request_headers
@@ -5200,7 +5200,7 @@ def resolve_provider_client(
 
         # Provider-specific headers
         headers = {}
-        if base_url_host_matches(base_url, "api.kimi.com"):
+        if base_url_host_matches(base_url, "kimi.com"):
             headers["User-Agent"] = "claude-code/0.1.0"
         elif base_url_host_matches(base_url, "githubcopilot.com"):
             from hermes_cli.copilot_auth import copilot_request_headers

@@ -470,6 +470,10 @@ def init_agent(
         # use a URL convention ending in /anthropic. Auto-detect these so the
         # Anthropic Messages API adapter is used instead of chat completions.
         agent.api_mode = "anthropic_messages"
+    elif base_url_host_matches(agent.base_url or "", "kimi.com") and "/coding" in agent._base_url_lower:
+        # Kimi Code endpoints (api.kimi.com/coding, agent-gw.kimi.com/coding)
+        # speak Anthropic Messages natively — chat/completions 404s there.
+        agent.api_mode = "anthropic_messages"
     elif agent.provider == "bedrock" or (
         agent._base_url_hostname.startswith("bedrock-runtime.")
         and base_url_host_matches(agent._base_url_lower, "amazonaws.com")
@@ -991,7 +995,7 @@ def init_agent(
                 from hermes_cli.models import copilot_default_headers
 
                 client_kwargs["default_headers"] = copilot_default_headers()
-            elif base_url_host_matches(effective_base, "api.kimi.com"):
+            elif base_url_host_matches(effective_base, "kimi.com"):
                 client_kwargs["default_headers"] = {
                     "User-Agent": "claude-code/0.1.0",
                 }

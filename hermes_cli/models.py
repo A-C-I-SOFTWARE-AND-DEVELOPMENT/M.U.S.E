@@ -320,6 +320,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     ],
     "kimi-coding": [
         "kimi-k3",
+        "kimi-k3-agent-swarm",
         "kimi-k2.7-code",
         "kimi-k2.6",
         "kimi-k2.5",
@@ -346,6 +347,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     ],
     "moonshot": [
         "kimi-k3",
+        "kimi-k3-agent-swarm",
         "kimi-k2.6",
         "kimi-k2.5",
         "kimi-k2-thinking",
