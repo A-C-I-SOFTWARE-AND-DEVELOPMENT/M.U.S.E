@@ -1244,7 +1244,7 @@
         </div>
 
         <div class="section-header" style="margin-top:26px;">
-          <div class="heads"><span class="eyebrow">Hermes Agent lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
+          <div class="heads"><span class="eyebrow">M.U.S.E. lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
           <div class="trailing"><span class="pill neutral">{{ historyCountLabel }}</span></div>
         </div>
         <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records — they predate the muse rebrand and keep their original “Hermes Agent” naming.</div>
@@ -1656,7 +1656,7 @@ class Component extends DCLogic {
     ver: 'Rolling · currently v0.14.0', signLabel: 'Signed where configured · unsigned fallback',
     latestVer: 'v0.14.0', latestName: 'The Foundation Release', latestDate: 'May 16, 2026',
     latestSummary: 'Installs and runs anywhere, ships with what you actually use. SuperGrok OAuth (grok-4.3 @ 1M context), an OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, a debloat wave + PyPI install, ~19s off cold-start, and 22 messaging platforms.',
-    privacy: 'Runs on your device: its only network traffic is to your own local Hermes gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
+    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
     blurb: 'One download for everything muse. The desktop cockpit, the Android app, and the full source — previously five separate channels — now publish to this single release that auto-refreshes from the latest main. Nothing is lost; it is all here.',
     url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
@@ -1665,7 +1665,7 @@ class Component extends DCLogic {
         sign: 'Signed when certs are provisioned; unsigned installers (clearly marked) otherwise.', reqs: 'Requires macOS 11+, Windows 10+, or a modern Linux desktop.',
         assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
       { id: 'android', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
-        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys.',
+        note: 'Local-only muse/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys.',
         sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
         assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
       { id: 'source', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/main.zip', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',

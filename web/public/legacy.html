@@ -2271,7 +2271,7 @@ body { perspective: 1800px; }
         </div>
 
         <div class="section-header" style="margin-top:26px;">
-          <div class="heads"><span class="eyebrow">Hermes Agent lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
+          <div class="heads"><span class="eyebrow">M.U.S.E. lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
           <div class="trailing"><span class="pill neutral">{{ historyCountLabel }}</span></div>
         </div>
         <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records — they predate the muse rebrand and keep their original “Hermes Agent” naming.</div>
@@ -2444,7 +2444,7 @@ class Component extends DCLogic {
       { id: 'moonshot', name: 'Kimi / Moonshot', kind: 'Kimi long-context', connected: false },
       { id: 'stepfun', name: 'StepFun', kind: 'Step family', connected: false },
       { id: 'minimax', name: 'MiniMax', kind: 'abab family', connected: false },
-      { id: 'nous', name: 'Nous Portal', kind: 'Hermes family', connected: false },
+      { id: 'nous', name: 'Nous Portal', kind: 'muse family', connected: false },
       { id: 'arcee', name: 'Arcee AI', kind: 'Auto-routed', connected: false },
       { id: 'perplexity', name: 'Perplexity', kind: 'Sonar (web-grounded)', connected: false },
       { id: 'fireworks', name: 'Fireworks', kind: 'Open models, fast', connected: false },
@@ -2806,7 +2806,7 @@ class Component extends DCLogic {
     ver: 'Latest tagged v1.2.0 · desktop and Android publish rolling builds', signLabel: 'Signed where configured · unsigned fallback',
     latestVer: 'v1.2.0', latestName: 'LM Studio native v1 REST API', latestDate: 'June 22, 2026',
     latestSummary: 'Adopts LM Studio 0.4.0’s native REST API end-to-end: accurate context-window detection for local and remote servers, model lifecycle management (load / unload / download) with automatic VRAM freeing on model switch, and three new gated agent tools.',
-    privacy: 'Runs on your device: its only network traffic is to your own local Hermes gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
+    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
     blurb: 'Everything muse downloads from GitHub Releases. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main; tagged releases carry the versioned changelog. Pick your platform below — each card links straight to its release.',
     url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
@@ -2817,7 +2817,7 @@ class Component extends DCLogic {
         assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
       { id: 'android', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
         url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest', urlLabel: 'Open android-latest →',
-        note: 'Local-only Hermes/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys. Rolling build; sideload install (debug-signed until release keystore secrets are configured).',
+        note: 'Local-only muse/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys. Rolling build; sideload install (debug-signed until release keystore secrets are configured).',
         sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
         assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
       { id: 'source', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',

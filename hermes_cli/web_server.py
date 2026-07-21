@@ -4628,6 +4628,16 @@ def _mount_plugin_api_routes():
 # Mount plugin API routes before the SPA catch-all.
 _mount_plugin_api_routes()
 
+# First-party Fusion and MoA API routers — also mounted before the SPA
+# catch-all. Both serve /api/* paths and are deliberately NOT in
+# _PUBLIC_API_PATHS, so the global auth_middleware gates them like any
+# other authenticated dashboard route.
+from hermes_cli import web_fusion_api as _web_fusion_api  # noqa: E402
+from hermes_cli import web_moa_api as _web_moa_api  # noqa: E402
+
+app.include_router(_web_fusion_api.router)
+app.include_router(_web_moa_api.router)
+
 mount_spa(app)
 
 

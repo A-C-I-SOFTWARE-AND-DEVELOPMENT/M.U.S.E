@@ -55,17 +55,19 @@ const LOGO_ART = [
   '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
 ]
 
-// The Singularity mark: a white core inside one thin ring with a lower-right gap.
+// The Singularity mark: a white core inside concentric rings — an inner
+// ring around the core and a thin outer ring with the signature
+// lower-right gap.
 const CADUCEUS_ART = [
-  '           ╭─────╮',
-  '        ╭─╯       ╰─╮',
-  '      ╭─╯           ╰─╮',
-  '     ╭╯               ╰╮',
-  '     │        ◉        │',
-  '     ╰╮               ╭╯',
-  '      ╰─╮           ╭─╯',
-  '        ╰─╮',
-  '           ╰─────╯'
+  '        ╭───────╮',
+  '     ╭─╯         ╰─╮',
+  '   ╭╯    ╭─────╮    ╰╮',
+  '  │    ╭╯       ╰╮    │',
+  '  │    │    ◉    │    │',
+  '  │    ╰╮       ╭╯    │',
+  '   ╰╮    ╰─────╯    ╭╯',
+  '     ╰─╮',
+  '        ╰───────╯'
 ]
 
 // All wordmark rows are the white core hero (primary). The glyph's ring rows
@@ -80,7 +82,7 @@ const colorize = (art: string[], gradient: readonly number[], c: ThemeColors): L
 }
 
 export const LOGO_WIDTH = 47
-export const CADUCEUS_WIDTH = 24
+export const CADUCEUS_WIDTH = 23
 
 export const logo = (c: ThemeColors, customLogo?: string): Line[] =>
   customLogo ? parseRichMarkup(customLogo) : colorize(LOGO_ART, LOGO_GRADIENT, c)

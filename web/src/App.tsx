@@ -18,6 +18,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  Brain,
   Clock,
   Code,
   Cpu,
@@ -39,6 +40,7 @@ import {
   Star,
   Terminal,
   Users,
+  Waypoints,
   Wrench,
   X,
   Zap,
@@ -71,6 +73,8 @@ import ProfilesPage from "@/pages/ProfilesPage";
 import SkillsPage from "@/pages/SkillsPage";
 import PluginsPage from "@/pages/PluginsPage";
 import ChatPage from "@/pages/ChatPage";
+import FusionPage from "@/pages/FusionPage";
+import MoaPage from "@/pages/MoaPage";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -142,6 +146,8 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/env": EnvPage,
   "/docs": DocsPage,
   "/studio": StudioPage,
+  "/fusion": FusionPage,
+  "/moa": MoaPage,
 };
 
 // Route placeholder for /chat.  The persistent ChatPage host (rendered
@@ -158,6 +164,18 @@ const BUILTIN_NAV_REST: NavItem[] = [
     labelKey: "studio",
     label: "Studio",
     icon: Sparkles,
+  },
+  {
+    path: "/fusion",
+    labelKey: "fusion",
+    label: "Fusion",
+    icon: Waypoints,
+  },
+  {
+    path: "/moa",
+    labelKey: "moa",
+    label: "MoA",
+    icon: Brain,
   },
   {
     path: "/sessions",
@@ -202,7 +220,7 @@ const BUILTIN_NAV_REST: NavItem[] = [
  */
 const NAV_SECTIONS: Array<{ id: string; label: string; paths: string[] }> = [
   { id: "chat", label: "Chat", paths: ["/chat", "/sessions"] },
-  { id: "agents", label: "Agents", paths: ["/studio", "/skills", "/plugins"] },
+  { id: "agents", label: "Agents", paths: ["/studio", "/fusion", "/moa", "/skills", "/plugins"] },
   { id: "automate", label: "Automate", paths: ["/cron"] },
   { id: "observe", label: "Observe", paths: ["/analytics", "/logs"] },
   {

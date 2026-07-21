@@ -88,9 +88,11 @@ export interface Translations {
       config: string;
       cron: string;
       documentation: string;
+      fusion: string;
       keys: string;
       logs: string;
       models: string;
+      moa: string;
       profiles: string;
       plugins: string;
       sessions: string;
