@@ -36,6 +36,7 @@ import {
   KeyRound,
   Menu,
   MessageSquare,
+  MoonStar,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -102,6 +103,7 @@ import ChatPage from "@/pages/ChatPage";
 import StudioPage from "@/pages/StudioPage";
 import FusionPage from "@/pages/FusionPage";
 import MoaPage from "@/pages/MoaPage";
+import NightDeskPage from "@/pages/NightDeskPage";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useI18n } from "@/i18n";
@@ -114,7 +116,7 @@ import { api } from "@/lib/api";
 import type { StatusResponse, UpdateCheckResponse } from "@/lib/api";
 
 function RootRedirect() {
-  return <Navigate to="/sessions" replace />;
+  return <Navigate to="/nightdesk" replace />;
 }
 
 function UnknownRouteFallback({ pluginsLoading }: { pluginsLoading: boolean }) {
@@ -164,6 +166,7 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/studio": StudioPage,
   "/fusion": FusionPage,
   "/moa": MoaPage,
+  "/nightdesk": NightDeskPage,
 };
 
 // Route placeholder for /chat.  The persistent ChatPage host (rendered
@@ -175,6 +178,12 @@ function ChatRouteSink() {
 }
 
 const BUILTIN_NAV_REST: NavItem[] = [
+  {
+    path: "/nightdesk",
+    labelKey: "nightdesk",
+    label: "Night Desk",
+    icon: MoonStar,
+  },
   {
     path: "/studio",
     labelKey: "studio",

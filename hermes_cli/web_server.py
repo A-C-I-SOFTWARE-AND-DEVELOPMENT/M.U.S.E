@@ -19053,6 +19053,14 @@ from hermes_cli import web_moa_api as _web_moa_api  # noqa: E402
 app.include_router(_web_fusion_api.router)
 app.include_router(_web_moa_api.router)
 
+# M.U.S.E. dashboard — Night Desk ops-console aggregate API
+# (/api/nightdesk/*). Mounted before the SPA catch-all; the prefix is NOT
+# in PUBLIC_API_PATHS, so the global session-token auth middleware gates it
+# — same convention as the Fusion/MoA routers above.
+from hermes_cli import web_nightdesk_api as _web_nightdesk_api  # noqa: E402
+
+app.include_router(_web_nightdesk_api.router)
+
 mount_spa(app)
 
 
