@@ -48,7 +48,62 @@ muse is a governed, local-first AI operating partner: **one mind over a synaptic
 - **Owner control by construction** — owner-gated actions (spend, deploy, publish, OAuth, credential change, package publish, regulated claims) defer until you reply exactly `Yes, with authorization.`; a workspace-scoped high-autonomy coding mode auto-approves only local friction and never weakens those gates; and every self-update is a reviewable proposal, never a silent rewrite.
 - **Free-first model routing + a closed learning loop** — routes local OSS → hosted-free → official Claude Code / Codex worker lanes → paid (opt-in only), choosing per task class from measured scorecards; an owner-approved pipeline (SFT → ORPO/DPO → GRPO) promotes a model only when it beats the incumbent on a held-out benchmark wall. See [`docs/ai-intelligence/`](docs/ai-intelligence/).
 - **Native Android cockpit + voice-first** — a Kotlin/Compose app ([`apps/android/`](apps/android/)) pairing to the cockpit gateway: streaming chat, on-device voice intake, job control, owner approvals, evidence/memory/graph views, autonomy controls, and an emergency stop — with a clipboard-handoff fallback when unpaired. Provider keys never leave the gateway.
+- **AXIOM verification kernel** — a vendored kernel at [`axiom/`](axiom/) providing a hash-chained event ledger, risk-tiered HTN gates, FSRS-spaced belief memory, AGM belief revision, a forge (ratings, matchmaking, diversity archive, tournaments) for model/agent evaluation, and measured-trust governance bands with earned autonomy and sovereignty clauses. The runtime talks to it through one module: [`hermes_cli/jarvis_prime/axiom_bridge.py`](hermes_cli/jarvis_prime/axiom_bridge.py). See [`docs/axiom-integration.md`](docs/axiom-integration.md).
+- **Swarm Grainler Parallel** — every code-producing task can run as a **swarm**: a goal is decomposed into **grains** with provably disjoint file-domains, each grain becomes its own specialized LLM (own model lane, toolset, iteration budget, TokenJuice context pack, and a dedicated muse Memory Tree namespace), and grains run **in parallel** in isolated git worktrees. Five moves: decompose → claim → specialize → converge → learn. Code in [`hermes_cli/swarm/`](hermes_cli/swarm/). See [`docs/orchestration/swarm-grainler-parallel.md`](docs/orchestration/swarm-grainler-parallel.md).
+- **New gateway platforms** — DingTalk, Discord, Email (IMAP/SMTP), Feishu (with comment rules), Home Assistant, Matrix, Mattermost, Slack, SMS, WeCom (with callback + crypto), and WhatsApp — all with first-class adapter support in [`gateway/platforms/`](gateway/platforms/). See [`gateway/platforms/ADDING_A_PLATFORM.md`](gateway/platforms/ADDING_A_PLATFORM.md).
+- **Gemini Cloud Code + Google Code Assist adapters** — agent adapters in [`agent/`](agent/) for Google's Gemini Cloud Code and Code Assist APIs, with full OAuth flow ([`agent/google_oauth.py`](agent/google_oauth.py)).
 - **Runs where you are** — native Windows support ([`scripts/install.ps1`](scripts/install.ps1), a scheduled-task service with a locked-down fallback, portable Git, no admin) alongside the Linux/macOS/WSL2 and Termux paths.
+
+---
+
+## AXIOM Kernel & Swarm Orchestration
+
+### Verification kernel
+
+The AXIOM kernel ([`axiom/`](axiom/)) is a vendored, stdlib-first verification and
+governance system. It is **soft by construction**: every write path swallows its
+own errors, and `MUSE_AXIOM_GATES=0` makes the bridge inert for hermetic CI.
+
+| Subsystem | Location | What it does |
+|---|---|---|
+| **Core** | `axiom/core/` | Canonical types, contracts, effects, hash-chained ledger, verifier, registry |
+| **Forge** | `axiom/forge/` | Ratings, matchmaking, diversity archive, tournaments for model/agent evaluation |
+| **Governance** | `axiom/governance/` | Measured-trust bands, scorecard, sovereignty clauses |
+| **Memory** | `axiom/memory/` | FSRS-spaced economy, AGM belief revision, routed retrieval |
+| **Orchestrator** | `axiom/orchestrator/` | Exactly-once jobs, risk-tiered HTN gates, proposals |
+| **Interface** | `axiom/interface/` | MCP server exposing kernel capabilities as tools |
+
+The bridge (`axiom_bridge.py`) owns a sha256-linked event ledger at
+`$HERMES_HOME/axiom/chain.jsonl`. `audit()` recomputes every hash and link;
+`classify_change()` returns a risk tier that drives the gate schedule.
+
+```bash
+python -m hermes_cli.jarvis_prime.axiom_bridge status     # availability / degradation
+python -m hermes_cli.jarvis_prime.axiom_bridge audit      # exit 1 iff chain invalid
+python -m hermes_cli.jarvis_prime.axiom_bridge tail -n 10  # recent events
+```
+
+### Swarm Grainler Parallel
+
+Swarm turns any code goal into a collision-free parallel pipeline. It composes
+existing muse primitives — it does not replace `/orchestrate`; it gives code
+tasks a single canonical, auditable, collision-free path.
+
+```
+decompose (Grainler)         → proven-disjoint SwarmPlan
+  → claim each grain's domain → runtime non-overlap backstop
+  → build specialized agents  → token-juice + dedicated memory
+  → run in parallel           → isolated git worktrees, no file overlap
+  → converge                  → merge + conflict detection + quality gate
+  → learn                     → auto-apply safe/reversible learnings
+```
+
+Each grain agent gets its own:
+- **Model lane** — different models for different grain types (planner, builder, reviewer)
+- **Toolset** — only the tools the grain needs
+- **Iteration budget** — bounded wall-clock + API-call limits
+- **TokenJuice context pack** — token-bounded, secret-screened
+- **Memory Tree namespace** — isolated durable memory per grain
 
 ---
 
