@@ -489,8 +489,21 @@ def run_conversation(
             _should_review_memory = True
             agent._turns_since_memory = 0
 
-    # Add user message
-    user_msg = {"role": "user", "content": user_message}
+    # Add user message (with autonomous agent routing if enabled)
+    #
+    # The unified agent pool routes the message to the best-matching
+    # specialists and injects their context so the model can self-activate
+    # agents without requiring slash commands.
+    _final_user_content = user_message
+    try:
+        from hermes_cli.jarvis_prime.agent_pool import route_to_prompt
+        _route_ctx = route_to_prompt(user_message, limit=5)
+        if _route_ctx:
+            _final_user_content = _route_ctx + "\n\n" + user_message
+    except Exception:
+        pass
+
+    user_msg = {"role": "user", "content": _final_user_content}
     messages.append(user_msg)
     current_turn_user_idx = len(messages) - 1
     agent._persist_user_message_idx = current_turn_user_idx
