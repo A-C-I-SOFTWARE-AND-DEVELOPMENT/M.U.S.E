@@ -74,10 +74,24 @@ def _count_skills(hermes_home: Path) -> int:
 
 
 def _count_mcp_servers(config: dict) -> int:
-    """Count configured MCP servers."""
+    """Count enabled top-level ``mcp_servers`` entries (not legacy ``mcp.servers``)."""
+    servers = config.get("mcp_servers")
+    if isinstance(servers, dict) and servers:
+        enabled = 0
+        for _name, cfg in servers.items():
+            if not isinstance(cfg, dict):
+                enabled += 1
+                continue
+            if cfg.get("enabled", True):
+                enabled += 1
+        return enabled
+    # Legacy shape kept as fallback for older dumps
     mcp = config.get("mcp", {})
-    servers = mcp.get("servers", {})
-    return len(servers)
+    if isinstance(mcp, dict):
+        legacy = mcp.get("servers", {})
+        if isinstance(legacy, dict):
+            return len(legacy)
+    return 0
 
 
 def _cron_summary(hermes_home: Path) -> str:

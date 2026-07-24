@@ -553,6 +553,46 @@ def _check_release_artifacts() -> ReadinessCheck:
     )
 
 
+def _check_harness_runtime_wired() -> ReadinessCheck:
+    """Prove the Muse harness package is importable and loadable."""
+    try:
+        from hermes_cli.harness.doctor import check_harness_runtime_wired
+
+        name, status, detail, hard = check_harness_runtime_wired()
+        return ReadinessCheck(name, status, detail, hard=hard)
+    except Exception as exc:
+        return ReadinessCheck(
+            "harness_runtime_wired",
+            FAIL,
+            f"harness doctor raised: {exc!r}",
+            hard=True,
+        )
+
+
+def _check_harness_proof_bar() -> ReadinessCheck:
+    try:
+        from hermes_cli.harness.doctor import check_harness_proof_bar
+
+        name, status, detail, hard = check_harness_proof_bar()
+        return ReadinessCheck(name, status, detail, hard=hard)
+    except Exception as exc:
+        return ReadinessCheck(
+            "harness_proof_bar", WARN, f"raised: {exc!r}", hard=False
+        )
+
+
+def _check_harness_web_research_path() -> ReadinessCheck:
+    try:
+        from hermes_cli.harness.doctor import check_harness_web_degraded
+
+        name, status, detail, hard = check_harness_web_degraded()
+        return ReadinessCheck(name, status, detail, hard=hard)
+    except Exception as exc:
+        return ReadinessCheck(
+            "harness_web_research_path", WARN, f"raised: {exc!r}", hard=False
+        )
+
+
 def run_10_10_doctor() -> ReadinessReport:
     """Run every 10/10 readiness check and return a structured report."""
     checks = [
@@ -568,6 +608,7 @@ def run_10_10_doctor() -> ReadinessReport:
         _check(_check_cockpit_localhost_default),
         _check(_check_deps_exact_pinned),
         _check(_check_uv_lock_present),
+        _check(_check_harness_runtime_wired),
         # soft loop-closure punch list
         _check(_check_verdict_at_publish),
         _check(_check_verdict_at_dispatch),
@@ -577,6 +618,8 @@ def run_10_10_doctor() -> ReadinessReport:
         _check(_check_worker_leases_wired),
         _check(_check_approval_push_wired),
         _check(_check_cockpit_device_pairing),
+        _check(_check_harness_proof_bar),
+        _check(_check_harness_web_research_path),
         # release ops
         _check(_check_ci_core_workflows),
         _check(_check_supply_chain_ci),

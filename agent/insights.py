@@ -197,12 +197,31 @@ class InsightsEngine:
     )
 
     def _get_sessions(self, cutoff: float, source: str | None = None) -> List[Dict]:
-        """Fetch sessions within the time window."""
+        """Fetch sessions within the time window.
+
+        Excludes empty orphan placeholder rows (source=orphan/unknown with no
+        tokens and no messages) so model breakdowns aren't dominated by
+        lock-recovery inserts.
+        """
         if source:
             cursor = self._conn.execute(self._GET_SESSIONS_WITH_SOURCE, (cutoff, source))
         else:
             cursor = self._conn.execute(self._GET_SESSIONS_ALL, (cutoff,))
-        return [dict(row) for row in cursor.fetchall()]
+        rows = [dict(row) for row in cursor.fetchall()]
+        out: List[Dict] = []
+        for s in rows:
+            src = (s.get("source") or "").lower()
+            tokens = (
+                (s.get("input_tokens") or 0)
+                + (s.get("output_tokens") or 0)
+                + (s.get("cache_read_tokens") or 0)
+                + (s.get("cache_write_tokens") or 0)
+            )
+            msgs = s.get("message_count") or 0
+            if src in {"orphan", "unknown"} and tokens == 0 and msgs == 0:
+                continue
+            out.append(s)
+        return out
 
     def _get_tool_usage(self, cutoff: float, source: str | None = None) -> List[Dict]:
         """Get tool call counts from messages.
@@ -491,7 +510,11 @@ class InsightsEngine:
         })
 
         for s in sessions:
-            model = s.get("model") or "unknown"
+            model = s.get("model") or ""
+            if not model.strip():
+                # Prefer billing_provider label over a useless "unknown" bucket
+                bp = (s.get("billing_provider") or "").strip()
+                model = bp if bp else "unattributed"
             # Normalize: strip provider prefix for display
             display_model = model.split("/")[-1] if "/" in model else model
             d = model_data[display_model]

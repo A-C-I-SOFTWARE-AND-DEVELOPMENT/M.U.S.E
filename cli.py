@@ -2819,9 +2819,24 @@ class HermesCLI:
         self.personalities = CLI_CONFIG["agent"].get("personalities", {})
         
         # Ephemeral prefill messages (few-shot priming, never persisted)
-        self.prefill_messages = _load_prefill_messages(
+        base_prefills = _load_prefill_messages(
             CLI_CONFIG["agent"].get("prefill_messages_file", "")
+            or CLI_CONFIG.get("prefill_messages_file", "")
         )
+        try:
+            from hermes_cli.harness.runtime import get_runtime
+
+            self.prefill_messages = get_runtime().on_session_start(
+                prompt="",
+                base_prefills=base_prefills,
+            )
+            get_runtime().persist_telemetry(
+                getattr(self, "session_id", None),
+                model=getattr(self, "model", None),
+                provider=getattr(self, "provider", None),
+            )
+        except Exception:
+            self.prefill_messages = base_prefills
         
         # Reasoning config (OpenRouter reasoning effort level)
         self.reasoning_config = _parse_reasoning_config(
@@ -4493,6 +4508,41 @@ class HermesCLI:
             overrides = None
         route["request_overrides"] = overrides
         return route
+
+    def _refresh_harness_prefills(self, user_message) -> None:
+        """Recompute task prefills + skill hints from the current user turn."""
+        prompt = user_message if isinstance(user_message, str) else ""
+        if isinstance(user_message, list):
+            # Multimodal content parts — join text fragments
+            bits = []
+            for part in user_message:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    bits.append(str(part.get("text") or ""))
+                elif isinstance(part, str):
+                    bits.append(part)
+            prompt = "\n".join(bits)
+        base = _load_prefill_messages(
+            CLI_CONFIG.get("agent", {}).get("prefill_messages_file", "")
+            or CLI_CONFIG.get("prefill_messages_file", "")
+        )
+        try:
+            from hermes_cli.harness.runtime import get_runtime
+
+            rt = get_runtime()
+            self.prefill_messages = rt.on_session_start(prompt=prompt, base_prefills=base)
+            rt.persist_telemetry(
+                getattr(self, "session_id", None),
+                model=getattr(self, "model", None),
+                provider=getattr(self, "provider", None),
+            )
+        except Exception:
+            if not getattr(self, "prefill_messages", None):
+                self.prefill_messages = base
+            return
+        # Keep a live agent in sync when it was already constructed
+        agent = getattr(self, "agent", None)
+        if agent is not None and hasattr(agent, "prefill_messages"):
+            agent.prefill_messages = self.prefill_messages or None
 
     def _init_agent(self, *, model_override: Optional[str] = None, runtime_override: Optional[dict] = None, request_overrides: dict | None = None) -> bool:
         """
@@ -11240,6 +11290,9 @@ class HermesCLI:
         # Refresh provider credentials if needed (handles key rotation transparently)
         if not self._ensure_runtime_credentials():
             return None
+
+        # Task-aware harness prefills: re-detect from this turn's user text
+        self._refresh_harness_prefills(message)
 
         turn_route = self._resolve_turn_agent_config(message)
         if turn_route["signature"] != self._active_agent_route_signature:

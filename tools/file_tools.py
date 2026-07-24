@@ -21,6 +21,17 @@ from agent.redact import redact_sensitive_text
 logger = logging.getLogger(__name__)
 
 
+def _harness_after_code_write(path: str) -> str | None:
+    """Run Muse harness quality gates after a successful code write/patch."""
+    try:
+        from hermes_cli.harness.runtime import get_runtime
+
+        return get_runtime().after_code_write(path)
+    except Exception as exc:
+        logger.debug("harness after_code_write skipped: %s", exc)
+        return None
+
+
 _EXPECTED_WRITE_ERRNOS = {errno.EACCES, errno.EPERM, errno.EROFS}
 
 # ---------------------------------------------------------------------------
@@ -817,6 +828,11 @@ def write_file_tool(path: str, content: str, task_id: str = "default") -> str:
             if stale_warning:
                 result_dict["_warning"] = stale_warning
             _update_read_timestamp(path, task_id)
+            if not result_dict.get("error"):
+                gate_err = _harness_after_code_write(path)
+                if gate_err:
+                    result_dict["error"] = gate_err
+                    result_dict["_harness_gate"] = "failed"
             return json.dumps(result_dict, ensure_ascii=False)
 
         # Serialize the read→modify→write region per-path so concurrent
@@ -838,6 +854,10 @@ def write_file_tool(path: str, content: str, task_id: str = "default") -> str:
             _update_read_timestamp(path, task_id)
             if not result_dict.get("error"):
                 file_state.note_write(task_id, _resolved)
+                gate_err = _harness_after_code_write(path)
+                if gate_err:
+                    result_dict["error"] = gate_err
+                    result_dict["_harness_gate"] = "failed"
         return json.dumps(result_dict, ensure_ascii=False)
     except Exception as e:
         if _is_expected_write_exception(e):
@@ -928,6 +948,13 @@ def patch_tool(mode: str = "replace", path: str | None = None, old_string: str |
                     _r = _path_to_resolved.get(_p)
                     if _r:
                         file_state.note_write(task_id, _r)
+                # Prefer explicit path; else first patched path
+                gate_target = path or (_paths_to_check[0] if _paths_to_check else None)
+                if gate_target:
+                    gate_err = _harness_after_code_write(gate_target)
+                    if gate_err:
+                        result_dict["error"] = gate_err
+                        result_dict["_harness_gate"] = "failed"
         # Hint when old_string not found — saves iterations where the agent
         # retries with stale content instead of re-reading the file.
         # Suppressed when patch_replace already attached a rich "Did you mean?"

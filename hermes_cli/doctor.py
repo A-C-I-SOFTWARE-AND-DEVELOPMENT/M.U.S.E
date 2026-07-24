@@ -182,6 +182,75 @@ def _has_healthy_oauth_fallback_for_apikey_provider(provider_label: str) -> bool
     return False
 
 
+_DOCTOR_LABEL_TO_PROVIDER_IDS = {
+    "z.ai / glm": {"zai", "z-ai", "glm"},
+    "kimi / moonshot": {"kimi-coding", "moonshot", "kimi"},
+    "kimi / moonshot (china)": {"kimi-coding-cn", "kimi-cn"},
+    "nvidia nim": {"nvidia", "nvidia-all", "nvidia-nim"},
+    "alibaba/dashscope": {"alibaba", "dashscope"},
+    "alibaba cloud (coding plan)": {"alibaba-coding-plan", "alibaba_coding", "alibaba-coding", "dashscope-coding"},
+    "deepseek": {"deepseek"},
+    "minimax": {"minimax"},
+    "minimax (china)": {"minimax-cn"},
+    "openrouter api": {"openrouter", "openrouter-all"},
+    "anthropic api": {"anthropic", "anthropic-all"},
+    "azure foundry": {"azure-foundry", "azure", "azure-ai-foundry", "azure-ai"},
+    "azure foundry (entra id)": {"azure-foundry", "azure", "azure-ai-foundry", "azure-ai"},
+    "xai": {"xai", "grok", "x-ai", "x.ai"},
+}
+
+
+def _active_routing_provider_ids(config: dict | None = None) -> set[str]:
+    """Providers currently on the live routing spine (primary + fallbacks + fusion/swarm/moa)."""
+    if config is None:
+        try:
+            from hermes_cli.config import load_config
+
+            config = load_config()
+        except Exception:
+            return set()
+    active: set[str] = set()
+
+    def _add(val):
+        if isinstance(val, str) and val.strip():
+            active.add(val.strip().lower())
+
+    model = config.get("model") if isinstance(config.get("model"), dict) else {}
+    _add(model.get("provider"))
+    for entry in config.get("fallback_providers") or []:
+        if isinstance(entry, dict):
+            _add(entry.get("provider"))
+    fb_model = config.get("fallback_model")
+    if isinstance(fb_model, dict):
+        _add(fb_model.get("provider"))
+    fusion = config.get("fusion") if isinstance(config.get("fusion"), dict) else {}
+    _add(fusion.get("provider") or fusion.get("aggregator_provider"))
+    for section in ("swarm", "mixture_of_agents"):
+        block = config.get(section) if isinstance(config.get(section), dict) else {}
+        nested = block.get("model") if isinstance(block.get("model"), dict) else {}
+        _add(nested.get("provider"))
+        agg = block.get("aggregator") if isinstance(block.get("aggregator"), dict) else {}
+        _add(agg.get("provider"))
+        for entry in block.get("fallback_chain") or []:
+            if isinstance(entry, dict):
+                _add(entry.get("provider"))
+    orch = config.get("orchestration") if isinstance(config.get("orchestration"), dict) else {}
+    for entry in orch.get("fallback_chain") or []:
+        if isinstance(entry, dict):
+            _add(entry.get("provider"))
+    return active
+
+
+def _provider_on_active_spine(provider_label: str, active_ids: set[str]) -> bool:
+    """True if a doctor connectivity label maps to a provider currently in routing."""
+    if not active_ids:
+        return True  # fail open if we can't load config
+    ids = _DOCTOR_LABEL_TO_PROVIDER_IDS.get((provider_label or "").strip().lower())
+    if not ids:
+        return True  # unknown labels stay punch-list eligible
+    return bool(ids & active_ids)
+
+
 def check_ok(text: str, detail: str = ""):
     print(f"  {color('✓', Colors.GREEN)} {text}" + (f" {color(detail, Colors.DIM)}" if detail else ""))
 
@@ -303,7 +372,7 @@ def _build_apikey_providers_list() -> list:
     """
     _static: list[tuple] = [
         ("Z.AI / GLM",      ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"), "https://api.z.ai/api/paas/v4/models", "GLM_BASE_URL", True),
-        ("Kimi / Moonshot",  ("KIMI_API_KEY",),                              "https://api.moonshot.ai/v1/models",   "KIMI_BASE_URL", True),
+        ("Kimi / Moonshot",  ("KIMI_API_KEY", "MOONSHOT_API_KEY"),           "https://api.moonshot.ai/v1/models",   "KIMI_BASE_URL", True),
         ("StepFun Step Plan", ("STEPFUN_API_KEY",),                          "https://api.stepfun.ai/step_plan/v1/models", "STEPFUN_BASE_URL", True),
         ("Kimi / Moonshot (China)", ("KIMI_CN_API_KEY",),                    "https://api.moonshot.cn/v1/models",   None, True),
         ("Arcee AI",         ("ARCEEAI_API_KEY",),                           "https://api.arcee.ai/api/v1/models",  "ARCEE_BASE_URL", True),
@@ -1562,6 +1631,17 @@ def run_doctor(args):
         if not key:
             return _ConnectivityResult(pname, [], [])
         label = pname.ljust(20)
+        # Mis-pasted endpoint into the API-key env (common for Azure Foundry).
+        # Never send a URL as Bearer — doctor would crash or 401 noisily.
+        if key.startswith(("http://", "https://")):
+            hint_env = base_env or f"{env_vars[0].rsplit('_', 1)[0]}_BASE_URL"
+            return _ConnectivityResult(
+                pname,
+                [(color("⚠", Colors.YELLOW), label,
+                  color("(API key looks like a base URL)", Colors.DIM))],
+                [f"{env_vars[0]} looks like a URL. Put the endpoint in "
+                 f"{hint_env} and the real API key in {env_vars[0]}."],
+            )
         if not supports_health_check:
             return _ConnectivityResult(
                 pname,
@@ -1584,12 +1664,36 @@ def run_doctor(args):
                 base = _to_openai_base_url(base)
             if base_url_host_matches(base, "api.kimi.com") and base.rstrip("/").endswith("/coding"):
                 base = base.rstrip("/") + "/v1"
+            # agent-gw.kimi.com/coding(/) is a chat gateway — no /models route
+            # (doctor would false-404). Probe the public OpenAI-compat surface.
+            if base_url_host_matches(base, "agent-gw.kimi.com"):
+                base = "https://api.kimi.com/coding/v1"
             url = (base.rstrip("/") + "/models") if base else default_url
+            if not url:
+                hint = (
+                    f"Set {base_env} to your endpoint, then re-run doctor."
+                    if base_env else
+                    f"{pname}: no health-check URL configured."
+                )
+                return _ConnectivityResult(
+                    pname,
+                    [(color("⚠", Colors.YELLOW), label,
+                      color("(missing base URL for health check)", Colors.DIM))],
+                    [hint],
+                )
             headers = {
                 "Authorization": f"Bearer {key}",
                 "User-Agent": _HERMES_USER_AGENT,
             }
-            if base_url_host_matches(base, "api.kimi.com"):
+            # Azure Foundry OpenAI-style endpoints expect ``api-key``, not Bearer.
+            if pname == "Azure Foundry" or (
+                base and ("openai.azure.com" in base or "services.ai.azure.com" in base)
+            ) or (
+                url and ("openai.azure.com" in url or "services.ai.azure.com" in url)
+            ):
+                headers.pop("Authorization", None)
+                headers["api-key"] = key
+            if base_url_host_matches(base, "api.kimi.com") or base_url_host_matches(url, "api.kimi.com"):
                 headers["User-Agent"] = "claude-code/0.1.0"
             # Google's Generative Language API (generativelanguage.googleapis.com)
             # rejects ``Authorization: Bearer <api-key>`` with 401
@@ -1610,10 +1714,72 @@ def run_doctor(args):
                     "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
                     headers=headers, timeout=10,
                 )
+            # Many Coding Plan keys only authenticate on coding-intl — the
+            # generic DashScope compatible-mode surfaces return 401 even when
+            # the account is healthy for coding.
+            if (
+                pname == "Alibaba/DashScope"
+                and r.status_code in (401, 403)
+            ):
+                try:
+                    r_cp = httpx.get(
+                        "https://coding-intl.dashscope.aliyuncs.com/v1/models",
+                        headers=headers,
+                        timeout=10,
+                    )
+                    if r_cp.status_code == 200:
+                        return _ConnectivityResult(
+                            pname,
+                            [(color("✓", Colors.GREEN), label,
+                              color("(via Coding Plan endpoint)", Colors.DIM))],
+                            [],
+                        )
+                except Exception:
+                    pass
             if r.status_code == 200:
                 return _ConnectivityResult(
                     pname,
                     [(color("✓", Colors.GREEN), label, "")],
+                    [],
+                )
+            # Kimi coding keys sometimes fail against /models while a sibling
+            # Moonshot key is healthy — retry once on the Moonshot surface.
+            if (
+                pname == "Kimi / Moonshot"
+                and r.status_code in (401, 403, 404)
+                and len(env_vars) > 1
+            ):
+                alt = ""
+                for ev in env_vars[1:]:
+                    alt = os.getenv(ev, "")
+                    if alt and alt != key:
+                        break
+                if alt:
+                    try:
+                        r2 = httpx.get(
+                            "https://api.moonshot.ai/v1/models",
+                            headers={
+                                "Authorization": f"Bearer {alt}",
+                                "User-Agent": _HERMES_USER_AGENT,
+                            },
+                            timeout=10,
+                        )
+                        if r2.status_code == 200:
+                            return _ConnectivityResult(
+                                pname,
+                                [(color("✓", Colors.GREEN), label,
+                                  color("(via MOONSHOT_API_KEY)", Colors.DIM))],
+                                [],
+                            )
+                    except Exception:
+                        pass
+            # Direct API-key probe failed but a sibling OAuth path is healthy
+            # (xAI / Gemini / MiniMax) — don't paint the row red/yellow.
+            if _has_healthy_oauth_fallback_for_apikey_provider(pname):
+                return _ConnectivityResult(
+                    pname,
+                    [(color("✓", Colors.GREEN), label,
+                      color(f"(API key HTTP {r.status_code}; OAuth OK)", Colors.DIM))],
                     [],
                 )
             if r.status_code == 401:
@@ -1820,6 +1986,12 @@ def run_doctor(args):
 
     # Clear the "Running …" line and print all results in submission order.
     print("\r" + " " * 70 + "\r", end="")
+    try:
+        from hermes_cli.config import load_config as _load_cfg_for_spine
+
+        _active_spine = _active_routing_provider_ids(_load_cfg_for_spine())
+    except Exception:
+        _active_spine = set()
     for _r in _results:
         for _glyph, _label, _detail in _r.lines:
             if _detail:
@@ -1828,6 +2000,10 @@ def run_doctor(args):
                 print(f"  {_glyph} {_label}")
         _issues_to_add = list(_r.issues)
         if _issues_to_add and _has_healthy_oauth_fallback_for_apikey_provider(_r.label):
+            _issues_to_add = []
+        # Invalid keys for providers not on the live routing spine are advisory
+        # only — still shown in the connectivity table, not the punch list.
+        if _issues_to_add and not _provider_on_active_spine(_r.label, _active_spine):
             _issues_to_add = []
         for _issue in _issues_to_add:
             issues.append(_issue)

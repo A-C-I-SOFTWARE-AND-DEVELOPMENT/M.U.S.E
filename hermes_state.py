@@ -786,8 +786,10 @@ class SessionDB:
         # Ensure the session row exists so the UPDATE doesn't silently affect
         # 0 rows.  Under concurrent load (cron + kanban + delegate_task) the
         # initial create_session() may have failed due to SQLite locking.
-        # INSERT OR IGNORE is cheap and idempotent.
-        self._insert_session_row(session_id, "unknown", model=model)
+        # INSERT OR IGNORE is cheap and idempotent. Use source "orphan" (not
+        # "unknown") so insights can filter empty placeholder rows separately
+        # from real model="unknown" traffic.
+        self._insert_session_row(session_id, "orphan", model=model)
         if absolute:
             sql = """UPDATE sessions SET
                    input_tokens = ?,
@@ -853,14 +855,62 @@ class SessionDB:
             conn.execute(sql, params)
         self._execute_write(_do)
 
+    def set_session_model(self, session_id: str, model: str, provider: Optional[str] = None) -> None:
+        """Force-set session model (and optional billing_provider) after attribution is known."""
+        if not model:
+            return
+
+        def _do(conn):
+            if provider:
+                conn.execute(
+                    "UPDATE sessions SET model = ?, billing_provider = COALESCE(billing_provider, ?) WHERE id = ?",
+                    (model, provider, session_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE sessions SET model = ? WHERE id = ?",
+                    (model, session_id),
+                )
+
+        self._execute_write(_do)
+
+    def merge_session_model_config(self, session_id: str, patch: Dict[str, Any]) -> None:
+        """Shallow-merge keys into sessions.model_config JSON (e.g. harness_stage)."""
+        if not patch:
+            return
+
+        def _do(conn):
+            row = conn.execute(
+                "SELECT model_config FROM sessions WHERE id = ?", (session_id,)
+            ).fetchone()
+            current: Dict[str, Any] = {}
+            if row and row[0]:
+                try:
+                    loaded = json.loads(row[0])
+                    if isinstance(loaded, dict):
+                        current = loaded
+                except (TypeError, json.JSONDecodeError):
+                    current = {}
+            current.update(patch)
+            conn.execute(
+                "UPDATE sessions SET model_config = ? WHERE id = ?",
+                (json.dumps(current), session_id),
+            )
+
+        self._execute_write(_do)
+
     def ensure_session(
         self,
         session_id: str,
-        source: str = "unknown",
+        source: str = "orphan",
         model: Optional[str] = None,
         **kwargs,
     ) -> str:
-        """Ensure a session row exists (INSERT OR IGNORE). Accepts optional kwargs."""
+        """Ensure a session row exists (INSERT OR IGNORE). Accepts optional kwargs.
+
+        Default source is ``orphan`` (not ``unknown``) so insights can filter
+        placeholder rows created only to satisfy UPDATE races.
+        """
         self._insert_session_row(session_id, source, model=model, **kwargs)
         return session_id
 

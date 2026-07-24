@@ -571,6 +571,55 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "fallback_providers": [],
     "credential_pool_strategies": {},
     "toolsets": ["hermes-cli"],
+    # ── Muse harness (capability uplift layers) ────────────────────
+    # Prefills, skill router, quality gates, structured output, escalation.
+    # Live overrides live under top-level ``harness:`` in config.yaml.
+    "harness": {
+        "version": 1,
+        "enabled": False,
+        "model_registry": {
+            "file": "",
+            "auto_route": True,
+            "default_tier": "capable",
+        },
+        "prefill_system": {
+            "enabled": False,
+            "directory": "",
+            "task_prefills": {},
+            "auto_detect": True,
+            "default": "coding.md",
+        },
+        "quality_gates": {
+            "enabled": False,
+            "directory": "",
+            "auto_detect_language": True,
+            "default_gate": "python.yaml",
+            "enforce_on_code": False,
+            "block_on_failure": False,
+        },
+        "structured_output": {
+            "enabled": False,
+            "schemas": "",
+            "enforce_json": False,
+            "validate": False,
+        },
+        "context_engineering": {
+            "enabled": False,
+            "config": "",
+            "skill_router": False,
+            "project_context": False,
+            "error_patterns": False,
+            "tool_matrix": False,
+        },
+        "escalation": {
+            "enabled": False,
+            "config": "",
+            "auto_escalate": False,
+            "max_attempts": 3,
+            "cost_limit_usd": 5.0,
+            "warn_at_usd": 1.0,
+        },
+    },
     # ── Fusion (Mixture-of-Agents) ─────────────────────────────────
     # Axiom routes all responses through multi-model fusion by default.
     # Set mode to "single" to disable fusion and use single-model responses.

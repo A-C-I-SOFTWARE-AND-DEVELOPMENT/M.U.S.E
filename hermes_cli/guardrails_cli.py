@@ -68,6 +68,17 @@ def register(subparsers: Any) -> None:
     p_resp.add_argument("phrase", help='The exact required phrase (incl. "Code: NNNNNN")')
     p_resp.add_argument("--json", action="store_true")
 
+    p_reseal = sub.add_parser(
+        "reseal",
+        help="Archive a broken ledger and start a fresh sealed chain (never rewrites history)",
+    )
+    p_reseal.add_argument(
+        "--force",
+        action="store_true",
+        help="Reseal even if the current chain already verifies",
+    )
+    p_reseal.add_argument("--json", action="store_true")
+
     parser.set_defaults(func=cmd_guardrails)
 
 
@@ -94,10 +105,14 @@ def cmd_guardrails(args: Any) -> None:
         result = _authorize_response(args)
         _emit(result, args)
         raise SystemExit(0 if result.get("authorized") else 1)
+    elif action == "reseal":
+        result = _reseal(force=bool(getattr(args, "force", False)))
+        _emit(result, args)
+        raise SystemExit(0 if result.get("ok") else 1)
     else:
         print(
             "usage: hermes guardrails "
-            "{status|doctor|verify-ledger|collect|authorize|authorize-response}"
+            "{status|doctor|verify-ledger|collect|authorize|authorize-response|reseal}"
         )
         raise SystemExit(2)
     raise SystemExit(0)
@@ -160,6 +175,57 @@ def _verify_ledger() -> dict:
     from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
 
     return GuardrailLedger().verify_chain().to_dict()
+
+
+def _reseal(*, force: bool = False) -> dict:
+    """Archive a broken (or force-resealed) ledger and seed a fresh chain.
+
+    Never rewrites historical hashes. The broken file is renamed beside the
+    active ledger; a genesis decision record documents the break.
+    """
+    from datetime import datetime, timezone
+    from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+    ledger = GuardrailLedger()
+    diag = ledger.verify_chain()
+    if diag.ok and not force:
+        return {
+            "ok": True,
+            "resealed": False,
+            "reason": "chain already intact; pass --force to reseal anyway",
+            **diag.to_dict(),
+        }
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    archive = ledger.path.with_name(f"guardrail_ledger.broken-{ts}.jsonl")
+    broken_at = diag.broken_at
+    reason = diag.reason
+    length = diag.length
+    if ledger.path.exists():
+        ledger.path.replace(archive)
+    # Fresh empty path — append genesis documentation record
+    fresh = GuardrailLedger(path=ledger.path)
+    fresh.append(
+        "ledger_reseal",
+        subject="guardrail_ledger",
+        payload={
+            "archived_path": str(archive),
+            "previous_broken_at": broken_at,
+            "previous_reason": reason,
+            "previous_length": length,
+            "forced": force,
+            "note": "History was archived, not rewritten.",
+        },
+    )
+    new_diag = fresh.verify_chain()
+    return {
+        "ok": bool(new_diag.ok),
+        "resealed": True,
+        "archived_path": str(archive),
+        "previous_broken_at": broken_at,
+        "previous_reason": reason,
+        **new_diag.to_dict(),
+    }
 
 
 def _authorize(args: Any) -> dict:
