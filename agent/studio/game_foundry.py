@@ -51,7 +51,7 @@ class GameFoundry:
         engine_discovery: Callable[..., UnrealInstallation | None] = discover_unreal,
         command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     ) -> None:
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.engine_discovery = engine_discovery
         self.command_runner = command_runner
 
@@ -236,6 +236,7 @@ class GameFoundry:
                 "-unattended",
                 "-nop4",
                 "-nosplash",
+                "-stdout",
             ),
             "audit_map": (
                 str(editor),
@@ -244,6 +245,7 @@ class GameFoundry:
                 "-unattended",
                 "-nop4",
                 "-nullrhi",
+                "-stdout",
             ),
             "test_automation": (
                 str(editor),
@@ -287,6 +289,7 @@ class GameFoundry:
             project_root / "Source",
             project_root / "Config",
             project_root / "Generated",
+            project_root / "Content" / "Python",
         ]
         files = [project_root / "game-spec.json"]
         files.extend(project_root.glob("*.uproject"))
@@ -303,7 +306,12 @@ class GameFoundry:
         if gate == "build_editor":
             matches = list((project_root / "Binaries" / "Win64").glob(f"*{module}*"))
         elif gate == "author_map":
-            matches = [project_root / "Content" / "Maps" / "MuseSlice.umap"]
+            matches = [
+                project_root / "Content" / "Maps" / "MuseSlice.umap",
+                project_root / "Evidence" / "author-map-complete.json",
+            ]
+        elif gate == "audit_map":
+            matches = [project_root / "Evidence" / "full-world-audit.json"]
         elif gate == "package_win64":
             build = project_root / "Build" / "Win64"
             matches = [
@@ -353,8 +361,8 @@ class GameFoundry:
                 and old.get("fingerprint") == command_fingerprint
                 and all(Path(path).is_file() for path in old_artifacts)
             )
-            # Audit/automation produce logs rather than additional build artifacts.
-            if name in {"audit_map", "test_automation"}:
+            # Automation produces a log rather than an additional build artifact.
+            if name == "test_automation":
                 can_resume = (
                     resume
                     and old.get("status") == "passed"
@@ -376,6 +384,13 @@ class GameFoundry:
                 results.append(result)
                 continue
 
+            stale_completion = {
+                "author_map": manifest.root / "Evidence" / "author-map-complete.json",
+                "audit_map": manifest.root / "Evidence" / "full-world-audit.json",
+            }.get(name)
+            if stale_completion is not None:
+                stale_completion.unlink(missing_ok=True)
+
             try:
                 completed = self.command_runner(
                     list(argv),
@@ -395,8 +410,26 @@ class GameFoundry:
                 encoding="utf-8",
             )
             artifacts = self._gate_artifacts(manifest.root, name, module)
+            completion_evidence = True
+            if name == "author_map":
+                completion_evidence = {
+                    "MuseSlice.umap",
+                    "author-map-complete.json",
+                }.issubset({Path(path).name for path in artifacts})
+            elif name == "audit_map":
+                completion_evidence = False
+                if artifacts:
+                    try:
+                        audit = json.loads(Path(artifacts[0]).read_text(encoding="utf-8"))
+                        completion_evidence = audit.get("passed") is True
+                    except (OSError, json.JSONDecodeError):
+                        completion_evidence = False
             artifact_required = name in {
-                "build_editor", "author_map", "package_win64", "smoke_win64"
+                "build_editor",
+                "author_map",
+                "audit_map",
+                "package_win64",
+                "smoke_win64",
             }
             package_complete = True
             if name == "package_win64":
@@ -406,10 +439,16 @@ class GameFoundry:
                 completed.returncode == 0
                 and (not artifact_required or bool(artifacts))
                 and package_complete
+                and completion_evidence
             )
-            reason = "" if passed else (
-                "command_failed" if completed.returncode != 0 else "required_artifact_missing"
-            )
+            if passed:
+                reason = ""
+            elif completed.returncode != 0:
+                reason = "command_failed"
+            elif not completion_evidence:
+                reason = "completion_evidence_missing"
+            else:
+                reason = "required_artifact_missing"
             result = BuildGateResult(
                 name=name,
                 status="passed" if passed else "failed",

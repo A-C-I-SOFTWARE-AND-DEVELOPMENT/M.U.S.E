@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
@@ -123,10 +124,26 @@ def detect_hardware() -> tuple[float, float]:
     ram_gb = 0.0
     try:
         import psutil
-        ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+        ram_gb = psutil.virtual_memory().total / 1_000_000_000
     except ImportError:
         ram_gb = float(os.environ.get("HERMES_DETECTED_RAM_GB", "0"))
-    vram_gb = float(os.environ.get("HERMES_DETECTED_VRAM_GB", "0"))
+    try:
+        output = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            text=True,
+            timeout=15,
+        )
+        vram_gb = round(
+            max(float(line.strip()) for line in output.splitlines() if line.strip())
+            / 1024.0,
+            1,
+        )
+    except (OSError, subprocess.SubprocessError, ValueError):
+        vram_gb = float(os.environ.get("HERMES_DETECTED_VRAM_GB", "0"))
     return vram_gb, ram_gb
 
 

@@ -10,6 +10,7 @@ import pytest
 from agent.studio.aaa_pipeline import (
     AAAPipeline,
     AAAPipelineBrief,
+    _generate_heightmap,
     run_creature_hunting_pipeline,
 )
 from agent.studio.acceptance import evaluate_acceptance
@@ -60,6 +61,12 @@ def test_quality_profile_has_explicit_budgets():
     assert profile.requires_ue_render_evidence is True
 
 
+def test_procedural_heightmap_is_valid_r16(tmp_path):
+    output = _generate_heightmap(tmp_path / "terrain.r16", seed=7, size=64)
+
+    assert output.stat().st_size == 64 * 64 * 2
+
+
 def test_decompose_brief_produces_world_and_asset_manifests():
     world, assets = decompose_brief(
         project_id="test-project",
@@ -96,7 +103,7 @@ def test_ue5_generator_writes_substantive_project(tmp_path):
     written = generate_ue5_project(
         tmp_path / "ue5",
         title="Frontier Hunt",
-        engine_version="5.6",
+        engine_version="5.8",
         profile=profile,
         world_manifest=world,
     )
@@ -118,6 +125,18 @@ def test_ue5_generator_writes_substantive_project(tmp_path):
         profile.polygon.foliage_instance_budget
     )
     assert pcg["prop_placement"]["density_per_km2"] == profile.density.props_per_km2
+    target = tmp_path / "ue5" / "Source" / "FrontierHuntEditor.Target.cs"
+    assert target.is_file()
+    target_content = target.read_text(encoding="utf-8")
+    assert "BuildSettingsVersion.V7" in target_content
+    assert "EngineIncludeOrderVersion.Unreal5_8" in target_content
+    uproject = json.loads(
+        (tmp_path / "ue5" / "FrontierHunt.uproject").read_text(encoding="utf-8")
+    )
+    plugins = {plugin["Name"] for plugin in uproject["Plugins"]}
+    assert "WorldPartition" not in plugins
+    assert {"PythonScriptPlugin", "EditorScriptingUtilities"} <= plugins
+    assert (tmp_path / "ue5" / "Content" / "Python" / "build_world.py").is_file()
     assert (tmp_path / "ue5" / "Source" / "FrontierHunt" / "FrontierHuntCreatureBase.h").is_file()
 
 
@@ -256,8 +275,9 @@ def test_offline_gates_passed_reflects_gate_failures(pipeline_root):
     )
     assert gate_report["gates_passed"] is False
     assert result.gates_passed is False
-    hardware = next(g for g in gate_report["gates"] if g["gate"] == "hardware")
-    assert hardware["passed"] is False
+    license_gate = next(g for g in gate_report["gates"] if g["gate"] == "license")
+    assert license_gate["passed"] is False
+    assert any(not gate["passed"] for gate in gate_report["gates"])
 
 
 def test_validation_refs_resolve_to_blocked_records(pipeline_root):

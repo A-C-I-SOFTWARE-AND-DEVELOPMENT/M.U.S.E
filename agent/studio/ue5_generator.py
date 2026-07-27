@@ -137,7 +137,7 @@ public class {mod} : ModuleRules
             "AIModule", "NavigationSystem", "GameplayTasks", "PCG", "Niagara"
         }});
         PrivateDependencyModuleNames.AddRange(new string[] {{
-            "Slate", "SlateCore", "UMG", "WorldPartitionEditor"
+            "Slate", "SlateCore", "UMG"
         }});
     }}
 }}
@@ -237,6 +237,72 @@ class {mod.upper()}_API A{mod}PlayerController : public APlayerController
 """
 
 
+def _world_build_script(title: str) -> str:
+    return f"""import unreal
+
+LEVEL = "/Game/Maps/L_OpenWorld"
+subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+if not subsystem.new_level(LEVEL):
+    raise RuntimeError("could not create open-world level")
+
+world = unreal.EditorLevelLibrary.get_editor_world()
+world.get_world_settings().set_editor_property("kill_z", -5000.0)
+unreal.EditorLevelLibrary.spawn_actor_from_class(
+    unreal.PlayerStart, unreal.Vector(0.0, 0.0, 200.0)
+)
+unreal.EditorLevelLibrary.spawn_actor_from_class(
+    unreal.DirectionalLight, unreal.Vector(0.0, 0.0, 1000.0),
+    unreal.Rotator(-35.0, -45.0, 0.0)
+)
+unreal.EditorLevelLibrary.spawn_actor_from_class(
+    unreal.SkyLight, unreal.Vector(0.0, 0.0, 500.0)
+)
+unreal.EditorLevelLibrary.spawn_actor_from_class(
+    unreal.SkyAtmosphere, unreal.Vector(0.0, 0.0, 0.0)
+)
+unreal.EditorLevelLibrary.spawn_actor_from_class(
+    unreal.ExponentialHeightFog, unreal.Vector(0.0, 0.0, 0.0)
+)
+unreal.EditorAssetLibrary.save_asset(LEVEL, only_if_is_dirty=False)
+if not unreal.EditorAssetLibrary.does_asset_exist(LEVEL):
+    raise RuntimeError("open-world level was not saved")
+print("MUSE_AAA_WORLD_BUILT", LEVEL, {title!r})
+"""
+
+
+def _world_audit_script() -> str:
+    return """import json
+import pathlib
+import unreal
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+LEVEL = "/Game/Maps/L_OpenWorld"
+failures = []
+if not unreal.EditorAssetLibrary.does_asset_exist(LEVEL):
+    failures.append("missing_open_world_map")
+else:
+    unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).load_level(LEVEL)
+actors = unreal.EditorLevelLibrary.get_all_level_actors()
+classes = {actor.get_class().get_name() for actor in actors}
+for required in ("PlayerStart", "DirectionalLight", "SkyLight", "SkyAtmosphere"):
+    if required not in classes:
+        failures.append("missing_actor:" + required)
+report = {
+    "passed": not failures,
+    "map": LEVEL,
+    "actor_count": len(actors),
+    "actor_classes": sorted(classes),
+    "failures": failures,
+}
+destination = ROOT / "Evidence" / "world-audit.json"
+destination.parent.mkdir(parents=True, exist_ok=True)
+destination.write_text(json.dumps(report, indent=2), encoding="utf-8")
+if failures:
+    raise RuntimeError("; ".join(failures))
+print("MUSE_AAA_WORLD_AUDIT_PASS", LEVEL, len(actors))
+"""
+
+
 def _creature_ai_h(mod: str) -> str:
     return f"""#pragma once
 #include "CoreMinimal.h"
@@ -275,8 +341,17 @@ void A{mod}CreatureBase::BeginPlay()
 """
 
 
+def _target_versions(engine_version: str) -> tuple[str, str]:
+    parts = engine_version.split(".", 1)
+    major = int(parts[0])
+    minor = int(parts[1]) if len(parts) > 1 else 0
+    build_settings = "V7" if (major, minor) >= (5, 8) else "V5"
+    include_order = f"EngineIncludeOrderVersion.Unreal{major}_{minor}"
+    return build_settings, include_order
+
+
 def _game_target(mod: str, engine_version: str) -> str:
-    include = f"EngineIncludeOrderVersion.Unreal5_{engine_version.replace('.', '_')[:3]}"
+    build_settings, include = _target_versions(engine_version)
     return f"""using UnrealBuildTool;
 using System.Collections.Generic;
 
@@ -285,7 +360,7 @@ public class {mod}Target : TargetRules
     public {mod}Target(TargetInfo Target) : base(Target)
     {{
         Type = TargetType.Game;
-        DefaultBuildSettings = BuildSettingsVersion.V5;
+        DefaultBuildSettings = BuildSettingsVersion.{build_settings};
         IncludeOrderVersion = {include};
         ExtraModuleNames.Add("{mod}");
     }}
@@ -294,7 +369,7 @@ public class {mod}Target : TargetRules
 
 
 def _editor_target(mod: str, engine_version: str) -> str:
-    include = f"EngineIncludeOrderVersion.Unreal5_{engine_version.replace('.', '_')[:3]}"
+    build_settings, include = _target_versions(engine_version)
     return f"""using UnrealBuildTool;
 using System.Collections.Generic;
 
@@ -303,7 +378,7 @@ public class {mod}EditorTarget : TargetRules
     public {mod}EditorTarget(TargetInfo Target) : base(Target)
     {{
         Type = TargetType.Editor;
-        DefaultBuildSettings = BuildSettingsVersion.V5;
+        DefaultBuildSettings = BuildSettingsVersion.{build_settings};
         IncludeOrderVersion = {include};
         ExtraModuleNames.Add("{mod}");
     }}
@@ -333,7 +408,8 @@ def generate_ue5_project(
 
     plugins = [
         "ModelingToolsEditorMode", "PCG", "Water", "Niagara",
-        "EnhancedInput", "WorldPartition", "AnimationWarping",
+        "EnhancedInput", "AnimationWarping", "PythonScriptPlugin",
+        "EditorScriptingUtilities",
     ]
     uproject = {
         "FileVersion": 3,
@@ -347,7 +423,12 @@ def generate_ue5_project(
 
     source = f"Source/{mod}"
     write(f"{source}/{mod}.Build.cs", _build_cs(mod))
-    write(f"{source}/{mod}.cpp", f'#include "Modules/ModuleManager.h"\nIMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, {mod}, "{mod}");\n')
+    write(
+        f"{source}/{mod}.cpp",
+        f'#include "{mod}.h"\n'
+        '#include "Modules/ModuleManager.h"\n'
+        f'IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, {mod}, "{mod}");\n',
+    )
     write(f"{source}/{mod}.h", "#pragma once\n#include \"CoreMinimal.h\"\n")
     write(f"{source}/{mod}GameMode.h", _game_mode_h(mod))
     write(f"{source}/{mod}GameMode.cpp", _game_mode_cpp(mod))
@@ -357,8 +438,8 @@ def generate_ue5_project(
     write(f"{source}/{mod}PlayerController.cpp", f'#include "{mod}PlayerController.h"\n')
     write(f"{source}/{mod}CreatureBase.h", _creature_ai_h(mod))
     write(f"{source}/{mod}CreatureBase.cpp", _creature_ai_cpp(mod))
-    write(f"Source/{mod}Target.cs", _game_target(mod, engine_version))
-    write(f"Source/{mod}EditorTarget.cs", _editor_target(mod, engine_version))
+    write(f"Source/{mod}.Target.cs", _game_target(mod, engine_version))
+    write(f"Source/{mod}Editor.Target.cs", _editor_target(mod, engine_version))
 
     write("Config/DefaultEngine.ini", _default_engine_ini(mod, profile))
     write("Config/DefaultGame.ini", f"""[/Script/EngineSettings.GeneralProjectSettings]
@@ -391,6 +472,8 @@ DefaultViewportMouseLockMode=LockOnCapture
             )
 
     write("Content/Maps/L_OpenWorld.umap.placeholder", "UE5 map placeholder — import via editor\n")
+    write("Content/Python/build_world.py", _world_build_script(title))
+    write("Content/Python/audit_world.py", _world_audit_script())
     write("Content/Navigation/NavMeshConfig.json", json.dumps({
         "agent_radius_cm": 42.0,
         "agent_height_cm": 192.0,

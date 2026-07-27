@@ -58,6 +58,13 @@ def test_generator_materializes_source_complete_ue58_project(tmp_path: Path) -> 
         f"{spec.project_id}Automation.cpp",
     }
     assert required.issubset({path.name for path in source.iterdir()})
+    character_cpp = (source / f"{spec.project_id}Character.cpp").read_text(
+        encoding="utf-8"
+    )
+    hud_cpp = (source / f"{spec.project_id}HUD.cpp").read_text(encoding="utf-8")
+    assert "PauseBinding.bExecuteWhenPaused = true;" in character_cpp
+    assert r"PAUSED / SETTINGS\nEsc resume" in hud_cpp
+    assert r"PAUSED / SETTINGS\\nEsc resume" not in hud_cpp
     assert (root / "Content/Python/build_slice.py").is_file()
     assert (root / "Content/Python/audit_slice.py").is_file()
     for name in ("Ambience.wav", "Pickup.wav", "Defeat.wav"):
@@ -180,6 +187,13 @@ def test_playable_requires_all_real_vertical_slice_gates(
             artifact = project / "Content/Maps/MuseSlice.umap"
             artifact.parent.mkdir(parents=True, exist_ok=True)
             artifact.write_bytes(b"map")
+            evidence = project / "Evidence/author-map-complete.json"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text(json.dumps({"passed": True}), encoding="utf-8")
+        if "audit_slice.py" in command:
+            evidence = project / "Evidence/full-world-audit.json"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text(json.dumps({"passed": True}), encoding="utf-8")
         if "BuildCookRun" in command:
             output = project / "Build/Win64"
             output.mkdir(parents=True, exist_ok=True)
@@ -188,7 +202,12 @@ def test_playable_requires_all_real_vertical_slice_gates(
             paks.mkdir(parents=True, exist_ok=True)
             for suffix in ("pak", "ucas", "utoc"):
                 (paks / f"{production.project_id}.{suffix}").write_bytes(suffix.encode())
-        return subprocess.CompletedProcess(argv, 0, stdout="passed", stderr="")
+        stdout = "passed"
+        if "build_slice.py" in command:
+            stdout += "\nMUSE_MAP_BUILT"
+        if "audit_slice.py" in command:
+            stdout += "\nMUSE_AUDIT_PASS"
+        return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
 
     monkeypatch.setenv("MUSE_GAME_ALLOW_SPAWN", "1")
     foundry = GameFoundry(
@@ -207,3 +226,59 @@ def test_playable_requires_all_real_vertical_slice_gates(
     assert resumed.playable is True
     assert calls == []
     assert all(gate["reason"] == "resumed_from_verified_gate" for gate in resumed.gate_results)
+
+
+def test_author_map_requires_completion_sentinel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vertical = parse_vertical_slice_prompt(PROMPT)
+    production = to_game_production_spec(vertical)
+    engine = tmp_path / "UE_5.8"
+    found = UnrealInstallation(
+        "5.8",
+        engine,
+        engine / "Build.bat",
+        engine / "UnrealEditor-Cmd.exe",
+        engine / "RunUAT.bat",
+    )
+    project = tmp_path / "foundry" / production.project_id
+    stale_evidence = project / "Evidence/author-map-complete.json"
+    stale_evidence.parent.mkdir(parents=True, exist_ok=True)
+    stale_evidence.write_text(json.dumps({"passed": True}), encoding="utf-8")
+
+    def runner(argv: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        command = " ".join(argv)
+        if "Editor Win64 Development" in command:
+            artifact = project / "Binaries/Win64" / f"UnrealEditor-{production.project_id}.dll"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_bytes(b"dll")
+        if "build_slice.py" in command:
+            artifact = project / "Content/Maps/MuseSlice.umap"
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_bytes(b"stale-map")
+        return subprocess.CompletedProcess(argv, 0, stdout="LogPython: Error: failed", stderr="")
+
+    monkeypatch.setenv("MUSE_GAME_ALLOW_SPAWN", "1")
+    manifest = GameFoundry(
+        tmp_path / "foundry", engine_discovery=lambda: found, command_runner=runner
+    ).build_vertical_slice(production, allow_spawn=True)
+
+    gates = {gate["name"]: gate for gate in manifest.gate_results}
+    assert manifest.playable is False
+    assert gates["author_map"]["status"] == "failed"
+    assert gates["author_map"]["reason"] == "completion_evidence_missing"
+    assert not stale_evidence.exists()
+
+
+def test_map_authoring_script_participates_in_resume_fingerprint(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    script = project / "Content/Python/build_slice.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("print('first')", encoding="utf-8")
+    (project / "game-spec.json").write_text("{}", encoding="utf-8")
+
+    first = GameFoundry._source_fingerprint(project)
+    script.write_text("print('second')", encoding="utf-8")
+    second = GameFoundry._source_fingerprint(project)
+
+    assert first != second

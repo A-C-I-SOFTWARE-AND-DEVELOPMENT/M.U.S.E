@@ -54,3 +54,54 @@ Profiles define explicit polygon, texture, material, animation, draw-call, memor
 - `skills/creative/game-studio/` — routing and Godot reference slice
 - `skills/creative/game-asset-pipeline/` — asset pipeline operations
 - `skills/creative/muse-frontier-assets/` — frontier biome/creature specs
+
+## Local production run
+
+The verified Windows toolchain is Blender 5.2 LTS plus Unreal Engine 5.8:
+
+```powershell
+python scripts/run_pipeline.py --creature-hunting `
+  --world-previs --previs-backend reactor `
+  --execute-blender --package --out final_pipeline_output --json
+```
+
+This renders an original Blender conditioning frame, invokes the configured
+Reactor/LingBot router for RGB-only world previs, emits UE camera conditioning,
+creates proof FBX assets, compiles the generated C++ project, authors and audits
+`L_OpenWorld`, and optionally cooks Win64. Native commands persist stdout,
+stderr, and machine-readable evidence below `ue5_project/Evidence/`.
+
+Build and verify the deterministic playable proof separately:
+
+```powershell
+python scripts/build_playable_proof.py --out final_proof_game --json
+python scripts/verify_playable_proof.py final_proof_game/FrontierHunt
+```
+
+The proof must pass editor compilation, map authoring, map audit, UE automation,
+Win64 cook/package, and packaged-executable smoke launch before `playable` can
+be true.
+
+## Provider and licensing limits
+
+- Reactor Helios is preferred when its existing credential is available.
+- Local LingBot is a fallback only. Its CC BY-NC-SA output is non-commercial,
+  and upstream expects substantially more than one 8 GB GPU.
+- World-model video is visual reference, never geometry or authoritative game
+  content.
+- A queued cloud response is not an asset. Mesh adapters must return a non-empty
+  local GLB, glTF, or FBX before a manifest references it.
+- Blender procedural meshes are original proof assets, but production acceptance
+  remains blocked until rig, animation, texture, and quality validation passes.
+- Missing credentials, license terms, renders, performance metrics, or artifacts
+  remain visible failures; no offline or proof flag overrides those gates.
+
+## Recovery
+
+- Re-run the same command to resume completed stages. Native gates resume only
+  when source fingerprints and evidence artifacts still match.
+- Use `--previs-image PATH` if Blender source rendering is unavailable.
+- Use `--previs-backend reactor` to avoid the local multi-GPU LingBot path on an
+  8 GB laptop GPU.
+- Inspect `validation/gate_report.json`, `reports/acceptance_report.json`,
+  `ue5_project/Evidence/toolchain-report.json`, and command logs before retrying.

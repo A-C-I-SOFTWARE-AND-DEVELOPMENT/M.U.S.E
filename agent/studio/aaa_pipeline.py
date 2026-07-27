@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import json
+import math
 import re
+import shutil
+import sys
 import time
-from dataclasses import asdict, dataclass
+from array import array
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -44,6 +48,26 @@ def _slug(value: str) -> str:
     return slug or "game"
 
 
+def _generate_heightmap(path: Path, *, seed: int, size: int = 1024) -> Path:
+    """Write a deterministic little-endian UE-compatible R16 terrain heightmap."""
+
+    values = array("H")
+    for y in range(size):
+        fy = y / max(size - 1, 1)
+        for x in range(size):
+            fx = x / max(size - 1, 1)
+            ridge = math.sin((fx * 5.0 + seed) * math.pi) * 0.18
+            basin = math.cos((fy * 4.0 + seed * 0.5) * math.pi) * 0.12
+            detail = math.sin((fx + fy) * 17.0 * math.pi) * 0.025
+            normalized = max(0.0, min(1.0, 0.5 + ridge + basin + detail))
+            values.append(int(normalized * 65535))
+    if sys.byteorder != "little":
+        values.byteswap()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(values.tobytes())
+    return path
+
+
 @dataclass(frozen=True)
 class AAAPipelineBrief:
     title: str
@@ -53,11 +77,14 @@ class AAAPipelineBrief:
     profile: str = "high_fidelity"
     project_id: str = ""
     engine: str = "unreal"
-    engine_version: str = "5.6"
+    engine_version: str = "5.8"
     creatures: tuple[str, ...] = ("apex_predator", "pack_hunter", "ambient_fauna")
     biomes: tuple[str, ...] = ("temperate_forest", "volcanic_highlands", "coastal_wetlands")
     art_style: str = "stylized realism"
     offline: bool = False
+    generate_previs: bool = False
+    previs_source_image: str = ""
+    previs_backend: str = "auto"
 
 
 @dataclass
@@ -105,7 +132,7 @@ class AAAPipeline:
     def run(self, brief: AAAPipelineBrief) -> AAAPipelineResult:
         t0 = time.perf_counter()
         project_id = brief.project_id or _slug(brief.title)
-        project_root = self.root / project_id
+        project_root = (self.root / project_id).resolve()
         project_root.mkdir(parents=True, exist_ok=True)
 
         profile = load_quality_profile(brief.profile)
@@ -160,8 +187,67 @@ class AAAPipeline:
                 ],
             }
             previs_path = previs_dir / "previs_manifest.json"
-            previs_path.write_text(json.dumps(previs_manifest, indent=2), encoding="utf-8")
-            complete_stage(checkpoint, PipelineStage.PREVIS, [str(previs_path)])
+            if brief.generate_previs:
+                from agent.studio.lingbot_previs import (
+                    CameraKeyframe,
+                    PrevisRequest,
+                    run_previs,
+                )
+                from agent.studio.local_toolchain import generate_previs_source
+
+                source_image = (
+                    Path(brief.previs_source_image).expanduser()
+                    if brief.previs_source_image
+                    else generate_previs_source(project_root)
+                )
+                if source_image is None or not source_image.is_file():
+                    previs_manifest["result"] = {
+                        "ok": False,
+                        "status": "blocked",
+                        "error": "previs_source_image_unavailable",
+                    }
+                    previs_path.write_text(
+                        json.dumps(previs_manifest, indent=2), encoding="utf-8"
+                    )
+                    fail_stage(
+                        checkpoint,
+                        PipelineStage.PREVIS,
+                        "previs_source_image_unavailable",
+                    )
+                    stages_failed.append("previs")
+                else:
+                    request = PrevisRequest(
+                        prompt=(
+                            f"{brief.title}, {brief.art_style}, {brief.setting}. "
+                            "Original creature-hunting frontier environment, cinematic traversal."
+                        ),
+                        source_image=source_image,
+                        camera_keyframes=(
+                            CameraKeyframe((0.0, -1200.0, 350.0), (-10.0, 0.0, 0.0)),
+                            CameraKeyframe((600.0, -300.0, 500.0), (-15.0, 35.0, 0.0)),
+                            CameraKeyframe((1200.0, 500.0, 650.0), (-12.0, 70.0, 0.0)),
+                        ),
+                        output_dir=previs_dir,
+                        trajectory_id=f"{project_id}-primary",
+                        force_backend=brief.previs_backend,
+                    )
+                    result = run_previs(request)
+                    previs_manifest["source_image"] = str(source_image)
+                    previs_manifest["result"] = asdict(result)
+                    previs_path.write_text(
+                        json.dumps(previs_manifest, indent=2), encoding="utf-8"
+                    )
+                    if result.ok:
+                        artifacts = [str(previs_path), result.video_path]
+                        if result.conditioning_dir:
+                            artifacts.append(result.conditioning_dir)
+                        complete_stage(checkpoint, PipelineStage.PREVIS, artifacts)
+                    else:
+                        fail_stage(checkpoint, PipelineStage.PREVIS, result.error)
+                        stages_failed.append("previs")
+            else:
+                previs_path.write_text(json.dumps(previs_manifest, indent=2), encoding="utf-8")
+                complete_stage(checkpoint, PipelineStage.PREVIS, [str(previs_path)])
 
         if not checkpoint.is_stage_complete(PipelineStage.WORLD_SYSTEMS):
             begin_stage(checkpoint, PipelineStage.WORLD_SYSTEMS)
@@ -249,9 +335,104 @@ class AAAPipeline:
                     manifest_entry = materialize_stub_asset_entry(
                         entry, stub_relpath=stub_relpath
                     )
+                elif entry.category == "creature":
+                    from agent.studio.local_toolchain import generate_proof_asset
+                    from agent.studio.adapters.base import default_registry
+                    from agent.studio.types import Quality
+                    from agent.studio import adapters as _registered_adapters  # noqa: F401
+
+                    provider_artifact: Path | None = None
+                    adapter = default_registry.pick("mesh3d", quality=Quality.FINAL)
+                    if adapter is not None and adapter.available():
+                        provider_result = adapter.run(
+                            (
+                                f"Original {entry.asset_id} creature for {brief.title}; "
+                                f"{brief.art_style}; game-ready textured mesh; no third-party IP"
+                            ),
+                            project_root / "assets" / "providers" / entry.asset_id,
+                            fmt="glb",
+                            textured=True,
+                        )
+                        total_cost += provider_result.est_cost_usd
+                        for artifact in provider_result.artifacts:
+                            candidate = Path(artifact)
+                            if (
+                                candidate.is_file()
+                                and candidate.suffix.lower() in {".glb", ".gltf", ".fbx"}
+                                and candidate.stat().st_size > 0
+                            ):
+                                provider_artifact = candidate.resolve()
+                                break
+
+                    generated: Path | None = provider_artifact
+                    blender_report: dict[str, object] = {}
+                    if generated is None:
+                        generated, blender_report = generate_proof_asset(
+                            project_root,
+                            asset_id=entry.asset_id,
+                        )
+                    if generated is not None:
+                        is_provider_asset = provider_artifact is not None
+                        try:
+                            generated_relpath = generated.relative_to(project_root).as_posix()
+                        except ValueError:
+                            local_copy = (
+                                project_root
+                                / "assets"
+                                / "providers"
+                                / entry.asset_id
+                                / generated.name
+                            )
+                            local_copy.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(generated, local_copy)
+                            generated = local_copy
+                            generated_relpath = generated.relative_to(project_root).as_posix()
+                        manifest_entry = replace(
+                            entry,
+                            path=generated_relpath,
+                            provider=(
+                                adapter.provider.value
+                                if is_provider_asset and adapter is not None
+                                else "blender/procedural-proof"
+                            ),
+                            license=(
+                                "provider-license-review-required"
+                                if is_provider_asset
+                                else "original-procedural"
+                            ),
+                            authoritative=True,
+                            validation_blocked_reason=(
+                                "provider_license_and_mesh_validation_required"
+                                if is_provider_asset
+                                else "proof_mesh_missing_production_skeleton_and_animation"
+                            ),
+                        )
+                    else:
+                        manifest_entry = replace(
+                            entry,
+                            authoritative=False,
+                            previs_only=True,
+                            license="generation-failed",
+                            validation_blocked_reason=str(
+                                blender_report.get("error") or "blender_generation_failed"
+                            ),
+                        )
+                elif entry.category == "terrain":
+                    terrain_path = project_root / entry.path
+                    _generate_heightmap(
+                        terrain_path,
+                        seed=sum(ord(char) for char in entry.asset_id),
+                    )
+                    manifest_entry = replace(
+                        entry,
+                        provider="local/procedural-terrain",
+                        license="original-procedural",
+                        authoritative=True,
+                        validation_blocked_reason="",
+                    )
                 else:
                     manifest_entry = entry
-                stub = {
+                generation_record = {
                     "asset_id": entry.asset_id,
                     "provider": slot.provider_id if slot else "axiom/stub",
                     "previs_only": manifest_entry.previs_only,
@@ -259,11 +440,18 @@ class AAAPipeline:
                     "offline": brief.offline,
                     "path": manifest_entry.path,
                     "license": manifest_entry.license,
-                    "note": "Non-authoritative offline stub; not validated for commercial use.",
+                    "note": (
+                        "Non-authoritative offline stub; not validated for commercial use."
+                        if brief.offline
+                        else "Generation record; validation status is authoritative."
+                    ),
                 }
-                stub_path = assets_dir / f"{entry.asset_id}.stub.json"
-                stub_path.write_text(json.dumps(stub, indent=2), encoding="utf-8")
-                asset_gen_paths.append(str(stub_path))
+                record_suffix = "stub" if brief.offline else "generation"
+                record_path = assets_dir / f"{entry.asset_id}.{record_suffix}.json"
+                record_path.write_text(
+                    json.dumps(generation_record, indent=2), encoding="utf-8"
+                )
+                asset_gen_paths.append(str(record_path))
                 materialized_entries.append(manifest_entry)
                 if slot:
                     total_cost += slot.est_cost_usd
@@ -294,8 +482,19 @@ class AAAPipeline:
             prov_paths: list[str] = []
             index: dict[str, str] = {}
             for entry in assets.entries:
-                stub_file = project_root / "assets" / f"{entry.asset_id}.stub.json"
-                content_hash = sha256_file(stub_file) if stub_file.is_file() else "sha256:" + "0" * 64
+                artifact_file = project_root / entry.path
+                record_suffix = "stub" if brief.offline else "generation"
+                generation_record = (
+                    project_root / "assets" / f"{entry.asset_id}.{record_suffix}.json"
+                )
+                hash_source = (
+                    artifact_file if artifact_file.is_file() else generation_record
+                )
+                content_hash = (
+                    sha256_file(hash_source)
+                    if hash_source.is_file()
+                    else "sha256:" + "0" * 64
+                )
                 if brief.offline or not entry.authoritative:
                     prov = AssetProvenance(
                         asset_id=entry.asset_id,
@@ -355,6 +554,7 @@ class AAAPipeline:
                 additional_cost=0.0,
             )
             validation_paths: list[str] = []
+            asset_validation_failures: list[str] = []
             for entry in assets.entries:
                 artifact_ok, artifact_reason = resolve_manifest_entry_path(entry, project_root)
                 blocked_reason = ""
@@ -365,16 +565,34 @@ class AAAPipeline:
                 elif not artifact_ok:
                     blocked_reason = artifact_reason
                     failures.append(artifact_reason)
+                elif entry.validation_blocked_reason:
+                    blocked_reason = entry.validation_blocked_reason
+                    failures.append(blocked_reason)
                 record_path = validation_dir / f"{entry.asset_id}.json"
                 write_asset_validation_record(
                     record_path,
                     asset_id=entry.asset_id,
-                    passed=False,
+                    passed=not failures,
                     blocked_reason=blocked_reason,
                     failures=tuple(failures),
                     offline=brief.offline,
                 )
+                asset_validation_failures.extend(
+                    f"{entry.asset_id}:{failure}" for failure in failures
+                )
                 validation_paths.append(str(record_path))
+            gate_results = gate_results + (
+                GateResult(
+                    passed=not asset_validation_failures,
+                    gate="asset_validation",
+                    reason=(
+                        ""
+                        if not asset_validation_failures
+                        else f"{len(asset_validation_failures)} asset validation failure(s)"
+                    ),
+                    failures=tuple(asset_validation_failures),
+                ),
+            )
             validation_report = {
                 "gates": [
                     asdict(g)
@@ -473,6 +691,11 @@ def run_creature_hunting_pipeline(
     *,
     title: str = "Frontier Hunt",
     offline: bool = True,
+    engine_version: str = "5.8",
+    generate_previs: bool = False,
+    previs_source_image: str = "",
+    previs_backend: str = "auto",
+    resume: bool = True,
 ) -> AAAPipelineResult:
     """Representative creature-hunting open-world brief for verification."""
 
@@ -484,9 +707,13 @@ def run_creature_hunting_pipeline(
         profile="aaa_benchmark" if not offline else "high_fidelity",
         creatures=("apex_serpent", "pack_wolf", "sky_raptor"),
         biomes=("ancient_forest", "volcanic_caldera", "misty_coast"),
+        engine_version=engine_version,
+        generate_previs=generate_previs,
+        previs_source_image=previs_source_image,
+        previs_backend=previs_backend,
         offline=offline,
     )
-    return AAAPipeline(root).run(brief)
+    return AAAPipeline(root, resume=resume).run(brief)
 
 
 __all__ = [

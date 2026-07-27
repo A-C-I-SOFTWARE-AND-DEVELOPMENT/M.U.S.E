@@ -150,6 +150,40 @@ def verify(project_root: str | Path) -> dict:
         if previs.get("authoritative"):
             failures.append("previs_marked_authoritative")
 
+    toolchain_path = root / "ue5_project" / "Evidence" / "toolchain-report.json"
+    toolchain_passed = False
+    if toolchain_path.is_file():
+        toolchain = json.loads(toolchain_path.read_text(encoding="utf-8"))
+        toolchain_passed = toolchain.get("passed") is True
+        if not toolchain_passed:
+            failures.append("toolchain_report_failed")
+        else:
+            present.append("ue5_project/Evidence/toolchain-report.json")
+
+    world_audit_path = root / "ue5_project" / "Evidence" / "world-audit.json"
+    world_audit_passed = False
+    if world_audit_path.is_file():
+        world_audit = json.loads(world_audit_path.read_text(encoding="utf-8"))
+        world_audit_passed = world_audit.get("passed") is True
+        if not world_audit_passed:
+            failures.append("world_audit_failed")
+        else:
+            present.append("ue5_project/Evidence/world-audit.json")
+
+    gate_report_path = root / "validation" / "gate_report.json"
+    gate_data = (
+        json.loads(gate_report_path.read_text(encoding="utf-8"))
+        if gate_report_path.is_file()
+        else {}
+    )
+    production_ready = bool(
+        acceptance_data.get("evidence_complete")
+        and acceptance_data.get("quality_gate_passed")
+        and gate_data.get("gates_passed")
+        and toolchain_passed
+        and world_audit_passed
+    )
+
     return {
         "ok": not failures,
         "project_root": str(root),
@@ -160,6 +194,9 @@ def verify(project_root: str | Path) -> dict:
             "quality_gate_passed": acceptance_data.get("quality_gate_passed"),
             "benchmark_claim": acceptance_data.get("benchmark_claim", "")[:120],
         },
+        "toolchain_passed": toolchain_passed,
+        "world_audit_passed": world_audit_passed,
+        "production_ready": production_ready,
         "reason": "ok" if not failures else "verification failed",
     }
 

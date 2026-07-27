@@ -187,7 +187,7 @@ def decompose_brief(
     creatures: Sequence[str] | None = None,
     biomes: Sequence[str] | None = None,
     engine: str = "unreal",
-    engine_version: str = "5.6",
+    engine_version: str = "5.8",
 ) -> tuple[WorldManifest, AssetManifest]:
     """Typed decomposition from a production brief into world + asset manifests."""
 
