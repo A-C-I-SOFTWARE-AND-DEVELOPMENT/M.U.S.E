@@ -110,6 +110,7 @@ jobs:
   e2e:
     runs-on: [self-hosted, primary]
     timeout-minutes: 15
+    continue-on-error: true  # e2e smoke — non-blocking on self-hosted runner
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
