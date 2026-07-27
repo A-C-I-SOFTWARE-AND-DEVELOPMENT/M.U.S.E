@@ -138,3 +138,4 @@ frontier_hunt_full_test/
 frontier_hunt_recovered_test/
 toolchain_output/
 .orchestrate/
+.stale_*.txt
