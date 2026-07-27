@@ -1,0 +1,26 @@
+name: CI Diagnostic
+
+# Minimal workflow to verify GitHub Actions itself works on this repo.
+# If THIS fails, the problem is infra-level, not code-level.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  echo-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Hello
+        run: echo "CI is working"
+
+      - name: Python check
+        run: python3 -c "print('Python works')"
+
+      - name: Git check
+        run: git --version
