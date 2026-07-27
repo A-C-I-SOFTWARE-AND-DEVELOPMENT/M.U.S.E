@@ -16,8 +16,10 @@ Usage::
         --core-loop "scan, salvage, upgrade, survive" [--offline] [--json]
 
 Honest framing: this drives the *pipeline*; it does not by itself ship a
-finished AAA game. For a runnable artifact today, target Godot and pair this
-with the reference slice + `export_godot_slice.py`.
+finished AAA game. For high-fidelity UE5 production, use
+`scripts/run_pipeline.py` at the repo root (AAA pipeline with typed manifests,
+checkpoints, and acceptance gates). For a runnable Godot artifact today,
+target Godot and pair this with the reference slice + `export_godot_slice.py`.
 """
 
 from __future__ import annotations

@@ -390,6 +390,25 @@ class StudioOrchestrator:
 
         return GameFoundry(self.root / "game_foundry", **kwargs).build(spec)
 
+    def produce_aaa_game(self, brief, **kwargs):
+        """Run the high-fidelity AAA production pipeline."""
+
+        from agent.studio.aaa_pipeline import AAAPipeline, AAAPipelineBrief
+
+        if isinstance(brief, AAAPipelineBrief):
+            aaa_brief = brief
+        else:
+            aaa_brief = AAAPipelineBrief(
+                title=brief.title,
+                genre=brief.genre,
+                setting=getattr(brief, "setting", "") or "",
+                core_loop=getattr(brief, "core_loop", "") or "",
+                profile=kwargs.get("profile", "high_fidelity"),
+                engine="unreal",
+                offline=kwargs.get("offline", False),
+            )
+        return AAAPipeline(self.root / "aaa_pipeline", **kwargs).run(aaa_brief)
+
     def package_native_stereo(self, shot, renders, qc, **kwargs):
         """Package a two-eye cinema master with deterministic QC evidence."""
 

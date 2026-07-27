@@ -1,0 +1,38 @@
+{
+  "brief": {
+    "title": "Frontier Hunt",
+    "genre": "creature-hunting action-RPG",
+    "setting": "vast frontier with diverse biomes",
+    "core_loop": "track, hunt, craft, explore",
+    "profile": "high_fidelity",
+    "creatures": ["apex_serpent", "pack_wolf", "sky_raptor"],
+    "biomes": ["ancient_forest", "volcanic_caldera", "misty_coast"]
+  },
+  "expected_manifests": [
+    "pipeline_manifest.json",
+    "manifests/world_manifest.json",
+    "manifests/asset_manifest.json",
+    "manifests/world_systems.json",
+    "manifests/mission_manifest.json",
+    "manifests/audio_manifest.json",
+    "manifests/cinematic_manifest.json",
+    "checkpoints/pipeline_checkpoint.json",
+    "provenance/provenance_index.json",
+    "reports/acceptance_report.json",
+    "previs/previs_manifest.json"
+  ],
+  "expected_ue5_files": [
+    "Config/DefaultEngine.ini",
+    "Config/DefaultScalability.ini",
+    "Config/WorldPartition.ini",
+    "Config/PCGGraphs.json",
+    "Content/Navigation/NavMeshConfig.json",
+    "Content/Collision/collision_profiles.json"
+  ],
+  "quality_requirements": {
+    "world_partition_enabled": true,
+    "lumen_enabled": true,
+    "nanite_enabled": true,
+    "requires_render_evidence": true
+  }
+}

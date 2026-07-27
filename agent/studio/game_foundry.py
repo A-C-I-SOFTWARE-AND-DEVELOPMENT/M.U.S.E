@@ -186,35 +186,19 @@ class GameFoundry:
             )
             return
 
-        source = project_root / "Source" / "Game"
-        source.mkdir(parents=True, exist_ok=True)
-        (project_root / "Config").mkdir(exist_ok=True)
-        (project_root / "Content").mkdir(exist_ok=True)
-        (project_root / "Game.uproject").write_text(
-            json.dumps(
-                {
-                    "FileVersion": 3,
-                    "EngineAssociation": spec.engine_version,
-                    "Category": "Games",
-                    "Description": spec.title,
-                    "Modules": [
-                        {"Name": "Game", "Type": "Runtime", "LoadingPhase": "Default"}
-                    ],
-                },
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
-        (source / "Game.Build.cs").write_text(
-            "using UnrealBuildTool;\npublic class Game : ModuleRules {\n"
-            "    public Game(ReadOnlyTargetRules Target) : base(Target) {\n"
-            '        PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine" });\n'
-            "    }\n}\n",
-            encoding="utf-8",
-        )
-        (source / "Game.cpp").write_text(
-            '#include "Modules/ModuleManager.h"\nIMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, Game, "Game");\n',
-            encoding="utf-8",
+        from agent.studio.quality_profiles import load_quality_profile
+        from agent.studio.ue5_generator import generate_ue5_project
+
+        profile_name = str(spec.metadata.get("quality_profile", "high_fidelity"))
+        try:
+            profile = load_quality_profile(profile_name)
+        except ValueError:
+            profile = load_quality_profile("high_fidelity")
+        generate_ue5_project(
+            project_root,
+            title=spec.title,
+            engine_version=spec.engine_version,
+            profile=profile,
         )
 
     @staticmethod
