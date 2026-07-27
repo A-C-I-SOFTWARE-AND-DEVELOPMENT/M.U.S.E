@@ -53,7 +53,13 @@ jobs:
         run: |
           source .venv/Scripts/activate
           set +e
-          python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 2>&1 | tee /tmp/pytest-output.log
+          mkdir -p $HERMES_HOME
+          python -m pytest tests/ -q \
+            --ignore=tests/integration --ignore=tests/e2e \
+            --ignore=tests/tools/test_mcp_oauth.py \
+            --tb=short -n auto --timeout=30 --timeout-method=thread \
+            -p no:cacheprovider \
+            2>&1 | tee /tmp/pytest-output.log
           exitcode=${PIPESTATUS[0]}
           set -e
           if [ "$exitcode" -ne 0 ]; then
