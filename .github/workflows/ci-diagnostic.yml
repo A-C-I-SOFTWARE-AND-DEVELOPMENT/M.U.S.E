@@ -10,9 +10,10 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 5
     steps:
-      - run: echo "GitHub Actions is working"
-      - run: python3 --version
-      - run: uname -a
+      - run: echo "Self-hosted runner is working!"
+      - run: python --version
+      - name: Check git
+        run: git --version
