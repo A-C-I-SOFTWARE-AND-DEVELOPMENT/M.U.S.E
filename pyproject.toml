@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=83.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -106,7 +106,7 @@ axiom = [
 # seeded $HERMES_HOME workspace against the VENDORED pyproject (which also
 # carries the pytorch-cu128 index that optional-dependencies cannot express).
 # See docs/integrations/autoresearch.md.
-dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.48", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
+dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.28.1", "ty==0.0.48", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
 messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.14.1", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
 slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.14.1"]
@@ -125,7 +125,7 @@ pty = [
   "pywinpty==2.0.15; sys_platform == 'win32'",
 ]
 honcho = ["honcho-ai==2.0.1"]
-mcp = ["mcp==1.26.0"]
+mcp = ["mcp==1.28.1"]
 homeassistant = ["aiohttp==3.14.1"]
 sms = ["aiohttp==3.14.1"]
 # NOTE: SIA (Hexo Labs Self-Improving AI), used by the `sia` worker and the
@@ -139,7 +139,7 @@ sms = ["aiohttp==3.14.1"]
 # The cua-driver binary itself is installed via `muse tools` post-setup
 # (curl install script); this extra just pins the MCP client used to talk
 # to it, which is already provided by the `mcp` extra.
-computer-use = ["mcp==1.26.0"]
+computer-use = ["mcp==1.28.1"]
 acp = ["agent-client-protocol==0.9.0"]
 # mistral: extra REMOVED 2026-05-12 — `mistralai` PyPI project quarantined
 # after malicious 2.4.6 release (Mini Shai-Hulud worm). Every version of
@@ -302,7 +302,20 @@ muse-acp = "acp_adapter.entry:main"
 # discord.py (all releases <= 2.7.1) pins "PyNaCl<1.6,>=1.5.0" for its
 # optional voice extra, so the patched 1.6.2 is unreachable without this
 # override. Remove once discord.py relaxes its upper bound.
-override-dependencies = ["pynacl>=1.6.2"]
+override-dependencies = [
+  "pynacl>=1.6.2",
+  # Security overrides for transitive dependencies flagged by Dependabot.
+  # These are pulled in by other packages and can't be bumped via direct
+  # pins without breaking the parent's version constraint. Remove each
+  # override once the parent package updates its own constraint.
+  "urllib3>=2.5.0",          # CVE-2025-50181/50182 — transitive (requests/httpx/openai)
+  "cryptography>=45.0.0",    # GHSA — transitive (multiple providers)
+  "tornado>=6.5.1",          # GHSA — transitive (faster-whisper/ipython/jupyter)
+  "pyasn1>=0.6.1",           # GHSA — transitive (cryptography chain)
+  "msgpack>=1.1.0",          # GHSA — transitive (mcp)
+  "cbor2>=5.7.1",            # GHSA — transitive (fastmcp)
+  "python-multipart>=0.0.18", # GHSA — transitive (fastapi/mcp)
+]
 
 [tool.setuptools]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "utils"]
