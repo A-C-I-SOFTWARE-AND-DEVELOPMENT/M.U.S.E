@@ -472,3 +472,4 @@ MIT — see [LICENSE](LICENSE).
 <sub>
 <b>Heritage &amp; credits — with gratitude.</b> muse stands on the shoulders of open work. It grows from the Hermes agent base by <a href="https://nousresearch.com">Nous Research</a> (MIT) and is developed and maintained by <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT">A-C-I Software and Development</a>. Local-first voice/embodiment concepts are inspired by <a href="https://github.com/tinyhumansai/openhuman">OpenHuman</a> (concept only — no code copied). Capability comes from the open-weight model communities — DeepSeek, Z.ai/GLM, Moonshot/Kimi, MiniMax, Alibaba/Qwen, Google/Gemma, Mistral, BAAI and others — and the benchmark/leaderboard maintainers cited in <code>docs/ai-intelligence/</code>. Thank you. Full acknowledgements: <a href="CREDITS.md">CREDITS.md</a>.
 </sub>
+# CI health badge
