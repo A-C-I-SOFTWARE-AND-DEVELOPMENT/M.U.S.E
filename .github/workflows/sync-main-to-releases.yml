@@ -49,6 +49,10 @@ concurrency:
   group: sync-main-to-releases
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # ---- 1. Source tag: re-point `M.U.S.E` to main HEAD (cheap, no build) ------
   sync-source-tag:

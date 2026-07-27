@@ -64,6 +64,10 @@ concurrency:
   group: uv-lockfile-check-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   check:
     name: uv lock --check

@@ -30,6 +30,10 @@ concurrency:
   group: lint-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   lint-diff:
     name: ruff + ty diff

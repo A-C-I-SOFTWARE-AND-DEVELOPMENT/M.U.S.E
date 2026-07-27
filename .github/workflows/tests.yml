@@ -20,6 +20,10 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     runs-on: [self-hosted, primary]

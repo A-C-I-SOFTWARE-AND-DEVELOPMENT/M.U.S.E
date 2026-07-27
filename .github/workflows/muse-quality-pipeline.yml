@@ -27,6 +27,10 @@ concurrency:
   group: muse-quality-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   import-contracts:
     # Blocking: enforces the direct-coupling boundaries in .importlinter. These

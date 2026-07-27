@@ -20,6 +20,10 @@ concurrency:
   group: aci-to-base44-sync
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   sync:
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[base44-to-aci]')
