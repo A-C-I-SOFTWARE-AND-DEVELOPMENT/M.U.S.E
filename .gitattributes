@@ -1,2 +1,7 @@
 # Auto-generated files — collapse diffs and exclude from language stats
 web/package-lock.json linguist-generated=true
+
+# Lockfiles must keep LF line endings — CRLF corruption on Windows
+# breaks uv lock --check (hash mismatch) and npm integrity checks.
+uv.lock text eol=lf
+**/package-lock.json text eol=lf
