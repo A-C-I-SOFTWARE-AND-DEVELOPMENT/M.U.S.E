@@ -49,8 +49,8 @@ jobs:
 
       - name: Install ruff + ty
         run: |
-          uv tool install ruff
-          uv tool install ty
+          uv tool install ruff==0.15.10
+          uv tool install ty==0.0.48
 
       - name: Determine base ref
         id: base
@@ -179,7 +179,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
 
       - name: Install ruff
-        run: uv tool install ruff
+        run: uv tool install ruff==0.15.10
 
       - name: ruff check .
         # No --exit-zero, no || true. Exit code propagates to the job,

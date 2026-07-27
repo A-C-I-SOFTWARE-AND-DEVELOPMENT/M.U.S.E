@@ -78,8 +78,8 @@ jobs:
 
       - name: Install repo lint/type tools
         run: |
-          uv tool install ruff
-          uv tool install ty
+          uv tool install ruff==0.15.10
+          uv tool install ty==0.0.48
 
       - name: Install Python quality + docs tools
         run: |

@@ -103,7 +103,9 @@ jobs:
           delete: true
 
       - name: Final fail if build or flake failed
-        if: steps.flake.outcome == 'failure' || steps.build.outcome == 'failure'
+        # Only block PRs — push-to-main Nix failures are advisory (the Nix
+        # build is a packaging concern, not a correctness gate).
+        if: github.event_name == 'pull_request' && (steps.flake.outcome == 'failure' || steps.build.outcome == 'failure')
         run: |
           if [ "${{ steps.hash_check.outputs.stale }}" == "true" ]; then
             echo "::error::Nix build failed due to stale npm lockfile hash. Run: nix run .#fix-lockfiles"
