@@ -15,6 +15,7 @@ import { OverlayHint } from './overlayControls.js'
 import { ApprovalPrompt, ClarifyPrompt, ConfirmPrompt } from './prompts.js'
 import { SessionPicker } from './sessionPicker.js'
 import { SkillsHub } from './skillsHub.js'
+import { ThinkingPicker } from './thinkingPicker.js'
 
 const COMPLETION_WINDOW = 16
 
@@ -111,7 +112,13 @@ export function FloatingOverlays({
   const theme = useStore($uiTheme)
 
   const hasAny =
-    overlay.modelPicker || overlay.pager || overlay.picker || overlay.skillsHub || overlay.hub || overlay.palette ||
+    overlay.modelPicker ||
+    overlay.thinkingPicker ||
+    overlay.pager ||
+    overlay.picker ||
+    overlay.skillsHub ||
+    overlay.hub ||
+    overlay.palette ||
     completions.length
 
   if (!hasAny) {
@@ -156,6 +163,20 @@ export function FloatingOverlays({
             onCancel={() => patchOverlayState({ modelPicker: false })}
             onSelect={onModelSelect}
             sessionId={sid}
+            t={theme}
+          />
+        </FloatBox>
+      )}
+
+      {overlay.thinkingPicker && (
+        <FloatBox color={theme.color.border}>
+          <ThinkingPicker
+            gw={gw}
+            onCancel={() => patchOverlayState({ thinkingPicker: false })}
+            onSelect={value => {
+              patchOverlayState({ thinkingPicker: false })
+              onRunSlash(`/reasoning ${value}`)
+            }}
             t={theme}
           />
         </FloatBox>

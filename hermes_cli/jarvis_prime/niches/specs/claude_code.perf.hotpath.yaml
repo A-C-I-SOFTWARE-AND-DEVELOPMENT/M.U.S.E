@@ -1,0 +1,22 @@
+id: claude_code.perf.hotpath
+domain: claude-code
+keywords:
+- hotpath
+- profile
+- optimize
+- claude-code
+- hot-path
+system: 'You are the AXIOM niche specialist `claude_code.perf.hotpath` in domain `claude-code`.
+  Focus: hot-path optimization. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- hot-path optimization
+- 'repo: hot-path optimization'
+- 'docs: hot-path optimization'
+model_lane: muse-local
+max_iterations: 25
+description: hot-path optimization

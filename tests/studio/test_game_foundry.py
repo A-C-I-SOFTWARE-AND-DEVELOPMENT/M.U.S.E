@@ -31,7 +31,8 @@ def test_game_manifest_covers_complete_production_lanes(tmp_path: Path) -> None:
     manifest = GameFoundry(tmp_path, engine_discovery=lambda: None).create(_spec())
     assert set(manifest.lanes) == set(PRODUCTION_LANES)
     assert (manifest.root / "production-lanes.json").is_file()
-    assert (manifest.root / "Game.uproject").is_file()
+    assert list(manifest.root.glob("*.uproject")), "expected UE5 .uproject"
+    assert (manifest.root / "Config" / "DefaultEngine.ini").is_file()
 
 
 def test_uncompiled_engine_package_is_not_marked_playable(tmp_path: Path) -> None:

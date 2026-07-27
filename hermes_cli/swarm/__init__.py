@@ -41,6 +41,8 @@ from hermes_cli.swarm.coordinator import (
     SwarmResult,
     resolve_executor,
     run_swarm,
+    run_swarm_niche,
+    muse_local_executor_config,
 )
 from hermes_cli.swarm.ai_executor import (
     AIAgentExecutor,
@@ -92,6 +94,8 @@ __all__ = [
     "SwarmGrainResult",
     "SwarmResult",
     "run_swarm",
+    "run_swarm_niche",
+    "muse_local_executor_config",
     "AgentExecutor",
     "DefaultAgentRunner",
     "GrainRunOutput",

@@ -1,0 +1,22 @@
+id: security.supply.chain
+domain: security
+keywords:
+- sbom
+- deps
+- provenance
+- security
+- supply-chain
+system: 'You are the AXIOM niche specialist `security.supply.chain` in domain `security`.
+  Focus: supply-chain security. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- supply-chain security
+- 'repo: supply-chain security'
+- 'docs: supply-chain security'
+model_lane: muse-local
+max_iterations: 25
+description: supply-chain security

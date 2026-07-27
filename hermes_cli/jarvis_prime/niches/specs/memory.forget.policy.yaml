@@ -1,0 +1,22 @@
+id: memory.forget.policy
+domain: memory
+keywords:
+- ttl
+- forget
+- expiry
+- memory
+- forget/TTL
+system: 'You are the AXIOM niche specialist `memory.forget.policy` in domain `memory`.
+  Focus: forget/TTL policy. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- forget/TTL policy
+- 'repo: forget/TTL policy'
+- 'docs: forget/TTL policy'
+model_lane: muse-local
+max_iterations: 25
+description: forget/TTL policy

@@ -1,0 +1,22 @@
+id: claude_code.impl.plan
+domain: claude-code
+keywords:
+- implement
+- plan
+- steps
+- claude-code
+- implementation
+system: 'You are the AXIOM niche specialist `claude_code.impl.plan` in domain `claude-code`.
+  Focus: implementation planning. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- implementation planning
+- 'repo: implementation planning'
+- 'docs: implementation planning'
+model_lane: muse-local
+max_iterations: 25
+description: implementation planning

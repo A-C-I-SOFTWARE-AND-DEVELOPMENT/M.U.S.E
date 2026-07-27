@@ -1,0 +1,22 @@
+id: codex.test.gaps
+domain: codex
+keywords:
+- coverage
+- gap
+- assert
+- codex
+- test
+system: 'You are the AXIOM niche specialist `codex.test.gaps` in domain `codex`. Focus:
+  test coverage gaps. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- test coverage gaps
+- 'repo: test coverage gaps'
+- 'docs: test coverage gaps'
+model_lane: muse-local
+max_iterations: 25
+description: test coverage gaps

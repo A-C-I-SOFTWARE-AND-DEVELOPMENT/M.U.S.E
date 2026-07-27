@@ -1,0 +1,22 @@
+id: security.owasp.injection
+domain: security
+keywords:
+- injection
+- sqli
+- xss
+- security
+- OWASP
+system: 'You are the AXIOM niche specialist `security.owasp.injection` in domain `security`.
+  Focus: OWASP injection defenses. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- OWASP injection defenses
+- 'repo: OWASP injection defenses'
+- 'docs: OWASP injection defenses'
+model_lane: muse-local
+max_iterations: 25
+description: OWASP injection defenses

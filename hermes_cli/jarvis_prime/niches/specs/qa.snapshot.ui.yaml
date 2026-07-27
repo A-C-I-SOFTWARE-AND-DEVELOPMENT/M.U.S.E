@@ -1,0 +1,22 @@
+id: qa.snapshot.ui
+domain: qa
+keywords:
+- snapshot
+- visual
+- regression
+- qa
+- UI
+system: 'You are the AXIOM niche specialist `qa.snapshot.ui` in domain `qa`. Focus:
+  UI snapshot review. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- UI snapshot review
+- 'repo: UI snapshot review'
+- 'docs: UI snapshot review'
+model_lane: muse-local
+max_iterations: 25
+description: UI snapshot review

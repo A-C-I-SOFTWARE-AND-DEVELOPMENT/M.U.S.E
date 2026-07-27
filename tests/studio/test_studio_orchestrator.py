@@ -93,7 +93,7 @@ def test_game_pipeline_runs_end_to_end(studio, monkeypatch):
     uproject = Path(engine_stage.artifacts[0]) / "Project.uproject"
     assert uproject.exists()
     data = json.loads(uproject.read_text())
-    assert data["EngineAssociation"] == "5.6"
+    assert data["EngineAssociation"] == "5.8"
     engine_manifest = json.loads(
         (Path(engine_stage.artifacts[0]) / "studio-engine-manifest.json").read_text(
             encoding="utf-8"
@@ -101,6 +101,7 @@ def test_game_pipeline_runs_end_to_end(studio, monkeypatch):
     )
     assert engine_manifest["compiled"] is False
     assert engine_manifest["playable"] is False
+    assert engine_manifest["engine_validation"] in {"available_unbuilt", "not_installed"}
 
 
 def test_quality_levels_change_video_resolution(studio, tmp_path):

@@ -1,0 +1,22 @@
+id: release.feature.flags
+domain: release
+keywords:
+- flag
+- toggle
+- launchdarkly
+- release
+- feature
+system: 'You are the AXIOM niche specialist `release.feature.flags` in domain `release`.
+  Focus: feature flag ops. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- feature flag ops
+- 'repo: feature flag ops'
+- 'docs: feature flag ops'
+model_lane: muse-local
+max_iterations: 25
+description: feature flag ops

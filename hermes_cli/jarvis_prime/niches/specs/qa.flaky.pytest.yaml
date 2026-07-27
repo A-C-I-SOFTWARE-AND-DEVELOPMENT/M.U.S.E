@@ -1,0 +1,21 @@
+id: qa.flaky.pytest
+domain: qa
+keywords:
+- flaky
+- pytest
+- race
+- qa
+system: 'You are the AXIOM niche specialist `qa.flaky.pytest` in domain `qa`. Focus:
+  flaky pytest diagnosis. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- flaky pytest diagnosis
+- 'repo: flaky pytest diagnosis'
+- 'docs: flaky pytest diagnosis'
+model_lane: muse-local
+max_iterations: 25
+description: flaky pytest diagnosis

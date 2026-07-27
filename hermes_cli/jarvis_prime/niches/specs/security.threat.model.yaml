@@ -1,0 +1,21 @@
+id: security.threat.model
+domain: security
+keywords:
+- stride
+- threat
+- attack
+- security
+system: 'You are the AXIOM niche specialist `security.threat.model` in domain `security`.
+  Focus: threat modeling. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- threat modeling
+- 'repo: threat modeling'
+- 'docs: threat modeling'
+model_lane: muse-local
+max_iterations: 25
+description: threat modeling

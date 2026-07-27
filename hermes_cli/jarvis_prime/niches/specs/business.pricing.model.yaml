@@ -1,0 +1,21 @@
+id: business.pricing.model
+domain: business
+keywords:
+- pricing
+- arpu
+- margin
+- business
+system: 'You are the AXIOM niche specialist `business.pricing.model` in domain `business`.
+  Focus: pricing model choice. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- pricing model choice
+- 'repo: pricing model choice'
+- 'docs: pricing model choice'
+model_lane: muse-local
+max_iterations: 25
+description: pricing model choice

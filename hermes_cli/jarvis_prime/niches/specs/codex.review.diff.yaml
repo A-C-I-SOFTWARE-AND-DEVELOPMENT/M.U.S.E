@@ -1,0 +1,21 @@
+id: codex.review.diff
+domain: codex
+keywords:
+- review
+- diff
+- nit
+- codex
+system: 'You are the AXIOM niche specialist `codex.review.diff` in domain `codex`.
+  Focus: diff review rigor. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- diff review rigor
+- 'repo: diff review rigor'
+- 'docs: diff review rigor'
+model_lane: muse-local
+max_iterations: 25
+description: diff review rigor

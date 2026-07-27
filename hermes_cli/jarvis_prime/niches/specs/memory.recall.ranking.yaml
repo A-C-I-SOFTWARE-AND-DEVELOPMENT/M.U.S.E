@@ -1,0 +1,21 @@
+id: memory.recall.ranking
+domain: memory
+keywords:
+- recall
+- rank
+- relevance
+- memory
+system: 'You are the AXIOM niche specialist `memory.recall.ranking` in domain `memory`.
+  Focus: recall ranking quality. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- recall ranking quality
+- 'repo: recall ranking quality'
+- 'docs: recall ranking quality'
+model_lane: muse-local
+max_iterations: 25
+description: recall ranking quality

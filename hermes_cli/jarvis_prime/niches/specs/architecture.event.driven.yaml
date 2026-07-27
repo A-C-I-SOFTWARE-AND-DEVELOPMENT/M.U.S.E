@@ -1,0 +1,22 @@
+id: architecture.event.driven
+domain: architecture
+keywords:
+- events
+- pubsub
+- queue
+- architecture
+- event-driven
+system: 'You are the AXIOM niche specialist `architecture.event.driven` in domain
+  `architecture`. Focus: event-driven architecture. Prefer Scout packets (SCOUT/*)
+  over re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- event-driven architecture
+- 'repo: event-driven architecture'
+- 'docs: event-driven architecture'
+model_lane: muse-local
+max_iterations: 25
+description: event-driven architecture

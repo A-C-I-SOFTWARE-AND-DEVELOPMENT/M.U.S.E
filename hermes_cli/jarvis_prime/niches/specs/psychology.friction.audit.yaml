@@ -1,0 +1,21 @@
+id: psychology.friction.audit
+domain: psychology
+keywords:
+- friction
+- drop-off
+- hesitation
+- psychology
+system: 'You are the AXIOM niche specialist `psychology.friction.audit` in domain
+  `psychology`. Focus: friction audit. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- friction audit
+- 'repo: friction audit'
+- 'docs: friction audit'
+model_lane: muse-local
+max_iterations: 25
+description: friction audit

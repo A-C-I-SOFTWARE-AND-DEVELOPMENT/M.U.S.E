@@ -76,7 +76,7 @@ class Adapter(abc.ABC):
             "would_cost_usd": self._estimate_cost(**kwargs),
             "stub": True,
         }
-        fname = f"{self.capability}_{int(time.time()*1000)}.json"
+        fname = f"{self.capability}_{time.time_ns()}.json"
         out = workdir / fname
         out.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         return [str(out)], f"stub manifest ({self.provider.value})"

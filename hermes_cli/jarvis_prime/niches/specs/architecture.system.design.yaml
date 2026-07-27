@@ -1,0 +1,21 @@
+id: architecture.system.design
+domain: architecture
+keywords:
+- architecture
+- design
+- scalability
+- system
+system: 'You are the AXIOM niche specialist `architecture.system.design` in domain
+  `architecture`. Focus: system design tradeoffs. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- system design tradeoffs
+- 'repo: system design tradeoffs'
+- 'docs: system design tradeoffs'
+model_lane: muse-local
+max_iterations: 25
+description: system design tradeoffs

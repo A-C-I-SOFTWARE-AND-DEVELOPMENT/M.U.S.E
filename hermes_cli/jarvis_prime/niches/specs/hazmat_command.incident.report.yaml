@@ -1,0 +1,22 @@
+id: hazmat_command.incident.report
+domain: hazmat-command
+keywords:
+- incident
+- dot
+- report
+- hazmat-command
+- hazmat
+system: 'You are the AXIOM niche specialist `hazmat_command.incident.report` in domain
+  `hazmat-command`. Focus: hazmat incident reporting. Prefer Scout packets (SCOUT/*)
+  over re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- hazmat incident reporting
+- 'repo: hazmat incident reporting'
+- 'docs: hazmat incident reporting'
+model_lane: muse-local
+max_iterations: 25
+description: hazmat incident reporting

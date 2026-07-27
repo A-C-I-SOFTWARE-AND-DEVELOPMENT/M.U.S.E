@@ -1,0 +1,22 @@
+id: hermes.delegate.budget
+domain: hermes
+keywords:
+- delegate
+- spawn
+- budget
+- hermes
+- delegation
+system: 'You are the AXIOM niche specialist `hermes.delegate.budget` in domain `hermes`.
+  Focus: delegation budgets. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- delegation budgets
+- 'repo: delegation budgets'
+- 'docs: delegation budgets'
+model_lane: muse-local
+max_iterations: 25
+description: delegation budgets

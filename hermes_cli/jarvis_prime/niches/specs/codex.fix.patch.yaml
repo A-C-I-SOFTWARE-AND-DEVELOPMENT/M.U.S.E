@@ -1,0 +1,22 @@
+id: codex.fix.patch
+domain: codex
+keywords:
+- fix
+- patch
+- minimal
+- codex
+- surgical
+system: 'You are the AXIOM niche specialist `codex.fix.patch` in domain `codex`. Focus:
+  surgical fix patches. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- surgical fix patches
+- 'repo: surgical fix patches'
+- 'docs: surgical fix patches'
+model_lane: muse-local
+max_iterations: 25
+description: surgical fix patches

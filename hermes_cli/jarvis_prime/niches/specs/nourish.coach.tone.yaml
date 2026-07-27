@@ -1,0 +1,21 @@
+id: nourish.coach.tone
+domain: nourish
+keywords:
+- coach
+- tone
+- motivation
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.coach.tone` in domain `nourish`.
+  Focus: coach tone of voice. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- coach tone of voice
+- 'repo: coach tone of voice'
+- 'docs: coach tone of voice'
+model_lane: muse-local
+max_iterations: 25
+description: coach tone of voice

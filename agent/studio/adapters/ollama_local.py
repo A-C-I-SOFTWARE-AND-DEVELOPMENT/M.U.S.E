@@ -96,6 +96,8 @@ def _ollama_available() -> bool:
 def _save(workdir: Path, name: str, text: str) -> str:
     workdir.mkdir(parents=True, exist_ok=True)
     p = workdir / name
+    if p.exists():
+        p = p.with_name(f"{p.stem}_{time.time_ns()}{p.suffix}")
     p.write_text(text, encoding="utf-8")
     return str(p)
 

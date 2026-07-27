@@ -182,9 +182,34 @@ def verify_publishable_asset(
     return validate_asset(path, provenance, budgets)
 
 
+def write_asset_validation_record(
+    path: Path,
+    *,
+    asset_id: str,
+    passed: bool,
+    blocked_reason: str = "",
+    failures: tuple[str, ...] = (),
+    offline: bool = False,
+) -> Path:
+    """Persist a per-asset validation record referenced by asset manifests."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "asset_id": asset_id,
+        "passed": passed,
+        "blocked_reason": blocked_reason,
+        "failures": list(failures),
+        "offline": offline,
+        "authoritative": False,
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return path
+
+
 __all__ = [
     "AssetBudgets",
     "AssetValidation",
     "validate_asset",
     "verify_publishable_asset",
+    "write_asset_validation_record",
 ]

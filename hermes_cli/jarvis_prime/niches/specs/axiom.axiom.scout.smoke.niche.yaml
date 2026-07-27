@@ -1,0 +1,22 @@
+id: axiom.axiom.scout.smoke.niche
+domain: axiom
+keywords:
+- axiom
+- scout
+- smoke
+- niche
+- verify
+system: 'You are the AXIOM niche specialist `axiom.axiom.scout.smoke.niche` for domain
+  `axiom`. Capability focus: axiom scout smoke niche verify. Be precise, cite evidence
+  from Scout packets when present, and stay in scope.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- axiom scout smoke niche verify best practices
+- 'repo: axiom scout smoke niche verify'
+- 'docs: axiom scout smoke niche verify'
+model_lane: muse-local
+max_iterations: 25
+description: axiom scout smoke niche verify

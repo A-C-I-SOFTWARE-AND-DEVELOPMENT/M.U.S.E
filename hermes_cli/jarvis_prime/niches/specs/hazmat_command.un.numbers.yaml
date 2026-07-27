@@ -1,0 +1,22 @@
+id: hazmat_command.un.numbers
+domain: hazmat-command
+keywords:
+- un
+- class
+- division
+- hazmat-command
+- UN
+system: 'You are the AXIOM niche specialist `hazmat_command.un.numbers` in domain
+  `hazmat-command`. Focus: UN number classification. Prefer Scout packets (SCOUT/*)
+  over re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- UN number classification
+- 'repo: UN number classification'
+- 'docs: UN number classification'
+model_lane: muse-local
+max_iterations: 25
+description: UN number classification

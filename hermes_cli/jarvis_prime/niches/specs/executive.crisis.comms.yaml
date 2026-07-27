@@ -1,0 +1,21 @@
+id: executive.crisis.comms
+domain: executive
+keywords:
+- crisis
+- comms
+- press
+- executive
+system: 'You are the AXIOM niche specialist `executive.crisis.comms` in domain `executive`.
+  Focus: crisis communications. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- crisis communications
+- 'repo: crisis communications'
+- 'docs: crisis communications'
+model_lane: muse-local
+max_iterations: 25
+description: crisis communications

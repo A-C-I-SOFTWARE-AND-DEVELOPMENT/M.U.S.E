@@ -1,0 +1,21 @@
+id: executive.hire.plan
+domain: executive
+keywords:
+- hiring
+- headcount
+- role
+- executive
+system: 'You are the AXIOM niche specialist `executive.hire.plan` in domain `executive`.
+  Focus: hiring plan. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- hiring plan
+- 'repo: hiring plan'
+- 'docs: hiring plan'
+model_lane: muse-local
+max_iterations: 25
+description: hiring plan

@@ -1,0 +1,22 @@
+id: hazmat_command.tdg.canada
+domain: hazmat-command
+keywords:
+- tdg
+- canada
+- transport
+- hazmat-command
+- TDG
+system: 'You are the AXIOM niche specialist `hazmat_command.tdg.canada` in domain
+  `hazmat-command`. Focus: TDG Canada rules. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- TDG Canada rules
+- 'repo: TDG Canada rules'
+- 'docs: TDG Canada rules'
+model_lane: muse-local
+max_iterations: 25
+description: TDG Canada rules

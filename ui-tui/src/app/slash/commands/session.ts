@@ -1,5 +1,6 @@
 import { attachedImageNotice, introMsg, toTranscriptMessages } from '../../../domain/messages.js'
 import { TUI_SESSION_MODEL_FLAG } from '../../../domain/slash.js'
+import { nextThinkingEffort } from '../../../domain/thinkingLevels.js'
 import type {
   BackgroundStartResponse,
   ConfigGetValueResponse,
@@ -371,44 +372,68 @@ export const sessionCommands: SlashCommand[] = [
   },
 
   {
-    help: 'inspect or set reasoning effort (updates live agent)',
+    aliases: ['thinking', 'think'],
+    help: 'thinking level picker, or set none|minimal|low|medium|high|xhigh|show|hide|cycle|status',
     name: 'reasoning',
+    usage: '/reasoning [none|minimal|low|medium|high|xhigh|show|hide|cycle|status]',
     run: (arg, ctx) => {
-      if (!arg) {
+      const mode = arg.trim().toLowerCase()
+
+      if (!mode || mode === 'picker' || mode === 'ui') {
+        return patchOverlayState({ thinkingPicker: true })
+      }
+
+      if (mode === 'status') {
         return ctx.gateway
           .rpc<ConfigGetValueResponse>('config.get', { key: 'reasoning' })
           .then(
             ctx.guarded<ConfigGetValueResponse>(
-              r => r.value && ctx.transcript.sys(`reasoning: ${r.value} · display ${r.display || 'hide'}`)
+              r => r.value && ctx.transcript.sys(`thinking: ${r.value} · transcript ${r.display || 'hide'}`)
             )
           )
       }
 
-      ctx.gateway
-        .rpc<ConfigSetResponse>('config.set', { key: 'reasoning', session_id: ctx.sid, value: arg })
-        .then(
-          ctx.guarded<ConfigSetResponse>(r => {
-            if (!r.value) {
-              return
-            }
+      const apply = (value: string) =>
+        ctx.gateway
+          .rpc<ConfigSetResponse>('config.set', { key: 'reasoning', session_id: ctx.sid, value })
+          .then(
+            ctx.guarded<ConfigSetResponse>(r => {
+              if (!r.value) {
+                return
+              }
 
-            if (r.value === 'hide') {
-              patchUiState(state => ({
-                ...state,
-                sections: { ...state.sections, thinking: 'hidden' },
-                showReasoning: false
-              }))
-            } else if (r.value === 'show') {
-              patchUiState(state => ({
-                ...state,
-                sections: { ...state.sections, thinking: 'expanded' },
-                showReasoning: true
-              }))
-            }
+              if (r.value === 'hide') {
+                patchUiState(state => ({
+                  ...state,
+                  sections: { ...state.sections, thinking: 'hidden' },
+                  showReasoning: false
+                }))
+              } else if (r.value === 'show') {
+                patchUiState(state => ({
+                  ...state,
+                  sections: { ...state.sections, thinking: 'expanded' },
+                  showReasoning: true
+                }))
+              } else {
+                patchUiState(state => ({
+                  ...state,
+                  info: state.info
+                    ? { ...state.info, reasoning_effort: r.value! }
+                    : { model: '', reasoning_effort: r.value!, skills: {}, tools: {} }
+                }))
+              }
 
-            ctx.transcript.sys(`reasoning: ${r.value}`)
-          })
-        )
+              ctx.transcript.sys(`thinking: ${r.value}`)
+            })
+          )
+
+      if (mode === 'cycle' || mode === 'next') {
+        return ctx.gateway
+          .rpc<ConfigGetValueResponse>('config.get', { key: 'reasoning' })
+          .then(ctx.guarded<ConfigGetValueResponse>(r => apply(nextThinkingEffort(r.value))))
+      }
+
+      return apply(mode)
     }
   },
 

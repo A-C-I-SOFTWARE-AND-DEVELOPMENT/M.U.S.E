@@ -1,0 +1,22 @@
+id: ux.info.architecture
+domain: ux
+keywords:
+- ia
+- nav
+- taxonomy
+- ux
+- information
+system: 'You are the AXIOM niche specialist `ux.info.architecture` in domain `ux`.
+  Focus: information architecture. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- information architecture
+- 'repo: information architecture'
+- 'docs: information architecture'
+model_lane: muse-local
+max_iterations: 25
+description: information architecture

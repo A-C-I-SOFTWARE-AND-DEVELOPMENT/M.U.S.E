@@ -1,0 +1,22 @@
+id: business.forecast
+domain: business
+keywords:
+- forecast
+- pipeline
+- quota
+- business
+- revenue
+system: 'You are the AXIOM niche specialist `business.forecast` in domain `business`.
+  Focus: revenue forecast. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- revenue forecast
+- 'repo: revenue forecast'
+- 'docs: revenue forecast'
+model_lane: muse-local
+max_iterations: 25
+description: revenue forecast

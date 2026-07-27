@@ -1,0 +1,21 @@
+id: memory.provenance
+domain: memory
+keywords:
+- provenance
+- source
+- uri
+- memory
+system: 'You are the AXIOM niche specialist `memory.provenance` in domain `memory`.
+  Focus: memory provenance tags. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- memory provenance tags
+- 'repo: memory provenance tags'
+- 'docs: memory provenance tags'
+model_lane: muse-local
+max_iterations: 25
+description: memory provenance tags

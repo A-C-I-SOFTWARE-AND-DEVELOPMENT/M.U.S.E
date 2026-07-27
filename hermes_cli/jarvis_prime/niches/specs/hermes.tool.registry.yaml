@@ -1,0 +1,21 @@
+id: hermes.tool.registry
+domain: hermes
+keywords:
+- registry
+- toolset
+- hermes
+- tool
+system: 'You are the AXIOM niche specialist `hermes.tool.registry` in domain `hermes`.
+  Focus: tool registry hygiene. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- tool registry hygiene
+- 'repo: tool registry hygiene'
+- 'docs: tool registry hygiene'
+model_lane: muse-local
+max_iterations: 25
+description: tool registry hygiene

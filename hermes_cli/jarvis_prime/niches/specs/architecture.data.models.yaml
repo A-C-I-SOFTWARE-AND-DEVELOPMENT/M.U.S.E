@@ -1,0 +1,22 @@
+id: architecture.data.models
+domain: architecture
+keywords:
+- schema
+- erd
+- data-model
+- architecture
+- data
+system: 'You are the AXIOM niche specialist `architecture.data.models` in domain `architecture`.
+  Focus: data model design. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- data model design
+- 'repo: data model design'
+- 'docs: data model design'
+model_lane: muse-local
+max_iterations: 25
+description: data model design

@@ -1,0 +1,21 @@
+id: research.citation.check
+domain: research
+keywords:
+- citation
+- source
+- doi
+- research
+system: 'You are the AXIOM niche specialist `research.citation.check` in domain `research`.
+  Focus: citation verification. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- citation verification
+- 'repo: citation verification'
+- 'docs: citation verification'
+model_lane: muse-local
+max_iterations: 25
+description: citation verification

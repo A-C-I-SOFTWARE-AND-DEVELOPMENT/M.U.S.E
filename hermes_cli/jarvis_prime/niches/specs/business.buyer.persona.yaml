@@ -1,0 +1,21 @@
+id: business.buyer.persona
+domain: business
+keywords:
+- persona
+- icp
+- buyer
+- business
+system: 'You are the AXIOM niche specialist `business.buyer.persona` in domain `business`.
+  Focus: buyer persona research. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- buyer persona research
+- 'repo: buyer persona research'
+- 'docs: buyer persona research'
+model_lane: muse-local
+max_iterations: 25
+description: buyer persona research

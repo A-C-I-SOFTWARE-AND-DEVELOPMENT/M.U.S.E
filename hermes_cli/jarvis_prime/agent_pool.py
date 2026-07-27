@@ -58,6 +58,7 @@ CAT_DOTCLAUDE_AGENT = "dotclaude_agent"
 CAT_RUNTIME_MODULE = "runtime_module"
 CAT_SWARM = "swarm"
 CAT_AXIOM = "axiom"
+CAT_NICHE = "niche"
 
 # Domain tags mapped from directory structure
 DOMAIN_MAP = {
@@ -106,6 +107,7 @@ class AgentEntry:
             CAT_AOS_COUNCIL: 1.2,
             CAT_SWARM: 1.2,
             CAT_AXIOM: 1.1,
+            CAT_NICHE: 1.55,  # thin AXIOM niches rank above general skills
             CAT_AOS_TEMPLATE: 0.9,
             CAT_SKILL: 1.0,
             CAT_RUNTIME_MODULE: 0.7,
@@ -559,6 +561,9 @@ def build_pool(repo_root: Optional[Path] = None) -> AgentPool:
     axiom_dir = root / "axiom" / "axiom"
     entries.extend(_scan_python_modules(axiom_dir, CAT_AXIOM, "axiom"))
 
+    # 12. Niche AXIOM specialists (thin YAML specs)
+    entries.extend(_scan_niche_specs(root))
+
     # Deduplicate by pool_id (keep highest-weight entry)
     seen: dict[str, AgentEntry] = {}
     for e in entries:
@@ -589,6 +594,43 @@ def get_pool(force_rebuild: bool = False) -> AgentPool:
         return _POOL
     _POOL = build_pool()
     return _POOL
+
+
+def invalidate_pool() -> None:
+    """Drop the cached pool so the next get_pool() rebuilds (e.g. after forge_niche)."""
+    global _POOL, _POOL_HASH
+    _POOL = None
+    _POOL_HASH = None
+
+
+def _scan_niche_specs(root: Path) -> list[AgentEntry]:
+    """Index hermes_cli/jarvis_prime/niches/specs/*.yaml as CAT_NICHE entries."""
+    entries: list[AgentEntry] = []
+    try:
+        from hermes_cli.jarvis_prime.niches.loader import load_all_niches
+    except Exception:
+        return entries
+    try:
+        niches = load_all_niches()
+    except Exception as exc:
+        logger.warning("niche scan failed: %s", exc)
+        return entries
+    for spec in niches:
+        rel = f"hermes_cli/jarvis_prime/niches/specs/{spec.id}.yaml"
+        desc = (spec.description or spec.system)[:200]
+        entries.append(
+            AgentEntry(
+                pool_id=f"niche:{spec.id}",
+                name=spec.id,
+                category=CAT_NICHE,
+                domain=spec.domain,
+                path=rel,
+                description=desc,
+                keywords=tuple(spec.keywords)[:25],
+                source_line=f"niche yaml {spec.id}",
+            )
+        )
+    return entries
 
 
 # ─── Public routing API ────────────────────────────────────────────────

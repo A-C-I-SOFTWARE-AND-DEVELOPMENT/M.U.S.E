@@ -1,0 +1,22 @@
+id: compliance.retention
+domain: compliance
+keywords:
+- retention
+- deletion
+- policy
+- compliance
+- data
+system: 'You are the AXIOM niche specialist `compliance.retention` in domain `compliance`.
+  Focus: data retention policy. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- data retention policy
+- 'repo: data retention policy'
+- 'docs: data retention policy'
+model_lane: muse-local
+max_iterations: 25
+description: data retention policy

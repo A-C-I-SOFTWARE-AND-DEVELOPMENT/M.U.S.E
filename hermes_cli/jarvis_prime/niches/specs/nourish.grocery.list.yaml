@@ -1,0 +1,21 @@
+id: nourish.grocery.list
+domain: nourish
+keywords:
+- grocery
+- pantry
+- list
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.grocery.list` in domain `nourish`.
+  Focus: grocery list generation. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- grocery list generation
+- 'repo: grocery list generation'
+- 'docs: grocery list generation'
+model_lane: muse-local
+max_iterations: 25
+description: grocery list generation

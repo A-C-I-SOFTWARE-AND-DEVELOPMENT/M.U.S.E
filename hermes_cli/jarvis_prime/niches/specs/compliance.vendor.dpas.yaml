@@ -1,0 +1,21 @@
+id: compliance.vendor.dpas
+domain: compliance
+keywords:
+- dpa
+- processor
+- vendor
+- compliance
+system: 'You are the AXIOM niche specialist `compliance.vendor.dpas` in domain `compliance`.
+  Focus: vendor DPA review. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- vendor DPA review
+- 'repo: vendor DPA review'
+- 'docs: vendor DPA review'
+model_lane: muse-local
+max_iterations: 25
+description: vendor DPA review

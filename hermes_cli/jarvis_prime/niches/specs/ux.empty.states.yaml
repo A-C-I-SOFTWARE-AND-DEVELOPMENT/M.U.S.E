@@ -1,0 +1,22 @@
+id: ux.empty.states
+domain: ux
+keywords:
+- empty
+- zero-state
+- placeholder
+- ux
+- empty-state
+system: 'You are the AXIOM niche specialist `ux.empty.states` in domain `ux`. Focus:
+  empty-state UX. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- empty-state UX
+- 'repo: empty-state UX'
+- 'docs: empty-state UX'
+model_lane: muse-local
+max_iterations: 25
+description: empty-state UX

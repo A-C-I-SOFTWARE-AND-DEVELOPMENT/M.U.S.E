@@ -3,6 +3,7 @@ import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } 
 
 import { useTurnSelector } from '../app/turnStore.js'
 import { VERBS } from '../content/verbs.js'
+import { thinkingChromeLabel } from '../domain/thinkingLevels.js'
 import { stickyPromptFromViewport } from '../domain/viewport.js'
 import { buildSubagentTree, treeTotals } from '../lib/subagentTree.js'
 import { fmtK } from '../lib/text.js'
@@ -103,13 +104,7 @@ function ctxBarColor(pct: number | undefined, t: Theme) {
   return t.color.statusGood
 }
 
-const effortLabel = (effort?: string) => {
-  const value = String(effort ?? '')
-    .trim()
-    .toLowerCase()
-
-  return value && value !== 'medium' && value !== 'normal' && value !== 'default' ? value : ''
-}
+const effortLabel = (effort?: string) => thinkingChromeLabel(effort)
 
 const shortModelLabel = (model: string) =>
   model

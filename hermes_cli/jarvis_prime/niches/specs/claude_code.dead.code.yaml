@@ -1,0 +1,21 @@
+id: claude_code.dead.code
+domain: claude-code
+keywords:
+- dead
+- unused
+- purge
+- claude-code
+system: 'You are the AXIOM niche specialist `claude_code.dead.code` in domain `claude-code`.
+  Focus: dead code removal. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- dead code removal
+- 'repo: dead code removal'
+- 'docs: dead code removal'
+model_lane: muse-local
+max_iterations: 25
+description: dead code removal

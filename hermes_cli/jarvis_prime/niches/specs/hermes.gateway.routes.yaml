@@ -1,0 +1,21 @@
+id: hermes.gateway.routes
+domain: hermes
+keywords:
+- gateway
+- route
+- ws
+- hermes
+system: 'You are the AXIOM niche specialist `hermes.gateway.routes` in domain `hermes`.
+  Focus: gateway route design. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- gateway route design
+- 'repo: gateway route design'
+- 'docs: gateway route design'
+model_lane: muse-local
+max_iterations: 25
+description: gateway route design

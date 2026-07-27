@@ -16,8 +16,10 @@ Usage::
         --core-loop "scan, salvage, upgrade, survive" [--offline] [--json]
 
 Honest framing: this drives the *pipeline*; it does not by itself ship a
-finished AAA game. For a runnable artifact today, target Godot and pair this
-with the reference slice + `export_godot_slice.py`.
+finished AAA game. For high-fidelity UE5 production, use
+`scripts/run_pipeline.py` at the repo root (AAA pipeline with typed manifests,
+checkpoints, and acceptance gates). For a runnable Godot artifact today,
+target Godot and pair this with the reference slice + `export_godot_slice.py`.
 """
 
 from __future__ import annotations
@@ -27,6 +29,20 @@ import json
 import os
 import sys
 from pathlib import Path
+
+# Prefer the active M.U.S.E checkout over an older site-packages/install copy.
+for _candidate in (
+    Path(os.environ.get("MUSE_ROOT", "")).expanduser(),
+    Path.cwd(),
+    Path.home() / "M.U.S.E",
+    Path(__file__).resolve().parents[4],
+):
+    if (_candidate / "agent" / "studio" / "__init__.py").is_file():
+        _value = str(_candidate.resolve())
+        if _value in sys.path:
+            sys.path.remove(_value)
+        sys.path.insert(0, _value)
+        break
 
 _ENGINE_TO_PROVIDER = {"godot": "GODOT4", "ue5": "UE5", "unity": "UNITY6"}
 
@@ -53,8 +69,28 @@ def _build_brief(args, GameBrief, Provider, Quality):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the Game Studio production pipeline.")
-    parser.add_argument("--title", required=True)
-    parser.add_argument("--genre", required=True)
+    parser.add_argument("--title", default="")
+    parser.add_argument("--genre", default="")
+    parser.add_argument(
+        "--prompt",
+        default="",
+        help="One natural-language game prompt (used by --vertical-slice).",
+    )
+    parser.add_argument(
+        "--vertical-slice",
+        action="store_true",
+        help="Generate a source-complete UE5.8 vertical slice.",
+    )
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Run owner-gated UE compile/map/audit/package/smoke gates.",
+    )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Re-run passed build gates instead of using verified gate state.",
+    )
     parser.add_argument("--engine", default="godot", choices=["godot", "ue5", "unity"])
     parser.add_argument("--setting", default="")
     parser.add_argument("--core-loop", dest="core_loop", default="")
@@ -67,6 +103,59 @@ def main(argv: list[str] | None = None) -> int:
                         help="Pin every backend to its stub fallback (no network/spend).")
     parser.add_argument("--json", action="store_true", help="Emit a JSON summary instead of text.")
     args = parser.parse_args(argv)
+
+    if args.vertical_slice:
+        if not args.prompt:
+            parser.error("--vertical-slice requires --prompt")
+        if args.engine != "ue5":
+            parser.error("--vertical-slice currently targets --engine ue5")
+        try:
+            from agent.studio import (
+                GameFoundry,
+                parse_vertical_slice_prompt,
+                to_game_production_spec,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(json.dumps({"error": f"could not import vertical-slice engine: {exc}"}))
+            return 2
+        try:
+            vertical = parse_vertical_slice_prompt(args.prompt)
+        except ValueError as exc:
+            print(json.dumps({"error": str(exc)}))
+            return 2
+        production = to_game_production_spec(vertical)
+        root = Path(args.out) if args.out else Path.cwd() / "studio_output" / "vertical-slices"
+        foundry = GameFoundry(root)
+        if args.build:
+            manifest = foundry.build_vertical_slice(
+                production,
+                allow_spawn=os.environ.get("MUSE_GAME_ALLOW_SPAWN") == "1",
+                resume=not args.no_resume,
+            )
+        else:
+            manifest = foundry.create(production)
+        result = {
+            "title": manifest.title,
+            "project_id": manifest.project_id,
+            "engine": manifest.engine,
+            "engine_version": manifest.engine_version,
+            "root": str(manifest.root),
+            "compiled": manifest.compiled,
+            "package_verified": manifest.package_verified,
+            "smoke_verified": manifest.smoke_verified,
+            "playable": manifest.playable,
+            "engine_validation": manifest.engine_validation,
+            "unavailable_reason": manifest.unavailable_reason,
+            "gate_results": list(manifest.gate_results),
+            "manifest": str(manifest.root / "game-build-manifest.json"),
+        }
+        print(json.dumps(result, indent=2))
+        if args.build and not manifest.playable:
+            return 3
+        return 0
+
+    if not args.title or not args.genre:
+        parser.error("--title and --genre are required unless --vertical-slice is used")
 
     if args.offline:
         os.environ["AXIOM_STUDIO_OFFLINE"] = "1"

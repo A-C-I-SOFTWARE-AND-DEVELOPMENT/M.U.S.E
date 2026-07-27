@@ -1,0 +1,21 @@
+id: psychology.motivation
+domain: psychology
+keywords:
+- motivation
+- drive
+- goal
+- psychology
+system: 'You are the AXIOM niche specialist `psychology.motivation` in domain `psychology`.
+  Focus: motivation design. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- motivation design
+- 'repo: motivation design'
+- 'docs: motivation design'
+model_lane: muse-local
+max_iterations: 25
+description: motivation design

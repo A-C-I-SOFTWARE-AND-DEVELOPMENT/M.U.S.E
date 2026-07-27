@@ -1780,6 +1780,13 @@ _SWARM_HELP = (
     "  (launches no model, pushes nothing)."
 )
 
+_SWARM_NICHE_HELP = (
+    "/swarm-niche <goal>      — niche AXIOM swarm with Scout prefetch\n"
+    "  Routes goal to niche specialists, runs parallel Scout (code/docs) into\n"
+    "  the blackboard before grains decode, then executes grains (muse-local\n"
+    "  when available; prompt_only fallback). Creates no AOS registry commits."
+)
+
 
 def run_swarm(rest: str) -> str:
     """Dispatch ``/swarm`` to the Swarm Grainler Parallel coordinator.
@@ -1820,6 +1827,48 @@ def run_swarm(rest: str) -> str:
     conv = result.convergence or {}
     if conv.get("requires_manual_review"):
         lines.append("  ⚠ runtime file overlap — manual review required")
+    return "\n".join(lines)
+
+
+def run_swarm_niche(rest: str) -> str:
+    """Dispatch ``/swarm-niche`` — Scout + niche AXIOM swarm."""
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _SWARM_NICHE_HELP
+    try:
+        from hermes_cli.swarm.coordinator import run_swarm_niche as _run
+        from hermes_cli.swarm.grain import OverlapError
+    except Exception as exc:
+        return f"⚠ /swarm-niche: import failed — {exc}"
+
+    # Deterministic CLI path uses prompt_only; allow dirty tree (Scout+materialize).
+    # Live AI via Python API (omit executor) / niche_mode defaults to muse-local.
+    try:
+        result = _run(
+            rest,
+            ".",
+            executor="prompt_only",
+            claim_domains=False,
+            allow_dirty=True,
+        )
+    except OverlapError as exc:
+        return f"⚠ /swarm-niche: decomposition overlaps — no grain ran.\n  {exc}"
+    except Exception as exc:
+        return f"⚠ /swarm-niche: {exc}"
+
+    lines = [
+        f"✓ swarm-niche job {result.job_id} "
+        f"({'trivial' if result.trivial else len(result.grains)} grain(s))",
+        f"  scout_packets: {result.scout_packets}",
+    ]
+    if result.niches_used:
+        lines.append("  niches: " + ", ".join(result.niches_used[:8]))
+    for g in result.grains:
+        lines.append(f"  • {g.grain_id}: {g.state}")
+    if result.ledger_path:
+        lines.append(f"  ledger: {result.ledger_path}")
+    for note in (result.notes or [])[:6]:
+        lines.append(f"  note: {note}")
     return "\n".join(lines)
 
 
@@ -1888,4 +1937,6 @@ __all__ = [
     "run_remote_worker",
     "run_self_improve",
     "run_profile",
+    "run_swarm",
+    "run_swarm_niche",
 ]

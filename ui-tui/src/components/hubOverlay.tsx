@@ -478,7 +478,7 @@ function providerRows(models: FetchState<ModelOptionsResponse>): HubRow[] {
   const rows: HubRow[] = [
     { cmd: '/model', hint: 'provider → model picker', key: 'model', label: '▣ Model picker' },
     { cmd: '/fast', hint: 'toggle fast mode', key: 'fast', label: 'Fast mode' },
-    { cmd: '/reasoning', hint: 'cycle reasoning effort', key: 'reasoning', label: 'Reasoning effort' }
+    { cmd: '/reasoning', hint: 'none → xhigh · show/hide', key: 'reasoning', label: 'Thinking levels' }
   ]
 
   if (models.status === 'loading') {

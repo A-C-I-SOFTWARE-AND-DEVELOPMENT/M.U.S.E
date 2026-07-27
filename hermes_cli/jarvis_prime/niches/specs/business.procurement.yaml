@@ -1,0 +1,21 @@
+id: business.procurement
+domain: business
+keywords:
+- procurement
+- rfp
+- security-q
+- business
+system: 'You are the AXIOM niche specialist `business.procurement` in domain `business`.
+  Focus: procurement readiness. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- procurement readiness
+- 'repo: procurement readiness'
+- 'docs: procurement readiness'
+model_lane: muse-local
+max_iterations: 25
+description: procurement readiness

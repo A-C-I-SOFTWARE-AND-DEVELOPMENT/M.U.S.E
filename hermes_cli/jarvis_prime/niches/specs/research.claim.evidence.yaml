@@ -1,0 +1,22 @@
+id: research.claim.evidence
+domain: research
+keywords:
+- claim
+- evidence
+- support
+- research
+- claim-to-evidence
+system: 'You are the AXIOM niche specialist `research.claim.evidence` in domain `research`.
+  Focus: claim-to-evidence mapping. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- claim-to-evidence mapping
+- 'repo: claim-to-evidence mapping'
+- 'docs: claim-to-evidence mapping'
+model_lane: muse-local
+max_iterations: 25
+description: claim-to-evidence mapping

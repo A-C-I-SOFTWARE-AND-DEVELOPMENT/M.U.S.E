@@ -1,0 +1,21 @@
+id: product.roadmap.prioritize
+domain: product
+keywords:
+- roadmap
+- rice
+- priority
+- product
+system: 'You are the AXIOM niche specialist `product.roadmap.prioritize` in domain
+  `product`. Focus: roadmap prioritization. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- roadmap prioritization
+- 'repo: roadmap prioritization'
+- 'docs: roadmap prioritization'
+model_lane: muse-local
+max_iterations: 25
+description: roadmap prioritization

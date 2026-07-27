@@ -1,0 +1,22 @@
+id: architecture.caching.layers
+domain: architecture
+keywords:
+- cache
+- redis
+- cdn
+- architecture
+- caching
+system: 'You are the AXIOM niche specialist `architecture.caching.layers` in domain
+  `architecture`. Focus: caching strategy. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- caching strategy
+- 'repo: caching strategy'
+- 'docs: caching strategy'
+model_lane: muse-local
+max_iterations: 25
+description: caching strategy

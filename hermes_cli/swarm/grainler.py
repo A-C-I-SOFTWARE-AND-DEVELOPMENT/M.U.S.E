@@ -158,6 +158,7 @@ def to_execution_plan(
     concurrency: Optional[int] = None,
     max_concurrency: int = 8,
     base_ref: Optional[str] = None,
+    allow_dirty: bool = False,
     command_builder: Optional[Callable[[Grain], Sequence[str]]] = None,
     timeout_seconds: int = 600,
 ):
@@ -204,4 +205,5 @@ def to_execution_plan(
         concurrency=eff_conc,
         use_worktrees=True,
         base_ref=base_ref,
+        allow_dirty=allow_dirty,
     )

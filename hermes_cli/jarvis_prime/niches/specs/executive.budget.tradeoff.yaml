@@ -1,0 +1,21 @@
+id: executive.budget.tradeoff
+domain: executive
+keywords:
+- budget
+- capex
+- opex
+- executive
+system: 'You are the AXIOM niche specialist `executive.budget.tradeoff` in domain
+  `executive`. Focus: budget tradeoffs. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- budget tradeoffs
+- 'repo: budget tradeoffs'
+- 'docs: budget tradeoffs'
+model_lane: muse-local
+max_iterations: 25
+description: budget tradeoffs

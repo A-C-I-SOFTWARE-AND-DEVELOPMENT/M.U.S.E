@@ -18,6 +18,7 @@ class UnrealInstallation:
     root: Path
     build_tool: Path
     editor_command: Path
+    package_tool: Path | None = None
 
 
 def _default_roots() -> tuple[Path, ...]:
@@ -62,11 +63,18 @@ def _installation(candidate: Path, version: str) -> UnrealInstallation | None:
     editor = next((path for path in editor_candidates if path.is_file()), None)
     if not build.is_file() or editor is None:
         return None
-    return UnrealInstallation(version, candidate.resolve(), build.resolve(), editor.resolve())
+    package = candidate / "Engine/Build/BatchFiles/RunUAT.bat"
+    return UnrealInstallation(
+        version,
+        candidate.resolve(),
+        build.resolve(),
+        editor.resolve(),
+        package.resolve() if package.is_file() else None,
+    )
 
 
 def discover_unreal(
-    preferred: str = "5.6",
+    preferred: str = "5.8",
     *,
     search_roots: Iterable[str | Path] | None = None,
 ) -> UnrealInstallation | None:

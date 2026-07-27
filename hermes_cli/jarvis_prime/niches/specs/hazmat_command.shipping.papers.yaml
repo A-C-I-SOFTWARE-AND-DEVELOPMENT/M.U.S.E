@@ -1,0 +1,21 @@
+id: hazmat_command.shipping.papers
+domain: hazmat-command
+keywords:
+- shipping
+- bol
+- manifest
+- hazmat-command
+system: 'You are the AXIOM niche specialist `hazmat_command.shipping.papers` in domain
+  `hazmat-command`. Focus: shipping paper compliance. Prefer Scout packets (SCOUT/*)
+  over re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- shipping paper compliance
+- 'repo: shipping paper compliance'
+- 'docs: shipping paper compliance'
+model_lane: muse-local
+max_iterations: 25
+description: shipping paper compliance

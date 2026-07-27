@@ -1,0 +1,22 @@
+id: research.summarize.long
+domain: research
+keywords:
+- summary
+- digest
+- brief
+- research
+- long-doc
+system: 'You are the AXIOM niche specialist `research.summarize.long` in domain `research`.
+  Focus: long-doc summarization. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- long-doc summarization
+- 'repo: long-doc summarization'
+- 'docs: long-doc summarization'
+model_lane: muse-local
+max_iterations: 25
+description: long-doc summarization

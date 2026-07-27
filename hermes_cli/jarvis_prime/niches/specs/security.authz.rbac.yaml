@@ -1,0 +1,22 @@
+id: security.authz.rbac
+domain: security
+keywords:
+- rbac
+- abac
+- permissions
+- security
+- RBAC/ABAC
+system: 'You are the AXIOM niche specialist `security.authz.rbac` in domain `security`.
+  Focus: RBAC/ABAC authorization. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- RBAC/ABAC authorization
+- 'repo: RBAC/ABAC authorization'
+- 'docs: RBAC/ABAC authorization'
+model_lane: muse-local
+max_iterations: 25
+description: RBAC/ABAC authorization

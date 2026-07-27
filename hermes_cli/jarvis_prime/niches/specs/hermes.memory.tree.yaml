@@ -1,0 +1,21 @@
+id: hermes.memory.tree
+domain: hermes
+keywords:
+- memory
+- namespace
+- graphrag
+- hermes
+system: 'You are the AXIOM niche specialist `hermes.memory.tree` in domain `hermes`.
+  Focus: memory tree design. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- memory tree design
+- 'repo: memory tree design'
+- 'docs: memory tree design'
+model_lane: muse-local
+max_iterations: 25
+description: memory tree design

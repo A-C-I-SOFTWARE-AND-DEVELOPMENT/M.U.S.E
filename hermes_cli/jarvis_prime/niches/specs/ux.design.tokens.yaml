@@ -1,0 +1,22 @@
+id: ux.design.tokens
+domain: ux
+keywords:
+- tokens
+- theme
+- figma
+- ux
+- design
+system: 'You are the AXIOM niche specialist `ux.design.tokens` in domain `ux`. Focus:
+  design token systems. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- design token systems
+- 'repo: design token systems'
+- 'docs: design token systems'
+model_lane: muse-local
+max_iterations: 25
+description: design token systems

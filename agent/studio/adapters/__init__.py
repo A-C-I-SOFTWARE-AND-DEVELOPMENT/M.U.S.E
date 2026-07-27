@@ -29,6 +29,8 @@ def _post_json(url: str, headers: dict, payload: dict, timeout: float = 600.0) -
 def _save(workdir: Path, name: str, data: bytes | str) -> str:
     workdir.mkdir(parents=True, exist_ok=True)
     p = workdir / name
+    if p.exists():
+        p = p.with_name(f"{p.stem}_{time.time_ns()}{p.suffix}")
     mode = "wb" if isinstance(data, (bytes, bytearray)) else "w"
     encoding = None if "b" in mode else "utf-8"
     with open(p, mode, encoding=encoding) as f:
@@ -391,8 +393,8 @@ class EngineProjectAdapter(Adapter):
             (proj / "ProjectSettings").mkdir(exist_ok=True)
             engine_validation = "external_adapter_unavailable"
         else:
-            found = discover_unreal(preferred="5.6")
-            association = found.version if found is not None else "5.6"
+            found = discover_unreal(preferred="5.8")
+            association = found.version if found is not None else "5.8"
             (proj / "Project.uproject").write_text(json.dumps({
                 "FileVersion": 3,
                 "EngineAssociation": association,
@@ -421,7 +423,8 @@ class EngineProjectAdapter(Adapter):
                 "using UnrealBuildTool;\n"
                 "public class GameTarget : TargetRules {\n"
                 "    public GameTarget(TargetInfo Target) : base(Target) {\n"
-                "        Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V5;\n"
+                "        Type = TargetType.Game; DefaultBuildSettings = BuildSettingsVersion.V7;\n"
+                "        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;\n"
                 "        ExtraModuleNames.Add(\"Game\");\n"
                 "    }\n}\n",
                 encoding="utf-8",

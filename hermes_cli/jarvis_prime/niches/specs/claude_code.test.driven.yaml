@@ -1,0 +1,22 @@
+id: claude_code.test.driven
+domain: claude-code
+keywords:
+- tdd
+- red-green
+- test
+- claude-code
+- TDD
+system: 'You are the AXIOM niche specialist `claude_code.test.driven` in domain `claude-code`.
+  Focus: TDD workflow. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- TDD workflow
+- 'repo: TDD workflow'
+- 'docs: TDD workflow'
+model_lane: muse-local
+max_iterations: 25
+description: TDD workflow

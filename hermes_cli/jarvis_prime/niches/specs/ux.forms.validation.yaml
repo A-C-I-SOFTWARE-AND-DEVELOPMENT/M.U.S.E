@@ -1,0 +1,22 @@
+id: ux.forms.validation
+domain: ux
+keywords:
+- forms
+- validation
+- inline
+- ux
+- form
+system: 'You are the AXIOM niche specialist `ux.forms.validation` in domain `ux`.
+  Focus: form validation UX. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- form validation UX
+- 'repo: form validation UX'
+- 'docs: form validation UX'
+model_lane: muse-local
+max_iterations: 25
+description: form validation UX

@@ -1,0 +1,22 @@
+id: product.feedback.triage
+domain: product
+keywords:
+- feedback
+- nps
+- ticket
+- product
+- user
+system: 'You are the AXIOM niche specialist `product.feedback.triage` in domain `product`.
+  Focus: user feedback triage. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- user feedback triage
+- 'repo: user feedback triage'
+- 'docs: user feedback triage'
+model_lane: muse-local
+max_iterations: 25
+description: user feedback triage

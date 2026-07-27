@@ -1,0 +1,22 @@
+id: architecture.failure.modes
+domain: architecture
+keywords:
+- sre
+- failover
+- chaos
+- architecture
+- failure
+system: 'You are the AXIOM niche specialist `architecture.failure.modes` in domain
+  `architecture`. Focus: failure mode analysis. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- failure mode analysis
+- 'repo: failure mode analysis'
+- 'docs: failure mode analysis'
+model_lane: muse-local
+max_iterations: 25
+description: failure mode analysis

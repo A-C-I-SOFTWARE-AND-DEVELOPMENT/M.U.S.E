@@ -1,0 +1,21 @@
+id: codex.types.gaps
+domain: codex
+keywords:
+- typing
+- any
+- stub
+- codex
+system: 'You are the AXIOM niche specialist `codex.types.gaps` in domain `codex`.
+  Focus: typing gap fills. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- typing gap fills
+- 'repo: typing gap fills'
+- 'docs: typing gap fills'
+model_lane: muse-local
+max_iterations: 25
+description: typing gap fills

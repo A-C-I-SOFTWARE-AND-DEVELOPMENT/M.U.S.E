@@ -1,0 +1,22 @@
+id: compliance.soc2.controls
+domain: compliance
+keywords:
+- soc2
+- controls
+- audit
+- compliance
+- SOC2
+system: 'You are the AXIOM niche specialist `compliance.soc2.controls` in domain `compliance`.
+  Focus: SOC2 control mapping. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- SOC2 control mapping
+- 'repo: SOC2 control mapping'
+- 'docs: SOC2 control mapping'
+model_lane: muse-local
+max_iterations: 25
+description: SOC2 control mapping

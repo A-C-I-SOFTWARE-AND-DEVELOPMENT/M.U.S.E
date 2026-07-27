@@ -1,0 +1,21 @@
+id: hermes.flywheel.loop
+domain: hermes
+keywords:
+- flywheel
+- learn
+- promote
+- hermes
+system: 'You are the AXIOM niche specialist `hermes.flywheel.loop` in domain `hermes`.
+  Focus: flywheel improvement loop. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- flywheel improvement loop
+- 'repo: flywheel improvement loop'
+- 'docs: flywheel improvement loop'
+model_lane: muse-local
+max_iterations: 25
+description: flywheel improvement loop

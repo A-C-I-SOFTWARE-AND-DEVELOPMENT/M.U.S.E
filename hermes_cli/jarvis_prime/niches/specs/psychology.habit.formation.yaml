@@ -1,0 +1,21 @@
+id: psychology.habit.formation
+domain: psychology
+keywords:
+- habit
+- cue
+- reward
+- psychology
+system: 'You are the AXIOM niche specialist `psychology.habit.formation` in domain
+  `psychology`. Focus: habit formation. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- habit formation
+- 'repo: habit formation'
+- 'docs: habit formation'
+model_lane: muse-local
+max_iterations: 25
+description: habit formation

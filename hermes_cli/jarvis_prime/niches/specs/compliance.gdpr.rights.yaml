@@ -1,0 +1,22 @@
+id: compliance.gdpr.rights
+domain: compliance
+keywords:
+- gdpr
+- privacy
+- dsar
+- compliance
+- GDPR
+system: 'You are the AXIOM niche specialist `compliance.gdpr.rights` in domain `compliance`.
+  Focus: GDPR data subject rights. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- GDPR data subject rights
+- 'repo: GDPR data subject rights'
+- 'docs: GDPR data subject rights'
+model_lane: muse-local
+max_iterations: 25
+description: GDPR data subject rights

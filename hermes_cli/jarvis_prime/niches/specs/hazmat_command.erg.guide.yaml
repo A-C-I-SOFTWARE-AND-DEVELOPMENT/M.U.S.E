@@ -1,0 +1,22 @@
+id: hazmat_command.erg.guide
+domain: hazmat-command
+keywords:
+- erg
+- emergency
+- spill
+- hazmat-command
+- ERG
+system: 'You are the AXIOM niche specialist `hazmat_command.erg.guide` in domain `hazmat-command`.
+  Focus: ERG emergency response. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- ERG emergency response
+- 'repo: ERG emergency response'
+- 'docs: ERG emergency response'
+model_lane: muse-local
+max_iterations: 25
+description: ERG emergency response

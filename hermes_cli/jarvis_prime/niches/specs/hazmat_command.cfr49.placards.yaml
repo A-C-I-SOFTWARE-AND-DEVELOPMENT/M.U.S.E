@@ -1,0 +1,22 @@
+id: hazmat_command.cfr49.placards
+domain: hazmat-command
+keywords:
+- placard
+- 49cfr
+- hazmat
+- hazmat-command
+- '49'
+system: 'You are the AXIOM niche specialist `hazmat_command.cfr49.placards` in domain
+  `hazmat-command`. Focus: 49 CFR placarding. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- 49 CFR placarding
+- 'repo: 49 CFR placarding'
+- 'docs: 49 CFR placarding'
+model_lane: muse-local
+max_iterations: 25
+description: 49 CFR placarding

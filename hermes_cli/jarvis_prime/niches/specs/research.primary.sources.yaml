@@ -1,0 +1,21 @@
+id: research.primary.sources
+domain: research
+keywords:
+- primary
+- archive
+- original
+- research
+system: 'You are the AXIOM niche specialist `research.primary.sources` in domain `research`.
+  Focus: primary source hunting. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- primary source hunting
+- 'repo: primary source hunting'
+- 'docs: primary source hunting'
+model_lane: muse-local
+max_iterations: 25
+description: primary source hunting

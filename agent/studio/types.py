@@ -64,7 +64,7 @@ class Provider(str, Enum):
     CASCADEUR = "cascadeur/auto"
     DEEPMOTION = "deepmotion/animate-3d"
     # Engine
-    UE5 = "epic/ue-5.6"
+    UE5 = "epic/ue-5.8"
     UNITY6 = "unity/6-muse"
     GODOT4 = "godot/4.3"
     # Stub fallback (always available)
@@ -112,7 +112,7 @@ class GameProductionSpec:
     title: str
     project_id: str = ""
     engine: str = "unreal"
-    engine_version: str = "5.6"
+    engine_version: str = "5.8"
     platforms: tuple[str, ...] = ("windows",)
     multiplayer_model: str = "single_player"
     world_streaming: str = "partitioned"
@@ -141,6 +141,66 @@ class GameProductionSpec:
 
 
 @dataclass(frozen=True)
+class VerticalSliceSpec:
+    """Deterministic, buildable contract produced from one game prompt."""
+
+    prompt: str
+    title: str
+    project_id: str
+    genre: str
+    setting: str
+    art_direction: str
+    player_verbs: tuple[str, ...]
+    objective: str
+    zones: tuple[str, ...]
+    enemy_archetype: str
+    target_minutes: int = 20
+    seed: int = 0
+    engine: str = "unreal"
+    engine_version: str = "5.8"
+    target_platform: str = "Win64"
+    perspective: str = "third-person"
+    save_schema_version: int = 1
+
+    def __post_init__(self) -> None:
+        if len(self.prompt.strip()) < 20:
+            raise ValueError("game prompt must contain at least 20 characters")
+        if not self.title.strip() or not self.project_id.strip():
+            raise ValueError("title and project_id are required")
+        if self.engine != "unreal" or self.engine_version != "5.8":
+            raise ValueError("this vertical-slice generator targets Unreal Engine 5.8")
+        if self.perspective != "third-person":
+            raise ValueError("the first proof supports third-person games")
+        if len(self.zones) != 3 or any(not zone.strip() for zone in self.zones):
+            raise ValueError("exactly three named encounter zones are required")
+        required_verbs = {"move", "attack", "interact"}
+        if not required_verbs.issubset({verb.lower() for verb in self.player_verbs}):
+            raise ValueError("player_verbs must include move, attack, and interact")
+        if not 15 <= self.target_minutes <= 30:
+            raise ValueError("target_minutes must be between 15 and 30")
+        if type(self.seed) is not int or self.seed < 0:
+            raise ValueError("seed must be a non-negative integer")
+
+
+@dataclass(frozen=True)
+class BuildGateResult:
+    """One resumable engine gate and its evidence."""
+
+    name: str
+    status: str
+    command: tuple[str, ...] = ()
+    exit_code: int | None = None
+    log_path: str = ""
+    artifacts: tuple[str, ...] = ()
+    fingerprint: str = ""
+    reason: str = ""
+
+    def __post_init__(self) -> None:
+        if self.status not in {"pending", "running", "passed", "failed", "blocked"}:
+            raise ValueError(f"invalid build gate status: {self.status}")
+
+
+@dataclass(frozen=True)
 class GameBuildManifest:
     """Truthful game-foundry output; evidence controls ``playable``."""
 
@@ -156,6 +216,7 @@ class GameBuildManifest:
     smoke_verified: bool = False
     playable: bool = False
     command_evidence: tuple[Mapping[str, Any], ...] = ()
+    gate_results: tuple[Mapping[str, Any], ...] = ()
     artifact_hashes: Mapping[str, str] = field(default_factory=dict)
     unavailable_reason: str = ""
     created_at: str = ""

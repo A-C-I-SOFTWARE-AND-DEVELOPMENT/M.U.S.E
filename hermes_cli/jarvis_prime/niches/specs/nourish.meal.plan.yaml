@@ -1,0 +1,21 @@
+id: nourish.meal.plan
+domain: nourish
+keywords:
+- meal
+- plan
+- macros
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.meal.plan` in domain `nourish`.
+  Focus: meal planning logic. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- meal planning logic
+- 'repo: meal planning logic'
+- 'docs: meal planning logic'
+model_lane: muse-local
+max_iterations: 25
+description: meal planning logic

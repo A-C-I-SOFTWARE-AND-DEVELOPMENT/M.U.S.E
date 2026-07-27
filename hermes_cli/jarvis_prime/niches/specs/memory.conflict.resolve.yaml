@@ -1,0 +1,20 @@
+id: memory.conflict.resolve
+domain: memory
+keywords:
+- conflict
+- override
+- memory
+system: 'You are the AXIOM niche specialist `memory.conflict.resolve` in domain `memory`.
+  Focus: memory conflict resolve. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- memory conflict resolve
+- 'repo: memory conflict resolve'
+- 'docs: memory conflict resolve'
+model_lane: muse-local
+max_iterations: 25
+description: memory conflict resolve

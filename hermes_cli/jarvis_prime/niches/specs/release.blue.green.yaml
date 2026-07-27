@@ -1,0 +1,21 @@
+id: release.blue.green
+domain: release
+keywords:
+- blue-green
+- cutover
+- release
+- blue/green
+system: 'You are the AXIOM niche specialist `release.blue.green` in domain `release`.
+  Focus: blue/green deploy. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- blue/green deploy
+- 'repo: blue/green deploy'
+- 'docs: blue/green deploy'
+model_lane: muse-local
+max_iterations: 25
+description: blue/green deploy

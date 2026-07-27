@@ -1,0 +1,22 @@
+id: codex.sec.review
+domain: codex
+keywords:
+- security
+- review
+- sanitize
+- codex
+- security-minded
+system: 'You are the AXIOM niche specialist `codex.sec.review` in domain `codex`.
+  Focus: security-minded review. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- security-minded review
+- 'repo: security-minded review'
+- 'docs: security-minded review'
+model_lane: muse-local
+max_iterations: 25
+description: security-minded review

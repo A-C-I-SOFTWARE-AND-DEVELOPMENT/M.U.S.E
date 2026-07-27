@@ -1,0 +1,21 @@
+id: business.partner.ecosystem
+domain: business
+keywords:
+- partner
+- channel
+- oem
+- business
+system: 'You are the AXIOM niche specialist `business.partner.ecosystem` in domain
+  `business`. Focus: partner ecosystem. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- partner ecosystem
+- 'repo: partner ecosystem'
+- 'docs: partner ecosystem'
+model_lane: muse-local
+max_iterations: 25
+description: partner ecosystem

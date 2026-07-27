@@ -7884,6 +7884,7 @@ class HermesCLI:
         runners = {
             "orchestrate":              _orch.run_orchestrate,
             "swarm":                    _orch.run_swarm,
+            "swarm-niche":              _orch.run_swarm_niche,
             "orchestrator":             _orch.run_orchestrator,
             "model-router":             _orch.run_model_router,
             "decision-ledger":          _orch.run_decision_ledger,
@@ -8253,6 +8254,7 @@ class HermesCLI:
         elif canonical in {
             "orchestrate",
             "swarm",
+            "swarm-niche",
             "orchestrator",
             "model-router",
             "decision-ledger",

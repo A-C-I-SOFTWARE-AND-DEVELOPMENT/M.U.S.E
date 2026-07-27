@@ -1,0 +1,22 @@
+id: research.lit.review
+domain: research
+keywords:
+- papers
+- review
+- survey
+- research
+- literature
+system: 'You are the AXIOM niche specialist `research.lit.review` in domain `research`.
+  Focus: literature review synthesis. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- literature review synthesis
+- 'repo: literature review synthesis'
+- 'docs: literature review synthesis'
+model_lane: muse-local
+max_iterations: 25
+description: literature review synthesis

@@ -1,0 +1,20 @@
+id: release.semver.bump
+domain: release
+keywords:
+- semver
+- changelog
+- release
+system: 'You are the AXIOM niche specialist `release.semver.bump` in domain `release`.
+  Focus: semver and changelogs. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- semver and changelogs
+- 'repo: semver and changelogs'
+- 'docs: semver and changelogs'
+model_lane: muse-local
+max_iterations: 25
+description: semver and changelogs

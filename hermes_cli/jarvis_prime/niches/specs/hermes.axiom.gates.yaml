@@ -1,0 +1,22 @@
+id: hermes.axiom.gates
+domain: hermes
+keywords:
+- axiom
+- gate
+- ledger
+- hermes
+- AXIOM
+system: 'You are the AXIOM niche specialist `hermes.axiom.gates` in domain `hermes`.
+  Focus: AXIOM gate profiles. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- AXIOM gate profiles
+- 'repo: AXIOM gate profiles'
+- 'docs: AXIOM gate profiles'
+model_lane: muse-local
+max_iterations: 25
+description: AXIOM gate profiles

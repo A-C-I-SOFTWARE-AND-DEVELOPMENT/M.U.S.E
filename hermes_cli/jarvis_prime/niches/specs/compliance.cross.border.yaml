@@ -1,0 +1,22 @@
+id: compliance.cross.border
+domain: compliance
+keywords:
+- transfer
+- scc
+- schrems
+- compliance
+- cross-border
+system: 'You are the AXIOM niche specialist `compliance.cross.border` in domain `compliance`.
+  Focus: cross-border data transfer. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- cross-border data transfer
+- 'repo: cross-border data transfer'
+- 'docs: cross-border data transfer'
+model_lane: muse-local
+max_iterations: 25
+description: cross-border data transfer

@@ -1,0 +1,22 @@
+id: architecture.multi.tenant
+domain: architecture
+keywords:
+- tenant
+- isolation
+- saas
+- architecture
+- multi-tenant
+system: 'You are the AXIOM niche specialist `architecture.multi.tenant` in domain
+  `architecture`. Focus: multi-tenant isolation. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- multi-tenant isolation
+- 'repo: multi-tenant isolation'
+- 'docs: multi-tenant isolation'
+model_lane: muse-local
+max_iterations: 25
+description: multi-tenant isolation

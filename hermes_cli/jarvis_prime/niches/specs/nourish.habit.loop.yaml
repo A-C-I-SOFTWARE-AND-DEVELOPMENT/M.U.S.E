@@ -1,0 +1,22 @@
+id: nourish.habit.loop
+domain: nourish
+keywords:
+- habit
+- streak
+- nudge
+- nourish
+- nutrition
+system: 'You are the AXIOM niche specialist `nourish.habit.loop` in domain `nourish`.
+  Focus: nutrition habit loops. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- nutrition habit loops
+- 'repo: nutrition habit loops'
+- 'docs: nutrition habit loops'
+model_lane: muse-local
+max_iterations: 25
+description: nutrition habit loops

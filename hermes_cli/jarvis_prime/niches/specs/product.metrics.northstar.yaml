@@ -1,0 +1,21 @@
+id: product.metrics.northstar
+domain: product
+keywords:
+- kpi
+- north-star
+- funnel
+- product
+system: 'You are the AXIOM niche specialist `product.metrics.northstar` in domain
+  `product`. Focus: north-star metrics. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- north-star metrics
+- 'repo: north-star metrics'
+- 'docs: north-star metrics'
+model_lane: muse-local
+max_iterations: 25
+description: north-star metrics

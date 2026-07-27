@@ -1,0 +1,21 @@
+id: codex.lint.debt
+domain: codex
+keywords:
+- lint
+- ruff
+- eslint
+- codex
+system: 'You are the AXIOM niche specialist `codex.lint.debt` in domain `codex`. Focus:
+  lint debt triage. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- lint debt triage
+- 'repo: lint debt triage'
+- 'docs: lint debt triage'
+model_lane: muse-local
+max_iterations: 25
+description: lint debt triage

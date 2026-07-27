@@ -1,4 +1,4 @@
-import { atom, computed } from 'nanostores'
+﻿import { atom, computed } from 'nanostores'
 
 import type { OverlayState } from './interfaces.js'
 
@@ -16,16 +16,45 @@ const buildOverlayState = (): OverlayState => ({
   picker: false,
   secret: null,
   skillsHub: false,
-  sudo: null
+  sudo: null,
+  thinkingPicker: false
 })
 
 export const $overlayState = atom<OverlayState>(buildOverlayState())
 
 export const $isBlocked = computed(
   $overlayState,
-  ({ agents, approval, clarify, confirm, fusion, hub, modelPicker, pager, palette, picker, secret, skillsHub, sudo }) =>
+  ({
+    agents,
+    approval,
+    clarify,
+    confirm,
+    fusion,
+    hub,
+    modelPicker,
+    pager,
+    palette,
+    picker,
+    secret,
+    skillsHub,
+    sudo,
+    thinkingPicker
+  }) =>
     Boolean(
-      agents || approval || clarify || confirm || fusion || hub || modelPicker || pager || palette || picker || secret || skillsHub || sudo
+      agents ||
+        approval ||
+        clarify ||
+        confirm ||
+        fusion ||
+        hub ||
+        modelPicker ||
+        pager ||
+        palette ||
+        picker ||
+        secret ||
+        skillsHub ||
+        sudo ||
+        thinkingPicker
     )
 )
 
@@ -56,5 +85,6 @@ export const resetFlowOverlays = () =>
     modelPicker: $overlayState.get().modelPicker,
     palette: $overlayState.get().palette,
     picker: $overlayState.get().picker,
-    skillsHub: $overlayState.get().skillsHub
+    skillsHub: $overlayState.get().skillsHub,
+    thinkingPicker: $overlayState.get().thinkingPicker
   })

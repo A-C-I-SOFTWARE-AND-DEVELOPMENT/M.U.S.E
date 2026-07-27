@@ -42,6 +42,8 @@ __all__ = [
     "AIAgentExecutorConfig",
     "resolve_executor",
     "run_swarm",
+    "run_swarm_niche",
+    "muse_local_executor_config",
 ]
 
 
@@ -85,6 +87,8 @@ class SwarmResult:
     blackboard_namespace: str = ""
     convergence: Optional[dict[str, Any]] = None
     notes: list[str] = field(default_factory=list)
+    scout_packets: int = 0
+    niches_used: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -99,6 +103,8 @@ class SwarmResult:
             "blackboard_namespace": self.blackboard_namespace,
             "convergence": self.convergence,
             "notes": self.notes,
+            "scout_packets": self.scout_packets,
+            "niches_used": self.niches_used,
         }
 
 
@@ -127,8 +133,9 @@ class PromptOnlyExecutor:
     the conservative "decides, does not act" default.
     """
 
-    def __init__(self, *, timeout_seconds: int = 600) -> None:
+    def __init__(self, *, timeout_seconds: int = 600, allow_dirty: bool = False) -> None:
         self.timeout_seconds = timeout_seconds
+        self.allow_dirty = allow_dirty
 
     def run(
         self,
@@ -139,7 +146,9 @@ class PromptOnlyExecutor:
         from hermes_cli.orchestrator_parallel import ParallelRunner
 
         exec_plan = _grainler.to_execution_plan(
-            plan, timeout_seconds=self.timeout_seconds
+            plan,
+            timeout_seconds=self.timeout_seconds,
+            allow_dirty=self.allow_dirty,
         )
         runner = ParallelRunner(repo, exec_plan)
         statuses = runner.run()
@@ -170,7 +179,7 @@ class PromptOnlyExecutor:
                             )
                     except OSError:
                         pass
-        out.append(res)
+            out.append(res)
         return out
 
 
@@ -184,6 +193,7 @@ def resolve_executor(
     max_iterations: int = 25,
     concurrency: int = 2,
     quiet_mode: bool = True,
+    allow_dirty: bool = False,
 ) -> "GrainExecutor | PromptOnlyExecutor | AIAgentExecutor":
     """Resolve the ``executor=`` argument into a concrete :class:`GrainExecutor`.
 
@@ -202,7 +212,7 @@ def resolve_executor(
     """
 
     if executor is None or executor == "prompt_only":
-        return PromptOnlyExecutor()
+        return PromptOnlyExecutor(allow_dirty=allow_dirty)
     if isinstance(executor, str):
         if executor == "ai":
             from hermes_cli.swarm.ai_executor import AIAgentExecutor  # lazy
@@ -245,7 +255,13 @@ def resolve_executor(
 # ---------------------------------------------------------------------------
 
 
-def _write_decision_ledger(plan: SwarmPlan, results: Sequence[SwarmGrainResult]) -> Optional[str]:
+def _write_decision_ledger(
+    plan: SwarmPlan,
+    results: Sequence[SwarmGrainResult],
+    *,
+    niches_used: Optional[Sequence[str]] = None,
+    scout_packets: int = 0,
+) -> Optional[str]:
     try:
         from hermes_cli.decision_ledger import DecisionLedger, write_ledger
     except Exception:
@@ -263,6 +279,8 @@ def _write_decision_ledger(plan: SwarmPlan, results: Sequence[SwarmGrainResult])
         for r in results
     )
     owner_gated = [g.grain_id for g in plan.grains if g.owner_gated]
+    niche_line = ", ".join(niches_used) if niches_used else "(none)"
+    scout_line = f"{scout_packets} Scout packet(s) prefetched onto the blackboard before grain decode."
 
     ledger = DecisionLedger(
         decision=f"Run swarm job {plan.job_id} as {len(plan.grains)} non-overlapping grain(s).",
@@ -271,10 +289,14 @@ def _write_decision_ledger(plan: SwarmPlan, results: Sequence[SwarmGrainResult])
             "separate set of files, and ran them in isolated git worktrees so they could "
             "not interfere with each other."
         ),
-        context=f"Goal: {plan.goal}\nTriggered via Swarm Grainler Parallel coordinator.",
+        context=(
+            f"Goal: {plan.goal}\nTriggered via Swarm Grainler Parallel coordinator.\n"
+            f"Niches used: {niche_line}\n{scout_line}"
+        ),
         evidence_reviewed=(
             "Grain file-domains (proven pairwise disjoint before any agent started):\n"
             + grain_lines
+            + f"\nNiches routed: {niche_line}\n{scout_line}"
         ),
         options_considered=(
             "Option A — swarm with proven-disjoint file-domains + worktree isolation "
@@ -467,6 +489,53 @@ def _record_blackboard(
 # ---------------------------------------------------------------------------
 
 
+def muse_local_executor_config(
+    *,
+    concurrency: int = 2,
+    max_iterations: int = 25,
+    quiet_mode: bool = True,
+) -> AIAgentExecutorConfig:
+    """Build AIAgentExecutorConfig pointing at local MUSE fusion router."""
+    return AIAgentExecutorConfig(
+        base_url="http://127.0.0.1:11436/v1",
+        api_key="muse-local",
+        model="muse",
+        provider="openai",
+        max_iterations=max_iterations,
+        concurrency=max(2, min(8, concurrency)),
+        quiet_mode=quiet_mode,
+    )
+
+
+def _match_niches(goal: str, limit: int = 5) -> list[Any]:
+    try:
+        from hermes_cli.jarvis_prime.agent_pool import route, CAT_NICHE
+
+        matches = route(goal, limit=limit, min_score=0.5)
+        return [m for m in matches if m.entry.category == CAT_NICHE]
+    except Exception:
+        return []
+
+
+def _niche_scout_queries(goal: str, niche_matches: Sequence[Any]) -> list[str]:
+    queries: list[str] = []
+    try:
+        from hermes_cli.jarvis_prime.niches.loader import load_niche
+    except Exception:
+        load_niche = None  # type: ignore
+    for m in niche_matches:
+        niche_id = m.entry.name
+        if load_niche:
+            spec = load_niche(niche_id)
+            if spec:
+                queries.extend(list(spec.scout_queries))
+                continue
+        queries.append(str(niche_id))
+    if not queries:
+        queries.append(goal)
+    return queries[:12]
+
+
 def run_swarm(
     goal: str,
     repo: Path | str = ".",
@@ -487,22 +556,16 @@ def run_swarm(
     apply_reversible: bool = True,
     apply_fn: Optional[Callable[[Any], dict[str, Any]]] = None,
     claim_domains: bool = True,
+    scout: bool = False,
+    niche_mode: bool = False,
+    allow_dirty: bool = False,
 ) -> SwarmResult:
     """Run the full Swarm Grainler Parallel pipeline for ``goal``.
 
-    Returns a :class:`SwarmResult` with per-grain outcomes, the Decision Ledger
-    path, and the applied/queued self-update records. Raises
-    :class:`~hermes_cli.swarm.grain.OverlapError` (from partitioning) if the
-    decomposition's file-domains cannot be proven disjoint — in which case **no
-    grain runs**.
-
-    ``executor`` selects how the per-grain work is executed:
-
-    * ``None`` or ``"prompt_only"`` (default) → :class:`PromptOnlyExecutor`
-      (isolate + materialise, never launch a model);
-    * ``"ai"`` → :class:`AIAgentExecutor` driving a real model. Requires
-      ``base_url`` / ``api_key`` / ``model`` / ``provider``;
-    * a :class:`GrainExecutor` instance → used as-is.
+    When ``scout=True`` (or ``niche_mode=True``), runs Scout prefetch into the
+    blackboard and injects packets into each grain's context before execution.
+    When ``niche_mode=True`` and ``executor`` is None, defaults to muse-local
+    :class:`AIAgentExecutor` (falls back to prompt_only if construction fails).
     """
 
     repo_path = Path(repo)
@@ -517,18 +580,24 @@ def run_swarm(
         goal, str(repo_path), job_id=job_id, grains=grains, decomposer=decomposer
     )
 
+    niche_matches = _match_niches(goal) if niche_mode or scout else []
+    niches_used = [m.entry.name for m in niche_matches]
+
     result = SwarmResult(
         job_id=plan.job_id,
         goal=plan.goal,
         created_at=plan.created_at,
         trivial=plan.is_trivial,
         blackboard_namespace=plan.blackboard_namespace,
+        niches_used=niches_used,
     )
     if plan.is_trivial:
         result.notes.append(
             "Trivial goal: single grain, no swarm fan-out (avoids the multi-agent "
             "token tax). The grain still runs in isolation with a Decision Ledger."
         )
+    if niches_used:
+        result.notes.append("niches: " + ", ".join(niches_used))
 
     # Claim each grain's file-domain (runtime non-overlap backstop).
     claimed: list[Grain] = []
@@ -549,8 +618,56 @@ def run_swarm(
             for grain in plan.grains
         }
 
+        # Scout prefetch (before any model decode)
+        if scout or niche_mode:
+            try:
+                from hermes_cli.swarm.blackboard import SwarmBlackboard
+                from hermes_cli.swarm.scout import (
+                    prefetch_for_plan,
+                    inject_scout_into_specs,
+                )
+
+                board = SwarmBlackboard(plan.job_id, memory_store=memory_store)
+                scout_result = prefetch_for_plan(
+                    plan,
+                    repo_path,
+                    niche_queries=_niche_scout_queries(goal, niche_matches),
+                    blackboard=board,
+                )
+                specs = inject_scout_into_specs(specs, scout_result)
+                result.scout_packets = len(scout_result.packets)
+                result.notes.append(
+                    f"scout: {result.scout_packets} packets in {scout_result.elapsed_ms:.0f}ms"
+                )
+            except Exception as exc:
+                result.notes.append(f"scout skipped: {exc}")
+
+        # Niche mode defaults to muse-local AI executor when caller didn't pick one
+        effective_executor = executor
+        if niche_mode and effective_executor is None:
+            try:
+                cfg = muse_local_executor_config(
+                    concurrency=concurrency,
+                    max_iterations=max_iterations,
+                    quiet_mode=quiet_mode,
+                )
+                effective_executor = AIAgentExecutor(
+                    base_url=cfg.base_url,
+                    api_key=cfg.api_key,
+                    model=cfg.model,
+                    provider=cfg.provider,
+                    max_iterations=cfg.max_iterations,
+                    concurrency=cfg.concurrency,
+                    max_concurrency=cfg.max_concurrency,
+                    quiet_mode=cfg.quiet_mode,
+                )
+                result.notes.append("executor: ai/muse-local")
+            except Exception as exc:
+                effective_executor = "prompt_only"
+                result.notes.append(f"muse-local AI executor unavailable ({exc}); prompt_only")
+
         exec_impl = resolve_executor(
-            executor,
+            effective_executor,
             base_url=base_url,
             api_key=api_key,
             model=model,
@@ -558,6 +675,7 @@ def run_swarm(
             max_iterations=max_iterations,
             concurrency=concurrency,
             quiet_mode=quiet_mode,
+            allow_dirty=allow_dirty,
         )
         result.grains = exec_impl.run(repo_path, plan, specs)
 
@@ -568,7 +686,12 @@ def run_swarm(
 
         # Audit + coordination trails.
         _record_blackboard(plan, result.grains, memory_store)
-        result.ledger_path = _write_decision_ledger(plan, result.grains)
+        result.ledger_path = _write_decision_ledger(
+            plan,
+            result.grains,
+            niches_used=result.niches_used,
+            scout_packets=result.scout_packets,
+        )
 
         # Learning capture — a dated, provenance-tagged record of the job.
         try:
@@ -605,3 +728,18 @@ def run_swarm(
                 _specialist.release_grain(repo_path, plan.job_id, grain.grain_id)
 
     return result
+
+
+def run_swarm_niche(
+    goal: str,
+    repo: Path | str = ".",
+    **kwargs: Any,
+) -> SwarmResult:
+    """Niche AXIOM swarm: Scout prefetch + muse-local AI grains (prompt_only fallback).
+
+    Pass ``executor="prompt_only"`` for deterministic smoke without a live model.
+    Omit ``executor`` (or pass ``None``) to try muse-local AIAgentExecutor.
+    """
+    kwargs.pop("scout", None)
+    kwargs.pop("niche_mode", None)
+    return run_swarm(goal, repo, scout=True, niche_mode=True, **kwargs)

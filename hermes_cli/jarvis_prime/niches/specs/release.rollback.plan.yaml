@@ -1,0 +1,21 @@
+id: release.rollback.plan
+domain: release
+keywords:
+- rollback
+- revert
+- hotfix
+- release
+system: 'You are the AXIOM niche specialist `release.rollback.plan` in domain `release`.
+  Focus: rollback planning. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- rollback planning
+- 'repo: rollback planning'
+- 'docs: rollback planning'
+model_lane: muse-local
+max_iterations: 25
+description: rollback planning

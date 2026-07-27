@@ -1,0 +1,21 @@
+id: psychology.cognitive.load
+domain: psychology
+keywords:
+- cognitive
+- load
+- chunking
+- psychology
+system: 'You are the AXIOM niche specialist `psychology.cognitive.load` in domain
+  `psychology`. Focus: cognitive load reduction. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- cognitive load reduction
+- 'repo: cognitive load reduction'
+- 'docs: cognitive load reduction'
+model_lane: muse-local
+max_iterations: 25
+description: cognitive load reduction

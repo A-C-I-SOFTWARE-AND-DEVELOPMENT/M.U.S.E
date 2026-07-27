@@ -1,0 +1,22 @@
+id: memory.embed.chunk
+domain: memory
+keywords:
+- chunk
+- embed
+- rag
+- memory
+- embedding
+system: 'You are the AXIOM niche specialist `memory.embed.chunk` in domain `memory`.
+  Focus: embedding chunk strategy. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- embedding chunk strategy
+- 'repo: embedding chunk strategy'
+- 'docs: embedding chunk strategy'
+model_lane: muse-local
+max_iterations: 25
+description: embedding chunk strategy

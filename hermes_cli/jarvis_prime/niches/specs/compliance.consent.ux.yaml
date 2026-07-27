@@ -1,0 +1,21 @@
+id: compliance.consent.ux
+domain: compliance
+keywords:
+- consent
+- cookie
+- opt-in
+- compliance
+system: 'You are the AXIOM niche specialist `compliance.consent.ux` in domain `compliance`.
+  Focus: consent UX compliance. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- consent UX compliance
+- 'repo: consent UX compliance'
+- 'docs: consent UX compliance'
+model_lane: muse-local
+max_iterations: 25
+description: consent UX compliance

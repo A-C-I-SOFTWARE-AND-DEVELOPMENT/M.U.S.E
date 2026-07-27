@@ -33,7 +33,11 @@ const PROMOTED: PromotedEntry[] = [
   { category: 'Session', cmd: '/status', hint: 'show live session info', keywords: 'state title model' },
   { category: 'Session', cmd: '/fast toggle', hint: 'toggle fast mode', keywords: 'speed normal quick' },
   { category: 'Session', cmd: '/yolo', hint: 'toggle yolo mode (auto-approve)', keywords: 'approvals permissions' },
-  { category: 'Session', cmd: '/reasoning show', hint: 'show reasoning in transcript', keywords: 'thinking effort' },
+  { category: 'Session', cmd: '/reasoning', hint: 'thinking level picker (none→xhigh)', keywords: 'thinking effort reasoning' },
+  { category: 'Session', cmd: '/reasoning cycle', hint: 'cycle thinking effort', keywords: 'thinking effort next' },
+  { category: 'Session', cmd: '/reasoning high', hint: 'set thinking to high', keywords: 'thinking effort' },
+  { category: 'Session', cmd: '/reasoning show', hint: 'show thinking in transcript', keywords: 'thinking effort' },
+  { category: 'Session', cmd: '/reasoning hide', hint: 'hide thinking in transcript', keywords: 'thinking effort' },
   // ── System ─────────────────────────────────────────────────────────
   { category: 'System', cmd: '/hub', hint: 'open the hub browser', keywords: 'hubs agents automate skills providers memory' },
   { category: 'System', cmd: '/logs', hint: 'view gateway logs', keywords: 'debug tail trace' },

@@ -1,0 +1,22 @@
+id: codex.docs.sync
+domain: codex
+keywords:
+- docs
+- stale
+- sync
+- codex
+- docs-code
+system: 'You are the AXIOM niche specialist `codex.docs.sync` in domain `codex`. Focus:
+  docs-code sync. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- docs-code sync
+- 'repo: docs-code sync'
+- 'docs: docs-code sync'
+model_lane: muse-local
+max_iterations: 25
+description: docs-code sync

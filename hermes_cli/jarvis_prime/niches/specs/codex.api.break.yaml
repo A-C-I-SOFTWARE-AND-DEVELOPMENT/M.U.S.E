@@ -1,0 +1,22 @@
+id: codex.api.break
+domain: codex
+keywords:
+- breaking
+- compat
+- semver
+- codex
+- API
+system: 'You are the AXIOM niche specialist `codex.api.break` in domain `codex`. Focus:
+  API break detection. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- API break detection
+- 'repo: API break detection'
+- 'docs: API break detection'
+model_lane: muse-local
+max_iterations: 25
+description: API break detection

@@ -1,0 +1,22 @@
+id: business.gtm.narrative
+domain: business
+keywords:
+- gtm
+- positioning
+- story
+- business
+- GTM
+system: 'You are the AXIOM niche specialist `business.gtm.narrative` in domain `business`.
+  Focus: GTM narrative. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- GTM narrative
+- 'repo: GTM narrative'
+- 'docs: GTM narrative'
+model_lane: muse-local
+max_iterations: 25
+description: GTM narrative

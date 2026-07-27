@@ -1,0 +1,21 @@
+id: release.postmortem
+domain: release
+keywords:
+- postmortem
+- incident
+- blameless
+- release
+system: 'You are the AXIOM niche specialist `release.postmortem` in domain `release`.
+  Focus: release postmortem. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- release postmortem
+- 'repo: release postmortem'
+- 'docs: release postmortem'
+model_lane: muse-local
+max_iterations: 25
+description: release postmortem

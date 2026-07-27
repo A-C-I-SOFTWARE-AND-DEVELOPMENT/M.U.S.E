@@ -1,0 +1,21 @@
+id: nourish.lab.markers
+domain: nourish
+keywords:
+- lab
+- biomarker
+- range
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.lab.markers` in domain `nourish`.
+  Focus: lab marker interpretation. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- lab marker interpretation
+- 'repo: lab marker interpretation'
+- 'docs: lab marker interpretation'
+model_lane: muse-local
+max_iterations: 25
+description: lab marker interpretation

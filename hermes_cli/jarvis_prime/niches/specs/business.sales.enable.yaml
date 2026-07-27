@@ -1,0 +1,21 @@
+id: business.sales.enable
+domain: business
+keywords:
+- sales
+- deck
+- objection
+- business
+system: 'You are the AXIOM niche specialist `business.sales.enable` in domain `business`.
+  Focus: sales enablement. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- sales enablement
+- 'repo: sales enablement'
+- 'docs: sales enablement'
+model_lane: muse-local
+max_iterations: 25
+description: sales enablement

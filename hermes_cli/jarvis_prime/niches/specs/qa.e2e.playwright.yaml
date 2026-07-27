@@ -1,0 +1,22 @@
+id: qa.e2e.playwright
+domain: qa
+keywords:
+- playwright
+- e2e
+- browser
+- qa
+- Playwright
+system: 'You are the AXIOM niche specialist `qa.e2e.playwright` in domain `qa`. Focus:
+  Playwright e2e coverage. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- Playwright e2e coverage
+- 'repo: Playwright e2e coverage'
+- 'docs: Playwright e2e coverage'
+model_lane: muse-local
+max_iterations: 25
+description: Playwright e2e coverage

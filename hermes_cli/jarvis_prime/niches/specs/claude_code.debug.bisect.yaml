@@ -1,0 +1,21 @@
+id: claude_code.debug.bisect
+domain: claude-code
+keywords:
+- bisect
+- debug
+- regress
+- claude-code
+system: 'You are the AXIOM niche specialist `claude_code.debug.bisect` in domain `claude-code`.
+  Focus: bisect debugging. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- bisect debugging
+- 'repo: bisect debugging'
+- 'docs: bisect debugging'
+model_lane: muse-local
+max_iterations: 25
+description: bisect debugging

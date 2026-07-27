@@ -1,0 +1,22 @@
+id: research.stat.literacy
+domain: research
+keywords:
+- p-value
+- sample
+- bias
+- research
+- statistics
+system: 'You are the AXIOM niche specialist `research.stat.literacy` in domain `research`.
+  Focus: statistics literacy checks. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- statistics literacy checks
+- 'repo: statistics literacy checks'
+- 'docs: statistics literacy checks'
+model_lane: muse-local
+max_iterations: 25
+description: statistics literacy checks

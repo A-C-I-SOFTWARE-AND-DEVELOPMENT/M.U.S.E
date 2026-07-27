@@ -1,0 +1,965 @@
+{
+  "version": "1",
+  "niches": [
+    {
+      "id": "architecture.system.design",
+      "domain": "architecture",
+      "description": "system design tradeoffs",
+      "forged": false,
+      "path": "specs/architecture.system.design.yaml"
+    },
+    {
+      "id": "architecture.data.models",
+      "domain": "architecture",
+      "description": "data model design",
+      "forged": false,
+      "path": "specs/architecture.data.models.yaml"
+    },
+    {
+      "id": "architecture.api.contracts",
+      "domain": "architecture",
+      "description": "API contract design",
+      "forged": false,
+      "path": "specs/architecture.api.contracts.yaml"
+    },
+    {
+      "id": "architecture.event.driven",
+      "domain": "architecture",
+      "description": "event-driven architecture",
+      "forged": false,
+      "path": "specs/architecture.event.driven.yaml"
+    },
+    {
+      "id": "architecture.caching.layers",
+      "domain": "architecture",
+      "description": "caching strategy",
+      "forged": false,
+      "path": "specs/architecture.caching.layers.yaml"
+    },
+    {
+      "id": "architecture.multi.tenant",
+      "domain": "architecture",
+      "description": "multi-tenant isolation",
+      "forged": false,
+      "path": "specs/architecture.multi.tenant.yaml"
+    },
+    {
+      "id": "architecture.observability",
+      "domain": "architecture",
+      "description": "observability design",
+      "forged": false,
+      "path": "specs/architecture.observability.yaml"
+    },
+    {
+      "id": "architecture.failure.modes",
+      "domain": "architecture",
+      "description": "failure mode analysis",
+      "forged": false,
+      "path": "specs/architecture.failure.modes.yaml"
+    },
+    {
+      "id": "security.owasp.injection",
+      "domain": "security",
+      "description": "OWASP injection defenses",
+      "forged": false,
+      "path": "specs/security.owasp.injection.yaml"
+    },
+    {
+      "id": "security.authn.oauth",
+      "domain": "security",
+      "description": "OAuth/OIDC authentication",
+      "forged": false,
+      "path": "specs/security.authn.oauth.yaml"
+    },
+    {
+      "id": "security.authz.rbac",
+      "domain": "security",
+      "description": "RBAC/ABAC authorization",
+      "forged": false,
+      "path": "specs/security.authz.rbac.yaml"
+    },
+    {
+      "id": "security.secrets.mgmt",
+      "domain": "security",
+      "description": "secrets management",
+      "forged": false,
+      "path": "specs/security.secrets.mgmt.yaml"
+    },
+    {
+      "id": "security.threat.model",
+      "domain": "security",
+      "description": "threat modeling",
+      "forged": false,
+      "path": "specs/security.threat.model.yaml"
+    },
+    {
+      "id": "security.crypto.tls",
+      "domain": "security",
+      "description": "TLS and crypto hygiene",
+      "forged": false,
+      "path": "specs/security.crypto.tls.yaml"
+    },
+    {
+      "id": "security.supply.chain",
+      "domain": "security",
+      "description": "supply-chain security",
+      "forged": false,
+      "path": "specs/security.supply.chain.yaml"
+    },
+    {
+      "id": "security.pentest.triage",
+      "domain": "security",
+      "description": "pentest finding triage",
+      "forged": false,
+      "path": "specs/security.pentest.triage.yaml"
+    },
+    {
+      "id": "qa.flaky.pytest",
+      "domain": "qa",
+      "description": "flaky pytest diagnosis",
+      "forged": false,
+      "path": "specs/qa.flaky.pytest.yaml"
+    },
+    {
+      "id": "qa.e2e.playwright",
+      "domain": "qa",
+      "description": "Playwright e2e coverage",
+      "forged": false,
+      "path": "specs/qa.e2e.playwright.yaml"
+    },
+    {
+      "id": "qa.contract.tests",
+      "domain": "qa",
+      "description": "API contract tests",
+      "forged": false,
+      "path": "specs/qa.contract.tests.yaml"
+    },
+    {
+      "id": "qa.perf.regression",
+      "domain": "qa",
+      "description": "performance regression",
+      "forged": false,
+      "path": "specs/qa.perf.regression.yaml"
+    },
+    {
+      "id": "qa.mutation.testing",
+      "domain": "qa",
+      "description": "mutation testing strategy",
+      "forged": false,
+      "path": "specs/qa.mutation.testing.yaml"
+    },
+    {
+      "id": "qa.ci.gating",
+      "domain": "qa",
+      "description": "CI quality gates",
+      "forged": false,
+      "path": "specs/qa.ci.gating.yaml"
+    },
+    {
+      "id": "qa.fuzz.inputs",
+      "domain": "qa",
+      "description": "fuzz and property tests",
+      "forged": false,
+      "path": "specs/qa.fuzz.inputs.yaml"
+    },
+    {
+      "id": "qa.snapshot.ui",
+      "domain": "qa",
+      "description": "UI snapshot review",
+      "forged": false,
+      "path": "specs/qa.snapshot.ui.yaml"
+    },
+    {
+      "id": "hazmat_command.cfr49.placards",
+      "domain": "hazmat-command",
+      "description": "49 CFR placarding",
+      "forged": false,
+      "path": "specs/hazmat_command.cfr49.placards.yaml"
+    },
+    {
+      "id": "hazmat_command.shipping.papers",
+      "domain": "hazmat-command",
+      "description": "shipping paper compliance",
+      "forged": false,
+      "path": "specs/hazmat_command.shipping.papers.yaml"
+    },
+    {
+      "id": "hazmat_command.erg.guide",
+      "domain": "hazmat-command",
+      "description": "ERG emergency response",
+      "forged": false,
+      "path": "specs/hazmat_command.erg.guide.yaml"
+    },
+    {
+      "id": "hazmat_command.un.numbers",
+      "domain": "hazmat-command",
+      "description": "UN number classification",
+      "forged": false,
+      "path": "specs/hazmat_command.un.numbers.yaml"
+    },
+    {
+      "id": "hazmat_command.tdg.canada",
+      "domain": "hazmat-command",
+      "description": "TDG Canada rules",
+      "forged": false,
+      "path": "specs/hazmat_command.tdg.canada.yaml"
+    },
+    {
+      "id": "hazmat_command.segregation",
+      "domain": "hazmat-command",
+      "description": "load segregation rules",
+      "forged": false,
+      "path": "specs/hazmat_command.segregation.yaml"
+    },
+    {
+      "id": "hazmat_command.training.records",
+      "domain": "hazmat-command",
+      "description": "hazmat training records",
+      "forged": false,
+      "path": "specs/hazmat_command.training.records.yaml"
+    },
+    {
+      "id": "hazmat_command.incident.report",
+      "domain": "hazmat-command",
+      "description": "hazmat incident reporting",
+      "forged": false,
+      "path": "specs/hazmat_command.incident.report.yaml"
+    },
+    {
+      "id": "compliance.gdpr.rights",
+      "domain": "compliance",
+      "description": "GDPR data subject rights",
+      "forged": false,
+      "path": "specs/compliance.gdpr.rights.yaml"
+    },
+    {
+      "id": "compliance.hipaa.phi",
+      "domain": "compliance",
+      "description": "HIPAA PHI handling",
+      "forged": false,
+      "path": "specs/compliance.hipaa.phi.yaml"
+    },
+    {
+      "id": "compliance.pci.dss",
+      "domain": "compliance",
+      "description": "PCI DSS controls",
+      "forged": false,
+      "path": "specs/compliance.pci.dss.yaml"
+    },
+    {
+      "id": "compliance.soc2.controls",
+      "domain": "compliance",
+      "description": "SOC2 control mapping",
+      "forged": false,
+      "path": "specs/compliance.soc2.controls.yaml"
+    },
+    {
+      "id": "compliance.retention",
+      "domain": "compliance",
+      "description": "data retention policy",
+      "forged": false,
+      "path": "specs/compliance.retention.yaml"
+    },
+    {
+      "id": "compliance.consent.ux",
+      "domain": "compliance",
+      "description": "consent UX compliance",
+      "forged": false,
+      "path": "specs/compliance.consent.ux.yaml"
+    },
+    {
+      "id": "compliance.cross.border",
+      "domain": "compliance",
+      "description": "cross-border data transfer",
+      "forged": false,
+      "path": "specs/compliance.cross.border.yaml"
+    },
+    {
+      "id": "compliance.vendor.dpas",
+      "domain": "compliance",
+      "description": "vendor DPA review",
+      "forged": false,
+      "path": "specs/compliance.vendor.dpas.yaml"
+    },
+    {
+      "id": "research.citation.check",
+      "domain": "research",
+      "description": "citation verification",
+      "forged": false,
+      "path": "specs/research.citation.check.yaml"
+    },
+    {
+      "id": "research.lit.review",
+      "domain": "research",
+      "description": "literature review synthesis",
+      "forged": false,
+      "path": "specs/research.lit.review.yaml"
+    },
+    {
+      "id": "research.claim.evidence",
+      "domain": "research",
+      "description": "claim-to-evidence mapping",
+      "forged": false,
+      "path": "specs/research.claim.evidence.yaml"
+    },
+    {
+      "id": "research.market.scan",
+      "domain": "research",
+      "description": "market scan research",
+      "forged": false,
+      "path": "specs/research.market.scan.yaml"
+    },
+    {
+      "id": "research.stat.literacy",
+      "domain": "research",
+      "description": "statistics literacy checks",
+      "forged": false,
+      "path": "specs/research.stat.literacy.yaml"
+    },
+    {
+      "id": "research.primary.sources",
+      "domain": "research",
+      "description": "primary source hunting",
+      "forged": false,
+      "path": "specs/research.primary.sources.yaml"
+    },
+    {
+      "id": "research.contradiction",
+      "domain": "research",
+      "description": "contradiction detection",
+      "forged": false,
+      "path": "specs/research.contradiction.yaml"
+    },
+    {
+      "id": "research.summarize.long",
+      "domain": "research",
+      "description": "long-doc summarization",
+      "forged": false,
+      "path": "specs/research.summarize.long.yaml"
+    },
+    {
+      "id": "product.roadmap.prioritize",
+      "domain": "product",
+      "description": "roadmap prioritization",
+      "forged": false,
+      "path": "specs/product.roadmap.prioritize.yaml"
+    },
+    {
+      "id": "product.user.stories",
+      "domain": "product",
+      "description": "user story writing",
+      "forged": false,
+      "path": "specs/product.user.stories.yaml"
+    },
+    {
+      "id": "product.metrics.northstar",
+      "domain": "product",
+      "description": "north-star metrics",
+      "forged": false,
+      "path": "specs/product.metrics.northstar.yaml"
+    },
+    {
+      "id": "product.pricing.packaging",
+      "domain": "product",
+      "description": "pricing packaging",
+      "forged": false,
+      "path": "specs/product.pricing.packaging.yaml"
+    },
+    {
+      "id": "product.launch.checklist",
+      "domain": "product",
+      "description": "launch checklist",
+      "forged": false,
+      "path": "specs/product.launch.checklist.yaml"
+    },
+    {
+      "id": "product.feedback.triage",
+      "domain": "product",
+      "description": "user feedback triage",
+      "forged": false,
+      "path": "specs/product.feedback.triage.yaml"
+    },
+    {
+      "id": "product.experiment.design",
+      "domain": "product",
+      "description": "A/B experiment design",
+      "forged": false,
+      "path": "specs/product.experiment.design.yaml"
+    },
+    {
+      "id": "product.competitive.matrix",
+      "domain": "product",
+      "description": "competitive matrix",
+      "forged": false,
+      "path": "specs/product.competitive.matrix.yaml"
+    },
+    {
+      "id": "ux.a11y.wcag",
+      "domain": "ux",
+      "description": "WCAG accessibility",
+      "forged": false,
+      "path": "specs/ux.a11y.wcag.yaml"
+    },
+    {
+      "id": "ux.onboarding.flow",
+      "domain": "ux",
+      "description": "onboarding flow design",
+      "forged": false,
+      "path": "specs/ux.onboarding.flow.yaml"
+    },
+    {
+      "id": "ux.empty.states",
+      "domain": "ux",
+      "description": "empty-state UX",
+      "forged": false,
+      "path": "specs/ux.empty.states.yaml"
+    },
+    {
+      "id": "ux.error.messages",
+      "domain": "ux",
+      "description": "error message craft",
+      "forged": false,
+      "path": "specs/ux.error.messages.yaml"
+    },
+    {
+      "id": "ux.forms.validation",
+      "domain": "ux",
+      "description": "form validation UX",
+      "forged": false,
+      "path": "specs/ux.forms.validation.yaml"
+    },
+    {
+      "id": "ux.mobile.touch",
+      "domain": "ux",
+      "description": "mobile touch targets",
+      "forged": false,
+      "path": "specs/ux.mobile.touch.yaml"
+    },
+    {
+      "id": "ux.design.tokens",
+      "domain": "ux",
+      "description": "design token systems",
+      "forged": false,
+      "path": "specs/ux.design.tokens.yaml"
+    },
+    {
+      "id": "ux.info.architecture",
+      "domain": "ux",
+      "description": "information architecture",
+      "forged": false,
+      "path": "specs/ux.info.architecture.yaml"
+    },
+    {
+      "id": "release.semver.bump",
+      "domain": "release",
+      "description": "semver and changelogs",
+      "forged": false,
+      "path": "specs/release.semver.bump.yaml"
+    },
+    {
+      "id": "release.canary.deploy",
+      "domain": "release",
+      "description": "canary deploy strategy",
+      "forged": false,
+      "path": "specs/release.canary.deploy.yaml"
+    },
+    {
+      "id": "release.rollback.plan",
+      "domain": "release",
+      "description": "rollback planning",
+      "forged": false,
+      "path": "specs/release.rollback.plan.yaml"
+    },
+    {
+      "id": "release.feature.flags",
+      "domain": "release",
+      "description": "feature flag ops",
+      "forged": false,
+      "path": "specs/release.feature.flags.yaml"
+    },
+    {
+      "id": "release.store.submit",
+      "domain": "release",
+      "description": "app store submission",
+      "forged": false,
+      "path": "specs/release.store.submit.yaml"
+    },
+    {
+      "id": "release.migration.db",
+      "domain": "release",
+      "description": "DB migration safety",
+      "forged": false,
+      "path": "specs/release.migration.db.yaml"
+    },
+    {
+      "id": "release.blue.green",
+      "domain": "release",
+      "description": "blue/green deploy",
+      "forged": false,
+      "path": "specs/release.blue.green.yaml"
+    },
+    {
+      "id": "release.postmortem",
+      "domain": "release",
+      "description": "release postmortem",
+      "forged": false,
+      "path": "specs/release.postmortem.yaml"
+    },
+    {
+      "id": "hermes.skill.author",
+      "domain": "hermes",
+      "description": "Hermes skill authoring",
+      "forged": false,
+      "path": "specs/hermes.skill.author.yaml"
+    },
+    {
+      "id": "hermes.mcp.wiring",
+      "domain": "hermes",
+      "description": "MCP server wiring",
+      "forged": false,
+      "path": "specs/hermes.mcp.wiring.yaml"
+    },
+    {
+      "id": "hermes.tool.registry",
+      "domain": "hermes",
+      "description": "tool registry hygiene",
+      "forged": false,
+      "path": "specs/hermes.tool.registry.yaml"
+    },
+    {
+      "id": "hermes.gateway.routes",
+      "domain": "hermes",
+      "description": "gateway route design",
+      "forged": false,
+      "path": "specs/hermes.gateway.routes.yaml"
+    },
+    {
+      "id": "hermes.memory.tree",
+      "domain": "hermes",
+      "description": "memory tree design",
+      "forged": false,
+      "path": "specs/hermes.memory.tree.yaml"
+    },
+    {
+      "id": "hermes.delegate.budget",
+      "domain": "hermes",
+      "description": "delegation budgets",
+      "forged": false,
+      "path": "specs/hermes.delegate.budget.yaml"
+    },
+    {
+      "id": "hermes.flywheel.loop",
+      "domain": "hermes",
+      "description": "flywheel improvement loop",
+      "forged": false,
+      "path": "specs/hermes.flywheel.loop.yaml"
+    },
+    {
+      "id": "hermes.axiom.gates",
+      "domain": "hermes",
+      "description": "AXIOM gate profiles",
+      "forged": false,
+      "path": "specs/hermes.axiom.gates.yaml"
+    },
+    {
+      "id": "memory.recall.ranking",
+      "domain": "memory",
+      "description": "recall ranking quality",
+      "forged": false,
+      "path": "specs/memory.recall.ranking.yaml"
+    },
+    {
+      "id": "memory.dedupe.facts",
+      "domain": "memory",
+      "description": "fact deduplication",
+      "forged": false,
+      "path": "specs/memory.dedupe.facts.yaml"
+    },
+    {
+      "id": "memory.namespace.design",
+      "domain": "memory",
+      "description": "memory namespaces",
+      "forged": false,
+      "path": "specs/memory.namespace.design.yaml"
+    },
+    {
+      "id": "memory.forget.policy",
+      "domain": "memory",
+      "description": "forget/TTL policy",
+      "forged": false,
+      "path": "specs/memory.forget.policy.yaml"
+    },
+    {
+      "id": "memory.embed.chunk",
+      "domain": "memory",
+      "description": "embedding chunk strategy",
+      "forged": false,
+      "path": "specs/memory.embed.chunk.yaml"
+    },
+    {
+      "id": "memory.provenance",
+      "domain": "memory",
+      "description": "memory provenance tags",
+      "forged": false,
+      "path": "specs/memory.provenance.yaml"
+    },
+    {
+      "id": "memory.conflict.resolve",
+      "domain": "memory",
+      "description": "memory conflict resolve",
+      "forged": false,
+      "path": "specs/memory.conflict.resolve.yaml"
+    },
+    {
+      "id": "memory.session.summary",
+      "domain": "memory",
+      "description": "session summarization",
+      "forged": false,
+      "path": "specs/memory.session.summary.yaml"
+    },
+    {
+      "id": "business.gtm.narrative",
+      "domain": "business",
+      "description": "GTM narrative",
+      "forged": false,
+      "path": "specs/business.gtm.narrative.yaml"
+    },
+    {
+      "id": "business.buyer.persona",
+      "domain": "business",
+      "description": "buyer persona research",
+      "forged": false,
+      "path": "specs/business.buyer.persona.yaml"
+    },
+    {
+      "id": "business.pricing.model",
+      "domain": "business",
+      "description": "pricing model choice",
+      "forged": false,
+      "path": "specs/business.pricing.model.yaml"
+    },
+    {
+      "id": "business.sales.enable",
+      "domain": "business",
+      "description": "sales enablement",
+      "forged": false,
+      "path": "specs/business.sales.enable.yaml"
+    },
+    {
+      "id": "business.partner.ecosystem",
+      "domain": "business",
+      "description": "partner ecosystem",
+      "forged": false,
+      "path": "specs/business.partner.ecosystem.yaml"
+    },
+    {
+      "id": "business.unit.econ",
+      "domain": "business",
+      "description": "unit economics",
+      "forged": false,
+      "path": "specs/business.unit.econ.yaml"
+    },
+    {
+      "id": "business.forecast",
+      "domain": "business",
+      "description": "revenue forecast",
+      "forged": false,
+      "path": "specs/business.forecast.yaml"
+    },
+    {
+      "id": "business.procurement",
+      "domain": "business",
+      "description": "procurement readiness",
+      "forged": false,
+      "path": "specs/business.procurement.yaml"
+    },
+    {
+      "id": "nourish.meal.plan",
+      "domain": "nourish",
+      "description": "meal planning logic",
+      "forged": false,
+      "path": "specs/nourish.meal.plan.yaml"
+    },
+    {
+      "id": "nourish.nutrient.claims",
+      "domain": "nourish",
+      "description": "nutrient claim accuracy",
+      "forged": false,
+      "path": "specs/nourish.nutrient.claims.yaml"
+    },
+    {
+      "id": "nourish.allergy.safety",
+      "domain": "nourish",
+      "description": "allergy safety checks",
+      "forged": false,
+      "path": "specs/nourish.allergy.safety.yaml"
+    },
+    {
+      "id": "nourish.habit.loop",
+      "domain": "nourish",
+      "description": "nutrition habit loops",
+      "forged": false,
+      "path": "specs/nourish.habit.loop.yaml"
+    },
+    {
+      "id": "nourish.recipe.scale",
+      "domain": "nourish",
+      "description": "recipe scaling",
+      "forged": false,
+      "path": "specs/nourish.recipe.scale.yaml"
+    },
+    {
+      "id": "nourish.grocery.list",
+      "domain": "nourish",
+      "description": "grocery list generation",
+      "forged": false,
+      "path": "specs/nourish.grocery.list.yaml"
+    },
+    {
+      "id": "nourish.coach.tone",
+      "domain": "nourish",
+      "description": "coach tone of voice",
+      "forged": false,
+      "path": "specs/nourish.coach.tone.yaml"
+    },
+    {
+      "id": "nourish.lab.markers",
+      "domain": "nourish",
+      "description": "lab marker interpretation",
+      "forged": false,
+      "path": "specs/nourish.lab.markers.yaml"
+    },
+    {
+      "id": "psychology.motivation",
+      "domain": "psychology",
+      "description": "motivation design",
+      "forged": false,
+      "path": "specs/psychology.motivation.yaml"
+    },
+    {
+      "id": "psychology.friction.audit",
+      "domain": "psychology",
+      "description": "friction audit",
+      "forged": false,
+      "path": "specs/psychology.friction.audit.yaml"
+    },
+    {
+      "id": "psychology.trust.signals",
+      "domain": "psychology",
+      "description": "trust signal design",
+      "forged": false,
+      "path": "specs/psychology.trust.signals.yaml"
+    },
+    {
+      "id": "psychology.cognitive.load",
+      "domain": "psychology",
+      "description": "cognitive load reduction",
+      "forged": false,
+      "path": "specs/psychology.cognitive.load.yaml"
+    },
+    {
+      "id": "psychology.habit.formation",
+      "domain": "psychology",
+      "description": "habit formation",
+      "forged": false,
+      "path": "specs/psychology.habit.formation.yaml"
+    },
+    {
+      "id": "psychology.persuasion.ethics",
+      "domain": "psychology",
+      "description": "ethical persuasion",
+      "forged": false,
+      "path": "specs/psychology.persuasion.ethics.yaml"
+    },
+    {
+      "id": "psychology.onboarding.psych",
+      "domain": "psychology",
+      "description": "onboarding psychology",
+      "forged": false,
+      "path": "specs/psychology.onboarding.psych.yaml"
+    },
+    {
+      "id": "psychology.feedback.timing",
+      "domain": "psychology",
+      "description": "feedback timing",
+      "forged": false,
+      "path": "specs/psychology.feedback.timing.yaml"
+    },
+    {
+      "id": "executive.decision.memo",
+      "domain": "executive",
+      "description": "executive decision memo",
+      "forged": false,
+      "path": "specs/executive.decision.memo.yaml"
+    },
+    {
+      "id": "executive.risk.board",
+      "domain": "executive",
+      "description": "board risk briefing",
+      "forged": false,
+      "path": "specs/executive.risk.board.yaml"
+    },
+    {
+      "id": "executive.okr.cascade",
+      "domain": "executive",
+      "description": "OKR cascade",
+      "forged": false,
+      "path": "specs/executive.okr.cascade.yaml"
+    },
+    {
+      "id": "executive.stakeholder.map",
+      "domain": "executive",
+      "description": "stakeholder mapping",
+      "forged": false,
+      "path": "specs/executive.stakeholder.map.yaml"
+    },
+    {
+      "id": "executive.crisis.comms",
+      "domain": "executive",
+      "description": "crisis communications",
+      "forged": false,
+      "path": "specs/executive.crisis.comms.yaml"
+    },
+    {
+      "id": "executive.budget.tradeoff",
+      "domain": "executive",
+      "description": "budget tradeoffs",
+      "forged": false,
+      "path": "specs/executive.budget.tradeoff.yaml"
+    },
+    {
+      "id": "executive.hire.plan",
+      "domain": "executive",
+      "description": "hiring plan",
+      "forged": false,
+      "path": "specs/executive.hire.plan.yaml"
+    },
+    {
+      "id": "executive.governance",
+      "domain": "executive",
+      "description": "governance cadence",
+      "forged": false,
+      "path": "specs/executive.governance.yaml"
+    },
+    {
+      "id": "claude_code.impl.plan",
+      "domain": "claude-code",
+      "description": "implementation planning",
+      "forged": false,
+      "path": "specs/claude_code.impl.plan.yaml"
+    },
+    {
+      "id": "claude_code.refactor.safe",
+      "domain": "claude-code",
+      "description": "safe refactor tactics",
+      "forged": false,
+      "path": "specs/claude_code.refactor.safe.yaml"
+    },
+    {
+      "id": "claude_code.debug.bisect",
+      "domain": "claude-code",
+      "description": "bisect debugging",
+      "forged": false,
+      "path": "specs/claude_code.debug.bisect.yaml"
+    },
+    {
+      "id": "claude_code.types.first",
+      "domain": "claude-code",
+      "description": "types-first coding",
+      "forged": false,
+      "path": "specs/claude_code.types.first.yaml"
+    },
+    {
+      "id": "claude_code.test.driven",
+      "domain": "claude-code",
+      "description": "TDD workflow",
+      "forged": false,
+      "path": "specs/claude_code.test.driven.yaml"
+    },
+    {
+      "id": "claude_code.pr.hygiene",
+      "domain": "claude-code",
+      "description": "PR hygiene",
+      "forged": false,
+      "path": "specs/claude_code.pr.hygiene.yaml"
+    },
+    {
+      "id": "claude_code.perf.hotpath",
+      "domain": "claude-code",
+      "description": "hot-path optimization",
+      "forged": false,
+      "path": "specs/claude_code.perf.hotpath.yaml"
+    },
+    {
+      "id": "claude_code.dead.code",
+      "domain": "claude-code",
+      "description": "dead code removal",
+      "forged": false,
+      "path": "specs/claude_code.dead.code.yaml"
+    },
+    {
+      "id": "codex.review.diff",
+      "domain": "codex",
+      "description": "diff review rigor",
+      "forged": false,
+      "path": "specs/codex.review.diff.yaml"
+    },
+    {
+      "id": "codex.fix.patch",
+      "domain": "codex",
+      "description": "surgical fix patches",
+      "forged": false,
+      "path": "specs/codex.fix.patch.yaml"
+    },
+    {
+      "id": "codex.lint.debt",
+      "domain": "codex",
+      "description": "lint debt triage",
+      "forged": false,
+      "path": "specs/codex.lint.debt.yaml"
+    },
+    {
+      "id": "codex.types.gaps",
+      "domain": "codex",
+      "description": "typing gap fills",
+      "forged": false,
+      "path": "specs/codex.types.gaps.yaml"
+    },
+    {
+      "id": "codex.test.gaps",
+      "domain": "codex",
+      "description": "test coverage gaps",
+      "forged": false,
+      "path": "specs/codex.test.gaps.yaml"
+    },
+    {
+      "id": "codex.sec.review",
+      "domain": "codex",
+      "description": "security-minded review",
+      "forged": false,
+      "path": "specs/codex.sec.review.yaml"
+    },
+    {
+      "id": "codex.api.break",
+      "domain": "codex",
+      "description": "API break detection",
+      "forged": false,
+      "path": "specs/codex.api.break.yaml"
+    },
+    {
+      "id": "codex.docs.sync",
+      "domain": "codex",
+      "description": "docs-code sync",
+      "forged": false,
+      "path": "specs/codex.docs.sync.yaml"
+    },
+    {
+      "id": "axiom.axiom.scout.smoke.niche",
+      "domain": "axiom",
+      "description": "axiom scout smoke niche verify",
+      "forged": true,
+      "path": "specs/axiom.axiom.scout.smoke.niche.yaml"
+    }
+  ],
+  "count": 137
+}

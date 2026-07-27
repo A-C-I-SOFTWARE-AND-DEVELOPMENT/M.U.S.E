@@ -1,0 +1,21 @@
+id: nourish.nutrient.claims
+domain: nourish
+keywords:
+- nutrient
+- label
+- claim
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.nutrient.claims` in domain `nourish`.
+  Focus: nutrient claim accuracy. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- nutrient claim accuracy
+- 'repo: nutrient claim accuracy'
+- 'docs: nutrient claim accuracy'
+model_lane: muse-local
+max_iterations: 25
+description: nutrient claim accuracy

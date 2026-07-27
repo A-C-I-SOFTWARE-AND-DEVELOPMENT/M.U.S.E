@@ -1,0 +1,22 @@
+id: architecture.api.contracts
+domain: architecture
+keywords:
+- openapi
+- rest
+- grpc
+- architecture
+- API
+system: 'You are the AXIOM niche specialist `architecture.api.contracts` in domain
+  `architecture`. Focus: API contract design. Prefer Scout packets (SCOUT/*) over
+  re-searching. Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- API contract design
+- 'repo: API contract design'
+- 'docs: API contract design'
+model_lane: muse-local
+max_iterations: 25
+description: API contract design

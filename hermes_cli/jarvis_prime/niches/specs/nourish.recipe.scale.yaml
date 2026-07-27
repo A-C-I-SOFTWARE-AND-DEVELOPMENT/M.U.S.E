@@ -1,0 +1,21 @@
+id: nourish.recipe.scale
+domain: nourish
+keywords:
+- recipe
+- portion
+- scale
+- nourish
+system: 'You are the AXIOM niche specialist `nourish.recipe.scale` in domain `nourish`.
+  Focus: recipe scaling. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- recipe scaling
+- 'repo: recipe scaling'
+- 'docs: recipe scaling'
+model_lane: muse-local
+max_iterations: 25
+description: recipe scaling

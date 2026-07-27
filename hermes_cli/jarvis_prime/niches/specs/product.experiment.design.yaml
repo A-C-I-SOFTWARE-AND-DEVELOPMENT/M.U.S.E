@@ -1,0 +1,22 @@
+id: product.experiment.design
+domain: product
+keywords:
+- ab-test
+- experiment
+- power
+- product
+- A/B
+system: 'You are the AXIOM niche specialist `product.experiment.design` in domain
+  `product`. Focus: A/B experiment design. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- A/B experiment design
+- 'repo: A/B experiment design'
+- 'docs: A/B experiment design'
+model_lane: muse-local
+max_iterations: 25
+description: A/B experiment design

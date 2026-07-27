@@ -1,0 +1,21 @@
+id: qa.fuzz.inputs
+domain: qa
+keywords:
+- fuzz
+- hypothesis
+- property
+- qa
+system: 'You are the AXIOM niche specialist `qa.fuzz.inputs` in domain `qa`. Focus:
+  fuzz and property tests. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- fuzz and property tests
+- 'repo: fuzz and property tests'
+- 'docs: fuzz and property tests'
+model_lane: muse-local
+max_iterations: 25
+description: fuzz and property tests

@@ -1,0 +1,21 @@
+id: ux.mobile.touch
+domain: ux
+keywords:
+- mobile
+- touch
+- gesture
+- ux
+system: 'You are the AXIOM niche specialist `ux.mobile.touch` in domain `ux`. Focus:
+  mobile touch targets. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- mobile touch targets
+- 'repo: mobile touch targets'
+- 'docs: mobile touch targets'
+model_lane: muse-local
+max_iterations: 25
+description: mobile touch targets

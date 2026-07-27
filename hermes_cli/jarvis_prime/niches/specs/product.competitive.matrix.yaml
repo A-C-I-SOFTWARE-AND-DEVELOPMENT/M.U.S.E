@@ -1,0 +1,22 @@
+id: product.competitive.matrix
+domain: product
+keywords:
+- competitor
+- matrix
+- diff
+- product
+- competitive
+system: 'You are the AXIOM niche specialist `product.competitive.matrix` in domain
+  `product`. Focus: competitive matrix. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- competitive matrix
+- 'repo: competitive matrix'
+- 'docs: competitive matrix'
+model_lane: muse-local
+max_iterations: 25
+description: competitive matrix

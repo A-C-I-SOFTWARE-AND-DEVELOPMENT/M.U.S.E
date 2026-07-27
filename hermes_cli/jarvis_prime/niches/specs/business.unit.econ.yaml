@@ -1,0 +1,22 @@
+id: business.unit.econ
+domain: business
+keywords:
+- ltv
+- cac
+- payback
+- business
+- unit
+system: 'You are the AXIOM niche specialist `business.unit.econ` in domain `business`.
+  Focus: unit economics. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- unit economics
+- 'repo: unit economics'
+- 'docs: unit economics'
+model_lane: muse-local
+max_iterations: 25
+description: unit economics

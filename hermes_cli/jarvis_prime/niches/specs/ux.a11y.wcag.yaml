@@ -1,0 +1,22 @@
+id: ux.a11y.wcag
+domain: ux
+keywords:
+- a11y
+- wcag
+- aria
+- ux
+- WCAG
+system: 'You are the AXIOM niche specialist `ux.a11y.wcag` in domain `ux`. Focus:
+  WCAG accessibility. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- WCAG accessibility
+- 'repo: WCAG accessibility'
+- 'docs: WCAG accessibility'
+model_lane: muse-local
+max_iterations: 25
+description: WCAG accessibility

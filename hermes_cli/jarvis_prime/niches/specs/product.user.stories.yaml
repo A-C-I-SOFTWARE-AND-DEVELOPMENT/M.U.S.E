@@ -1,0 +1,22 @@
+id: product.user.stories
+domain: product
+keywords:
+- story
+- acceptance
+- persona
+- product
+- user
+system: 'You are the AXIOM niche specialist `product.user.stories` in domain `product`.
+  Focus: user story writing. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- user story writing
+- 'repo: user story writing'
+- 'docs: user story writing'
+model_lane: muse-local
+max_iterations: 25
+description: user story writing

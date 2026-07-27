@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createSlashHandler } from '../app/createSlashHandler.js'
-import { getOverlayState, resetOverlayState } from '../app/overlayStore.js'
+import { getOverlayState, patchOverlayState, resetOverlayState } from '../app/overlayStore.js'
 import { getUiState, patchUiState, resetUiState } from '../app/uiStore.js'
 import { TUI_SESSION_MODEL_FLAG } from '../domain/slash.js'
 
@@ -110,6 +110,18 @@ describe('createSlashHandler', () => {
       session_id: 'sid-abc',
       value: 'x-model --global'
     })
+  })
+
+  it('opens the thinking picker for bare /reasoning and /thinking', () => {
+    const ctx = buildCtx()
+
+    expect(createSlashHandler(ctx)('/reasoning')).toBe(true)
+    expect(getOverlayState().thinkingPicker).toBe(true)
+    expect(ctx.gateway.rpc).not.toHaveBeenCalled()
+
+    patchOverlayState({ thinkingPicker: false })
+    expect(createSlashHandler(ctx)('/thinking')).toBe(true)
+    expect(getOverlayState().thinkingPicker).toBe(true)
   })
 
   it('applies /reasoning hide to the thinking section immediately', async () => {

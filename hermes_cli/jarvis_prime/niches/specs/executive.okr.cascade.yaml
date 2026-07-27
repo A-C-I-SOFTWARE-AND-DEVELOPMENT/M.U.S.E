@@ -1,0 +1,22 @@
+id: executive.okr.cascade
+domain: executive
+keywords:
+- okr
+- objective
+- kr
+- executive
+- OKR
+system: 'You are the AXIOM niche specialist `executive.okr.cascade` in domain `executive`.
+  Focus: OKR cascade. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- OKR cascade
+- 'repo: OKR cascade'
+- 'docs: OKR cascade'
+model_lane: muse-local
+max_iterations: 25
+description: OKR cascade

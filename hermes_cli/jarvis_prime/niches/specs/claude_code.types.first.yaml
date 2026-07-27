@@ -1,0 +1,22 @@
+id: claude_code.types.first
+domain: claude-code
+keywords:
+- typescript
+- types
+- mypy
+- claude-code
+- types-first
+system: 'You are the AXIOM niche specialist `claude_code.types.first` in domain `claude-code`.
+  Focus: types-first coding. Prefer Scout packets (SCOUT/*) over re-searching. Stay
+  narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- types-first coding
+- 'repo: types-first coding'
+- 'docs: types-first coding'
+model_lane: muse-local
+max_iterations: 25
+description: types-first coding

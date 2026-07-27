@@ -1,0 +1,22 @@
+id: security.crypto.tls
+domain: security
+keywords:
+- tls
+- crypto
+- certificates
+- security
+- TLS
+system: 'You are the AXIOM niche specialist `security.crypto.tls` in domain `security`.
+  Focus: TLS and crypto hygiene. Prefer Scout packets (SCOUT/*) over re-searching.
+  Stay narrowly on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- TLS and crypto hygiene
+- 'repo: TLS and crypto hygiene'
+- 'docs: TLS and crypto hygiene'
+model_lane: muse-local
+max_iterations: 25
+description: TLS and crypto hygiene

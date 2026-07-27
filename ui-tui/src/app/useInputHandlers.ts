@@ -148,6 +148,10 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return patchOverlayState({ modelPicker: false })
     }
 
+    if (overlay.thinkingPicker) {
+      return patchOverlayState({ thinkingPicker: false })
+    }
+
     if (overlay.skillsHub) {
       return patchOverlayState({ skillsHub: false })
     }

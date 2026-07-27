@@ -1,0 +1,20 @@
+id: ux.onboarding.flow
+domain: ux
+keywords:
+- onboarding
+- activation
+- ux
+system: 'You are the AXIOM niche specialist `ux.onboarding.flow` in domain `ux`. Focus:
+  onboarding flow design. Prefer Scout packets (SCOUT/*) over re-searching. Stay narrowly
+  on-task and verify claims.'
+toolsets:
+- filesystem
+- codebase
+- web
+scout_queries:
+- onboarding flow design
+- 'repo: onboarding flow design'
+- 'docs: onboarding flow design'
+model_lane: muse-local
+max_iterations: 25
+description: onboarding flow design
