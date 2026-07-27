@@ -71,6 +71,8 @@ jobs:
           NOUS_API_KEY: ""
           # Keep axiom_bridge gate-chaining off the runner's home
           MUSE_AXIOM_GATES: "0"
+          # Isolate Hermes logs from the live instance to prevent WinError 32 file locks
+          HERMES_HOME: ${{ runner.temp }}/hermes-ci-home
 
       - name: Upload pytest log on failure
         if: failure()
@@ -92,6 +94,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+          version: "0.11.28"
 
       - name: Set up Python 3.11
         run: uv python install 3.11
@@ -103,6 +106,7 @@ jobs:
           uv pip install -e ".[all,dev]"
 
       - name: Run e2e tests
+        shell: bash
         # WC-3: this lane runs the offline E2E (test_core_loop_depth_e2e.py +
         # other hermetic suites). Tests marked @pytest.mark.live are skipped
         # by default (see tests/conftest.py pytest_collection_modifyitems);
@@ -111,10 +115,11 @@ jobs:
         # therefore registered with CI but does not consume free runner time
         # — devs and release lanes run it explicitly.
         run: |
-          source .venv/bin/activate
+          source .venv/Scripts/activate
           python -m pytest tests/e2e/ -v --tb=short
         env:
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""
           MUSE_AXIOM_GATES: "0"
+          HERMES_HOME: ${{ runner.temp }}/hermes-ci-home

@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
       - name: Install import-linter
         # CI-only pip installs are pinned to exact versions per the repo's
@@ -75,10 +75,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
       - name: Install system deps (Graphviz, Java, ripgrep)
-        run: sudo apt-get update && sudo apt-get install -y graphviz default-jre ripgrep
+        shell: bash
+        run: |
+          # On self-hosted Windows runner, Graphviz is pre-installed via winget.
+          # Add it to PATH if not already there.
+          if ! command -v dot &>/dev/null; then
+            echo "/c/Program Files/Graphviz/bin" >> $GITHUB_PATH
+          fi
 
       - name: Install repo lint/type tools
         run: |
