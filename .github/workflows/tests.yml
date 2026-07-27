@@ -45,13 +45,13 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv .venv --python 3.11
-          .venv\Scripts\activate
+          source .venv/Scripts/activate
           uv pip install -e ".[all,dev]"
 
       - name: Run tests
         shell: bash
         run: |
-          source .venv/Scripts/activate || source .venv/bin/activate
+          source .venv/Scripts/activate
           set +e
           python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 2>&1 | tee /tmp/pytest-output.log
           exitcode=${PIPESTATUS[0]}
@@ -99,7 +99,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv .venv --python 3.11
-          .venv\Scripts\activate
+          source .venv/Scripts/activate
           uv pip install -e ".[all,dev]"
 
       - name: Run e2e tests
