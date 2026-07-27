@@ -1,0 +1,235 @@
+{
+  "$schema": "/home/ubuntu/.cursor/plugins/cache/cursor-public/9333/ba7b5907843e1e21ec692418c180e1f912cbf7d3/skills/orchestrate/schemas/plan.schema.json",
+  "goal": "Complete the AAA game pipeline targeting Monster Hunter World-level fidelity and detail.",
+  "summary": "finish muse's game-studio pipeline end to end and prove it with an MHW-shaped hunt vertical slice",
+  "dispatcher": { "firstName": "Jeremiah" },
+  "rootSlug": "aaa-game-pipeline",
+  "baseBranch": "main",
+  "repoUrl": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+  "selfAgentId": "bc-eb7d29bc-1213-4c61-ae48-527c0484ee1d",
+  "syncStateToGit": true,
+  "acceptanceCriteria": [
+    "One command drives brief -> generative stages -> asset ingest -> engine project -> build -> verification evidence, with owner gates intact.",
+    "The Godot reference slice is a Monster Hunter-shaped hunt loop (tracking, part-based monster combat, stamina/commit melee, enrage, reward) that still exports headlessly in CI.",
+    "The UE5 lane produces a real, compilable Nanite/Lumen game target instead of a non-compiling scaffold, and stays owner-gated.",
+    "Generated 3D/texture/audio assets land inside an engine project automatically instead of stopping at studio_output/.",
+    "No component claims 'playable' or 'shipped' without command evidence on disk; docs state the honest fidelity ladder.",
+    "ruff check ., lint-imports, and the targeted pytest selections pass on the integrated branch."
+  ],
+  "tasks": [
+    {
+      "name": "studio-production-lanes",
+      "type": "worker",
+      "scopedGoal": "Turn agent/studio/ from a stub-safe planning DAG into a real production pipeline: add a game-ready asset-ingest lane (text -> image -> mesh -> validate -> normalized GLB with LODs and collision), wire the orphaned UE5 C++ scaffold adapter into the live adapter registry so the engine_project stage emits a compilable Nanite/Lumen UE5 target, add animation/rigging and material lanes, extend produce_game() to run ingest + engine-import + build-evidence stages, and make GameFoundry derive `playable` strictly from command evidence.",
+      "brief": "## Context you can trust (already verified by the planner)\n\n- `agent/studio/orchestrator.py` holds `StudioOrchestrator.produce_game()` (~lines 277-384): gdd -> world_bible -> dialogue_text -> gameplay_code -> concept_art + mesh3d -> world -> voice/music/sfx -> engine_project. It is stub-safe: `AXIOM_STUDIO_OFFLINE=1` or missing keys yields deterministic stub artifacts.\n- `agent/studio/adapters/base.py` defines the `Adapter` ABC (`_real()` raises `NotImplemented` on the base) plus `AdapterRegistry`. `agent/studio/adapters/__init__.py` registers the core adapters (script, art, video, mesh3d, voice, music, sfx, world, engine_project).\n- `Mesh3DAdapter` in `agent/studio/adapters/__init__.py` (~lines 146-239) already delegates to the unified `asset3d_gen` provider registry when `asset3d_gen.provider` is configured. Reuse that seam; do not fork it.\n- **A complete UE 5.7 C++ scaffold adapter already exists but is NOT wired in**: `recovered-agent-sources/.../agent/studio/adapters/ue5_cpp.py`. Read it first. Port/adapt it into `agent/studio/adapters/ue5_cpp.py` and register it. `recovered-agent-sources/` is preserved history: read from it, never delete or move it, and note that ruff excludes it so your ported copy must satisfy ruff itself.\n- `agent/studio/game_foundry.py` defines `PRODUCTION_LANES` (28 lanes) and a truthful evidence contract (`playable: false` unless proven). `agent/studio/game_verification.py`, `asset_validation.py`, `provenance.py` are the existing evidence/validation helpers.\n- `agent/studio/engine_discovery.py` detects local UE installs. `agent/studio/blueprints.py` + `resources/open_world_rpg_blueprint.json` hold the open-world plan.\n- Tests live in `tests/studio/` (15 files, 80+ tests). `tests/studio/test_studio_orchestrator.py` runs the full game DAG in stub mode; `tests/studio/test_game_foundry.py` pins the evidence contract; `tests/studio/test_mesh3d_provider_unification.py` pins the asset3d delegation.\n\n## What to build\n\n1. **Asset ingest lane** — new module `agent/studio/asset_ingest.py`. Given a mesh request it must chain: prompt -> (optional) concept image -> mesh generation via the existing `asset3d_gen` provider registry -> validation -> normalization into an engine-ready GLB (scale/axis normalization, triangle budget, LOD chain, collision proxy, material slot naming). Everything must be pure-Python/offline-safe: when no provider is configured or `AXIOM_STUDIO_OFFLINE=1`, emit deterministic stub artifacts with the same shape, exactly like the existing adapters. Do not add heavyweight new dependencies; if you need mesh math, write it or reuse what is already in the dependency set.\n2. **UE5 production adapter** — port the recovered `ue5_cpp.py` into `agent/studio/adapters/ue5_cpp.py`, register it in `agent/studio/adapters/__init__.py`, and make the `engine_project` capability able to emit a UE5 target that is genuinely compilable (correct `.uproject`, `Source/<Game>/` module with `.Build.cs` and `.Target.cs`, primary game module, `DefaultEngine.ini` with Nanite + Lumen + virtual shadow maps enabled). Compilation itself needs an owner GPU host: keep it behind the existing owner-gate pattern (`MUSE_GAME_ALLOW_SPAWN` / `MUSE_UE5_ALLOW_SPAWN`) and never shell out to UBT/Build.bat without the gate.\n3. **Animation / rigging / material lanes** — add the missing production lanes as first-class stages with real adapters where a free/offline path exists and honest stubs where it does not. At minimum: a skeletal-rig lane, an animation-clip lane, and a PBR material/texture lane that routes through the existing image-generation provider seam the same way `Mesh3DAdapter` routes through `asset3d_gen`.\n4. **produce_game() extension** — add ingest, engine-import, and build-evidence stages so the DAG's output is an engine project directory containing the generated assets, not a folder of markdown next to a folder of GLBs. Preserve the existing stage names and `StageResult` shape; add, do not rename.\n5. **Evidence truth** — `GameFoundry` and `game_verification.py` must set `playable`/`compiled` only from recorded command evidence (exit code + artifact path + size). Add a helper that records evidence entries so downstream CLI/scripts can call it.\n\n## Hard constraints\n\n- Everything must run offline and hermetically in CI. `AXIOM_STUDIO_OFFLINE=1` must produce a full DAG run with zero network calls and zero API keys.\n- No new PyPI dependency without an upper bound in `pyproject.toml` per the repo's pinning policy — and prefer adding none at all. `pyproject.toml` is owned by another task; if you truly need a dependency, do NOT edit `pyproject.toml`; state the exact requirement line in your handoff instead.\n- Respect `.importlinter` contracts: `agent` may not import `hermes_cli`, `gateway`, `tui_gateway`, `acp_adapter`, or `second_brain`.\n- Do not write change-detector tests (see AGENTS.md). Assert contracts and invariants, not catalog snapshots or counts.",
+      "pathsAllowed": [
+        "agent/studio/**",
+        "tests/studio/**"
+      ],
+      "pathsForbidden": [
+        "skills/**",
+        "hermes_cli/**",
+        "gateway/**",
+        "cli.py",
+        "toolsets.py",
+        "tools/**",
+        "docs/**",
+        ".github/**",
+        "pyproject.toml",
+        "plugins/**",
+        "recovered-agent-sources/**"
+      ],
+      "acceptance": [
+        "`agent/studio/asset_ingest.py` exists and produces an engine-ready GLB (or deterministic stub) with LOD chain, collision proxy, and named material slots.",
+        "A UE5 C++ adapter is registered in `agent/studio/adapters/__init__.py` and `engine_project` can emit a UE5 target with Nanite, Lumen, and virtual shadow maps enabled in `DefaultEngine.ini`.",
+        "No UE5 compile/spawn path executes without the owner gate env var set.",
+        "`produce_game()` runs ingest, engine-import, and build-evidence stages in addition to every stage it ran before, with no stage renamed or removed.",
+        "`GameFoundry` reports `playable: true` only when a recorded command-evidence entry with a real artifact exists.",
+        "`AXIOM_STUDIO_OFFLINE=1 python -c 'from agent.studio import StudioOrchestrator'`-driven DAG run completes with no network access and no API keys.",
+        "`ruff check .` exits 0 and `scripts/run_tests.sh tests/studio/ -q` exits 0."
+      ],
+      "verify": "## Setup\n- `cd /workspace && uv sync --python 3.11 --extra all --extra dev && source .venv/bin/activate`\n\n## Automated\n- `ruff check .`\n- `scripts/run_tests.sh tests/studio/ -q`\n- `lint-imports` (after `pip install import-linter==2.11 grimp==3.14`) to confirm no new `agent -> hermes_cli/gateway` import.\n\n## Manual\n- Run the game DAG fully offline and inspect the output tree:\n  `AXIOM_STUDIO_OFFLINE=1 python skills/creative/game-studio/scripts/run_pipeline.py --offline` (or the equivalent direct `StudioOrchestrator.produce_game()` call) and confirm the manifest contains the new ingest / engine-import / build-evidence stages and that an engine project directory exists containing the generated asset files.\n- Grep the new UE5 adapter for any unconditional `subprocess` invocation of UnrealBuildTool / Build.bat — there must be none outside the owner gate.\n\n## Gotchas\n- The test suite is hermetic: `tests/conftest.py` unsets every `*_API_KEY` and redirects `HERMES_HOME`. Any test that needs a provider must stub it.\n- `recovered-agent-sources/` is ruff-excluded; your ported copy under `agent/studio/` is not."
+    },
+    {
+      "name": "godot-hunt-slice",
+      "type": "worker",
+      "scopedGoal": "Rebuild the Godot 4 reference slice from a collect-six-orbs greybox into a Monster Hunter-shaped hunt vertical slice: one hunt arena, a large monster with a real behavior state machine (idle/patrol/track/aggro/attack/enrage/limp-to-nest), part-based hitboxes with break and wound states, commit-based player melee with stamina and i-frames, tracking traces that lead the player to the monster, a hunt timer with capture/slay outcomes, and a rewards screen -- while keeping the slice exporting headlessly in CI.",
+      "brief": "## Context you can trust (already verified by the planner)\n\n- The slice lives at `skills/creative/game-studio/reference-slice/`: `project.godot` (Godot 4.x, `renderer/rendering_method=\"forward_plus\"`), `export_presets.cfg`, `slice-manifest.json`, `scenes/Main.tscn|Player.tscn|Collectible.tscn`, `scripts/game.gd|player.gd|collectible.gd`, `assets/prop.glb` (placeholder triangle) + `assets/sfx/pickup.wav|win.wav`, `tools/capture/Capture.tscn|capture.gd`, `README.md`.\n- Current gameplay: 6 collectibles, states TITLE/PLAYING/PAUSED/WON, timer + best-time, WASD + jump + mouse-look. Documented in `slice-manifest.json` lines 10-42.\n- Current graphics stack: SDFGI, SSAO, SSIL, SSR, glow, volumetric fog, TAA (`slice-manifest.json` lines 44-67).\n- `slice-manifest.json` is contract-checked against the actual project by `tests/skills/test_game_studio_muse_sync.py`. **That test file belongs to another task — you must keep the manifest truthful so it keeps passing, but do not edit that test.**\n- `.github/workflows/muse-game-slice.yml` lints GDScript with gdtoolkit, installs Godot 4.2.2, runs the headless export, and runs `verify_slice.py`. Those scripts belong to another task; your job is to not break them.\n- `player.gd` already loads a generated GLB at runtime — keep that hook working; it is the seam where `asset3d_generate` output lands.\n\n## What to build\n\nA hunt loop with Monster Hunter's *shape*, at the fidelity Godot 4 can actually deliver headlessly. Concretely:\n\n1. **Monster** — one large quadruped/wyvern-scale creature as its own scene + script. Behavior state machine with at least: `idle`, `patrol`, `investigate` (reacts to noise/traces), `pursue`, `telegraph`, `attack` (2+ distinct attacks with wind-up, active, recovery windows), `enrage` (threshold-triggered, changes speed/damage/tell timing), `flee` (retreats toward a nest when health is low), `capture-eligible`. Drive it from a small explicit state machine, not a pile of booleans.\n2. **Part-based damage** — the monster has separately-tracked parts (e.g. head, wings/forelegs, tail) with their own hit zones, damage accumulators, break thresholds, and per-part hit reactions. Breaking a part must change behavior or rewards. Tail sever (or an equivalent detachable part) should be observable.\n3. **Player combat** — replace the pickup verb with committed melee: attacks have wind-up/active/recovery frames the player cannot cancel freely, a stamina meter drained by dodge/sprint/attack and regenerating on idle, a dodge with invulnerability frames, and a hit-stop/knockback response. Hitboxes and hurtboxes must be explicit `Area3D`s, not distance checks.\n4. **Tracking** — scattered traces (footprints/marks) that, when examined, reveal the monster's current region and eventually its exact position. This is the MHW verb that makes the arena feel like a hunt rather than an arena fight.\n5. **Hunt loop** — an objective/quest state (`prep -> tracking -> engaged -> weakened -> slay|capture|fail`), a hunt timer with a real fail state, and a results screen listing time, parts broken, damage dealt, and rewards.\n6. **Fidelity pass** — keep and tune the existing Forward+ stack, and add what actually raises perceived fidelity in Godot: LOD / visibility ranges on the monster and props, `MultiMeshInstance3D` for arena dressing, real PBR material set (albedo/normal/roughness/AO slots wired even if the textures are placeholders), a light rig that reads on the monster, particles for hits/breaks/enrage, and camera shake / hit-stop feedback. Do NOT claim Nanite/Lumen: that is the UE5 lane, and claiming it here is a lie the QA gate will catch.\n7. **Manifest + docs** — update `slice-manifest.json` and the slice `README.md` to describe exactly what now exists. Truthfulness over marketing: if a system is a simplified stand-in, say so.\n\n## Hard constraints\n\n- **The headless export must stay green.** After every significant change, re-run the export path locally. If Godot is not installed on your VM, install Godot 4.2.2 (the version CI pins) and run `godot --headless --path skills/creative/game-studio/reference-slice --quit` plus the export; a slice that only compiles in your head is a failed task.\n- GDScript must pass gdtoolkit lint (`gdlint`), which CI runs.\n- Keep the runtime GLB load hook in the player/monster path so generated assets can be swapped in.\n- Stay inside `reference-slice/` and its one owned test file. `tests/skills/test_game_studio_slice.py` is yours; the other `tests/skills/test_game_studio_*.py` files are not.\n- Binary assets: keep them tiny and generated/procedural where possible. Do not commit large binaries.",
+      "pathsAllowed": [
+        "skills/creative/game-studio/reference-slice/**",
+        "tests/skills/test_game_studio_slice.py"
+      ],
+      "pathsForbidden": [
+        "agent/**",
+        "hermes_cli/**",
+        "gateway/**",
+        "cli.py",
+        "tools/**",
+        "docs/**",
+        ".github/**",
+        "skills/creative/game-studio/scripts/**",
+        "skills/creative/game-studio/agents/**",
+        "skills/creative/game-studio/SKILL.md",
+        "tests/skills/test_game_studio_skill.py",
+        "tests/skills/test_game_studio_pipeline.py",
+        "tests/skills/test_game_studio_profiles.py",
+        "tests/skills/test_game_studio_muse_sync.py"
+      ],
+      "acceptance": [
+        "A monster scene + script exists with an explicit state machine covering at least idle, patrol, investigate, pursue, telegraph, attack, enrage, and flee.",
+        "The monster has at least three separately-tracked parts with break thresholds, and breaking a part observably changes behavior or rewards.",
+        "Player melee is commit-based with wind-up/active/recovery windows, a stamina meter, and a dodge with i-frames; hitboxes and hurtboxes are Area3D nodes.",
+        "Tracking traces exist and progressively reveal the monster's location.",
+        "A hunt quest state machine with a timer produces slay, capture, and fail outcomes, and a results screen reports time, parts broken, and rewards.",
+        "`godot --headless --path skills/creative/game-studio/reference-slice --quit` exits 0 and the headless export produces a non-empty binary.",
+        "`gdlint` passes on every `.gd` file in the slice.",
+        "`slice-manifest.json` and the slice README describe the actual implemented systems with no overclaiming (no Nanite/Lumen claims).",
+        "`scripts/run_tests.sh tests/skills/test_game_studio_slice.py -q` exits 0."
+      ],
+      "verify": "## Setup\n- Install Godot 4.2.2 headless (the version `.github/workflows/muse-game-slice.yml` pins) and `pip install gdtoolkit`.\n- `cd /workspace && uv sync --python 3.11 --extra all --extra dev && source .venv/bin/activate`\n\n## Automated\n- `gdlint skills/creative/game-studio/reference-slice/scripts/*.gd` (and any new script dirs) -> no errors.\n- `godot --headless --path skills/creative/game-studio/reference-slice --quit` -> exit 0, no script parse errors on stderr.\n- `MUSE_GAME_ALLOW_SPAWN=1 python skills/creative/game-studio/scripts/export_godot_slice.py` then `python skills/creative/game-studio/scripts/verify_slice.py` -> non-empty binary.\n- `scripts/run_tests.sh tests/skills/test_game_studio_slice.py tests/skills/test_game_studio_muse_sync.py -q` -> exit 0 (the muse-sync test pins manifest/project agreement).\n\n## Manual\n- Drive the slice headlessly (or via the `tools/capture/` harness) long enough to observe: a trace being examined, the monster transitioning idle -> pursue -> attack, a part break, an enrage transition, and a hunt-complete results screen. Capture frames or log lines as evidence.\n\n## Gotchas\n- Godot writes `.godot/` caches; keep them gitignored.\n- `slice-manifest.json` drift is contract-tested; update it in the same commit as the systems it describes."
+    },
+    {
+      "name": "pipeline-cli",
+      "type": "worker",
+      "scopedGoal": "Give the game pipeline one real entrypoint: a `muse game` CLI subcommand plus a `/game-studio` slash command (CLI and gateway) that chains brief -> studio DAG -> asset ingest -> engine project -> build/export -> verification evidence in a single ledgered, owner-gated invocation, and expose it to agents as a tool in a toolset.",
+      "brief": "## Context you can trust (already verified by the planner)\n\n- There is **no** slash command and **no** CLI subcommand for the game pipeline today. `grep game-studio` finds nothing in `hermes_cli/commands.py`, `cli.py`, or `gateway/run.py`. The only entrypoints are `python skills/creative/game-studio/scripts/run_pipeline.py` and manual `delegate_task` routing through the skill.\n- Slash commands are centrally registered: add a `CommandDef` to `COMMAND_REGISTRY` in `hermes_cli/commands.py`, then a handler branch in `HermesCLI.process_command()` in `cli.py` and (if gateway-available) in `gateway/run.py`. Help text, Telegram menu, Slack subcommands, and autocomplete all derive from the registry automatically — see the \"Adding a Slash Command\" section of `AGENTS.md`.\n- CLI subcommands live under `hermes_cli/`; `hermes_cli/kanban.py` and `hermes_cli/curator.py` are the canonical multi-verb `muse <noun> <verb>` patterns. Copy one of those, do not invent a new shape.\n- Tools are registered via `registry.register(...)` in a `tools/*.py` module (auto-discovered) and only become visible to an agent once their name is listed in a toolset in `toolsets.py`. `asset3d_gen` is an existing toolset and is in `_DEFAULT_OFF_TOOLSETS` in `hermes_cli/tools_config.py` — a paid-generation toolset defaults off, and yours should follow the same posture if it can spend money.\n- Owner gates in this repo are env-var based: `MUSE_GAME_ALLOW_SPAWN=1` for engine spawn, `MUSE_UE5_ALLOW_SPAWN=1` for UE5 offscreen render. Paid generation must surface `est_cost_usd` before spending. Publishing is an absolute owner wall requiring the literal owner reply `Yes, with authorization.`\n- `agent/studio/` is owned by a sibling task that is adding an asset-ingest lane, a UE5 C++ adapter, and build-evidence recording to `produce_game()`. **You must not edit `agent/studio/`.** Call into it through its public surface (`from agent.studio import StudioOrchestrator`) and code defensively: if a newer stage or helper is not present, degrade gracefully rather than crashing.\n- `cli.py` is ~673KB and `gateway/run.py` is large. Add your handler branch; do not refactor those files.\n\n## What to build\n\n1. `hermes_cli/game_studio.py` — the implementation module. Verbs at minimum: `run` (drive the full pipeline from a brief), `status` (report the last run's stage results and evidence), `export` (engine export, owner-gated), `verify` (re-check evidence), `profiles` (surface the `game-godot` / `game-ue5` / `game-unity` worker profiles installed by `skills/creative/game-studio/scripts/install_profiles.py`).\n2. Wire `muse game <verb>` into the argparse tree the same way `muse kanban` is wired.\n3. Add a `CommandDef` for `game-studio` (with a short alias) to `COMMAND_REGISTRY`, plus the `process_command()` branch in `cli.py` and the gateway branch in `gateway/run.py`.\n4. `tools/game_studio_tool.py` — a tool so an agent can drive the pipeline, registered into a toolset in `toolsets.py`. Default the toolset off if it can trigger paid generation.\n5. **Gates and truth**: every stage that spawns an engine, spends money, or publishes must check its gate and refuse politely with the exact env var / phrase needed. Every run must append a decision-ledger entry (reuse the existing ledger helper the orchestration stack already uses — find it, do not invent a second ledger format) and must never report success without the underlying evidence.\n6. Tests at `tests/hermes_cli/test_game_studio_cli.py` and `tests/tools/test_game_studio_tool.py`.\n\n## Hard constraints\n\n- Prompt-caching policy: a slash command that mutates system-prompt state must be cache-aware (deferred by default, opt-in `--now`). Yours probably does not mutate it — confirm, and if it does, follow the `/skills install --now` pattern.\n- Profile safety: never hardcode `~/.hermes`. Use `get_hermes_home()` from `hermes_constants` for paths and `display_hermes_home()` for user-facing strings.\n- No inline imports; imports go at module top (repo rule).\n- Do not write change-detector tests. Assert behavior and contracts.\n- `ruff check .` (PLW1514: always pass `encoding=` to `open`/`read_text`/`write_text`) and `python scripts/check-windows-footguns.py --all` are both blocking in CI.",
+      "pathsAllowed": [
+        "hermes_cli/game_studio.py",
+        "hermes_cli/commands.py",
+        "hermes_cli/main.py",
+        "hermes_cli/tools_config.py",
+        "cli.py",
+        "gateway/run.py",
+        "tools/game_studio_tool.py",
+        "toolsets.py",
+        "tests/hermes_cli/test_game_studio_cli.py",
+        "tests/tools/test_game_studio_tool.py"
+      ],
+      "pathsForbidden": [
+        "agent/studio/**",
+        "skills/creative/game-studio/**",
+        "plugins/**",
+        "docs/**",
+        ".github/**",
+        "tests/studio/**",
+        "tests/skills/**"
+      ],
+      "acceptance": [
+        "`muse game run --help`, `muse game status`, `muse game export --help`, and `muse game verify` all work from the CLI.",
+        "`/game-studio` is registered in `COMMAND_REGISTRY` and dispatches in both `cli.py` and `gateway/run.py`.",
+        "A `game_studio` tool is registered in `tools/` and listed in a toolset in `toolsets.py`; a paid-generation toolset defaults off.",
+        "Engine spawn, paid generation, and publishing each refuse without their owner gate and name the exact gate in the refusal message.",
+        "Every pipeline run appends an entry to the existing decision ledger format — no second ledger format is introduced.",
+        "No hardcoded `~/.hermes` path; `get_hermes_home()` / `display_hermes_home()` are used.",
+        "`ruff check .`, `python scripts/check-windows-footguns.py --all`, and `scripts/run_tests.sh tests/hermes_cli/test_game_studio_cli.py tests/tools/test_game_studio_tool.py -q` all exit 0."
+      ],
+      "verify": "## Setup\n- `cd /workspace && uv sync --python 3.11 --extra all --extra dev && source .venv/bin/activate`\n- `mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills} && cp -n cli-config.yaml.example ~/.hermes/config.yaml && touch ~/.hermes/.env`\n\n## Automated\n- `ruff check .`\n- `python scripts/check-windows-footguns.py --all`\n- `scripts/run_tests.sh tests/hermes_cli/test_game_studio_cli.py tests/tools/test_game_studio_tool.py -q`\n- `scripts/run_tests.sh tests/hermes_cli/ -q` to prove the command registry did not regress.\n\n## Manual\n- `muse game run --offline --brief \"tiny test hunt\"` (or the equivalent flag your implementation exposes) end to end and confirm it produces stage results plus a ledger entry, with zero network calls.\n- Run the export verb WITHOUT `MUSE_GAME_ALLOW_SPAWN` and confirm it refuses and names the gate; then with the gate set and confirm it proceeds (or fails only because no engine is installed, which is acceptable and must be reported honestly).\n- `muse --help` and the CLI `/help` output both list the new command.\n\n## Gotchas\n- `discover_plugins()` only runs as a side effect of importing `model_tools.py`; if your code reads plugin state, import it or call discovery explicitly.\n- `cli.py` is enormous; use a targeted edit, not a reformat."
+    },
+    {
+      "name": "pipeline-scripts-docs",
+      "type": "worker",
+      "dependsOn": ["studio-production-lanes"],
+      "scopedGoal": "Complete the operator-facing half of the pipeline: a UE5 export script that mirrors the Godot one, an asset-import script that lands generated meshes/textures into an engine project, an extended run_pipeline.py that can drive ingest and export in one shot, CI coverage for the offline DAG, updated role agents and workflow docs, and honest documentation of the real fidelity ladder from Godot slice to UE5 Nanite/Lumen.",
+      "brief": "## Context you can trust (already verified by the planner)\n\n- Existing scripts in `skills/creative/game-studio/scripts/`: `run_pipeline.py` (CLI over `StudioOrchestrator.produce_game()`, `--offline` sets `AXIOM_STUDIO_OFFLINE=1`), `export_godot_slice.py` (owner-gated Godot headless export -> `build/slice.x86_64`), `verify_slice.py` (non-empty artifact check), `install_profiles.py` (merges `game-godot` / `game-ue5` / `game-unity` profiles into config), `sync_slice_to_muse.py` (bridges the slice into `AchievementBridge`; needs `plugins.muse_universe`).\n- `skills/creative/game-studio/SKILL.md` holds the routing table, the 9-role roster mapping, the engine profiles, and the four owner gates. `agents/*.md` are the 9 role prompts with `name` / `authority_level` / `activation_trigger` frontmatter; `agents/README.md` holds the roster table and the maker-checker rule (builders reviewed by `qa-playtest`, no self-approval). `workflows/game-production-pipeline.md` holds the 9-stage table. `templates/` holds the GDD, art-direction brief, vertical-slice checklist, and asset-provenance log.\n- `docs/game-studio/`: `README.md`, `engine-profiles.md`, `SLICE_BUILD_EVIDENCE_2026-07-13.md`. **The evidence doc references PNGs under `docs/game-studio/evidence/` that do not exist in the repo.** Either produce them or correct the doc — a dangling evidence reference is exactly the kind of overclaim the QA gate exists to catch.\n- `.github/workflows/muse-game-slice.yml` currently: gdtoolkit lint -> install Godot 4.2.2 -> headless export -> `verify_slice.py` -> artifact upload, triggered on `skills/creative/game-studio/**`.\n- `skills/creative/ue5-render/SKILL.md` drives UE5 through `hermes_cli/jarvis_prime/research_fabric/ue5.py` (Remote Control HTTP + Movie Render Queue), gated by `MUSE_UE5_ALLOW_SPAWN=1`. That is a *render* path, not a *build* path. Reuse its gate and its client rather than writing a second UE5 client.\n- `skills/creative/comfyui/` provides image/video/audio workflows but is not wired into the DAG.\n- Tests you own: `tests/skills/test_game_studio_skill.py`, `test_game_studio_pipeline.py`, `test_game_studio_profiles.py`. `test_game_studio_slice.py` and `test_game_studio_muse_sync.py` belong to the Godot slice task — do not edit them.\n- **The upstream `studio-production-lanes` handoff is pasted into this prompt.** Read it before writing `export_ue5_slice.py`: it tells you the exact adapter name, module path, and public surface of the UE5 lane and the asset-ingest lane you must call. Do not guess the API.\n\n## What to build\n\n1. `scripts/export_ue5_slice.py` — the UE5 sibling of `export_godot_slice.py`. Owner-gated on `MUSE_GAME_ALLOW_SPAWN` (and `MUSE_UE5_ALLOW_SPAWN` for anything touching a live editor). It must detect the engine via the existing `agent/studio/engine_discovery.py`, refuse clearly with the missing gate/engine named when it cannot proceed, and emit the same evidence shape `verify_slice.py` consumes.\n2. `scripts/import_assets.py` — takes generated assets (the asset-ingest lane's output) and lands them in a target engine project: correct directory layout, import settings, material slot wiring, and a provenance entry appended to the asset-provenance log. Support Godot at minimum; support UE5 to whatever depth is possible without a running editor, and be explicit in the output about which parts require the editor.\n3. Extend `run_pipeline.py` with `--ingest`, `--import-to <project>`, `--export <engine>`, and `--evidence <path>` so one command spans brief -> DAG -> ingest -> import -> export -> evidence. Keep `--offline` working and keep the default behavior unchanged for existing callers.\n4. `verify_slice.py` — generalize beyond \"non-empty file\": check the artifact exists, is non-trivial in size, and matches the recorded evidence entry; support both engines.\n5. CI: add an offline-DAG job to `.github/workflows/muse-game-slice.yml` that runs the studio pipeline with `AXIOM_STUDIO_OFFLINE=1` and asserts the new stages appear, so the pipeline is regression-gated even without an engine. Keep the existing Godot export job intact.\n6. Docs and roles: update `SKILL.md`, `agents/*.md`, `workflows/game-production-pipeline.md`, `docs/game-studio/README.md`, and `docs/game-studio/engine-profiles.md` to describe the completed pipeline, the new commands, and an explicit **fidelity ladder** — what the Godot slice actually delivers, what the UE5 lane delivers on an owner GPU host, and what genuinely remains out of reach without a studio. Fix or remove the dangling `evidence/` references. Add the pipeline to `docs/README.md`'s index if it is not already there.\n\n## Hard constraints\n\n- Skill authoring standards are HARDLINE (see AGENTS.md): SKILL.md `description` stays <= 60 characters, one sentence, ends with a period; prose references native Hermes tools by name in backticks rather than shell utilities; scripts live in `scripts/`, references in `references/`, templates in `templates/`.\n- Do not overclaim. The honest framing in the existing SKILL.md ('the deliverable is a playable, runnable vertical slice plus the pipeline that scales toward more') must survive your edits.\n- Every script must be importable and `--help`-able without an engine installed, and must exit non-zero with a clear message when a gate or engine is missing.\n- `ruff check .` and `python scripts/check-windows-footguns.py --all` are blocking. Do not hardcode `/tmp`; use `tempfile.gettempdir()`.\n- Stay out of `agent/studio/**`, `hermes_cli/**`, `cli.py`, and `reference-slice/**` — siblings own those.",
+      "pathsAllowed": [
+        "skills/creative/game-studio/scripts/**",
+        "skills/creative/game-studio/agents/**",
+        "skills/creative/game-studio/workflows/**",
+        "skills/creative/game-studio/templates/**",
+        "skills/creative/game-studio/SKILL.md",
+        "skills/creative/game-studio/references/**",
+        "docs/game-studio/**",
+        "docs/README.md",
+        ".github/workflows/muse-game-slice.yml",
+        "tests/skills/test_game_studio_skill.py",
+        "tests/skills/test_game_studio_pipeline.py",
+        "tests/skills/test_game_studio_profiles.py"
+      ],
+      "pathsForbidden": [
+        "agent/**",
+        "hermes_cli/**",
+        "gateway/**",
+        "cli.py",
+        "toolsets.py",
+        "tools/**",
+        "plugins/**",
+        "skills/creative/game-studio/reference-slice/**",
+        "tests/skills/test_game_studio_slice.py",
+        "tests/skills/test_game_studio_muse_sync.py",
+        "tests/studio/**"
+      ],
+      "acceptance": [
+        "`scripts/export_ue5_slice.py` exists, refuses clearly without `MUSE_GAME_ALLOW_SPAWN`, detects the engine via `engine_discovery`, and emits evidence in the shape `verify_slice.py` consumes.",
+        "`scripts/import_assets.py` lands generated assets into a Godot project with correct layout and material slots, appends a provenance entry, and states explicitly which UE5 steps need a live editor.",
+        "`run_pipeline.py` supports `--ingest`, `--import-to`, `--export`, and `--evidence` while `--offline` and the pre-existing default behavior still work.",
+        "`verify_slice.py` validates artifact existence, size, and agreement with the recorded evidence entry for both engines.",
+        "`.github/workflows/muse-game-slice.yml` gains an offline-DAG job asserting the new pipeline stages, and the existing Godot export job still runs.",
+        "`SKILL.md` description is <= 60 characters and the docs contain an explicit, honest fidelity ladder (Godot slice vs UE5 owner-GPU lane vs out of reach).",
+        "No dangling `docs/game-studio/evidence/` references remain.",
+        "`ruff check .` and `scripts/run_tests.sh tests/skills/ -q` both exit 0."
+      ],
+      "verify": "## Setup\n- `cd /workspace && uv sync --python 3.11 --extra all --extra dev && source .venv/bin/activate`\n\n## Automated\n- `ruff check .`\n- `python scripts/check-windows-footguns.py --all`\n- `scripts/run_tests.sh tests/skills/ -q`\n- `python -c \"import re,pathlib;m=re.search(r'^description: (.*)$',pathlib.Path('skills/creative/game-studio/SKILL.md').read_text(encoding='utf-8'),re.M);print(len(m.group(1)))\"` -> <= 60.\n- Every script: `python skills/creative/game-studio/scripts/<name>.py --help` exits 0 with no engine installed.\n\n## Manual\n- `python skills/creative/game-studio/scripts/run_pipeline.py --offline --ingest --evidence /tmp/ev.json` (adjust to your flag names) -> completes offline, writes evidence.\n- `python skills/creative/game-studio/scripts/export_ue5_slice.py` with no gate -> non-zero exit naming `MUSE_GAME_ALLOW_SPAWN`.\n- Grep `docs/game-studio/` for `evidence/` and confirm every referenced path exists.\n\n## Gotchas\n- `tests/skills/test_game_studio_pipeline.py` asserts `run_pipeline.py --offline` runs >= 10 stages including `gdd` and `mesh3d`; keep that true as you add flags.\n- The upstream handoff in this prompt is authoritative for the UE5 adapter's API. Read it before coding."
+    },
+    {
+      "name": "verify-studio-production-lanes",
+      "type": "verifier",
+      "verifies": "studio-production-lanes",
+      "scopedGoal": "Verify the studio production lanes against every acceptance criterion by actually running the offline DAG, inspecting the emitted engine project, exercising the UE5 owner gate, and running ruff, lint-imports, and the studio test suite. Report execution evidence, not a code read.",
+      "acceptance": [
+        "Verification section lists every command actually run with its outcome.",
+        "Each `studio-production-lanes` acceptance criterion is marked met / not met / n/a with concrete evidence.",
+        "The offline DAG claim is proven by a real run with no network access and no API keys, not by reading the source."
+      ]
+    },
+    {
+      "name": "verify-godot-hunt-slice",
+      "type": "verifier",
+      "verifies": "godot-hunt-slice",
+      "scopedGoal": "Verify the Godot hunt slice by installing Godot 4.2.2, running the project headlessly, exporting it, linting the GDScript, and driving the hunt long enough to observe tracking, a monster state transition, a part break, enrage, and a hunt result. Check the manifest and README against the code for overclaiming -- especially any Nanite/Lumen claim, which would be false for a Godot slice.",
+      "acceptance": [
+        "Verification section lists every command actually run with its outcome, including the Godot version used.",
+        "Each `godot-hunt-slice` acceptance criterion is marked met / not met / n/a with concrete evidence.",
+        "Any gap between what `slice-manifest.json` / README claim and what the code implements is reported explicitly."
+      ]
+    },
+    {
+      "name": "integrate-all",
+      "type": "worker",
+      "openPR": true,
+      "dependsOn": [
+        "studio-production-lanes",
+        "godot-hunt-slice",
+        "pipeline-cli",
+        "pipeline-scripts-docs",
+        "verify-studio-production-lanes",
+        "verify-godot-hunt-slice"
+      ],
+      "scopedGoal": "Starting from `main`, merge the four delivery branches named in the upstream handoffs into one integrated branch, resolve conflicts in favor of each task's owned domain, act on the verifier findings, make the full validation suite pass, and open a draft PR.",
+      "brief": "## What you are merging\n\nThe upstream handoffs pasted into this prompt each contain a `## Branch` line. Those are the four delivery branches:\n\n1. `studio-production-lanes` — owns `agent/studio/**` and `tests/studio/**`.\n2. `godot-hunt-slice` — owns `skills/creative/game-studio/reference-slice/**` and `tests/skills/test_game_studio_slice.py`.\n3. `pipeline-cli` — owns `hermes_cli/game_studio.py`, `hermes_cli/commands.py`, `hermes_cli/main.py`, `hermes_cli/tools_config.py`, `cli.py`, `gateway/run.py`, `tools/game_studio_tool.py`, `toolsets.py`, and their two test files.\n4. `pipeline-scripts-docs` — owns `skills/creative/game-studio/{scripts,agents,workflows,templates,references}/**`, `SKILL.md`, `docs/game-studio/**`, `docs/README.md`, `.github/workflows/muse-game-slice.yml`, and three `tests/skills/` files.\n\nThe path domains were designed to be disjoint, so a clean merge is the expected outcome. Any conflict outside those domains is a signal that a worker strayed — resolve in favor of the domain owner listed above and record the stray in your handoff.\n\n## What to do\n\n1. `git fetch origin` each branch and merge all four into your branch. Do not rebase or force-push anything.\n2. Read the two verifier handoffs pasted into this prompt. Fix what they found. If a finding is too large to fix here, do not paper over it — implement what you can and list the remainder as a follow-up in your handoff with enough detail to become its own task.\n3. Make the whole thing actually work together: the CLI (`hermes_cli/game_studio.py`) calls into `agent/studio/`, and the scripts call the same lanes. Verify the seams line up after the merge — mismatched function names across two branches is the single most likely integration failure here. Fix call sites; do not redesign either side.\n4. Run the full validation suite (below) and fix what breaks.\n5. Push and open a **draft** PR against `main` via the ManagePullRequest tool. The PR body must state plainly what the pipeline can and cannot do, and must not claim a shipped AAA game — the deliverable is the completed pipeline plus an MHW-shaped playable vertical slice.\n\n## Hard constraints\n\n- Do not weaken or delete a sibling's tests to make the suite green. If a test is genuinely wrong, fix the test and say so explicitly in your handoff.\n- Do not reformat files you did not need to change.\n- `ruff check .` and `python scripts/check-windows-footguns.py --all` are blocking in CI, as are the LaunchGate checks (Tests, ruff enforcement, orchestration tests, supply-chain scan, Android build/lint).\n- If `pyproject.toml` needs a dependency that a sibling asked for in its handoff, add it with an upper bound per the repo pinning policy and run `uv lock` so `uv lock --check` passes.",
+      "acceptance": [
+        "All four delivery branches are merged with both parents in history; no force-push, no rebase.",
+        "Every finding from the two verifier handoffs is either fixed or listed as a concrete follow-up with enough detail to become its own task.",
+        "Cross-branch seams line up: the CLI, the scripts, and `agent/studio/` call each other with matching names and signatures.",
+        "`ruff check .` exits 0.",
+        "`python scripts/check-windows-footguns.py --all` exits 0.",
+        "`lint-imports` passes.",
+        "`scripts/run_tests.sh` (full suite) exits 0.",
+        "`uv lock --check` passes if `pyproject.toml` changed.",
+        "A draft PR is open against `main` whose body states honestly what the pipeline does and does not deliver."
+      ],
+      "verify": "## Setup\n- `cd /workspace && uv sync --python 3.11 --extra all --extra dev && source .venv/bin/activate`\n\n## Automated\n- `ruff check .`\n- `python scripts/check-windows-footguns.py --all`\n- `pip install import-linter==2.11 grimp==3.14 && lint-imports`\n- `scripts/run_tests.sh` (full suite, CI parity)\n- `uv lock --check` (only if `pyproject.toml` changed)\n- `git log --merges --oneline` shows the four merges.\n\n## Manual\n- `muse game run --offline ...` end to end on the integrated branch and confirm it drives the studio DAG and reports evidence.\n- Godot: headless open + export of `skills/creative/game-studio/reference-slice`.\n\n## Gotchas\n- The full suite is ~17k tests. Run targeted suites while iterating and the full suite once before pushing."
+    },
+    {
+      "name": "verify-integration",
+      "type": "verifier",
+      "verifies": "integrate-all",
+      "scopedGoal": "Verify the integrated branch end to end: run the full validation suite, drive the pipeline through its single entrypoint offline, export and verify the Godot hunt slice, exercise every owner gate in both the refused and permitted directions, and audit the docs and PR body for any claim the code does not support.",
+      "acceptance": [
+        "Verification section lists every command actually run with its outcome.",
+        "Each `integrate-all` acceptance criterion is marked met / not met / n/a with concrete evidence.",
+        "Every owner gate is exercised in the refused direction and the result recorded.",
+        "Any overclaim in the docs, manifest, or PR body relative to what the code actually does is reported as a high-severity finding."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+[root] CURSOR_API_KEY is absent from this cloud-agent VM. `bun cli.ts run --root .orchestrate/aaa-game-pipeline`
+exits immediately with "CURSOR_API_KEY required" and spawns nothing; no state.json or handoffs/ were ever created,
+so the workspace has zero non-terminal tasks. plan.json is authored and valid and the run resumes as-is once the
+secret is added (Cursor Dashboard > Cloud Agents > Secrets). Falling back to in-VM parallel execution of the same
+task graph with the same disjoint path domains.
