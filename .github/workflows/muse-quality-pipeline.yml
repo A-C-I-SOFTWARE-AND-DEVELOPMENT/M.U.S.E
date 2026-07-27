@@ -112,7 +112,7 @@ jobs:
         run: bash .claude/skills/muse-quality/scripts/build_docs.sh || true
 
       - name: Upload quality + docs artifacts
-        if: always()
+        if: always() && false  # Disabled: artifact storage quota exhausted on free plan
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: muse-quality-reports
