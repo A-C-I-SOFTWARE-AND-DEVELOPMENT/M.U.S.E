@@ -32,7 +32,7 @@ jobs:
     # Blocking: enforces the direct-coupling boundaries in .importlinter. These
     # contracts hold today (verified against the grimp graph), so a regression
     # that breaks one is a real new cross-package coupling worth stopping.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -54,7 +54,7 @@ jobs:
         run: lint-imports
 
   quality-and-docs:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 30
     steps:
       - name: Checkout code

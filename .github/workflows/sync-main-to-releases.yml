@@ -53,7 +53,7 @@ jobs:
   # ---- 1. Source tag: re-point `M.U.S.E` to main HEAD (cheap, no build) ------
   sync-source-tag:
     name: Sync M.U.S.E source tag
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 10
     # Runs on push + schedule always; on manual dispatch only when source is in scope.
     if: >-
@@ -92,7 +92,7 @@ jobs:
   # ---- 2. Android rolling channel: dispatch the Android release in rolling mode
   refresh-android:
     name: Refresh android-latest
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 10
     # Heavy rebuild: hourly cron + on-demand dispatch only (not on every push).
     if: >-
@@ -130,7 +130,7 @@ jobs:
   # ---- 3. Desktop rolling channel: dispatch the desktop release in rolling mode
   refresh-desktop:
     name: Refresh muse-desktop-latest
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 10
     if: >-
       github.event_name == 'schedule' ||

@@ -22,14 +22,11 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install uv
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
@@ -43,14 +40,15 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv .venv --python 3.11
-          source .venv/bin/activate
+          .venv\Scripts\activate
           uv pip install -e ".[all,dev]"
 
       - name: Run tests
+        shell: bash
         run: |
-          source .venv/bin/activate
+          source .venv/Scripts/activate || source .venv/bin/activate
           set +e
-          python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 --timeout-method=signal 2>&1 | tee /tmp/pytest-output.log
+          python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 2>&1 | tee /tmp/pytest-output.log
           exitcode=${PIPESTATUS[0]}
           set -e
           if [ "$exitcode" -ne 0 ]; then
@@ -78,14 +76,11 @@ jobs:
           retention-days: 7
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, primary]
     timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install uv
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
@@ -99,7 +94,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv .venv --python 3.11
-          source .venv/bin/activate
+          .venv\Scripts\activate
           uv pip install -e ".[all,dev]"
 
       - name: Run e2e tests
