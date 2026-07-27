@@ -20,6 +20,8 @@ class AssetManifestEntry:
     previs_only: bool = False
     lod_levels: tuple[int, ...] = ()
     tags: tuple[str, ...] = ()
+    authoritative: bool = True
+    validation_blocked_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,14 @@ class AssetManifest:
 
     def by_category(self, category: str) -> tuple[AssetManifestEntry, ...]:
         return tuple(e for e in self.entries if e.category == category)
+
+    def with_entries(self, entries: tuple[AssetManifestEntry, ...]) -> AssetManifest:
+        return AssetManifest(
+            project_id=self.project_id,
+            profile=self.profile,
+            entries=entries,
+            version=self.version,
+        )
 
 
 @dataclass(frozen=True)
@@ -282,6 +292,57 @@ def decompose_brief(
     return world, assets
 
 
+def target_asset_path(entry: AssetManifestEntry) -> str:
+    """Planned UE5 content path for a fully generated asset."""
+
+    if entry.category == "creature":
+        creature = entry.asset_id.removeprefix("creature_")
+        return f"Content/Creatures/{creature}/{creature}.fbx"
+    if entry.category == "terrain":
+        biome_id = entry.asset_id.removeprefix("terrain_")
+        return f"Content/World/{biome_id}/heightmap.r16"
+    return entry.path
+
+
+def materialize_stub_asset_entry(
+    entry: AssetManifestEntry,
+    *,
+    stub_relpath: str,
+) -> AssetManifestEntry:
+    """Rewrite a planned asset entry to reference an offline stub artifact."""
+
+    return AssetManifestEntry(
+        asset_id=entry.asset_id,
+        category=entry.category,
+        format="stub-json",
+        path=stub_relpath,
+        provenance_ref=entry.provenance_ref,
+        validation_ref=f"validation/{entry.asset_id}.json",
+        provider=entry.provider,
+        license="stub-non-commercial",
+        previs_only=True,
+        lod_levels=entry.lod_levels,
+        tags=entry.tags + ("stub", "non-authoritative", "unvalidated"),
+        authoritative=False,
+        validation_blocked_reason="",
+    )
+
+
+def resolve_manifest_entry_path(
+    entry: AssetManifestEntry,
+    project_root: Path,
+) -> tuple[bool, str]:
+    """Return whether ``entry.path`` exists under ``project_root`` and why not."""
+
+    rel = entry.path.lstrip("/")
+    candidate = project_root / rel
+    if candidate.is_file():
+        return True, ""
+    if entry.validation_blocked_reason:
+        return False, entry.validation_blocked_reason
+    return False, f"missing_artifact:{rel}"
+
+
 __all__ = [
     "AssetManifest",
     "AssetManifestEntry",
@@ -290,4 +351,7 @@ __all__ = [
     "WorldManifest",
     "ZoneSpec",
     "decompose_brief",
+    "materialize_stub_asset_entry",
+    "resolve_manifest_entry_path",
+    "target_asset_path",
 ]

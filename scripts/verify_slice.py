@@ -31,6 +31,66 @@ REQUIRED_UE5 = (
 )
 
 
+def _verify_asset_manifest(root: Path) -> list[str]:
+    failures: list[str] = []
+    manifest_path = root / "manifests" / "asset_manifest.json"
+    if not manifest_path.is_file():
+        return ["missing:manifests/asset_manifest.json"]
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for entry in data.get("entries", []):
+        rel = str(entry.get("path", "")).lstrip("/")
+        if not rel:
+            failures.append(f"asset_missing_path:{entry.get('asset_id', '?')}")
+            continue
+        artifact = root / rel
+        if not artifact.is_file():
+            failures.append(f"asset_path_missing:{rel}")
+        validation_ref = str(entry.get("validation_ref", "")).strip()
+        blocked_reason = str(entry.get("validation_blocked_reason", "")).strip()
+        if validation_ref:
+            validation_path = root / validation_ref
+            if not validation_path.is_file():
+                failures.append(f"validation_ref_missing:{validation_ref}")
+        elif not blocked_reason:
+            failures.append(
+                f"validation_ref_unresolved:{entry.get('asset_id', '?')}:no_ref_or_blocked_reason"
+            )
+        if entry.get("format") == "stub-json" and entry.get("authoritative") is not False:
+            failures.append(f"stub_not_marked_non_authoritative:{entry.get('asset_id', '?')}")
+    return failures
+
+
+def _verify_provenance(root: Path) -> list[str]:
+    failures: list[str] = []
+    prov_dir = root / "provenance"
+    if not prov_dir.is_dir():
+        return failures
+    for path in prov_dir.glob("*.json"):
+        if path.name == "provenance_index.json":
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("source") == "original" and data.get("safety_status") == "passed":
+            if "commercial" in data.get("allowed_uses", []):
+                failures.append(f"unsafe_stub_provenance:{path.name}")
+    return failures
+
+
+def _verify_gate_report(root: Path) -> list[str]:
+    failures: list[str] = []
+    gate_report = root / "validation" / "gate_report.json"
+    if not gate_report.is_file():
+        return ["missing:validation/gate_report.json"]
+    data = json.loads(gate_report.read_text(encoding="utf-8"))
+    gates = data.get("gates", [])
+    if not gates:
+        failures.append("gate_report_empty")
+        return failures
+    all_passed = all(g.get("passed") for g in gates)
+    if data.get("gates_passed") is True and not all_passed:
+        failures.append("gate_report_overclaims_gates_passed")
+    return failures
+
+
 def verify(project_root: str | Path) -> dict:
     root = Path(project_root)
     if not root.is_dir():
@@ -46,6 +106,10 @@ def verify(project_root: str | Path) -> dict:
         else:
             failures.append(f"missing:{rel}")
 
+    failures.extend(_verify_asset_manifest(root))
+    failures.extend(_verify_provenance(root))
+    failures.extend(_verify_gate_report(root))
+
     ue5_dir = root / "ue5_project"
     if ue5_dir.is_dir():
         uprojects = list(ue5_dir.glob("*.uproject"))
@@ -53,6 +117,13 @@ def verify(project_root: str | Path) -> dict:
             failures.append("missing:ue5_project/*.uproject")
         else:
             present.append(str(uprojects[0].relative_to(root)))
+            mod = uprojects[0].stem
+            engine_ini = ue5_dir / "Config" / "DefaultEngine.ini"
+            if engine_ini.is_file():
+                content = engine_ini.read_text(encoding="utf-8")
+                expected_mode = f"/Script/{mod}.{mod}GameMode"
+                if expected_mode not in content:
+                    failures.append(f"ue5_gamemode_mismatch:expected {expected_mode}")
         for rel in REQUIRED_UE5:
             path = ue5_dir / rel
             if path.is_file() and path.stat().st_size > 0:
@@ -70,6 +141,8 @@ def verify(project_root: str | Path) -> dict:
             pass
         elif acceptance_data.get("evidence_complete") and not acceptance_data.get("render_comparisons"):
             failures.append("fabricated:render_evidence")
+        if acceptance_data.get("quality_gate_passed") and acceptance_data.get("failures"):
+            failures.append("acceptance_overrides_quality_gate")
 
     previs_path = root / "previs" / "previs_manifest.json"
     if previs_path.is_file():
@@ -84,6 +157,7 @@ def verify(project_root: str | Path) -> dict:
         "failures": failures,
         "acceptance": {
             "evidence_complete": acceptance_data.get("evidence_complete"),
+            "quality_gate_passed": acceptance_data.get("quality_gate_passed"),
             "benchmark_claim": acceptance_data.get("benchmark_claim", "")[:120],
         },
         "reason": "ok" if not failures else "verification failed",

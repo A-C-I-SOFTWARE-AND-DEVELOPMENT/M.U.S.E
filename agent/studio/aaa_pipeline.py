@@ -24,12 +24,14 @@ from agent.studio.checkpoints import (
     fail_stage,
 )
 from agent.studio.creature_specs import build_creature_manifests
-from agent.studio.gates import build_gates_for_profile, evaluate_all_gates, gates_passed
+from agent.studio.gates import GateResult, build_gates_for_profile, evaluate_all_gates, gates_passed
 from agent.studio.manifests import (
     AssetManifest,
     PipelineManifest,
     WorldManifest,
     decompose_brief,
+    materialize_stub_asset_entry,
+    resolve_manifest_entry_path,
 )
 from agent.studio.provenance import AssetProvenance, sha256_file
 from agent.studio.provider_config import build_provider_config, slot_manifest_entry
@@ -76,6 +78,22 @@ class AAAPipelineResult:
     duration_s: float
 
 
+def _load_gate_results(project_root: Path) -> tuple[GateResult, ...]:
+    gate_report = project_root / "validation" / "gate_report.json"
+    if not gate_report.is_file():
+        return ()
+    data = json.loads(gate_report.read_text(encoding="utf-8"))
+    return tuple(
+        GateResult(
+            passed=item.get("passed", False),
+            gate=item.get("gate", ""),
+            reason=item.get("reason", ""),
+            failures=tuple(item.get("failures", [])),
+        )
+        for item in data.get("gates", [])
+    )
+
+
 class AAAPipeline:
     """Evidence-driven high-fidelity game production pipeline."""
 
@@ -102,6 +120,7 @@ class AAAPipeline:
         stages_failed: list[str] = []
         total_cost = 0.0
         provider_config = build_provider_config(brief.profile, offline=brief.offline)
+        gate_results: tuple[Any, ...] = ()
 
         if not checkpoint.is_stage_complete(PipelineStage.DECOMPOSE):
             begin_stage(checkpoint, PipelineStage.DECOMPOSE)
@@ -224,22 +243,36 @@ class AAAPipeline:
             assets_dir.mkdir(parents=True, exist_ok=True)
             provider_config.write(project_root / "manifests" / "provider_config.json")
             asset_gen_paths: list[str] = []
+            materialized_entries: list[Any] = []
             for entry in assets.entries:
                 slot = provider_config.pick(
                     "mesh3d" if entry.category == "creature" else "concept_art"
                 )
+                stub_relpath = f"assets/{entry.asset_id}.stub.json"
+                if brief.offline:
+                    manifest_entry = materialize_stub_asset_entry(
+                        entry, stub_relpath=stub_relpath
+                    )
+                else:
+                    manifest_entry = entry
                 stub = {
                     "asset_id": entry.asset_id,
                     "provider": slot.provider_id if slot else "axiom/stub",
-                    "previs_only": entry.previs_only,
+                    "previs_only": manifest_entry.previs_only,
+                    "authoritative": manifest_entry.authoritative,
                     "offline": brief.offline,
-                    "path": entry.path,
+                    "path": manifest_entry.path,
+                    "license": manifest_entry.license,
+                    "note": "Non-authoritative offline stub; not validated for commercial use.",
                 }
                 stub_path = assets_dir / f"{entry.asset_id}.stub.json"
                 stub_path.write_text(json.dumps(stub, indent=2), encoding="utf-8")
                 asset_gen_paths.append(str(stub_path))
+                materialized_entries.append(manifest_entry)
                 if slot:
                     total_cost += slot.est_cost_usd
+            assets = assets.with_entries(tuple(materialized_entries))
+            assets.write(project_root / "manifests" / "asset_manifest.json")
             complete_stage(checkpoint, PipelineStage.ASSET_GENERATION, asset_gen_paths)
 
         if not checkpoint.is_stage_complete(PipelineStage.UE5_SOURCE):
@@ -267,18 +300,32 @@ class AAAPipeline:
             for entry in assets.entries:
                 stub_file = project_root / "assets" / f"{entry.asset_id}.stub.json"
                 content_hash = sha256_file(stub_file) if stub_file.is_file() else "sha256:" + "0" * 64
-                prov = AssetProvenance(
-                    asset_id=entry.asset_id,
-                    content_hash=content_hash,
-                    formats=(entry.format,),
-                    creator="muse-aaa-pipeline",
-                    generator=entry.provider,
-                    source="original",
-                    license=entry.license,
-                    allowed_uses=("private", "commercial") if entry.license == "original" else ("private",),
-                    safety_status="passed" if entry.license == "original" else "unverified",
-                    prompt_ref=f"prompts/{entry.asset_id}.ref",
-                )
+                if brief.offline or not entry.authoritative:
+                    prov = AssetProvenance(
+                        asset_id=entry.asset_id,
+                        content_hash=content_hash,
+                        formats=("stub-json",),
+                        creator="muse-aaa-pipeline",
+                        generator=entry.provider,
+                        source="generated",
+                        license=entry.license,
+                        allowed_uses=("private",),
+                        safety_status="unverified",
+                        prompt_ref=f"prompts/{entry.asset_id}.ref",
+                    )
+                else:
+                    prov = AssetProvenance(
+                        asset_id=entry.asset_id,
+                        content_hash=content_hash,
+                        formats=(entry.format,),
+                        creator="muse-aaa-pipeline",
+                        generator=entry.provider,
+                        source="generated",
+                        license=entry.license,
+                        allowed_uses=("private",),
+                        safety_status="unverified",
+                        prompt_ref=f"prompts/{entry.asset_id}.ref",
+                    )
                 path = prov_dir / f"{entry.asset_id}.json"
                 prov.write(path)
                 prov_paths.append(str(path))
@@ -292,9 +339,10 @@ class AAAPipeline:
             begin_stage(checkpoint, PipelineStage.VALIDATION)
             validation_dir = project_root / "validation"
             validation_dir.mkdir(parents=True, exist_ok=True)
-            asset_licenses = {e.asset_id: e.license for e in assets.entries}
+            from agent.studio.asset_validation import write_asset_validation_record
             from agent.studio.game_verification import discover_engine
 
+            asset_licenses = {e.asset_id: e.license for e in assets.entries}
             engine_status = discover_engine(brief.engine, brief.engine_version)
             cost_gate, hw_gate, lic_gate, owner_gate = build_gates_for_profile(
                 brief.profile,
@@ -310,23 +358,64 @@ class AAAPipeline:
                 pending_action="paid_api_spend" if total_cost > 0 else "",
                 additional_cost=0.0,
             )
+            validation_paths: list[str] = []
+            for entry in assets.entries:
+                artifact_ok, artifact_reason = resolve_manifest_entry_path(entry, project_root)
+                blocked_reason = ""
+                failures: list[str] = []
+                if brief.offline or not entry.authoritative:
+                    blocked_reason = "offline_stub: non-authoritative placeholder; mesh not generated"
+                    failures.append(blocked_reason)
+                elif not artifact_ok:
+                    blocked_reason = artifact_reason
+                    failures.append(artifact_reason)
+                record_path = validation_dir / f"{entry.asset_id}.json"
+                write_asset_validation_record(
+                    record_path,
+                    asset_id=entry.asset_id,
+                    passed=False,
+                    blocked_reason=blocked_reason,
+                    failures=tuple(failures),
+                    offline=brief.offline,
+                )
+                validation_paths.append(str(record_path))
             validation_report = {
-                "gates": [asdict(g) if hasattr(g, "__dataclass_fields__") else {"passed": g.passed, "gate": g.gate, "reason": g.reason, "failures": list(g.failures)} for g in gate_results],
+                "gates": [
+                    asdict(g)
+                    if hasattr(g, "__dataclass_fields__")
+                    else {
+                        "passed": g.passed,
+                        "gate": g.gate,
+                        "reason": g.reason,
+                        "failures": list(g.failures),
+                    }
+                    for g in gate_results
+                ],
                 "profile": brief.profile,
                 "offline": brief.offline,
+                "gates_passed": gates_passed(gate_results),
             }
             val_path = validation_dir / "gate_report.json"
             val_path.write_text(json.dumps(validation_report, indent=2), encoding="utf-8")
-            passed = gates_passed(gate_results)
-            if not passed and profile.requires_ue_render_evidence and not brief.offline:
-                fail_stage(checkpoint, PipelineStage.VALIDATION, "one or more gates failed")
-                stages_failed.append("validation")
-            else:
-                complete_stage(checkpoint, PipelineStage.VALIDATION, [str(val_path)])
+            validation_paths.append(str(val_path))
+            complete_stage(
+                checkpoint,
+                PipelineStage.VALIDATION,
+                validation_paths,
+                metadata={"gates_passed": gates_passed(gate_results)},
+            )
+        else:
+            gate_results = _load_gate_results(project_root)
 
         if not checkpoint.is_stage_complete(PipelineStage.ACCEPTANCE):
             begin_stage(checkpoint, PipelineStage.ACCEPTANCE)
             license_failures: list[str] = []
+            if brief.offline:
+                license_failures.extend(
+                    f"{entry.asset_id}:stub_non_commercial"
+                    for entry in assets.entries
+                    if not entry.authoritative
+                )
             acceptance = evaluate_acceptance(
                 project_id,
                 brief.profile,
@@ -335,20 +424,6 @@ class AAAPipeline:
                 license_failures=license_failures,
                 offline=brief.offline,
             )
-            if brief.offline and profile.requires_ue_render_evidence:
-                acceptance = AcceptanceReport(
-                    project_id=acceptance.project_id,
-                    profile=acceptance.profile,
-                    render_comparisons=acceptance.render_comparisons,
-                    performance_samples=acceptance.performance_samples,
-                    quality_gate_passed=True,
-                    performance_gate_passed=False,
-                    license_gate_passed=True,
-                    evidence_complete=False,
-                    failures=acceptance.failures,
-                    warnings=acceptance.warnings + ("offline: UE render evidence deferred",),
-                    benchmark_claim=acceptance.benchmark_claim,
-                )
             acc_path = project_root / "reports" / "acceptance_report.json"
             acceptance.write(acc_path)
             complete_stage(checkpoint, PipelineStage.ACCEPTANCE, [str(acc_path)])
@@ -377,6 +452,9 @@ class AAAPipeline:
         checkpoint.write(project_root)
 
         duration = time.perf_counter() - t0
+        evaluated_gates_passed = (
+            gates_passed(gate_results) if gate_results else False
+        )
         return AAAPipelineResult(
             project_id=project_id,
             root=project_root,
@@ -387,7 +465,7 @@ class AAAPipeline:
             asset_manifest=assets,
             world_systems=systems,
             acceptance_report=acceptance,
-            gates_passed=not stages_failed,
+            gates_passed=evaluated_gates_passed,
             stages_failed=tuple(stages_failed),
             total_cost_usd=total_cost,
             duration_s=duration,

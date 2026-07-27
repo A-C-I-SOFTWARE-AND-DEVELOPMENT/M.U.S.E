@@ -90,6 +90,7 @@ def test_ue5_generator_writes_substantive_project(tmp_path):
     content = engine_ini.read_text(encoding="utf-8")
     assert "r.Lumen.Enabled=True" in content
     assert "r.Nanite.ProjectEnabled=True" in content
+    assert "GlobalDefaultGameMode=/Script/FrontierHunt.FrontierHuntGameMode" in content
     assert (tmp_path / "ue5" / "Config" / "WorldPartition.ini").is_file()
     assert (tmp_path / "ue5" / "Config" / "PCGGraphs.json").is_file()
     assert (tmp_path / "ue5" / "Source" / "FrontierHunt" / "FrontierHuntCreatureBase.h").is_file()
@@ -188,3 +189,92 @@ def test_game_foundry_ue5_has_scalability_config(tmp_path):
     uprojects = list(manifest.root.glob("*.uproject"))
     assert uprojects, "expected a .uproject file"
     assert (manifest.root / "Config" / "DefaultScalability.ini").is_file()
+
+
+def test_offline_asset_manifest_references_existing_stub_files(pipeline_root):
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    manifest = json.loads(
+        (result.root / "manifests" / "asset_manifest.json").read_text(encoding="utf-8")
+    )
+    for entry in manifest["entries"]:
+        rel = entry["path"].lstrip("/")
+        assert (result.root / rel).is_file(), f"missing artifact for {entry['asset_id']}"
+        assert entry["format"] == "stub-json"
+        assert entry["authoritative"] is False
+        assert entry["previs_only"] is True
+        assert entry["license"] == "stub-non-commercial"
+
+
+def test_offline_quality_gate_not_overridden(pipeline_root):
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    report = result.acceptance_report
+    assert report.quality_gate_passed is False
+    assert any("missing_metric:" in failure for failure in report.failures)
+
+
+def test_offline_stub_provenance_is_non_commercial(pipeline_root):
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    prov = json.loads(
+        (result.root / "provenance" / "creature_apex_serpent.json").read_text(encoding="utf-8")
+    )
+    assert prov["source"] == "generated"
+    assert prov["license"] == "stub-non-commercial"
+    assert prov["safety_status"] == "unverified"
+    assert prov["allowed_uses"] == ["private"]
+    assert "commercial" not in prov["allowed_uses"]
+
+
+def test_offline_gates_passed_reflects_gate_failures(pipeline_root):
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    gate_report = json.loads(
+        (result.root / "validation" / "gate_report.json").read_text(encoding="utf-8")
+    )
+    assert gate_report["gates_passed"] is False
+    assert result.gates_passed is False
+    hardware = next(g for g in gate_report["gates"] if g["gate"] == "hardware")
+    assert hardware["passed"] is False
+
+
+def test_validation_refs_resolve_to_blocked_records(pipeline_root):
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    manifest = json.loads(
+        (result.root / "manifests" / "asset_manifest.json").read_text(encoding="utf-8")
+    )
+    for entry in manifest["entries"]:
+        validation_path = result.root / entry["validation_ref"]
+        assert validation_path.is_file(), entry["validation_ref"]
+        record = json.loads(validation_path.read_text(encoding="utf-8"))
+        assert record["passed"] is False
+        assert record["blocked_reason"]
+        assert record["authoritative"] is False
+
+
+def test_verify_slice_catches_honesty_regressions(pipeline_root, tmp_path):
+    from scripts.verify_slice import verify
+
+    result = run_creature_hunting_pipeline(pipeline_root, offline=True)
+    check = verify(result.root)
+    assert check["ok"] is True
+    assert not check["failures"]
+
+    bad_root = tmp_path / "bad-project"
+    bad_root.mkdir()
+    for rel in (
+        "manifests/asset_manifest.json",
+        "validation/gate_report.json",
+        "reports/acceptance_report.json",
+    ):
+        src = result.root / rel
+        if src.is_file():
+            dest = bad_root / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+
+    asset_manifest = json.loads((bad_root / "manifests" / "asset_manifest.json").read_text())
+    asset_manifest["entries"][0]["path"] = "Content/Creatures/missing.fbx"
+    (bad_root / "manifests" / "asset_manifest.json").write_text(
+        json.dumps(asset_manifest, indent=2), encoding="utf-8"
+    )
+    check = verify(bad_root)
+    assert check["ok"] is False
+    assert any("asset_path_missing" in failure for failure in check["failures"])

@@ -27,7 +27,7 @@ def _default_engine_ini(mod: str, profile: QualityProfile) -> str:
         "[/Script/EngineSettings.GameMapsSettings]",
         "GameDefaultMap=/Game/Maps/L_OpenWorld",
         "EditorStartupMap=/Game/Maps/L_OpenWorld",
-        "GlobalDefaultGameMode=/Script/Game.GameGameMode",
+        f"GlobalDefaultGameMode=/Script/{mod}.{mod}GameMode",
         "",
         "[/Script/Engine.RendererSettings]",
         "r.AllowStaticLighting=False",

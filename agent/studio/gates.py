@@ -59,6 +59,8 @@ class LicenseGate:
         for asset_id, license_name in self.asset_licenses.items():
             if not license_name.strip():
                 failures.append(f"{asset_id}:missing_license")
+            elif license_name.startswith("stub-"):
+                failures.append(f"{asset_id}:stub_license_non_authoritative")
             elif self.commercial_use_required and license_name in ("unknown", "editorial", ""):
                 failures.append(f"{asset_id}:non_commercial_license")
         for req in self.required_licenses:
