@@ -1,31 +1,64 @@
-# Git
+# .dockerignore — excluded from Docker build context
+# Reduces image size and build time by skipping unnecessary files
+
+# Version control
 .git
 .gitignore
-.gitmodules
-
-# Dependencies
-node_modules
-**/node_modules
-.venv
-**/.venv
-
-# Built artifacts that are regenerated inside the image.  Excluded so local
-# rebuilds on the developer's machine don't invalidate the npm-install layer
-# that now depends on the full ui-tui/packages/hermes-ink/ tree being present.
-ui-tui/dist/
-ui-tui/packages/hermes-ink/dist/
+.gitattributes
 
 # CI/CD
-.github
+.github/
 
-# Environment files
-.env
+# Generated outputs
+final_pipeline_output/
+final_proof_game/
+toolchain_output/
+frontier_hunt_*/
+.orchestrate/
 
-*.md
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Runtime data (bind-mounted at /opt/data; must not leak into build context)
-data/
+# Virtual environments
+.venv/
+venv/
+env/
 
-# Compose/profile runtime state (bind-mounted; avoid ownership/secret issues)
-hermes-config/
-runtime/
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Docs (built in container if needed)
+docs/_build/
+docs/_generated/
+
+# Tests (not needed in production image)
+tests/
+testlogs/
+
+# Temp files
+tmp/
+temp_*/
+*.log

@@ -1,10 +1,10 @@
 # Release Drafter Configuration
 # https://github.com/release-drafter/release-drafter
+# This file MUST be named release-drafter.yml and live in .github/
 
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
-# Categorize PRs by their labels
 categories:
   - title: '🚀 Features'
     labels:
@@ -28,7 +28,6 @@ categories:
     labels:
       - 'chore'
       - 'refactor'
-      - 'maintenance'
   - title: '🎮 Game Studio'
     labels:
       - 'game-studio'
@@ -36,12 +35,9 @@ categories:
     labels:
       - 'agent'
 
-# Exclude these labels from the changelog
 exclude-labels:
   - 'stale'
-  - 'welcome 👋'
 
-# Template for individual entries
 template: |
   ## Changes
 
@@ -50,22 +46,13 @@ template: |
   ---
   **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
-# Resolve the next version from labels
 resolver:
   dynamic:
     - major:
-        labels:
-          - 'breaking'
+        labels: ['breaking']
     - minor:
-        labels:
-          - 'feature'
-          - 'enhancement'
+        labels: ['feature', 'enhancement']
     - patch:
-        labels:
-          - 'bug'
-          - 'fix'
-          - 'security'
-          - 'dependencies'
+        labels: ['bug', 'fix', 'security', 'dependencies']
 
-# Default to patch if no matching labels
 default: patch

@@ -8,11 +8,10 @@ on:
   push:
     branches:
       - main
-  pull_request_target:
-    types: [opened, reopened, synchronize]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -21,7 +20,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: release-drafter/release-drafter@eada3c96a64734dd381cfbda23511034e328ddb0  # v7.6.0
-        with:
-          config-name: release-drafter-config.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
