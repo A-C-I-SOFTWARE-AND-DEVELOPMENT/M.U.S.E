@@ -1,0 +1,50 @@
+name: 'Auto-format PRs'
+
+# Runs ruff format on PRs and auto-commits fixes.
+# Saves developers from "fix formatting" round-trips.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**/*.py'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          version: "0.11.28"
+
+      - name: Install ruff
+        run: uv tool install ruff==0.15.10
+
+      - name: Run ruff format
+        run: ruff format .
+
+      - name: Run ruff check --fix
+        run: ruff check --fix . || true
+
+      - name: Commit formatting fixes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A || true
+          if git diff --cached --quiet; then
+            echo "No formatting changes needed ✅"
+          else
+            git commit -m "style: auto-format with ruff"
+            git push
+            echo "Pushed formatting fixes ✅"
+          fi

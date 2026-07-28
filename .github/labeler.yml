@@ -1,0 +1,73 @@
+# Auto-labeler rules — maps file paths to labels
+# https://github.com/actions/labeler
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - '.gitattributes'
+      - '.gitignore'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - '**/package.json'
+      - '**/package-lock.json'
+
+agent:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'agent/**/*'
+      - 'run_agent.py'
+
+gateway:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'gateway/**/*'
+
+tools:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tools/**/*'
+      - 'model_tools.py'
+
+game-studio:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'agent/studio/**/*'
+      - 'scripts/run_pipeline.py'
+      - 'scripts/verify_slice.py'
+
+android:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'apps/android/**/*'
+
+desktop:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'apps/desktop/**/*'
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**/*'
+      - 'website/**/*'
+      - '*.md'
+
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'agent/redact.py'
+      - 'hermes_cli/secrets_policy.py'
+      - 'scripts/scan_secrets.py'
+      - '.github/workflows/secret-scan.yml'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**/*'

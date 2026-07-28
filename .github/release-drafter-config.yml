@@ -1,0 +1,71 @@
+# Release Drafter Configuration
+# https://github.com/release-drafter/release-drafter
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+# Categorize PRs by their labels
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+      - 'fix'
+  - title: '🔧 CI/CD'
+    labels:
+      - 'ci'
+  - title: '🔒 Security'
+    labels:
+      - 'security'
+      - 'dependencies'
+  - title: '📚 Documentation'
+    labels:
+      - 'docs'
+  - title: '🧹 Maintenance'
+    labels:
+      - 'chore'
+      - 'refactor'
+      - 'maintenance'
+  - title: '🎮 Game Studio'
+    labels:
+      - 'game-studio'
+  - title: '🤖 Agent'
+    labels:
+      - 'agent'
+
+# Exclude these labels from the changelog
+exclude-labels:
+  - 'stale'
+  - 'welcome 👋'
+
+# Template for individual entries
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ---
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+# Resolve the next version from labels
+resolver:
+  dynamic:
+    - major:
+        labels:
+          - 'breaking'
+    - minor:
+        labels:
+          - 'feature'
+          - 'enhancement'
+    - patch:
+        labels:
+          - 'bug'
+          - 'fix'
+          - 'security'
+          - 'dependencies'
+
+# Default to patch if no matching labels
+default: patch

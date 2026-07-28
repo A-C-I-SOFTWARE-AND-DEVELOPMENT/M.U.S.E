@@ -1,0 +1,36 @@
+name: 'Close stale issues and PRs'
+
+# Auto-closes issues and PRs with no activity for 60 days.
+# Adds a "stale" label and a warning comment 7 days before closing.
+# https://github.com/actions/stale
+
+on:
+  schedule:
+    - cron: '30 8 * * 1'  # Monday 8:30 AM UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/stale@5bef64f19d7facfb43b8b7a4844eab8eb278eef6  # v9.1.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: |
+            This issue has been inactive for 60 days and is being marked as stale.
+            It will be closed in 7 days unless there is new activity or the `keep-open` label is added.
+          stale-pr-message: |
+            This PR has been inactive for 60 days and is being marked as stale.
+            It will be closed in 7 days unless there is new activity or the `keep-open` label is added.
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'pinned,security,keep-open,enhancement'
+          exempt-pr-labels: 'pinned,security,keep-open,dependencies'
+          days-before-stale: 60
+          days-before-close: 7
+          operations-per-run: 50

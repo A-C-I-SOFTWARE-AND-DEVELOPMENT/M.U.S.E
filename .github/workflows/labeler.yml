@@ -1,0 +1,21 @@
+name: 'Auto-label PRs'
+
+# Automatically labels PRs based on which files they change.
+# Helps triage and route reviews without manual labeling.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/labeler@864837f5a55076a3effe2d83be97550f666e8c8e  # v5.0.0
+        with:
+          configuration-path: .github/labeler.yml

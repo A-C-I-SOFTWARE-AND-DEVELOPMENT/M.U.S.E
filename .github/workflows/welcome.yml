@@ -1,0 +1,75 @@
+name: 'Welcome first-time contributors'
+
+# Greets first-time contributors with a welcome message on their first PR/issue.
+# Helps create a friendly community atmosphere.
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 2
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const action = context.payload.action;
+            const isIssue = !!context.payload.issue;
+            const item = isIssue ? context.payload.issue : context.payload.pull_request;
+            const author = item.user.login;
+
+            // Check if this is the author's first contribution
+            const { data: events } = await github.rest.repos.listCommitContributors({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            const contributorLogins = events.map(e => e.login);
+            const isFirstTime = !contributorLogins.includes(author);
+
+            if (!isFirstTime) return;
+
+            const itemType = isIssue ? 'issue' : 'PR';
+            const message = [
+              `👋 Welcome @${author}! Thanks for opening your first ${itemType} in M.U.S.E.`,
+              '',
+              'A maintainer will review this shortly. In the meantime:',
+              '- Check out our [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) for guidelines',
+              '- Join the discussion in [GitHub Discussions](../discussions)',
+              '- Make sure CI checks pass on your PR',
+              '',
+              'We\'re glad to have you here! 🚀',
+            ].join('\n');
+
+            if (isIssue) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: item.number,
+                body: message,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: item.number,
+                body: message,
+              });
+            }
+
+            // Add "good first issue" or "first-time-contributor" label
+            try {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: item.number,
+                labels: ['welcome 👋'],
+              });
+            } catch (e) {
+              // Label might not exist, ignore
+            }

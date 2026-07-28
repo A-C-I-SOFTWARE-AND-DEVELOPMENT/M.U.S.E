@@ -1,0 +1,38 @@
+# CODEOWNERS — auto-request reviews based on file paths
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything not matched below
+*                        @echerd27-design
+
+# CI / Infrastructure
+/.github/                @echerd27-design
+/.gitattributes          @echerd27-design
+/.gitignore              @echerd27-design
+/flake.nix               @echerd27-design
+/nix/                    @echerd27-design
+/docker-compose.yml      @echerd27-design
+
+# Core agent
+/run_agent.py            @echerd27-design
+/model_tools.py          @echerd27-design
+/toolsets.py             @echerd27-design
+/cli.py                  @echerd27-design
+/agent/                  @echerd27-design
+
+# Gateway / platforms
+/gateway/                @echerd27-design
+
+# Game Studio (AAA pipeline)
+/agent/studio/           @echerd27-design
+/scripts/run_pipeline.py @echerd27-design
+
+# Desktop app
+/apps/desktop/           @echerd27-design
+
+# Android app
+/apps/android/           @echerd27-design
+
+# Documentation
+/docs/                   @echerd27-design
+/website/                @echerd27-design
+/README.md               @echerd27-design

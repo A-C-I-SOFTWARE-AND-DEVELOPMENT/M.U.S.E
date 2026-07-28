@@ -1,0 +1,25 @@
+name: Release Drafter
+
+# Auto-generates release notes from merged PRs using conventional commit labels.
+# Creates/updates a draft release on every push to main.
+# https://github.com/release-drafter/release-drafter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  update_release_draft:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 5
+    steps:
+      - uses: release-drafter/release-drafter@3f0f87095bd9857f152b2fb4be1d406532b9f3eb  # v6.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
