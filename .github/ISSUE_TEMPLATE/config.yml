@@ -1,11 +1,13 @@
-blank_issues_enabled: true
 contact_links:
-  - name: 💬 Nous Research Discord
-    url: https://discord.gg/NousResearch
-    about: For quick questions, showcasing projects, sharing skills, and community chat.
   - name: 📖 Documentation
-    url: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/README.md
-    about: Check the README and docs before opening an issue.
-  - name: 🤝 Contributing Guide
-    url: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/blob/main/CONTRIBUTING.md
-    about: Read this before submitting a PR.
+    url: https://hermes-agent.nousresearch.com/docs
+    about: Read the full M.U.S.E documentation
+  - name: 💬 GitHub Discussions
+    url: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🐛 Report a Security Vulnerability
+    url: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/security/advisories/new
+    about: Privately report a security vulnerability (do NOT open a public issue)
+  - name: 🎮 Game Studio Wiki
+    url: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/tree/main/docs/game-studio
+    about: AAA pipeline documentation and guides

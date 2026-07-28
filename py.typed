@@ -1,0 +1,2 @@
+# PEP 561 marker — tells type checkers this package ships inline type annotations.
+# Without this file, mypy/pyright/ty treat all types as Any.

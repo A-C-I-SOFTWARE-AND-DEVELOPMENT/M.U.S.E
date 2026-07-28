@@ -1,0 +1,56 @@
+# CI Health Summary — generated daily
+# Tracks pass/fail trends, runner utilization, and test counts.
+
+name: 'CI Health Report'
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Daily 8 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: [self-hosted, primary]
+    timeout-minutes: 5
+    steps:
+      - name: Generate CI health report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## CI Health Report — $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Workflow pass rate (last 30 runs)
+          TOTAL=$(gh run list -R "$GITHUB_REPOSITORY" --limit 30 --json conclusion -q '[.[] | select(.conclusion != null)] | length')
+          PASSED=$(gh run list -R "$GITHUB_REPOSITORY" --limit 30 --json conclusion -q '[.[] | select(.conclusion == "success")] | length')
+          FAILED=$(gh run list -R "$GITHUB_REPOSITORY" --limit 30 --json conclusion -q '[.[] | select(.conclusion == "failure")] | length')
+
+          if [ "$TOTAL" -gt 0 ]; then
+            RATE=$((PASSED * 100 / TOTAL))
+          else
+            RATE=0
+          fi
+
+          echo "### Pass Rate: ${RATE}% (${PASSED}/${TOTAL})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | ${PASSED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | ${FAILED} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total | ${TOTAL} |" >> $GITHUB_STEP_SUMMARY
+
+          # Runner status
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Runner Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          gh api "repos/$GITHUB_REPOSITORY/actions/runners" --jq '.runners[] | "- **\(.name)**: \(.status) busy=\(.busy)"' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No runners found" >> $GITHUB_STEP_SUMMARY
+
+          # Dependabot alerts
+          echo "" >> $GITHUB_STEP_SUMMARY
+          VULNS=$(gh api "repos/$GITHUB_REPOSITORY/dependabot/alerts?state=open&per_page=100" --jq 'length' 2>/dev/null || echo "?")
+          echo "### Open Dependabot Alerts: ${VULNS}" >> $GITHUB_STEP_SUMMARY

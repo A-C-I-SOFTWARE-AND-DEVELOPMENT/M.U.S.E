@@ -1,0 +1,49 @@
+name: "🏗️ AAA Pipeline Issue"
+description: "Report a problem with the Game Studio AAA pipeline"
+title: "[GAME-STUDIO] "
+labels: ["game-studio", "bug"]
+body:
+  - type: dropdown
+    id: stage
+    attributes:
+      label: "Pipeline Stage"
+      description: "Which stage has the issue?"
+      options:
+        - Decompose
+        - Previs
+        - World Systems
+        - Creature Rig
+        - Blender Post
+        - Asset Generation
+        - UE5 Source
+        - Provenance
+        - Validation
+        - Acceptance
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe the issue"
+      description: "A clear description of what went wrong."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Steps to reproduce"
+      placeholder: "1. Run `python scripts/run_pipeline.py ...`\n2. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: "Pipeline output"
+      render: shell
+  - type: textarea
+    id: env
+    attributes:
+      label: "Environment"
+      placeholder: "OS, Python version, UE5 version, brief type"
+    validations:
+      required: true

@@ -5,11 +5,16 @@
 # muse — Multi-Use Synaptic Entity ◉
 
 <p align="center">
-  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/tests.yml"><img src="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/lint.yml"><img src="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/secret-scan.yml"><img src="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/actions/workflows/secret-scan.yml/badge.svg" alt="Secret Scan"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square" alt="Python 3.11+"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases"><img src="https://img.shields.io/github/v/release/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E?style=flat-square" alt="Latest Release"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=flat-square" alt="中文"></a>
 </p>
 
-> **📣 Latest release — [v1.2.0 · LM Studio native v1 REST API](docs/launch/RELEASE_NOTES_v1.2.0.md).** Accurate context-window detection for local **and** remote LM Studio, model lifecycle (load / unload / download) with agent tools, and auto-unload on model switch. ([all releases](docs/releases/README.md))
+> **📣 Latest release — [v1.3.0 · AAA Game Pipeline + CI Repair](../../releases/tag/v1.3.0).** Complete 11-stage AAA game generation pipeline, self-hosted runner infrastructure, and full CI automation suite. ([all releases](../../releases))
 
 **One mind, many pathways.** muse is a self-improving, local-first AI operating partner: a single identity — the *mind* — running over a **synaptic substrate** (its gateway, routing, and model pathways). It creates skills from experience, improves them during use, remembers across sessions, builds a deepening model of who you are, and defers owner-gated actions until you authorize them. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle — and talk to it from Telegram while it works on a cloud VM.
 

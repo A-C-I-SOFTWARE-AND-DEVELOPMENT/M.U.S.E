@@ -20,6 +20,8 @@ jobs:
     runs-on: [self-hosted, primary]
     timeout-minutes: 5
     steps:
-      - uses: release-drafter/release-drafter@3f0f87095bd9857f152b2fb4be1d406532b9f3eb  # v6.1.0
+      - uses: release-drafter/release-drafter@eada3c96a64734dd381cfbda23511034e328ddb0  # v7.6.0
+        with:
+          config-name: release-drafter-config.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
