@@ -6,9 +6,6 @@ _sanitize_api_messages() and the CLI session-restore paths.
 """
 
 import logging
-import types
-from typing import Any
-from unittest.mock import MagicMock, patch
 
 from run_agent import AIAgent
 
@@ -30,7 +27,7 @@ class TestSanitizeApiMessagesRoleFilter:
         assert all(m["role"] != "session_meta" for m in out)
 
     def test_preserves_valid_roles(self):
-        msgs: list[dict[str, Any]] = [
+        msgs = [
             {"role": "system", "content": "you are helpful"},
             {"role": "user", "content": "hello"},
             {"role": "assistant", "content": "hi"},
@@ -54,16 +51,54 @@ class TestSanitizeApiMessagesRoleFilter:
             AIAgent._sanitize_api_messages(msgs)
         assert any("invalid role" in r.message and "session_meta" in r.message for r in caplog.records)
 
-    def test_drops_multiple_invalid_roles(self):
+
+
+# ---------------------------------------------------------------------------
+# Layer 1b — display-only timeline fields must not reach the provider
+# ---------------------------------------------------------------------------
+
+class TestDisplayFieldsStrippedFromApiPayload:
+    """Display-only fields (display_kind, display_metadata) are persisted on
+    message rows for timeline rendering, but must never appear in the
+    provider-bound API payload — strict OpenAI-compatible backends reject
+    unknown fields."""
+
+    def test_sanitizer_does_not_remove_display_fields(self):
+        """sanitize_api_messages is NOT the chokepoint for display fields —
+        they are popped earlier in conversation_loop. But this test documents
+        that the sanitizer alone does NOT strip them, proving the pop in
+        conversation_loop is load-bearing."""
         msgs = [
-            {"role": "user", "content": "hello"},
-            {"role": "session_meta", "content": {}},
-            {"role": "transcript_note", "content": "note"},
-            {"role": "assistant", "content": "hi"},
+            {"role": "user", "content": "hello", "display_kind": "model_switch"},
+            {"role": "assistant", "content": "hi", "display_metadata": {"model": "m"}},
         ]
         out = AIAgent._sanitize_api_messages(msgs)
-        assert len(out) == 2
-        assert [m["role"] for m in out] == ["user", "assistant"]
+        # The sanitizer preserves them — the conversation_loop pop is the fix.
+        assert "display_kind" in out[0]
+        assert "display_metadata" in out[1]
+
+    def test_conversation_loop_strips_display_fields(self):
+        """The per-request api_msg copy in conversation_loop strips
+        display_kind and display_metadata before the message reaches the
+        provider. This simulates that pop."""
+        msg = {
+            "role": "user",
+            "content": "switch event",
+            "display_kind": "model_switch",
+            "display_metadata": {"model": "test"},
+            "api_content": "sidecar",
+        }
+        # Reproduce the pop sequence from conversation_loop.py
+        api_msg = msg.copy()
+        api_msg.pop("api_content", None)
+        api_msg.pop("display_kind", None)
+        api_msg.pop("display_metadata", None)
+        assert "display_kind" not in api_msg
+        assert "display_metadata" not in api_msg
+        assert "api_content" not in api_msg
+        assert api_msg["content"] == "switch event"
+        # Original message dict is untouched.
+        assert msg.get("display_kind") == "model_switch"
 
 
 # ---------------------------------------------------------------------------

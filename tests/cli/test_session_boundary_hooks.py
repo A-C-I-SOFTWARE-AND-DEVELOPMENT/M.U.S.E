@@ -1,9 +1,6 @@
-import pytest
 from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 from hermes_cli.plugins import VALID_HOOKS, PluginManager
-import os
-import shutil
-import tempfile
 from cli import HermesCLI
 
 
@@ -13,8 +10,12 @@ def test_session_hooks_in_valid_hooks():
     assert "on_session_reset" in VALID_HOOKS
 
 
-@patch("hermes_cli.plugins.invoke_hook")
-def test_session_finalize_on_reset(mock_invoke_hook):
+# These tests pin CLI ownership of the finalize request. The end-to-end
+# built-in/core/plugin dispatch order is exercised by
+# tests/hermes_cli/test_lifecycle.py::test_finalize_session_closes_core_before_plugin_export.
+@patch("hermes_cli.lifecycle.invoke_hook")
+@patch("hermes_cli.lifecycle.finalize_session")
+def test_session_finalize_on_reset(mock_finalize_session, mock_invoke_hook):
     """Verify on_session_finalize fires when /new or /reset is used."""
     cli = HermesCLI()
     cli.agent = MagicMock()
@@ -24,17 +25,23 @@ def test_session_finalize_on_reset(mock_invoke_hook):
     cli.new_session(silent=True)
 
     # Check if on_session_finalize was called for the old session
-    mock_invoke_hook.assert_any_call(
-        "on_session_finalize", session_id="test-session-id", platform="cli"
+    assert any(
+        not c.args
+        and c.kwargs["session_id"] == "test-session-id"
+        and c.kwargs["platform"] == "cli"
+        for c in mock_finalize_session.call_args_list
     )
     # Check if on_session_reset was called for the new session
-    mock_invoke_hook.assert_any_call(
-        "on_session_reset", session_id=cli.session_id, platform="cli"
+    assert any(
+        c.args == ("on_session_reset",)
+        and c.kwargs["session_id"] == cli.session_id
+        and c.kwargs["platform"] == "cli"
+        for c in mock_invoke_hook.call_args_list
     )
 
 
-@patch("hermes_cli.plugins.invoke_hook")
-def test_session_finalize_on_cleanup(mock_invoke_hook):
+@patch("hermes_cli.lifecycle.finalize_session")
+def test_session_finalize_on_cleanup(mock_finalize_session):
     """Verify on_session_finalize fires during CLI exit cleanup."""
     import cli as cli_mod
 
@@ -45,9 +52,43 @@ def test_session_finalize_on_cleanup(mock_invoke_hook):
 
     cli_mod._run_cleanup()
 
-    mock_invoke_hook.assert_any_call(
-        "on_session_finalize", session_id="cleanup-session-id", platform="cli"
+    assert any(
+        not c.args
+        and c.kwargs["session_id"] == "cleanup-session-id"
+        and c.kwargs["platform"] == "cli"
+        and c.kwargs["reason"] == "shutdown"
+        for c in mock_finalize_session.call_args_list
     )
+
+
+@patch("hermes_cli.lifecycle.invoke_hook")
+def test_interrupted_session_end_helper_emits_observer_shape(mock_invoke_hook):
+    """Verify quiet single-query interruption emits a correlated session end."""
+    import cli as cli_mod
+
+    mock_agent = MagicMock()
+    mock_agent.session_id = "agent-session-id"
+    mock_agent.model = "test-model"
+    mock_agent.platform = "cli"
+    mock_agent._current_task_id = "task-1"
+    mock_agent._current_turn_id = "turn-1"
+    mock_agent._current_api_request_id = "api-1"
+    cli = SimpleNamespace(agent=mock_agent, session_id="cli-session-id")
+
+    cli_mod._emit_interrupted_session_end(cli, reason="keyboard_interrupt")
+
+    mock_agent.interrupt.assert_called_once_with("keyboard interrupt")
+    assert cli.session_id == "agent-session-id"
+    mock_invoke_hook.assert_called_once()
+    call = mock_invoke_hook.call_args
+    assert call.args == ("on_session_end",)
+    assert call.kwargs["session_id"] == "agent-session-id"
+    assert call.kwargs["task_id"] == "task-1"
+    assert call.kwargs["turn_id"] == "turn-1"
+    assert call.kwargs["api_request_id"] == "api-1"
+    assert call.kwargs["completed"] is False
+    assert call.kwargs["interrupted"] is True
+    assert call.kwargs["reason"] == "keyboard_interrupt"
 
 
 @patch("hermes_cli.plugins.invoke_hook")

@@ -158,7 +158,7 @@ class DaytonaEnvironment(BaseEnvironment):
         """Upload a single file via Daytona SDK."""
         assert self._sandbox is not None  # only called while the sandbox is alive
         parent = str(Path(remote_path).parent)
-        self._sandbox.process.exec(f"mkdir -p {parent}")
+        self._sandbox.process.exec(quoted_mkdir_command([parent]))
         self._sandbox.fs.upload_file(host_path, remote_path)
 
     def _daytona_bulk_upload(self, files: list[tuple[str, str]]) -> None:

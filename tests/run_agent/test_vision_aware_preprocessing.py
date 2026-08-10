@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from run_agent import AIAgent
 
@@ -164,7 +163,28 @@ class TestModelSupportsVision:
         with patch("agent.models_dev.get_model_capabilities", return_value=None):
             assert agent._model_supports_vision() is False
 
-    def test_exception_returns_false(self):
+
+    def test_top_level_model_override_wins(self):
         agent = _make_agent()
-        with patch("agent.models_dev.get_model_capabilities", side_effect=RuntimeError("boom")):
-            assert agent._model_supports_vision() is False
+        agent.provider = "custom"
+        agent.model = "my-llava"
+        with patch("hermes_cli.config.load_config", return_value={"model": {"supports_vision": True}}), \
+             patch("agent.models_dev.get_model_capabilities", return_value=None):
+            assert agent._model_supports_vision() is True
+
+
+    def test_named_custom_provider_resolved_via_config_provider(self):
+        # Named custom providers get runtime self.provider rewritten to
+        # "custom" while the config keeps the original name under
+        # model.provider. The override must still resolve.
+        agent = _make_agent()
+        agent.provider = "custom"
+        agent.model = "my-llava"
+        cfg = {
+            "model": {"provider": "my-vllm", "default": "my-llava"},
+            "providers": {"my-vllm": {"models": {"my-llava": {"supports_vision": True}}}},
+        }
+        with patch("hermes_cli.config.load_config", return_value=cfg), \
+             patch("agent.models_dev.get_model_capabilities", return_value=None):
+            assert agent._model_supports_vision() is True
+

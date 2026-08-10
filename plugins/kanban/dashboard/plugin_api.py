@@ -36,16 +36,16 @@ the port.
 from __future__ import annotations
 
 import asyncio
-import hmac
 import json
 import logging
-import os
 import sqlite3
 import time
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status as http_status
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect, status as http_status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from hermes_cli import kanban_db
@@ -61,15 +61,29 @@ router = APIRouter()
 # existing plugin-bypass; this is documented above).
 # ---------------------------------------------------------------------------
 
-def _check_ws_token(provided: Optional[str]) -> bool:
-    """Constant-time compare against the dashboard session token.
+def _ws_upgrade_authorized(ws: "WebSocket") -> bool:
+    """Authorize a WebSocket upgrade by delegating to the dashboard's canonical
+    WS auth gate (``hermes_cli.web_server._ws_auth_ok``).
+
+    Delegating (rather than re-implementing a ``_SESSION_TOKEN``-only check)
+    means this endpoint transparently accepts whatever the core gate accepts
+    in each mode:
+
+      * loopback / ``--insecure``: legacy ``?token=<_SESSION_TOKEN>``
+      * gated OAuth: single-use ``?ticket=`` (the browser SDK's
+        ``buildWsUrl`` mints one per connect)
+      * server-internal: the process-lifetime ``?internal=`` credential
+
+    The previous bespoke check only understood ``_SESSION_TOKEN``, so the
+    kanban live-events WS was rejected on every OAuth-gated deployment even
+    though the rest of the dashboard worked. Routing through the shared gate
+    also means this can never drift from core auth again.
 
     Imported lazily so the plugin still loads in test contexts where the
-    dashboard web_server module isn't importable (e.g. the bare-FastAPI
-    test harness).
+    dashboard ``web_server`` module isn't importable (e.g. the bare-FastAPI
+    test harness); there we accept so the tail loop stays testable, matching
+    the prior behaviour.
     """
-    if not provided:
-        return False
     try:
         from hermes_cli import web_server as _ws
     except Exception:
@@ -77,10 +91,7 @@ def _check_ws_token(provided: Optional[str]) -> bool:
         # testable; in production the dashboard module always imports
         # cleanly because it's the caller.
         return True
-    expected = getattr(_ws, "_SESSION_TOKEN", None)
-    if not expected:
-        return True
-    return hmac.compare_digest(str(provided), str(expected))
+    return bool(_ws._ws_auth_ok(ws))
 
 
 def _resolve_board(board: Optional[str]) -> Optional[str]:
@@ -186,6 +197,21 @@ def _comment_dict(c: kanban_db.Comment) -> dict[str, Any]:
     }
 
 
+def _attachment_dict(a: kanban_db.Attachment) -> dict[str, Any]:
+    """Serialise an Attachment for the drawer. ``stored_path`` is the
+    absolute on-disk path workers read; the UI uses ``id`` for download."""
+    return {
+        "id": a.id,
+        "task_id": a.task_id,
+        "filename": a.filename,
+        "content_type": a.content_type,
+        "size": a.size,
+        "uploaded_by": a.uploaded_by,
+        "stored_path": a.stored_path,
+        "created_at": a.created_at,
+    }
+
+
 def _run_dict(r: kanban_db.Run) -> dict[str, Any]:
     """Serialise a Run for the drawer's Run history section."""
     return {
@@ -273,6 +299,7 @@ def _compute_task_diagnostics(
     ).fetchall():
         runs_by_task.setdefault(run_row["task_id"], []).append(run_row)
 
+    graph_by_task = kanban_db.task_graph_contexts(conn, row_ids)
     out: dict[str, list[dict]] = {}
     for r in rows:
         tid = r["id"]
@@ -281,6 +308,7 @@ def _compute_task_diagnostics(
             events_by_task.get(tid, []),
             runs_by_task.get(tid, []),
             config=diag_config,
+            graph=graph_by_task.get(tid),
         )
         if diags:
             out[tid] = [d.to_dict() for d in diags]
@@ -520,6 +548,21 @@ def get_task(
         # a second round-trip. Cards on /board carry a 200-char preview.
         full_summary = kanban_db.latest_summary(conn, task_id)
         task_d = _task_dict(task, latest_summary=full_summary)
+        links = _links_for(conn, task_id)
+        child_ids = links["children"]
+        child_summaries = kanban_db.latest_summaries(conn, child_ids)
+        child_results = []
+        for child_id in child_ids:
+            child = kanban_db.get_task(conn, child_id)
+            if child is None:
+                continue
+            child_results.append({
+                "id": child.id,
+                "title": child.title,
+                "status": child.status,
+                "latest_summary": child_summaries.get(child.id),
+                "result": child.result,
+            })
         # Attach diagnostics so the drawer's Diagnostics section can
         # render recovery actions without a second round-trip.
         diags = _compute_task_diagnostics(conn, task_ids=[task_id])
@@ -531,7 +574,9 @@ def get_task(
             "task": task_d,
             "comments": [_comment_dict(c) for c in kanban_db.list_comments(conn, task_id)],
             "events": [_event_dict(e) for e in kanban_db.list_events(conn, task_id)],
-            "links": _links_for(conn, task_id),
+            "attachments": [_attachment_dict(a) for a in kanban_db.list_attachments(conn, task_id)],
+            "links": links,
+            "child_results": child_results,
             "runs": [
                 _run_dict(r)
                 for r in kanban_db.list_runs(
@@ -563,6 +608,16 @@ class CreateTaskBody(BaseModel):
     idempotency_key: Optional[str] = None
     max_runtime_seconds: Optional[int] = None
     skills: Optional[list[str]] = None
+    goal_mode: bool = False
+    goal_max_turns: Optional[int] = None
+    model_override: Optional[str] = None
+    provider_override: Optional[str] = None
+    # Per-task thinking depth (none|minimal|…|ultra). None = inherit the
+    # assigned profile's own agent.reasoning_effort.
+    reasoning_effort: Optional[str] = None
+    # Explicit project link; when omitted, create_task inherits the board's
+    # scoped project (if any) so a project-scoped board anchors every task.
+    project_id: Optional[str] = None
 
 
 @router.post("/tasks")
@@ -585,6 +640,13 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
             idempotency_key=payload.idempotency_key,
             max_runtime_seconds=payload.max_runtime_seconds,
             skills=payload.skills,
+            goal_mode=payload.goal_mode,
+            goal_max_turns=payload.goal_max_turns,
+            model_override=payload.model_override,
+            provider_override=payload.provider_override,
+            reasoning_effort=payload.reasoning_effort,
+            project_id=payload.project_id,
+            board=board,
         )
         task = kanban_db.get_task(conn, task_id)
         body: dict[str, Any] = {"task": _task_dict(task) if task else None}
@@ -596,7 +658,15 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
         if task and task.status == "ready" and task.assignee:
             try:
                 from hermes_cli.kanban import _check_dispatcher_presence
-                running, message = _check_dispatcher_presence()
+                from hermes_constants import get_hermes_home
+
+                # Scope the probe to the request's active home. The dashboard
+                # backend can run under a different HERMES_HOME than the
+                # profile this board belongs to, which otherwise warned "no
+                # gateway is running" against a live profile gateway (#71211).
+                running, message = _check_dispatcher_presence(
+                    hermes_home=get_hermes_home()
+                )
                 if not running and message:
                     body["warning"] = message
             except Exception:
@@ -605,6 +675,148 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
         return body
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Attachments — upload / list / download / delete (#35338)
+# ---------------------------------------------------------------------------
+
+# The size cap, filename sanitiser, and collision resolver now live in
+# ``kanban_db`` so the dashboard, the agent toolset, and the CLI share one
+# implementation and cannot drift. ``_safe_attachment_name`` raises a plain
+# ``ValueError`` there; the upload handler's ``except ValueError`` below maps
+# it to a 400, preserving the previous response.
+from hermes_cli.kanban_db import (  # noqa: E402
+    KANBAN_ATTACHMENT_MAX_BYTES,
+    _collision_free_path,
+    _safe_attachment_name,
+)
+
+
+@router.get("/tasks/{task_id}/attachments")
+def list_task_attachments(task_id: str, board: Optional[str] = Query(None)):
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        if kanban_db.get_task(conn, task_id) is None:
+            raise HTTPException(status_code=404, detail=f"task {task_id} not found")
+        return {
+            "attachments": [
+                _attachment_dict(a) for a in kanban_db.list_attachments(conn, task_id)
+            ]
+        }
+    finally:
+        conn.close()
+
+
+@router.post("/tasks/{task_id}/attachments")
+async def upload_task_attachment(
+    task_id: str,
+    file: UploadFile = File(...),
+    board: Optional[str] = Query(None),
+    uploaded_by: Optional[str] = Form(None),
+):
+    """Store an uploaded file for a task and record its metadata.
+
+    The blob lands under ``attachments_root(board)/<task_id>/`` with a
+    sanitised, collision-resolved name. The worker reads it via the
+    absolute path surfaced in ``build_worker_context``.
+    """
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        if kanban_db.get_task(conn, task_id) is None:
+            raise HTTPException(status_code=404, detail=f"task {task_id} not found")
+
+        safe_name = _safe_attachment_name(file.filename or "")
+
+        # Stream to disk with a hard size cap so a huge upload can't fill
+        # the disk. Read in chunks; abort + clean up if the cap is hit.
+        dest_dir = kanban_db.task_attachments_dir(task_id, board=board)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Resolve name collisions: foo.pdf → foo (1).pdf, foo (2).pdf, …
+        dest_path = _collision_free_path(dest_dir, safe_name)
+        candidate = dest_path.name
+
+        total = 0
+        try:
+            with open(dest_path, "wb") as out:
+                while True:
+                    chunk = await file.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > KANBAN_ATTACHMENT_MAX_BYTES:
+                        out.close()
+                        dest_path.unlink(missing_ok=True)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=(
+                                f"attachment exceeds {KANBAN_ATTACHMENT_MAX_BYTES // (1024 * 1024)} MB limit"
+                            ),
+                        )
+                    out.write(chunk)
+        except HTTPException:
+            raise
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail=f"failed to store attachment: {exc}")
+
+        att_id = kanban_db.add_attachment(
+            conn,
+            task_id,
+            filename=candidate,
+            stored_path=str(dest_path.resolve()),
+            content_type=file.content_type,
+            size=total,
+            uploaded_by=(uploaded_by or "dashboard"),
+        )
+        att = kanban_db.get_attachment(conn, att_id)
+        return {"attachment": _attachment_dict(att) if att else None}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/attachments/{attachment_id}")
+def download_attachment(attachment_id: int, board: Optional[str] = Query(None)):
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        att = kanban_db.get_attachment(conn, attachment_id)
+        if att is None:
+            raise HTTPException(status_code=404, detail="attachment not found")
+        # Confirm the blob still lives under the board's attachments root
+        # before serving — defense in depth against a tampered DB row.
+        root = kanban_db.attachments_root(board=board).resolve()
+        try:
+            stored = Path(att.stored_path).resolve()
+            stored.relative_to(root)
+        except (ValueError, OSError):
+            raise HTTPException(status_code=404, detail="attachment file unavailable")
+        if not stored.is_file():
+            raise HTTPException(status_code=404, detail="attachment file missing on disk")
+        return FileResponse(
+            path=str(stored),
+            filename=att.filename,
+            media_type=att.content_type or "application/octet-stream",
+        )
+    finally:
+        conn.close()
+
+
+@router.delete("/attachments/{attachment_id}")
+def remove_attachment(attachment_id: int, board: Optional[str] = Query(None)):
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        att = kanban_db.delete_attachment(conn, attachment_id)
+        if att is None:
+            raise HTTPException(status_code=404, detail="attachment not found")
+        return {"ok": True, "id": attachment_id}
     finally:
         conn.close()
 
@@ -626,6 +838,32 @@ class UpdateTaskBody(BaseModel):
     # complete --summary ... --metadata ...``.
     summary: Optional[str] = None
     metadata: Optional[dict] = None
+    # Per-task model/provider override (the board's model dropdown).
+    # ``model_override=""`` clears both. ``clear_model_override=True`` is
+    # the explicit clear signal — needed because Optional[str]=None means
+    # "field not sent" in a PATCH, not "set to NULL".
+    model_override: Optional[str] = None
+    provider_override: Optional[str] = None
+    clear_model_override: bool = False
+    # Per-task thinking depth. ``"none"`` is a VALUE (thinking off), not a
+    # clear — use ``clear_reasoning_effort=True`` to fall back to the
+    # profile's own level. Separate from the model clear so dropping a model
+    # override doesn't silently reset the depth the operator chose.
+    reasoning_effort: Optional[str] = None
+    clear_reasoning_effort: bool = False
+
+
+def _reopen_if_review(conn, task_id: str, current) -> Optional[bool]:
+    """Route a task leaving the ``review`` lane through ``reopen_review_task``
+    (proper transition: stale-run recovery, parent re-gate, ``review_reopened``
+    event) instead of a raw status write. Returns the transition result, or
+    ``None`` when the task isn't in ``review`` so the caller falls through to
+    its normal handling. Shared by the single-task and bulk status handlers so
+    the review-reopen routing can't drift between them.
+    """
+    if current is not None and getattr(current, "status", None) == "review":
+        return kanban_db.reopen_review_task(conn, task_id)
+    return None
 
 
 @router.patch("/tasks/{task_id}")
@@ -637,8 +875,14 @@ def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Qu
         if task is None:
             raise HTTPException(status_code=404, detail=f"task {task_id} not found")
 
+        review_assignee_deferred = (
+            payload.status == "review" and payload.assignee is not None
+        )
+
         # --- assignee ----------------------------------------------------
-        if payload.assignee is not None:
+        # For a combined assignee+review patch, request_review must capture
+        # the current implementer before routing the task to the reviewer.
+        if payload.assignee is not None and not review_assignee_deferred:
             try:
                 ok = kanban_db.assign_task(
                     conn, task_id, payload.assignee or None,
@@ -663,14 +907,32 @@ def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Qu
                 ok = kanban_db.block_task(conn, task_id, reason=payload.block_reason)
             elif s == "scheduled":
                 ok = kanban_db.schedule_task(conn, task_id, reason=payload.block_reason)
+            elif s == "review":
+                # Manual "request review" from the board. Routes through
+                # request_review so it is NOT a
+                # block (never trips unblock-loop detection). Only valid from
+                # running/ready — a False return becomes the 409 toast below.
+                ok = kanban_db.request_review(
+                    conn, task_id, summary=payload.summary,
+                    metadata=payload.metadata,
+                    reviewer=(payload.assignee or None),
+                    # Dashboard PATCH is an explicit human action — allowed
+                    # to override a live worker claim (M1 guard).
+                    force=True,
+                )
+                if ok and review_assignee_deferred and not payload.assignee:
+                    ok = kanban_db.assign_task(conn, task_id, None)
             elif s == "ready":
-                # Re-open a blocked/scheduled task, or just an explicit status set.
+                # Re-open a blocked/scheduled/review task, or just an explicit
+                # status set. "Changes requested" (review -> ready) goes through
+                # reopen_review_task via _reopen_if_review.
                 current = kanban_db.get_task(conn, task_id)
                 if current and current.status in ("blocked", "scheduled"):
                     ok = kanban_db.unblock_task(conn, task_id)
                 else:
+                    reopened = _reopen_if_review(conn, task_id, current)
                     # Direct status write for drag-drop (todo -> ready etc).
-                    ok = _set_status_direct(conn, task_id, "ready")
+                    ok = reopened if reopened is not None else _set_status_direct(conn, task_id, "ready")
             elif s == "archived":
                 ok = kanban_db.archive_task(conn, task_id)
             elif s == "running":
@@ -679,7 +941,11 @@ def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Qu
                     detail="Cannot set status to 'running' directly; use the dispatcher/claim path",
                 )
             elif s in ("todo", "triage", "scheduled"):
-                ok = _set_status_direct(conn, task_id, s)
+                # Only a review task moving to 'todo' needs the reopen
+                # transition; fetch lazily so triage/scheduled skip the query.
+                current = kanban_db.get_task(conn, task_id) if s == "todo" else None
+                reopened = _reopen_if_review(conn, task_id, current)
+                ok = reopened if reopened is not None else _set_status_direct(conn, task_id, s)
             else:
                 raise HTTPException(status_code=400, detail=f"unknown status: {s}")
             if not ok:
@@ -704,6 +970,35 @@ def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Qu
                     status_code=409,
                     detail=f"status transition to {s!r} not valid from current state",
                 )
+
+        # --- model/provider override ---------------------------------------
+        if payload.clear_model_override or payload.model_override is not None:
+            new_model = (
+                None if payload.clear_model_override
+                else (payload.model_override or "").strip() or None
+            )
+            try:
+                ok = kanban_db.set_model_override(
+                    conn, task_id, new_model,
+                    provider=payload.provider_override,
+                )
+            except (ValueError, RuntimeError) as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            if not ok:
+                raise HTTPException(status_code=404, detail="task not found")
+
+        # --- reasoning effort ----------------------------------------------
+        if payload.clear_reasoning_effort or payload.reasoning_effort is not None:
+            new_effort = (
+                None if payload.clear_reasoning_effort
+                else payload.reasoning_effort
+            )
+            try:
+                ok = kanban_db.set_reasoning_effort(conn, task_id, new_effort)
+            except (ValueError, RuntimeError) as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            if not ok:
+                raise HTTPException(status_code=404, detail="task not found")
 
         # --- priority -----------------------------------------------------
         if payload.priority is not None:
@@ -787,6 +1082,28 @@ def _parents_blocking_ready(
     ]
 
 
+def _invalidate_descendants_for_parent_reopen(
+    conn: sqlite3.Connection,
+    parent_id: str,
+    terminations: list[tuple[Optional[int], Optional[str]]],
+) -> None:
+    """Delegate to the domain-layer implementation in :mod:`kanban_db`.
+
+    Kept as a thin shim so ``_set_status_direct`` stays readable; the actual
+    invalidation (recursive-CTE discovery, per-descendant events + comments,
+    run closing, failure-counter reset) lives in
+    :func:`kanban_db.invalidate_descendants_for_parent_reopen` so every
+    reopen surface shares one implementation. We run inside the caller's
+    open transaction, so the domain function composes via a savepoint and
+    returns the worker terminations for us to perform post-commit (events
+    must be durable BEFORE the kill).
+    """
+    result = kanban_db.invalidate_descendants_for_parent_reopen(
+        conn, parent_id, author="dashboard",
+    )
+    terminations.extend(result["terminations"])
+
+
 def _set_status_direct(
     conn: sqlite3.Connection, task_id: str, new_status: str,
 ) -> bool:
@@ -800,19 +1117,33 @@ def _set_status_direct(
     orphaned. ``running -> ready`` via drag-drop is the common case
     (user yanking a stuck worker back to the queue).
     """
+    terminations: list[tuple[Optional[int], Optional[str]]] = []
+    effective_status = new_status
     with kanban_db.write_txn(conn):
         # Snapshot current state so we know whether to close a run.
         prev = conn.execute(
-            "SELECT status, current_run_id FROM tasks WHERE id = ?",
+            "SELECT status, current_run_id, worker_pid, claim_lock "
+            "FROM tasks WHERE id = ?",
             (task_id,),
         ).fetchone()
         if prev is None:
             return False
 
+        if prev["status"] == "running" and new_status == "ready":
+            resume_status = kanban_db._retry_status_for_run(
+                conn, task_id, prev["current_run_id"]
+            )
+            if resume_status == "review":
+                effective_status = (
+                    "review"
+                    if kanban_db._parents_satisfied(conn, task_id)
+                    else "todo"
+                )
+
         # Guard: don't allow promoting to 'ready' unless all parents are done.
         # Prevents the dispatcher from spawning a child whose upstream work
         # hasn't completed (e.g. T4 dispatched while T3 is still blocked).
-        if new_status == "ready":
+        if effective_status == "ready":
             parent_statuses = conn.execute(
                 "SELECT t.status FROM tasks t "
                 "JOIN task_links l ON l.parent_id = t.id "
@@ -820,14 +1151,14 @@ def _set_status_direct(
                 (task_id,),
             ).fetchall()
             if parent_statuses and not all(
-                p["status"] == "done" for p in parent_statuses
+                p["status"] in {"done", "archived"} for p in parent_statuses
             ):
                 return False
 
         was_running = prev["status"] == "running"
         reopening_satisfied_parent = (
             prev["status"] in {"done", "archived"}
-            and new_status not in {"done", "archived"}
+            and effective_status not in {"done", "archived"}
         )
 
         cur = conn.execute(
@@ -836,55 +1167,49 @@ def _set_status_direct(
             "  claim_expires = CASE WHEN ? = 'running' THEN claim_expires ELSE NULL END, "
             "  worker_pid = CASE WHEN ? = 'running' THEN worker_pid ELSE NULL END "
             "WHERE id = ?",
-            (new_status, new_status, new_status, new_status, task_id),
+            (
+                effective_status,
+                effective_status,
+                effective_status,
+                effective_status,
+                task_id,
+            ),
         )
         if cur.rowcount != 1:
             return False
         run_id = None
-        if was_running and new_status != "running" and prev["current_run_id"]:
+        if was_running and effective_status != "running" and prev["current_run_id"]:
             run_id = kanban_db._end_run(
                 conn, task_id,
                 outcome="reclaimed", status="reclaimed",
-                summary=f"status changed to {new_status} (dashboard/direct)",
+                summary=f"status changed to {effective_status} (dashboard/direct)",
             )
+            terminations.append((prev["worker_pid"], prev["claim_lock"]))
         conn.execute(
             "INSERT INTO task_events (task_id, run_id, kind, payload, created_at) "
             "VALUES (?, ?, 'status', ?, ?)",
-            (task_id, run_id, json.dumps({"status": new_status}), int(time.time())),
+            (
+                task_id,
+                run_id,
+                json.dumps(
+                    {
+                        "status": effective_status,
+                        "requested_status": new_status,
+                    }
+                ),
+                int(time.time()),
+            ),
         )
         if reopening_satisfied_parent:
-            # A parent leaving done/archived invalidates any direct child that
-            # was sitting in ready solely because that parent used to satisfy
-            # the dependency gate. Demote those children immediately so the
-            # dashboard does not keep advertising stale-ready work.
-            for row in conn.execute(
-                "SELECT child_id FROM task_links WHERE parent_id = ? ORDER BY child_id",
-                (task_id,),
-            ).fetchall():
-                child_id = row["child_id"]
-                demoted = conn.execute(
-                    "UPDATE tasks SET status = 'todo' "
-                    "WHERE id = ? AND status = 'ready'",
-                    (child_id,),
-                )
-                if demoted.rowcount == 1:
-                    conn.execute(
-                        "INSERT INTO task_events (task_id, kind, payload, created_at) "
-                        "VALUES (?, 'status', ?, ?)",
-                        (
-                            child_id,
-                            json.dumps(
-                                {
-                                    "status": "todo",
-                                    "reason": "parent_reopened",
-                                    "parent": task_id,
-                                }
-                            ),
-                            int(time.time()),
-                        ),
-                    )
+            _invalidate_descendants_for_parent_reopen(
+                conn,
+                task_id,
+                terminations,
+            )
+    for pid, claim_lock in terminations:
+        kanban_db._terminate_reclaimed_worker(pid, claim_lock)
     # If we re-opened something, children may have gone stale.
-    if new_status in {"done", "ready"}:
+    if effective_status in {"done", "ready", "review"}:
         kanban_db.recompute_ready(conn)
     return True
 
@@ -966,6 +1291,13 @@ class BulkTaskBody(BaseModel):
     summary: Optional[str] = None
     metadata: Optional[dict] = None
     reclaim_first: bool = False
+    # Bulk model/provider override — same semantics as UpdateTaskBody.
+    model_override: Optional[str] = None
+    provider_override: Optional[str] = None
+    clear_model_override: bool = False
+    # Bulk thinking-depth override — same semantics as UpdateTaskBody.
+    reasoning_effort: Optional[str] = None
+    clear_reasoning_effort: bool = False
 
 
 @router.post("/tasks/bulk")
@@ -1004,12 +1336,22 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
                         )
                     elif s == "blocked":
                         ok = kanban_db.block_task(conn, tid)
+                    elif s == "review":
+                        # Non-block review handoff (mirror of PATCH /tasks/{id}).
+                        ok = kanban_db.request_review(
+                            conn, tid, summary=payload.summary,
+                            metadata=payload.metadata,
+                            reviewer=(payload.assignee or None),
+                            # Bulk dashboard action: explicit human override.
+                            force=True,
+                        )
                     elif s == "ready":
                         cur = kanban_db.get_task(conn, tid)
                         if cur and cur.status in ("blocked", "scheduled"):
                             ok = kanban_db.unblock_task(conn, tid)
                         else:
-                            ok = _set_status_direct(conn, tid, "ready")
+                            reopened = _reopen_if_review(conn, tid, cur)
+                            ok = reopened if reopened is not None else _set_status_direct(conn, tid, "ready")
                     elif s == "running":
                         entry.update(
                             ok=False,
@@ -1023,7 +1365,10 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
                     elif s == "scheduled":
                         ok = kanban_db.schedule_task(conn, tid)
                     elif s in {"todo", "triage"}:
-                        ok = _set_status_direct(conn, tid, s)
+                        # Fetch lazily: only review->todo needs reopen.
+                        cur = kanban_db.get_task(conn, tid) if s == "todo" else None
+                        reopened = _reopen_if_review(conn, tid, cur)
+                        ok = reopened if reopened is not None else _set_status_direct(conn, tid, s)
                     else:
                         entry.update(ok=False, error=f"unknown status {s!r}")
                         results.append(entry)
@@ -1057,6 +1402,31 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
                             (tid, json.dumps({"priority": int(payload.priority)}),
                              int(time.time())),
                         )
+                if payload.clear_model_override or payload.model_override is not None:
+                    new_model = (
+                        None if payload.clear_model_override
+                        else (payload.model_override or "").strip() or None
+                    )
+                    try:
+                        ok = kanban_db.set_model_override(
+                            conn, tid, new_model,
+                            provider=payload.provider_override,
+                        )
+                        if not ok:
+                            entry.update(ok=False, error="model override refused")
+                    except (ValueError, RuntimeError) as e:
+                        entry.update(ok=False, error=str(e))
+                if payload.clear_reasoning_effort or payload.reasoning_effort is not None:
+                    new_effort = (
+                        None if payload.clear_reasoning_effort
+                        else payload.reasoning_effort
+                    )
+                    try:
+                        ok = kanban_db.set_reasoning_effort(conn, tid, new_effort)
+                        if not ok:
+                            entry.update(ok=False, error="reasoning override refused")
+                    except (ValueError, RuntimeError) as e:
+                        entry.update(ok=False, error=str(e))
             except Exception as e:  # defensive — one bad id shouldn't kill the batch
                 entry.update(ok=False, error=str(e))
             results.append(entry)
@@ -1310,6 +1680,58 @@ def inspect_run_endpoint(
         return {"run_id": run_id, "alive": True, "pid": pid, "error": "access denied"}
 
 
+class TerminateRunBody(BaseModel):
+    reason: Optional[str] = None
+
+
+@router.post("/runs/{run_id}/terminate")
+def terminate_run_endpoint(
+    run_id: int,
+    payload: TerminateRunBody,
+    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
+):
+    """Terminate the worker process backing an in-flight run.
+
+    Resolves ``run_id`` to its parent ``task_id`` and routes through
+    :func:`kanban_db.reclaim_task` so the SIGTERM->SIGKILL flow,
+    run-outcome bookkeeping, and event-log append all match what the
+    existing ``POST /tasks/{task_id}/reclaim`` endpoint does.
+
+    Responses:
+      * 200 ``{"ok": true, "run_id": ..., "task_id": ...}`` on success.
+      * 404 when ``run_id`` is unknown.
+      * 409 when the run has already ended, or the task is no longer in
+        a claimable state.
+
+    Closes the gap left by PR #28432, which shipped the read-only
+    sibling endpoints (``/workers/active``, ``/runs/{run_id}``,
+    ``/runs/{run_id}/inspect``) but no termination control surface.
+    """
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        r = kanban_db.get_run(conn, run_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail=f"run {run_id} not found")
+        if r.ended_at is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"run {run_id} already ended",
+            )
+        ok = kanban_db.reclaim_task(conn, r.task_id, reason=payload.reason)
+        if not ok:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"cannot terminate run {run_id}: task {r.task_id} is no "
+                    "longer in a reclaimable state"
+                ),
+            )
+        return {"ok": True, "run_id": run_id, "task_id": r.task_id}
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Recovery actions — reclaim a running claim, reassign to a new profile
 # ---------------------------------------------------------------------------
@@ -1377,10 +1799,12 @@ def specify_task_endpoint(
     """
     board = _resolve_board(board)
     # Pin the board for the duration of this call so the specifier module
-    # (which calls ``kb.connect()`` with no args) hits the right DB.
-    prev_env = os.environ.get("HERMES_KANBAN_BOARD")
-    try:
-        os.environ["HERMES_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
+    # (which calls ``kb.connect()`` with no args) hits the right DB. Use a
+    # context-local override rather than mutating the process-global
+    # HERMES_KANBAN_BOARD env var — this endpoint runs in FastAPI's
+    # threadpool, so two concurrent requests for different boards would
+    # otherwise race on the shared env var and cross-write (issue #38323).
+    with kanban_db.scoped_current_board(board or kanban_db.DEFAULT_BOARD):
         # Import lazily so a missing auxiliary client at import time
         # doesn't break plugin load.
         from hermes_cli import kanban_specify  # noqa: WPS433 (intentional)
@@ -1389,11 +1813,6 @@ def specify_task_endpoint(
             task_id,
             author=(payload.author or None),
         )
-    finally:
-        if prev_env is None:
-            os.environ.pop("HERMES_KANBAN_BOARD", None)
-        else:
-            os.environ["HERMES_KANBAN_BOARD"] = prev_env
 
     return {
         "ok": bool(outcome.ok),
@@ -1442,6 +1861,134 @@ def reassign_task_endpoint(
         return {"ok": True, "task_id": task_id, "assignee": payload.profile or None}
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Estimate — a rough token/complexity estimate for a task via the auxiliary
+# (auto-routed) model. NOT a dollar cost: providers don't report cost
+# reliably, so we estimate tokens + a complexity band with a one-line why.
+# ---------------------------------------------------------------------------
+
+_ESTIMATE_SYSTEM_PROMPT = (
+    "You estimate how much work an autonomous coding agent will spend on a "
+    "kanban task. Given the task title and description, respond with STRICT "
+    "JSON only (no prose, no code fence):\n"
+    '{"est_tokens": <integer total tokens across the whole run>, '
+    '"complexity": "S"|"M"|"L", '
+    '"rationale": "<one short sentence>"}\n'
+    "Base the token figure on a realistic multi-turn agent run (reading files, "
+    "tool calls, edits, retries) — not a single reply. S≈small/localized, "
+    "M≈multi-file, L≈broad or ambiguous. Be honest that this is a rough guess."
+)
+
+
+class EstimateBody(BaseModel):
+    title: str = ""
+    body: Optional[str] = None
+
+
+@router.post("/estimate")
+def estimate_text_endpoint(payload: EstimateBody):
+    """Estimate from raw title/body — used by the create dialog before a task
+    exists yet. Same outcome shape as the per-task endpoint below."""
+    return _run_estimate(payload.title, payload.body)
+
+
+@router.post("/tasks/{task_id}/estimate")
+def estimate_task_endpoint(task_id: str, board: Optional[str] = Query(None)):
+    """Rough token + complexity estimate for an existing task via the auxiliary
+    model. Returns ``{ok, est_tokens, complexity, rationale, model}``; a non-OK
+    outcome is NOT an HTTP error. Runs in FastAPI's threadpool (sync ``def``)
+    because the LLM call can take several seconds.
+    """
+    board = _resolve_board(board)
+    conn = _conn(board=board)
+    try:
+        task = kanban_db.get_task(conn, task_id)
+    finally:
+        conn.close()
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"task {task_id} not found")
+    return _run_estimate(task.title, task.body)
+
+
+def _run_estimate(title: str, body: Optional[str]) -> dict:
+    """Shared estimate core: ask the auto-routed auxiliary model for a rough
+    token + complexity read on a task described by ``title``/``body``.
+
+    Never raises — a bad config / parse / API error becomes
+    ``{"ok": False, "reason": ...}`` so the UI can render it inline.
+    """
+    if not (title or "").strip():
+        return {"ok": False, "reason": "a title is required to estimate"}
+
+    try:
+        from agent.auxiliary_client import call_llm
+    except Exception:
+        return {"ok": False, "reason": "auxiliary client unavailable"}
+
+    def _cap(s: Optional[str], n: int) -> str:
+        s = (s or "").strip()
+        return s if len(s) <= n else s[:n] + "…"
+
+    user_msg = (
+        f"Title: {_cap(title, 400)}\n\n"
+        f"Description:\n{_cap(body, 4000) or '(none)'}"
+    )
+    try:
+        resp = call_llm(
+            task="kanban_estimator",
+            messages=[
+                {"role": "system", "content": _ESTIMATE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.0,
+            max_tokens=300,
+            timeout=60,
+        )
+    except Exception as exc:
+        return {"ok": False, "reason": f"LLM error: {type(exc).__name__}"}
+
+    try:
+        raw = (resp.choices[0].message.content or "").strip()
+        model = getattr(resp, "model", None)
+    except Exception:
+        raw, model = "", None
+
+    # Reuse the same tolerant JSON-blob extraction the specifier uses.
+    parsed: Optional[dict] = None
+    try:
+        import json as _json
+        import re as _re
+        blob = raw
+        if not blob.lstrip().startswith("{"):
+            m = _re.search(r"\{.*\}", blob, _re.DOTALL)
+            blob = m.group(0) if m else blob
+        obj = _json.loads(blob)
+        if isinstance(obj, dict):
+            parsed = obj
+    except Exception:
+        parsed = None
+
+    if not parsed:
+        return {"ok": False, "reason": "could not parse an estimate from the model"}
+
+    try:
+        est_tokens = int(parsed.get("est_tokens") or 0)
+    except (TypeError, ValueError):
+        est_tokens = 0
+    complexity = str(parsed.get("complexity") or "").strip().upper()
+    if complexity not in {"S", "M", "L"}:
+        complexity = None
+    rationale = str(parsed.get("rationale") or "").strip() or None
+
+    return {
+        "ok": True,
+        "est_tokens": est_tokens,
+        "complexity": complexity,
+        "rationale": rationale,
+        "model": model,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1734,6 +2281,49 @@ def dispatch(
 
 
 # ---------------------------------------------------------------------------
+# Model options (the board's per-task model-override dropdown)
+# ---------------------------------------------------------------------------
+
+@router.get("/model-options")
+def model_options():
+    """Authenticated providers + curated model lists for the task drawer's
+    model-override dropdown.
+
+    Thin wrapper around ``hermes_cli.inventory.build_models_payload`` — the
+    same substrate the dashboard Models page and the TUI picker use, so the
+    dropdown can never offer a model/provider pair the rest of Hermes
+    wouldn't accept. Deliberately skips pricing/capability enrichment and
+    custom-provider probes: the dropdown needs names fast, not $/Mtok
+    columns (a slow/offline local endpoint must not hang the drawer).
+    """
+    try:
+        from hermes_cli.inventory import build_models_payload, load_picker_context
+
+        payload = build_models_payload(
+            load_picker_context(),
+            explicit_only=True,
+            canonical_order=True,
+            probe_custom_providers=False,
+        )
+        return {
+            "providers": [
+                {
+                    "slug": row.get("slug", ""),
+                    "label": row.get("label") or row.get("slug", ""),
+                    "models": list(row.get("models") or []),
+                }
+                for row in payload.get("providers", [])
+                if row.get("models")
+            ],
+        }
+    except Exception:
+        log.exception("kanban model-options failed")
+        # Degrade to an empty catalog — the UI falls back to a free-text
+        # input so the feature still works without the inventory module.
+        return {"providers": []}
+
+
+# ---------------------------------------------------------------------------
 # Boards CRUD (multi-project support)
 # ---------------------------------------------------------------------------
 
@@ -1743,6 +2333,11 @@ class CreateBoardBody(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    default_workdir: Optional[str] = None
+    # First-class Project (id or slug) to scope the board to. When set, the
+    # board's default_workdir mirrors the project's primary repo and new tasks
+    # inherit the project (deterministic worktree + branch).
+    project_id: Optional[str] = None
     switch: bool = False
 
 
@@ -1751,6 +2346,41 @@ class RenameBoardBody(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    # Board-level default project directory for new tasks. ``None`` =
+    # leave unchanged; empty string = clear; a path = validate + set.
+    default_workdir: Optional[str] = None
+    # Project scope (id or slug). ``None`` = leave unchanged; empty = clear;
+    # a value = resolve + set (and mirror default_workdir to its primary repo).
+    project_id: Optional[str] = None
+
+
+def _resolve_project(ref: Optional[str]) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """Resolve a project id/slug to ``(id, name, primary_path)``.
+
+    Returns ``(None, None, None)`` for a falsy ref. Raises 400 when a
+    non-empty ref doesn't resolve to an existing project.
+    """
+    if not ref or not ref.strip():
+        return None, None, None
+    try:
+        from hermes_cli import projects_db as pdb
+        with pdb.connect_closing() as pconn:
+            proj = pdb.get_project(pconn, ref.strip())
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"projects unavailable: {exc}")
+    if proj is None:
+        raise HTTPException(status_code=400, detail=f"project {ref!r} does not exist")
+    return proj.id, proj.name, (proj.primary_path or None)
+
+
+def _projects_by_id() -> dict[str, Any]:
+    """Map every project id -> Project (archived included) for annotation."""
+    try:
+        from hermes_cli import projects_db as pdb
+        with pdb.connect_closing() as pconn:
+            return {p.id: p for p in pdb.list_projects(pconn, include_archived=True)}
+    except Exception:
+        return {}
 
 
 def _board_counts(slug: str) -> dict[str, int]:
@@ -1771,21 +2401,99 @@ def _board_counts(slug: str) -> dict[str, int]:
         return {}
 
 
+def _default_workspace_kind(board: dict[str, Any]) -> str:
+    """Recommend a non-destructive task workspace from board metadata."""
+    workdir = str(board.get("default_workdir") or "").strip()
+    if not workdir:
+        return "scratch"
+    try:
+        return "worktree" if kanban_db._git_toplevel(Path(workdir)) else "dir"
+    except (OSError, ValueError):
+        return "dir"
+
+
+@router.get("/projects")
+def list_kanban_projects():
+    """List first-class Hermes projects for board scoping.
+
+    Returns ``{projects: [{id, slug, name, primary_path, icon, color}]}``.
+    Archived projects are excluded — a board can only be scoped to a live one.
+    """
+    try:
+        from hermes_cli import projects_db as pdb
+        with pdb.connect_closing() as pconn:
+            projects = pdb.list_projects(pconn, include_archived=False)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to list projects: {exc}")
+    return {
+        "projects": [
+            {
+                "id": p.id,
+                "slug": p.slug,
+                "name": p.name,
+                "primary_path": p.primary_path or "",
+                "icon": p.icon or "",
+                "color": p.color or "",
+            }
+            for p in projects
+        ]
+    }
+
+
 @router.get("/boards")
 def list_boards(include_archived: bool = Query(False)):
     """Return every board on disk with task counts and the active slug."""
     boards = kanban_db.list_boards(include_archived=include_archived)
     current = kanban_db.get_current_board()
+    proj_map = _projects_by_id()
     for b in boards:
         b["is_current"] = (b["slug"] == current)
         b["counts"] = _board_counts(b["slug"])
-        b["total"] = sum(b["counts"].values())
+        # Live cards only — archived tasks are hidden from every default
+        # board view, so advertising them in the switcher badge makes the
+        # two counts visibly disagree.
+        b["total"] = sum(
+            n for status, n in b["counts"].items() if status != "archived"
+        )
+        b["default_workspace_kind"] = _default_workspace_kind(b)
+        pid = b.get("project_id") or None
+        b["project_id"] = pid
+        proj = proj_map.get(pid) if pid else None
+        b["project_name"] = proj.name if proj else None
     return {"boards": boards, "current": current}
+
+
+def _validate_workdir(raw: str) -> str:
+    """Validate a board default_workdir value; return the resolved path.
+
+    Raises :class:`HTTPException` (400) for relative or non-directory
+    paths — mirroring the create-board contract.
+    """
+    requested = Path(raw).expanduser()
+    if not requested.is_absolute():
+        raise HTTPException(
+            status_code=400,
+            detail="Project directory must be an absolute path.",
+        )
+    if not requested.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail="Project directory must be an existing directory.",
+        )
+    return str(requested.resolve())
 
 
 @router.post("/boards")
 def create_board_endpoint(payload: CreateBoardBody):
     """Create a new board. Idempotent — ``slug`` collision returns existing."""
+    default_workdir = None
+    if payload.default_workdir:
+        default_workdir = _validate_workdir(payload.default_workdir)
+    # A chosen project scopes the board: its primary repo becomes the default
+    # workdir (unless one was passed explicitly) and the link is stored.
+    project_id, _pname, primary_path = _resolve_project(payload.project_id)
+    if primary_path and not default_workdir:
+        default_workdir = primary_path
     try:
         meta = kanban_db.create_board(
             payload.slug,
@@ -1793,6 +2501,8 @@ def create_board_endpoint(payload: CreateBoardBody):
             description=payload.description,
             icon=payload.icon,
             color=payload.color,
+            default_workdir=default_workdir,
+            project_id=project_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -1801,25 +2511,48 @@ def create_board_endpoint(payload: CreateBoardBody):
             kanban_db.set_current_board(meta["slug"])
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+    meta["default_workspace_kind"] = _default_workspace_kind(meta)
+    _, meta["project_name"], _ = _resolve_project(meta.get("project_id"))
     return {"board": meta, "current": kanban_db.get_current_board()}
 
 
 @router.patch("/boards/{slug}")
 def rename_board(slug: str, payload: RenameBoardBody):
-    """Update a board's display metadata (slug is immutable — create a new one to rename the directory)."""
+    """Update a board's display metadata + default project directory (slug is immutable — create a new one to rename the directory)."""
     try:
         normed = kanban_db._normalize_board_slug(slug)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     if not normed or not kanban_db.board_exists(normed):
         raise HTTPException(status_code=404, detail=f"board {slug!r} does not exist")
+    # default_workdir: None = leave unchanged; "" = clear; path = validate + set.
+    # write_board_metadata treats a falsy value as "clear", so pass "" through.
+    default_workdir: Optional[str] = None
+    if payload.default_workdir is not None:
+        raw = payload.default_workdir.strip()
+        default_workdir = _validate_workdir(raw) if raw else ""
+    # project_id: None = leave; "" = clear; value = resolve + mirror its repo
+    # into default_workdir (unless the caller set default_workdir explicitly).
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    if payload.project_id is not None:
+        if payload.project_id.strip():
+            project_id, project_name, primary_path = _resolve_project(payload.project_id)
+            if primary_path and default_workdir is None:
+                default_workdir = primary_path
+        else:
+            project_id = ""  # clear the scope
     meta = kanban_db.write_board_metadata(
         normed,
         name=payload.name,
         description=payload.description,
         icon=payload.icon,
         color=payload.color,
+        default_workdir=default_workdir,
+        project_id=project_id,
     )
+    meta["default_workspace_kind"] = _default_workspace_kind(meta)
+    _, meta["project_name"], _ = _resolve_project(meta.get("project_id"))
     return {"board": meta}
 
 
@@ -1965,7 +2698,7 @@ def auto_describe_profile(profile_name: str, payload: DescribeAutoBody):
 
 
 # ---------------------------------------------------------------------------
-# Decompose endpoint (orchestrator-driven fan-out)
+# Decompose endpoint (built-in decomposer fan-out)
 # ---------------------------------------------------------------------------
 
 class DecomposeBody(BaseModel):
@@ -1990,19 +2723,16 @@ def decompose_task_endpoint(
     can take minutes on reasoning models.
     """
     board = _resolve_board(board)
-    prev_env = os.environ.get("HERMES_KANBAN_BOARD")
-    try:
-        os.environ["HERMES_KANBAN_BOARD"] = board or kanban_db.DEFAULT_BOARD
+    # Context-local board pin (see specify endpoint above): this sync
+    # endpoint runs in FastAPI's threadpool, so mutating the process-global
+    # HERMES_KANBAN_BOARD env var would let concurrent requests for
+    # different boards race and cross-write (issue #38323).
+    with kanban_db.scoped_current_board(board or kanban_db.DEFAULT_BOARD):
         from hermes_cli import kanban_decompose  # noqa: WPS433 (intentional)
         outcome = kanban_decompose.decompose_task(
             task_id,
             author=(payload.author or None),
         )
-    finally:
-        if prev_env is None:
-            os.environ.pop("HERMES_KANBAN_BOARD", None)
-        else:
-            os.environ["HERMES_KANBAN_BOARD"] = prev_env
 
     return {
         "ok": bool(outcome.ok),
@@ -2142,11 +2872,12 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
 
 @router.websocket("/events")
 async def stream_events(ws: WebSocket):
-    # Enforce the dashboard session token as a query param — browsers can't
-    # set Authorization on a WS upgrade. This matches how the PTY bridge
-    # authenticates in hermes_cli/web_server.py.
-    token = ws.query_params.get("token")
-    if not _check_ws_token(token):
+    # Authorize the upgrade via the dashboard's canonical WS gate so the
+    # correct credential is accepted in every mode (loopback token / gated
+    # single-use ticket / server-internal credential). Browsers can't set
+    # Authorization on a WS upgrade, so the credential rides in the query
+    # string — the browser SDK's buildWsUrl() assembles it.
+    if not _ws_upgrade_authorized(ws):
         await ws.close(code=http_status.WS_1008_POLICY_VIOLATION)
         return
     await ws.accept()

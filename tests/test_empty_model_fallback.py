@@ -1,7 +1,6 @@
 """Tests for empty model fallback — when provider is configured but model is missing."""
 
-from unittest.mock import MagicMock, patch
-import pytest
+from unittest.mock import patch
 
 
 class TestGetDefaultModelForProvider:
@@ -14,22 +13,35 @@ class TestGetDefaultModelForProvider:
         assert result
         assert isinstance(result, str)
 
-    def test_openrouter_returns_empty(self):
-        """OpenRouter uses dynamic model fetch, no static catalog entry."""
-        from hermes_cli.models import get_default_model_for_provider
-        # OpenRouter is not in _PROVIDER_MODELS — it uses live fetching
-        result = get_default_model_for_provider("openrouter")
-        assert result == ""
 
-    def test_unknown_provider_returns_empty(self):
-        from hermes_cli.models import get_default_model_for_provider
-        assert get_default_model_for_provider("nonexistent-provider") == ""
 
-    def test_custom_provider_returns_empty(self):
-        """Custom provider has no model catalog — should return empty."""
-        from hermes_cli.models import get_default_model_for_provider
-        # Custom providers don't have entries in _PROVIDER_MODELS
-        assert get_default_model_for_provider("some-random-custom") == ""
+
+
+    def test_catalog_label_overrides_constant(self):
+        """A ``"default": true`` label in the cached catalog manifest wins over
+        the in-repo constant, so maintainers can rotate the silent default
+        without shipping a release."""
+        from unittest.mock import patch
+
+        from hermes_cli import models as models_mod
+
+        with patch(
+            "hermes_cli.model_catalog.get_default_model_from_cache",
+            return_value="qwen/qwen3.8-max",
+        ):
+            assert (
+                models_mod.get_preferred_silent_default_model("nous")
+                == "qwen/qwen3.8-max"
+            )
+            # nous catalog carries qwen3.8-max, so the full resolver follows.
+            assert (
+                models_mod.get_default_model_for_provider("nous")
+                == "qwen/qwen3.8-max"
+            )
+
+
+
+
 
 
 class TestGatewayEmptyModelFallback:

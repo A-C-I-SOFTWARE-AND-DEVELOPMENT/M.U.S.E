@@ -1,12 +1,35 @@
 import { PassThrough } from 'stream'
 
 import { Box, renderSync } from '@hermes/ink'
+import chalk from 'chalk'
 import React from 'react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { AUDIO_DIRECTIVE_RE, INLINE_RE, inlineCellRuns, Md, MEDIA_LINE_RE, stripInlineMarkup } from '../components/markdown.js'
+import { AUDIO_DIRECTIVE_RE, INLINE_RE, Md, MEDIA_LINE_RE, stripInlineMarkup } from '../components/markdown.js'
+import { __resetLinkTitleCache, fetchLinkTitle } from '../lib/externalLink.js'
 import { stripAnsi } from '../lib/text.js'
-import { DEFAULT_THEME } from '../theme.js'
+import { DEFAULT_THEME, LIGHT_THEME } from '../theme.js'
+
+afterEach(() => {
+  __resetLinkTitleCache()
+  vi.unstubAllGlobals()
+})
+
+// Stub the network and warm the shared title cache, so a subsequent render
+// has the resolved title available synchronously.
+const stubFetchedTitle = (url: string, title: string) => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(`<html><head><title>${title}</title></head></html>`, {
+        headers: { 'content-type': 'text/html' },
+        status: 200
+      })
+    )
+  )
+
+  return fetchLinkTitle(url)
+}
 
 const matches = (text: string) => [...text.matchAll(INLINE_RE)].map(m => m[0])
 const BEL = String.fromCharCode(7)
@@ -266,19 +289,37 @@ describe('Md link labels', () => {
     expect(rendered).not.toContain('https://www.expedia.com/things-to-do/puerto-rico-el-yunque-rainforest-adventure')
   })
 
-  it('keeps explicit markdown labels as the immediate fallback', () => {
+  it('keeps the authored markdown label even when a page title resolves', async () => {
+    const url = 'https://www.expedia.com/things-to-do/puerto-rico-el-yunque-rainforest-adventure'
+
+    // Warm the shared cache so `useLinkTitle` would have a title to render
+    // synchronously — the label must still win.
+    await stubFetchedTitle(url, 'El Yunque Rainforest Adventure | Expedia')
+
     const lines = renderPlain(
       React.createElement(
         Box,
         { width: 80 },
-        React.createElement(Md, {
-          t: DEFAULT_THEME,
-          text: '[Trip details](https://www.expedia.com/things-to-do/puerto-rico-el-yunque-rainforest-adventure)'
-        })
+        React.createElement(Md, { t: DEFAULT_THEME, text: `[Trip details](${url})` })
       )
     )
 
-    expect(lines.join('\n')).toContain('Trip details')
+    const rendered = lines.join('\n')
+
+    expect(rendered).toContain('Trip details')
+    expect(rendered).not.toContain('El Yunque Rainforest Adventure | Expedia')
+  })
+
+  it('still resolves titles for links whose label is just the URL', async () => {
+    const url = 'https://www.expedia.com/things-to-do/puerto-rico-el-yunque-rainforest-adventure'
+
+    await stubFetchedTitle(url, 'Rainforest Adventure Tour')
+
+    const lines = renderPlain(
+      React.createElement(Box, { width: 120 }, React.createElement(Md, { t: DEFAULT_THEME, text: `[${url}](${url})` }))
+    )
+
+    expect(lines.join('\n')).toContain('Rainforest Adventure Tour')
   })
 })
 
@@ -330,108 +371,88 @@ describe('renderTable CJK width alignment', () => {
   })
 })
 
-describe('inlineCellRuns (table cell inline markup)', () => {
-  it('extracts width-stable decoration spans with the right styling', () => {
-    expect(inlineCellRuns('**bold**')).toEqual([{ bold: true, text: 'bold' }])
-    // `_`-emphasis is intraword-safe: `__bold__` stays literal (like `__name__`),
-    // so it needs an internal space to read as emphasis.
-    expect(inlineCellRuns('__bold move__')).toEqual([{ bold: true, text: 'bold move' }])
-    expect(inlineCellRuns('*italic*')).toEqual([{ italic: true, text: 'italic' }])
-    expect(inlineCellRuns('`code`')).toEqual([{ code: true, text: 'code' }])
-    expect(inlineCellRuns('~~strike~~')).toEqual([{ strike: true, text: 'strike' }])
-    expect(inlineCellRuns('==hi==')).toEqual([{ highlight: true, text: 'hi' }])
-  })
+describe('body prose stays in the theme palette', () => {
+  // Prose used to render in the terminal's DEFAULT foreground while inline
+  // tokens beside it carried a theme color, so one line mixed two inks.
+  // Because an inline token can match mid-word, so could a single word.
+  // LIGHT_THEME is the vehicle here because every tone in it is hex, so
+  // emitted SGR maps back to palette entries without format juggling.
+  const foregroundRuns = (text: string): string[] => {
+    // chalk is a singleton and defaults to level 0 under vitest (no TTY),
+    // which would emit no SGR at all and make every assertion here vacuous.
+    const savedLevel = chalk.level
+    chalk.level = 3
 
-  it('mixes plain and styled runs in document order', () => {
-    expect(inlineCellRuns('status **OK** now')).toEqual([
-      { text: 'status ' },
-      { bold: true, text: 'OK' },
-      { text: ' now' }
-    ])
-  })
+    const stdout = new PassThrough()
+    const stdin = new PassThrough()
+    const stderr = new PassThrough()
+    let output = ''
 
-  it('renders links as their stripped label (no width-changing styling)', () => {
-    expect(inlineCellRuns('see [docs](https://x.dev)')).toEqual([
-      { text: 'see ' },
-      { text: 'docs' }
-    ])
-  })
+    Object.assign(stdout, { columns: 80, isTTY: true, rows: 24 })
+    Object.assign(stdin, { isTTY: false })
+    Object.assign(stderr, { isTTY: false })
+    stdout.on('data', chunk => {
+      output += chunk.toString()
+    })
 
-  it('flattens nested emphasis to the outer style, staying width-stable', () => {
-    expect(inlineCellRuns('**bold _and italic_**')).toEqual([
-      { bold: true, text: 'bold and italic' }
-    ])
-  })
-
-  it('falls back (null) when markup inside code would change the stripped width', () => {
-    // stripInlineMarkup re-processes a code span's contents (`a**b**c` -> abc),
-    // but a styled code run is verbatim (a**b**c). They disagree, so the guard
-    // returns null and the caller renders plain text — never misaligned.
-    expect(inlineCellRuns('`a**b**c`')).toBeNull()
-  })
-
-  it('GUARANTEE: returned runs reconstruct stripInlineMarkup exactly', () => {
-    // The whole safety story rests on this invariant: whenever runs are
-    // returned, their concatenated visible text is byte-identical to the plain
-    // strip, so column-width math is unaffected. Exercise a hostile corpus.
-    const corpus = [
-      '', 'plain text', '**bold**', '`code`', '*it*', '~~s~~', '==h==',
-      'a **b** c `d` e', '[label](https://example.com)', '![alt](https://img.png)',
-      '<https://example.com>', 'foo@bar.com', 'H~2~O and CO~2~', 'x^2^ + y',
-      '$\\mathbb{Z}$ ring', 'see \\(a+b\\) ok', '[^1] footnote', 'snake_case_var',
-      'if __name__ == "__main__":', 'a*b*c', 'foo__bar__baz', '**bold _and italic_**',
-      'dangling ** asterisks * here', 'mixed ~! kaomoji ~?', '**', '`', '***',
-      '| pipe | cell |', 'emoji 🎉 and 配置 中文', 'trailing **bold',
-      '`unterminated code', '**a**b**c**', 'a `b` `c` d', '`a**b**c`'
-    ]
-    for (const cell of corpus) {
-      const runs = inlineCellRuns(cell)
-      if (runs !== null) {
-        expect(runs.map(r => r.text).join('')).toBe(stripInlineMarkup(cell))
+    const instance = renderSync(
+      React.createElement(Box, { width: 70 }, React.createElement(Md, { cols: 68, t: LIGHT_THEME, text })),
+      {
+        patchConsole: false,
+        stderr: stderr as NodeJS.WriteStream,
+        stdin: stdin as NodeJS.ReadStream,
+        stdout: stdout as NodeJS.WriteStream
       }
-    }
-  })
-})
+    )
 
-describe('renderTable inline markup rendering', () => {
-  const tableLines = (md: string) =>
-    renderPlain(
-      React.createElement(Box, null, React.createElement(Md, { compact: true, t: DEFAULT_THEME, text: md }))
-    ).filter(line => line.trim().length > 0)
+    instance.unmount()
+    instance.cleanup()
+    chalk.level = savedLevel
 
-  it('keeps column alignment when body cells contain inline markup', async () => {
-    const { stringWidth } = await import('@hermes/ink')
-    const lines = tableLines([
-      '| Feature | Status |',
-      '|---------|--------|',
-      '| **Bold** name | `code` |',
-      '| plain | *ok* |'
-    ].join('\n'))
+    return [...output.matchAll(new RegExp(`${ESC}\\[38;2;(\\d+);(\\d+);(\\d+)m`, 'g'))].map(
+      m =>
+        '#' +
+        m
+          .slice(1, 4)
+          .map(v => Number(v).toString(16).padStart(2, '0'))
+          .join('')
+    )
+  }
 
-    const col2 = (line: string, anchor: string): number => {
-      const idx = line.indexOf(anchor)
-      return idx < 0 ? -1 : stringWidth(line.slice(0, idx))
-    }
+  const PALETTE = new Set(
+    Object.values(LIGHT_THEME.color)
+      .filter((v): v is string => typeof v === 'string' && v.startsWith('#'))
+      .map(v => v.toLowerCase())
+  )
 
-    const headerCol2 = lines.map(l => col2(l, 'Status')).find(v => v >= 0)
-    const codeCol2 = lines.map(l => col2(l, 'code')).find(v => v >= 0)
-    const okCol2 = lines.map(l => col2(l, 'ok')).find(v => v >= 0)
+  const INK = LIGHT_THEME.color.text.toLowerCase()
 
-    expect(headerCol2).toBeDefined()
-    expect(codeCol2).toBe(headerCol2)
-    expect(okCol2).toBe(headerCol2)
+  it('opens a paragraph with the theme ink, not the terminal default', () => {
+    expect(foregroundRuns('plain prose line')[0]).toBe(INK)
   })
 
-  it('strips the markup syntax from the visible output (no leaked ** or `)', () => {
-    const text = tableLines([
-      '| Name | Value |',
-      '|------|-------|',
-      '| **Bold** | `mono` |'
-    ].join('\n')).join('\n')
+  it('keeps every foreground on a mixed-token line inside the palette', () => {
+    // `render_terminal_output` trips the underscore-italic token mid-word —
+    // the exact shape that split one word across two inks.
+    const fg = foregroundRuns('set the `flag` and re-render_terminal_output for the run')
 
-    expect(text).toContain('Bold')
-    expect(text).toContain('mono')
-    expect(text).not.toContain('**')
-    expect(text).not.toContain('`')
+    expect(fg.length).toBeGreaterThan(0)
+
+    for (const c of fg) {
+      expect(PALETTE.has(c)).toBe(true)
+    }
+  })
+
+  it('returns to the theme ink after an inline token, not to the terminal default', () => {
+    const fg = foregroundRuns('before `code` after')
+
+    expect(fg[0]).toBe(INK)
+    expect(fg.at(-1)).toBe(INK)
+  })
+
+  it('themes list-item prose too', () => {
+    for (const text of ['- a bullet item', '1. a numbered item']) {
+      expect(foregroundRuns(text)).toContain(INK)
+    }
   })
 })

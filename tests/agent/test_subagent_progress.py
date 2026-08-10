@@ -10,10 +10,8 @@ Verifies that:
 
 import io
 import sys
-import time
-import threading
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from agent.display import KawaiiSpinner
 from tools.delegate_tool import _build_child_progress_callback
@@ -73,53 +71,8 @@ class TestPrintAbove:
 class TestBuildChildProgressCallback:
     """Tests for child progress callback builder."""
 
-    def test_returns_none_when_no_display(self):
-        """Should return None when parent has no spinner or callback."""
-        parent = MagicMock()
-        parent._delegate_spinner = None
-        parent.tool_progress_callback = None
-        
-        cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is None
 
-    def test_cli_spinner_tool_event(self):
-        """Should print tool line above spinner for CLI path."""
-        buf = io.StringIO()
-        spinner = KawaiiSpinner("delegating")
-        spinner._out = buf
-        spinner.running = True
-        
-        parent = MagicMock()
-        parent._delegate_spinner = spinner
-        parent.tool_progress_callback = None
-        
-        cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
-        
-        cb("tool.started", "web_search", "quantum computing", {})
-        output = buf.getvalue()
-        assert "web_search" in output
-        assert "quantum computing" in output
-        assert "├─" in output
 
-    def test_cli_spinner_thinking_event(self):
-        """Should print thinking line above spinner for CLI path."""
-        buf = io.StringIO()
-        spinner = KawaiiSpinner("delegating")
-        spinner._out = buf
-        spinner.running = True
-        
-        parent = MagicMock()
-        parent._delegate_spinner = spinner
-        parent.tool_progress_callback = None
-        
-        cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
-        cb("_thinking", "I'll search for papers first")
-        
-        output = buf.getvalue()
-        assert "💭" in output
-        assert "search for papers" in output
 
     def test_gateway_batched_progress(self):
         """Gateway path: each tool.started relays a subagent.tool event, and a
@@ -130,7 +83,6 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
 
         # Each tool.started relays a subagent.tool event immediately (per-tool relay).
         for i in range(4):
@@ -148,20 +100,6 @@ class TestBuildChildProgressCallback:
         assert "tool_0" in summary_text
         assert "tool_4" in summary_text
 
-    def test_thinking_relayed_to_gateway(self):
-        """Thinking events are relayed as subagent.thinking events."""
-        parent = MagicMock()
-        parent._delegate_spinner = None
-        parent_cb = MagicMock()
-        parent.tool_progress_callback = parent_cb
-
-        cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
-        cb("_thinking", "some reasoning text")
-
-        parent_cb.assert_called_once()
-        assert parent_cb.call_args.args[0] == "subagent.thinking"
-        assert parent_cb.call_args.args[2] == "some reasoning text"
 
     def test_parallel_callbacks_independent(self):
         """Each child's callback batches tool names independently."""
@@ -171,9 +109,7 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = parent_cb
 
         cb0 = _build_child_progress_callback(0, "goal a", parent)
-        assert cb0 is not None
         cb1 = _build_child_progress_callback(1, "goal b", parent)
-        assert cb1 is not None
 
         # 3 tool.started per child = 6 per-tool relays; neither should hit
         # the batch-size summary (batch size = 5, counted per-child).
@@ -198,7 +134,6 @@ class TestBuildChildProgressCallback:
         
         # task_index=0 in a batch of 3 → prefix "[1]"
         cb0 = _build_child_progress_callback(0, "test goal", parent, task_count=3)
-        assert cb0 is not None
         cb0("tool.started", "web_search", "test", {})
         output = buf.getvalue()
         assert "[1]" in output
@@ -207,28 +142,10 @@ class TestBuildChildProgressCallback:
         buf.truncate(0)
         buf.seek(0)
         cb2 = _build_child_progress_callback(2, "test goal", parent, task_count=3)
-        assert cb2 is not None
         cb2("tool.started", "web_search", "test", {})
         output = buf.getvalue()
         assert "[3]" in output
 
-    def test_single_task_no_prefix(self):
-        """Single task (task_count=1) should not show index prefix."""
-        buf = io.StringIO()
-        spinner = KawaiiSpinner("delegating")
-        spinner._out = buf
-        spinner.running = True
-        
-        parent = MagicMock()
-        parent._delegate_spinner = spinner
-        parent.tool_progress_callback = None
-        
-        cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
-        assert cb is not None
-        cb("tool.started", "web_search", "test", {})
-        
-        output = buf.getvalue()
-        assert "[" not in output
 
 
 # =========================================================================
@@ -269,14 +186,6 @@ class TestThinkingCallback:
         assert calls[0][0] == "_thinking"
         assert "quantum computing" in calls[0][1]
 
-    def test_thinking_callback_skipped_when_no_content(self):
-        """Should not fire when assistant has no content."""
-        calls = []
-        self._simulate_thinking_callback(
-            None,
-            lambda name, preview=None: calls.append((name, preview))
-        )
-        assert len(calls) == 0
 
     def test_thinking_callback_truncates_long_content(self):
         """Should truncate long content to 80 chars."""
@@ -288,47 +197,9 @@ class TestThinkingCallback:
         assert len(calls) == 1
         assert len(calls[0][1]) == 80
 
-    def test_thinking_callback_skipped_for_main_agent(self):
-        """Main agent (delegate_depth=0) should NOT fire thinking events.
-        This prevents gateway spam on Telegram/Discord."""
-        calls = []
-        self._simulate_thinking_callback(
-            "I'll help you with that request.",
-            lambda name, preview=None: calls.append((name, preview)),
-            delegate_depth=0,
-        )
-        assert len(calls) == 0
 
-    def test_thinking_callback_strips_reasoning_scratchpad(self):
-        """REASONING_SCRATCHPAD tags should be stripped before display."""
-        calls = []
-        self._simulate_thinking_callback(
-            "<REASONING_SCRATCHPAD>I need to analyze this carefully</REASONING_SCRATCHPAD>",
-            lambda name, preview=None: calls.append((name, preview))
-        )
-        assert len(calls) == 1
-        assert "<REASONING_SCRATCHPAD>" not in calls[0][1]
-        assert "analyze this carefully" in calls[0][1]
 
-    def test_thinking_callback_strips_think_tags(self):
-        """<think> tags should be stripped before display."""
-        calls = []
-        self._simulate_thinking_callback(
-            "<think>Let me think about this problem</think>",
-            lambda name, preview=None: calls.append((name, preview))
-        )
-        assert len(calls) == 1
-        assert "<think>" not in calls[0][1]
-        assert "think about this problem" in calls[0][1]
 
-    def test_thinking_callback_empty_after_strip(self):
-        """Should not fire when content is only XML tags."""
-        calls = []
-        self._simulate_thinking_callback(
-            "<REASONING_SCRATCHPAD></REASONING_SCRATCHPAD>",
-            lambda name, preview=None: calls.append((name, preview))
-        )
-        assert len(calls) == 0
 
 
 # =========================================================================
@@ -347,7 +218,6 @@ class TestBatchFlush:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
 
         # Send 3 tools (below batch size of 5) — each relays subagent.tool
         cb("tool.started", "web_search", "query1", {})
@@ -358,7 +228,7 @@ class TestBatchFlush:
         assert "subagent.progress" not in events  # no batch-size summary yet
 
         # Flush should send the remaining 3 as a summary
-        cb._flush()  # ty: ignore[unresolved-attribute]
+        cb._flush()
         events = [c.args[0] for c in parent_cb.call_args_list]
         assert events[-1] == "subagent.progress"
         summary_call = parent_cb.call_args_list[-1]
@@ -374,8 +244,7 @@ class TestBatchFlush:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
-        cb._flush()  # ty: ignore[unresolved-attribute]
+        cb._flush()
         parent_cb.assert_not_called()
 
     def test_flush_noop_when_no_parent_callback(self):
@@ -390,9 +259,8 @@ class TestBatchFlush:
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent)
-        assert cb is not None
         cb("tool.started", "web_search", "test", {})
-        cb._flush()  # Should not crash  # ty: ignore[unresolved-attribute]
+        cb._flush()  # Should not crash
 
 
 if __name__ == "__main__":

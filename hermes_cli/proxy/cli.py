@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _print_aiohttp_missing() -> None:
     print(
-        "hermes proxy requires aiohttp. Install one of:\n"
-        "  pip install 'hermes-agent[messaging]'\n"
-        "  pip install aiohttp",
+        "hermes proxy requires aiohttp. Run `hermes setup` to install it.",
         file=sys.stderr,
     )
 
@@ -44,7 +42,7 @@ def cmd_proxy_start(args: Any) -> int:
         return 2
 
     if not adapter.is_authenticated():
-        auth_hint = getattr(adapter, "auth_hint", f"hermes login {adapter.name}")
+        auth_hint = getattr(adapter, "auth_hint", f"hermes auth add {adapter.name}")
         print(
             f"Not logged into {adapter.display_name}. "
             f"Run `{auth_hint}` first.",

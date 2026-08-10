@@ -1,6 +1,6 @@
 ---
 name: kanban-video-orchestrator
-description: Plan, set up, and monitor a multi-agent video production pipeline backed by Hermes Kanban. Use when the user wants to make ANY video — narrative film, product/marketing, music video, explainer, ASCII/terminal art, abstract/generative loop, comic, 3D, real-time/installation — and the work warrants decomposition into specialized profiles (writer, designer, animator, renderer, voice, editor, etc.) coordinated through a kanban board. Performs adaptive discovery to scope the brief, designs an appropriate team for the requested style, generates the setup script that creates Hermes profiles + initial kanban task, then helps monitor execution and intervene when tasks stall or fail. Routes scenes to whichever Hermes rendering / audio / design skill fits each beat (`ascii-video`, `manim-video`, `p5js`, `comfyui`, `touchdesigner-mcp`, `blender-mcp`, `pixel-art`, `baoyu-comic`, `claude-design`, `excalidraw`, `songsee`, `heartmula`, …) plus external APIs for TTS, image-gen, and image-to-video as needed.
+description: Plan and run multi-agent video production pipelines.
 version: 1.0.0
 author: [SHL0MS, alt-glitch]
 license: MIT
@@ -8,11 +8,11 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [video, kanban, multi-agent, orchestration, production-pipeline]
-    related_skills: [kanban-orchestrator, kanban-worker, ascii-video, manim-video, p5js, comfyui, touchdesigner-mcp, blender-mcp, pixel-art, ascii-art, songwriting-and-ai-music, heartmula, songsee, spotify, youtube-content, claude-design, excalidraw, architecture-diagram, concept-diagrams, baoyu-comic, baoyu-infographic, humanizer, gif-search, meme-generation]
+    related_skills: [ascii-video, manim-video, p5js, comfyui, touchdesigner-mcp, pixel-art, ascii-art, songwriting-and-ai-music, heartmula, songsee, youtube-content, claude-design, excalidraw, architecture-diagram, concept-diagrams, baoyu-comic, baoyu-infographic, humanizer, gif-search, meme-generation]
     credits: |
       The single-project workspace layout, profile-config patching pattern,
       SOUL.md-per-profile model, TEAM.md task-graph convention, and
-      `--workspace dir:<path>` discipline are adapted from alt-glitch's
+      `--workspace dir:/abs/path` discipline are adapted from alt-glitch's
       original multi-agent video pipeline at
       https://github.com/NousResearch/kanban-video-pipeline.
 ---
@@ -33,7 +33,7 @@ This skill does **not** render anything itself. It is a meta-pipeline that:
 
 The actual rendering happens inside the kanban once it's running, via whichever
 existing skills + tools fit the scenes — `ascii-video`, `manim-video`, `p5js`,
-`comfyui`, `touchdesigner-mcp`, `blender-mcp`, `songwriting-and-ai-music`,
+`comfyui`, `touchdesigner-mcp`, `songwriting-and-ai-music`,
 `heartmula`, external APIs, or plain Python with PIL + ffmpeg.
 
 ## When NOT to use this skill
@@ -99,11 +99,11 @@ Generate a setup script (`setup.sh`) and run it. The script:
 
 1. Creates the project workspace (`~/projects/video-pipeline/<slug>/`)
 2. Copies any provided assets into `taste/`, `audio/`, `assets/`
-3. Creates each Hermes profile via `muse profile create --clone`
+3. Creates each Hermes profile via `hermes profile create --clone`
 4. Writes per-profile `SOUL.md` (personality + role definition)
 5. Configures profile YAML (toolsets, always_load skills, cwd)
 6. Writes `brief.md`, `TEAM.md`, and `taste/` content
-7. Fires the initial `muse kanban create` task assigned to the director
+7. Fires the initial `hermes kanban create` task assigned to the director
 
 Use `scripts/bootstrap_pipeline.py` to generate setup.sh from a brief +
 team-design JSON. See **[references/kanban-setup.md](references/kanban-setup.md)**
@@ -115,9 +115,9 @@ for the setup script structure, profile config patterns, and the critical
 Run `setup.sh`. Then provide the user with monitoring commands:
 
 ```bash
-muse kanban watch --tenant <project-tenant>     # live events
-muse kanban list  --tenant <project-tenant>     # board snapshot
-muse dashboard                                   # visual board UI
+hermes kanban watch --tenant <project-tenant>     # live events
+hermes kanban list  --tenant <project-tenant>     # board snapshot
+hermes dashboard                                   # visual board UI
 ```
 
 The director profile takes over from here, decomposing the work and routing
@@ -174,15 +174,16 @@ task graphs. See **[references/examples.md](references/examples.md)**.
 6. **The director never executes.** Even with the full `kanban + terminal +
    file` toolset, the director's `SOUL.md` rules forbid it from executing
    work itself. It decomposes and routes only — every concrete task becomes
-   a `muse kanban create` call to a specialist profile. The
-   `kanban-orchestrator` skill spells this out further.
+   a `hermes kanban create` call to a specialist profile. The kanban
+   orchestration guidance auto-injected into every kanban worker's system
+   prompt spells this out further.
 
 7. **Don't over-decompose.** A 30-second product video does NOT need 20 tasks.
    Aim for the smallest task graph that still parallelizes well and exposes the
    right human-review gates.
 
 8. **Verify API keys BEFORE firing.** External APIs (TTS, image-gen,
-   image-to-video) need keys in `~/.hermes/.env` or the user's secret store.
+   image-to-video) need keys in `${HERMES_HOME:-~/.hermes}/.env` or the user's secret store.
    A worker that hits a missing-key error wastes a task slot. The setup
    script's `check_key` helper aborts cleanly if a required key is missing.
 

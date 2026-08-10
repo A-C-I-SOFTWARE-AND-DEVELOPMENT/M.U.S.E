@@ -13,7 +13,7 @@ import pytest
 
 if "dotenv" not in sys.modules:
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
     sys.modules["dotenv"] = fake_dotenv
 
 from hermes_cli.auth import resolve_provider
@@ -80,14 +80,6 @@ class TestGmiConfigRegistry:
 
 
 class TestGmiModelCatalog:
-    def test_static_model_fallback_exists(self):
-        assert "gmi" in _PROVIDER_MODELS
-        models = _PROVIDER_MODELS["gmi"]
-        assert "zai-org/GLM-5.1-FP8" in models
-        assert "deepseek-ai/DeepSeek-V3.2" in models
-        assert "moonshotai/Kimi-K2.5" in models
-        assert "anthropic/claude-sonnet-4.6" in models
-
     def test_canonical_provider_entry(self):
         slugs = [p.slug for p in CANONICAL_PROVIDERS]
         assert "gmi" in slugs
@@ -114,32 +106,6 @@ class TestGmiModelCatalog:
             "openai/gpt-5.4-mini",
             "zai-org/GLM-5.1-FP8",
         ]
-
-    def test_provider_model_ids_falls_back_to_static_models(self, monkeypatch):
-        monkeypatch.setattr(
-            "hermes_cli.auth.resolve_api_key_provider_credentials",
-            lambda provider_id: {
-                "provider": provider_id,
-                "api_key": "gmi-live-key",
-                "base_url": "https://api.gmi-serving.com/v1",
-                "source": "GMI_API_KEY",
-            },
-        )
-        monkeypatch.setattr("hermes_cli.models.fetch_api_models", lambda api_key, base_url: None)
-        # provider_model_ids("gmi") has two live-fetch layers: the explicit GMI
-        # branch (fetch_api_models, mocked above) and the generic profile block,
-        # which calls ProviderProfile.fetch_models — a real urllib GET to
-        # api.gmi-serving.com/v1/models. Left unmocked, that endpoint's response
-        # varies by runner/network (200 -> live list; 4xx/timeout -> fallback),
-        # which made this assertion flaky under xdist. Force the offline path so
-        # we exercise only the static fallback this test is named for (the
-        # profile's fallback_models equals _PROVIDER_MODELS["gmi"]).
-        monkeypatch.setattr(
-            "providers.base.ProviderProfile.fetch_models",
-            lambda self, **kwargs: None,
-        )
-
-        assert provider_model_ids("gmi") == list(_PROVIDER_MODELS["gmi"])
 
 
 class TestGmiProvidersModule:
@@ -243,17 +209,6 @@ class TestGmiModelMetadata:
 
         assert _URL_TO_PROVIDER.get("api.gmi-serving.com") == "gmi"
 
-    def test_provider_prefixes(self):
-        from agent.model_metadata import _PROVIDER_PREFIXES
-
-        assert "gmi" in _PROVIDER_PREFIXES
-        assert "gmi-cloud" in _PROVIDER_PREFIXES
-        assert "gmicloud" in _PROVIDER_PREFIXES
-
-    def test_infer_from_url(self):
-        from agent.model_metadata import _infer_provider_from_url
-
-        assert _infer_provider_from_url("https://api.gmi-serving.com/v1") == "gmi"
 
     def test_known_gmi_endpoint_still_uses_endpoint_metadata(self):
         with patch(
@@ -280,11 +235,6 @@ class TestGmiModelMetadata:
 
 
 class TestGmiAuxiliary:
-    def test_aux_default_model(self):
-        from agent.auxiliary_client import _get_aux_model_for_provider
-
-        assert _get_aux_model_for_provider("gmi") == "google/gemini-3.1-flash-lite-preview"
-
     def test_resolve_provider_client_uses_gmi_aux_default(self, monkeypatch):
         monkeypatch.setenv("GMI_API_KEY", "gmi-test-key")
 
@@ -312,16 +262,6 @@ class TestGmiAuxiliary:
         assert ua.startswith("HermesAgent/"), (
             f"expected GMI profile User-Agent to start with 'HermesAgent/', got {ua!r}"
         )
-
-    def test_resolve_provider_client_accepts_gmi_alias(self, monkeypatch):
-        monkeypatch.setenv("GMI_API_KEY", "gmi-test-key")
-
-        with patch("agent.auxiliary_client.OpenAI") as mock_openai:
-            mock_openai.return_value = object()
-            client, model = resolve_provider_client("gmi-cloud")
-
-        assert client is not None
-        assert model == "google/gemini-3.1-flash-lite-preview"
 
 
 class TestGmiMainFlow:

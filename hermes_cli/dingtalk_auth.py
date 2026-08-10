@@ -17,7 +17,7 @@ import os
 import sys
 import time
 import logging
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple
 
 import requests
 
@@ -107,7 +107,7 @@ def wait_for_registration_success(
     device_code: str,
     interval: int = 3,
     expires_in: int = 7200,
-    on_waiting: Optional[Callable] = None,
+    on_waiting: Optional[callable] = None,
 ) -> Tuple[str, str]:
     """Block until the registration succeeds or times out.
 
@@ -156,24 +156,22 @@ def wait_for_registration_success(
 def _ensure_qrcode_installed() -> bool:
     """Try to import qrcode; if missing, auto-install it via pip/uv."""
     try:
-        import qrcode  # noqa: F401  # ty: ignore[unresolved-import]  # optional dep
+        import qrcode  # noqa: F401
         return True
     except ImportError:
         pass
 
     import subprocess
 
-    # Try uv first (Hermes convention), then pip
-    for cmd in (
-        [sys.executable, "-m", "uv", "pip", "install", "qrcode"],
-        [sys.executable, "-m", "pip", "install", "-q", "qrcode"],
-    ):
-        try:
-            subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            import qrcode  # noqa: F401,F811  # ty: ignore[unresolved-import]  # optional dep
+    from hermes_cli.tools_config import _pip_install
+
+    try:
+        result = _pip_install(["-q", "qrcode"], timeout=120)
+        if result.returncode == 0:
+            import qrcode  # noqa: F401,F811
             return True
-        except (subprocess.CalledProcessError, ImportError, FileNotFoundError):
-            continue
+    except (subprocess.SubprocessError, ImportError, OSError):
+        pass
     return False
 
 
@@ -183,7 +181,7 @@ def render_qr_to_terminal(url: str) -> bool:
     Returns True if the QR code was printed, False if the library is missing.
     """
     try:
-        import qrcode  # ty: ignore[unresolved-import]  # optional dep
+        import qrcode
     except ImportError:
         return False
 
@@ -257,7 +255,7 @@ def dingtalk_qr_auth() -> Optional[Tuple[str, str]]:
     print()
 
     if not render_qr_to_terminal(url):
-        print_warning(f"  QR code render failed, please open the link below to authorize:")
+        print_warning("  QR code render failed, please open the link below to authorize:")
 
     print()
     print_info(f"  Or open this link manually: {url}")

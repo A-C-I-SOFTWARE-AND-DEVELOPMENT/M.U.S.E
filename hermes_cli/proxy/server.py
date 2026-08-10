@@ -12,7 +12,6 @@ or rewrite request/response bodies. It's a credential-attaching forwarder.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import signal
 from typing import Mapping, Optional
@@ -51,6 +50,10 @@ _HOP_BY_HOP_HEADERS = frozenset(
 
 DEFAULT_PORT = 8645
 DEFAULT_HOST = "127.0.0.1"
+# Body cap for forwarded requests. Chat-completion payloads with long agent
+# conversations can be large; mirror api_server's MAX_REQUEST_BYTES (10 MB).
+# client_max_size bounds every read path, including chunked bodies.
+MAX_REQUEST_BYTES = 10_000_000
 
 
 def _json_error(status: int, message: str, code: str = "proxy_error") -> "web.Response":
@@ -86,11 +89,10 @@ def create_app(adapter: UpstreamAdapter) -> "web.Application":
     """Build the aiohttp application bound to a specific upstream adapter."""
     if not AIOHTTP_AVAILABLE:
         raise RuntimeError(
-            "aiohttp is required for `hermes proxy`. Install with: "
-            "pip install 'hermes-agent[messaging]' or `pip install aiohttp`."
+            "aiohttp is required for `hermes proxy`. Run `hermes setup` to install it."
         )
 
-    app = web.Application()
+    app = web.Application(client_max_size=MAX_REQUEST_BYTES)
     # AppKey ensures forward-compat with future aiohttp versions that strip
     # bare-string keys.
     _adapter_key = web.AppKey("adapter", UpstreamAdapter)
@@ -102,17 +104,6 @@ def create_app(adapter: UpstreamAdapter) -> "web.Application":
                 "status": "ok",
                 "upstream": adapter.display_name,
                 "authenticated": adapter.is_authenticated(),
-            }
-        )
-
-    async def handle_models_fallback(request: "web.Request") -> "web.Response":
-        # Most clients hit /v1/models on startup. If the upstream doesn't
-        # serve /models, synthesize a minimal response so clients don't
-        # crash. The actual forwarding path handles /models when allowed.
-        return web.json_response(
-            {
-                "object": "list",
-                "data": [],
             }
         )
 
@@ -206,7 +197,7 @@ def create_app(adapter: UpstreamAdapter) -> "web.Application":
             return session_or_response
         session = session_or_response
 
-        if upstream_resp.status == 401:
+        if upstream_resp.status in {401, 429}:
             try:
                 retry_cred = adapter.get_retry_credential(
                     failed_credential=cred,
@@ -264,8 +255,7 @@ async def run_server(
     """
     if not AIOHTTP_AVAILABLE:
         raise RuntimeError(
-            "aiohttp is required for `hermes proxy`. Install with: "
-            "pip install 'hermes-agent[messaging]' or `pip install aiohttp`."
+            "aiohttp is required for `hermes proxy`. Run `hermes setup` to install it."
         )
 
     app = create_app(adapter)

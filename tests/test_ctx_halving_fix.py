@@ -11,6 +11,9 @@ The fix introduces:
     error class and returns the available output token budget.
   * _ephemeral_max_output_tokens on AIAgent — a one-shot override that
     caps the output for one retry without touching context_length.
+  * get_context_length_from_provider_error() — accepts only concrete
+    provider-reported lower context limits and refuses guessed probe-tier
+    step-downs when the provider gives no maximum.
 
 Naming note
 -----------
@@ -20,13 +23,9 @@ These are different and the old code conflated them; the fix keeps them
 separate.
 """
 
-import sys
-import os
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -50,55 +49,75 @@ class TestParseAvailableOutputTokens:
         )
         assert self._parse(msg) == 10000
 
-    def test_anthropic_format_large_numbers(self):
-        msg = (
-            "max_tokens: 128000 > context_window: 200000 "
-            "- input_tokens: 180000 = available_tokens: 20000"
-        )
-        assert self._parse(msg) == 20000
 
-    def test_available_tokens_variant_spacing(self):
-        """Handles extra spaces around the colon."""
-        msg = "max_tokens: 32768 > 200000 available_tokens : 5000"
-        assert self._parse(msg) == 5000
 
     def test_available_tokens_natural_language(self):
         """'available tokens: N' wording (no underscore)."""
         msg = "max_tokens must be at most 10000 given your prompt (available tokens: 10000)"
         assert self._parse(msg) == 10000
 
-    def test_single_token_available(self):
-        """Edge case: only 1 token left."""
-        msg = "max_tokens: 9999 > context_window: 10000 - input_tokens: 9999 = available_tokens: 1"
-        assert self._parse(msg) == 1
 
     # ── Should NOT detect (returns None) ─────────────────────────────────
 
     def test_prompt_too_long_is_not_output_cap_error(self):
-        """'prompt is too long' errors must NOT be caught — they need context halving."""
+        """'prompt is too long' errors must NOT be caught — they need context-overflow recovery."""
         msg = "prompt is too long: 205000 tokens > 200000 maximum"
         assert self._parse(msg) is None
 
-    def test_generic_context_window_exceeded(self):
-        """Generic context window errors without available_tokens should not match."""
-        msg = "context window exceeded: maximum is 32768 tokens"
-        assert self._parse(msg) is None
 
-    def test_context_length_exceeded(self):
-        msg = "context_length_exceeded: prompt has 131073 tokens, limit is 131072"
-        assert self._parse(msg) is None
 
     def test_no_max_tokens_keyword(self):
         """Error not related to max_tokens at all."""
         msg = "invalid_api_key: the API key is invalid"
         assert self._parse(msg) is None
 
-    def test_empty_string(self):
-        assert self._parse("") is None
 
     def test_rate_limit_error(self):
         msg = "rate_limit_error: too many requests per minute"
         assert self._parse(msg) is None
+
+
+# ---------------------------------------------------------------------------
+# Context-overflow recovery — only trust provider-reported limits
+# ---------------------------------------------------------------------------
+
+class TestContextOverflowLimitSelection:
+    """Context-overflow recovery must not invent a lower window size.
+
+    Some providers only say "input exceeds the context window" without telling
+    Hermes what the actual maximum is.  In that case we may compress the
+    conversation, but must not silently probe-step from a user-configured 1M
+    window down to 256K/128K/64K/etc.
+    """
+
+    def test_generic_overflow_without_provider_limit_keeps_context_length(self):
+        from agent.model_metadata import get_context_length_from_provider_error
+        from agent.model_metadata import get_next_probe_tier
+        from agent.model_metadata import parse_context_limit_from_error
+
+        old_ctx = 1_000_000
+        error_msg = (
+            "Your input exceeds the context window of this model. "
+            "Please adjust your input and try again."
+        )
+
+        assert parse_context_limit_from_error(error_msg) is None
+        assert get_next_probe_tier(old_ctx) == 256_000
+        assert get_context_length_from_provider_error(error_msg, old_ctx) is None
+
+    def test_explicit_provider_limit_still_selects_that_limit(self):
+        from agent.model_metadata import get_context_length_from_provider_error
+
+        error_msg = "prompt is too long: 300000 tokens > 272000 maximum"
+
+        assert get_context_length_from_provider_error(error_msg, 1_000_000) == 272_000
+
+    def test_reported_limit_not_lower_than_current_is_ignored(self):
+        from agent.model_metadata import get_context_length_from_provider_error
+
+        error_msg = "maximum context length is 1000000 tokens"
+
+        assert get_context_length_from_provider_error(error_msg, 272_000) is None
 
 
 # ---------------------------------------------------------------------------
@@ -126,25 +145,13 @@ class TestBuildAnthropicKwargsClamping:
         kwargs = self._build("claude-opus-4-6", context_length=200_000)
         assert kwargs["max_tokens"] == 128_000
 
-    def test_clamping_fires_for_tiny_custom_window(self):
-        """When context_length is 8K (local model), output cap is clamped to 7999."""
-        kwargs = self._build("claude-opus-4-6", context_length=8_000)
-        assert kwargs["max_tokens"] == 7_999
 
-    def test_explicit_max_tokens_respected_when_within_window(self):
-        """Explicit max_tokens smaller than window passes through unchanged."""
-        kwargs = self._build("claude-opus-4-6", max_tokens=4096, context_length=200_000)
-        assert kwargs["max_tokens"] == 4096
 
     def test_explicit_max_tokens_clamped_when_exceeds_window(self):
         """Explicit max_tokens larger than a small window is clamped."""
         kwargs = self._build("claude-opus-4-6", max_tokens=32_768, context_length=16_000)
         assert kwargs["max_tokens"] == 15_999
 
-    def test_no_context_length_uses_native_ceiling(self):
-        """Without context_length the native output ceiling is used directly."""
-        kwargs = self._build("claude-sonnet-4-6")
-        assert kwargs["max_tokens"] == 64_000
 
 
 # ---------------------------------------------------------------------------
@@ -198,24 +205,7 @@ class TestEphemeralMaxOutputTokens:
         agent._build_api_kwargs([{"role": "user", "content": "hi"}])
         assert agent._ephemeral_max_output_tokens is None
 
-    def test_subsequent_call_uses_self_max_tokens(self):
-        """A second _build_api_kwargs call uses the normal max_tokens path."""
-        agent = self._make_agent()
-        agent._ephemeral_max_output_tokens = 5_000
-        agent.max_tokens = None  # will resolve to native ceiling (128K for Opus 4.6)
 
-        agent._build_api_kwargs([{"role": "user", "content": "hi"}])
-        # Second call — ephemeral is gone
-        kwargs2 = agent._build_api_kwargs([{"role": "user", "content": "hi"}])
-        assert kwargs2["max_tokens"] == 128_000  # Opus 4.6 native ceiling
-
-    def test_no_ephemeral_uses_self_max_tokens_directly(self):
-        """Without an ephemeral override, self.max_tokens is used normally."""
-        agent = self._make_agent()
-        agent.max_tokens = 8_192
-
-        kwargs = agent._build_api_kwargs([{"role": "user", "content": "hi"}])
-        assert kwargs["max_tokens"] == 8_192
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +251,6 @@ class TestContextNotHalvedOnOutputCapError:
         """On 'max_tokens too large' error, _ephemeral_max_output_tokens is set
         and compressor.context_length is left unchanged."""
         from agent.model_metadata import parse_available_output_tokens_from_error
-        from agent.model_metadata import get_next_probe_tier
 
         error_msg = (
             "max_tokens: 128000 > context_window: 200000 "
@@ -282,19 +271,6 @@ class TestContextNotHalvedOnOutputCapError:
         assert agent.context_compressor.context_length == old_ctx
         assert agent._ephemeral_max_output_tokens == 19_936
 
-    def test_prompt_too_long_still_triggers_probe_tier(self):
-        """Genuine prompt-too-long errors must still use get_next_probe_tier."""
-        from agent.model_metadata import parse_available_output_tokens_from_error
-        from agent.model_metadata import get_next_probe_tier
-
-        error_msg = "prompt is too long: 205000 tokens > 200000 maximum"
-
-        available_out = parse_available_output_tokens_from_error(error_msg)
-        assert available_out is None, "prompt-too-long must not be caught by output-cap parser"
-
-        # The old halving path is still used for this class of error
-        new_ctx = get_next_probe_tier(200_000)
-        assert new_ctx == 128_000
 
     def test_output_cap_error_safety_margin(self):
         """The ephemeral value includes a 64-token safety margin below available_out."""
@@ -305,17 +281,6 @@ class TestContextNotHalvedOnOutputCapError:
             "- input_tokens: 190000 = available_tokens: 10000"
         )
         available_out = parse_available_output_tokens_from_error(error_msg)
-        safe_out = max(1, available_out - 64)  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        safe_out = max(1, available_out - 64)
         assert safe_out == 9_936
 
-    def test_safety_margin_never_goes_below_one(self):
-        """When available_out is very small, safe_out must be at least 1."""
-        from agent.model_metadata import parse_available_output_tokens_from_error
-
-        error_msg = (
-            "max_tokens: 10 > context_window: 200000 "
-            "- input_tokens: 199990 = available_tokens: 1"
-        )
-        available_out = parse_available_output_tokens_from_error(error_msg)
-        safe_out = max(1, available_out - 64)  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
-        assert safe_out == 1

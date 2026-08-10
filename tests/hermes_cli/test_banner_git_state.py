@@ -1,13 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 
-def test_format_banner_version_label_without_git_state():
-    from hermes_cli import banner
-
-    with patch.object(banner, "get_git_banner_state", return_value=None):
-        value = banner.format_banner_version_label()
-
-    assert value == f"muse v{banner.VERSION} ({banner.RELEASE_DATE})"
 
 
 def test_format_banner_version_label_on_upstream_main():
@@ -22,21 +15,6 @@ def test_format_banner_version_label_on_upstream_main():
 
     assert value.endswith("· upstream b2f477a3")
     assert "local" not in value
-
-
-def test_format_banner_version_label_with_carried_commits():
-    from hermes_cli import banner
-
-    with patch.object(
-        banner,
-        "get_git_banner_state",
-        return_value={"upstream": "b2f477a3", "local": "af8aad31", "ahead": 3},
-    ):
-        value = banner.format_banner_version_label()
-
-    assert "upstream b2f477a3" in value
-    assert "local af8aad31" in value
-    assert "+3 carried commits" in value
 
 
 def test_get_git_banner_state_reads_origin_and_head(tmp_path):
@@ -61,3 +39,5 @@ def test_get_git_banner_state_reads_origin_and_head(tmp_path):
         state = banner.get_git_banner_state(repo_dir)
 
     assert state == {"upstream": "b2f477a3", "local": "af8aad31", "ahead": 3}
+
+

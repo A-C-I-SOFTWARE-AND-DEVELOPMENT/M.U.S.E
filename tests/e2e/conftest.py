@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING, Optional
 """Shared fixtures for gateway e2e tests (Telegram, Discord).
 
 These tests exercise the full async message flow:
@@ -118,13 +117,13 @@ _ensure_telegram_mock()
 _ensure_discord_mock()
 _ensure_slack_mock()
 
-import discord  # noqa: E402 — mocked above  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
-from gateway.platforms.telegram import TelegramAdapter  # noqa: E402
-from gateway.platforms.discord import DiscordAdapter  # noqa: E402
+import discord  # noqa: E402 — mocked above
+from plugins.platforms.telegram.adapter import TelegramAdapter  # noqa: E402
+from plugins.platforms.discord.adapter import DiscordAdapter  # noqa: E402
 
-import gateway.platforms.slack as _slack_mod  # noqa: E402
+import plugins.platforms.slack.adapter as _slack_mod  # noqa: E402
 _slack_mod.SLACK_AVAILABLE = True
-from gateway.platforms.slack import SlackAdapter  # noqa: E402
+from plugins.platforms.slack.adapter import SlackAdapter  # noqa: E402
 
 
 # Platform-generic factories
@@ -139,7 +138,7 @@ def make_source(platform: Platform, chat_id: str = "e2e-chat-1", user_id: str = 
     )
 
 
-def make_session_entry(platform: Platform, source: SessionSource = None) -> SessionEntry:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
+def make_session_entry(platform: Platform, source: SessionSource = None) -> SessionEntry:
     source = source or make_source(platform)
     return SessionEntry(
         session_key=build_session_key(source),
@@ -165,11 +164,7 @@ def make_event(
     )
 
 
-if TYPE_CHECKING:
-    from gateway.run import GatewayRunner
-
-
-def make_runner(platform: Platform, session_entry: Optional[SessionEntry] = None) -> "GatewayRunner":
+def make_runner(platform: Platform, session_entry: SessionEntry = None) -> "GatewayRunner":
     """Create a GatewayRunner with mocked internals for e2e testing.
 
     Skips __init__ to avoid filesystem/network side effects.
@@ -233,6 +228,13 @@ def make_runner(platform: Platform, session_entry: Optional[SessionEntry] = None
     # Disable destructive slash confirm gate so /new executes immediately
     runner._read_user_config = lambda: {"approvals": {"destructive_slash_confirm": False}}
 
+    # Keep /new hermetic: the real _reset_notice_session_info resolves provider
+    # credentials and may probe model context length over the network. CI has no
+    # credentials, so resolution walks the whole fallback chain and can exceed
+    # send_and_capture's poll window on slow runners (flaked in run 28856659216,
+    # telegram param only — first parametrization pays the cold-resolution cost).
+    runner._reset_notice_session_info = lambda source: ""
+
     runner.pairing_store = MagicMock()
     runner.pairing_store._is_rate_limited = MagicMock(return_value=False)
     runner.pairing_store.generate_code = MagicMock(return_value="ABC123")
@@ -259,8 +261,8 @@ def make_adapter(platform: Platform, runner=None):
         adapter = TelegramAdapter(config)
         platform_key = Platform.TELEGRAM
 
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-    adapter.send_typing = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))
+    adapter.send_typing = AsyncMock()
 
     adapter.set_message_handler(runner._handle_message)
     runner.adapters[platform_key] = adapter
@@ -269,11 +271,18 @@ def make_adapter(platform: Platform, runner=None):
 
 
 async def send_and_capture(adapter, text: str, platform: Platform, **event_kwargs) -> AsyncMock:
-    """Send a message through the full e2e flow and return the send mock."""
+    """Send a message through the full e2e flow and return the send mock.
+
+    Polls for the send rather than waiting a fixed delay: handler DB work now
+    hops to worker threads (AsyncSessionDB), so completion latency varies.
+    """
     event = make_event(platform, text, **event_kwargs)
     adapter.send.reset_mock()
     await adapter.handle_message(event)
-    await asyncio.sleep(0.3)
+    for _ in range(40):  # up to ~2s; returns as soon as the send lands
+        if adapter.send.called:
+            break
+        await asyncio.sleep(0.05)
     return adapter.send
 
 
@@ -364,7 +373,7 @@ def make_fake_thread(thread_id: int = THREAD_ID, name: str = "test-thread", pare
 
 def make_discord_message(
     *, content: str = "hello", author=None, channel=None, mentions=None,
-    attachments=None, message_id: int = None,  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
+    attachments=None, message_id: int = None,
 ):
     if message_id is None:
         message_id = _next_message_id()
@@ -413,8 +422,8 @@ def _make_discord_adapter_wired(runner=None):
         fetch_channel=AsyncMock(),
     )
 
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
-    adapter.send_typing = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))
+    adapter.send_typing = AsyncMock()
     adapter.set_message_handler(runner._handle_message)
     runner.adapters[Platform.DISCORD] = adapter
 

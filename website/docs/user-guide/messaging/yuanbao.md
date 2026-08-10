@@ -1,12 +1,12 @@
 ---
 sidebar_position: 16
 title: "Yuanbao"
-description: "Connect muse to the Yuanbao enterprise messaging platform via WebSocket gateway"
+description: "Connect Hermes Agent to the Yuanbao enterprise messaging platform via WebSocket gateway"
 ---
 
 # Yuanbao
 
-Connect muse to [Yuanbao](https://yuanbao.tencent.com/), Tencent's enterprise messaging platform. The adapter uses a WebSocket gateway for real-time message delivery and supports both direct (C2C) and group conversations.
+Connect Hermes to [Yuanbao](https://yuanbao.tencent.com/), Tencent's enterprise messaging platform. The adapter uses a WebSocket gateway for real-time message delivery and supports both direct (C2C) and group conversations.
 
 :::info
 Yuanbao is an enterprise messaging platform primarily used within Tencent and enterprise environments. It uses WebSocket for real-time communication, HMAC-based authentication, and supports rich media including images, files, and voice messages.
@@ -38,7 +38,7 @@ pip install websockets httpx aiofiles
 The easiest way to configure Yuanbao is through the interactive setup:
 
 ```bash
-muse gateway setup
+hermes gateway setup
 ```
 
 Select **Yuanbao** when prompted. The wizard will:
@@ -79,7 +79,7 @@ YUANBAO_ALLOWED_USERS=user_account_1,user_account_2
 ### 4. Start the Gateway
 
 ```bash
-muse gateway
+hermes gateway
 ```
 
 The adapter will connect to the Yuanbao WebSocket gateway, authenticate using HMAC signatures, and begin processing messages.
@@ -98,6 +98,7 @@ The adapter will connect to the Yuanbao WebSocket gateway, authenticate using HM
 - **Automatic reconnection** — handles WebSocket disconnections with exponential backoff
 - **Group information queries** — retrieve group details and member lists
 - **Sticker/Emoji support** — send TIMFaceElem stickers and emoji in conversations
+- **WeChat forwarded chat-history support** — when a user forwards a WeChat chat-history bundle into Yuanbao, the adapter decodes the forwarded records (sender nicknames, text, and multimedia entries, including nested forwards) and injects them into the conversation so the agent can read the full forwarded thread
 - **Auto-sethome** — first user to message the bot is automatically set as the home channel owner
 - **Slow-response notification** — sends a waiting message when the agent takes longer than expected
 
@@ -170,7 +171,7 @@ The bot responds in the same conversation thread.
 
 ### Available Commands
 
-All standard muse commands work on Yuanbao:
+All standard Hermes commands work on Yuanbao:
 
 | Command | Description |
 |---------|-------------|
@@ -244,7 +245,7 @@ When you ask the bot to create or export a file, it sends the file directly to y
 1. Check gateway logs for error patterns
 2. Increase heartbeat timeout in connection settings
 3. Ensure stable network connection to Yuanbao API
-4. Consider enabling verbose logging: `HERMES_LOG_LEVEL=debug`
+4. Consider enabling verbose logging: `hermes gateway run -vv`
 
 ## Access Control
 
@@ -278,7 +279,7 @@ platforms:
 
 ### Message Chunking
 
-Yuanbao has a maximum message size. muse automatically chunks large responses with Markdown-aware splitting (respects code fences, tables, and paragraph boundaries).
+Yuanbao has a maximum message size. Hermes automatically chunks large responses with Markdown-aware splitting (respects code fences, tables, and paragraph boundaries).
 
 ### Connection Parameters
 
@@ -302,7 +303,7 @@ These values are currently not configurable via environment variables. They are 
 Enable debug logging to troubleshoot connection issues:
 
 ```bash
-HERMES_LOG_LEVEL=debug muse gateway
+hermes gateway run -vv
 ```
 
 ## Integration with Other Features
@@ -330,12 +331,12 @@ Run long operations without blocking the conversation:
 Send a message from CLI to Yuanbao:
 
 ```bash
-muse chat -q "Send 'Hello from CLI' to yuanbao:group:group_code"
+hermes chat -q "Send 'Hello from CLI' to yuanbao:group:group_code"
 ```
 
 ## Related Documentation
 
 - [Messaging Gateway Overview](./index.md)
-- [Slash Commands Reference](/docs/reference/slash-commands.md)
-- [Cron Jobs](/docs/user-guide/features/cron.md)
-- [Background Sessions](/docs/user-guide/cli#background-sessions)
+- [Slash Commands Reference](/reference/slash-commands)
+- [Cron Jobs](/user-guide/features/cron)
+- [Background Sessions](/user-guide/cli#background-sessions)

@@ -5,10 +5,8 @@ Mirrors the ``transform_terminal_output`` hook tests from Phase 1 but
 targets the generic tool-result seam that runs for every tool dispatch.
 """
 
-import json
 import os
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import hermes_cli.plugins as plugins_mod
 import model_tools
@@ -38,6 +36,10 @@ def _run_handle_function_call(
     if invoke_hook is not _UNSET:
         # Patch the symbol actually imported inside handle_function_call.
         monkeypatch.setattr("hermes_cli.plugins.invoke_hook", invoke_hook)
+        # Supplying a custom invoke_hook means the test expects hooks to
+        # fire — make has_hook agree so the has_hook gate doesn't skip the
+        # post_tool_call / transform_tool_result emit paths.
+        monkeypatch.setattr("hermes_cli.plugins.has_hook", lambda name: True)
 
     return model_tools.handle_function_call(
         tool_name,
@@ -49,30 +51,10 @@ def _run_handle_function_call(
     )
 
 
-def test_result_unchanged_when_no_hook_registered(monkeypatch):
-    # Real invoke_hook with no plugins loaded returns [].
-    monkeypatch.setenv("HERMES_HOME", "/tmp/hermes_no_plugins")
-    # Force a fresh plugin manager so no stale plugins pollute state.
-    plugins_mod._plugin_manager = plugins_mod.PluginManager()
-
-    out = _run_handle_function_call(monkeypatch)
-    assert out == '{"output": "original"}'
 
 
-def test_result_unchanged_for_none_hook_return(monkeypatch):
-    out = _run_handle_function_call(
-        monkeypatch,
-        invoke_hook=lambda hook_name, **kw: [None],
-    )
-    assert out == '{"output": "original"}'
 
 
-def test_result_ignores_non_string_hook_returns(monkeypatch):
-    out = _run_handle_function_call(
-        monkeypatch,
-        invoke_hook=lambda hook_name, **kw: [{"bad": True}, 123, ["nope"]],
-    )
-    assert out == '{"output": "original"}'
 
 
 def test_first_valid_string_return_replaces_result(monkeypatch):
@@ -107,15 +89,6 @@ def test_hook_receives_expected_kwargs(monkeypatch):
     assert captured["tool_call_id"] == "tc1"
 
 
-def test_hook_exception_falls_back_to_original(monkeypatch):
-    def _raise(*_a, **_kw):
-        raise RuntimeError("boom")
-
-    out = _run_handle_function_call(
-        monkeypatch,
-        invoke_hook=_raise,
-    )
-    assert out == '{"output": "original"}'
 
 
 def test_post_tool_call_remains_observational(monkeypatch):

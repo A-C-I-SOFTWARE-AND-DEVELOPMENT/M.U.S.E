@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import type { Locale, Translations } from "./types";
 import { en } from "./en";
 import { zh } from "./zh";
@@ -16,6 +16,7 @@ import { ga } from "./ga";
 import { pt } from "./pt";
 import { ru } from "./ru";
 import { hu } from "./hu";
+import { ar } from "./ar";
 
 const TRANSLATIONS: Record<Locale, Translations> = {
   en,
@@ -34,30 +35,40 @@ const TRANSLATIONS: Record<Locale, Translations> = {
   pt,
   ru,
   hu,
+  ar,
 };
 
+// Locales whose script flows right-to-left. Consumed by the provider to set the
+// document direction so Tailwind's logical utilities (ms-/me-, ps-/pe-) flip.
+const RTL_LOCALES = new Set<Locale>(["ar"]);
+
 // Display metadata for the language picker — endonym (native name) so users
-// recognize their language even if they don't speak the current UI language,
-// plus a flag-icons sprite (ISO 3166-1 alpha-2) for visual scanning.
+// recognize their language even if they don't speak the current UI language.
 // Exposed as a constant so the LanguageSwitcher and any future settings page
 // can share the same list.
-export const LOCALE_META: Record<Locale, { name: string; flagCountryCode: string }> = {
-  en: { name: "English", flagCountryCode: "gb" },
-  zh: { name: "简体中文", flagCountryCode: "cn" },
-  "zh-hant": { name: "繁體中文", flagCountryCode: "tw" },
-  ja: { name: "日本語", flagCountryCode: "jp" },
-  de: { name: "Deutsch", flagCountryCode: "de" },
-  es: { name: "Español", flagCountryCode: "es" },
-  fr: { name: "Français", flagCountryCode: "fr" },
-  tr: { name: "Türkçe", flagCountryCode: "tr" },
-  uk: { name: "Українська", flagCountryCode: "ua" },
-  af: { name: "Afrikaans", flagCountryCode: "za" },
-  ko: { name: "한국어", flagCountryCode: "kr" },
-  it: { name: "Italiano", flagCountryCode: "it" },
-  ga: { name: "Gaeilge", flagCountryCode: "ie" },
-  pt: { name: "Português", flagCountryCode: "pt" },
-  ru: { name: "Русский", flagCountryCode: "ru" },
-  hu: { name: "Magyar", flagCountryCode: "hu" },
+//
+// We intentionally do NOT pair locales with country flags. Languages are not
+// countries (English ≠ GB, Portuguese ≠ PT, Spanish ≠ ES, Chinese variants ≠
+// any single jurisdiction). Endonyms are unambiguous and avoid the political
+// mismapping that flag pairings inevitably create.
+export const LOCALE_META: Record<Locale, { name: string }> = {
+  en: { name: "English" },
+  zh: { name: "简体中文" },
+  "zh-hant": { name: "繁體中文" },
+  ja: { name: "日本語" },
+  de: { name: "Deutsch" },
+  es: { name: "Español" },
+  fr: { name: "Français" },
+  tr: { name: "Türkçe" },
+  uk: { name: "Українська" },
+  af: { name: "Afrikaans" },
+  ko: { name: "한국어" },
+  it: { name: "Italiano" },
+  ga: { name: "Gaeilge" },
+  pt: { name: "Português" },
+  ru: { name: "Русский" },
+  hu: { name: "Magyar" },
+  ar: { name: "العربية" },
 };
 
 const SUPPORTED_LOCALES = Object.keys(TRANSLATIONS) as Locale[];
@@ -100,6 +111,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = locale;
+    document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";
+  }, [locale]);
 
   const value: I18nContextValue = {
     locale,

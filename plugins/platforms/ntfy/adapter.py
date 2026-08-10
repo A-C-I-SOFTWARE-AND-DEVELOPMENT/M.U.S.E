@@ -58,7 +58,7 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
+    httpx = None  # type: ignore[assignment]
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -67,6 +67,30 @@ from gateway.platforms.base import (
     MessageType,
     SendResult,
 )
+
+from agent.secret_scope import UnscopedSecretError as _UnscopedSecretError
+from agent.secret_scope import get_secret as _scoped_get_secret
+
+
+def _get_scoped_secret(name, default=None):
+    """Scope-aware credential read with the default-profile startup fallback.
+
+    Secondary profiles construct their adapters under a profile secret
+    scope -- the scope is authoritative and a scoped miss returns ``default``
+    (no cross-profile borrow from ``os.environ``, which may hold another
+    profile's value). The DEFAULT profile's adapter constructs and sends
+    *unscoped* under multiplexing, where a bare ``get_secret`` would raise
+    ``UnscopedSecretError`` and crash this path; there ``os.environ`` is that
+    profile's own value, so fall back to it. Same pattern as the Slack
+    ``SLACK_APP_TOKEN`` read (#59739) and
+    ``gateway/platforms/whatsapp_common.py::_get_wsecret``.
+    """
+    try:
+        val = _scoped_get_secret(name, default)
+    except _UnscopedSecretError:
+        val = os.getenv(name)
+    return val if val is not None else default
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +105,7 @@ DEDUP_WINDOW_SECONDS = 300
 DEDUP_MAX_SIZE = 1000
 RECONNECT_BACKOFF = [2, 5, 10, 30, 60]
 STREAM_TIMEOUT_SECONDS = 90  # ntfy keepalive default is 55s; give margin
+_ECHO_TAG = "hermes-agent"  # tag added to outgoing messages for echo-loop prevention
 
 
 def _build_auth_header(token: str) -> Dict[str, str]:
@@ -172,7 +197,7 @@ class NtfyAdapter(BasePlatformAdapter):
             or os.getenv("NTFY_PUBLISH_TOPIC", "")
             or self._topic
         )
-        self._token: str = extra.get("token") or os.getenv("NTFY_TOKEN", "")
+        self._token: str = extra.get("token") or _get_scoped_secret("NTFY_TOKEN", "")
 
         self._stream_task: Optional[asyncio.Task] = None
         self._http_client: Optional["httpx.AsyncClient"] = None
@@ -182,7 +207,7 @@ class NtfyAdapter(BasePlatformAdapter):
 
     # -- Connection lifecycle -----------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to ntfy by starting the streaming subscription task."""
         if not HTTPX_AVAILABLE:
             logger.warning("[%s] httpx not installed. Run: pip install httpx", self.name)
@@ -238,7 +263,7 @@ class NtfyAdapter(BasePlatformAdapter):
         """Open an HTTP streaming connection and dispatch events."""
         # poll=false keeps a persistent streaming connection alive with keepalive events
         params = {"poll": "false"}
-        async with self._http_client.stream(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+        async with self._http_client.stream(
             "GET",
             url,
             headers=headers,
@@ -309,6 +334,12 @@ class NtfyAdapter(BasePlatformAdapter):
         msg_id = event.get("id") or uuid.uuid4().hex
         if self._is_duplicate(msg_id):
             logger.debug("[%s] Duplicate message %s, skipping", self.name, msg_id)
+            return
+
+        # Echo-loop prevention: skip messages tagged by this adapter.
+        tags = event.get("tags") or []
+        if _ECHO_TAG in tags:
+            logger.debug("[%s] Skipping own message (echo tag)", self.name)
             return
 
         text = (event.get("message") or "").strip()
@@ -387,7 +418,11 @@ class NtfyAdapter(BasePlatformAdapter):
 
         url = f"{self._server}/{publish_topic}"
         markdown_enabled = (self.config.extra or {}).get("markdown", False)
-        headers = {**self._auth_headers(), "Content-Type": "text/plain; charset=utf-8"}
+        headers = {
+            **self._auth_headers(),
+            "Content-Type": "text/plain; charset=utf-8",
+            "X-Tags": _ECHO_TAG,
+        }
         if markdown_enabled:
             headers["X-Markdown"] = "true"
 
@@ -461,7 +496,7 @@ def _env_enablement() -> dict | None:
     publish_topic = os.getenv("NTFY_PUBLISH_TOPIC", "").strip()
     if publish_topic:
         seed["publish_topic"] = publish_topic
-    token = os.getenv("NTFY_TOKEN", "").strip()
+    token = _get_scoped_secret("NTFY_TOKEN", "").strip()
     if token:
         seed["token"] = token
     markdown = os.getenv("NTFY_MARKDOWN", "").strip().lower()
@@ -515,11 +550,11 @@ async def _standalone_send(
     if not publish_topic:
         return {"error": "ntfy standalone send: NTFY_TOPIC not configured"}
 
-    token = extra.get("token") or os.getenv("NTFY_TOKEN", "")
+    token = extra.get("token") or _get_scoped_secret("NTFY_TOKEN", "")
     markdown_env = os.getenv("NTFY_MARKDOWN", "").strip().lower()
     markdown_enabled = bool(extra.get("markdown")) or markdown_env in ("1", "true", "yes")
 
-    headers = {"Content-Type": "text/plain; charset=utf-8", **_build_auth_header(token)}
+    headers = {"Content-Type": "text/plain; charset=utf-8", "X-Tags": _ECHO_TAG, **_build_auth_header(token)}
     if markdown_enabled:
         headers["X-Markdown"] = "true"
 

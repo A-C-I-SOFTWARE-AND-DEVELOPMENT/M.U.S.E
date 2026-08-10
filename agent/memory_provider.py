@@ -28,15 +28,54 @@ Optional hooks (override to opt in):
   on_pre_compress(messages) -> str       — extract before context compression
   on_memory_write(action, target, content, metadata=None) — mirror built-in memory writes
   on_delegation(task, result, **kwargs)  — parent-side observation of subagent work
+  backup_paths() -> list[str]            — extra on-disk paths to include in `hermes backup`
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+# Prompts that carry no semantic signal — trivial acknowledgements, greetings,
+# slash commands, empty input. Single source of truth shared by the core
+# per-turn prefetch gate (agent/turn_context.py, run_agent.py) and provider-
+# side classifiers (plugins/memory/honcho) so the two can never drift apart.
+# The alternation is anchored and may only be followed by whitespace or
+# punctuation, so words that merely START with a trivial word ("k8s", "yolo",
+# "note", "hindsight") do NOT match, while trailing-punctuation variants
+# ("hi!", "hey.", "thanks :)", "done???") do.
+TRIVIAL_PROMPT_RE = re.compile(
+    r'^(yes|no|ok|okay|sure|thanks|thank you|y|n|yep|nope|yeah|nah|'
+    r'hi|hey|hello|yo|sup|'
+    r'continue|go ahead|do it|proceed|got it|cool|nice|great|done|next|lgtm|k)'
+    r'[\s!?.:;,"' + "'" + r'~\u2018\u2019\u201c\u201d\u2014\u2013\u2026()\[\]{}<>*&^%$#@!+=`\u00a0]*$',
+    re.IGNORECASE,
+)
+
+
+def is_trivial_prompt(text: Optional[str]) -> bool:
+    """Return True if a user prompt is too trivial to warrant memory recall.
+
+    Empty/whitespace-only input, slash commands, and bare greetings or
+    acknowledgements (with optional trailing punctuation) all count as
+    trivial. Callers use this to skip memory-provider prefetch/injection
+    on turns that carry no semantic signal — saving a blocking network
+    round-trip and preventing stale user-model context from derailing
+    one-word replies.
+    """
+    if not text:
+        return True
+    stripped = text.strip()
+    if not stripped:
+        return True
+    if stripped.startswith("/"):
+        return True
+    return bool(TRIVIAL_PROMPT_RE.match(stripped))
 
 
 class MemoryProvider(ABC):
@@ -78,6 +117,7 @@ class MemoryProvider(ABC):
           - agent_workspace (str): Shared workspace name (e.g. "hermes").
           - parent_session_id (str): For subagents, the parent's session_id.
           - user_id (str): Platform user identifier (gateway sessions).
+          - user_id_alt (str): Optional alternate stable platform user identifier.
         """
 
     def system_prompt_block(self) -> str:
@@ -111,11 +151,22 @@ class MemoryProvider(ABC):
         that do background prefetching should override this.
         """
 
-    def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "") -> None:
+    def sync_turn(
+        self,
+        user_content: str,
+        assistant_content: str,
+        *,
+        session_id: str = "",
+        messages: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """Persist a completed turn to the backend.
 
         Called after each turn. Should be non-blocking — queue for
         background processing if the backend has latency.
+
+        ``messages`` is the OpenAI-style conversation message list as of the
+        completed turn, including any assistant tool calls and tool results.
+        Providers that do not need raw turn context can ignore it.
         """
 
     @abstractmethod
@@ -166,6 +217,7 @@ class MemoryProvider(ABC):
         *,
         parent_session_id: str = "",
         reset: bool = False,
+        rewound: bool = False,
         **kwargs,
     ) -> None:
         """Called when the agent switches session_id mid-process.
@@ -195,6 +247,10 @@ class MemoryProvider(ABC):
             (``_session_turns``, ``_turn_counter``, etc.) when this is
             set. ``False`` for ``/resume`` / ``/branch`` / compression
             where the logical conversation continues under the new id.
+        rewound:
+            ``True`` if session_id is unchanged but the transcript was
+            truncated; providers caching per-turn document state should
+            invalidate.
 
         Default is no-op for backward compatibility.
         """
@@ -235,6 +291,10 @@ class MemoryProvider(ABC):
           required:    True if required (default: False)
           default:     default value (optional)
           choices:     list of valid values (optional)
+          type:        text, integer, number, or boolean (optional)
+          minimum:     numeric lower bound for integer/number fields (optional)
+          maximum:     numeric upper bound for integer/number fields (optional)
+          step:        numeric input step for Dashboard rendering (optional)
           url:         URL where user can get this credential (optional)
           env_var:     explicit env var name for secrets (default: auto-generated)
 
@@ -277,3 +337,21 @@ class MemoryProvider(ABC):
 
         Use to mirror built-in memory writes to your backend.
         """
+
+    def backup_paths(self) -> List[str]:
+        """Return extra on-disk paths this provider stores OUTSIDE HERMES_HOME.
+
+        ``hermes backup`` only walks HERMES_HOME, so any provider state kept
+        under ``~/.honcho``, ``~/.hindsight``, ``~/.openviking``, etc. is lost
+        across a backup/import cycle unless it's declared here.
+
+        Return a list of absolute path strings (files or directories). The
+        backup command resolves each, captures the ones that exist and live
+        under the user's home directory into a reserved ``_external/`` subtree
+        of the archive, and ``hermes import`` restores them to their original
+        locations. Paths outside the home directory are skipped for safety.
+
+        MUST be callable without ``initialize()`` and without network — resolve
+        from config/env only. Default returns an empty list (nothing external).
+        """
+        return []

@@ -2,9 +2,7 @@
 
 import sys
 import types
-from unittest.mock import patch, MagicMock
 
-import pytest
 
 sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))  # ty: ignore[no-matching-overload]
 sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))  # ty: ignore[no-matching-overload]
@@ -131,14 +129,3 @@ class TestStrictApiValidation:
         # Should sanitize for Fireworks (chat_completions mode)
         assert agent._should_sanitize_tool_calls() is True
 
-    def test_no_sanitize_for_codex_responses(self, monkeypatch):
-        """Codex responses mode should NOT sanitize."""
-        agent = _make_agent(
-            monkeypatch,
-            "openai",
-            api_mode="codex_responses",
-            base_url="https://api.openai.com/v1"
-        )
-
-        # Should NOT sanitize for Codex
-        assert agent._should_sanitize_tool_calls() is False

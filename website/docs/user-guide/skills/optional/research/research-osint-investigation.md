@@ -1,23 +1,24 @@
 ---
-title: "Osint Investigation"
+title: "Osint Investigation — Follow the money via public records and sanctions data"
 sidebar_label: "Osint Investigation"
-description: "Public-records OSINT investigation framework — SEC EDGAR filings, USAspending contracts, Senate lobbying, OFAC sanctions, ICIJ offshore leaks, NYC property r..."
+description: "Follow the money via public records and sanctions data"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
 # Osint Investigation
 
-Public-records OSINT investigation framework — SEC EDGAR filings, USAspending contracts, Senate lobbying, OFAC sanctions, ICIJ offshore leaks, NYC property records (ACRIS), OpenCorporates registries, CourtListener court records, Wayback Machine archives, Wikipedia + Wikidata, GDELT news monitoring. Entity resolution across sources, cross-link analysis, timing correlation, evidence chains. Python stdlib only.
+Follow the money via public records and sanctions data.
 
 ## Skill metadata
 
 | | |
 |---|---|
-| Source | Optional — install with `muse skills install official/research/osint-investigation` |
+| Source | Optional — install with `hermes skills install official/research/osint-investigation` |
 | Path | `optional-skills/research/osint-investigation` |
 | Version | `0.1.0` |
-| Author | muse (adapted from ShinMegamiBoson/OpenPlanter, MIT) |
+| Author | Hermes Agent (adapted from ShinMegamiBoson/OpenPlanter, MIT) |
+| License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `osint`, `investigation`, `public-records`, `sec`, `sanctions`, `corporate-registry`, `property`, `courts`, `due-diligence`, `journalism` |
 | Related skills | [`domain-intel`](/docs/user-guide/skills/optional/research/research-domain-intel), [`arxiv`](/docs/user-guide/skills/bundled/research/research-arxiv) |
@@ -25,7 +26,7 @@ Public-records OSINT investigation framework — SEC EDGAR filings, USAspending 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # OSINT Investigation — Public Records Cross-Reference

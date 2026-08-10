@@ -6,8 +6,9 @@ Shows the status of all Hermes Agent components.
 
 import os
 import sys
-import subprocess  # noqa: F401 — re-exported for tests that monkeypatch status.subprocess to guard against regressions
+import time
 import importlib.util
+import subprocess  # noqa: F401 — re-exported for tests that monkeypatch status.subprocess to guard against regressions
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -16,6 +17,10 @@ from hermes_cli.auth import AuthError, resolve_provider
 from hermes_cli.colors import Colors, color
 from hermes_cli.config import get_env_path, get_env_value, get_hermes_home, load_config
 from hermes_cli.models import provider_label
+from hermes_cli.nous_account import (
+    format_nous_portal_entitlement_message,
+    get_nous_portal_account_info,
+)
 from hermes_cli.nous_subscription import get_nous_subscription_features
 from hermes_cli.runtime_provider import resolve_requested_provider
 from hermes_cli.vercel_auth import describe_vercel_auth
@@ -58,6 +63,13 @@ def _format_iso_timestamp(value) -> str:
     return parsed.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
+def _format_relative_ts(ts: float) -> str:
+    """Format an epoch timestamp as a short relative age for status output."""
+    from hermes_cli.timefmt import relative_time
+
+    return relative_time(ts)
+
+
 def _configured_model_label(config: dict) -> str:
     """Return the configured default model from config.yaml."""
     model_cfg = config.get("model")
@@ -78,8 +90,21 @@ def _effective_provider_label() -> str:
     except AuthError:
         effective = requested or "auto"
 
-    if effective == "openrouter" and get_env_value("OPENAI_BASE_URL"):
-        effective = "custom"
+    if effective == "openrouter":
+        # A custom endpoint may be configured either in config.yaml
+        # (model.base_url — the canonical location; the runtime treats
+        # config.yaml as the single source of truth) or via the legacy
+        # OPENAI_BASE_URL env var. Either way, labeling it "OpenRouter"
+        # is misleading (#3296).
+        config_base_url = ""
+        try:
+            model_cfg = load_config().get("model")
+            if isinstance(model_cfg, dict):
+                config_base_url = (model_cfg.get("base_url") or "").strip()
+        except Exception:
+            pass
+        if config_base_url or get_env_value("OPENAI_BASE_URL"):
+            effective = "custom"
 
     return provider_label(effective)
 
@@ -87,15 +112,36 @@ def _effective_provider_label() -> str:
 from hermes_constants import is_termux as _is_termux
 
 
+def _estop_status_line():
+    """One-line pause banner for `hermes status`, or None when not paused.
+
+    Cheap: a single stat on $HERMES_HOME/ESTOP via agent.estop.
+    """
+    try:
+        from agent.estop import get_state
+    except ImportError:
+        return None
+    state = get_state()
+    if state is None:
+        return None
+    reason = state.get("reason")
+    suffix = f" — reason: {reason}" if reason else ""
+    return f"⏸️  PAUSED (global emergency stop{suffix}; `hermes resume` to lift)"
+
+
 def show_status(args):
     """Show status of all Hermes Agent components."""
-    show_all = getattr(args, 'all', False)
     deep = getattr(args, 'deep', False)
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
     print(color("│                 ✦ M.U.S.E. Status                      │", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
+
+    _paused_line = _estop_status_line()
+    if _paused_line:
+        print()
+        print(color(_paused_line, Colors.YELLOW, Colors.BOLD))
 
     # =========================================================================
     # Environment
@@ -136,6 +182,7 @@ def show_status(args):
         "StepFun Step Plan": "STEPFUN_API_KEY",
         "MiniMax": "MINIMAX_API_KEY",
         "MiniMax-CN": "MINIMAX_CN_API_KEY",
+        "DeepInfra": "DEEPINFRA_API_KEY",
         "Firecrawl": "FIRECRAWL_API_KEY",
         "Tavily": "TAVILY_API_KEY",
         "Browser Use": "BROWSER_USE_API_KEY",  # Optional — local browser works without this
@@ -163,12 +210,12 @@ def show_status(args):
             continue
         value = _resolve_env(env_ref)
         has_key = bool(value)
-        display = redact_key(value) if not show_all else value
+        display = redact_key(value)
         print(f"  {name:<12}  {check_mark(has_key)} {display}")
 
     from hermes_cli.auth import get_anthropic_key
     anthropic_value = get_anthropic_key()
-    anthropic_display = redact_key(anthropic_value) if not show_all else anthropic_value
+    anthropic_display = redact_key(anthropic_value)
     print(f"  {'Anthropic':<12}  {check_mark(bool(anthropic_value))} {anthropic_display}")
 
     # =========================================================================
@@ -179,12 +226,14 @@ def show_status(args):
 
     try:
         from hermes_cli.auth import (
-            get_nous_auth_status,
+            get_nous_auth_status_local,
             get_codex_auth_status,
             get_qwen_auth_status,
             get_minimax_oauth_auth_status,
         )
-        nous_status = get_nous_auth_status()
+        # Read-only display: use the refresh-free snapshot so `hermes status`
+        # never performs an OAuth refresh or burns a single-use refresh token.
+        nous_status = get_nous_auth_status_local()
         codex_status = get_codex_auth_status()
         qwen_status = get_qwen_auth_status()
         minimax_status = get_minimax_oauth_auth_status()
@@ -194,26 +243,57 @@ def show_status(args):
         qwen_status = {}
         minimax_status = {}
 
-    nous_logged_in = bool(nous_status.get("logged_in"))
+    nous_account_info = None
+    if (
+        nous_status.get("logged_in")
+        or nous_status.get("access_token")
+        or nous_status.get("portal_base_url")
+        or nous_status.get("inference_credential_present")
+        or nous_status.get("error_code")
+    ):
+        try:
+            nous_account_info = get_nous_portal_account_info()
+        except Exception:
+            nous_account_info = None
+
+    nous_logged_in = bool(
+        nous_status.get("logged_in")
+        or (nous_account_info and nous_account_info.logged_in)
+    )
+    nous_inference_present = bool(
+        nous_status.get("inference_credential_present")
+        or (nous_account_info and nous_account_info.inference_credential_present)
+    )
     nous_error = nous_status.get("error")
-    nous_label = "logged in" if nous_logged_in else "not logged in (run: hermes auth add nous --type oauth)"
+    if nous_logged_in:
+        nous_label = "logged in"
+    elif nous_inference_present:
+        nous_label = "not logged in (Nous inference key configured)"
+    else:
+        nous_label = "not logged in (run: hermes portal)"
     print(
         f"  {'Nous Portal':<12}  {check_mark(nous_logged_in)} "
         f"{nous_label}"
     )
     portal_url = nous_status.get("portal_base_url") or "(unknown)"
+    inference_url = (
+        nous_status.get("inference_base_url")
+        or (nous_account_info.inference_base_url if nous_account_info else None)
+    )
     access_exp = _format_iso_timestamp(nous_status.get("access_expires_at"))
     key_exp = _format_iso_timestamp(nous_status.get("agent_key_expires_at"))
     refresh_label = "yes" if nous_status.get("has_refresh_token") else "no"
     if nous_logged_in or portal_url != "(unknown)" or nous_error:
         print(f"    Portal URL: {portal_url}")
+    if nous_inference_present and inference_url:
+        print(f"    Inference:  {inference_url}")
     if nous_logged_in or nous_status.get("access_expires_at"):
         print(f"    Access exp: {access_exp}")
-    if nous_logged_in or nous_status.get("agent_key_expires_at"):
+    if nous_logged_in or nous_inference_present or nous_status.get("agent_key_expires_at"):
         print(f"    Key exp:    {key_exp}")
     if nous_logged_in or nous_status.get("has_refresh_token"):
         print(f"    Refresh:    {refresh_label}")
-    if nous_error and not nous_logged_in:
+    if nous_error:
         print(f"    Error:      {nous_error}")
 
     codex_logged_in = bool(codex_status.get("logged_in"))
@@ -304,18 +384,18 @@ def show_status(args):
             else:
                 state = "not configured"
             print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_nous)} {state}")
-    elif nous_logged_in:
-        # Logged into Nous but on the free tier — show upgrade nudge
+    elif nous_logged_in or nous_inference_present:
+        # Nous OAuth without entitlement, or an opaque inference key without
+        # Portal account information, cannot enable the Tool Gateway.
         print()
         print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
-        print("  Your free-tier Nous account does not include Tool Gateway access.")
-        print("  Upgrade your subscription to unlock managed web, image, TTS, and browser tools.")
-        try:
-            portal_url = nous_status.get("portal_base_url", "").rstrip("/")
-            if portal_url:
-                print(f"  Upgrade: {portal_url}")
-        except Exception:
-            pass
+        message = format_nous_portal_entitlement_message(
+            nous_account_info,
+            capability="managed web, image, TTS, STT, browser, and Modal tools",
+        )
+        if message:
+            for line in message.splitlines():
+                print(f"  {line}")
 
     # =========================================================================
     # API-Key Providers
@@ -329,6 +409,7 @@ def show_status(args):
         "StepFun Step Plan": ("STEPFUN_API_KEY",),
         "MiniMax":          ("MINIMAX_API_KEY",),
         "MiniMax (China)":  ("MINIMAX_CN_API_KEY",),
+        "DeepInfra":        ("DEEPINFRA_API_KEY",),
     }
     for pname, env_vars in apikey_providers.items():
         key_val = ""
@@ -446,7 +527,13 @@ def show_status(args):
     try:
         from gateway.platform_registry import platform_registry
         for entry in platform_registry.plugin_entries():
-            configured = entry.check_fn()
+            # Per-entry guard: one raising probe must not abort the listing
+            # of every remaining plugin platform (matches the other three
+            # check_fn call sites).
+            try:
+                configured = bool(entry.check_fn())
+            except Exception:
+                configured = False
             status_str = "configured" if configured else "not configured"
             label = entry.label
             print(f"  {label:<12}  {check_mark(configured)} {status_str} (plugin)")
@@ -499,7 +586,9 @@ def show_status(args):
     if jobs_file.exists():
         import json
         try:
-            with open(jobs_file, encoding="utf-8") as f:
+            # utf-8-sig: same dialect as cron/jobs.load_jobs — Windows editors
+            # may leave a UTF-8 BOM that plain utf-8 json.load rejects.
+            with open(jobs_file, encoding="utf-8-sig") as f:
                 data = json.load(f)
                 jobs = data.get("jobs", [])
                 enabled_jobs = [j for j in jobs if j.get("enabled", True)]
@@ -515,17 +604,82 @@ def show_status(args):
     print()
     print(color("◆ Sessions", Colors.CYAN, Colors.BOLD))
 
-    sessions_file = get_hermes_home() / "sessions" / "sessions.json"
-    if sessions_file.exists():
-        import json
+    # Gateway session count: state.db is the source of truth (#9006);
+    # fall back to sessions.json for pre-migration installs.
+    _session_count = None
+    _gateway_rows = []
+    try:
+        from hermes_state import SessionDB
+        _db = SessionDB()
         try:
-            with open(sessions_file, encoding="utf-8") as f:
-                data = json.load(f)
-                print(f"  Active:       {len(data)} session(s)")
-        except Exception:
-            print("  Active:       (error reading sessions file)")
+            _lister = getattr(_db, "list_gateway_sessions", None)
+            if callable(_lister):
+                _gateway_rows = _lister(active_only=True) or []
+                _session_count = len(_gateway_rows)
+        finally:
+            _db.close()
+    except Exception:
+        _session_count = None
+        _gateway_rows = []
+
+    if _session_count is not None and _session_count > 0:
+        print(f"  Active:       {_session_count} session(s)")
+        freshest = max(
+            (float(r.get("last_active") or 0) for r in _gateway_rows),
+            default=0.0,
+        )
+        if freshest > 0:
+            print(f"  Last activity:{_format_relative_ts(freshest):>13}")
     else:
-        print("  Active:       0")
+        sessions_file = get_hermes_home() / "sessions" / "sessions.json"
+        if sessions_file.exists():
+            import json
+            try:
+                with open(sessions_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                    _entries = {
+                        k: v for k, v in data.items()
+                        if not str(k).startswith("_")
+                    } if isinstance(data, dict) else {}
+                    print(f"  Active:       {len(_entries)} session(s)")
+            except Exception:
+                print("  Active:       (error reading sessions file)")
+        else:
+            print(f"  Active:       {_session_count if _session_count is not None else 0}")
+
+    # Slot usage, only when max_concurrent_sessions is set. The cap is shared
+    # across CLI, desktop/TUI and the messaging gateway, so the surface that
+    # gets rejected is rarely the one holding the slots — without this the only
+    # way to find out is reading runtime/active_sessions.json by hand.
+    try:
+        from hermes_cli.active_sessions import (
+            active_session_registry_snapshot,
+            format_age,
+            resolve_max_concurrent_sessions,
+        )
+
+        _cap = resolve_max_concurrent_sessions(config)
+    except Exception:
+        _cap = None
+    if _cap:
+        try:
+            _held = active_session_registry_snapshot()
+        except Exception:
+            _held = []
+        _full = len(_held) >= _cap
+        print(
+            "  Slots:        "
+            + color(
+                f"{len(_held)}/{_cap} in use", Colors.YELLOW if _full else Colors.GREEN
+            )
+        )
+        _now = time.time()
+        for _entry in sorted(_held, key=lambda e: e.get("started_at") or 0):
+            _age = format_age(_now - float(_entry.get("started_at") or _now))
+            print(
+                f"                {_entry.get('surface') or 'unknown':<17} "
+                f"{_entry.get('session_id') or '?':<24} {_age}"
+            )
 
     # =========================================================================
     # Deep checks

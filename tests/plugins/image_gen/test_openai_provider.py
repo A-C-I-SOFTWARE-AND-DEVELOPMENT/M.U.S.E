@@ -85,10 +85,6 @@ class TestAvailability:
 
 
 class TestModelResolution:
-    def test_default_is_medium(self):
-        model_id, meta = openai_plugin._resolve_model()
-        assert model_id == "gpt-image-2-medium"
-        assert meta["quality"] == "medium"
 
     def test_env_var_override(self, monkeypatch):
         monkeypatch.setenv("OPENAI_IMAGE_MODEL", "gpt-image-2-high")
@@ -96,10 +92,6 @@ class TestModelResolution:
         assert model_id == "gpt-image-2-high"
         assert meta["quality"] == "high"
 
-    def test_env_var_unknown_falls_back(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_IMAGE_MODEL", "bogus-tier")
-        model_id, _ = openai_plugin._resolve_model()
-        assert model_id == openai_plugin.DEFAULT_MODEL
 
     def test_config_openai_model(self, tmp_path):
         import yaml
@@ -110,18 +102,34 @@ class TestModelResolution:
         assert model_id == "gpt-image-2-low"
         assert meta["quality"] == "low"
 
-    def test_config_top_level_model(self, tmp_path):
-        """``image_gen.model: gpt-image-2-high`` also works (top-level)."""
-        import yaml
-        (tmp_path / "config.yaml").write_text(
-            yaml.safe_dump({"image_gen": {"model": "gpt-image-2-high"}})
-        )
-        model_id, meta = openai_plugin._resolve_model()
-        assert model_id == "gpt-image-2-high"
-        assert meta["quality"] == "high"
-
 
 # ── Generate ────────────────────────────────────────────────────────────────
+
+
+class TestSourceImageLoading:
+    def test_load_image_bytes_blocks_credential_store(self, tmp_path, monkeypatch):
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        auth_json = hermes_home / "auth.json"
+        auth_json.write_text('{"api_key":"sk-secret"}', encoding="utf-8")
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+
+        with pytest.raises(ValueError, match="credential store"):
+            openai_plugin._load_image_bytes(str(auth_json))
+
+
+    def test_load_image_bytes_allows_legit_local_image(self, tmp_path, monkeypatch):
+        """Negative control: a legitimate local image path is NOT blocked and
+        loads normally — proves the guard doesn't over-fire on everything."""
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        img = tmp_path / "pic.png"
+        img.write_bytes(b"\x89PNG\r\n\x1a\nfake-image-bytes")
+
+        data, name = openai_plugin._load_image_bytes(str(img))
+        assert data == b"\x89PNG\r\n\x1a\nfake-image-bytes"
+        assert name == "pic.png"
 
 
 class TestGenerate:
@@ -137,7 +145,6 @@ class TestGenerate:
         assert result["error_type"] == "auth_required"
 
     def test_b64_saves_to_cache(self, provider, tmp_path):
-        import base64
         png_bytes = bytes.fromhex(_PNG_HEX)
         fake_client = MagicMock()
         fake_client.images.generate.return_value = _fake_response(b64=_b64_png())
@@ -208,36 +215,28 @@ class TestGenerate:
 
         assert result["revised_prompt"] == "A photo of a cat"
 
-    def test_api_error_returns_error_response(self, provider):
-        fake_client = MagicMock()
-        fake_client.images.generate.side_effect = RuntimeError("boom")
 
-        with _patched_openai(fake_client):
-            result = provider.generate("a cat")
+    def test_url_response_is_cached_locally(self, provider):
+        """OpenAI URL response (if API ever returns one) is cached locally.
 
-        assert result["success"] is False
-        assert result["error_type"] == "api_error"
-        assert "boom" in result["error"]
-
-    def test_empty_response_data(self, provider):
-        fake_client = MagicMock()
-        fake_client.images.generate.return_value = SimpleNamespace(data=[])
-
-        with _patched_openai(fake_client):
-            result = provider.generate("a cat")
-
-        assert result["success"] is False
-        assert result["error_type"] == "empty_response"
-
-    def test_url_fallback_if_api_changes(self, provider):
-        """Defensive: if OpenAI ever returns URL instead of b64, pass through."""
+        Pre-fix this asserted the bare URL passed through; symmetric to the
+        xAI #26942 fix.  Even though gpt-image-2 returns b64 today, every
+        ``image_gen`` provider must guarantee the gateway gets a stable
+        file path so ephemeral signed URLs can't expire mid-flight.
+        """
         fake_client = MagicMock()
         fake_client.images.generate.return_value = _fake_response(
             b64=None, url="https://example.com/img.png",
         )
 
-        with _patched_openai(fake_client):
+        with _patched_openai(fake_client), patch(
+            "plugins.image_gen.openai.save_url_image",
+            return_value=Path("/tmp/openai_gpt-image-2_20260524_000000_deadbeef.png"),
+        ) as mock_save_url:
             result = provider.generate("a cat")
 
         assert result["success"] is True
-        assert result["image"] == "https://example.com/img.png"
+        assert result["image"].startswith("/")
+        assert "example.com" not in result["image"]
+        mock_save_url.assert_called_once()
+

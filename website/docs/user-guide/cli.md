@@ -1,56 +1,81 @@
 ---
 sidebar_position: 1
 title: "CLI Interface"
-description: "Master the muse terminal interface — commands, keybindings, personalities, and more"
+description: "Master the Hermes Agent terminal interface — commands, keybindings, personalities, and more"
 ---
 
 # CLI Interface
 
-muse's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
+Hermes Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
+
+:::tip First-time setup
+One command — `hermes setup --portal` — and you're ready to `hermes chat`. See [Nous Portal](/integrations/nous-portal).
+:::
 
 :::tip
-muse also ships a modern TUI with modal overlays, mouse selection, and non-blocking input. Launch it with `muse --tui` — see the [TUI](tui.md) guide.
+Hermes also ships a modern TUI with modal overlays, mouse selection, and non-blocking input. Launch it with `hermes --tui` — see the [TUI](tui.md) guide.
 :::
 
 ## Running the CLI
 
 ```bash
 # Start an interactive session (default)
-muse
+hermes
 
 # Single query mode (non-interactive)
-muse chat -q "Hello"
+hermes chat -q "Hello"
 
 # With a specific model
-muse chat --model "anthropic/claude-sonnet-4"
+hermes chat --model "anthropic/claude-sonnet-4"
 
 # With a specific provider
-muse chat --provider nous        # Use Nous Portal
-muse chat --provider openrouter  # Force OpenRouter
+hermes chat --provider nous        # Use Nous Portal
+hermes chat --provider openrouter  # Force OpenRouter
 
 # With specific toolsets
-muse chat --toolsets "web,terminal,skills"
+hermes chat --toolsets "web,terminal,skills"
 
 # Start with one or more skills preloaded
-muse -s hermes-agent-dev,github-auth
-muse chat -s github-pr-workflow -q "open a draft PR"
+hermes -s hermes-agent-dev,github-auth
+hermes chat -s github-pr-workflow -q "open a draft PR"
 
 # Resume previous sessions
-muse --continue             # Resume the most recent CLI session (-c)
-muse --resume <session_id>  # Resume a specific session by ID (-r)
+hermes --continue             # Resume the most recent CLI session (-c)
+hermes --resume <session_id>  # Resume a specific session by ID (-r)
+hermes --resume latest        # Resume the most recent session (same as -c)
+hermes --resume latest --in ./dir  # Resume ./dir's latest session, staying in ./dir
 
 # Verbose mode (debug output)
-muse chat --verbose
+hermes chat --verbose
 
 # Isolated git worktree (for running multiple agents in parallel)
-muse -w                         # Interactive mode in worktree
-muse -w -q "Fix issue #123"     # Single query in worktree
+hermes -w                         # Interactive mode in worktree
+hermes -w -z "Fix issue #123"     # Single query in worktree
 ```
+
+### Plugin management
+
+The `hermes plugins` commands manage native Hermes plugins and portable Agent
+Plugins v1 packages through the same opt-in workflow:
+
+```bash
+hermes plugins install owner/repository --no-enable
+hermes plugins list
+hermes plugins enable <plugin-name>
+hermes plugins disable <plugin-name>
+hermes plugins update <plugin-name>
+hermes plugins remove <plugin-name>
+```
+
+Portable packages remain disabled until explicitly enabled. Hermes currently
+loads portable Agent Skills and stdio MCP entries. See the
+[plugin developer guide](/developer-guide/plugins#portable-agent-plugins-v1-packages)
+for the exact supported subset and trust boundary.
 
 ## Interface Layout
 
-<img className="docs-terminal-figure" src="/img/docs/cli-layout.svg" alt="Stylized preview of the muse CLI layout showing the banner, conversation area, and fixed input prompt." />
-<p className="docs-figure-caption">The muse CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
+<img className="docs-terminal-figure" src="/docs/img/docs/cli-layout.svg" alt="Stylized preview of the Hermes CLI layout showing the banner, conversation area, and fixed input prompt." />
+<p className="docs-figure-caption">The Hermes CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
 
 The welcome banner shows your model, terminal backend, working directory, available tools, and installed skills at a glance.
 
@@ -71,7 +96,8 @@ A persistent status bar sits above the input area, updating in real time:
 | 🗜️ N | **Context compression count** — how many times the running session has been auto-compressed. Appears once the first compression fires. |
 | ▶ N | **Active background tasks** — how many `/background` prompts are still running in the current session. Appears whenever at least one task is in flight. |
 | Duration | Elapsed session time |
-| ⚠ YOLO | **YOLO mode warning** — shown whenever `HERMES_YOLO_MODE` is on (either `muse --yolo` at launch or `/yolo` toggled mid-session). Mirrors the banner-line warning so you can't forget you're in auto-approve mode. |
+| Session title | Once the session has a title, it appears as a gold badge pinned to the far-right edge. Long titles truncate before displacing the essential model and context fields. |
+| ⚠ YOLO | **YOLO mode warning** — shown whenever `HERMES_YOLO_MODE` is on (either `hermes --yolo` at launch or `/yolo` toggled mid-session). Mirrors the banner-line warning so you can't forget you're in auto-approve mode. |
 
 The bar adapts to terminal width — full layout at ≥ 76 columns, compact at 52–75, minimal (model + duration, plus the YOLO badge when active) below 52.
 
@@ -86,9 +112,11 @@ The bar adapts to terminal width — full layout at ≥ 76 columns, compact at 5
 
 Use `/usage` for a detailed breakdown including per-category costs (input vs output tokens).
 
+On the `openai-codex` provider, `/usage` also shows any banked usage-limit resets on your ChatGPT account ("You have N resets banked - use /usage reset to activate"). `/usage reset` redeems one banked reset, fully restoring your 5-hour and weekly limits. Hermes refuses to redeem while your limits aren't exhausted (a banked reset restores the full allowance, so spending it early wastes it) — pass `/usage reset --force` to redeem anyway.
+
 ### Session Resume Display
 
-When resuming a previous session (`muse -c` or `muse --resume <id>`), a "Previous Conversation" panel appears between the banner and the input prompt, showing a compact recap of the conversation history. See [Sessions — Conversation Recap on Resume](sessions.md#conversation-recap-on-resume) for details and configuration.
+When resuming a previous session (`hermes -c` or `hermes --resume <id>`), a "Previous Conversation" panel appears between the banner and the input prompt, showing a compact recap of the conversation history. See [Sessions — Conversation Recap on Resume](sessions.md#conversation-recap-on-resume) for details and configuration.
 
 ## Keybindings
 
@@ -101,18 +129,39 @@ When resuming a previous session (`muse -c` or `muse --resume <id>`), a "Previou
 | `Ctrl+B` | Start/stop voice recording when voice mode is enabled (`voice.record_key`, default: `ctrl+b`) |
 | `Ctrl+G` | Open the current input buffer in `$EDITOR` (vim/nvim/nano/VS Code/etc.). Save and quit to send the edited text as the next prompt — ideal for long, multi-paragraph prompts. |
 | `Ctrl+X Ctrl+E` | Emacs-style alternate binding for the external editor (same behavior as `Ctrl+G`). |
+| `Ctrl+S` | **Stash the prompt.** Parks the current draft and clears the composer so you can send something else first. Press `Ctrl+S` again on an empty composer to bring the draft back (cursor at the end, attached images restored). Repeated presses build a stack rather than overwriting, so an earlier draft is never silently lost — with two or more stashed, `Ctrl+S` opens a browse panel (`↑`/`↓` to navigate, `Enter` to restore, `D` to discard, `Esc` or `Ctrl+S` to close). A `📌 N` badge in the status bar shows how many drafts are parked. Multi-line drafts round-trip exactly, including blank lines. The stash lives in memory for the session only — nothing is written to disk, since drafts often contain secrets. |
 | `Ctrl+C` | Interrupt agent (double-press within 2s to force exit) |
 | `Ctrl+D` | Exit |
-| `Ctrl+Z` | Suspend muse to background (Unix only). Run `fg` in the shell to resume. |
+| `Ctrl+Z` | Suspend Hermes to background (Unix only). Run `fg` in the shell to resume. |
 | `Tab` | Accept auto-suggestion (ghost text) or autocomplete slash commands |
+| `!<command>` | **Shell mode** — run a shell command yourself without spending a model turn (e.g. `!git status`, `!pytest -x`). See below. |
 
 **Multiline paste preview.** When you paste a multi-line block, the CLI echoes a compact single-line preview (`[pasted: 47 lines, 1,842 chars — press Enter to send]`) instead of dumping the whole payload into the scrollback. The full content is still what gets sent; this is just display polish.
+
+### `!` Shell Mode
+
+Start a line with `!` to run it as a shell command instead of sending it to the agent:
+
+```
+> !git status
+> !ls -la
+> !pytest -x tests/cli
+```
+
+- **Zero cost.** The model is never invoked — no API call, no tokens, no latency.
+- **Nothing enters the conversation.** The command and its output are not added to history, so your context stays clean and the prompt cache is untouched.
+- **Runs where the agent's `terminal` tool runs.** Uses the session working directory, so `!pwd` matches what the agent would see.
+- **Approvals still apply.** A dangerous command (`rm -rf`, writes to `~/.hermes/config.yaml`, etc.) goes through the same approval prompt the agent's `terminal` tool uses. `!` is a cost/latency shortcut, not a security bypass.
+- **Non-zero exits are shown.** A failing command prints `! exited <code>` after its output.
+- `!` on its own prints a one-line usage reminder.
+
+Shell mode is CLI-only. Gateway platforms (Discord, Telegram, Slack) and cron runs ignore it — those users already have their own shells.
 
 **Markdown stripping in final responses.** The CLI strips the most verbose markdown fences and `**bold**` / `*italic*` wrappers from *final* agent replies so they render as readable terminal prose rather than raw source. Code blocks and lists are preserved. This does not affect gateway platforms or tool results — they keep their markdown for native rendering.
 
 ## Slash Commands
 
-Type `/` to see the autocomplete dropdown. muse supports a large set of CLI slash commands, dynamic skill commands, and user-defined quick commands.
+Type `/` to see the autocomplete dropdown. Hermes supports a large set of CLI slash commands, dynamic skill commands, and user-defined quick commands.
 
 Common examples:
 
@@ -125,10 +174,11 @@ Common examples:
 | `/background <prompt>` | Run a prompt in a separate background session |
 | `/skin` | Show or switch the active CLI skin |
 | `/voice on` | Enable CLI voice mode (press `Ctrl+B` to record) |
-| `/voice tts` | Toggle spoken playback for muse replies |
+| `/voice tts` | Toggle spoken playback for Hermes replies |
 | `/reasoning high` | Increase reasoning effort |
 | `/title My Session` | Name the current session |
 | `/status` | Show session info — model/profile/tokens/duration — followed by a local **Session recap** block (recent turn counts, top tools used, files touched, latest user prompt + assistant reply). Pure local compute; no LLM call. |
+| `/context [all]` | Visual context-usage breakdown — glyph block grid + per-category token table (system prompt / tools / skills / memory / conversation / free space). `/context all` adds per-skill and per-toolset costs. |
 | `/sessions` | Open an interactive session picker right inside the classic CLI (same surface the TUI uses). Type to filter, arrow keys to navigate, Enter to resume. |
 
 For the full built-in CLI and messaging lists, see [Slash Commands Reference](../reference/slash-commands.md).
@@ -157,18 +207,18 @@ quick_commands:
     target: /gateway restart
 ```
 
-Then type `/status`, `/gpu`, or `/restart` in any chat. See the [Configuration guide](/docs/user-guide/configuration#quick-commands) for more examples.
+Then type `/status`, `/gpu`, or `/restart` in any chat. See the [Configuration guide](/user-guide/configuration#quick-commands) for more examples.
 
 ## Preloading Skills at Launch
 
 If you already know which skills you want active for the session, pass them at launch time:
 
 ```bash
-muse -s hermes-agent-dev,github-auth
-muse chat -s github-pr-workflow -s github-auth
+hermes -s hermes-agent-dev,github-auth
+hermes chat -s github-pr-workflow -s github-auth
 ```
 
-muse loads each named skill into the session prompt before the first turn. The same flag works in interactive mode and single-query mode.
+Hermes loads each named skill into the session prompt before the first turn. The same flag works in interactive mode and single-query mode.
 
 ## Skill Slash Commands
 
@@ -195,13 +245,15 @@ Set a predefined personality to change the agent's tone:
 
 Built-in personalities include: `helpful`, `concise`, `technical`, `creative`, `teacher`, `kawaii`, `catgirl`, `pirate`, `shakespeare`, `surfer`, `noir`, `uwu`, `philosopher`, `hype`.
 
+To go back to the default (no overlay), use `/personality none` — `default` and `neutral` work too.
+
 You can also define custom personalities in `~/.hermes/config.yaml`:
 
 ```yaml
 personalities:
   helpful: "You are a helpful, friendly AI assistant."
   kawaii: "You are a kawaii assistant! Use cute expressions..."
-  pirate: "Arrr! Ye be talkin' to Captain muse"
+  pirate: "Arrr! Ye be talkin' to Captain Hermes..."
   # Add your own!
 ```
 
@@ -224,7 +276,7 @@ Pasting multi-line text is supported — use any of the newline keys above, or s
 
 ### Shift+Enter compatibility
 
-Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by default, so applications cannot distinguish them. muse recognises `Shift+Enter` only when the terminal sends a distinct sequence via the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) or xterm's `modifyOtherKeys` mode.
+Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by default, so applications cannot distinguish them. Hermes recognises `Shift+Enter` only when the terminal sends a distinct sequence via the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) or xterm's `modifyOtherKeys` mode.
 
 | Terminal | Status |
 |---|---|
@@ -233,16 +285,16 @@ Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by defa
 | Windows Terminal Preview 1.25+ | Supported once the Kitty protocol is enabled in settings |
 | macOS Terminal.app, stock Windows Terminal (stable) | Not supported — `Shift+Enter` is indistinguishable from `Enter` |
 
-Where the terminal cannot distinguish them, `Alt+Enter` and `Ctrl+J` continue to work everywhere. **On Windows Terminal specifically, `Alt+Enter` is captured by the terminal (toggles fullscreen) and never reaches muse — use `Ctrl+Enter` (delivered as `Ctrl+J`) or `Ctrl+J` directly for a newline.**
+Where the terminal cannot distinguish them, `Alt+Enter` and `Ctrl+J` continue to work everywhere. **On Windows Terminal specifically, `Alt+Enter` is captured by the terminal (toggles fullscreen) and never reaches Hermes — use `Ctrl+Enter` (delivered as `Ctrl+J`) or `Ctrl+J` directly for a newline.**
 
-## Interrupting the Agent
+## Redirecting the Agent Mid-Turn
 
-You can interrupt the agent at any point:
+While the agent is working, you can send a correction without starting a new turn:
 
-- **Type a new message + Enter** while the agent is working — it interrupts and processes your new instructions
+- **Type a new message + Enter** — redirects the active turn using your correction
 - **`Ctrl+C`** — interrupt the current operation (press twice within 2s to force exit)
-- In-progress terminal commands are killed immediately (SIGTERM, then SIGKILL after 1s)
-- Multiple messages typed during interrupt are combined into one prompt
+- Completed tool work and reasoning already shown stay in context
+- A running tool reaches its safe boundary before the correction is applied
 
 ### Busy Input Mode
 
@@ -250,7 +302,7 @@ The `display.busy_input_mode` config key controls what happens when you press En
 
 | Mode | Behavior |
 |------|----------|
-| `"interrupt"` (default) | Your message interrupts the current operation and is processed immediately |
+| `"interrupt"` (default) | Your message redirects the active turn. Model generation restarts with displayed reasoning and completed work preserved; running tools finish first |
 | `"queue"` | Your message is silently queued and sent as the next turn after the agent finishes |
 | `"steer"` | Your message is injected into the current run via `/steer`, arriving at the agent after the next tool call — no interrupt, no new turn |
 
@@ -260,7 +312,7 @@ display:
   busy_input_mode: "steer"   # or "queue" or "interrupt" (default)
 ```
 
-`"queue"` mode is useful when you want to prepare follow-up messages without accidentally canceling in-flight work. `"steer"` mode is useful when you want to redirect the agent mid-task without interrupting — e.g. "actually, also check the tests" while it's still editing code. Unknown values fall back to `"interrupt"`.
+`"queue"` mode prepares a separate follow-up turn. `"steer"` always waits for the next tool-result boundary. The default `"interrupt"` mode responds sooner during model generation while avoiding cancellation of a running tool. Use `/stop` when you want to cancel the turn and its foreground work. Unknown values fall back to `"interrupt"`.
 
 `"steer"` has two automatic fallbacks: if the agent hasn't started yet, or if images are attached, the message falls back to `"queue"` behavior so nothing is lost.
 
@@ -274,15 +326,15 @@ You can also change it inside the CLI:
 ```
 
 :::tip First-touch hint
-The very first time you press Enter while muse is working, muse prints a one-line reminder explaining the `/busy` knob (`"(tip) Your message interrupted the current run…"`). It only fires once per install — a flag in `config.yaml` under `onboarding.seen.busy_input_prompt` latches it. Delete that key to see the tip again.
+The first time you press Enter while Hermes is working, Hermes prints a one-line reminder explaining the `/busy` knob. It only fires once per install; `onboarding.seen.busy_input_prompt` in `config.yaml` records that it was shown. Delete that key to see the tip again.
 :::
 
 ### Suspending to Background
 
-On Unix systems, press **`Ctrl+Z`** to suspend muse to the background — just like any terminal process. The shell prints a confirmation:
+On Unix systems, press **`Ctrl+Z`** to suspend Hermes to the background — just like any terminal process. The shell prints a confirmation:
 
 ```
-muse has been suspended. Run `fg` to bring muse back.
+Hermes Agent has been suspended. Run `fg` to bring Hermes Agent back.
 ```
 
 Type `fg` in your shell to resume the session exactly where you left off. This is not supported on Windows.
@@ -305,7 +357,7 @@ The CLI shows animated feedback as the agent works:
   ┊ 📄 web_extract (2.1s)
 ```
 
-Cycle through display modes with `/verbose`: `off → new → all → verbose`. This command can also be enabled for messaging platforms — see [configuration](/docs/user-guide/configuration#display-settings).
+Cycle through display modes with `/verbose`: `off → new → all → verbose`. This command can also be enabled for messaging platforms — see [configuration](/user-guide/configuration#display-settings).
 
 ### Tool Preview Length
 
@@ -327,7 +379,7 @@ When you exit a CLI session, a resume command is printed:
 
 ```
 Resume this session with:
-  muse --resume 20260225_143052_a1b2c3
+  hermes --resume 20260225_143052_a1b2c3
 
 Session:        20260225_143052_a1b2c3
 Duration:       12m 34s
@@ -337,21 +389,23 @@ Messages:       28 (5 user, 18 tool calls)
 Resume options:
 
 ```bash
-muse --continue                          # Resume the most recent CLI session
-muse -c                                  # Short form
-muse -c "my project"                     # Resume a named session (latest in lineage)
-muse --resume 20260225_143052_a1b2c3     # Resume a specific session by ID
-muse --resume "refactoring auth"         # Resume by title
-muse -r 20260225_143052_a1b2c3           # Short form
+hermes --continue                          # Resume the most recent CLI session
+hermes -c                                  # Short form
+hermes -c "my project"                     # Resume a named session (latest in lineage)
+hermes --resume 20260225_143052_a1b2c3     # Resume a specific session by ID
+hermes --resume "refactoring auth"         # Resume by title
+hermes --resume latest                     # Resume the most recent session (same as -c)
+hermes --resume latest --in ./my-project   # Latest session for ./my-project's workspace
+hermes -r 20260225_143052_a1b2c3           # Short form
 ```
 
 Resuming restores the full conversation history from SQLite. The agent sees all previous messages, tool calls, and responses — just as if you never left.
 
-Use `/title My Session Name` inside a chat to name the current session, or `muse sessions rename <id> <title>` from the command line. Use `muse sessions list` to browse past sessions.
+Use `/title My Session Name` inside a chat to name the current session, or `hermes sessions rename <id> <title>` from the command line. Use `hermes sessions list` to browse past sessions.
 
 ### Session Storage
 
-CLI sessions are stored in muse's SQLite state database under `~/.hermes/state.db`. The database keeps:
+CLI sessions are stored in Hermes's SQLite state database under `~/.hermes/state.db`. The database keeps:
 
 - session metadata (ID, title, timestamps, token counters)
 - message history
@@ -386,7 +440,7 @@ Run a prompt in a separate background session while continuing to use the CLI fo
 /background Analyze the logs in /var/log and summarize any errors from today
 ```
 
-muse immediately confirms the task and gives you back the prompt:
+Hermes immediately confirms the task and gives you back the prompt:
 
 ```
 🔄 Background task #1 started: "Analyze the logs in /var/log and summarize..."
@@ -407,7 +461,7 @@ Each `/background` prompt spawns a **completely separate agent session** in a da
 When a background task finishes, the result appears as a panel in your terminal:
 
 ```
-╭─ ⚕ muse (background #1) ──────────────────────────────────╮
+╭─ ⚕ Hermes (background #1) ──────────────────────────────────╮
 │ Found 3 errors in syslog from today:                         │
 │ 1. OOM killer invoked at 03:22 — killed process nginx        │
 │ 2. Disk I/O error on /dev/sda1 at 07:15                      │
@@ -436,5 +490,5 @@ By default, the CLI runs in quiet mode which:
 
 For debug output:
 ```bash
-muse chat --verbose
+hermes chat --verbose
 ```

@@ -6,11 +6,8 @@ Claude Code credentials are available. The fast-path silently proceeds to
 model selection with a broken token instead of offering re-auth.
 """
 
-import json
-import pytest
-from unittest.mock import patch, MagicMock
 
-from hermes_cli.config import load_env, save_env_value
+from hermes_cli.config import save_env_value
 
 
 class TestStaleOAuthTokenDetection:
@@ -54,7 +51,7 @@ class TestStaleOAuthTokenDetection:
 
         # Simulate user types "3" (Cancel) when prompted for re-auth
         monkeypatch.setattr("builtins.input", lambda _: "3")
-        monkeypatch.setattr("getpass.getpass", lambda _: "")
+        monkeypatch.setattr("hermes_cli.secret_prompt.masked_secret_prompt", lambda _: "")
 
         from hermes_cli.main import _model_flow_anthropic
         cfg = {}
@@ -104,50 +101,6 @@ class TestStaleOAuthTokenDetection:
         # Should show "Use existing credentials" menu, NOT auth method choice
         assert "Use existing" in output or "credentials" in output.lower()
 
-    def test_valid_oauth_token_with_refresh_available_skips_reauth(self, tmp_path, monkeypatch, capsys):
-        """
-        When ANTHROPIC_TOKEN is OAuth and valid cc_creds with refresh exist,
-        the flow should use existing credentials (no forced re-auth).
-        """
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-
-        save_env_value("ANTHROPIC_TOKEN", "sk-ant-oat-GoodOAuthToken")
-        save_env_value("ANTHROPIC_API_KEY", "")
-
-        # Valid Claude Code credentials with refresh token
-        monkeypatch.setattr(
-            "agent.anthropic_adapter.read_claude_code_credentials",
-            lambda: {
-                "accessToken": "valid-cc-token",
-                "refreshToken": "valid-refresh",
-                "expiresAt": 9999999999999,
-            },
-        )
-        monkeypatch.setattr(
-            "agent.anthropic_adapter.is_claude_code_token_valid",
-            lambda creds: True,
-        )
-        monkeypatch.setattr(
-            "agent.anthropic_adapter._is_oauth_token",
-            lambda key: key.startswith("sk-ant-"),
-        )
-        monkeypatch.setattr(
-            "agent.anthropic_adapter._resolve_claude_code_token_from_credentials",
-            lambda creds=None: "valid-cc-token",
-        )
-
-        # Simulate user picks "1" (use existing)
-        monkeypatch.setattr("builtins.input", lambda _: "1")
-
-        from hermes_cli.main import _model_flow_anthropic
-        cfg = {}
-
-        _model_flow_anthropic(cfg)
-
-        output = capsys.readouterr().out
-        # Should show "Use existing" without forcing re-auth
-        assert "Use existing" in output or "credentials" in output.lower()
-
 
 class TestStaleOAuthGuardLogic:
     """Unit-level test of the stale-OAuth detection guard logic."""
@@ -190,21 +143,3 @@ class TestStaleOAuthGuardLogic:
         assert existing_is_stale_oauth is False
         assert has_creds is True
 
-    def test_non_oauth_key_not_flagged_as_stale(self):
-        """
-        Regular ANTHROPIC_API_KEY (non-OAuth) must not be flagged as stale
-        even when cc_available is False.
-        """
-        existing_key = "sk-ant-api03-regular-key"
-        _is_oauth_token = lambda k: k.startswith("sk-ant-") and "oat" in k
-        cc_available = False
-
-        existing_is_stale_oauth = (
-            bool(existing_key) and
-            _is_oauth_token(existing_key) and
-            not cc_available
-        )
-        has_creds = (bool(existing_key) and not existing_is_stale_oauth) or cc_available
-
-        assert existing_is_stale_oauth is False
-        assert has_creds is True

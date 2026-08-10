@@ -21,6 +21,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, List, Optional
 
+from hermes_cli.fallback_config import get_fallback_chain
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,20 +32,11 @@ def _read_chain(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Return the normalized fallback chain as a list of dicts.
 
     Accepts both the new list format (``fallback_providers``) and the legacy
-    single-dict format (``fallback_model``).  The returned list is always a
-    fresh copy — callers can mutate without touching the config dict.
+    ``fallback_model`` format. When both are present, the effective chain is
+    merged with ``fallback_providers`` entries kept first. The returned list is
+    always a fresh copy — callers can mutate without touching the config dict.
     """
-    chain = config.get("fallback_providers") or []
-    if isinstance(chain, list):
-        result = [dict(e) for e in chain if isinstance(e, dict) and e.get("provider") and e.get("model")]
-        if result:
-            return result
-    legacy = config.get("fallback_model")
-    if isinstance(legacy, dict) and legacy.get("provider") and legacy.get("model"):
-        return [dict(legacy)]
-    if isinstance(legacy, list):
-        return [dict(e) for e in legacy if isinstance(e, dict) and e.get("provider") and e.get("model")]
-    return []
+    return get_fallback_chain(config)
 
 
 def _write_chain(config: Dict[str, Any], chain: List[Dict[str, Any]]) -> None:
@@ -191,10 +184,26 @@ def cmd_fallback_add(args) -> None:
         return
 
     # Picker picked the same thing that's already the primary → nothing changed,
-    # and there's nothing useful to add as a fallback to itself.
+    # and there's nothing useful to add as a fallback to itself. Identity
+    # semantics owned by agent.backend_identity (#54250/#57584/#62984): same
+    # provider+model on a DIFFERENT explicit base_url is a different backend
+    # (multi-endpoint pool) and is a legitimate fallback.
+    from agent.backend_identity import BackendIdentity, same_deployment
+
+    new_ident = BackendIdentity.build(
+        provider=new_entry.get("provider"),
+        model=new_entry.get("model"),
+        base_url=new_entry.get("base_url"),
+    )
     primary_entry = _extract_fallback_from_model_cfg(model_before)
-    if primary_entry and primary_entry["provider"] == new_entry["provider"] \
-            and primary_entry["model"] == new_entry["model"]:
+    if primary_entry and same_deployment(
+        BackendIdentity.build(
+            provider=primary_entry.get("provider"),
+            model=primary_entry.get("model"),
+            base_url=primary_entry.get("base_url"),
+        ),
+        new_ident,
+    ):
         _restore_model_cfg(model_before)
         _restore_auth_active_provider(active_provider_before)
         print()
@@ -212,10 +221,17 @@ def cmd_fallback_add(args) -> None:
     final_cfg = load_config()
     chain = _read_chain(final_cfg)
 
-    # Reject exact-duplicate fallback entries.
+    # Reject exact-duplicate fallback entries (same deployment; a different
+    # explicit base_url is a different endpoint and NOT a duplicate).
     for existing in chain:
-        if existing.get("provider") == new_entry["provider"] \
-                and existing.get("model") == new_entry["model"]:
+        if same_deployment(
+            BackendIdentity.build(
+                provider=existing.get("provider"),
+                model=existing.get("model"),
+                base_url=existing.get("base_url"),
+            ),
+            new_ident,
+        ):
             print()
             print(f"  {_format_entry(new_entry)} is already in the fallback chain — skipped.")
             return

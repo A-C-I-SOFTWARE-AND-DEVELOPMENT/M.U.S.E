@@ -1,27 +1,27 @@
 ---
 sidebar_position: 12
 title: "Working with Skills"
-description: "Find, install, use, and create skills — on-demand knowledge that teaches muse new workflows"
+description: "Find, install, use, and create skills — on-demand knowledge that teaches Hermes new workflows"
 ---
 
 # Working with Skills
 
-Skills are on-demand knowledge documents that teach muse how to handle specific tasks — from generating ASCII art to managing GitHub PRs. This guide walks you through using them day to day.
+Skills are on-demand knowledge documents that teach Hermes how to handle specific tasks — from generating ASCII art to managing GitHub PRs. This guide walks you through using them day to day.
 
-For the full technical reference, see [Skills System](/docs/user-guide/features/skills).
+For the full technical reference, see [Skills System](/user-guide/features/skills).
 
 ---
 
 ## Finding Skills
 
-Every muse installation ships with bundled skills. See what's available:
+Every Hermes installation ships with bundled skills. See what's available:
 
 ```bash
 # In any chat session:
 /skills
 
 # Or from the CLI:
-muse skills list
+hermes skills list
 ```
 
 This shows a compact list with names and descriptions:
@@ -70,7 +70,7 @@ Every installed skill is automatically a slash command. Just type its name:
 /excalidraw
 ```
 
-You can also trigger skills through natural conversation — ask muse to use a specific skill, and it will load it via the `skill_view` tool.
+You can also trigger skills through natural conversation — ask Hermes to use a specific skill, and it will load it via the `skill_view` tool.
 
 ### Progressive Disclosure
 
@@ -86,17 +86,17 @@ This means skills don't cost tokens until they're actually used.
 
 ## Installing from the Hub
 
-Official optional skills ship with muse but aren't active by default. Install them explicitly:
+Official optional skills ship with Hermes but aren't active by default. Install them explicitly:
 
 ```bash
 # Install an official optional skill
-muse skills install official/research/arxiv
+hermes skills install official/research/arxiv
 
 # Install from the hub in a chat session
 /skills install official/creative/songwriting-and-ai-music
 
-# Install a single-file SKILL.md directly from any HTTP(S) URL
-muse skills install https://sharethis.chat/SKILL.md
+# Install SKILL.md and its referenced support files from an HTTP(S) URL
+hermes skills install https://sharethis.chat/SKILL.md
 /skills install https://example.com/SKILL.md --name my-skill
 ```
 
@@ -113,7 +113,7 @@ Installed skills take effect in new sessions. If you want it available in the cu
 
 ```bash
 # Check it's there
-muse skills list | grep arxiv
+hermes skills list | grep arxiv
 
 # Or in chat
 /skills search arxiv
@@ -135,7 +135,7 @@ skill_view("writing-plans")
 
 Plugin skills are **not** listed in the system prompt and don't appear in `skills_list`. They're opt-in — load them explicitly when you know a plugin provides one. When loaded, the agent sees a banner listing sibling skills from the same plugin.
 
-For how to ship skills in your own plugin, see [Build a muse Plugin → Bundle skills](/docs/guides/build-a-hermes-plugin#bundle-skills).
+For how to ship skills in your own plugin, see [Build a Hermes Plugin → Bundle skills](/developer-guide/plugins#bundle-skills).
 
 ---
 
@@ -153,16 +153,16 @@ metadata:
         url: "https://developers.google.com/tenor/guides/quickstart"
 ```
 
-When a skill with config is first loaded, muse prompts you for the values. They're stored in `config.yaml` under `skills.config.*`.
+When a skill with config is first loaded, Hermes prompts you for the values. They're stored in `config.yaml` under `skills.config.*`.
 
 Manage skill config from the CLI:
 
 ```bash
 # Interactive config for a specific skill
-muse skills config gif-search
+hermes skills config gif-search
 
 # View all skill config
-muse config get skills.config
+hermes config get skills.config --json
 ```
 
 ---
@@ -235,13 +235,13 @@ For API details, load the reference: `skill_view("my-skill", "references/api-doc
 Start a new session and try your skill:
 
 ```bash
-muse chat -q "/my-skill help me with the thing"
+hermes chat -q "/my-skill help me with the thing"
 ```
 
 The skill appears automatically — no registration needed. Drop it in `~/.hermes/skills/` and it's live.
 
 :::info
-The agent can also create and update skills itself using `skill_manage`. After solving a complex problem, muse may offer to save the approach as a skill for next time.
+The agent can also create and update skills itself using `skill_manage`. After solving a complex problem, Hermes may offer to save the approach as a skill for next time.
 :::
 
 ---
@@ -251,7 +251,7 @@ The agent can also create and update skills itself using `skill_manage`. After s
 Control which skills are available on which platforms:
 
 ```bash
-muse skills
+hermes skills
 ```
 
 This opens an interactive TUI where you can enable or disable skills per platform (CLI, Telegram, Discord, etc.). Useful when you want certain skills only available in specific contexts — for example, keeping development skills off Telegram.
@@ -279,12 +279,12 @@ Both are persistent across sessions, but they serve different purposes:
 
 **Keep skills focused.** A skill that tries to cover "all of DevOps" will be too long and too vague. A skill that covers "deploy a Python app to Fly.io" is specific enough to be genuinely useful.
 
-**Let the agent create skills.** After a complex multi-step task, muse will often offer to save the approach as a skill. Say yes — these agent-authored skills capture the exact workflow including pitfalls that were discovered along the way.
+**Let the agent create skills.** After a complex multi-step task, Hermes will often offer to save the approach as a skill. Say yes — these agent-authored skills capture the exact workflow including pitfalls that were discovered along the way.
 
 **Use categories.** Organize skills into subdirectories (`~/.hermes/skills/devops/`, `~/.hermes/skills/research/`, etc.). This keeps the list manageable and helps the agent find relevant skills faster.
 
-**Update skills when they go stale.** If you use a skill and hit issues not covered by it, tell muse to update the skill with what you learned. Skills that aren't maintained become liabilities.
+**Update skills when they go stale.** If you use a skill and hit issues not covered by it, tell Hermes to update the skill with what you learned. Skills that aren't maintained become liabilities.
 
 ---
 
-*For the complete skills reference — frontmatter fields, conditional activation, external directories, and more — see [Skills System](/docs/user-guide/features/skills).*
+*For the complete skills reference — frontmatter fields, conditional activation, external directories, and more — see [Skills System](/user-guide/features/skills).*

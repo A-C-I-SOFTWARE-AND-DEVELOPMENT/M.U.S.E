@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import copy
-import json
 
-import pytest
 
 from extract_schema import extract_schema  # ty: ignore[unresolved-import]
 from run_workflow import (  # ty: ignore[unresolved-import]
@@ -19,20 +16,20 @@ from run_workflow import (  # ty: ignore[unresolved-import]
 class TestParseInputImageArg:
     def test_with_name(self, tmp_path):
         f = tmp_path / "x.png"
-        f.write_text("x")
+        f.write_text("x", encoding="utf-8")
         n, p = parse_input_image_arg(f"image={f}")
         assert n == "image"
         assert p == f
 
     def test_without_name_defaults(self, tmp_path):
         f = tmp_path / "x.png"
-        f.write_text("x")
+        f.write_text("x", encoding="utf-8")
         n, p = parse_input_image_arg(str(f))
         assert n == "image"
 
     def test_custom_name(self, tmp_path):
         f = tmp_path / "x.png"
-        f.write_text("x")
+        f.write_text("x", encoding="utf-8")
         n, p = parse_input_image_arg(f"mask_image={f}")
         assert n == "mask_image"
 

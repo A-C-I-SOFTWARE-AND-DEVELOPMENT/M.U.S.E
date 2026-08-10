@@ -81,3 +81,83 @@ def install_ctrl_enter_alias() -> int:
             ANSI_SEQUENCES[seq] = alt_enter
             changed += 1
     return changed
+
+
+def install_cmd_backspace_alias() -> int:
+    """Map Cmd+Backspace / Cmd+ForwardDelete to the readline kill bindings
+    prompt_toolkit already ships (``unix-line-discard`` / ``kill-line``).
+
+    Terminals that rewrite Cmd+Backspace to Ctrl+U (``\\x15``) already work.
+    Kitty keyboard protocol and xterm modifyOtherKeys terminals instead
+    report Cmd as the *super* modifier bit (8), producing sequences
+    prompt_toolkit does not map — the raw bytes then fall through to
+    literal insertion.
+
+    Cmd+Backspace → ``Keys.ControlU`` (kill backward to start of line).
+    Codepoint 127 with modifier 9 (super) / 10 (super+shift):
+      - ``\\x1b[127;9u`` / ``\\x1b[127;10u``  — Kitty CSI-u
+      - ``\\x1b[27;9;127~``                   — xterm modifyOtherKeys
+
+    Cmd+ForwardDelete → ``Keys.ControlK`` (kill to end of line). The
+    forward-delete key is a CSI *tilde* key, not a CSI-u codepoint, so the
+    modifier rides in the standard ``CSI 3 ; mod ~`` form:
+      - ``\\x1b[3;9~`` / ``\\x1b[3;10~``
+
+    Returns the number of sequences whose mapping was changed.
+    """
+    try:
+        from prompt_toolkit.input.ansi_escape_sequences import ANSI_SEQUENCES
+        from prompt_toolkit.keys import Keys
+    except Exception:
+        return 0
+
+    aliases = {
+        "\x1b[127;9u": Keys.ControlU,
+        "\x1b[127;10u": Keys.ControlU,
+        "\x1b[27;9;127~": Keys.ControlU,
+        "\x1b[3;9~": Keys.ControlK,
+        "\x1b[3;10~": Keys.ControlK,
+    }
+    changed = 0
+    for seq, key in aliases.items():
+        if ANSI_SEQUENCES.get(seq) != key:
+            ANSI_SEQUENCES[seq] = key
+            changed += 1
+    return changed
+
+
+def install_ignored_terminal_sequences() -> int:
+    """Map terminal-emitted noise sequences to ``Keys.Ignore`` so they
+    are consumed by the VT100 parser before they reach key bindings or
+    the input buffer.
+
+    Currently covers focus reports:
+      - ``\\x1b[I`` — terminal regained focus (focus in)
+      - ``\\x1b[O`` — terminal lost focus (focus out)
+
+    Ghostty, iTerm2, and some xterm builds can emit these sequences when
+    the user switches tabs / windows or when a multiplexer toggles focus
+    tracking upstream. prompt_toolkit does not map these by default, so
+    its parser falls back to literal key presses (ESC, ``[``, ``I``/``O``)
+    and inserts ``[I``/``[O`` into the prompt buffer after the ESC byte
+    is handled.
+
+    Registering them as ``Keys.Ignore`` is parser-level — strictly
+    cleaner than post-hoc regex stripping in the input sanitizer because
+    the bytes never reach the buffer. ``setdefault`` is used so any user
+    or downstream registration wins.
+
+    Returns the number of sequences whose mapping was changed.
+    """
+    try:
+        from prompt_toolkit.input.ansi_escape_sequences import ANSI_SEQUENCES
+        from prompt_toolkit.keys import Keys
+    except Exception:
+        return 0
+
+    changed = 0
+    for seq in ("\x1b[I", "\x1b[O"):
+        if seq not in ANSI_SEQUENCES:
+            ANSI_SEQUENCES[seq] = Keys.Ignore
+            changed += 1
+    return changed

@@ -13,11 +13,6 @@ _ENTER_CHARS = {"\r", "\n"}
 _EOF_CHARS = {"\x04", "\x1a"}
 
 
-def _sanitize_prompt_text(prompt: str) -> str:
-    """Return a terminal-safe prompt string without control characters."""
-    return "".join(ch if ch.isprintable() or ch in {"\t", " "} else "?" for ch in prompt)
-
-
 def _collect_masked_input(
     read_char: Callable[[], str],
     write: Callable[[str], object],
@@ -27,21 +22,21 @@ def _collect_masked_input(
 ) -> str:
     """Read one secret line while writing a mask character per typed char."""
     value: list[str] = []
-    write(_sanitize_prompt_text(prompt))
+    write(prompt)
 
     while True:
         ch = read_char()
         if ch == "":
-            write("\n")
+            write("\r\n")
             raise EOFError
         if ch in _ENTER_CHARS:
-            write("\n")
+            write("\r\n")
             return "".join(value)
         if ch == "\x03":
-            write("\n")
+            write("\r\n")
             raise KeyboardInterrupt
         if ch in _EOF_CHARS:
-            write("\n")
+            write("\r\n")
             raise EOFError
         if ch in _BACKSPACE_CHARS:
             if value:
@@ -97,9 +92,9 @@ def _masked_secret_prompt_windows(prompt: str, *, mask: str) -> str:
     import msvcrt
 
     def read_char() -> str:
-        ch = msvcrt.getwch()  # ty: ignore[unresolved-attribute]  # win32-only
+        ch = msvcrt.getwch()
         if ch in {"\x00", "\xe0"}:
-            msvcrt.getwch()  # ty: ignore[unresolved-attribute]  # win32-only
+            msvcrt.getwch()
             return "\x1b"
         return ch
 

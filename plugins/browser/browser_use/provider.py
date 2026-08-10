@@ -37,6 +37,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from agent.browser_provider import BrowserProvider
+from agent.secret_scope import get_secret
 
 logger = logging.getLogger(__name__)
 
@@ -119,22 +120,25 @@ class BrowserUseBrowserProvider(BrowserProvider):
         return "Browser Use"
 
     def is_available(self) -> bool:
-        return self._get_config_or_none() is not None
+        return self._get_config_or_none(refresh_token=False) is not None
 
     # ------------------------------------------------------------------
     # Config resolution (direct API key OR managed Nous gateway)
     # ------------------------------------------------------------------
 
-    def _get_config_or_none(self) -> Optional[Dict[str, Any]]:
+    def _get_config_or_none(self, *, refresh_token: bool = True) -> Optional[Dict[str, Any]]:
         # Import here to avoid a hard dependency at module-import time —
         # managed_tool_gateway pulls in the Nous auth stack which can be
         # heavy and is not needed for direct-API-key users.
-        from tools.managed_tool_gateway import resolve_managed_tool_gateway
+        from tools.managed_tool_gateway import (
+            peek_nous_access_token,
+            resolve_managed_tool_gateway,
+        )
         from tools.tool_backend_helpers import prefers_gateway
 
         # Direct API key wins unless the user has explicitly opted into the
         # managed Nous gateway via ``tool_gateway.browser: gateway``.
-        api_key = os.environ.get("BROWSER_USE_API_KEY")
+        api_key = get_secret("BROWSER_USE_API_KEY")
         if api_key and not prefers_gateway("browser"):
             return {
                 "api_key": api_key,
@@ -142,7 +146,11 @@ class BrowserUseBrowserProvider(BrowserProvider):
                 "managed_mode": False,
             }
 
-        managed = resolve_managed_tool_gateway("browser-use")
+        # Keep availability scans off the synchronous OAuth refresh path.
+        managed = resolve_managed_tool_gateway(
+            "browser-use",
+            token_reader=None if refresh_token else peek_nous_access_token,
+        )
         if managed is None:
             return None
 
@@ -239,6 +247,10 @@ class BrowserUseBrowserProvider(BrowserProvider):
             "session_name": session_name,
             "bb_session_id": session_data["id"],
             "cdp_url": cdp_url,
+            # Browser Use sessions have a fixed server-side lifetime. Preserve
+            # the authority returned by the API so the dispatcher can retire an
+            # expired CDP endpoint instead of reconnecting to it indefinitely.
+            "expires_at": session_data.get("timeoutAt"),
             "features": {"browser_use": True},
             "external_call_id": external_call_id,
         }
@@ -294,17 +306,9 @@ class BrowserUseBrowserProvider(BrowserProvider):
                 "Emergency cleanup failed for Browser Use session %s: %s", session_id, e
             )
 
-    def get_setup_schema(self) -> Dict[str, Any]:
-        return {
-            "name": "Browser Use",
-            "badge": "paid",
-            "tag": "Cloud browser with remote execution",
-            "env_vars": [
-                {
-                    "key": "BROWSER_USE_API_KEY",
-                    "prompt": "Browser Use API key",
-                    "url": "https://browser-use.com",
-                },
-            ],
-            "post_setup": "agent_browser",
-        }
+    def get_setup_schema(self) -> Optional[Dict[str, Any]]:
+        # Hidden from the hermes tools picker: the "Browser Use" row now
+        # activates the CLI-based backend (tools/browser_use_cli.py). This
+        # provider stays registered for the Nous gateway path and un-migrated
+        # legacy cloud_provider configs.
+        return None

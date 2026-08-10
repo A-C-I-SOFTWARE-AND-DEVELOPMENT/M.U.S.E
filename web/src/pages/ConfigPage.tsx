@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import {
-  ChevronDown,
-  ChevronRight,
   Code,
   Download,
   FormInput,
   RotateCcw,
-  Save,
   Search,
   Upload,
   X,
@@ -41,15 +38,16 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
-import { useToast } from "@/hooks/useToast";
-import { Toast } from "@/components/Toast";
+import { useToast } from "@nous-research/ui/hooks/use-toast";
+import { Toast } from "@nous-research/ui/ui/components/toast";
 import { AutoField } from "@/components/AutoField";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
+import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
+import { Input } from "@nous-research/ui/ui/components/input";
+import { Badge } from "@nous-research/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
@@ -99,13 +97,6 @@ function CategoryIcon({
   return <Icon className={className ?? "h-4 w-4"} />;
 }
 
-/** Sentence-case title for a config section (first segment of a dotted key). */
-function sectionTitle(section: string): string {
-  if (!section) return "General";
-  const words = section.replace(/_/g, " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -129,11 +120,6 @@ export default function ConfigPage() {
   const [configPath, setConfigPath] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [confirmReset, setConfirmReset] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Snapshot of the last saved/loaded config, used for dirty detection.
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
-  // Collapsed state per "category:section" group; default = first group open.
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const { toast, showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
@@ -145,39 +131,29 @@ export default function ConfigPage() {
       return;
     }
     setEnd(
-      <div className="flex w-full min-w-0 items-center justify-start gap-2 sm:justify-end">
-        <div className="relative w-full min-w-0 sm:max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            className="h-8 pl-8 pr-7 text-xs"
-            placeholder={t.common.search}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <Button
-              ghost
-              size="xs"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearchQuery("")}
-              aria-label={t.common.clear}
-            >
-              <X />
-            </Button>
-          )}
-        </div>
-        <Button
-          size="sm"
-          outlined={!yamlMode}
-          onClick={() => setYamlMode(!yamlMode)}
-          prefix={yamlMode ? <FormInput /> : <Code />}
-        >
-          {yamlMode ? t.common.form : "YAML"}
-        </Button>
+      <div className="relative w-full min-w-0 sm:max-w-xs">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          className="h-8 pl-8 pr-7 text-xs"
+          placeholder={t.common.search}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <Button
+            ghost
+            size="xs"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => setSearchQuery("")}
+            aria-label={t.common.clear}
+          >
+            <X />
+          </Button>
+        )}
       </div>,
     );
     return () => setEnd(null);
-  }, [config, schema, searchQuery, yamlMode, setEnd, t.common.clear, t.common.search, t.common.form]);
+  }, [config, schema, searchQuery, setEnd, t.common.clear, t.common.search]);
 
   function prettyCategoryName(cat: string): string {
     const key = cat as keyof typeof t.config.categories;
@@ -185,41 +161,46 @@ export default function ConfigPage() {
     return cat.charAt(0).toUpperCase() + cat.slice(1);
   }
 
-  const loadAll = useCallback(() => {
-    setLoadError(null);
-    // config + schema are required; defaults/status are best-effort.
-    Promise.all([
-      api.getConfig(),
-      api.getSchema(),
-      api.getDefaults().catch(() => null),
-      api.getStatus().catch(() => null),
-    ])
-      .then(([cfg, schemaResp, defaultsResp, statusResp]) => {
-        setConfig(cfg);
-        setSavedSnapshot(JSON.stringify(cfg));
-        setSchema(schemaResp.fields as Record<string, Record<string, unknown>>);
-        setCategoryOrder(schemaResp.category_order ?? []);
-        if (defaultsResp) setDefaults(defaultsResp);
-        if (statusResp) setConfigPath(statusResp.config_path);
-      })
-      .catch((e) => setLoadError(String(e)));
-  }, []);
-
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
-
-  // Dirty = form state differs from the last saved/loaded snapshot.
-  const isDirty = useMemo(() => {
-    if (!config || savedSnapshot === null) return false;
-    return JSON.stringify(config) !== savedSnapshot;
-  }, [config, savedSnapshot]);
-
-  const handleDiscard = () => {
-    if (savedSnapshot === null) return;
-    setConfig(JSON.parse(savedSnapshot) as Record<string, unknown>);
-    showToast("Changes discarded", "success");
-  };
+    api
+      .getConfig()
+      .then(setConfig)
+      .catch(() => {});
+    api
+      .getSchema()
+      .then((resp) => {
+        // memory.provider has a dedicated management UI on the Plugins page
+        // (provider cards + guided setup/switch flow). Hide it from the
+        // generic config form so the two surfaces don't fight; the schema
+        // keeps the field for other consumers (Desktop settings).
+        const fields = { ...resp.fields } as Record<
+          string,
+          Record<string, unknown>
+        >;
+        delete fields["memory.provider"];
+        setSchema(fields);
+        setCategoryOrder(resp.category_order ?? []);
+      })
+      .catch(() => {});
+    api
+      .getDefaults()
+      .then(setDefaults)
+      .catch(() => {});
+    // getConfigRaw is profile-scoped (fetchJSON appends ?profile=), so its
+    // `path` reflects the switched profile's config.yaml. /api/status's
+    // config_path is machine-global (the dashboard's own profile) — wrong
+    // header under the global profile switcher, so it's only a fallback.
+    api
+      .getConfigRaw()
+      .then((resp) => {
+        if (resp.path) setConfigPath(resp.path);
+      })
+      .catch(() => {});
+    api
+      .getStatus()
+      .then((resp) => setConfigPath((prev) => prev ?? resp.config_path))
+      .catch(() => {});
+  }, []);
 
   // Set active category when categories load
   useEffect(() => {
@@ -294,32 +275,12 @@ export default function ConfigPage() {
     );
   }, [schema, activeCategory, isSearching]);
 
-  /* ---- Section groups within the active category (collapsible cards) ---- */
-  const sectionGroups = useMemo(() => {
-    const groups: {
-      section: string;
-      fields: [string, Record<string, unknown>][];
-    }[] = [];
-    const bySection = new Map<string, [string, Record<string, unknown>][]>();
-    for (const entry of activeFields) {
-      const parts = entry[0].split(".");
-      const section = parts.length > 1 ? parts[0] : "";
-      if (!bySection.has(section)) bySection.set(section, []);
-      bySection.get(section)!.push(entry);
-    }
-    for (const [section, fields] of bySection) {
-      groups.push({ section, fields });
-    }
-    return groups;
-  }, [activeFields]);
-
   /* ---- Handlers ---- */
   const handleSave = async () => {
     if (!config) return;
     setSaving(true);
     try {
       await api.saveConfig(config);
-      setSavedSnapshot(JSON.stringify(config));
       showToast(t.config.configSaved, "success");
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
@@ -335,10 +296,7 @@ export default function ConfigPage() {
       showToast(t.config.yamlConfigSaved, "success");
       api
         .getConfig()
-        .then((cfg) => {
-          setConfig(cfg);
-          setSavedSnapshot(JSON.stringify(cfg));
-        })
+        .then(setConfig)
         .catch(() => {});
     } catch (e) {
       showToast(`${t.config.failedToSaveYaml}: ${e}`, "error");
@@ -387,7 +345,7 @@ export default function ConfigPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "muse-config.json";
+    a.download = "hermes-config.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -408,63 +366,33 @@ export default function ConfigPage() {
     reader.readAsText(file);
   };
 
-  /* ---- Loading: skeleton rows / error banner ---- */
+  /* ---- Loading ---- */
   if (!config || !schema) {
-    if (loadError) {
-      return (
-        <div className="flex flex-col gap-4">
-          <div
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--err)]/40 px-4 py-3"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--err) 8%, var(--bg-elev))",
-            }}
-            role="alert"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-[var(--err)]">
-                Failed to load configuration
-              </p>
-              <p className="mt-0.5 break-words text-xs text-[var(--fg-dim)]">
-                {loadError}
-              </p>
-            </div>
-            <Button size="sm" outlined onClick={loadAll} prefix={<RefreshCw />}>
-              {t.common.retry}
-            </Button>
-          </div>
-        </div>
-      );
-    }
     return (
-      <div className="flex flex-col gap-4" aria-busy="true">
-        <div className="h-8 w-72 animate-pulse rounded bg-[var(--bg-mute)]" />
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-[var(--border)] p-4"
-            style={{ backgroundColor: "var(--bg-elev)" }}
-          >
-            <div className="h-4 w-44 animate-pulse rounded bg-[var(--bg-mute)]" />
-            <div className="mt-4 grid gap-3">
-              <div className="h-3 w-full animate-pulse rounded bg-[var(--bg-mute)]/70" />
-              <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--bg-mute)]/70" />
-              <div className="h-3 w-5/6 animate-pulse rounded bg-[var(--bg-mute)]/70" />
-            </div>
-          </div>
-        ))}
+      <div className="flex items-center justify-center py-24">
+        <Spinner className="text-2xl text-primary" />
       </div>
     );
   }
 
-  /* ---- Search results (flat list with category badges) ---- */
-  const renderSearchFields = (
+  /* ---- Render field list (shared between search & normal) ---- */
+  const renderFields = (
     fields: [string, Record<string, unknown>][],
+    showCategory = false,
   ) => {
+    let lastSection = "";
     let lastCat = "";
     return fields.map(([key, s]) => {
+      const parts = key.split(".");
+      const section = parts.length > 1 ? parts[0] : "";
       const cat = String(s.category ?? "general");
-      const showCatBadge = cat !== lastCat;
+      const showCatBadge = showCategory && cat !== lastCat;
+      const showSection =
+        !showCategory &&
+        section &&
+        section !== lastSection &&
+        section !== activeCategory;
+      lastSection = section;
       lastCat = cat;
 
       return (
@@ -473,12 +401,20 @@ export default function ConfigPage() {
             <div className="flex items-center gap-2 pt-4 pb-2 first:pt-0">
               <CategoryIcon
                 category={cat}
-                className="h-4 w-4 text-[var(--fg-faint)]"
+                className="h-4 w-4 text-muted-foreground"
               />
-              <span className="text-xs font-semibold text-[var(--fg-dim)]">
+              <span className="font-mondwest text-display text-xs font-semibold tracking-wider text-muted-foreground">
                 {prettyCategoryName(cat)}
               </span>
-              <div className="flex-1 border-t border-[var(--border)]" />
+              <div className="flex-1 border-t border-border" />
+            </div>
+          )}
+          {showSection && (
+            <div className="flex items-center gap-2 pt-4 pb-2 first:pt-0">
+              <span className="font-mondwest text-display text-xs font-semibold tracking-wider text-muted-foreground">
+                {section.replace(/_/g, " ")}
+              </span>
+              <div className="flex-1 border-t border-border" />
             </div>
           )}
           <div className="py-1">
@@ -494,77 +430,10 @@ export default function ConfigPage() {
     });
   };
 
-  /* ---- Collapsible section cards for the active category ---- */
-  const renderSectionCards = () => (
-    <div className="grid gap-3">
-      {sectionGroups.map((g, gi) => {
-        const collapseKey = `${activeCategory}:${g.section}`;
-        // Default-open the first group of each category.
-        const isCollapsed = collapsed[collapseKey] ?? gi !== 0;
-        return (
-          <section
-            key={g.section || "general"}
-            className="rounded-xl border border-[var(--border)]"
-            style={{ backgroundColor: "var(--bg-elev)" }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setCollapsed((prev) => ({
-                  ...prev,
-                  [collapseKey]: !isCollapsed,
-                }))
-              }
-              aria-expanded={!isCollapsed}
-              className="flex w-full items-center gap-2 px-4 py-3 text-left"
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--fg-faint)]" />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[var(--fg-dim)]" />
-              )}
-              <span className="text-sm font-medium">
-                {sectionTitle(g.section)}
-              </span>
-              <span className="text-[10px] tabular-nums text-[var(--fg-faint)]">
-                {g.fields.length}{" "}
-                {t.config.fields.replace(
-                  "{s}",
-                  g.fields.length !== 1 ? "s" : "",
-                )}
-              </span>
-            </button>
-            {!isCollapsed && (
-              <div className="grid gap-2 border-t border-[var(--border)] px-4 pb-4 pt-2">
-                {g.fields.map(([key, s]) => (
-                  <div className="py-1" key={key}>
-                    <AutoField
-                      schemaKey={key}
-                      schema={s}
-                      value={getNestedValue(config, key)}
-                      onChange={(v) =>
-                        setConfig(setNestedValue(config, key, v))
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-4">
       <PluginSlot name="config:top" />
       <Toast toast={toast} />
-
-      <p className="text-sm text-[var(--fg-dim)]">
-        Schema-driven settings grouped by section — nothing is written to your
-        config file until you save.
-      </p>
 
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 items-center gap-2 sm:flex-1">
@@ -621,18 +490,35 @@ export default function ConfigPage() {
               );
             })()}
 
-          {yamlMode && (
-            <>
-              <div className="w-px h-5 bg-border mx-1" />
-              <Button
-                size="sm"
-                onClick={handleYamlSave}
-                disabled={yamlSaving}
-                prefix={<Save />}
-              >
-                {yamlSaving ? t.common.saving : t.common.save}
-              </Button>
-            </>
+          <div className="w-px h-5 bg-border mx-1" />
+
+          <Button
+            size="sm"
+            outlined={!yamlMode}
+            onClick={() => setYamlMode(!yamlMode)}
+            prefix={yamlMode ? <FormInput /> : <Code />}
+          >
+            {yamlMode ? t.common.form : "YAML"}
+          </Button>
+
+          {yamlMode ? (
+            <Button
+              size="sm"
+              className="uppercase"
+              onClick={handleYamlSave}
+              disabled={yamlSaving}
+            >
+              {yamlSaving ? t.common.saving : t.common.save}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="uppercase"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? t.common.saving : t.common.save}
+            </Button>
           )}
         </div>
       </div>
@@ -664,15 +550,15 @@ export default function ConfigPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <aside aria-label={t.config.filters} className="sm:w-56 sm:shrink-0">
             <div className="sm:sticky sm:top-4">
-              <div className="flex flex-col border border-[var(--border)] rounded-xl" style={{ backgroundColor: "var(--bg-elev)" }}>
-                <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]">
-                  <Filter className="h-3 w-3 text-[var(--fg-faint)]" />
-                  <span className="text-[0.65rem] font-medium text-[var(--fg-dim)]">
+              <div className="flex flex-col border border-border bg-muted/20">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
+                  <Filter className="h-3 w-3 text-text-tertiary" />
+                  <span className="font-mondwest text-display text-xs tracking-[0.12em] text-text-secondary">
                     {t.config.filters}
                   </span>
                 </div>
 
-                <div className="hidden sm:block px-3 pt-2 pb-1 text-[0.6rem] text-[var(--fg-faint)]">
+                <div className="hidden sm:block px-3 pt-2 pb-1 font-mondwest text-display text-xs tracking-[0.12em] text-text-tertiary">
                   {t.config.sections}
                 </div>
 
@@ -688,7 +574,7 @@ export default function ConfigPage() {
                           setSearchQuery("");
                           setActiveCategory(cat);
                         }}
-                        className="rounded-sm whitespace-nowrap px-2 py-1 text-[11px]"
+                        className="rounded-none whitespace-nowrap px-2 py-1 text-xs"
                       >
                         <CategoryIcon
                           category={cat}
@@ -698,10 +584,10 @@ export default function ConfigPage() {
                           {prettyCategoryName(cat)}
                         </span>
                         <span
-                          className={`text-[10px] tabular-nums ${
+                          className={`text-xs tabular-nums ${
                             isActive
-                              ? "text-foreground/60"
-                              : "text-muted-foreground/50"
+                              ? "text-text-secondary"
+                              : "text-text-tertiary"
                           }`}
                         >
                           {categoryCounts[cat] || 0}
@@ -716,79 +602,62 @@ export default function ConfigPage() {
 
           <div className="flex-1 min-w-0">
             {isSearching ? (
-              <section
-                className="rounded-xl border border-[var(--border)]"
-                style={{ backgroundColor: "var(--bg-elev)" }}
-              >
-                <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <Search className="h-4 w-4 text-[var(--fg-dim)]" />
-                    {t.config.searchResults}
-                  </span>
-                  <span className="text-[10px] tabular-nums text-[var(--fg-faint)]">
-                    {searchMatchedFields.length}{" "}
-                    {t.config.fields.replace(
-                      "{s}",
-                      searchMatchedFields.length !== 1 ? "s" : "",
-                    )}
-                  </span>
-                </div>
-                <div className="grid gap-2 px-4 py-3">
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      {t.config.searchResults}
+                    </CardTitle>
+                    <Badge tone="secondary" className="text-xs">
+                      {searchMatchedFields.length}{" "}
+                      {t.config.fields.replace(
+                        "{s}",
+                        searchMatchedFields.length !== 1 ? "s" : "",
+                      )}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-2 px-4 pb-4">
                   {searchMatchedFields.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-[var(--fg-dim)]">
+                    <p className="text-sm text-muted-foreground text-center py-8">
                       {t.config.noFieldsMatch.replace("{query}", searchQuery)}
                     </p>
                   ) : (
-                    renderSearchFields(searchMatchedFields)
+                    renderFields(searchMatchedFields, true)
                   )}
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             ) : (
-              /* Active category → collapsible section cards */
-              renderSectionCards()
+              /* Active category */
+              <Card>
+                <CardHeader className="py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <CategoryIcon
+                        category={activeCategory}
+                        className="h-4 w-4"
+                      />
+                      {prettyCategoryName(activeCategory)}
+                    </CardTitle>
+                    <Badge tone="secondary" className="text-xs">
+                      {activeFields.length}{" "}
+                      {t.config.fields.replace(
+                        "{s}",
+                        activeFields.length !== 1 ? "s" : "",
+                      )}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="grid gap-2 px-4 pb-4">
+                  {renderFields(activeFields)}
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
       )}
       <PluginSlot name="config:bottom" />
-
-      {/* Sticky save bar — visible only while the form has unsaved edits */}
-      {isDirty && !yamlMode && (
-        <div className="sticky bottom-3 z-20">
-          <div
-            className="flex items-center gap-3 rounded-xl border border-[var(--border)] px-4 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
-            style={{ backgroundColor: "var(--bg-elev)" }}
-          >
-            <span
-              className="h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]"
-              aria-hidden="true"
-            />
-            <span className="text-xs text-[var(--fg-dim)]">
-              Unsaved changes
-            </span>
-            <div className="flex-1" />
-            <Button
-              size="sm"
-              outlined
-              onClick={handleDiscard}
-              prefix={<RotateCcw />}
-              title="Revert to the last saved config"
-            >
-              Reset
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={saving}
-              prefix={<Save />}
-              className="bg-[var(--accent)] text-[var(--bg)] shadow-none hover:bg-[var(--accent)]/90"
-            >
-              {saving ? t.common.saving : t.common.save}
-            </Button>
-          </div>
-        </div>
-      )}
-
       <ConfirmDialog
         open={confirmReset}
         onCancel={() => setConfirmReset(false)}

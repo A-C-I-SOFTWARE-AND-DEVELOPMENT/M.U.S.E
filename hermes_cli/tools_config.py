@@ -25,13 +25,55 @@ from hermes_cli.config import (
 )
 from hermes_cli.colors import Colors, color
 from hermes_cli.nous_subscription import (
+    MANAGED_FEATURE_COVERAGE_CATEGORY,
+    NousSubscriptionFeatures,
     apply_nous_managed_defaults,
     get_nous_subscription_features,
 )
-from tools.tool_backend_helpers import fal_key_is_configured, managed_nous_tools_enabled
+from hermes_cli.nous_account import format_nous_portal_entitlement_message
+from tools.tool_backend_helpers import fal_key_is_configured
 from utils import base_url_hostname, is_truthy_value
 
 logger = logging.getLogger(__name__)
+
+
+def _post_setup_no_window_flags(*, streams_to_console: bool = False) -> int:
+    """Win32 creationflags that stop post-setup children flashing a console.
+
+    The dashboard/GUI runs post-setup hooks through a detached, console-less
+    ``hermes tools post-setup <key>`` child. On Windows, every console child
+    (npm.cmd, npx, pip, powershell, curl) spawned from that console-less
+    parent materializes a brand-new console window — the "terminal flash"
+    users see when clicking "Run setup". ``CREATE_NO_WINDOW`` (via
+    :func:`hermes_cli._subprocess_compat.windows_hide_flags`) suppresses it
+    without breaking ``capture_output`` — unlike ``DETACHED_PROCESS``, stdio
+    handles stay inheritable. Returns 0 on POSIX, so passing the result
+    unconditionally is safe.
+
+    ``streams_to_console=True`` marks children spawned WITHOUT stdio
+    redirection (live installer output, e.g. the verbose cua-driver install).
+    Hiding those in an interactive console session would silently swallow
+    their output into an invisible console, so the flag is only applied when
+    the current process has no usable console of its own (stdout is a
+    pipe/log file — exactly the GUI-spawn case that flashes).
+    """
+    from hermes_cli._subprocess_compat import windows_hide_flags
+
+    flags = windows_hide_flags()
+    if not flags:
+        return 0
+    if streams_to_console:
+        try:
+            if sys.stdout is not None and sys.stdout.isatty():
+                return 0
+        except Exception:
+            pass
+    return flags
+
+# Platforms already warned about an all-invalid platform_toolsets list, so the
+# runtime check in _get_platform_tools warns once per platform instead of on
+# every tool resolution for a persistently-corrupt config (#38798).
+_warned_invalid_platform_toolsets: Set[str] = set()
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
@@ -60,26 +102,42 @@ CONFIGURABLE_TOOLSETS = [
     ("vision",          "👁️  Vision / Image Analysis",  "vision_analyze"),
     ("video",           "🎬 Video Analysis",            "video_analyze (requires video-capable model)"),
     ("image_gen",       "🎨 Image Generation",          "image_generate"),
-    ("video_gen",       "🎬 Video Generation",          "video_generate (text-to-video + image-to-video)"),
-    ("asset3d_gen",     "🧊 3D Generation",             "asset3d_generate (text/image-to-3D mesh)"),
+    ("video_gen",       "🎬 Video Generation",          "video_generate (text/image/reference)"),
+    ("bfl",             "🎬 BFL FLUX 3 Video",          "bfl_flux3_*"),
     ("x_search",        "🐦 X (Twitter) Search",        "x_search (requires xAI OAuth or XAI_API_KEY)"),
-    ("moa",             "🧠 Mixture of Agents",         "mixture_of_agents"),
     ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
+    ("stt",             "🎙️ Speech-to-Text",           "voice transcription (gateway voice messages + voice mode)"),
     ("skills",          "📚 Skills",                    "list, view, manage"),
     ("todo",            "📋 Task Planning",             "todo"),
     ("memory",          "💾 Memory",                    "persistent memory across sessions"),
+    ("context_engine",  "🧩 Context Engine",            "runtime tools from the active context engine"),
     ("session_search",  "🔎 Session Search",            "search past conversations"),
     ("clarify",         "❓ Clarifying Questions",      "clarify"),
     ("delegation",      "👥 Task Delegation",           "delegate_task"),
     ("cronjob",         "⏰ Cron Jobs",                 "create/list/update/pause/resume/run, with optional attached skills"),
-    ("messaging",       "📨 Cross-Platform Messaging",  "send_message"),
     ("homeassistant",    "🏠 Home Assistant",           "smart home device control"),
     ("spotify",          "🎵 Spotify",                  "playback, search, playlists, library"),
     ("discord",         "💬 Discord (read/participate)", "fetch messages, search members, create thread"),
     ("discord_admin",   "🛡️  Discord Server Admin",    "list channels/roles, pin, assign roles"),
     ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
-    ("computer_use",     "🖱️  Computer Use (macOS)",     "background desktop control via cua-driver"),
+    ("computer_use",     "🖱️  Computer Use (macOS/Windows/Linux)", "background desktop control via cua-driver"),
 ]
+
+
+def gui_toolset_label(label: str) -> str:
+    """Strip leading emoji/icons from toolset titles for GUI surfaces.
+
+    Registry labels use ``<emoji> <title>``; plugin toolsets prefix with ``🔌``.
+    CLI/TUI keeps the raw ``label`` — only HTTP APIs call this helper.
+    """
+    text = (label or "").strip()
+    if not text:
+        return text
+    parts = text.split(None, 1)
+    if len(parts) == 2 and parts[0] and not any(ch.isascii() and ch.isalnum() for ch in parts[0]):
+        return parts[1].strip()
+    return text
+
 
 # Toolsets that are OFF by default for new installs.
 # They're still in _HERMES_CORE_TOOLS (available at runtime if enabled),
@@ -95,17 +153,28 @@ CONFIGURABLE_TOOLSETS = [
 # `hermes tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "asset3d_gen", "x_search"}
+_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search", "a2a"}
+
+
+# Config-only capabilities: they appear in `hermes tools` for provider/API-key
+# configuration (TOOL_CATEGORIES) but are NOT model toolsets — they ship zero
+# tool schemas and their on/off switch lives in their own config section
+# (e.g. ``stt.enabled``), not ``platform_toolsets``. Excluded from the
+# per-platform enable/disable checklist; configured via the "Reconfigure an
+# existing tool" flow and the GUI provider matrix instead.
+_CONFIG_ONLY_TOOLSETS = {"stt"}
 
 
 def _xai_credentials_present() -> bool:
     """Cheap, side-effect-free check for usable xAI credentials.
 
     Used to auto-enable the ``x_search`` toolset when the user has either
-    completed xAI Grok OAuth (SuperGrok subscription) or set
+    completed xAI Grok OAuth (SuperGrok / Premium+) or set
     ``XAI_API_KEY``. Does NOT hit the network — only inspects the local
     auth store and environment. The tool's runtime ``check_fn`` still
     gates schema registration if creds later expire or get revoked.
+    Also reused by ``provider_readiness_status`` for ``post_setup:
+    "xai_grok"`` picker rows (xAI TTS, Grok OAuth x_search).
     """
     try:
         from hermes_cli.auth import _read_xai_oauth_tokens
@@ -121,7 +190,21 @@ def _xai_credentials_present() -> bool:
             return True
     except Exception:
         pass
-    return bool(str(os.environ.get("XAI_API_KEY") or "").strip())
+    try:
+        from agent.secret_scope import get_secret
+    except ImportError:  # pragma: no cover — secret_scope is in-repo
+        return bool(str(os.environ.get("XAI_API_KEY") or "").strip())
+    return bool(str(get_secret("XAI_API_KEY") or "").strip())
+
+
+def _homeassistant_credentials_present() -> bool:
+    """Return whether the active profile has a Home Assistant token."""
+    try:
+        from agent.secret_scope import get_secret
+
+        return bool((get_secret("HASS_TOKEN", "") or "").strip())
+    except Exception:
+        return False
 
 # Platform-scoped toolsets: only appear in the `hermes tools` checklist for
 # these platforms, and only resolve/save for these platforms.  A toolset
@@ -143,6 +226,20 @@ def _toolset_allowed_for_platform(ts_key: str, platform: str) -> bool:
     """
     allowed = _TOOLSET_PLATFORM_RESTRICTIONS.get(ts_key)
     return allowed is None or platform in allowed
+
+
+def _toolset_configuration_platform(ts_key: str, default: str = "cli") -> str:
+    """Return the platform a platform-less configuration UI should target.
+
+    Most configurable toolsets retain the historical desktop/CLI target. A
+    toolset restricted away from that platform must instead be configured on
+    one of its supported platforms; otherwise the shared save helper correctly
+    drops it and the UI reports a successful no-op.
+    """
+    allowed = _TOOLSET_PLATFORM_RESTRICTIONS.get(ts_key)
+    if not allowed or default in allowed:
+        return default
+    return sorted(allowed)[0]
 
 
 def _get_effective_configurable_toolsets():
@@ -174,11 +271,39 @@ def _get_effective_configurable_toolsets():
 def _get_plugin_toolset_keys() -> set:
     """Return the set of toolset keys provided by plugins."""
     try:
-        from hermes_cli.plugins import discover_plugins, get_plugin_toolsets
-        discover_plugins()  # idempotent — ensures plugins are loaded
-        return {ts_key for ts_key, _, _ in get_plugin_toolsets()}
+        from hermes_cli.plugins import get_plugin_toolset_keys_nowait
+        # Non-blocking on the CLI startup path: while background plugin
+        # discovery is still importing modules, this serves last launch's
+        # persisted key set (used only to exclude plugin toolsets from
+        # composite expansion) instead of joining the discovery thread.
+        return get_plugin_toolset_keys_nowait()
     except Exception:
         return set()
+
+
+def _checklist_toolset_keys(platform: str) -> Set[str]:
+    """Return the toolset keys the ``hermes tools`` checklist actually offers
+    for ``platform``.
+
+    This mirrors exactly what ``_prompt_toolset_checklist`` renders:
+    ``_get_effective_configurable_toolsets()`` (built-in + plugin toolsets),
+    filtered by ``_toolset_allowed_for_platform``. The checklist's returned
+    selection can therefore only ever be a subset of this universe.
+
+    Non-configurable toolsets that ``_get_platform_tools`` resolves at read
+    time — ``kanban`` and other check_fn-gated toolsets, recovered platform
+    composites, MCP server names — are NOT in this set because the checklist
+    never shows them. Use this to scope the added/removed diff the UI prints,
+    so ``hermes tools`` never claims to add or remove a toolset the user was
+    never given a checkbox for. The underlying config is unaffected — those
+    entries are preserved by ``_save_platform_tools`` regardless.
+    """
+    return {
+        ts_key
+        for ts_key, _, _ in _get_effective_configurable_toolsets()
+        if _toolset_allowed_for_platform(ts_key, platform)
+        and ts_key not in _CONFIG_ONLY_TOOLSETS
+    }
 
 # Platform display config — derived from the canonical registry so every
 # module shares the same data.  Kept as dict-of-dicts for backward
@@ -202,6 +327,13 @@ TOOL_CATEGORIES = {
         "icon": "🔊",
         "providers": [
             {
+                "name": "Microsoft Edge TTS",
+                "badge": "★ recommended · free",
+                "tag": "Good quality, no API key needed",
+                "env_vars": [],
+                "tts_provider": "edge",
+            },
+            {
                 "name": "Nous Subscription",
                 "badge": "subscription",
                 "tag": "Managed OpenAI TTS billed to your subscription",
@@ -210,13 +342,6 @@ TOOL_CATEGORIES = {
                 "requires_nous_auth": True,
                 "managed_nous_feature": "tts",
                 "override_env_vars": ["VOICE_TOOLS_OPENAI_KEY", "OPENAI_API_KEY"],
-            },
-            {
-                "name": "Microsoft Edge TTS",
-                "badge": "★ recommended · free",
-                "tag": "Good quality, no API key needed",
-                "env_vars": [],
-                "tts_provider": "edge",
             },
             {
                 "name": "OpenAI TTS",
@@ -243,9 +368,16 @@ TOOL_CATEGORIES = {
                 ],
                 "tts_provider": "elevenlabs",
             },
-            # Mistral (Voxtral TTS) temporarily hidden — `mistralai` PyPI
-            # package is currently quarantined (malicious 2.4.6 release on
-            # 2026-05-12). Restore this entry once PyPI un-quarantines.
+            # Mistral Voxtral TTS — `mistralai` SDK lazy-installs on first use.
+            {
+                "name": "Mistral (Voxtral TTS)",
+                "badge": "paid",
+                "tag": "Multilingual, native Opus",
+                "env_vars": [
+                    {"key": "MISTRAL_API_KEY", "prompt": "Mistral API key", "url": "https://console.mistral.ai/"},
+                ],
+                "tts_provider": "mistral",
+            },
             {
                 "name": "Google Gemini TTS",
                 "badge": "preview",
@@ -270,6 +402,85 @@ TOOL_CATEGORIES = {
                 "env_vars": [],
                 "tts_provider": "piper",
                 "post_setup": "piper",
+            },
+            {
+                "name": "DeepInfra TTS",
+                "badge": "paid",
+                "tag": "Chatterbox, Qwen3-TTS, … — live catalog from api.deepinfra.com",
+                "env_vars": [
+                    {"key": "DEEPINFRA_API_KEY", "prompt": "DeepInfra API key", "url": "https://deepinfra.com/dash/api_keys"},
+                ],
+                "tts_provider": "deepinfra",
+            },
+        ],
+    },
+    "stt": {
+        "name": "Speech-to-Text",
+        "icon": "🎙️",
+        "providers": [
+            {
+                "name": "Local Whisper",
+                "badge": "★ recommended · free",
+                "tag": "faster-whisper on-device, no API key",
+                "env_vars": [],
+                "stt_provider": "local",
+                "post_setup": "faster_whisper",
+            },
+            {
+                "name": "Nous Subscription",
+                "badge": "subscription",
+                "tag": "Managed OpenAI transcription billed to your subscription",
+                "env_vars": [],
+                "stt_provider": "openai",
+                "requires_nous_auth": True,
+                "managed_nous_feature": "stt",
+                "override_env_vars": ["VOICE_TOOLS_OPENAI_KEY", "OPENAI_API_KEY"],
+            },
+            {
+                "name": "OpenAI",
+                "badge": "paid",
+                "tag": "whisper-1, gpt-4o-transcribe, gpt-transcribe",
+                "env_vars": [
+                    {"key": "VOICE_TOOLS_OPENAI_KEY", "prompt": "OpenAI API key", "url": "https://platform.openai.com/api-keys"},
+                ],
+                "stt_provider": "openai",
+            },
+            {
+                "name": "Groq",
+                "badge": "free tier",
+                "tag": "Whisper large-v3 family — very fast",
+                "env_vars": [
+                    {"key": "GROQ_API_KEY", "prompt": "Groq API key", "url": "https://console.groq.com/keys"},
+                ],
+                "stt_provider": "groq",
+            },
+            {
+                "name": "xAI",
+                "tag": "grok-stt — uses xAI Grok OAuth or XAI_API_KEY",
+                "env_vars": [],
+                "stt_provider": "xai",
+                "post_setup": "xai_grok",
+            },
+            {
+                "name": "ElevenLabs Scribe",
+                "badge": "paid",
+                "tag": "scribe_v2 — diarization + audio-event tagging",
+                "env_vars": [
+                    {"key": "ELEVENLABS_API_KEY", "prompt": "ElevenLabs API key", "url": "https://elevenlabs.io/app/settings/api-keys"},
+                ],
+                "stt_provider": "elevenlabs",
+            },
+            # Mistral Voxtral STT intentionally omitted — mistralai PyPI
+            # package quarantined (malicious 2.4.6 release, 2026-05-12).
+            # Restore alongside the dashboard stt.provider option.
+            {
+                "name": "DeepInfra",
+                "badge": "paid",
+                "tag": "Live STT catalog from api.deepinfra.com",
+                "env_vars": [
+                    {"key": "DEEPINFRA_API_KEY", "prompt": "DeepInfra API key", "url": "https://deepinfra.com/dash/api_keys"},
+                ],
+                "stt_provider": "deepinfra",
             },
         ],
     },
@@ -312,6 +523,16 @@ TOOL_CATEGORIES = {
     "image_gen": {
         "name": "Image Generation",
         "icon": "🎨",
+        # Per-provider rows for FAL.ai (`plugins/image_gen/fal`), OpenAI,
+        # OpenAI Codex, and xAI are injected at runtime from each
+        # ``plugins.image_gen.<vendor>`` package via
+        # ``_plugin_image_gen_providers()`` in ``_visible_providers``.
+        # Only non-provider UX setup-flow rows remain here:
+        #   - "Nous Subscription" — managed FAL billed via the Nous
+        #     subscription (requires_nous_auth + override_env_vars).
+        #     Uses the fal plugin as the underlying backend but has a
+        #     distinct setup UX.
+        # Mirrors the shape browser/video_gen ship today.
         "providers": [
             {
                 "name": "Nous Subscription",
@@ -323,40 +544,40 @@ TOOL_CATEGORIES = {
                 "override_env_vars": ["FAL_KEY"],
                 "imagegen_backend": "fal",
             },
-            {
-                "name": "FAL.ai",
-                "badge": "paid",
-                "tag": "Pick from flux-2-klein, flux-2-pro, gpt-image, nano-banana, etc.",
-                "env_vars": [
-                    {"key": "FAL_KEY", "prompt": "FAL API key", "url": "https://fal.ai/dashboard/keys"},
-                ],
-                "imagegen_backend": "fal",
-            },
         ],
     },
     "video_gen": {
         "name": "Video Generation",
         "icon": "🎬",
-        # Providers list is intentionally empty — every video gen backend
-        # is a plugin, surfaced by ``_plugin_video_gen_providers()`` and
-        # injected by ``_visible_providers``. Mirrors the design we'll
-        # converge image_gen toward.
-        "providers": [],
-    },
-    "asset3d_gen": {
-        "name": "3D Generation",
-        "icon": "🧊",
-        # Providers list is intentionally empty — every 3D-mesh backend is a
-        # plugin, surfaced by ``_plugin_asset3d_gen_providers()`` and injected
-        # by ``_visible_providers``. Mirrors the video_gen design.
-        "providers": [],
+        # "Nous Subscription" row mirrors the image_gen pattern — managed
+        # FAL video generation billed via the Nous Portal.  Plugin-backed
+        # provider rows (FAL BYOK, xAI, …) are injected at runtime by
+        # ``_plugin_video_gen_providers()`` in ``_visible_providers``.
+        "providers": [
+            {
+                "name": "Nous Subscription",
+                "badge": "subscription",
+                "tag": "Managed FAL video generation billed to your subscription",
+                "env_vars": [],
+                "requires_nous_auth": True,
+                "managed_nous_feature": "video_gen",
+                "override_env_vars": ["FAL_KEY"],
+                # The underlying plugin backend — when the user picks
+                # "Nous Subscription" we set video_gen.provider = "fal"
+                # and video_gen.use_gateway = True so the FAL plugin
+                # routes through the managed queue gateway.
+                "video_gen_plugin_name": "fal",
+            },
+        ],
     },
     "x_search": {
         "name": "X (Twitter) Search",
         "setup_title": "Select xAI Credential Source",
         "setup_note": (
-            "muse routes X searches through xAI's built-in x_search "
-            "Responses tool. Both credential sources hit the same "
+            "Hermes routes X searches through xAI's built-in x_search "
+            "Responses tool for read-only public X discovery. Use the xurl "
+            "skill for authenticated X API reads and account actions. Both "
+            "credential sources hit the same "
             "https://api.x.ai/v1/responses endpoint — pick whichever you "
             "already have. SuperGrok OAuth is preferred when both are set "
             "(uses your subscription quota instead of API spend)."
@@ -364,7 +585,7 @@ TOOL_CATEGORIES = {
         "icon": "🐦",
         "providers": [
             {
-                "name": "xAI Grok OAuth (SuperGrok Subscription)",
+                "name": "xAI Grok OAuth (SuperGrok / Premium+)",
                 "badge": "subscription",
                 "tag": "Browser login at accounts.x.ai — no API key required",
                 "env_vars": [],
@@ -390,15 +611,27 @@ TOOL_CATEGORIES = {
         # Per-provider rows for Browserbase, Browser Use, and Firecrawl are
         # injected at runtime from plugins.browser.<vendor>.provider via
         # _plugin_browser_providers() in _visible_providers(). Only
-        # non-provider UX setup-flow rows remain here:
+        # non-provider UX setup-flow rows remain here. "Local Browser" is
+        # listed FIRST so it is the default-highlighted (index 0) choice on a
+        # fresh install — pressing Enter must land on the free, no-key local
+        # backend, never on the paid Nous Subscription gateway row:
+        #   - "Local Browser" — non-cloud option, no CloudBrowserProvider.
         #   - "Nous Subscription (Browser Use cloud)" — managed Browser Use
         #     billed via Nous subscription (requires_nous_auth +
         #     override_env_vars). Uses the browser-use plugin as the
         #     underlying backend but has a distinct setup UX.
-        #   - "Local Browser" — non-cloud option, no CloudBrowserProvider.
         #   - "Camofox" — anti-detection local Firefox; short-circuits the
         #     cloud-provider dispatch path via _is_camofox_mode().
+        #   - "Browser Use" — the Browser Use CLI 3.0
         "providers": [
+            {
+                "name": "Local Browser",
+                "badge": "★ recommended · free",
+                "tag": "Headless Chromium, no API key needed",
+                "env_vars": [],
+                "browser_provider": "local",
+                "post_setup": "agent_browser",
+            },
             {
                 "name": "Nous Subscription (Browser Use cloud)",
                 "badge": "subscription",
@@ -408,15 +641,12 @@ TOOL_CATEGORIES = {
                 "requires_nous_auth": True,
                 "managed_nous_feature": "browser",
                 "override_env_vars": ["BROWSER_USE_API_KEY"],
-                "post_setup": "agent_browser",
-            },
-            {
-                "name": "Local Browser",
-                "badge": "★ recommended · free",
-                "tag": "Headless Chromium, no API key needed",
-                "env_vars": [],
-                "browser_provider": "local",
-                "post_setup": "agent_browser",
+                # Cloud hook: installs the agent-browser CLI only. Browser Use
+                # hosts its own Chromium, so the local-Chromium install (and
+                # the local-Chromium readiness gate) must not apply here —
+                # with "agent_browser" this row read "needs setup" forever on
+                # machines without a local Chromium build.
+                "post_setup": "browserbase",
             },
             {
                 "name": "Camofox",
@@ -428,6 +658,14 @@ TOOL_CATEGORIES = {
                 ],
                 "browser_provider": "camofox",
                 "post_setup": "camofox",
+            },
+            {
+                "name": "Browser Use",
+                "badge": "free · local · cloud",
+                "tag": "New SOTA web harness (CLI 3.0)",
+                "env_vars": [],
+                "browser_backend": "browser-use",
+                "post_setup": "browser_use_cli",
             },
         ],
     },
@@ -458,37 +696,100 @@ TOOL_CATEGORIES = {
         ],
     },
     "computer_use": {
-        "name": "Computer Use (macOS)",
+        "name": "Computer Use (macOS/Windows/Linux)",
         "icon": "🖱️",
-        "platform_gate": "darwin",
+        # Runtime backends ship for macOS, Windows, and Linux (X11 today,
+        # Wayland via XWayland). Per-host gaps surface via `computer-use doctor`.
+        "platform_gate": ["darwin", "win32", "linux"],
         "providers": [
             {
                 "name": "cua-driver (background)",
                 "badge": "★ recommended · free · local",
                 "tag": (
-                    "macOS background computer-use via SkyLight SPIs — does "
-                    "NOT steal your cursor or focus. Works with any model."
+                    "Background computer-use via cua-driver — does NOT steal "
+                    "your cursor or focus. Works with any model."
                 ),
                 "env_vars": [
                     # cua-driver reads HOME/TMPDIR from the process env, no
-                    # extra keys required. HERMES_CUA_DRIVER_VERSION is an
-                    # optional pin for reproducibility across macOS updates.
+                    # extra keys required. Set HERMES_CUA_DRIVER_CMD to use a
+                    # specific binary (e.g. a local build); there is no
+                    # version-pin env var.
                 ],
                 "post_setup": "cua_driver",
+            },
+        ],
+    },
+    "langfuse": {
+        "name": "Langfuse Observability",
+        "icon": "📊",
+        "providers": [
+            {
+                "name": "Langfuse Cloud",
+                "tag": "Hosted Langfuse (cloud.langfuse.com)",
+                "env_vars": [
+                    {"key": "HERMES_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)", "url": "https://cloud.langfuse.com"},
+                    {"key": "HERMES_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)", "url": "https://cloud.langfuse.com"},
+                ],
+                "post_setup": "langfuse",
+            },
+            {
+                "name": "Langfuse Self-Hosted",
+                "tag": "Self-hosted Langfuse instance",
+                "env_vars": [
+                    {"key": "HERMES_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)"},
+                    {"key": "HERMES_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)"},
+                    {"key": "HERMES_LANGFUSE_BASE_URL", "prompt": "Langfuse server URL (e.g. http://localhost:3000)", "default": "http://localhost:3000"},
+                ],
+                "post_setup": "langfuse",
             },
         ],
     },
 }
 
 # Simple env-var requirements for toolsets NOT in TOOL_CATEGORIES.
-# Used as a fallback for tools like vision/moa that just need an API key.
+# Used as a fallback for toolsets that just need an API key.
+#
+# `vision` is listed here only so it registers as a *configurable* toolset
+# (the value gates the reconfigure menu + the "[no API key]" suffix). Its
+# actual setup runs through `_configure_vision_backend()` — a full
+# provider+model picker like `hermes model` — NOT this single-key prompt, so
+# users are never forced onto OpenRouter. `_toolset_has_keys("vision")`
+# resolves via `resolve_vision_provider_client()`, so the tuple below is never
+# prompted or read for vision; it's purely a presence marker.
 TOOLSET_ENV_REQUIREMENTS = {
     "vision":     [("OPENROUTER_API_KEY",   "https://openrouter.ai/keys")],
-    "moa":        [("OPENROUTER_API_KEY",   "https://openrouter.ai/keys")],
 }
 
 
 # ─── Post-Setup Hooks ─────────────────────────────────────────────────────────
+
+
+def _cua_driver_cmd() -> str:
+    """Return the configured cua-driver override, or the bare default name."""
+    return os.environ.get("HERMES_CUA_DRIVER_CMD", "").strip() or "cua-driver"
+
+
+def _resolved_cua_driver_cmd() -> Optional[str]:
+    """Resolve cua-driver exactly as the runtime and Desktop status do."""
+    from tools.computer_use.cua_backend import resolve_cua_driver_cmd
+
+    return resolve_cua_driver_cmd()
+
+
+def _cua_driver_env() -> dict:
+    """cua-driver child env with the Hermes telemetry policy applied.
+
+    Delegates to ``cua_backend.cua_driver_child_env`` (telemetry disabled by
+    default; user opt-in via ``computer_use.cua_telemetry``). Falls back to the
+    current environment if the helper can't be imported, so install/status
+    never break on a telemetry-helper error.
+    """
+    try:
+        from tools.computer_use.cua_backend import cua_driver_child_env
+
+        return cua_driver_child_env()
+    except Exception:
+        return dict(os.environ)
 
 
 def _pip_install(
@@ -516,13 +817,24 @@ def _pip_install(
     venv_root = Path(sys.executable).parent.parent
     uv_env = {**os.environ, "VIRTUAL_ENV": str(venv_root)}
 
-    uv_bin = shutil.which("uv")
+    # Managed uv first: $HERMES_HOME/bin is never on PATH, so a bare which()
+    # misses the uv Hermes installed and prefers a system one when both exist.
+    # ensure_uv() rather than a pure lookup because this runs during setup,
+    # where installing uv is in scope — and tier 2 is a pip that the Windows
+    # installer's `uv venv` does not seed, so failing to find uv here is the
+    # difference between a working post-setup hook and "No module named pip".
+    from hermes_cli.managed_uv import ensure_uv
+
+    uv_bin = ensure_uv()
     if uv_bin:
         try:
             result = subprocess.run(
                 [uv_bin, "pip", "install", *args],
-                capture_output=capture_output, text=True, timeout=timeout,
+                capture_output=capture_output, text=True, encoding="utf-8", errors="replace", timeout=timeout,
                 env=uv_env,
+                creationflags=_post_setup_no_window_flags(
+                    streams_to_console=not capture_output
+                ),
             )
             if result.returncode == 0:
                 return result
@@ -536,7 +848,8 @@ def _pip_install(
         # Probe for pip; bootstrap via ensurepip if missing (uv venv lacks it).
         probe = subprocess.run(
             pip_cmd + ["--version"],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15,
+            creationflags=_post_setup_no_window_flags(),
         )
         if probe.returncode != 0:
             raise FileNotFoundError("pip not in venv")
@@ -544,7 +857,8 @@ def _pip_install(
         try:
             subprocess.run(
                 [sys.executable, "-m", "ensurepip", "--upgrade", "--default-pip"],
-                capture_output=True, text=True, timeout=120, check=True,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, check=True,
+                creationflags=_post_setup_no_window_flags(),
             )
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             # Synthesize a result so callers see a clean failure path.
@@ -555,11 +869,59 @@ def _pip_install(
 
     return subprocess.run(
         pip_cmd + ["install", *args],
-        capture_output=capture_output, text=True, timeout=timeout,
+        capture_output=capture_output, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+        creationflags=_post_setup_no_window_flags(
+            streams_to_console=not capture_output
+        ),
     )
 
 
-def install_cua_driver(upgrade: bool = False) -> bool:
+
+# The asset-probe that lived here used to hit `/releases/latest` on
+# trycua/cua and inspect the release's asset list before piping the
+# installer to bash. It was broken in two places:
+#
+#   1. cua-driver-rs releases are marked **prerelease** on every cut,
+#      and GitHub's `/releases/latest` endpoint explicitly skips
+#      prereleases. On the live trycua/cua repo today, `/releases/latest`
+#      returns the Python `cua-agent v0.8.3` package (zero binary
+#      assets) instead of `cua-driver-rs-v0.6.0` (19 binary assets).
+#      The probe then reported "no asset for this arch" and skipped the
+#      install on every non-arm64 host — Linux x86_64, Windows, macOS
+#      Intel, Linux arm64 — even when the upstream installer would have
+#      succeeded.
+#   2. Even with the right endpoint, we'd be duplicating tag-resolution
+#      logic the upstream installer already does correctly via
+#      `CUA_DRIVER_RS_BAKED_VERSION` (auto-baked by CD on every release,
+#      with an API fallback). Drift between our probe and theirs is a
+#      maintenance hazard.
+#
+# Resolution: trust the upstream installer. For fresh installs, run
+# install.sh directly — it errors clean if the target arch has no
+# asset. For the upgrade path, `cua_driver_update_check()` (which calls
+# `cua-driver check-update --json`) gives us the canonical update
+# answer from the binary itself — same tag-resolution as the installer,
+# no Python-side duplication.
+
+
+def _cua_install_target_writable() -> bool:
+    """Return whether the upstream installer can write its app bundle target."""
+    if sys.platform != "darwin":
+        return True
+    applications_dir = "/Applications"
+    try:
+        if not os.path.isdir(applications_dir):
+            return True
+        return os.access(applications_dir, os.W_OK)
+    except Exception:
+        return True
+
+
+def install_cua_driver(
+    upgrade: bool = False,
+    require_confirmed_update: bool = False,
+    show_installer_progress: bool = True,
+) -> bool:
     """Install or refresh the cua-driver binary used by Computer Use.
 
     The upstream installer always pulls the latest release tag, so re-running
@@ -572,145 +934,754 @@ def install_cua_driver(upgrade: bool = False) -> bool:
       update`` if the binary supports it). Used by ``hermes update`` and
       by ``hermes computer-use install --upgrade``.
 
+    ``require_confirmed_update`` (only meaningful with ``upgrade=True`` and
+    an installed binary): when the driver's native ``check-update`` verb
+    can't positively confirm that a newer release exists — the driver is
+    too old for the verb, the GitHub check failed, we're offline, or the
+    probe timed out — keep the installed version and return instead of
+    falling through to the full upstream installer. ``hermes update`` sets
+    this so a broken update check costs seconds, not a multi-minute silent
+    reinstall on every update (the upstream installer runs up to
+    ``_CUA_INSTALLER_TIMEOUT`` and install.ps1's concurrency lock can add
+    a further ~600s wait on Windows). ``hermes computer-use install
+    --upgrade`` leaves it False — an explicit upgrade request should still
+    reinstall when the check is indeterminate.
+
+    ``show_installer_progress`` controls the installer's own progress line.
+    ``hermes update`` already prints a contextual line before its update
+    check, so it disables this to avoid printing the refresh twice.
+
     Returns True iff cua-driver is installed (or successfully refreshed)
-    when the function returns. macOS-only — silently returns False on
-    other platforms.
+    when the function returns. Supported on macOS, Windows, and Linux
+    (Linux is alpha). Silently returns False on unsupported platforms.
     """
     import platform as _plat
     import shutil
     import subprocess
 
-    if _plat.system() != "Darwin":
+    system = _plat.system()
+    if system not in ("Darwin", "Windows", "Linux"):
         if upgrade:
-            # Silent on non-macOS — `hermes update` calls this for every
-            # user; only macOS users with cua-driver care.
+            # Silent on unsupported platforms — `hermes update` calls this
+            # for every user; only macOS/Windows/Linux users care.
             return False
-        _print_warning("    Computer Use (cua-driver) is macOS-only; skipping.")
+        _print_warning("    Computer Use (cua-driver) is unsupported on this platform; skipping.")
         return False
 
-    binary = shutil.which("cua-driver")
+    is_windows = system == "Windows"
+    is_linux = system == "Linux"
+
+    # The Windows installer (install.ps1) is fetched via PowerShell's `irm`,
+    # so it needs PowerShell rather than curl. macOS/Linux use curl | bash.
+    fetch_tool = "powershell" if is_windows else "curl"
+
+    driver_cmd = _cua_driver_cmd()
+    binary = _resolved_cua_driver_cmd()
 
     # Not installed → fresh install path (only when caller asked for it).
     if not binary and not upgrade:
-        if not shutil.which("curl"):
-            _print_warning("    curl not found — install manually:")
+        if not _cua_install_target_writable():
+            _print_info(
+                "    /Applications is not writable; skipping cua-driver install."
+            )
+            _print_info(
+                "    Run from an admin account or install cua-driver manually."
+            )
+            return False
+        if not shutil.which(fetch_tool):
+            _print_warning(f"    {fetch_tool} not found — install manually:")
             _print_info("      https://github.com/trycua/cua/blob/main/libs/cua-driver/README.md")
             return False
+        # Pre-install asset probe deleted — see comment near the top of
+        # tools_config.py for why. install.sh has CUA_DRIVER_RS_BAKED_VERSION
+        # baked in by CD and errors cleanly on missing-arch assets.
         return _run_cua_driver_installer(label="Installing")
 
     # Already installed and caller didn't ask to upgrade → just confirm.
     if binary and not upgrade:
         try:
             version = subprocess.run(
-                ["cua-driver", "--version"],
-                capture_output=True, text=True, timeout=5,
+                [binary, "--version"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, env=_cua_driver_env(),
+                creationflags=_post_setup_no_window_flags(),
             ).stdout.strip()
-            _print_success(f"    cua-driver already installed: {version or 'unknown version'}")
+            _print_success(f"    {driver_cmd} already installed: {version or 'unknown version'}")
         except Exception:
-            _print_success("    cua-driver already installed.")
-        _print_info("    Grant macOS permissions if not done yet:")
-        _print_info("      System Settings > Privacy & Security > Accessibility")
-        _print_info("      System Settings > Privacy & Security > Screen Recording")
+            _print_success(f"    {driver_cmd} already installed.")
+        if is_windows:
+            _print_info("    cua-driver may spawn a UIAccess worker (cua-driver-uia.exe);")
+            _print_info("    Windows/SmartScreen may prompt the first time it runs.")
+        elif is_linux:
+            _print_warning("    Linux support is alpha.")
+        else:
+            _print_info("    Grant macOS permissions if not done yet:")
+            _print_info("      System Settings > Privacy & Security > Accessibility")
+            _print_info("      System Settings > Privacy & Security > Screen Recording")
         return True
 
     # upgrade=True path — refresh to the latest upstream release.
-    if not shutil.which("curl"):
-        _print_warning("    curl not found — cannot refresh cua-driver.")
+    if not _cua_install_target_writable():
+        _print_info(
+            "    /Applications is not writable; skipping cua-driver refresh."
+        )
+        _print_info(
+            "    Run `hermes computer-use install --upgrade` from an admin account to update it."
+        )
         return bool(binary)
+
+    if not shutil.which(fetch_tool):
+        _print_warning(f"    {fetch_tool} not found — cannot refresh cua-driver.")
+        return bool(binary)
+
+    # Pre-install asset probe deleted (see top-of-file comment). The
+    # `cua_driver_update_check()` call further down asks the installed
+    # cua-driver binary itself whether an update exists — same
+    # tag-resolution as the installer, no duplication.
+
+    # Skip the (network) re-install when the driver itself reports it's already
+    # on the latest release. Best-effort: an older driver (no check-update
+    # verb) or an offline check returns None. What happens then depends on the
+    # caller: `hermes update` (require_confirmed_update=True) keeps the
+    # installed version — an indeterminate check must never cost the user a
+    # multi-minute silent reinstall on every update. An explicit
+    # `hermes computer-use install --upgrade` falls through and re-runs the
+    # installer as before.
+    confirmed_version = None
+    if binary:
+        _state = None
+        try:
+            from tools.computer_use.cua_backend import cua_driver_update_check
+            _state = cua_driver_update_check()
+        except Exception:
+            _state = None
+        if _state is not None and not _state.get("update_available"):
+            _print_success(
+                f"    {driver_cmd} is already on the latest release "
+                f"({_state.get('current_version') or 'unknown'})."
+            )
+            return True
+        if _state is None and require_confirmed_update:
+            _print_info(
+                f"    Could not confirm a newer {driver_cmd} release "
+                "(offline, rate-limited, or driver too old to check); "
+                "keeping the installed version."
+            )
+            _print_info(
+                "    Force a refresh with: hermes computer-use install --upgrade"
+            )
+            return True
+        if _state is not None and _state.get("update_available"):
+            # Pin the installer to the release check-update just confirmed.
+            # `latest_version` comes from the GitHub Releases API, so its
+            # assets are published — unlike the installer script's baked
+            # version on `main`, which Release Please bumps in the release
+            # PR *before* the release assets exist. Installing unpinned in
+            # that window 404s (observed: baked 0.14.0 vs latest published
+            # 0.13.1). Malformed values are ignored → unpinned fallback.
+            import re as _re
+
+            _latest = str(_state.get("latest_version") or "").strip().lstrip("vV")
+            if _re.fullmatch(r"\d+(\.\d+)*", _latest):
+                confirmed_version = _latest
 
     if binary:
         # Show before/after version when we have a baseline. Best-effort.
         try:
             before = subprocess.run(
-                ["cua-driver", "--version"],
-                capture_output=True, text=True, timeout=5,
+                [binary, "--version"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, env=_cua_driver_env(),
+                creationflags=_post_setup_no_window_flags(),
             ).stdout.strip()
         except Exception:
             before = ""
     else:
         before = ""
 
-    ok = _run_cua_driver_installer(label="Refreshing", verbose=False)
+    ok = _run_cua_driver_installer(
+        label="Refreshing",
+        verbose=False,
+        pin_version=confirmed_version,
+        show_progress=show_installer_progress,
+    )
     if ok and before:
         try:
             after = subprocess.run(
-                ["cua-driver", "--version"],
-                capture_output=True, text=True, timeout=5,
+                [binary, "--version"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, env=_cua_driver_env(),
+                creationflags=_post_setup_no_window_flags(),
             ).stdout.strip()
             if after and after != before:
-                _print_success(f"    cua-driver upgraded: {before} → {after}")
+                _print_success(f"    {driver_cmd} upgraded: {before} → {after}")
             elif after:
-                _print_info(f"    cua-driver up to date: {after}")
+                _print_info(f"    {driver_cmd} up to date: {after}")
         except Exception:
             pass
     return ok
 
 
-def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -> bool:
-    """Run the upstream cua-driver install.sh. Returns True on success.
+# Ceiling for one upstream-installer run. Must exceed the installer's own
+# stale-lock recovery window: _install-rust.sh serializes concurrent installs
+# with a lock dir at ~/.cua-driver/packages/.install.lock.d and only
+# force-releases a dead holder's lock after LOCK_STALE_AFTER_SECONDS=600 of
+# waiting. With a shorter Python-side timeout, a stale lock means every run
+# gets killed before the installer's recovery can fire — a permanent
+# "always times out" wedge (issue #58762). 660s = 600s lock window + 60s
+# headroom for the actual download/swap.
+_CUA_INSTALLER_TIMEOUT = 660
 
-    The script is idempotent: it always downloads the latest release, so
-    re-running it on an already-installed system performs an upgrade.
+# Upstream installer's stale-lock threshold (LOCK_STALE_AFTER_SECONDS in
+# _install-rust.sh). Used by the pre-clear below to avoid yanking a lock
+# that a live-but-slow install still holds.
+_CUA_LOCK_STALE_AFTER = 600
+
+
+def _cua_install_home() -> "Path":
+    """Package home shared by the upstream POSIX and Windows installers."""
+    return Path(
+        os.environ.get("CUA_DRIVER_RS_HOME")
+        or str(Path.home() / ".cua-driver")
+    )
+
+
+def _cua_install_lock_dir() -> "Path":
+    """Path of the upstream installer's concurrent-install lock dir."""
+    return _cua_install_home() / "packages" / ".install.lock.d"
+
+
+def _cua_windows_install_lock_file() -> "Path":
+    """Path of install.ps1's FileShare::None lock file."""
+    return _cua_install_home() / "install.lock"
+
+
+def _clear_stale_windows_cua_install_lock() -> None:
+    """Delete install.ps1's lock file only when no process still holds it.
+
+    ``install.ps1`` serializes installs with a ``FileStream`` opened using
+    ``FileShare::None``. Mirror that primitive with a zero-share
+    ``CreateFileW`` probe. ``FILE_FLAG_DELETE_ON_CLOSE`` removes an unlocked
+    leftover atomically when the probe handle closes, avoiding a gap where a
+    new installer could acquire the file between our probe and deletion.
     """
+    lock_file = _cua_windows_install_lock_file()
+    try:
+        if not lock_file.is_file():
+            return
+
+        import ctypes as _ctypes
+        from ctypes import wintypes as _wintypes
+
+        # Win32 constants used by install.ps1's FileShare::None equivalent.
+        delete_access = 0x00010000
+        generic_read = 0x80000000
+        generic_write = 0x40000000
+        open_existing = 3
+        file_attribute_normal = 0x00000080
+        file_flag_delete_on_close = 0x04000000
+
+        kernel32 = _ctypes.WinDLL("kernel32", use_last_error=True)
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = [
+            _wintypes.LPCWSTR,
+            _wintypes.DWORD,
+            _wintypes.DWORD,
+            _wintypes.LPVOID,
+            _wintypes.DWORD,
+            _wintypes.DWORD,
+            _wintypes.HANDLE,
+        ]
+        create_file.restype = _wintypes.HANDLE
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = [_wintypes.HANDLE]
+        close_handle.restype = _wintypes.BOOL
+
+        handle = create_file(
+            str(lock_file),
+            generic_read | generic_write | delete_access,
+            0,  # FileShare::None
+            None,
+            open_existing,
+            file_attribute_normal | file_flag_delete_on_close,
+            None,
+        )
+        invalid_handle = _wintypes.HANDLE(-1).value
+        if handle == invalid_handle:
+            logger.debug(
+                "Windows cua install lock at %s is still held or cannot be "
+                "removed (winerror %s)",
+                lock_file,
+                _ctypes.get_last_error(),
+            )
+            return
+
+        if not close_handle(handle):
+            logger.debug(
+                "could not close Windows cua install lock probe at %s "
+                "(winerror %s)",
+                lock_file,
+                _ctypes.get_last_error(),
+            )
+            return
+        if lock_file.exists():
+            logger.debug(
+                "Windows cua install lock probe succeeded but %s remains",
+                lock_file,
+            )
+            return
+
+        logger.info("Cleared stale Windows cua-driver install lock at %s", lock_file)
+        _print_info(f"    Cleared stale cua-driver install lock ({lock_file}).")
+    except Exception as e:
+        logger.debug("stale Windows cua install lock check failed: %s", e)
+
+
+def _clear_stale_cua_install_lock() -> None:
+    """Best-effort: remove a stale installer lock left by a dead holder.
+
+    The POSIX installer stamps its holder pid into
+    ``~/.cua-driver/packages/.install.lock.d/info``. The Windows installer
+    instead holds ``~/.cua-driver/install.lock`` open with
+    ``FileShare::None``. Clear either artifact up front only when its
+    platform-specific liveness check proves that no install still holds it.
+    """
+    if sys.platform == "win32":
+        _clear_stale_windows_cua_install_lock()
+        return
+    lock_dir = _cua_install_lock_dir()
+    try:
+        if not lock_dir.is_dir():
+            return
+        holder_pid = None
+        info = lock_dir / "info"
+        try:
+            for line in info.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("pid="):
+                    holder_pid = int(line.split("=", 1)[1].strip())
+                    break
+        except (OSError, ValueError):
+            holder_pid = None
+
+        if holder_pid is not None:
+            try:
+                os.kill(holder_pid, 0)  # windows-footgun: ok — function early-returns on win32
+                # Holder alive → a concurrent install is running; don't touch.
+                return
+            except ProcessLookupError:
+                pass  # dead holder → stale, clear below
+            except PermissionError:
+                # Alive but owned by someone else — treat as live.
+                return
+        else:
+            # No readable pid. Only clear if the lock is old enough that the
+            # upstream installer itself would consider it reclaimable.
+            import time as _time
+            try:
+                age = _time.time() - lock_dir.stat().st_mtime
+            except OSError:
+                return
+            if age < _CUA_LOCK_STALE_AFTER:
+                return
+
+        import shutil as _shutil
+        _shutil.rmtree(lock_dir, ignore_errors=True)
+        logger.info("Cleared stale cua-driver install lock at %s", lock_dir)
+        _print_info(f"    Cleared stale cua-driver install lock ({lock_dir}).")
+    except Exception as e:
+        logger.debug("stale cua install lock check failed: %s", e)
+
+
+def _ps_single_quote(value: str) -> str:
+    """Return a PowerShell single-quoted string literal."""
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _cua_driver_autostart_registered_windows() -> bool:
+    """Return whether the Windows cua-driver scheduled task is registered."""
+    if sys.platform != "win32":
+        return False
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["schtasks.exe", "/Query", "/TN", "cua-driver-serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0
+
+
+def _repair_cua_driver_autostart_windows(driver_cmd: str, *, verbose: bool) -> bool:
+    """Best-effort repair for Windows installer autostart quoting failures.
+
+    Older install.ps1 builds invoked
+    ``& C:\\Users\\Name With Spaces\\...\\cua-driver`` from an elevated
+    PowerShell command string, which PowerShell split at the first space. If
+    the installer left the scheduled task missing, retry by
+    launching the resolved binary through Start-Process's structured
+    ``-FilePath`` / ``-ArgumentList`` parameters instead of interpolating a
+    path into a command string.
+    """
+    if sys.platform != "win32":
+        return True
+    if _cua_driver_autostart_registered_windows():
+        return True
+
+    import subprocess
+
+    binary = shutil.which(driver_cmd)
+    if not binary:
+        return False
+
+    ps = shutil.which("powershell") or shutil.which("powershell.exe") or "powershell"
+    ps_cmd = (
+        f"$exe = {_ps_single_quote(binary)}; "
+        "$proc = Start-Process -FilePath $exe "
+        "-ArgumentList @('autostart','enable') "
+        "-Verb RunAs -Wait -PassThru -ErrorAction Stop; "
+        "exit $proc.ExitCode"
+    )
+
+    if verbose:
+        _print_info("    Registering cua-driver auto-start...")
+    else:
+        _print_info("    Repairing cua-driver auto-start registration...")
+
+    try:
+        result = subprocess.run(
+            [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=300,
+            env=_cua_driver_env(),
+        )
+    except subprocess.TimeoutExpired:
+        _print_warning("    cua-driver autostart registration timed out.")
+        return False
+    except Exception as exc:
+        _print_warning(f"    cua-driver autostart registration failed: {exc}")
+        return False
+
+    if result.returncode == 0:
+        return True
+
+    tail = (result.stderr or result.stdout or "").strip().splitlines()[-3:]
+    _print_warning("    cua-driver autostart registration failed.")
+    for line in tail:
+        _print_info(f"      {line[:200]}")
+    _print_info("    From an elevated shell, run: cua-driver autostart enable")
+    return False
+
+
+def _run_cua_driver_installer(
+    label: str = "Installing",
+    verbose: bool = True,
+    pin_version: Optional[str] = None,
+    show_progress: bool = True,
+) -> bool:
+    """Run the upstream cua-driver installer for this platform.
+
+    The scripts are idempotent: they always download the latest release, so
+    re-running on an already-installed system performs an upgrade.
+
+    * macOS / Linux → ``curl -fsSL …/install.sh | /bin/bash``.
+    * Windows       → ``powershell -NoProfile -ExecutionPolicy Bypass -Command
+      "irm …/install.ps1 | iex"``.
+
+    ``pin_version`` (e.g. ``"0.13.1"``) is exported as
+    ``CUA_DRIVER_RS_VERSION`` so the installer downloads that exact release
+    instead of its baked-in default. The baked version on upstream ``main``
+    is bumped by Release Please *before* the release assets are published,
+    so an unpinned run inside that window fails with a 404; pinning to the
+    version ``check-update`` confirmed sidesteps the race entirely.
+    """
+    import platform as _plat
     import shutil
     import subprocess
 
-    install_cmd = (
-        "/bin/bash -c \"$(curl -fsSL "
-        "https://raw.githubusercontent.com/trycua/cua/main/"
-        "libs/cua-driver/scripts/install.sh)\""
-    )
-    if verbose:
-        _print_info(f"    {label} cua-driver (macOS background computer-use)...")
+    system = _plat.system()
+    is_windows = system == "Windows"
+    is_linux = system == "Linux"
+
+    if is_windows:
+        # Mirror the one-liner printed by cua_driver_install_hint().
+        ps_oneliner = (
+            "irm https://raw.githubusercontent.com/trycua/cua/main/"
+            "libs/cua-driver/scripts/install.ps1 | iex"
+        )
+        install_cmd = [
+            "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-Command", ps_oneliner,
+        ]
+        manual_hint = (
+            'powershell -NoProfile -ExecutionPolicy Bypass -Command '
+            f'"{ps_oneliner}"'
+        )
+        script_path = None
     else:
-        _print_info(f"    {label} cua-driver...")
+        # Download-then-exec instead of `bash -c "$(curl …)"`: no shell=True,
+        # no command substitution, and the script lands in a mkstemp file
+        # (unpredictable name, 0600) rather than a fixed /tmp path — avoiding
+        # both the shell-injection surface and a symlink/TOCTOU race on
+        # multi-user machines. The manual hint stays the upstream one-liner
+        # since that's what the docs/README teach.
+        import tempfile as _tempfile
+
+        install_url = (
+            "https://raw.githubusercontent.com/trycua/cua/main/"
+            "libs/cua-driver/scripts/install.sh"
+        )
+        manual_hint = f'/bin/bash -c "$(curl -fsSL {install_url})"'
+        fd, script_path = _tempfile.mkstemp(prefix="cua-driver-install-", suffix=".sh")
+        os.close(fd)
+        try:
+            dl = subprocess.run(
+                ["curl", "-fsSL", "-o", script_path, install_url],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            _print_warning(f"    cua-driver installer download failed: {e}")
+            try:
+                os.remove(script_path)
+            except OSError:
+                pass
+            return False
+        if dl.returncode != 0:
+            _print_warning(
+                "    cua-driver installer download failed: "
+                f"{(dl.stderr or '').strip()[:200]}"
+            )
+            try:
+                os.remove(script_path)
+            except OSError:
+                pass
+            return False
+        install_cmd = ["/bin/bash", script_path]
+    use_shell = False
+
+    if show_progress:
+        if verbose:
+            _print_info(f"    {label} cua-driver (background computer-use)...")
+        else:
+            _print_info(f"→ {label} cua-driver (Computer Use)...")
+    driver_cmd = _cua_driver_cmd()
+
+    installer_env = _cua_driver_env()
+    if pin_version:
+        # Both upstream installers (install.sh and install.ps1) honour
+        # CUA_DRIVER_RS_VERSION over their baked default.
+        installer_env["CUA_DRIVER_RS_VERSION"] = pin_version
+
+    # A previous timed-out install can leave the upstream installer's
+    # concurrent-install lock behind; clear it when provably stale so the
+    # refresh doesn't wedge waiting on a dead holder (issue #58762).
+    _clear_stale_cua_install_lock()
+
+    # POSIX: run the installer in its own process group so a timeout kill
+    # takes out the whole `curl | bash` pipeline (and the exec'd
+    # _install-rust.sh), not just the outer shell. Otherwise the surviving
+    # grandchildren keep holding the install lock, wedging every later run.
+    popen_kwargs = {}
+    if not is_windows:
+        popen_kwargs["start_new_session"] = True
+
+    def _kill_installer_tree(proc):
+        import signal as _signal
+        try:
+            if not is_windows:
+                os.killpg(os.getpgid(proc.pid), _signal.SIGKILL)  # windows-footgun: ok — POSIX branch only
+            else:
+                # PowerShell may leave download/install helpers alive after its
+                # direct process is killed. Those descendants inherit stdout
+                # and can keep both communicate() and install.lock wedged, so
+                # collect the tree first and kill it leaf-up.
+                import psutil as _psutil
+
+                try:
+                    parent = _psutil.Process(proc.pid)
+                    descendants = parent.children(recursive=True)
+                except _psutil.NoSuchProcess:
+                    return
+                except _psutil.Error as e:
+                    logger.debug(
+                        "could not enumerate cua-driver installer tree for pid %s: %s",
+                        proc.pid,
+                        e,
+                    )
+                    proc.kill()
+                    return
+
+                for child in reversed(descendants):
+                    try:
+                        child.kill()
+                    except _psutil.NoSuchProcess:
+                        pass
+                    except _psutil.Error as e:
+                        logger.debug(
+                            "could not kill cua-driver installer child pid %s: %s",
+                            child.pid,
+                            e,
+                        )
+                try:
+                    parent.kill()
+                except _psutil.NoSuchProcess:
+                    pass
+                except _psutil.Error as e:
+                    logger.debug(
+                        "could not kill cua-driver installer parent pid %s: %s",
+                        proc.pid,
+                        e,
+                    )
+                    proc.kill()
+        except (OSError, ProcessLookupError):
+            proc.kill()
+
     try:
-        result = subprocess.run(install_cmd, shell=True, timeout=300)
-        if result.returncode == 0 and shutil.which("cua-driver"):
+        # When not verbose (e.g. `hermes update`'s refresh), capture the
+        # installer's chatty "Next steps" wall instead of dumping it to the
+        # terminal. The combined output is logged so a failure stays
+        # debuggable. Verbose installs (interactive `computer-use install`)
+        # keep streaming live.
+        if verbose:
+            proc = subprocess.Popen(
+                install_cmd, shell=use_shell, env=installer_env,
+                creationflags=_post_setup_no_window_flags(streams_to_console=True),
+                **popen_kwargs
+            )
+            try:
+                proc.communicate(timeout=_CUA_INSTALLER_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                _kill_installer_tree(proc)
+                proc.communicate()
+                raise
+            result = subprocess.CompletedProcess(
+                install_cmd, proc.returncode, stdout=None, stderr=None
+            )
+        else:
+            proc = subprocess.Popen(
+                install_cmd, shell=use_shell, env=installer_env,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding="utf-8", errors="replace",
+                creationflags=_post_setup_no_window_flags(),
+                **popen_kwargs
+            )
+            try:
+                out, _ = proc.communicate(timeout=_CUA_INSTALLER_TIMEOUT)
+            except subprocess.TimeoutExpired:
+                _kill_installer_tree(proc)
+                proc.communicate()
+                raise
+            result = subprocess.CompletedProcess(
+                install_cmd, proc.returncode, stdout=out, stderr=None
+            )
+            # Preserve the full installer output. During `hermes update`,
+            # sys.stdout is the mirroring _UpdateOutputStream whose `_log`
+            # handle is ~/.hermes/logs/update.log — write straight to it so
+            # the captured "Next steps" wall is kept in full (success AND
+            # failure), without echoing it to the terminal.
+            if result.stdout:
+                _update_log = getattr(sys.stdout, "_log", None)
+                if _update_log is not None:
+                    try:
+                        _update_log.write(
+                            "\n--- cua-driver installer output ---\n"
+                            + result.stdout
+                            + "\n"
+                        )
+                        _update_log.flush()
+                    except Exception:
+                        pass
+                if result.returncode != 0:
+                    logger.debug("cua-driver installer output:\n%s", result.stdout)
+        if result.returncode == 0 and shutil.which(driver_cmd):
+            if is_windows and not _repair_cua_driver_autostart_windows(
+                driver_cmd, verbose=verbose
+            ):
+                _print_warning(
+                    "    cua-driver installed, but auto-start was not registered."
+                )
             if verbose:
-                _print_success("    cua-driver installed.")
-                _print_info("    IMPORTANT — grant macOS permissions now:")
-                _print_info("      System Settings > Privacy & Security > Accessibility")
-                _print_info("      System Settings > Privacy & Security > Screen Recording")
-                _print_info("    Both must allow the terminal / muse process.")
+                _print_success(f"    {driver_cmd} installed.")
+                if is_windows:
+                    _print_info("    cua-driver may spawn a UIAccess worker (cua-driver-uia.exe);")
+                    _print_info("    Windows/SmartScreen may prompt the first time it runs.")
+                elif is_linux:
+                    _print_warning("    Linux support is alpha.")
+                else:
+                    _print_info("    IMPORTANT — grant macOS permissions now:")
+                    _print_info("      System Settings > Privacy & Security > Accessibility")
+                    _print_info("      System Settings > Privacy & Security > Screen Recording")
+                    _print_info("    Both must allow the terminal / Hermes process.")
             return True
         _print_warning(f"    cua-driver {label.lower()} did not complete. Re-run manually:")
-        _print_info(f"      {install_cmd}")
+        _print_info(f"      {manual_hint}")
         return False
     except subprocess.TimeoutExpired:
-        _print_warning(f"    cua-driver {label.lower()} timed out. Re-run manually.")
+        _print_warning(
+            f"    cua-driver {label.lower()} timed out after "
+            f"{_CUA_INSTALLER_TIMEOUT}s."
+        )
+        if not is_windows:
+            _print_info(
+                "    If this repeats, a stale installer lock may be present — "
+                f"check {_cua_install_lock_dir()}"
+            )
+        _print_info(f"    Re-run manually:  {manual_hint}")
         return False
     except Exception as e:
         _print_warning(f"    cua-driver {label.lower()} failed: {e}")
         return False
+    finally:
+        if script_path:
+            try:
+                os.remove(script_path)
+            except OSError:
+                pass
 
 
 def _run_post_setup(post_setup_key: str):
     """Run post-setup hooks for tools that need extra installation steps."""
     import shutil
+    from hermes_constants import find_node_executable
+
     if post_setup_key in {"agent_browser", "browserbase"}:
         node_modules = PROJECT_ROOT / "node_modules" / "agent-browser"
-        npm_bin = shutil.which("npm")
-        npx_bin = shutil.which("npx")
+        # Managed Node first — $HERMES_HOME/node is not on PATH, so a bare
+        # which() reports "no npm" on installs whose only Node is the one
+        # Hermes installed for exactly this toolchain.
+        npm_bin = find_node_executable("npm")
+        npx_bin = find_node_executable("npx")
         # Step 1: install the agent-browser npm package into node_modules/
         if not node_modules.exists() and npm_bin:
             _print_info("    Installing Node.js dependencies for browser tools...")
+            import subprocess
             # Use the resolved npm_bin absolute path so subprocess.Popen can
             # execute npm.cmd on Windows (CreateProcessW otherwise rejects
             # batch shims).  On POSIX npm_bin is the plain path — same
             # behaviour as before.
             result = subprocess.run(
-                [npm_bin, "install", "--silent"],
-                capture_output=True, text=True, cwd=str(PROJECT_ROOT)
+                # --workspaces=false restricts the install to the repo root
+                # only, avoiding the apps/* glob which would pull in
+                # apps/desktop (Electron + node-pty) unnecessarily. See #38772.
+                [npm_bin, "install", "--silent", "--workspaces=false"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT),
+                creationflags=_post_setup_no_window_flags(),
             )
             if result.returncode == 0:
                 _print_success("    Node.js dependencies installed")
             else:
                 from hermes_constants import display_hermes_home
-                _print_warning(f"    npm install failed - run manually: cd {display_hermes_home()}/hermes-agent && npm install")
+                _print_warning(f"    npm install failed - run manually: cd {display_hermes_home()}/hermes-agent && npm install --workspaces=false")
                 if result.stderr:
                     _print_info(f"      {result.stderr.strip()[:200]}")
-        elif not node_modules.exists():
+        elif node_modules.exists():
+            # Distinct message for the re-run case so the GUI action log tells
+            # the truth ("nothing to do") instead of implying a fresh install.
+            _print_success("    agent-browser already installed, nothing to do")
+        else:
             _print_warning("    Node.js not found - browser tools require: npm install (in hermes-agent directory)")
             return
 
@@ -737,7 +1708,7 @@ def _run_post_setup(post_setup_key: str):
             return
 
         if _chromium_installed():
-            _print_success("    Chromium browser already installed")
+            _print_success("    Chromium browser already installed, nothing to do")
             return
 
         if _running_in_docker():
@@ -759,6 +1730,7 @@ def _run_post_setup(post_setup_key: str):
             return
 
         _print_info("    Installing Chromium (~170MB one-time download)...")
+        import subprocess
         # Prefer the bundled agent-browser install subcommand so the
         # version of Chromium matches the CLI. Fall back to npx shim on
         # setups where the local bin stub isn't present.
@@ -775,7 +1747,8 @@ def _run_post_setup(post_setup_key: str):
         try:
             result = subprocess.run(
                 install_cmd,
-                capture_output=True, text=True, cwd=str(PROJECT_ROOT), timeout=600,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=600,
+                creationflags=_post_setup_no_window_flags(),
             )
             if result.returncode == 0:
                 _print_success("    Chromium installed")
@@ -796,45 +1769,71 @@ def _run_post_setup(post_setup_key: str):
             _print_warning(f"    Chromium install failed: {exc}")
             _print_info("    Run manually: npx agent-browser install --with-deps")
 
+    elif post_setup_key == "browser_use_cli":
+        if shutil.which("browser-use"):
+            _print_success("    browser-use CLI found on PATH")
+        elif shutil.which("uvx"):
+            _print_info("    browser-use CLI not installed — it will run via `uvx browser-use`")
+            _print_info("    For a persistent install: uv tool install browser-use")
+        else:
+            _print_warning("    browser-use CLI not found and uvx is unavailable")
+            _print_info("    Install with: uv tool install browser-use  (https://docs.astral.sh/uv/)")
+        _print_info("    Local Chrome needs remote debugging: chrome://inspect/#remote-debugging")
+        _print_info("    Cloud browsers: browser-use auth login  (or set BROWSER_USE_API_KEY)")
+
     elif post_setup_key == "camofox":
         camofox_dir = PROJECT_ROOT / "node_modules" / "@askjo" / "camofox-browser"
-        _npm_bin = shutil.which("npm")
-        if not camofox_dir.exists() and _npm_bin:
-            _print_info("    Installing Camofox browser package...")
-            _print_info("    First run downloads the Camoufox engine (~300MB) — this can take several minutes.")
-            # Install @askjo/camofox-browser on-demand. It is NOT in
-            # package.json so that `hermes update` does not silently pull
-            # the ~300MB Camoufox Firefox-fork binary for every user.
-            # Stream output (no capture, no --silent) so the long-running
-            # postinstall download is visible instead of looking frozen.
-            try:
-                result = subprocess.run(
-                    [_npm_bin, "install", "@askjo/camofox-browser@^1.5.2",
-                     "--no-fund", "--no-audit", "--progress=false"],
-                    cwd=str(PROJECT_ROOT),
-                )
-                if result.returncode == 0:
-                    _print_success("    Camofox installed")
-                else:
-                    _print_warning(
-                        "    npm install failed — run manually: "
-                        "npm install @askjo/camofox-browser"
-                    )
-            except Exception as exc:
-                _print_warning(f"    Camofox install failed: {exc}")
-                _print_info(
-                    "    Run manually: npm install @askjo/camofox-browser"
-                )
+        _npm_bin = find_node_executable("npm")
+        if camofox_dir.exists():
+            _print_success("    Camofox already installed, nothing to do")
+        elif _npm_bin:
+            _print_info("    Installing Camofox browser server...")
+            import subprocess
+            # Absolute npm path so .cmd shim executes on Windows.
+            result = subprocess.run(
+                # --workspaces=false avoids resolving apps/desktop. See #38772.
+                [_npm_bin, "install", "--silent", "--workspaces=false"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT),
+                creationflags=_post_setup_no_window_flags(),
+            )
+            if result.returncode == 0:
+                _print_success("    Camofox installed")
+            else:
+                _print_warning("    npm install failed - run manually: npm install --workspaces=false")
         if camofox_dir.exists():
             _print_info("    Start the Camofox server:")
             _print_info("      npx @askjo/camofox-browser")
+            _print_info("    First run downloads the Camoufox engine (~300MB)")
             _print_info("    Or use Docker: docker run -p 9377:9377 -e CAMOFOX_PORT=9377 jo-inc/camofox-browser")
-        elif not shutil.which("npm"):
+        elif not _npm_bin:
             _print_warning("    Node.js not found. Install Camofox via Docker:")
             _print_info("      docker run -p 9377:9377 -e CAMOFOX_PORT=9377 jo-inc/camofox-browser")
 
     elif post_setup_key == "cua_driver":
         install_cua_driver(upgrade=False)
+
+    elif post_setup_key == "faster_whisper":
+        import subprocess
+        try:
+            __import__("faster_whisper")
+            _print_success("    faster-whisper is already installed")
+            return
+        except ImportError:
+            pass
+        _print_info("    Installing faster-whisper (model ~150MB downloads on first use)...")
+        try:
+            result = _pip_install(["-U", "faster-whisper", "--quiet"], timeout=300)
+            if result.returncode == 0:
+                _print_success("    faster-whisper installed")
+                _print_info("    Model sizes: tiny, base (default), small, medium, large-v3")
+                _print_info("    Change via stt.local.model in ~/.hermes/config.yaml")
+            else:
+                _print_warning("    faster-whisper install failed:")
+                _print_info(f"      {(result.stderr or '').strip()[:300]}")
+                _print_info("    Run manually: uv pip install -U faster-whisper")
+        except subprocess.TimeoutExpired:
+            _print_warning("    faster-whisper install timed out (>5min)")
+            _print_info("    Run manually: uv pip install -U faster-whisper")
 
     elif post_setup_key == "kittentts":
         try:
@@ -936,6 +1935,36 @@ def _run_post_setup(post_setup_key: str):
             _print_warning(f"    Spotify login failed: {exc}")
             _print_info("    Run manually: hermes auth spotify")
 
+    elif post_setup_key == "langfuse":
+        # Install the langfuse SDK.
+        try:
+            __import__("langfuse")
+            _print_success("    langfuse SDK already installed")
+        except ImportError:
+            _print_info("    Installing langfuse SDK...")
+            result = _pip_install(["langfuse", "--quiet"], timeout=120)
+            if result.returncode == 0:
+                _print_success("    langfuse SDK installed")
+            else:
+                _print_warning("    langfuse SDK install failed — run manually: uv pip install langfuse")
+        # Opt the bundled observability/langfuse plugin into plugins.enabled.
+        # The plugin ships in the repo but doesn't load until the user enables
+        # it (standalone plugins are opt-in).
+        try:
+            from hermes_cli.plugins_cmd import _get_enabled_set, _save_enabled_set
+            enabled = _get_enabled_set()
+            if "observability/langfuse" in enabled or "langfuse" in enabled:
+                _print_success("    Plugin observability/langfuse already enabled")
+            else:
+                enabled.add("observability/langfuse")
+                _save_enabled_set(enabled)
+                _print_success("    Plugin observability/langfuse enabled")
+        except Exception as exc:
+            _print_warning(f"    Could not enable plugin automatically: {exc}")
+            _print_info("    Run manually: hermes plugins enable observability/langfuse")
+        _print_info("    Restart Hermes for tracing to take effect.")
+        _print_info("    Verify: hermes plugins list")
+
     elif post_setup_key == "xai_grok":
         # Shared credential bootstrap for any picker entry that talks to xAI
         # (TTS, Video Gen, future Image Gen, etc.). Accepts either a
@@ -952,7 +1981,7 @@ def _run_post_setup(post_setup_key: str):
 
         if oauth_logged_in:
             _print_success(
-                "    xAI will use your xAI Grok OAuth (SuperGrok Subscription) credentials"
+                "    xAI will use your xAI Grok OAuth (SuperGrok / Premium+) credentials"
             )
             return
         if existing_api_key:
@@ -975,7 +2004,7 @@ def _run_post_setup(post_setup_key: str):
         idx = prompt_choice(
             "    How do you want xAI to authenticate?",
             choices=[
-                "Sign in with xAI Grok OAuth (SuperGrok Subscription) — browser login",
+                "Sign in with xAI Grok OAuth (SuperGrok / Premium+) — browser login",
                 "Paste an xAI API key (console.x.ai)",
                 "Skip — configure later via `hermes auth add xai-oauth`",
             ],
@@ -1002,6 +2031,68 @@ def _run_post_setup(post_setup_key: str):
                 )
         else:
             _print_info("    xAI will remain inactive until credentials are configured.")
+
+
+def valid_post_setup_keys() -> Set[str]:
+    """Return the set of post-setup keys declared by any visible provider.
+
+    Collected from ``TOOL_CATEGORIES`` plus the plugin-registered web /
+    image-gen / video-gen / browser providers (which can also carry a
+    ``post_setup``). This is the allowlist the ``hermes tools post-setup``
+    command and the dashboard post-setup endpoint validate against, so a
+    caller can't drive ``_run_post_setup`` with an arbitrary key.
+    """
+    keys: Set[str] = set()
+    for cat in TOOL_CATEGORIES.values():
+        for prov in cat.get("providers", []):
+            ps = prov.get("post_setup")
+            if ps:
+                keys.add(ps)
+    # Plugin-registered providers can declare their own post_setup hooks.
+    for builder in (
+        _plugin_web_search_providers,
+        _plugin_image_gen_providers,
+        _plugin_video_gen_providers,
+        _plugin_browser_providers,
+    ):
+        try:
+            for prov in builder():
+                ps = prov.get("post_setup")
+                if ps:
+                    keys.add(ps)
+        except Exception:  # pragma: no cover — defensive; plugins optional
+            continue
+    return keys
+
+
+def run_post_setup_command(args) -> int:
+    """``hermes tools post-setup <key>`` — non-interactive post-setup runner.
+
+    Runs the install/bootstrap hook a provider declares (npm install for
+    browser/Camofox, pip install for kittentts/piper/ddgs, cua-driver fetch,
+    etc.). This is the stable, scriptable target the dashboard spawns so the
+    GUI can drive backend setup without re-implementing the install logic.
+    Returns a process exit code (0 ok, 2 unknown key).
+    """
+    key = getattr(args, "post_setup_key", None)
+    if not key:
+        _print_error("Usage: hermes tools post-setup <key>")
+        return 2
+    valid = valid_post_setup_keys()
+    if key not in valid:
+        _print_error(
+            f"Unknown post-setup key: {key!r}. "
+            f"Valid keys: {', '.join(sorted(valid)) or '(none)'}"
+        )
+        return 2
+    _print_info(f"Running post-setup hook: {key}")
+    try:
+        _run_post_setup(key)
+    except Exception as exc:  # pragma: no cover — defensive
+        _print_error(f"Post-setup failed: {exc}")
+        return 1
+    _print_success(f"Post-setup '{key}' complete")
+    return 0
 
 
 # ─── Platform / Toolset Helpers ───────────────────────────────────────────────
@@ -1055,6 +2146,125 @@ def _parse_enabled_flag(value, default: bool = True) -> bool:
     return default
 
 
+def enabled_mcp_server_names(config: dict) -> Set[str]:
+    """Names of MCP servers globally enabled in config.yaml or by a plugin.
+
+    Shared by the gateway/CLI platform resolver (``_get_platform_tools``) and
+    the cron per-job toolset resolver (``cron.scheduler``) so every path agrees
+    on MCP membership. A server is enabled unless its config sets an explicitly
+    falsey ``enabled`` (per ``_parse_enabled_flag``: false/0/no/off) — a missing
+    flag or an unrecognized value is treated as enabled.
+
+    Portable Agent Plugins contribute MCP servers in-memory rather than via
+    ``config.yaml`` (see ``PluginManager.get_portable_mcp_servers``). Those are
+    included here so their tools fold into platform toolsets like native
+    servers do — the user's opt-in is enabling the plugin itself. Without this,
+    a portable server registers with the MCP runtime but its tools never reach
+    the model's schema.
+    """
+    mcp_servers = (config or {}).get("mcp_servers") or {}
+    names = {
+        str(name)
+        for name, server_cfg in mcp_servers.items()
+        if isinstance(server_cfg, dict)
+        and _parse_enabled_flag(server_cfg.get("enabled", True), default=True)
+    }
+    try:
+        from hermes_cli.plugins import (
+            get_plugin_manager,
+            get_portable_mcp_server_names_nowait,
+        )
+
+        portable = get_portable_mcp_server_names_nowait()
+        # Native config wins on a name collision (mirrors _load_mcp_config).
+        names |= portable - set(mcp_servers)
+    except Exception:
+        logger.debug("Failed to include portable MCP servers", exc_info=True)
+    return names
+
+
+def _exempt_explicit_platform_native(
+    default_off: Set[str], platform: str, *, explicitly_configured: bool
+) -> None:
+    """Let platform-native default-off toolsets through on explicit config.
+
+    Toolsets that are both in ``_DEFAULT_OFF_TOOLSETS`` and restricted to
+    ``platform`` via ``_TOOLSET_PLATFORM_RESTRICTIONS`` (currently
+    ``discord``/``discord_admin`` on the discord platform) are the platform's
+    own native tools. They are kept off for *unconfigured* platforms (security
+    opt-in), but once a user explicitly saves a toolset list for the platform
+    the composite they chose (e.g. ``hermes-discord``, which contains those
+    tools) is an opt-in — stripping them silently defeats the explicit
+    configuration (#35527). Mutates ``default_off`` in place.
+    """
+    if not explicitly_configured:
+        return
+    for ts in list(default_off):
+        allowed = _TOOLSET_PLATFORM_RESTRICTIONS.get(ts)
+        if allowed is not None and platform in allowed:
+            default_off.discard(ts)
+
+
+#: Toolsets young enough that absence from a saved ``platform_toolsets`` list
+#: means "never offered" rather than "declined".
+#:
+#: Saving ``hermes tools`` (or one toggle in the desktop Toolsets UI) replaces
+#: a platform's composite with a frozen explicit list, and nothing ever adds to
+#: that list — so a toolset shipped afterwards stays off forever for anyone who
+#: has touched the picker, while everyone still on ``[hermes-cli]`` inherits it
+#: on upgrade. Listing it here restores that parity.
+#:
+#: MUST ship in the same release as the toolset it names, and be emptied in the
+#: next one. The inference only holds while no released build has put the
+#: toolset on a checklist: once one has, a user who unchecks it writes a config
+#: byte-identical to one saved before the toolset existed (the record below is
+#: only written from that point on), and this rule turns their opt-out back on.
+#: Landing late — or leaving an entry here for a second release — converts a
+#: back-fill into a stuck checkbox.
+#:
+#: Not gated on a Nous sign-in here: the six ``bfl_flux3_*`` tools carry
+#: ``check_fn=check_bfl_requirements``, so an enabled toolset still ships zero
+#: schemas to a user with no Nous credential — the same split Home Assistant
+#: uses. Probing the portal from this path would put a network call on every
+#: CLI start, gateway session and cron tick.
+_RECENTLY_SHIPPED_TOOLSETS = frozenset({"bfl"})
+
+
+def _enable_recently_shipped_toolsets(
+    enabled_toolsets: Set[str], config: dict, platform: str
+) -> None:
+    """Turn on toolsets that shipped after this platform's saved list.
+
+    Either way of saying no outlives this: unchecking in ``hermes tools``
+    records the toolset in ``known_builtin_toolsets`` so it reads as declined
+    from then on, and ``agent.disabled_toolsets`` is subtracted after every
+    rule in :func:`_get_platform_tools`. Mutates ``enabled_toolsets`` in place.
+    """
+    from toolsets import resolve_toolset
+
+    offered = (config.get("known_builtin_toolsets") or {}).get(platform)
+    declined = {str(ts) for ts in offered} if isinstance(offered, list) else set()
+
+    plat_info = PLATFORMS.get(platform)
+    default_ts = plat_info["default_toolset"] if plat_info else f"hermes-{platform}"
+    composite_tools = None
+
+    for ts_key in sorted(_RECENTLY_SHIPPED_TOOLSETS):
+        if ts_key in enabled_toolsets or ts_key in declined:
+            continue
+        if not _toolset_allowed_for_platform(ts_key, platform):
+            continue
+        # Parity is the whole justification, so only enable the toolset where
+        # staying on the composite would have enabled it anyway. Deliberately
+        # narrow composites (hermes-acp, hermes-webhook) stay narrow.
+        ts_tools = set(resolve_toolset(ts_key, include_registry=False))
+        if composite_tools is None:
+            composite_tools = set(resolve_toolset(default_ts))
+        if not ts_tools or not ts_tools.issubset(composite_tools):
+            continue
+        enabled_toolsets.add(ts_key)
+
+
 def _get_platform_tools(
     config: dict,
     platform: str,
@@ -1066,6 +2276,11 @@ def _get_platform_tools(
 
     platform_toolsets = config.get("platform_toolsets") or {}
     toolset_names = platform_toolsets.get(platform)
+    # Track whether the user explicitly saved a toolset list for this platform
+    # (vs. falling back to the platform default). An explicit composite (e.g.
+    # ``hermes-discord``) is an opt-in to the platform's native default-off
+    # toolsets — see _exempt_explicit_platform_native (#35527).
+    explicitly_configured = isinstance(toolset_names, list)
 
     if toolset_names is None or not isinstance(toolset_names, list):
         plat_info = PLATFORMS.get(platform)
@@ -1116,18 +2331,27 @@ def _get_platform_tools(
             for ts_key, _, _ in CONFIGURABLE_TOOLSETS:
                 if not _toolset_allowed_for_platform(ts_key, platform):
                     continue
-                ts_tools = set(resolve_toolset(ts_key))
+                # Compare the toolset's STATIC membership: a tool registered
+                # into a toolset (e.g. delegate_cli -> delegation, desktop-only
+                # read_terminal -> terminal) that the composite never listed must
+                # not drop the whole toolset. See issue #49622.
+                ts_tools = set(resolve_toolset(ts_key, include_registry=False))
                 if ts_tools and ts_tools.issubset(composite_tools):
                     expanded.add(ts_key)
 
             default_off = set(_DEFAULT_OFF_TOOLSETS)
             if platform in default_off and platform not in _TOOLSET_PLATFORM_RESTRICTIONS:
                 default_off.remove(platform)
-            if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
+            if "homeassistant" in default_off and _homeassistant_credentials_present():
                 default_off.remove("homeassistant")
+            _exempt_explicit_platform_native(
+                default_off, platform, explicitly_configured=explicitly_configured
+            )
             expanded -= default_off
 
             enabled_toolsets |= expanded
+
+        _enable_recently_shipped_toolsets(enabled_toolsets, config, platform)
     else:
         # No explicit config — fall back to resolving composite toolset names
         # (e.g. "hermes-cli") to individual tool names and reverse-mapping.
@@ -1139,7 +2363,12 @@ def _get_platform_tools(
         for ts_key, _, _ in CONFIGURABLE_TOOLSETS:
             if not _toolset_allowed_for_platform(ts_key, platform):
                 continue
-            ts_tools = set(resolve_toolset(ts_key))
+            # Compare the toolset's STATIC membership against the composite (see
+            # issue #49622): get_toolset() merges registry-registered tools into
+            # a toolset, but platform composites enumerate static tool names, so
+            # an all-tools subset test against the merged set drops the whole
+            # toolset the moment a plugin/overlay/desktop tool joins it.
+            ts_tools = set(resolve_toolset(ts_key, include_registry=False))
             if ts_tools and ts_tools.issubset(all_tool_names):
                 enabled_toolsets.add(ts_key)
 
@@ -1175,13 +2404,16 @@ def _get_platform_tools(
         # (e.g. cron) that run through _get_platform_tools without an
         # explicit saved toolset list. Without this, Norbert's HA cron jobs
         # regressed after #14798 made cron honor per-platform tool config.
-        if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
+        if "homeassistant" in default_off and _homeassistant_credentials_present():
             default_off.remove("homeassistant")
         # Symmetric carve-out for x_search auto-enable (see the inject
         # block above). Without this, the default_off subtraction would
         # strip the entry we just added.
         if x_search_auto_enabled and "x_search" in default_off:
             default_off.remove("x_search")
+        _exempt_explicit_platform_native(
+            default_off, platform, explicitly_configured=explicitly_configured
+        )
         enabled_toolsets -= default_off
 
     # Recover non-configurable platform toolsets (e.g. discord, feishu_doc,
@@ -1207,7 +2439,14 @@ def _get_platform_tools(
             continue
         if ts_def.get("includes"):
             continue
-        ts_tools = set(resolve_toolset(ts_key))
+        # Posture toolsets (e.g. ``coding``) are session-level selections made
+        # by agent/coding_context.py — not per-platform capabilities to recover.
+        if ts_def.get("posture"):
+            continue
+        # Static membership (see #49622): a registry-added tool absent from the
+        # platform composite must not block recovery of a non-configurable
+        # toolset whose authored tools the composite does list.
+        ts_tools = set(resolve_toolset(ts_key, include_registry=False))
         if not ts_tools or not ts_tools.issubset(platform_tool_universe):
             continue
         if ts_tools.issubset(configurable_tool_universe):
@@ -1224,8 +2463,8 @@ def _get_platform_tools(
     # has been saved for that platform (tracked via known_plugin_toolsets).
     # Unknown plugins default to enabled; known-but-absent = disabled.
     if plugin_ts_keys:
-        known_map = config.get("known_plugin_toolsets", {})
-        known_for_platform = set(known_map.get(platform, []))
+        known_map = config.get("known_plugin_toolsets", {}) or {}
+        known_for_platform = set(known_map.get(platform, []) or [])
         for pts in plugin_ts_keys:
             if pts in toolset_names:
                 # Explicitly listed in config — enabled
@@ -1237,6 +2476,24 @@ def _get_platform_tools(
                 # New plugin not yet seen by hermes tools — default enabled
                 enabled_toolsets.add(pts)
             # else: known but not in config = user disabled it
+
+    # Context-engine tools are runtime-provided by the active engine, so they
+    # are not part of any static platform composite. When a non-default engine
+    # is selected, keep its recovery/status tools available even after a user
+    # saves an explicit platform toolset list. Preserve the explicit empty-list
+    # contract: selecting no configurable tools means no context-engine tools
+    # either unless the user adds ``context_engine`` manually later.
+    context_cfg = config.get("context") or {}
+    if not isinstance(context_cfg, dict):
+        context_cfg = {}
+    context_engine_name = str(context_cfg.get("engine") or "compressor").strip().lower()
+    explicit_empty_selection = (
+        platform in platform_toolsets
+        and isinstance(platform_toolsets.get(platform), list)
+        and not toolset_names
+    )
+    if context_engine_name and context_engine_name != "compressor" and not explicit_empty_selection:
+        enabled_toolsets.add("context_engine")
 
     # Preserve any explicit non-configurable toolset entries (for example,
     # custom toolsets or MCP server names saved in platform_toolsets).
@@ -1252,13 +2509,7 @@ def _get_platform_tools(
     # If the platform explicitly lists one or more MCP server names, treat that
     # as an allowlist. Otherwise include every globally enabled MCP server.
     # Special sentinel: "no_mcp" in the toolset list disables all MCP servers.
-    mcp_servers = config.get("mcp_servers") or {}
-    enabled_mcp_servers = {
-        str(name)
-        for name, server_cfg in mcp_servers.items()
-        if isinstance(server_cfg, dict)
-        and _parse_enabled_flag(server_cfg.get("enabled", True), default=True)
-    }
+    enabled_mcp_servers = enabled_mcp_server_names(config)
     # Allow "no_mcp" sentinel to opt out of all MCP servers for this platform
     if "no_mcp" in toolset_names:
         explicit_mcp_servers = set()
@@ -1283,6 +2534,31 @@ def _get_platform_tools(
     if disabled_toolsets:
         disabled_set = {str(ts) for ts in disabled_toolsets}
         enabled_toolsets -= disabled_set
+
+    # #38798: if this platform was explicitly configured but every toolset name
+    # is invalid (e.g. a migration or hand-edit left `hermes` instead of
+    # `hermes-cli`), resolve_toolset() returns [] for each and the platform ends
+    # up with no native tools — silently, with no error. Surface it at the point
+    # tools are resolved for a session so an already-corrupted config is caught
+    # at runtime, not only during the next `hermes update`/`hermes doctor`.
+    _explicit = platform_toolsets.get(platform)
+    if isinstance(_explicit, list) and _explicit:
+        from toolsets import validate_toolset
+
+        _named = [str(t) for t in _explicit if isinstance(t, str) and t]
+        if (
+            _named
+            and not any(validate_toolset(t) for t in _named)
+            and platform not in _warned_invalid_platform_toolsets
+        ):
+            _warned_invalid_platform_toolsets.add(platform)
+            logger.warning(
+                "platform '%s' has no valid toolsets configured (unknown "
+                "name(s): %s) - tools will be unavailable. Run `hermes tools` "
+                "to reconfigure. See issue #38798.",
+                platform,
+                ", ".join(_named),
+            )
 
     return enabled_toolsets
 
@@ -1337,13 +2613,59 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     # Track which plugin toolsets are "known" for this platform so we can
     # distinguish "new plugin, default enabled" from "user disabled it".
     if plugin_keys:
-        config.setdefault("known_plugin_toolsets", {})
+        # setdefault does NOT replace a present-but-null key ("known_plugin_toolsets:"
+        # in config.yaml parses to None) — normalize before indexing into it.
+        if not isinstance(config.get("known_plugin_toolsets"), dict):
+            config["known_plugin_toolsets"] = {}
         config["known_plugin_toolsets"][platform] = sorted(plugin_keys)
+
+    # Same record for builtin toolsets: which ones this platform's checklist
+    # has actually put in front of the user. Without it, a toolset the user
+    # unchecks here is indistinguishable from one that shipped after they
+    # saved, and _enable_recently_shipped_toolsets would turn it straight back
+    # on. Recorded from the full catalog, since that is what the picker showed.
+    if not isinstance(config.get("known_builtin_toolsets"), dict):
+        config["known_builtin_toolsets"] = {}
+    config["known_builtin_toolsets"][platform] = sorted(
+        ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS
+    )
+
+    # Reconcile with agent.disabled_toolsets. _get_platform_tools() applies
+    # that list as a final override AFTER reading platform_toolsets.<platform>,
+    # so a toolset listed there stays permanently OFF no matter what this
+    # function writes — the toggle "saves" but silently can't ever take
+    # effect. Blank Slate installs pre-populate this list with ~27 toolsets,
+    # making most of the desktop Toolsets UI unusable for re-enabling
+    # anything (issue #49995).
+    #
+    # Only toolsets the user just explicitly enabled FOR THIS PLATFORM are
+    # cleared from the global disabled list — toolsets the user did not
+    # touch (still unchecked) or that remain disabled on other platforms
+    # are left alone, so agent.disabled_toolsets keeps working as a
+    # cross-platform suppression list for anything not actively re-enabled.
+    agent_cfg = config.get("agent")
+    if isinstance(agent_cfg, dict):
+        disabled_toolsets = agent_cfg.get("disabled_toolsets")
+        if isinstance(disabled_toolsets, list) and disabled_toolsets:
+            newly_enabled = enabled_toolset_keys - preserved_entries
+            if newly_enabled:
+                remaining = [
+                    ts for ts in disabled_toolsets
+                    if str(ts) not in newly_enabled
+                ]
+                if remaining != disabled_toolsets:
+                    agent_cfg["disabled_toolsets"] = remaining
 
     save_config(config)
 
 
-def _toolset_has_keys(ts_key: str, config: Optional[dict] = None) -> bool:
+def _toolset_has_keys(
+    ts_key: str,
+    config: dict = None,
+    *,
+    force_fresh: bool = False,
+    features: Optional[NousSubscriptionFeatures] = None,
+) -> bool:
     """Check if a toolset's required API keys are configured."""
     if config is None:
         config = load_config()
@@ -1357,8 +2679,11 @@ def _toolset_has_keys(ts_key: str, config: Optional[dict] = None) -> bool:
         except Exception:
             return False
 
-    if ts_key in {"web", "image_gen", "tts", "browser"}:
-        features = get_nous_subscription_features(config)
+    if ts_key in {"web", "image_gen", "video_gen", "tts", "stt", "browser"}:
+        if features is None:
+            features = get_nous_subscription_features(
+                config, force_fresh=force_fresh
+            )
         feature = features.features.get(ts_key)
         if feature and (feature.available or feature.managed_by_nous):
             return True
@@ -1366,7 +2691,12 @@ def _toolset_has_keys(ts_key: str, config: Optional[dict] = None) -> bool:
     # Check TOOL_CATEGORIES first (provider-aware)
     cat = TOOL_CATEGORIES.get(ts_key)
     if cat:
-        for provider in _visible_providers(cat, config):
+        for provider in _visible_providers(
+            cat,
+            config,
+            force_fresh=force_fresh,
+            features=features,
+        ):
             env_vars = provider.get("env_vars", [])
             if not env_vars:
                 return True  # No-key provider (e.g. Local Browser, Edge TTS)
@@ -1409,7 +2739,7 @@ def _estimate_tool_tokens() -> Dict[str, int]:
         return _tool_token_cache
 
     try:
-        import tiktoken  # ty: ignore[unresolved-import]  # optional dep
+        import tiktoken
         enc = tiktoken.get_encoding("cl100k_base")
     except Exception:
         logger.debug("tiktoken unavailable; skipping tool token estimation")
@@ -1437,7 +2767,13 @@ def _estimate_tool_tokens() -> Dict[str, int]:
     return _tool_token_cache
 
 
-def _prompt_toolset_checklist(platform_label: str, enabled: Set[str], platform: str = "cli") -> Set[str]:
+def _prompt_toolset_checklist(
+    platform_label: str,
+    enabled: Set[str],
+    platform: str = "cli",
+    *,
+    force_fresh: bool = True,
+) -> Set[str]:
     """Multi-select checklist of toolsets. Returns set of selected toolset keys."""
     from hermes_cli.curses_ui import curses_checklist
     from toolsets import resolve_toolset
@@ -1446,16 +2782,21 @@ def _prompt_toolset_checklist(platform_label: str, enabled: Set[str], platform: 
     tool_tokens = _estimate_tool_tokens()
 
     effective_all = _get_effective_configurable_toolsets()
-    # Drop platform-scoped toolsets that don't apply to this platform.
+    # Drop platform-scoped toolsets that don't apply to this platform, and
+    # config-only capabilities (stt) that have no per-platform toggle.
     effective = [
         (k, l, d) for (k, l, d) in effective_all
         if _toolset_allowed_for_platform(k, platform)
+        and k not in _CONFIG_ONLY_TOOLSETS
     ]
 
     labels = []
     for ts_key, ts_label, ts_desc in effective:
         suffix = ""
-        if not _toolset_has_keys(ts_key) and (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key)):
+        if (
+            not _toolset_has_keys(ts_key, force_fresh=force_fresh)
+            and (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key))
+        ):
             suffix = "  [no API key]"
         labels.append(f"{ts_label}  ({ts_desc}){suffix}")
 
@@ -1491,7 +2832,12 @@ def _prompt_toolset_checklist(platform_label: str, enabled: Set[str], platform: 
 
 # ─── Provider-Aware Configuration ────────────────────────────────────────────
 
-def _configure_toolset(ts_key: str, config: dict):
+def _configure_toolset(
+    ts_key: str,
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Configure a toolset - provider selection + API keys.
     
     Uses TOOL_CATEGORIES for provider-aware config, falls back to simple
@@ -1500,7 +2846,7 @@ def _configure_toolset(ts_key: str, config: dict):
     cat = TOOL_CATEGORIES.get(ts_key)
 
     if cat:
-        _configure_tool_category(ts_key, cat, config)
+        _configure_tool_category(ts_key, cat, config, force_fresh=force_fresh)
     else:
         # Simple fallback for vision, moa, etc.
         _configure_simple_requirements(ts_key)
@@ -1512,12 +2858,9 @@ def _plugin_image_gen_providers() -> list[dict]:
     Each returned dict looks like a regular ``TOOL_CATEGORIES`` provider
     row but carries an ``image_gen_plugin_name`` marker so downstream
     code (config writing, model picker) knows to route through the
-    plugin registry instead of the in-tree FAL backend.
-
-    FAL is skipped — it's already exposed by the hardcoded
-    ``TOOL_CATEGORIES["image_gen"]`` entries. When FAL gets ported to
-    a plugin in a follow-up PR, the hardcoded entries go away and this
-    function surfaces it alongside OpenAI automatically.
+    plugin registry. Every image-gen backend is a plugin now — there
+    are no hardcoded rows left in ``TOOL_CATEGORIES["image_gen"]`` for
+    this function to dedupe against (see issue #26241).
     """
     try:
         from agent.image_gen_registry import list_providers
@@ -1530,9 +2873,6 @@ def _plugin_image_gen_providers() -> list[dict]:
 
     rows: list[dict] = []
     for provider in providers:
-        if getattr(provider, "name", None) == "fal":
-            # FAL has its own hardcoded rows today.
-            continue
         try:
             schema = provider.get_setup_schema()
         except Exception:
@@ -1545,43 +2885,6 @@ def _plugin_image_gen_providers() -> list[dict]:
             "tag": schema.get("tag", ""),
             "env_vars": schema.get("env_vars", []),
             "image_gen_plugin_name": provider.name,
-        }
-        if schema.get("post_setup"):
-            row["post_setup"] = schema["post_setup"]
-        rows.append(row)
-    return rows
-
-
-def _plugin_asset3d_gen_providers() -> list[dict]:
-    """Build picker-row dicts from plugin-registered 3D-asset gen providers.
-
-    Mirrors ``_plugin_video_gen_providers`` exactly — every 3D backend is a
-    plugin, so this is the only source of provider rows for the 3D Generation
-    category. The hardcoded ``TOOL_CATEGORIES`` entry keeps an empty list.
-    """
-    try:
-        from agent.asset3d_gen_registry import list_providers
-        from hermes_cli.plugins import _ensure_plugins_discovered
-
-        _ensure_plugins_discovered()
-        providers = list_providers()
-    except Exception:
-        return []
-
-    rows: list[dict] = []
-    for provider in providers:
-        try:
-            schema = provider.get_setup_schema()
-        except Exception:
-            continue
-        if not isinstance(schema, dict):
-            continue
-        row = {
-            "name": schema.get("name", provider.display_name),
-            "badge": schema.get("badge", ""),
-            "tag": schema.get("tag", ""),
-            "env_vars": schema.get("env_vars", []),
-            "asset3d_gen_plugin_name": provider.name,
         }
         if schema.get("post_setup"):
             row["post_setup"] = schema["post_setup"]
@@ -1685,6 +2988,33 @@ def _plugin_web_search_providers() -> list[dict]:
     return rows
 
 
+def web_provider_capabilities(backend: str) -> list:
+    """Return the capabilities (``search`` / ``extract``) a web backend supports.
+
+    Consults the plugin registry's provider instance (``supports_search`` /
+    ``supports_extract``) so the Capabilities GUI can offer per-capability
+    selection (``web.search_backend`` / ``web.extract_backend``) only where it
+    makes sense — e.g. ddgs and brave-free are search-only. Falls back to both
+    capabilities when the backend isn't registered (hardcoded setup-flow rows
+    like the managed Firecrawl entries resolve before plugin discovery in some
+    test contexts, and firecrawl itself supports both).
+    """
+    try:
+        from agent.web_search_registry import get_provider
+
+        provider = get_provider(backend)
+        if provider is not None:
+            caps = []
+            if provider.supports_search():
+                caps.append("search")
+            if provider.supports_extract():
+                caps.append("extract")
+            return caps
+    except Exception:
+        pass
+    return ["search", "extract"]
+
+
 # Mirror of _plugin_web_search_providers for cloud browser backends. After
 # PR #25214, Browserbase / Browser Use / Firecrawl live as plugins under
 # plugins/browser/<vendor>/; this helper is the sole source of provider rows
@@ -1740,14 +3070,110 @@ def _plugin_browser_providers() -> list[dict]:
     return rows
 
 
-def _visible_providers(cat: dict, config: dict) -> list[dict]:
-    """Return provider entries visible for the current auth/config state."""
-    features = get_nous_subscription_features(config)
+def _plugin_tts_providers() -> list[dict]:
+    """Build picker-row dicts from plugin-registered TTS providers.
+
+    Issue #30398 — the ``register_tts_provider()`` plugin hook
+    coexists alongside the 10 built-in TTS providers
+    (``edge``/``openai``/``elevenlabs``/…) and the
+    ``tts.providers.<name>: type: command`` registry from PR #17843.
+    Built-in rows stay hardcoded in ``TOOL_CATEGORIES["tts"]``; this
+    function only injects PLUGIN-registered providers.
+
+    Defensive: plugins whose name collides with a built-in TTS provider
+    are filtered out — even though the registry already rejects them
+    at registration time, a future code path that registers directly
+    via :func:`agent.tts_registry.register_provider` could slip
+    through. Filtering here keeps the picker invariant.
+    """
+    try:
+        from agent.tts_registry import _BUILTIN_NAMES, list_providers
+        from hermes_cli.plugins import _ensure_plugins_discovered
+
+        _ensure_plugins_discovered()
+        providers = list_providers()
+    except Exception:
+        return []
+
+    rows: list[dict] = []
+    for provider in providers:
+        name = getattr(provider, "name", None)
+        if not name:
+            continue
+        # Defensive: reject built-in shadowing at the picker layer too.
+        if name.lower().strip() in _BUILTIN_NAMES:
+            continue
+        try:
+            schema = provider.get_setup_schema()
+        except Exception:
+            continue
+        if not isinstance(schema, dict):
+            continue
+        row = {
+            "name": schema.get("name", provider.display_name),
+            "badge": schema.get("badge", ""),
+            "tag": schema.get("tag", ""),
+            "env_vars": schema.get("env_vars", []),
+            # Selecting this row writes ``tts.provider: <name>`` — the
+            # same write-path used by hardcoded rows. The plugin
+            # dispatcher picks it up automatically from there.
+            "tts_provider": name,
+            "tts_plugin_name": name,
+        }
+        if schema.get("post_setup"):
+            row["post_setup"] = schema["post_setup"]
+        rows.append(row)
+    return rows
+
+
+def _visible_providers(
+    cat: dict,
+    config: dict,
+    *,
+    force_fresh: bool = False,
+    features: Optional[NousSubscriptionFeatures] = None,
+) -> list[dict]:
+    """Return provider entries visible for the current auth/config state.
+
+    Nous-managed Tool Gateway rows (``managed_nous_feature``) are always
+    shown — even to logged-out / unentitled users — so the picker advertises
+    that the capability exists.  Selecting one drives an inline Nous Portal
+    login + entitlement check (see ``_configure_provider``); the row only
+    *activates* the gateway once paid access is confirmed.
+    """
+    if features is None:
+        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    acct = features.account_info
+    # Pool-only users (entitled to managed tools via the free tool pool but with
+    # no paid access) get image gen but NOT video gen — the pool doesn't fund
+    # `fal-video`. Rather than advertise a managed video row that would be denied
+    # on select, hide it for them. Logged-out users still see it (advertising)
+    # and paid users are entitled to it.
+    pool_only = bool(
+        acct
+        and acct.logged_in
+        and acct.paid_service_access is not True
+        and acct.tool_gateway_entitled
+    )
     visible = []
     for provider in cat.get("providers", []):
-        if provider.get("managed_nous_feature") and not managed_nous_tools_enabled():
+        # Nous-managed Tool Gateway rows stay visible regardless of auth —
+        # selecting one drives an inline Portal login. A `requires_nous_auth`
+        # row that is NOT a managed gateway feature (pure pre-auth UX) is
+        # still hidden until the user is logged in.
+        if (
+            provider.get("requires_nous_auth")
+            and not provider.get("managed_nous_feature")
+            and not features.nous_auth_present
+        ):
             continue
-        if provider.get("requires_nous_auth") and not features.nous_auth_present:
+        # Hide the managed video-gen row from pool-only users — their free tool
+        # pool doesn't cover video, so showing it would only lead to a denial.
+        if (
+            pool_only
+            and provider.get("managed_nous_feature") == "video_gen"
+            and not (acct and acct.tool_gateway_entitled_for("fal-video"))
+        ):
             continue
         visible.append(provider)
 
@@ -1760,11 +3186,6 @@ def _visible_providers(cat: dict, config: dict) -> list[dict]:
     # video_gen has NO hardcoded providers — every backend is a plugin.
     if cat.get("name") == "Video Generation":
         visible.extend(_plugin_video_gen_providers())
-
-    # Inject plugin-registered asset3d_gen backends. Like video_gen, 3D gen
-    # has NO hardcoded providers — every backend (meshy, hunyuan3d, …) is a plugin.
-    if cat.get("name") == "3D Generation":
-        visible.extend(_plugin_asset3d_gen_providers())
 
     # Inject plugin-registered web search backends. After PR #25182, this
     # is the SOLE source of provider rows for the Web Search & Extract
@@ -1782,7 +3203,32 @@ def _visible_providers(cat: dict, config: dict) -> list[dict]:
     if cat.get("name") == "Browser Automation":
         visible.extend(_plugin_browser_providers())
 
+    # Inject plugin-registered TTS backends (issue #30398). Plugin rows
+    # render BELOW the 10 hardcoded built-in rows. Built-in shadowing
+    # is filtered out by ``_plugin_tts_providers`` defensively.
+    if cat.get("name") == "Text-to-Speech":
+        visible.extend(_plugin_tts_providers())
+
     return visible
+
+
+def _hidden_nous_gateway_message(
+    cat: dict,
+    config: dict,
+    capability: str,
+    *,
+    force_fresh: bool = False,
+) -> str:
+    """Deprecated: Nous Tool Gateway rows are no longer hidden.
+
+    Previously this returned a "log in / upgrade" banner shown above a
+    category when its Nous-managed rows were filtered out for unentitled
+    users. Those rows are now always listed (see ``_visible_providers``), and
+    the login + entitlement guidance happens inline when the user selects one
+    (``ensure_nous_portal_access``). Kept as a no-op so call sites stay simple;
+    always returns an empty string.
+    """
+    return ""
 
 
 _POST_SETUP_INSTALLED: dict = {
@@ -1799,7 +3245,7 @@ _POST_SETUP_INSTALLED: dict = {
     # entry when (a) the post_setup is the ONLY install side-effect for
     # a no-key provider, and (b) an installed-state check is cheap and
     # doesn't trigger a heavy import.
-    "cua_driver": lambda: bool(shutil.which("cua-driver")),
+    "cua_driver": lambda: _resolved_cua_driver_cmd() is not None,
 }
 
 
@@ -1816,17 +3262,169 @@ def _post_setup_already_installed(post_setup_key: str) -> bool:
         return True
 
 
-def _toolset_needs_configuration_prompt(ts_key: str, config: dict) -> bool:
+def _module_installed(module_name: str) -> bool:
+    """Cheap importable-without-importing check (no heavy side effects)."""
+    import importlib.util
+
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except Exception:
+        return False
+
+
+def _agent_browser_installed() -> bool:
+    """True when everything ``_run_post_setup("agent_browser")`` installs is
+    present: the agent-browser CLI *and* the Chromium build it drives (or the
+    Lightpanda engine, which needs no Chromium). Mirrors the hook so "Run
+    setup" flips to an installed state only when re-running it would be a
+    no-op."""
+    import sys
+
+    from hermes_cli.nous_subscription import _local_browser_runnable
+
+    # The install hook runs in a spawned ``hermes tools post-setup`` process,
+    # but this probe runs in the long-lived web-server/CLI process, whose
+    # browser_tool module may have cached a stale "Chromium missing" result
+    # from before the install. Drop the cache (when the module is loaded) so
+    # the readiness pill flips to Ready right after a successful setup run.
+    bt = sys.modules.get("tools.browser_tool")
+    if bt is not None:
+        bt._cached_chromium_installed = None
+
+    return _local_browser_runnable()
+
+
+def _camofox_installed() -> bool:
+    """True when the Camofox npm package ``_run_post_setup("camofox")``
+    installs is already in node_modules."""
+    return (PROJECT_ROOT / "node_modules" / "@askjo" / "camofox-browser").exists()
+
+
+# post_setup_key -> predicate(): True when the install side-effect is already
+# satisfied. Used by ``provider_readiness_status`` to decide whether a keyless
+# post_setup row (KittenTTS, Piper, Local Browser, …) is honestly "ready" or
+# still "needs_setup". Mirrors the installed-checks ``_run_post_setup`` itself
+# performs before installing. ``xai_grok`` is intentionally absent — it is a
+# credential bootstrap, not an install, and is handled as an auth check.
+_POST_SETUP_READY: dict = {
+    "kittentts": lambda: _module_installed("kittentts"),
+    "piper": lambda: _module_installed("piper"),
+    "faster_whisper": lambda: _module_installed("faster_whisper"),
+    "ddgs": lambda: _module_installed("ddgs"),
+    "langfuse": lambda: _module_installed("langfuse"),
+    "agent_browser": lambda: _agent_browser_installed(),
+    "browserbase": lambda: _cloud_agent_browser_installed(),
+    "camofox": lambda: _camofox_installed(),
+    "cua_driver": lambda: _resolved_cua_driver_cmd() is not None,
+}
+
+
+def _cloud_agent_browser_installed() -> bool:
+    """Installed-check for the ``browserbase`` hook (cloud provider rows).
+
+    Cloud providers host their own Chromium, so their hook only installs the
+    agent-browser npm package — presence of the CLI is the whole contract."""
+    from hermes_cli.nous_subscription import _has_agent_browser
+
+    return _has_agent_browser()
+
+
+def provider_readiness_status(
+    provider: dict,
+    config: dict,
+    *,
+    features=None,
+    is_active: Optional[bool] = None,
+) -> str:
+    """Compute an honest readiness state for a provider picker row.
+
+    Returns one of:
+
+    - ``"ready"``       — usable as-is (keys set / entitled / installed).
+    - ``"needs_keys"``  — declares env vars and at least one is unset.
+    - ``"needs_auth"``  — needs a sign-in: Nous Portal login/entitlement for
+      managed Tool Gateway rows, or xAI Grok OAuth / XAI_API_KEY for
+      ``post_setup: "xai_grok"`` rows.
+    - ``"needs_setup"`` — keyless row whose ``post_setup`` install hook has
+      verifiably not run yet (see ``_POST_SETUP_READY``).
+
+    Keyless ≠ usable: this is the server-side truth the GUI "Ready" pill
+    renders from (the old client-side heuristic showed Ready for every
+    zero-env-var row, including logged-out Nous Subscription rows).
+
+    ``features`` (a ``NousSubscriptionFeatures``) can be passed to avoid
+    re-fetching portal state per row. ``is_active`` is the completed-setup
+    fallback signal for post_setup hooks with no registered installed-check
+    (selecting a row runs its hook, so the active row has been set up).
+    """
+    env_vars = provider.get("env_vars", [])
+    if env_vars:
+        if all(get_env_value(e["key"]) for e in env_vars):
+            return "ready"
+        return "needs_keys"
+
+    managed_feature = provider.get("managed_nous_feature")
+    if provider.get("requires_nous_auth") or managed_feature:
+        if features is None:
+            features = get_nous_subscription_features(config)
+        if not features.nous_auth_present:
+            return "needs_auth"
+        if managed_feature:
+            # Same per-category entitlement gate the CLI applies at selection
+            # time (free tool-pool users get image gen but not video gen).
+            acct = features.account_info
+            category = MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature)
+            entitled = bool(
+                acct
+                and acct.logged_in
+                and (
+                    acct.tool_gateway_entitled_for(category)
+                    if category
+                    else acct.tool_gateway_entitled
+                )
+            )
+            if not entitled:
+                return "needs_auth"
+        # Signed in and entitled — fall through: a managed row may still
+        # carry a local install hook (e.g. the managed browser row needs
+        # the agent-browser CLI on this machine).
+
+    post_setup = provider.get("post_setup")
+    if post_setup:
+        if post_setup == "xai_grok":
+            return "ready" if _xai_credentials_present() else "needs_auth"
+        predicate = _POST_SETUP_READY.get(post_setup)
+        if predicate is not None:
+            try:
+                return "ready" if predicate() else "needs_setup"
+            except Exception:
+                # Flaky detection must not manufacture a warning state.
+                return "ready"
+        # No reliable installed-check registered → treat the active-provider
+        # signal as "setup completed" (selecting the row runs the hook).
+        if is_active is None:
+            is_active = _is_provider_active(provider, config)
+        return "ready" if is_active else "needs_setup"
+
+    return "ready"
+
+
+def _toolset_needs_configuration_prompt(
+    ts_key: str,
+    config: dict,
+    *,
+    force_fresh: bool = False,
+) -> bool:
     """Return True when enabling this toolset should open provider setup."""
     cat = TOOL_CATEGORIES.get(ts_key)
     if not cat:
-        return not _toolset_has_keys(ts_key, config)
+        return not _toolset_has_keys(ts_key, config, force_fresh=force_fresh)
 
     # If any visible provider has a registered post_setup install-state
     # check that hasn't been satisfied (e.g. cua-driver binary not on
     # PATH yet), force the configuration flow so `_configure_provider`
     # invokes `_run_post_setup` and the install actually runs.
-    for provider in _visible_providers(cat, config):
+    for provider in _visible_providers(cat, config, force_fresh=force_fresh):
         post_setup = provider.get("post_setup")
         if post_setup and not _post_setup_already_installed(post_setup):
             return True
@@ -1877,14 +3475,26 @@ def _toolset_needs_configuration_prompt(ts_key: str, config: dict) -> bool:
             pass
         return True
 
-    return not _toolset_has_keys(ts_key, config)
+    return not _toolset_has_keys(ts_key, config, force_fresh=force_fresh)
 
 
-def _configure_tool_category(ts_key: str, cat: dict, config: dict):
+def _configure_tool_category(
+    ts_key: str,
+    cat: dict,
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Configure a tool category with provider selection."""
     icon = cat.get("icon", "")
     name = cat["name"]
-    providers = _visible_providers(cat, config)
+    providers = _visible_providers(cat, config, force_fresh=force_fresh)
+    hidden_nous_message = _hidden_nous_gateway_message(
+        cat,
+        config,
+        f"the Nous Subscription provider for {name}",
+        force_fresh=force_fresh,
+    )
 
     # Check Python version requirement
     if cat.get("requires_python"):
@@ -1905,7 +3515,10 @@ def _configure_tool_category(ts_key: str, cat: dict, config: dict):
         # For single-provider tools, show a note if available
         if cat.get("setup_note"):
             _print_info(f"  {cat['setup_note']}")
-        _configure_provider(provider, config)
+        if hidden_nous_message:
+            for line in hidden_nous_message.splitlines():
+                _print_warning(f"  {line}")
+        _configure_provider(provider, config, force_fresh=force_fresh)
     else:
         # Multiple providers - let user choose
         print()
@@ -1914,9 +3527,25 @@ def _configure_tool_category(ts_key: str, cat: dict, config: dict):
         print(color(f"  --- {icon} {name} - {title} ---", Colors.CYAN))
         if cat.get("setup_note"):
             _print_info(f"  {cat['setup_note']}")
+        if hidden_nous_message:
+            for line in hidden_nous_message.splitlines():
+                _print_warning(f"  {line}")
         print()
 
         # Plain text labels only (no ANSI codes in menu items)
+        # When the user is logged into Nous, surface a marker on providers
+        # whose access is included in their subscription so it's visually
+        # obvious which options cost extra vs. cost nothing on top of Nous.
+        try:
+            _nous_logged_in = bool(
+                get_nous_subscription_features(
+                    config,
+                    force_fresh=force_fresh,
+                ).nous_auth_present
+            )
+        except Exception:
+            _nous_logged_in = False
+
         provider_choices = []
         for p in providers:
             badge = f" [{p['badge']}]" if p.get("badge") else ""
@@ -1924,19 +3553,34 @@ def _configure_tool_category(ts_key: str, cat: dict, config: dict):
             configured = ""
             env_vars = p.get("env_vars", [])
             if not env_vars or all(get_env_value(v["key"]) for v in env_vars):
-                if _is_provider_active(p, config):
+                if _is_provider_active(p, config, force_fresh=force_fresh):
                     configured = " [active]"
                 elif not env_vars:
                     configured = ""
                 else:
                     configured = " [configured]"
-            provider_choices.append(f"{p['name']}{badge}{tag}{configured}")
+            # Mark Nous-managed entries. Logged-in paid subscribers get the
+            # "included" star; everyone else gets a "via Nous Portal" hint so
+            # it's clear selecting the row triggers a Portal login. The rows
+            # are always shown now (see _visible_providers) — selecting one
+            # drives an inline login + entitlement check.
+            sub_marker = ""
+            if p.get("managed_nous_feature"):
+                if _nous_logged_in:
+                    sub_marker = "  ★ Included with your Nous subscription"
+                else:
+                    sub_marker = "  ★ via Nous Portal (login on select)"
+            provider_choices.append(f"{p['name']}{badge}{tag}{configured}{sub_marker}")
 
         # Add skip option
         provider_choices.append("Skip — keep defaults / configure later")
 
         # Detect current provider as default
-        default_idx = _detect_active_provider_index(providers, config)
+        default_idx = _detect_active_provider_index(
+            providers,
+            config,
+            force_fresh=force_fresh,
+        )
 
         provider_idx = _prompt_choice(f"  {title}:", provider_choices, default_idx)
 
@@ -1945,10 +3589,15 @@ def _configure_tool_category(ts_key: str, cat: dict, config: dict):
             _print_info(f"  Skipped {name}")
             return
 
-        _configure_provider(providers[provider_idx], config)
+        _configure_provider(providers[provider_idx], config, force_fresh=force_fresh)
 
 
-def _is_provider_active(provider: dict, config: dict) -> bool:
+def _is_provider_active(
+    provider: dict,
+    config: dict,
+    *,
+    force_fresh: bool = False,
+) -> bool:
     """Check if a provider entry matches the currently active config."""
     plugin_name = provider.get("image_gen_plugin_name")
     if plugin_name:
@@ -1956,18 +3605,13 @@ def _is_provider_active(provider: dict, config: dict) -> bool:
         return isinstance(image_cfg, dict) and image_cfg.get("provider") == plugin_name
 
     video_plugin_name = provider.get("video_gen_plugin_name")
-    if video_plugin_name:
+    if video_plugin_name and not provider.get("managed_nous_feature"):
         video_cfg = config.get("video_gen", {})
         return isinstance(video_cfg, dict) and video_cfg.get("provider") == video_plugin_name
 
-    asset3d_plugin_name = provider.get("asset3d_gen_plugin_name")
-    if asset3d_plugin_name:
-        asset3d_cfg = config.get("asset3d_gen", {})
-        return isinstance(asset3d_cfg, dict) and asset3d_cfg.get("provider") == asset3d_plugin_name
-
     managed_feature = provider.get("managed_nous_feature")
     if managed_feature:
-        features = get_nous_subscription_features(config)
+        features = get_nous_subscription_features(config, force_fresh=force_fresh)
         feature = features.features.get(managed_feature)
         if feature is None:
             return False
@@ -1980,12 +3624,29 @@ def _is_provider_active(provider: dict, config: dict) -> bool:
                 if image_cfg.get("use_gateway") is not None and not is_truthy_value(image_cfg.get("use_gateway"), default=False):
                     return False
             return feature.managed_by_nous
+        if managed_feature == "video_gen":
+            video_cfg = config.get("video_gen", {})
+            if isinstance(video_cfg, dict):
+                configured_provider = video_cfg.get("provider")
+                if configured_provider not in {None, "", "fal"}:
+                    return False
+                if video_cfg.get("use_gateway") is not None and not is_truthy_value(video_cfg.get("use_gateway"), default=False):
+                    return False
+            return feature.managed_by_nous
         if provider.get("tts_provider"):
             return (
                 feature.managed_by_nous
                 and cfg_get(config, "tts", "provider") == provider["tts_provider"]
             )
+        if provider.get("stt_provider"):
+            return (
+                feature.managed_by_nous
+                and cfg_get(config, "stt", "provider") == provider["stt_provider"]
+            )
         if "browser_provider" in provider:
+            # Browser Use mode is a driver on top of the provider (it attaches
+            # to the provider's CDP endpoint), so the provider row stays
+            # active alongside the Browser Use row.
             current = cfg_get(config, "browser", "cloud_provider")
             return feature.managed_by_nous and provider["browser_provider"] == current
         if provider.get("web_backend"):
@@ -1995,9 +3656,47 @@ def _is_provider_active(provider: dict, config: dict) -> bool:
 
     if provider.get("tts_provider"):
         return cfg_get(config, "tts", "provider") == provider["tts_provider"]
+    if provider.get("stt_provider"):
+        # Default stt.provider is "local" — an unset key means Local Whisper.
+        current = cfg_get(config, "stt", "provider") or "local"
+        return current == provider["stt_provider"]
     if "browser_provider" in provider:
+        # Browser Use mode composes with the provider (driver over the
+        # provider's CDP endpoint) — don't deactivate the provider row.
         current = cfg_get(config, "browser", "cloud_provider")
         return provider["browser_provider"] == current
+    if provider.get("browser_backend"):
+        backend = cfg_get(config, "browser", "backend")
+        if backend is False:
+            backend = "off"  # YAML 1.1: unquoted `off` parses as boolean False
+        if backend == provider["browser_backend"]:
+            return True
+        if backend:
+            return False  # explicit other choice ("off", …) wins
+        if provider["browser_backend"] != "browser-use":
+            return False
+        # Backend unset: Browser Use mode is the default — the row is active
+        # whenever the effective mode resolves on (legacy direct-API cloud
+        # config, or CLI runnable and no Camofox).
+        browser_cfg = config.get("browser") if isinstance(config, dict) else None
+        try:
+            from tools.browser_use_cli import (
+                _find_cli,
+                is_legacy_browser_use_cloud_config,
+            )
+
+            if is_legacy_browser_use_cloud_config(browser_cfg or {}):
+                return True
+            try:
+                from tools.browser_camofox import is_camofox_mode
+
+                if is_camofox_mode():
+                    return False
+            except Exception:
+                pass
+            return _find_cli() is not None
+        except Exception:
+            return False
     if provider.get("web_backend"):
         current = cfg_get(config, "web", "backend")
         return current == provider["web_backend"]
@@ -2014,10 +3713,15 @@ def _is_provider_active(provider: dict, config: dict) -> bool:
     return False
 
 
-def _detect_active_provider_index(providers: list, config: dict) -> int:
+def _detect_active_provider_index(
+    providers: list,
+    config: dict,
+    *,
+    force_fresh: bool = False,
+) -> int:
     """Return the index of the currently active provider, or 0."""
     for i, p in enumerate(providers):
-        if _is_provider_active(p, config):
+        if _is_provider_active(p, config, force_fresh=force_fresh):
             return i
         # Fallback: env vars present → likely configured
         env_vars = p.get("env_vars", [])
@@ -2075,7 +3779,7 @@ def _configure_imagegen_model(backend_name: str, config: dict) -> None:
     if not backend:
         return
 
-    catalog, default_model = backend["catalog_fn"]()  # ty: ignore[call-non-callable]  # dynamic config/plugin path
+    catalog, default_model = backend["catalog_fn"]()
     if not catalog:
         return
 
@@ -2208,6 +3912,49 @@ def _configure_imagegen_model_for_plugin(plugin_name: str, config: dict) -> None
     _print_success(f"  Model set to: {chosen}")
 
 
+def _configure_xai_imagine_storage(section_name: str, config: dict) -> None:
+    """Prompt for xAI Imagine stored public URL behavior."""
+    section = config.setdefault(section_name, {})
+    if not isinstance(section, dict):
+        section = {}
+        config[section_name] = section
+    xai_cfg = section.setdefault("xai", {})
+    if not isinstance(xai_cfg, dict):
+        xai_cfg = {}
+        section["xai"] = xai_cfg
+    storage_cfg = xai_cfg.setdefault("storage", {})
+    if not isinstance(storage_cfg, dict):
+        storage_cfg = {}
+        xai_cfg["storage"] = storage_cfg
+
+    _print_warning(
+        "  xAI Imagine can store generated media and create reusable public URLs. "
+        "xAI may bill for stored files and public URL hosting."
+    )
+    idx = _prompt_choice(
+        "  Stored public URLs:",
+        [
+            "Enable public URLs without automatic expiry (recommended)",
+            "Disable stored public URLs",
+            "Enable public URLs for 2 days",
+        ],
+        default=0,
+    )
+    if idx == 1:
+        storage_cfg["enabled"] = False
+        _print_success("  xAI stored public URLs disabled")
+    elif idx == 2:
+        storage_cfg["enabled"] = True
+        storage_cfg["public_url"] = True
+        storage_cfg["expires_after"] = 2 * 24 * 60 * 60
+        _print_success("  xAI stored public URLs enabled for 2 days")
+    else:
+        storage_cfg["enabled"] = True
+        storage_cfg["public_url"] = True
+        storage_cfg["expires_after"] = None
+        _print_success("  xAI stored public URLs enabled without automatic expiry")
+
+
 def _select_plugin_image_gen_provider(plugin_name: str, config: dict) -> None:
     """Persist a plugin-backed image generation provider selection."""
     img_cfg = config.setdefault("image_gen", {})
@@ -2218,6 +3965,8 @@ def _select_plugin_image_gen_provider(plugin_name: str, config: dict) -> None:
     img_cfg["use_gateway"] = False
     _print_success(f"  image_gen.provider set to: {plugin_name}")
     _configure_imagegen_model_for_plugin(plugin_name, config)
+    if plugin_name == "xai":
+        _configure_xai_imagine_storage("image_gen", config)
 
 
 # ─── Video Generation Model Pickers ───────────────────────────────────────────
@@ -2308,41 +4057,222 @@ def _configure_videogen_model_for_plugin(plugin_name: str, config: dict) -> None
     _print_success(f"  Model set to: {chosen}")
 
 
-def _select_plugin_video_gen_provider(plugin_name: str, config: dict) -> None:
+# Per-provider STT model catalogs for the interactive picker. Keys are
+# ``stt.<provider>`` config sections; the first entry is the default.
+# Kept in sync with the dashboard selects (hermes_cli/web_server.py
+# _CONFIG_FIELD_META) and the desktop settings enums
+# (apps/desktop/src/app/settings/constants.ts).
+STT_MODEL_CATALOG = {
+    "local": ["base", "tiny", "small", "medium", "large-v3"],
+    "groq": ["whisper-large-v3-turbo", "whisper-large-v3", "distil-whisper-large-v3-en"],
+    "openai": ["whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe", "gpt-transcribe"],
+    "elevenlabs": ["scribe_v2", "scribe_v1"],
+}
+
+# ElevenLabs historically uses ``model_id`` instead of ``model``.
+_STT_MODEL_CONFIG_KEY = {"elevenlabs": "model_id"}
+
+
+def _configure_stt_model(stt_provider: str, config: dict) -> None:
+    """Prompt for the STT model after a provider pick (when a catalog exists).
+
+    Providers without a static catalog (xai, deepinfra) skip the prompt —
+    xAI has a single model and DeepInfra resolves from its live catalog.
+    """
+    catalog = STT_MODEL_CATALOG.get(stt_provider)
+    if not catalog:
+        return
+    stt_cfg = config.setdefault("stt", {})
+    if not isinstance(stt_cfg, dict):
+        stt_cfg = {}
+        config["stt"] = stt_cfg
+    prov_cfg = stt_cfg.setdefault(stt_provider, {})
+    if not isinstance(prov_cfg, dict):
+        prov_cfg = {}
+        stt_cfg[stt_provider] = prov_cfg
+    model_key = _STT_MODEL_CONFIG_KEY.get(stt_provider, "model")
+    current = str(prov_cfg.get(model_key) or "").strip()
+    ordered = list(catalog)
+    default_idx = ordered.index(current) if current in ordered else 0
+    idx = _prompt_choice("  Select STT model:", ordered, default_idx)
+    chosen = ordered[idx]
+    prov_cfg[model_key] = chosen
+    _print_success(f"  STT model set to: {chosen}")
+
+
+def _select_plugin_video_gen_provider(plugin_name: str, config: dict, *, use_gateway: bool = False) -> None:
     """Persist a plugin-backed video generation provider selection."""
     vid_cfg = config.setdefault("video_gen", {})
     if not isinstance(vid_cfg, dict):
         vid_cfg = {}
         config["video_gen"] = vid_cfg
     vid_cfg["provider"] = plugin_name
-    vid_cfg["use_gateway"] = False
+    vid_cfg["use_gateway"] = use_gateway
     _print_success(f"  video_gen.provider set to: {plugin_name}")
     _configure_videogen_model_for_plugin(plugin_name, config)
+    if plugin_name == "xai":
+        _configure_xai_imagine_storage("video_gen", config)
 
 
-def _select_plugin_asset3d_gen_provider(plugin_name: str, config: dict) -> None:
-    """Persist a plugin-backed 3D-asset generation provider selection.
+def _write_provider_config(provider: dict, config: dict, *, managed_feature) -> None:
+    """Persist the provider/backend config keys for a selected provider.
 
-    No interactive model picker — 3D backends expose a single default model
-    (resolved by the provider), so selecting the provider is sufficient.
+    This is the pure, non-interactive core of :func:`_configure_provider` —
+    it writes ``tts.provider`` / ``browser.cloud_provider`` / ``web.backend``
+    and the ``use_gateway`` flags based on the provider's markers, but does
+    NOT prompt for env vars, run post-setup hooks, gate on Nous auth, or run
+    interactive model pickers. Both the CLI configurator and the desktop GUI
+    ``PUT .../provider`` endpoint call through here so there is one code path.
     """
-    cfg = config.setdefault("asset3d_gen", {})
-    if not isinstance(cfg, dict):
-        cfg = {}
-        config["asset3d_gen"] = cfg
-    cfg["provider"] = plugin_name
-    _print_success(f"  asset3d_gen.provider set to: {plugin_name}")
+    # Set TTS provider in config if applicable
+    if provider.get("tts_provider"):
+        tts_cfg = config.setdefault("tts", {})
+        tts_cfg["provider"] = provider["tts_provider"]
+        tts_cfg["use_gateway"] = bool(managed_feature)
+
+    # Set STT provider in config if applicable
+    if provider.get("stt_provider"):
+        stt_cfg = config.setdefault("stt", {})
+        stt_cfg["provider"] = provider["stt_provider"]
+        stt_cfg["use_gateway"] = bool(managed_feature)
+
+    # Set browser cloud provider in config if applicable
+    if "browser_provider" in provider:
+        bp = provider["browser_provider"]
+        browser_cfg = config.setdefault("browser", {})
+        if bp:
+            browser_cfg["cloud_provider"] = bp
+        # Browser Use mode (browser.backend) composes with the provider —
+        # switching providers keeps the driver choice intact.
+        browser_cfg["use_gateway"] = bool(managed_feature)
+
+    if provider.get("browser_backend"):
+        browser_cfg = config.setdefault("browser", {})
+        browser_cfg["backend"] = provider["browser_backend"]
+
+    # Set web search backend in config if applicable
+    if provider.get("web_backend"):
+        web_cfg = config.setdefault("web", {})
+        web_cfg["backend"] = provider["web_backend"]
+        web_cfg["use_gateway"] = bool(managed_feature)
+
+    # For tools without a specific config key (e.g. image_gen), still
+    # track use_gateway so the runtime knows the user's intent.
+    if managed_feature and managed_feature not in {"web", "tts", "stt", "browser"}:
+        config.setdefault(managed_feature, {})["use_gateway"] = True
+    elif not managed_feature:
+        # User picked a non-gateway provider — find which category this
+        # belongs to and clear use_gateway if it was previously set.
+        for cat_key, cat in TOOL_CATEGORIES.items():
+            if provider in cat.get("providers", []):
+                section = config.get(cat_key)
+                if isinstance(section, dict) and section.get("use_gateway"):
+                    section["use_gateway"] = False
+                break
 
 
-def _configure_provider(provider: dict, config: dict):
+def apply_provider_selection(ts_key: str, provider_name: str, config: dict) -> None:
+    """Non-interactively persist a provider selection for a toolset.
+
+    Resolves ``provider_name`` within ``ts_key``'s category (matching the
+    rows the GUI/CLI picker shows via :func:`_visible_providers`) and writes
+    the corresponding backend/provider config keys. Unlike
+    :func:`_configure_provider`, this does NOT prompt for API keys, run
+    post-setup hooks, gate on Nous Portal auth, or run interactive model
+    pickers — those are handled separately (env endpoints, post-setup
+    endpoints, the model picker) in the desktop GUI.
+
+    Raises ``KeyError`` if the toolset has no category or the provider name
+    is not found among the visible providers.
+    """
+    cat = TOOL_CATEGORIES.get(ts_key)
+    if cat is None:
+        raise KeyError(f"Toolset has no configurable category: {ts_key}")
+
+    providers = _visible_providers(cat, config, force_fresh=True)
+    provider = next((p for p in providers if p.get("name") == provider_name), None)
+    if provider is None:
+        raise KeyError(f"Unknown provider {provider_name!r} for toolset {ts_key!r}")
+
+    managed_feature = provider.get("managed_nous_feature")
+    _write_provider_config(provider, config, managed_feature=managed_feature)
+
+    # Plugin-registered image/video gen backends record the provider name in
+    # their own config section. Write that here (without the interactive
+    # model picker the CLI runs afterwards — model choice is a separate GUI
+    # flow).
+    plugin_name = provider.get("image_gen_plugin_name")
+    if plugin_name:
+        img_cfg = config.setdefault("image_gen", {})
+        if not isinstance(img_cfg, dict):
+            img_cfg = {}
+            config["image_gen"] = img_cfg
+        img_cfg["provider"] = plugin_name
+        img_cfg["use_gateway"] = bool(managed_feature)
+
+    video_plugin = provider.get("video_gen_plugin_name")
+    if video_plugin:
+        vid_cfg = config.setdefault("video_gen", {})
+        if not isinstance(vid_cfg, dict):
+            vid_cfg = {}
+            config["video_gen"] = vid_cfg
+        vid_cfg["provider"] = video_plugin
+        vid_cfg["use_gateway"] = bool(managed_feature)
+
+    # In-tree FAL imagegen backend: keep image_gen.provider on the legacy
+    # path (mirrors _configure_provider).
+    if provider.get("imagegen_backend"):
+        img_cfg = config.setdefault("image_gen", {})
+        if isinstance(img_cfg, dict) and img_cfg.get("provider") not in {None, "", "fal"}:
+            img_cfg["provider"] = "fal"
+
+
+def _configure_provider(
+    provider: dict,
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Configure a single provider - prompt for API keys and set config."""
     env_vars = provider.get("env_vars", [])
     managed_feature = provider.get("managed_nous_feature")
 
-    if provider.get("requires_nous_auth"):
-        features = get_nous_subscription_features(config)
-        if not features.nous_auth_present:
-            _print_warning("  Nous Subscription is only available after logging into Nous Portal.")
+    # Nous-managed Tool Gateway backends are always listed (see
+    # _visible_providers), but only *activate* once the user has paid Nous
+    # Portal access. Selecting one runs an inline Portal login when needed —
+    # auth + entitlement only, no inference-provider switch and no bulk
+    # "enable all tools" prompt (that lives in `hermes model`).
+    if managed_feature:
+        from hermes_cli.nous_subscription import (
+            MANAGED_FEATURE_COVERAGE_CATEGORY,
+            ensure_nous_portal_access,
+        )
+
+        if not ensure_nous_portal_access(
+            capability=f"{provider.get('name', 'the Nous Tool Gateway')}",
+            coverage_category=MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature),
+        ):
+            _print_warning(
+                "  Not enabled — Nous Portal access is required for this backend."
+            )
+            return
+
+    # Pure pre-auth UX rows (requires_nous_auth without a managed gateway
+    # feature) keep the old gate. Managed rows are handled by the inline
+    # login above, so don't double-check them here.
+    if provider.get("requires_nous_auth") and not managed_feature:
+        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+        entitled = bool(
+            features.account_info and features.account_info.paid_service_access is True
+        )
+        if not features.nous_auth_present or not entitled:
+            message = format_nous_portal_entitlement_message(
+                features.account_info,
+                capability=f"{provider.get('name', 'Nous Subscription')}",
+            )
+            _print_warning(
+                f"  {message or 'Nous Subscription is only available after logging into Nous Portal.'}"
+            )
             return
 
     # Set TTS provider in config if applicable
@@ -2351,38 +4281,29 @@ def _configure_provider(provider: dict, config: dict):
         tts_cfg["provider"] = provider["tts_provider"]
         tts_cfg["use_gateway"] = bool(managed_feature)
 
+    # Set STT provider in config if applicable
+    if provider.get("stt_provider"):
+        _print_success(f"  STT provider set to: {provider['stt_provider']}")
+
     # Set browser cloud provider in config if applicable
     if "browser_provider" in provider:
         bp = provider["browser_provider"]
-        browser_cfg = config.setdefault("browser", {})
         if bp == "local":
-            browser_cfg["cloud_provider"] = "local"
             _print_success("  Browser set to local mode")
         elif bp:
-            browser_cfg["cloud_provider"] = bp
             _print_success(f"  Browser cloud provider set to: {bp}")
-        browser_cfg["use_gateway"] = bool(managed_feature)
+
+    if provider.get("browser_backend"):
+        _print_success("  Browser set to Browser Use (browser_exec via CLI 3.0)")
 
     # Set web search backend in config if applicable
     if provider.get("web_backend"):
-        web_cfg = config.setdefault("web", {})
-        web_cfg["backend"] = provider["web_backend"]
-        web_cfg["use_gateway"] = bool(managed_feature)
         _print_success(f"  Web backend set to: {provider['web_backend']}")
 
-    # For tools without a specific config key (e.g. image_gen), still
-    # track use_gateway so the runtime knows the user's intent.
-    if managed_feature and managed_feature not in {"web", "tts", "browser"}:
-        config.setdefault(managed_feature, {})["use_gateway"] = True
-    elif not managed_feature:
-        # User picked a non-gateway provider — find which category this
-        # belongs to and clear use_gateway if it was previously set.
-        for cat_key, cat in TOOL_CATEGORIES.items():
-            if provider in cat.get("providers", []):  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
-                section = config.get(cat_key)
-                if isinstance(section, dict) and section.get("use_gateway"):
-                    section["use_gateway"] = False
-                break
+    # Persist the provider/backend config keys + use_gateway flags. Shared
+    # with the GUI provider-select endpoint via apply_provider_selection so
+    # there is a single source of truth for these writes.
+    _write_provider_config(provider, config, managed_feature=managed_feature)
 
     if not env_vars:
         if provider.get("post_setup"):
@@ -2400,11 +4321,7 @@ def _configure_provider(provider: dict, config: dict):
         # registry.
         video_plugin = provider.get("video_gen_plugin_name")
         if video_plugin:
-            _select_plugin_video_gen_provider(video_plugin, config)
-            return
-        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
-        if asset3d_plugin:
-            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+            _select_plugin_video_gen_provider(video_plugin, config, use_gateway=bool(managed_feature))
             return
         # Imagegen backends prompt for model selection after backend pick.
         backend = provider.get("imagegen_backend")
@@ -2416,10 +4333,41 @@ def _configure_provider(provider: dict, config: dict):
             img_cfg = config.setdefault("image_gen", {})
             if isinstance(img_cfg, dict) and img_cfg.get("provider") not in {None, "", "fal"}:
                 img_cfg["provider"] = "fal"
+        # STT providers prompt for model selection after provider pick
+        # (skipped for managed rows — the gateway pins the model).
+        if provider.get("stt_provider") and not managed_feature:
+            _configure_stt_model(provider["stt_provider"], config)
         return
 
     # Prompt for each required env var
     all_configured = True
+    # If this BYOK provider lives in a category that ALSO has a
+    # Nous-managed sibling, show a single dim hint so users know
+    # they can avoid the key entirely via a Portal subscription.
+    # Suppressed when the user is already authed to Nous.
+    _show_portal_hint = False
+    if env_vars and not managed_feature and not provider.get("requires_nous_auth"):
+        try:
+            _has_managed_sibling = False
+            for _cat_key, _cat in TOOL_CATEGORIES.items():
+                _providers = _cat.get("providers", [])
+                if provider in _providers and any(
+                    sib.get("managed_nous_feature") for sib in _providers
+                ):
+                    _has_managed_sibling = True
+                    break
+            if _has_managed_sibling:
+                _features = get_nous_subscription_features(
+                    config,
+                    force_fresh=force_fresh,
+                )
+                _show_portal_hint = not _features.nous_auth_present
+        except Exception:
+            _show_portal_hint = False
+
+    if _show_portal_hint:
+        _print_info("  Available through Nous Portal subscription.")
+
     for var in env_vars:
         existing = get_env_value(var["key"])
         if existing:
@@ -2456,11 +4404,7 @@ def _configure_provider(provider: dict, config: dict):
             return
         video_plugin = provider.get("video_gen_plugin_name")
         if video_plugin:
-            _select_plugin_video_gen_provider(video_plugin, config)
-            return
-        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
-        if asset3d_plugin:
-            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+            _select_plugin_video_gen_provider(video_plugin, config, use_gateway=bool(managed_feature))
             return
         # Imagegen backends prompt for model selection after env vars are in.
         backend = provider.get("imagegen_backend")
@@ -2469,6 +4413,172 @@ def _configure_provider(provider: dict, config: dict):
             img_cfg = config.setdefault("image_gen", {})
             if isinstance(img_cfg, dict) and img_cfg.get("provider") not in {None, "", "fal"}:
                 img_cfg["provider"] = "fal"
+        # STT providers prompt for model selection after env vars are in.
+        if provider.get("stt_provider") and not managed_feature:
+            _configure_stt_model(provider["stt_provider"], config)
+
+
+def _configure_vision_backend() -> None:
+    """Interactive vision-backend configuration.
+
+    Vision is an auxiliary task whose provider/model are resolved from
+    ``auxiliary.vision.{provider,model,base_url}`` in config.yaml (see
+    ``agent/auxiliary_client.resolve_vision_provider_client``). Rather than
+    forcing the user onto OpenRouter, let them pick any authenticated
+    provider + model — the same surface as ``hermes model`` — or point at a
+    custom OpenAI-compatible endpoint. "Auto" leaves the config keys empty so
+    the resolver uses the main model / aggregator fallback chain.
+    """
+    print()
+    print(color("  Vision / Image Analysis needs a multimodal model.", Colors.YELLOW))
+    print(color(
+        "  Pick any provider + model (like /model), or let it auto-detect.",
+        Colors.DIM,
+    ))
+
+    choices = [
+        "Auto — use your main model / aggregator fallback (recommended)",
+        "Pick a provider and model",
+        "Custom OpenAI-compatible endpoint — base URL, API key, model",
+        "Skip",
+    ]
+    idx = _prompt_choice("  Configure vision backend", choices, 0)
+
+    config = load_config()
+    aux = config.setdefault("auxiliary", {})
+    if not isinstance(aux, dict):
+        aux = {}
+        config["auxiliary"] = aux
+    vision_cfg = aux.setdefault("vision", {})
+    if not isinstance(vision_cfg, dict):
+        vision_cfg = {}
+        aux["vision"] = vision_cfg
+
+    if idx == 0:
+        # Auto: clear any pinned override so the resolver auto-detects.
+        for key in ("provider", "model", "base_url", "api_key", "api_mode"):
+            vision_cfg.pop(key, None)
+        save_config(config)
+        _print_success("  Vision set to auto (main model / aggregator fallback)")
+        return
+
+    if idx == 1:
+        _configure_vision_provider_model(config, vision_cfg)
+        return
+
+    if idx == 2:
+        base_url = _prompt("    Base URL (blank for OpenAI)").strip() or "https://api.openai.com/v1"
+        is_native_openai = base_url_hostname(base_url) == "api.openai.com"
+        key_label = "    OPENAI_API_KEY" if is_native_openai else "    API key"
+        api_key = _prompt(key_label, password=True)
+        if not (api_key and api_key.strip()):
+            _print_warning("    Skipped")
+            return
+        default_model = "gpt-4o-mini" if is_native_openai else ""
+        model = _prompt(
+            f"    Vision model{f' (blank for {default_model})' if default_model else ''}"
+        ).strip() or default_model
+        save_env_value("OPENAI_API_KEY", api_key.strip())
+        # Only base_url + model go to config.yaml; the key is the secret.
+        # Pin provider="custom" so the resolver routes through this endpoint —
+        # leaving it at the "auto" default would make _resolve_task_provider_model
+        # ignore the base_url (it only honors base_url when paired with an
+        # api_key in config or a non-auto provider).
+        vision_cfg["provider"] = "custom"
+        vision_cfg["base_url"] = base_url
+        if model:
+            vision_cfg["model"] = model
+        else:
+            vision_cfg.pop("model", None)
+        save_config(config)
+        _print_success(f"  Vision set to custom endpoint{f' ({model})' if model else ''}")
+        return
+
+    # Skip
+    _print_info("  Skipped vision configuration")
+
+
+def _configure_vision_provider_model(config: dict, vision_cfg: dict) -> None:
+    """Provider + model picker for vision, mirroring the ``/model`` surface.
+
+    Provider rows come from ``build_aux_picker_rows()`` — the shared aux-picker
+    substrate — so this picker lists exactly what the ``hermes model`` aux-task
+    picker lists, including the user's own ``providers:`` / ``custom_providers:``
+    endpoints. Lets the user pick a provider and then a model from its curated
+    list (or type a custom id), and persists ``auxiliary.vision.provider`` +
+    ``.model``.
+    """
+    try:
+        from hermes_cli.inventory import (
+            build_aux_picker_rows,
+            format_aux_picker_entries,
+        )
+    except Exception as exc:  # pragma: no cover - import guard
+        _print_warning(f"  Could not load provider list: {exc}")
+        return
+
+    current_provider = str(vision_cfg.get("provider") or "").strip()
+    current_model = str(vision_cfg.get("model") or "").strip()
+    current_base_url = str(vision_cfg.get("base_url") or "").strip()
+
+    try:
+        providers = build_aux_picker_rows(
+            current_provider=current_provider,
+            current_model=current_model,
+            current_base_url=current_base_url,
+            max_models=40,
+        )
+    except Exception as exc:
+        _print_warning(f"  Could not detect providers: {exc}")
+        providers = []
+
+    if not providers:
+        _print_warning(
+            "  No authenticated providers found. Configure a provider first "
+            "with `hermes model`, then re-run this."
+        )
+        return
+
+    provider_labels = [
+        label
+        for _slug, label, _models in format_aux_picker_entries(
+            providers,
+            current_provider=current_provider,
+            current_base_url=current_base_url,
+        )
+    ]
+    provider_labels.append("Cancel")
+
+    pidx = _prompt_choice("  Choose vision provider:", provider_labels, 0)
+    if pidx >= len(providers):
+        _print_info("  Cancelled")
+        return
+
+    chosen = providers[pidx]
+    slug = chosen.get("slug")
+    models = list(chosen.get("models", []))
+
+    model_choices = list(models) + ["Type a custom model id…"]
+    midx = _prompt_choice(
+        f"  Choose vision model for {chosen.get('name') or slug}:",
+        model_choices,
+        0,
+    )
+    if midx < len(models):
+        model = models[midx]
+    else:
+        model = _prompt("    Model id").strip()
+        if not model:
+            _print_warning("  No model entered — cancelled")
+            return
+
+    vision_cfg["provider"] = slug
+    vision_cfg["model"] = model
+    # A provider selection supersedes any prior custom endpoint override.
+    vision_cfg.pop("base_url", None)
+    vision_cfg.pop("api_key", None)
+    save_config(config)
+    _print_success(f"  Vision set to {slug} / {model}")
 
 
 def _configure_simple_requirements(ts_key: str):
@@ -2476,39 +4586,7 @@ def _configure_simple_requirements(ts_key: str):
     if ts_key == "vision":
         if _toolset_has_keys("vision"):
             return
-        print()
-        print(color("  Vision / Image Analysis requires a multimodal backend:", Colors.YELLOW))
-        choices = [
-            "OpenRouter — uses Gemini",
-            "OpenAI-compatible endpoint — base URL, API key, and vision model",
-            "Skip",
-        ]
-        idx = _prompt_choice("  Configure vision backend", choices, 2)
-        if idx == 0:
-            _print_info("  Get key at: https://openrouter.ai/keys")
-            value = _prompt("    OPENROUTER_API_KEY", password=True)
-            if value and value.strip():
-                save_env_value("OPENROUTER_API_KEY", value.strip())
-                _print_success("    Saved")
-            else:
-                _print_warning("    Skipped")
-        elif idx == 1:
-            base_url = _prompt("    OPENAI_BASE_URL (blank for OpenAI)").strip() or "https://api.openai.com/v1"
-            is_native_openai = base_url_hostname(base_url) == "api.openai.com"
-            key_label = "    OPENAI_API_KEY" if is_native_openai else "    API key"
-            api_key = _prompt(key_label, password=True)
-            if api_key and api_key.strip():
-                save_env_value("OPENAI_API_KEY", api_key.strip())
-                # Save vision base URL to config (not .env — only secrets go there)
-                _cfg = load_config()
-                _aux = _cfg.setdefault("auxiliary", {}).setdefault("vision", {})
-                _aux["base_url"] = base_url
-                save_config(_cfg)
-                if is_native_openai:
-                    save_env_value("AUXILIARY_VISION_MODEL", "gpt-4o-mini")
-                _print_success("    Saved")
-            else:
-                _print_warning("    Skipped")
+        _configure_vision_backend()
         return
 
     requirements = TOOLSET_ENV_REQUIREMENTS.get(ts_key, [])
@@ -2534,7 +4612,11 @@ def _configure_simple_requirements(ts_key: str):
             _print_warning("    Skipped")
 
 
-def _reconfigure_tool(config: dict):
+def _reconfigure_tool(
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Let user reconfigure an existing tool's provider or API key."""
     # Build list of configurable tools that are currently set up
     configurable = []
@@ -2542,7 +4624,10 @@ def _reconfigure_tool(config: dict):
         cat = TOOL_CATEGORIES.get(ts_key)
         reqs = TOOLSET_ENV_REQUIREMENTS.get(ts_key)
         if cat or reqs:
-            if _toolset_has_keys(ts_key, config) or _toolset_enabled_for_reconfigure(ts_key, config):
+            if (
+                _toolset_has_keys(ts_key, config, force_fresh=force_fresh)
+                or _toolset_enabled_for_reconfigure(ts_key, config)
+            ):
                 configurable.append((ts_key, ts_label))
 
     if not configurable:
@@ -2561,7 +4646,12 @@ def _reconfigure_tool(config: dict):
     cat = TOOL_CATEGORIES.get(ts_key)
 
     if cat:
-        _configure_tool_category_for_reconfig(ts_key, cat, config)
+        _configure_tool_category_for_reconfig(
+            ts_key,
+            cat,
+            config,
+            force_fresh=force_fresh,
+        )
     else:
         _reconfigure_simple_requirements(ts_key)
 
@@ -2590,20 +4680,38 @@ def _toolset_enabled_for_reconfigure(ts_key: str, config: dict) -> bool:
     return False
 
 
-def _configure_tool_category_for_reconfig(ts_key: str, cat: dict, config: dict):
+def _configure_tool_category_for_reconfig(
+    ts_key: str,
+    cat: dict,
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Reconfigure a tool category - provider selection + API key update."""
     icon = cat.get("icon", "")
     name = cat["name"]
-    providers = _visible_providers(cat, config)
+    providers = _visible_providers(cat, config, force_fresh=force_fresh)
+    hidden_nous_message = _hidden_nous_gateway_message(
+        cat,
+        config,
+        f"the Nous Subscription provider for {name}",
+        force_fresh=force_fresh,
+    )
 
     if len(providers) == 1:
         provider = providers[0]
         print()
         print(color(f"  --- {icon} {name} ({provider['name']}) ---", Colors.CYAN))
-        _reconfigure_provider(provider, config)
+        if hidden_nous_message:
+            for line in hidden_nous_message.splitlines():
+                _print_warning(f"  {line}")
+        _reconfigure_provider(provider, config, force_fresh=force_fresh)
     else:
         print()
         print(color(f"  --- {icon} {name} - Choose a provider ---", Colors.CYAN))
+        if hidden_nous_message:
+            for line in hidden_nous_message.splitlines():
+                _print_warning(f"  {line}")
         print()
 
         provider_choices = []
@@ -2613,7 +4721,7 @@ def _configure_tool_category_for_reconfig(ts_key: str, cat: dict, config: dict):
             configured = ""
             env_vars = p.get("env_vars", [])
             if not env_vars or all(get_env_value(v["key"]) for v in env_vars):
-                if _is_provider_active(p, config):
+                if _is_provider_active(p, config, force_fresh=force_fresh):
                     configured = " [active]"
                 elif not env_vars:
                     configured = ""
@@ -2621,21 +4729,62 @@ def _configure_tool_category_for_reconfig(ts_key: str, cat: dict, config: dict):
                     configured = " [configured]"
             provider_choices.append(f"{p['name']}{badge}{tag}{configured}")
 
-        default_idx = _detect_active_provider_index(providers, config)
+        default_idx = _detect_active_provider_index(
+            providers,
+            config,
+            force_fresh=force_fresh,
+        )
 
         provider_idx = _prompt_choice("  Select provider:", provider_choices, default_idx)
-        _reconfigure_provider(providers[provider_idx], config)
+        _reconfigure_provider(
+            providers[provider_idx],
+            config,
+            force_fresh=force_fresh,
+        )
 
 
-def _reconfigure_provider(provider: dict, config: dict):
+def _reconfigure_provider(
+    provider: dict,
+    config: dict,
+    *,
+    force_fresh: bool = True,
+):
     """Reconfigure a provider - update API keys."""
     env_vars = provider.get("env_vars", [])
     managed_feature = provider.get("managed_nous_feature")
 
-    if provider.get("requires_nous_auth"):
-        features = get_nous_subscription_features(config)
-        if not features.nous_auth_present:
-            _print_warning("  Nous Subscription is only available after logging into Nous Portal.")
+    # Same inline Nous Portal login + entitlement gate as _configure_provider:
+    # managed Tool Gateway backends only activate with paid Portal access.
+    if managed_feature:
+        from hermes_cli.nous_subscription import (
+            MANAGED_FEATURE_COVERAGE_CATEGORY,
+            ensure_nous_portal_access,
+        )
+
+        if not ensure_nous_portal_access(
+            capability=f"{provider.get('name', 'the Nous Tool Gateway')}",
+            coverage_category=MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature),
+        ):
+            _print_warning(
+                "  Not enabled — Nous Portal access is required for this backend."
+            )
+            return
+
+    # Pure pre-auth UX rows keep the old gate; managed rows already handled
+    # by the inline login above.
+    if provider.get("requires_nous_auth") and not managed_feature:
+        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+        entitled = bool(
+            features.account_info and features.account_info.paid_service_access is True
+        )
+        if not features.nous_auth_present or not entitled:
+            message = format_nous_portal_entitlement_message(
+                features.account_info,
+                capability=f"{provider.get('name', 'Nous Subscription')}",
+            )
+            _print_warning(
+                f"  {message or 'Nous Subscription is only available after logging into Nous Portal.'}"
+            )
             return
 
     if provider.get("tts_provider"):
@@ -2643,6 +4792,12 @@ def _reconfigure_provider(provider: dict, config: dict):
         tts_cfg["provider"] = provider["tts_provider"]
         tts_cfg["use_gateway"] = bool(managed_feature)
         _print_success(f"  TTS provider set to: {provider['tts_provider']}")
+
+    if provider.get("stt_provider"):
+        stt_cfg = config.setdefault("stt", {})
+        stt_cfg["provider"] = provider["stt_provider"]
+        stt_cfg["use_gateway"] = bool(managed_feature)
+        _print_success(f"  STT provider set to: {provider['stt_provider']}")
 
     if "browser_provider" in provider:
         bp = provider["browser_provider"]
@@ -2653,7 +4808,14 @@ def _reconfigure_provider(provider: dict, config: dict):
         elif bp:
             browser_cfg["cloud_provider"] = bp
             _print_success(f"  Browser cloud provider set to: {bp}")
+        # Browser Use mode (browser.backend) composes with the provider —
+        # switching providers keeps the driver choice intact.
         browser_cfg["use_gateway"] = bool(managed_feature)
+
+    if provider.get("browser_backend"):
+        browser_cfg = config.setdefault("browser", {})
+        browser_cfg["backend"] = provider["browser_backend"]
+        _print_success("  Browser set to Browser Use (browser_exec via CLI 3.0)")
 
     # Set web search backend in config if applicable
     if provider.get("web_backend"):
@@ -2662,7 +4824,7 @@ def _reconfigure_provider(provider: dict, config: dict):
         web_cfg["use_gateway"] = bool(managed_feature)
         _print_success(f"  Web backend set to: {provider['web_backend']}")
 
-    if managed_feature and managed_feature not in {"web", "tts", "browser"}:
+    if managed_feature and managed_feature not in {"web", "tts", "stt", "browser"}:
         section = config.setdefault(managed_feature, {})
         if not isinstance(section, dict):
             section = {}
@@ -2670,7 +4832,7 @@ def _reconfigure_provider(provider: dict, config: dict):
         section["use_gateway"] = True
     elif not managed_feature:
         for cat_key, cat in TOOL_CATEGORIES.items():
-            if provider in cat.get("providers", []):  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
+            if provider in cat.get("providers", []):
                 section = config.get(cat_key)
                 if isinstance(section, dict) and section.get("use_gateway"):
                     section["use_gateway"] = False
@@ -2689,11 +4851,7 @@ def _reconfigure_provider(provider: dict, config: dict):
         # Plugin-registered video_gen provider — same flow, different registry.
         video_plugin = provider.get("video_gen_plugin_name")
         if video_plugin:
-            _select_plugin_video_gen_provider(video_plugin, config)
-            return
-        asset3d_plugin = provider.get("asset3d_gen_plugin_name")
-        if asset3d_plugin:
-            _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+            _select_plugin_video_gen_provider(video_plugin, config, use_gateway=bool(managed_feature))
             return
         # Imagegen backends prompt for model selection on reconfig too.
         backend = provider.get("imagegen_backend")
@@ -2704,6 +4862,9 @@ def _reconfigure_provider(provider: dict, config: dict):
                 if isinstance(img_cfg, dict):
                     img_cfg["provider"] = "fal"
                     img_cfg["use_gateway"] = False
+        # STT providers prompt for model selection on reconfig too.
+        if provider.get("stt_provider") and not managed_feature:
+            _configure_stt_model(provider["stt_provider"], config)
         return
 
     for var in env_vars:
@@ -2733,13 +4894,7 @@ def _reconfigure_provider(provider: dict, config: dict):
     # Plugin-registered video_gen provider — same flow, different registry.
     video_plugin = provider.get("video_gen_plugin_name")
     if video_plugin:
-        _select_plugin_video_gen_provider(video_plugin, config)
-        return
-
-    # Plugin-registered asset3d_gen provider — same flow, 3D registry.
-    asset3d_plugin = provider.get("asset3d_gen_plugin_name")
-    if asset3d_plugin:
-        _select_plugin_asset3d_gen_provider(asset3d_plugin, config)
+        _select_plugin_video_gen_provider(video_plugin, config, use_gateway=bool(managed_feature))
         return
 
     backend = provider.get("imagegen_backend")
@@ -2751,9 +4906,20 @@ def _reconfigure_provider(provider: dict, config: dict):
                 img_cfg["provider"] = "fal"
                 img_cfg["use_gateway"] = False
 
+    # STT providers prompt for model selection on reconfig too.
+    if provider.get("stt_provider") and not managed_feature:
+        _configure_stt_model(provider["stt_provider"], config)
+
 
 def _reconfigure_simple_requirements(ts_key: str):
     """Reconfigure simple env var requirements."""
+    if ts_key == "vision":
+        # Vision has its own provider/model picker (any provider, like
+        # `hermes model`). Run it directly so reconfigure doesn't fall back to
+        # the generic single-key prompt (which would re-ask for OPENROUTER_API_KEY).
+        _configure_vision_backend()
+        return
+
     requirements = TOOLSET_ENV_REQUIREMENTS.get(ts_key, [])
     if not requirements:
         return
@@ -2778,7 +4944,7 @@ def _reconfigure_simple_requirements(ts_key: str):
 
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 
-def tools_command(args=None, first_install: bool = False, config: Optional[dict] = None):
+def tools_command(args=None, first_install: bool = False, config: dict = None):
     """Entry point for `hermes tools` and `hermes setup tools`.
 
     Args:
@@ -2814,7 +4980,7 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
                 print(color("    (none enabled)", Colors.DIM))
         print()
         return
-    print(color("✦ M.U.S.E. Tool Configuration", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Hermes Tool Configuration", Colors.CYAN, Colors.BOLD))
     print(color("  Enable or disable tools per platform.", Colors.DIM))
     print(color("  Tools that need API keys will be configured when enabled.", Colors.DIM))
     print(color("  Guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/tools", Colors.DIM))
@@ -2832,8 +4998,15 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
             # Show checklist
             new_enabled = _prompt_toolset_checklist(pinfo["label"], checklist_preselected, pkey)
 
-            added = new_enabled - current_enabled
-            removed = current_enabled - new_enabled
+            # Only diff against toolsets the checklist actually offered. The
+            # resolved ``current_enabled`` can include non-configurable toolsets
+            # (e.g. ``kanban``, recovered platform composites) the user was
+            # never shown a checkbox for; without this scope the summary would
+            # print spurious ``- kanban`` removals even though the config keeps
+            # them. See _checklist_toolset_keys.
+            _diff_universe = _checklist_toolset_keys(pkey)
+            added = (new_enabled - current_enabled) & _diff_universe
+            removed = (current_enabled - new_enabled) & _diff_universe
             if added:
                 for ts in sorted(added):
                     label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts), ts)
@@ -2846,11 +5019,11 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
             auto_configured = apply_nous_managed_defaults(
                 config,
                 enabled_toolsets=new_enabled,
+                force_fresh=True,
             )
-            if managed_nous_tools_enabled():
-                for ts_key in sorted(auto_configured):
-                    label = next((l for k, l, _ in CONFIGURABLE_TOOLSETS if k == ts_key), ts_key)
-                    print(color(f"  ✓ {label}: using your Nous subscription defaults", Colors.GREEN))
+            for ts_key in sorted(auto_configured):
+                label = next((l for k, l, _ in CONFIGURABLE_TOOLSETS if k == ts_key), ts_key)
+                print(color(f"  ✓ {label}: using your Nous subscription defaults", Colors.GREEN))
 
             # Walk through ALL selected tools that have provider options or
             # need API keys.  This ensures browser (Local vs Browserbase),
@@ -2918,7 +5091,7 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
 
         # "Reconfigure" selected
         if idx == _reconfig_idx:
-            _reconfigure_tool(config)
+            _reconfigure_tool(config, force_fresh=True)
             print()
             continue
 
@@ -2934,12 +5107,43 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
             all_current = set()
             for pk in platform_keys:
                 all_current |= _get_platform_tools(config, pk, include_default_mcp_servers=False)
-            new_enabled = _prompt_toolset_checklist("All platforms", all_current)
-            if new_enabled != all_current:
+            new_enabled = _prompt_toolset_checklist(
+                "All platforms",
+                all_current,
+                force_fresh=True,
+            )
+            selected_to_configure = [
+                ts_key for ts_key in sorted(new_enabled)
+                if (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key))
+                and _toolset_needs_configuration_prompt(
+                    ts_key,
+                    config,
+                    force_fresh=True,
+                )
+            ]
+
+            selected_to_configure_set = set(selected_to_configure)
+
+            if selected_to_configure:
+                print()
+                print(color(f"  Configuring {len(selected_to_configure)} selected tool(s):", Colors.YELLOW))
+                for ts_key in selected_to_configure:
+                    label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts_key), ts_key)
+                    print(color(f"    • {label}", Colors.DIM))
+                print(color("  You can skip any tool you don't need right now.", Colors.DIM))
+                print()
+                for ts_key in selected_to_configure:
+                    _configure_toolset(ts_key, config)
+
+            if new_enabled != all_current or selected_to_configure:
                 for pk in platform_keys:
                     prev = _get_platform_tools(config, pk, include_default_mcp_servers=False)
-                    added = new_enabled - prev
-                    removed = prev - new_enabled
+                    # Scope the printed diff to the checklist's universe (see
+                    # _checklist_toolset_keys) so non-configurable toolsets like
+                    # ``kanban`` aren't reported as added/removed.
+                    _diff_universe = _checklist_toolset_keys(pk)
+                    added = (new_enabled - prev) & _diff_universe
+                    removed = (prev - new_enabled) & _diff_universe
                     pinfo_inner = PLATFORMS[pk]
                     if added or removed:
                         print(color(f"  {pinfo_inner['label']}:", Colors.DIM))
@@ -2949,10 +5153,19 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
                         for ts in sorted(removed):
                             label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts), ts)
                             print(color(f"    - {label}", Colors.RED))
-                    # Configure API keys for newly enabled tools
-                    for ts_key in sorted(added):
+                    # Configure API keys for newly enabled tools not already
+                    # handled by the global selected-tool pass above. This
+                    # preserves the old per-platform enable flow but avoids
+                    # dropping users back to the main menu when a selected tool
+                    # was already enabled globally and only lacked provider
+                    # configuration.
+                    for ts_key in sorted(added - selected_to_configure_set):
                         if (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key)):
-                            if _toolset_needs_configuration_prompt(ts_key, config):
+                            if _toolset_needs_configuration_prompt(
+                                ts_key,
+                                config,
+                                force_fresh=True,
+                            ):
                                 _configure_toolset(ts_key, config)
                     _save_platform_tools(config, pk, new_enabled)
                 save_config(config)
@@ -2974,11 +5187,46 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
         current_enabled = _get_platform_tools(config, pkey, include_default_mcp_servers=False)
 
         # Show checklist
-        new_enabled = _prompt_toolset_checklist(pinfo["label"], current_enabled)
+        new_enabled = _prompt_toolset_checklist(
+            pinfo["label"],
+            current_enabled,
+            force_fresh=True,
+        )
 
-        if new_enabled != current_enabled:
-            added = new_enabled - current_enabled
-            removed = current_enabled - new_enabled
+        # Selected toolsets still missing provider/API-key setup must open
+        # configuration even when the checklist selection itself didn't
+        # change (e.g. Web Search already enabled but web.backend missing).
+        # Mirrors the "Configure all platforms (global)" flow above.
+        selected_to_configure = [
+            ts_key for ts_key in sorted(new_enabled)
+            if (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key))
+            and _toolset_needs_configuration_prompt(
+                ts_key,
+                config,
+                force_fresh=True,
+            )
+        ]
+
+        selected_to_configure_set = set(selected_to_configure)
+
+        if selected_to_configure:
+            print()
+            print(color(f"  Configuring {len(selected_to_configure)} selected tool(s):", Colors.YELLOW))
+            for ts_key in selected_to_configure:
+                label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts_key), ts_key)
+                print(color(f"    • {label}", Colors.DIM))
+            print(color("  You can skip any tool you don't need right now.", Colors.DIM))
+            print()
+            for ts_key in selected_to_configure:
+                _configure_toolset(ts_key, config)
+
+        if new_enabled != current_enabled or selected_to_configure:
+            # Scope the printed diff to the checklist's universe (see
+            # _checklist_toolset_keys) so non-configurable toolsets like
+            # ``kanban`` aren't reported as added/removed.
+            _diff_universe = _checklist_toolset_keys(pkey)
+            added = (new_enabled - current_enabled) & _diff_universe
+            removed = (current_enabled - new_enabled) & _diff_universe
 
             if added:
                 for ts in sorted(added):
@@ -2989,10 +5237,15 @@ def tools_command(args=None, first_install: bool = False, config: Optional[dict]
                     label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts), ts)
                     print(color(f"  - {label}", Colors.RED))
 
-            # Configure newly enabled toolsets that need API keys
-            for ts_key in sorted(added):
+            # Configure newly enabled toolsets that need API keys, skipping
+            # any already handled by the selected-tool pass above.
+            for ts_key in sorted(added - selected_to_configure_set):
                 if (TOOL_CATEGORIES.get(ts_key) or TOOLSET_ENV_REQUIREMENTS.get(ts_key)):
-                    if _toolset_needs_configuration_prompt(ts_key, config):
+                    if _toolset_needs_configuration_prompt(
+                        ts_key,
+                        config,
+                        force_fresh=True,
+                    ):
                         _configure_toolset(ts_key, config)
 
             _save_platform_tools(config, pkey, new_enabled)
@@ -3115,21 +5368,26 @@ def _configure_mcp_tools_interactive(config: dict):
             _print_info(f"  {server_name}: no changes")
             continue
 
-        # Compute new exclude list based on unchecked tools
-        new_exclude = [tool_names[i] for i in range(len(tool_names)) if i not in chosen]
+        # Compute new include list (the chosen tools). We standardize on
+        # tools.include across the codebase (catalog installs, hermes mcp
+        # configure, and this UI) so a server\'s on-disk config shape doesn\'t
+        # depend on which UI the user touched last.
+        chosen_names = [tool_names[i] for i in sorted(chosen)]
 
         # Update config
         srv_cfg = mcp_servers.setdefault(server_name, {})
         tools_cfg = srv_cfg.setdefault("tools", {})
 
-        if new_exclude:
-            tools_cfg["exclude"] = new_exclude
-            # Remove include if present — we're switching to exclude mode
-            tools_cfg.pop("include", None)
-        else:
-            # All tools enabled — clear filters
+        if len(chosen) == len(tools):
+            # All tools enabled — clear filters (cleanest config shape; the
+            # server\'s native tool set is the active set, and any tools the
+            # server adds later are auto-enabled).
             tools_cfg.pop("exclude", None)
             tools_cfg.pop("include", None)
+        else:
+            tools_cfg["include"] = chosen_names
+            # Drop any legacy exclude block — we\'re include-mode now.
+            tools_cfg.pop("exclude", None)
 
         enabled_count = len(chosen)
         disabled_count = len(tools) - enabled_count
@@ -3252,13 +5510,8 @@ def tools_disable_enable_command(args):
     valid_toolsets = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS} | _get_plugin_toolset_keys()
     unknown_toolsets = [t for t in toolset_targets if t not in valid_toolsets]
     if unknown_toolsets:
-        from difflib import get_close_matches
-
         for name in unknown_toolsets:
             _print_error(f"Unknown toolset '{name}'")
-            close = get_close_matches(name, sorted(valid_toolsets), n=3, cutoff=0.6)
-            if close:
-                print(f"  Did you mean: {', '.join(close)}?")
         toolset_targets = [t for t in toolset_targets if t in valid_toolsets]
 
     # Reject platform-scoped toolsets on platforms that don't allow them.
@@ -3288,7 +5541,9 @@ def tools_disable_enable_command(args):
 
     successful = [
         t for t in targets
-        if t not in unknown_toolsets and (":" not in t or t.split(":")[0] not in failed_servers)
+        if t not in unknown_toolsets
+        and t not in restricted_targets
+        and (":" not in t or t.split(":")[0] not in failed_servers)
     ]
     if successful:
         verb = "Disabled" if action == "disable" else "Enabled"

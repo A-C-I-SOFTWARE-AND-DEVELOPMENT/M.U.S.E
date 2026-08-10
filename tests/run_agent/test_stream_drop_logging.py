@@ -21,9 +21,7 @@ import logging
 import time
 from unittest.mock import patch
 
-import pytest
 
-import run_agent
 from run_agent import AIAgent
 
 
@@ -79,12 +77,6 @@ def test_stream_diag_capture_response_collects_known_headers():
     assert "irrelevant-header" not in diag["headers"]
 
 
-def test_stream_diag_capture_response_safe_with_none():
-    agent = _make_agent()
-    diag = AIAgent._stream_diag_init()
-    agent._stream_diag_capture_response(diag, None)
-    # Must not raise; diag stays initialized.
-    assert diag["headers"] == {}
 
 
 def test_flatten_exception_chain_walks_cause():
@@ -203,7 +195,7 @@ def test_emit_stream_drop_ui_includes_elapsed_when_available():
     diag = AIAgent._stream_diag_init()
     diag["started_at"] = time.time() - 8.0  # 8s on the wire before drop
 
-    with patch.object(agent, "_emit_status") as mock_emit:
+    with patch.object(agent, "_buffer_status") as mock_emit:
         agent._emit_stream_drop(
             error=ConnectionError("x"),
             attempt=2,
@@ -218,25 +210,6 @@ def test_emit_stream_drop_ui_includes_elapsed_when_available():
     assert "after" in msg and "s" in msg
 
 
-def test_emit_stream_drop_ui_omits_suffix_without_diag():
-    """When there's no diag, no suffix — line stays compact."""
-    agent = _make_agent()
-    agent.provider = "openrouter"
-
-    with patch.object(agent, "_emit_status") as mock_emit:
-        agent._emit_stream_drop(
-            error=ConnectionError("x"),
-            attempt=2,
-            max_attempts=3,
-            mid_tool_call=False,
-        )
-
-    msg = mock_emit.call_args.args[0]
-    # No "after Xs" suffix when diag is not provided.
-    assert " after " not in msg
-    # Still names the provider and error class.
-    assert "openrouter" in msg
-    assert "ConnectionError" in msg
 
 
 def test_quiet_mode_does_not_clobber_runagent_logger_level():

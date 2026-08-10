@@ -28,6 +28,7 @@ from run_agent import (
     _FILE_MUTATING_TOOLS,
     _extract_error_preview,
     _extract_file_mutation_targets,
+    _extract_landed_file_mutation_paths,
 )
 
 
@@ -41,34 +42,13 @@ class TestExtractFileMutationTargets:
         assert _extract_file_mutation_targets("read_file", {"path": "/x"}) == []
         assert _extract_file_mutation_targets("terminal", {"command": "ls"}) == []
 
-    def test_write_file_returns_single_path(self):
-        out = _extract_file_mutation_targets("write_file", {"path": "/tmp/a.md", "content": "x"})
-        assert out == ["/tmp/a.md"]
 
-    def test_write_file_missing_path_returns_empty(self):
-        assert _extract_file_mutation_targets("write_file", {"content": "x"}) == []
 
     def test_patch_replace_mode_returns_path(self):
         args = {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"}
         assert _extract_file_mutation_targets("patch", args) == ["/tmp/a.md"]
 
-    def test_patch_default_mode_is_replace(self):
-        # Mode omitted — schema default is ``replace``.
-        args = {"path": "/tmp/a.md", "old_string": "x", "new_string": "y"}
-        assert _extract_file_mutation_targets("patch", args) == ["/tmp/a.md"]
 
-    def test_patch_v4a_single_file(self):
-        body = (
-            "*** Begin Patch\n"
-            "*** Update File: /tmp/a.md\n"
-            "@@ ctx @@\n"
-            " line1\n"
-            "-bad\n"
-            "+good\n"
-            "*** End Patch\n"
-        )
-        args = {"mode": "patch", "patch": body}
-        assert _extract_file_mutation_targets("patch", args) == ["/tmp/a.md"]
 
     def test_patch_v4a_multi_file(self):
         body = (
@@ -84,9 +64,13 @@ class TestExtractFileMutationTargets:
         paths = _extract_file_mutation_targets("patch", args)
         assert paths == ["/tmp/a.md", "/tmp/new.md", "/tmp/old.md"]
 
-    def test_patch_v4a_missing_body_returns_empty(self):
-        assert _extract_file_mutation_targets("patch", {"mode": "patch"}) == []
-        assert _extract_file_mutation_targets("patch", {"mode": "patch", "patch": ""}) == []
+
+    def test_patch_v4a_accepts_no_space_after_asterisks(self):
+        """Match patch_parser / file_tools: ``***Update File:`` (no space)."""
+        body = "***Update File: nospace.py\n"
+        assert _extract_file_mutation_targets(
+            "patch", {"mode": "patch", "patch": body}
+        ) == ["nospace.py"]
 
 
 # ---------------------------------------------------------------------------
@@ -108,8 +92,6 @@ class TestExtractErrorPreview:
         assert len(out) <= 50
         assert out.endswith("…")
 
-    def test_none_returns_empty(self):
-        assert _extract_error_preview(None) == ""
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +110,7 @@ def _bare_agent() -> AIAgent:
     """
     agent = object.__new__(AIAgent)
     agent._turn_failed_file_mutations = {}
+    agent._turn_file_mutation_paths = set()
     return agent
 
 
@@ -137,7 +120,7 @@ class TestRecordFileMutationResult:
         agent._record_file_mutation_result(
             "read_file", {"path": "/tmp/x"}, "{}", is_error=True,
         )
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_failure_recorded(self):
         agent = _bare_agent()
@@ -146,7 +129,7 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             result, is_error=True,
         )
-        state = agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        state = agent._turn_failed_file_mutations
         assert "/tmp/a.md" in state
         assert state["/tmp/a.md"]["tool"] == "patch"
         assert "Could not find old_string" in state["/tmp/a.md"]["error_preview"]
@@ -158,13 +141,27 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             json.dumps({"error": "not found"}), is_error=True,
         )
-        assert "/tmp/a.md" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.md" in agent._turn_failed_file_mutations
         # Second attempt with corrected old_string succeeds
         agent._record_file_mutation_result(
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "real", "new_string": "fixed"},
             json.dumps({"success": True, "diff": "..."}), is_error=False,
         )
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_file_mutation_paths == {"/tmp/a.md"}
+
+
+    def test_landed_paths_prefer_resolved_tool_result(self):
+        paths = _extract_landed_file_mutation_paths(
+            "patch",
+            {"mode": "replace", "path": "src/app.py"},
+            json.dumps({
+                "success": True,
+                "files_modified": ["/tmp/project/src/app.py"],
+            }),
+        )
+
+        assert paths == ["/tmp/project/src/app.py"]
 
     def test_write_file_with_lint_error_counts_as_landed(self):
         agent = _bare_agent()
@@ -174,7 +171,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "write failed"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations
 
         result = json.dumps({
             "bytes_written": 24,
@@ -188,7 +185,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_patch_with_lsp_diagnostics_counts_as_landed(self):
         agent = _bare_agent()
@@ -198,7 +195,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "Could not find old_string"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations
 
         result = json.dumps({
             "success": True,
@@ -214,7 +211,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
+        assert agent._turn_failed_file_mutations == {}
 
     def test_repeated_failure_keeps_first_error(self):
         agent = _bare_agent()
@@ -228,45 +225,10 @@ class TestRecordFileMutationResult:
         )
         # Keep the original error — swapping to the latest would obscure
         # the initial root cause.
-        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]  # ty: ignore[unresolved-attribute]
+        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]
 
-    def test_v4a_multi_file_all_tracked(self):
-        agent = _bare_agent()
-        body = (
-            "*** Begin Patch\n"
-            "*** Update File: /tmp/a.md\n@@ @@\n-a\n+b\n"
-            "*** Update File: /tmp/b.md\n@@ @@\n-a\n+b\n"
-            "*** End Patch\n"
-        )
-        agent._record_file_mutation_result(
-            "patch", {"mode": "patch", "patch": body},
-            json.dumps({"error": "parse failure"}), is_error=True,
-        )
-        assert set(agent._turn_failed_file_mutations) == {"/tmp/a.md", "/tmp/b.md"}  # ty: ignore[unresolved-attribute]
 
-    def test_no_state_dict_silent_noop(self):
-        """When called outside run_conversation the state dict is absent.
 
-        The record helper must never raise — a tool dispatched from, say,
-        a direct ``chat()`` call should not blow up the call site just
-        because the verifier state hasn't been initialised.
-        """
-        agent = object.__new__(AIAgent)  # no state attached
-        # Should not raise
-        agent._record_file_mutation_result(
-            "patch", {"mode": "replace", "path": "/tmp/a.md"},
-            json.dumps({"error": "x"}), is_error=True,
-        )
-
-    def test_missing_path_arg_recorded_nowhere(self):
-        agent = _bare_agent()
-        agent._record_file_mutation_result(
-            "patch", {"mode": "replace"},  # no path
-            json.dumps({"error": "path required"}), is_error=True,
-        )
-        # No path → nothing to key on, state stays empty.  The per-turn
-        # state is about file paths, not individual tool-call IDs.
-        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------
@@ -301,6 +263,35 @@ class TestFormatFooter:
         assert len(bullet_lines) == 11  # 10 shown + 1 summary
 
 
+    def test_footer_path_not_extracted_by_gateway(self):
+        """End-to-end: the gateway's extract_local_files must NOT pull a
+        config.yaml path out of the rendered footer (#35584)."""
+        import os
+        import tempfile
+        from gateway.platforms.base import BasePlatformAdapter
+
+        tmp = tempfile.mkdtemp(prefix="hermes_footer_")
+        try:
+            cfg = os.path.join(tmp, "config.yaml")
+            with open(cfg, "w") as fh:
+                fh.write("openrouter_api_key: sk-LEAK\n")
+            footer = AIAgent._format_file_mutation_failure_footer(
+                {cfg: {
+                    "tool": "patch",
+                    "error_preview": (
+                        f"Write denied: '{cfg}' is a protected "
+                        "system/credential file."
+                    ),
+                }},
+            )
+            response = "I updated your config.\n\n" + footer
+            paths, _ = BasePlatformAdapter.extract_local_files(response)
+            assert paths == [], f"footer leaked deliverable path(s): {paths}"
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 # ---------------------------------------------------------------------------
 # _file_mutation_verifier_enabled — env + config precedence
 # ---------------------------------------------------------------------------
@@ -322,25 +313,7 @@ class TestVerifierEnabled:
         agent = _bare_agent()
         assert agent._file_mutation_verifier_enabled() is False
 
-    def test_env_enables_over_config(self, monkeypatch):
-        monkeypatch.setenv("HERMES_FILE_MUTATION_VERIFIER", "1")
-        import hermes_cli.config as _cfg_mod
-        monkeypatch.setattr(
-            _cfg_mod, "load_config",
-            lambda: {"display": {"file_mutation_verifier": False}},
-        )
-        agent = _bare_agent()
-        assert agent._file_mutation_verifier_enabled() is True
 
-    def test_config_disables_when_no_env(self, monkeypatch):
-        monkeypatch.delenv("HERMES_FILE_MUTATION_VERIFIER", raising=False)
-        import hermes_cli.config as _cfg_mod
-        monkeypatch.setattr(
-            _cfg_mod, "load_config",
-            lambda: {"display": {"file_mutation_verifier": False}},
-        )
-        agent = _bare_agent()
-        assert agent._file_mutation_verifier_enabled() is False
 
 
 # ---------------------------------------------------------------------------

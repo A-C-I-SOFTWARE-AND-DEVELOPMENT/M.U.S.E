@@ -28,13 +28,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from hermes_cli import profiles as profiles_mod
+from agent.skill_utils import is_excluded_skill_path
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 MAX_SKILLS_FOR_PROMPT = 60
 
 
-_SYSTEM_PROMPT = """You are a profile-describer for the muse kanban board.
+_SYSTEM_PROMPT = """You are a profile-describer for the Hermes Agent kanban board.
 
 A user runs multiple "profiles" — distinct agent identities, each with their
 own skills, model, and configuration. The kanban board's orchestrator routes
@@ -70,7 +70,7 @@ Rules:
                          refactors functions, opens GitHub PRs."
   - 1-2 sentences, <= 280 characters total.
   - Never invent capabilities the skills don't suggest.
-  - Never write "muse profile" or other meta-narration.
+  - Never write "Hermes Agent profile" or other meta-narration.
   - No code fences, no preamble, no closing remarks. Output only JSON.
 """
 
@@ -82,15 +82,6 @@ Installed skill count: {skill_count}
 Notable skills (up to {skill_cap}):
 {skill_list}
 """
-
-# Appended to the user prompt only when the profile has measured kanban
-# history. What the profile has actually done (and how it went) is a
-# stronger routing signal than the skill list alone — this is the
-# memory-into-prompt extension the module docstring reserved, wired to
-# job outcomes rather than raw memory.
-_OUTCOMES_TEMPLATE = """Measured job history (kanban):
-{outcome_line}
-{review_line}"""
 
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
@@ -118,8 +109,7 @@ def _collect_skills(profile_dir: Path) -> list[str]:
         return []
     names: list[str] = []
     for md in skills_dir.rglob("SKILL.md"):
-        path_str = str(md)
-        if "/.hub/" in path_str or "/.git/" in path_str:
+        if is_excluded_skill_path(md):
             continue
         try:
             rel = md.relative_to(skills_dir)
@@ -143,39 +133,6 @@ def _collect_skills(profile_dir: Path) -> list[str]:
     step = len(names) / MAX_SKILLS_FOR_PROMPT
     sampled = [names[int(i * step)] for i in range(MAX_SKILLS_FOR_PROMPT)]
     return sampled
-
-
-def _collect_outcome_summary(profile_name: str) -> Optional[str]:
-    """Return a one-block summary of the profile's measured kanban history.
-
-    Soft-fails to ``None`` (no kanban DB, no history for this profile,
-    import failure) — the describer must keep working on installs that
-    have never run a job. Read-side only; nothing is written.
-    """
-    try:
-        from hermes_cli import kanban_db as kb
-        # connect() auto-creates the DB on first touch — honor the
-        # "nothing is written" contract by bailing when no board exists.
-        if not kb.kanban_db_path().exists():
-            return None
-        with kb.connect() as conn:
-            outcomes = kb.profile_outcome_stats(conn).get(profile_name)
-            reviews = kb.review_stats(conn).get(profile_name)
-    except Exception:
-        return None
-    if not outcomes and not reviews:
-        return None
-    outcome_line = "  runs: " + (
-        ", ".join(f"{k}={v}" for k, v in sorted(outcomes.items()))
-        if outcomes else "(none)"
-    )
-    review_line = "  reviews: " + (
-        ", ".join(f"{k}={v}" for k, v in sorted(reviews.items()))
-        if reviews else "(none)"
-    )
-    return _OUTCOMES_TEMPLATE.format(
-        outcome_line=outcome_line, review_line=review_line
-    )
 
 
 def _extract_json_blob(raw: str) -> Optional[dict]:
@@ -222,7 +179,7 @@ def describe_profile(
 
     try:
         if canon == "default":
-            from hermes_constants import get_hermes_home
+            from hermes_constants import get_hermes_home  # type: ignore
             profile_dir = Path(get_hermes_home())
         else:
             profile_dir = profiles_mod.get_profile_dir(canon)
@@ -243,7 +200,7 @@ def describe_profile(
     skill_list = "\n".join(f"  - {n}" for n in skill_names) or "  (no skills installed)"
     skill_count = sum(
         1 for _ in (profile_dir / "skills").rglob("SKILL.md")
-        if "/.hub/" not in str(_) and "/.git/" not in str(_)
+        if not is_excluded_skill_path(_)
     ) if (profile_dir / "skills").is_dir() else 0
 
     # Read model + provider from the profile's config.
@@ -253,22 +210,10 @@ def describe_profile(
         model, provider = None, None
 
     try:
-        from agent.auxiliary_client import (
-            get_auxiliary_extra_body,
-            get_text_auxiliary_client,
-        )
+        from agent.auxiliary_client import call_llm  # type: ignore
     except Exception as exc:
         logger.debug("describe: auxiliary client import failed: %s", exc)
         return DescribeOutcome(canon, False, "auxiliary client unavailable")
-
-    try:
-        client, aux_model = get_text_auxiliary_client("profile_describer")
-    except Exception as exc:
-        logger.debug("describe: get_text_auxiliary_client failed: %s", exc)
-        return DescribeOutcome(canon, False, "auxiliary client unavailable")
-
-    if client is None or not aux_model:
-        return DescribeOutcome(canon, False, "no auxiliary client configured")
 
     user_msg = _USER_TEMPLATE.format(
         name=canon,
@@ -278,13 +223,13 @@ def describe_profile(
         skill_cap=MAX_SKILLS_FOR_PROMPT,
         skill_list=skill_list,
     )
-    outcome_summary = _collect_outcome_summary(canon)
-    if outcome_summary:
-        user_msg = f"{user_msg}\n{outcome_summary}\n"
 
     try:
-        resp = client.chat.completions.create(
-            model=aux_model,
+        # Route through call_llm so auxiliary.profile_describer.* config
+        # (provider/model/base_url, extra_body, reasoning_effort, retries)
+        # all apply — the direct-create path dropped extra_body (#35566).
+        resp = call_llm(
+            task="profile_describer",
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": user_msg},
@@ -292,7 +237,6 @@ def describe_profile(
             temperature=0.3,
             max_tokens=400,
             timeout=timeout or 60,
-            extra_body=get_auxiliary_extra_body() or None,
         )
     except Exception as exc:
         logger.info("describe: API call failed for %s (%s)", canon, exc)

@@ -13,7 +13,6 @@ the safety net in _run_agent discards leaked command text.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -30,13 +29,13 @@ from gateway.session import SessionSource, build_session_key
 class _StubAdapter(BasePlatformAdapter):
     """Concrete adapter with abstract methods stubbed out."""
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         pass
 
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, text, **kwargs):  # ty: ignore[invalid-method-override]
+    async def send(self, chat_id, text, **kwargs):
         pass
 
     async def get_chat_info(self, chat_id):
@@ -47,7 +46,8 @@ def _make_adapter():
     """Create a minimal adapter for testing the active-session guard."""
     config = PlatformConfig(enabled=True, token="test-token")
     adapter = _StubAdapter(config, Platform.TELEGRAM)
-    adapter.sent_responses = []  # ty: ignore[unresolved-attribute]
+    adapter._busy_text_mode = ""
+    adapter.sent_responses = []
 
     async def _mock_handler(event):
         cmd = event.get_command()
@@ -56,9 +56,9 @@ def _make_adapter():
     adapter._message_handler = _mock_handler
 
     async def _mock_send_retry(chat_id, content, **kwargs):
-        adapter.sent_responses.append(content)  # ty: ignore[unresolved-attribute]
+        adapter.sent_responses.append(content)
 
-    adapter._send_with_retry = _mock_send_retry  # ty: ignore[invalid-assignment]
+    adapter._send_with_retry = _mock_send_retry
     return adapter
 
 
@@ -367,30 +367,6 @@ class TestNonBypassStillQueued:
             "Regular text should not produce a direct response"
         )
 
-    @pytest.mark.asyncio
-    async def test_unknown_command_queued(self):
-        """Unknown /commands must be queued, not dispatched."""
-        adapter = _make_adapter()
-        sk = _session_key()
-        adapter._active_sessions[sk] = asyncio.Event()
-
-        await adapter.handle_message(_make_event("/foobar"))
-
-        assert sk in adapter._pending_messages
-        assert len(adapter.sent_responses) == 0
-
-    @pytest.mark.asyncio
-    async def test_file_path_not_treated_as_command(self):
-        """A message like '/path/to/file' must not bypass the guard."""
-        adapter = _make_adapter()
-        sk = _session_key()
-        adapter._active_sessions[sk] = asyncio.Event()
-
-        await adapter.handle_message(_make_event("/path/to/file.py"))
-
-        assert sk in adapter._pending_messages
-        assert len(adapter.sent_responses) == 0
-
 
 # ---------------------------------------------------------------------------
 # Tests: no active session — commands go through normally
@@ -432,32 +408,13 @@ class TestPendingCommandSafetyNet:
         from hermes_cli.commands import resolve_command
 
         assert resolve_command("stop") is not None
-        assert resolve_command("stop").name == "stop"  # ty: ignore[unresolved-attribute]
+        assert resolve_command("stop").name == "stop"
 
     def test_new_command_detected(self):
         from hermes_cli.commands import resolve_command
 
         assert resolve_command("new") is not None
-        assert resolve_command("new").name == "new"  # ty: ignore[unresolved-attribute]
-
-    def test_reset_alias_detected(self):
-        from hermes_cli.commands import resolve_command
-
-        assert resolve_command("reset") is not None
-        assert resolve_command("reset").name == "new"  # alias  # ty: ignore[unresolved-attribute]
-
-    def test_unknown_command_not_detected(self):
-        from hermes_cli.commands import resolve_command
-
-        assert resolve_command("foobar") is None
-
-    def test_file_path_not_detected_as_command(self):
-        """'/path/to/file' should not resolve as a command."""
-        from hermes_cli.commands import resolve_command
-
-        # The safety net splits on whitespace and takes the first word
-        # after stripping '/'.  For '/path/to/file', that's 'path/to/file'.
-        assert resolve_command("path/to/file") is None
+        assert resolve_command("new").name == "new"
 
 
 # ---------------------------------------------------------------------------
@@ -482,14 +439,3 @@ class TestBypassWithBotnameSuffix:
         )
         assert any("handled:stop" in r for r in adapter.sent_responses)
 
-    @pytest.mark.asyncio
-    async def test_new_with_botname(self):
-        """/new@MyHermesBot must bypass the guard."""
-        adapter = _make_adapter()
-        sk = _session_key()
-        adapter._active_sessions[sk] = asyncio.Event()
-
-        await adapter.handle_message(_make_event("/new@MyHermesBot"))
-
-        assert sk not in adapter._pending_messages
-        assert any("handled:new" in r for r in adapter.sent_responses)

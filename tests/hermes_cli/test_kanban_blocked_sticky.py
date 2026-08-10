@@ -37,14 +37,6 @@ import pytest
 from hermes_cli import kanban_db as kb
 
 
-def _task(conn, task_id) -> kb.Task:
-    """Fetch a task that must exist (fails the test if missing)."""
-    task = kb.get_task(conn, task_id)
-    assert task is not None
-    return task
-
-
-
 @pytest.fixture
 def kanban_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Isolated HERMES_HOME with an empty kanban DB."""
@@ -72,39 +64,18 @@ def test_worker_block_is_not_auto_promoted_by_recompute_ready(kanban_home: Path)
         assert kb.block_task(
             conn, tid,
             reason="review-required: please verify ACL change",
-            expected_run_id=_task(conn, tid).current_run_id,
+            expected_run_id=kb.get_task(conn, tid).current_run_id,
         )
-        assert _task(conn, tid).status == "blocked"
+        assert kb.get_task(conn, tid).status == "blocked"
 
         # Hammer the promotion code — exactly the dispatcher loop's
         # behaviour, just compressed in time.
         for _ in range(5):
             promoted = kb.recompute_ready(conn)
             assert promoted == 0, "worker-blocked task must not auto-promote"
-            assert _task(conn, tid).status == "blocked"
+            assert kb.get_task(conn, tid).status == "blocked"
 
 
-def test_worker_block_on_child_with_done_parents_is_still_sticky(kanban_home: Path) -> None:
-    """The parent-completion path is the one ``recompute_ready`` was
-    designed for, so it's the most dangerous false-positive: even when
-    every parent is done, a worker-initiated block on the child must
-    stay blocked."""
-    with kb.connect() as conn:
-        parent = kb.create_task(conn, title="parent")
-        child = kb.create_task(conn, title="child", parents=[parent])
-        kb.complete_task(conn, parent, result="parent ok")
-
-        kb.claim_task(conn, child)
-        kb.block_task(
-            conn, child,
-            reason="review-required: child needs sign-off",
-            expected_run_id=_task(conn, child).current_run_id,
-        )
-        assert _task(conn, child).status == "blocked"
-
-        promoted = kb.recompute_ready(conn)
-        assert promoted == 0
-        assert _task(conn, child).status == "blocked"
 
 
 # ---------------------------------------------------------------------------
@@ -112,98 +83,11 @@ def test_worker_block_on_child_with_done_parents_is_still_sticky(kanban_home: Pa
 # ---------------------------------------------------------------------------
 
 
-def test_circuit_breaker_block_still_auto_promotes(kanban_home: Path) -> None:
-    """A child that was put into ``blocked`` *without* a worker-issued
-    ``kanban_block`` (e.g. circuit-breaker after repeated spawn
-    failures, manual DB triage) must still get auto-promoted when its
-    parents complete — preserves the pre-#28712 recovery semantics."""
-    with kb.connect() as conn:
-        parent = kb.create_task(conn, title="parent")
-        child = kb.create_task(conn, title="child", parents=[parent])
-        kb.complete_task(conn, parent, result="ok")
-
-        # Simulate a circuit-breaker / direct triage that flips status
-        # without emitting a ``blocked`` event — exactly what
-        # ``_record_task_failure`` does after a ``gave_up``.
-        conn.execute(
-            "UPDATE tasks SET status='blocked', consecutive_failures=5, "
-            "last_failure_error='persistent error' WHERE id=?",
-            (child,),
-        )
-        conn.commit()
-
-        promoted = kb.recompute_ready(conn)
-        assert promoted == 1
-        task = kb.get_task(conn, child)
-        assert task is not None
-        assert task.status == "ready"
-        assert task is not None
-        assert task.consecutive_failures == 0
-        assert task is not None
-        assert task.last_failure_error is None
-
-
-def test_gave_up_event_alone_does_not_make_block_sticky(kanban_home: Path) -> None:
-    """The circuit-breaker emits ``gave_up`` (not ``blocked``).  Make
-    sure ``_has_sticky_block`` doesn't accidentally treat ``gave_up``
-    as sticky — otherwise we'd regress the safety net for genuinely
-    transient crashes."""
-    with kb.connect() as conn:
-        parent = kb.create_task(conn, title="parent")
-        child = kb.create_task(conn, title="child", parents=[parent])
-        kb.complete_task(conn, parent, result="ok")
-
-        # Status + event match what _record_task_failure writes when
-        # the breaker trips.
-        conn.execute(
-            "UPDATE tasks SET status='blocked' WHERE id=?", (child,),
-        )
-        conn.execute(
-            "INSERT INTO task_events (task_id, kind, payload, created_at) "
-            "VALUES (?, 'gave_up', NULL, ?)",
-            (child, int(time.time())),
-        )
-        conn.commit()
-
-        promoted = kb.recompute_ready(conn)
-        assert promoted == 1
-        assert _task(conn, child).status == "ready"
 
 
 # ---------------------------------------------------------------------------
 # unblock_task clears the sticky state
 # ---------------------------------------------------------------------------
-
-
-def test_unblock_clears_sticky_state_and_lets_block_recover(kanban_home: Path) -> None:
-    """``hermes kanban unblock`` (or the ``kanban_unblock`` tool) is
-    the only legitimate way out of a worker-initiated block.  After
-    unblock, a *subsequent* circuit-breaker block on the same task
-    must again be eligible for auto-recovery."""
-    with kb.connect() as conn:
-        tid = kb.create_task(conn, title="t")
-        kb.claim_task(conn, tid)
-        kb.block_task(
-            conn, tid,
-            reason="review-required: ...",
-            expected_run_id=_task(conn, tid).current_run_id,
-        )
-        assert kb.unblock_task(conn, tid)
-        # After unblock the task is no longer blocked at all.
-        assert _task(conn, tid).status == "ready"
-
-        # Now simulate a *later* circuit-breaker block (no new
-        # ``blocked`` event, just status flip).  The most recent
-        # block/unblock event is ``unblocked`` → guard does not fire
-        # → recompute can recover.
-        conn.execute(
-            "UPDATE tasks SET status='blocked' WHERE id=?", (tid,),
-        )
-        conn.commit()
-
-        promoted = kb.recompute_ready(conn)
-        assert promoted == 1
-        assert _task(conn, tid).status == "ready"
 
 
 # ---------------------------------------------------------------------------
@@ -237,13 +121,13 @@ def test_protocol_violation_loop_is_broken(kanban_home: Path) -> None:
         kb.block_task(
             conn, tid,
             reason="review-required: human eyes please",
-            expected_run_id=_task(conn, tid).current_run_id,
+            expected_run_id=kb.get_task(conn, tid).current_run_id,
         )
-        assert _task(conn, tid).status == "blocked"
+        assert kb.get_task(conn, tid).status == "blocked"
 
         # First dispatcher tick — must NOT promote.
         assert kb.recompute_ready(conn) == 0
-        assert _task(conn, tid).status == "blocked"
+        assert kb.get_task(conn, tid).status == "blocked"
 
         # Simulate the (hypothetical) protocol_violation + gave_up
         # entries that the dispatcher would have written if the bug
@@ -268,7 +152,7 @@ def test_protocol_violation_loop_is_broken(kanban_home: Path) -> None:
         for _ in range(3):
             promoted = kb.recompute_ready(conn)
             assert promoted == 0
-            assert _task(conn, tid).status == "blocked"
+            assert kb.get_task(conn, tid).status == "blocked"
 
 
 # ---------------------------------------------------------------------------

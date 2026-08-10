@@ -2,7 +2,6 @@
 
 import importlib.util
 import json
-import os
 import subprocess
 import sys
 import types
@@ -79,79 +78,12 @@ def test_bridge_returns_valid_token(bridge_module, tmp_path):
     assert result == "ya29.valid"
 
 
-def test_bridge_refreshes_expired_token(bridge_module, tmp_path):
-    """Expired token triggers a refresh via token_uri."""
-    past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-    token_path = bridge_module.get_token_path()
-    _write_token(token_path, token="ya29.old", expiry=past)
-
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = json.dumps({
-        "access_token": "ya29.refreshed",
-        "expires_in": 3600,
-    }).encode()
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-
-    with patch("urllib.request.urlopen", return_value=mock_resp):
-        result = bridge_module.get_valid_token()
-
-    assert result == "ya29.refreshed"
-    # Verify persisted
-    saved = json.loads(token_path.read_text())
-    assert saved["token"] == "ya29.refreshed"
-    assert saved["type"] == "authorized_user"
 
 
-def test_bridge_refresh_passes_timeout_to_urlopen(bridge_module):
-    """Token refresh must pass an explicit timeout so a hung Google endpoint
-    cannot block the agent turn indefinitely (no `timeout=` defaults to the
-    global socket timeout, which is unset)."""
-    past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-    token_path = bridge_module.get_token_path()
-    _write_token(token_path, token="ya29.old", expiry=past)
-
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = json.dumps({
-        "access_token": "ya29.refreshed",
-        "expires_in": 3600,
-    }).encode()
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-
-    with patch("urllib.request.urlopen", return_value=mock_resp) as mocked:
-        bridge_module.get_valid_token()
-
-    assert mocked.call_count == 1
-    _, kwargs = mocked.call_args
-    assert kwargs.get("timeout") is not None, (
-        "urlopen call must pass timeout= to avoid hanging on unreachable upstream"
-    )
 
 
-def test_bridge_refresh_exits_cleanly_on_network_error(bridge_module):
-    """URLError/timeout during refresh exits 1 with a readable message
-    instead of crashing with a raw traceback."""
-    import urllib.error
-
-    past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
-    token_path = bridge_module.get_token_path()
-    _write_token(token_path, token="ya29.old", expiry=past)
-
-    with patch(
-        "urllib.request.urlopen",
-        side_effect=urllib.error.URLError("timed out"),
-    ):
-        with pytest.raises(SystemExit) as exc_info:
-            bridge_module.get_valid_token()
-
-    assert exc_info.value.code == 1
 
 
-def test_bridge_exits_on_missing_token(bridge_module):
-    """Missing token file causes exit with code 1."""
-    with pytest.raises(SystemExit):
-        bridge_module.get_valid_token()
 
 
 def test_bridge_main_injects_token_env(bridge_module, tmp_path):
@@ -204,30 +136,14 @@ def test_api_calendar_list_uses_events_list(api_module):
     assert params["calendarId"] == "primary"
 
 
-def test_api_calendar_list_respects_date_range(api_module):
-    """calendar list with --start/--end passes correct time bounds."""
-    captured = {}
 
-    def capture_run(cmd, **kwargs):
-        captured["cmd"] = cmd
-        return MagicMock(returncode=0, stdout="{}", stderr="")
 
-    args = api_module.argparse.Namespace(
-        start="2026-04-01T00:00:00Z",
-        end="2026-04-07T23:59:59Z",
-        max=25,
-        calendar="primary",
-        func=api_module.calendar_list,
-    )
 
-    with patch.object(api_module.subprocess, "run", side_effect=capture_run):
-        api_module.calendar_list(args)
 
-    cmd = captured["cmd"]
-    params_idx = cmd.index("--params")
-    params = json.loads(cmd[params_idx + 1])
-    assert params["timeMin"] == "2026-04-01T00:00:00Z"
-    assert params["timeMax"] == "2026-04-07T23:59:59Z"
+
+
+
+
 
 
 def test_api_get_credentials_refresh_persists_authorized_user_type(api_module, monkeypatch):

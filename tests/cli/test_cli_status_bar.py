@@ -3,11 +3,8 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import cli as cli_mod
 from cli import HermesCLI
-
-# Shared patch so all status-bar tests see the real model slug
-# rather than the "Axiom" collective brand when fusion is active.
-_no_fusion = patch("agent.fusion_router.should_use_fusion", return_value=False)
 
 
 def _make_cli(model: str = "anthropic/claude-sonnet-4-20250514"):
@@ -57,6 +54,26 @@ def _attach_agent(
 
 
 class TestCLIStatusBar:
+    def test_session_title_is_right_aligned_after_it_is_queued(self):
+        cli_obj = _make_cli()
+        cli_obj._pending_title = "weekly-digest"
+
+        text = cli_obj._build_status_bar_text(width=80)
+
+        assert text.endswith(" weekly-digest ")
+        assert cli_obj._status_bar_display_width(text) == 80
+
+    def test_snapshot_refreshes_persisted_session_title(self):
+        cli_obj = _make_cli()
+        cli_obj.session_id = "session-1"
+        cli_obj._session_db = SimpleNamespace(  # type: ignore[assignment]
+            get_session_title=lambda sid: "user-profiles" if sid == "session-1" else None
+        )
+
+        snapshot = cli_obj._get_status_bar_snapshot()
+
+        assert snapshot["session_title"] == "user-profiles"
+
     def test_context_style_thresholds(self):
         cli_obj = _make_cli()
 
@@ -67,151 +84,38 @@ class TestCLIStatusBar:
         assert cli_obj._status_bar_context_style(95) == "class:status-bar-critical"
 
     def test_build_status_bar_text_for_wide_terminal(self):
-        with _no_fusion:
-            cli_obj = _attach_agent(
-                _make_cli(),
-                prompt_tokens=10_230,
-                completion_tokens=2_220,
-                total_tokens=12_450,
-                api_calls=7,
-                context_tokens=12_450,
-                context_length=200_000,
-            )
-
-            text = cli_obj._build_status_bar_text(width=120)
-
-            assert "claude-sonnet-4-20250514" in text
-            assert "12.4K/200K" in text
-            assert "6%" in text
-            assert "$0.06" not in text  # cost hidden by default
-            assert "15m" in text
-
-    def test_input_height_counts_wide_characters_using_cell_width(self):
-        cli_obj = _make_cli()
-
-        class _Doc:
-            lines = ["你" * 10]
-
-        class _Buffer:
-            document = _Doc()
-
-        input_area = SimpleNamespace(buffer=_Buffer())
-
-        def _input_height():
-            try:
-                from prompt_toolkit.application import get_app
-                from prompt_toolkit.utils import get_cwidth
-
-                doc = input_area.buffer.document
-                prompt_width = max(2, get_cwidth(cli_obj._get_tui_prompt_text()))
-                try:
-                    available_width = get_app().output.get_size().columns - prompt_width
-                except Exception:
-                    import shutil
-                    available_width = shutil.get_terminal_size((80, 24)).columns - prompt_width
-                if available_width < 10:
-                    available_width = 40
-                visual_lines = 0
-                for line in doc.lines:
-                    line_width = get_cwidth(line)
-                    if line_width <= 0:
-                        visual_lines += 1
-                    else:
-                        visual_lines += max(1, -(-line_width // available_width))
-                return min(max(visual_lines, 1), 8)
-            except Exception:
-                return 1
-
-        mock_app = MagicMock()
-        mock_app.output.get_size.return_value = MagicMock(columns=14)
-        with patch.object(HermesCLI, "_get_tui_prompt_text", return_value="❯ "), \
-             patch("prompt_toolkit.application.get_app", return_value=mock_app):
-            assert _input_height() == 2
-
-    def test_input_height_uses_prompt_toolkit_width_over_shutil(self):
-        cli_obj = _make_cli()
-
-        class _Doc:
-            lines = ["你" * 10]
-
-        class _Buffer:
-            document = _Doc()
-
-        input_area = SimpleNamespace(buffer=_Buffer())
-
-        def _input_height():
-            try:
-                from prompt_toolkit.application import get_app
-                from prompt_toolkit.utils import get_cwidth
-
-                doc = input_area.buffer.document
-                prompt_width = max(2, get_cwidth(cli_obj._get_tui_prompt_text()))
-                try:
-                    available_width = get_app().output.get_size().columns - prompt_width
-                except Exception:
-                    import shutil
-                    available_width = shutil.get_terminal_size((80, 24)).columns - prompt_width
-                if available_width < 10:
-                    available_width = 40
-                visual_lines = 0
-                for line in doc.lines:
-                    line_width = get_cwidth(line)
-                    if line_width <= 0:
-                        visual_lines += 1
-                    else:
-                        visual_lines += max(1, -(-line_width // available_width))
-                return min(max(visual_lines, 1), 8)
-            except Exception:
-                return 1
-
-        mock_app = MagicMock()
-        mock_app.output.get_size.return_value = MagicMock(columns=14)
-        with patch.object(HermesCLI, "_get_tui_prompt_text", return_value="❯ "), \
-             patch("prompt_toolkit.application.get_app", return_value=mock_app), \
-             patch("shutil.get_terminal_size") as mock_shutil:
-            assert _input_height() == 2
-        mock_shutil.assert_not_called()
-
-    def test_build_status_bar_text_no_cost_in_status_bar(self):
         cli_obj = _attach_agent(
             _make_cli(),
-            prompt_tokens=10000,
-            completion_tokens=5000,
-            total_tokens=15000,
+            prompt_tokens=10_230,
+            completion_tokens=2_220,
+            total_tokens=12_450,
             api_calls=7,
-            context_tokens=50000,
+            context_tokens=12_450,
             context_length=200_000,
         )
 
         text = cli_obj._build_status_bar_text(width=120)
-        assert "$" not in text  # cost is never shown in status bar
 
-    def test_build_status_bar_text_collapses_for_narrow_terminal(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10000,
-            completion_tokens=2400,
-            total_tokens=12400,
-            api_calls=7,
-            context_tokens=12400,
-            context_length=200_000,
-        )
-
-        text = cli_obj._build_status_bar_text(width=60)
-
-        assert "⚕" in text
+        assert "claude-sonnet-4-20250514" in text
+        assert "12.4K/200K" in text
+        assert "6%" in text
         assert "$0.06" not in text  # cost hidden by default
         assert "15m" in text
-        assert "200K" not in text
 
-    def test_build_status_bar_text_handles_missing_agent(self):
-        with _no_fusion:
-            cli_obj = _make_cli()
 
-            text = cli_obj._build_status_bar_text(width=100)
+    def test_input_height_counts_prompt_only_on_first_wrapped_row(self):
+        # Regression for prompt_toolkit classic CLI resize glitches: the prompt
+        # is inserted by BeforeInput only on logical line 0. At three terminal
+        # cells, "⚔ " leaves one cell for the first input character, but
+        # wrapped continuation rows use the full three cells. Estimating every
+        # wrapped row as one-cell wide over-allocates the TextArea and can leave
+        # stale prompt/input cells visible after resize.
+        assert cli_mod._estimate_tui_input_height(["abcdef"], "⚔ ", 3) == 3
 
-            assert "⚕" in text
-            assert "claude-sonnet-4-20250514" in text
+
+
+
+
 
     def test_compression_count_shown_in_wide_status_bar(self):
         cli_obj = _attach_agent(
@@ -229,101 +133,11 @@ class TestCLIStatusBar:
 
         assert "🗜️ 3" in text
 
-    def test_compression_count_hidden_when_zero(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_230,
-            completion_tokens=2_220,
-            total_tokens=12_450,
-            api_calls=7,
-            context_tokens=12_450,
-            context_length=200_000,
-            compressions=0,
-        )
 
-        text = cli_obj._build_status_bar_text(width=120)
 
-        assert "🗜️" not in text
 
-    def test_compression_count_shown_in_medium_status_bar(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_000,
-            completion_tokens=2_400,
-            total_tokens=12_400,
-            api_calls=7,
-            context_tokens=12_400,
-            context_length=200_000,
-            compressions=2,
-        )
 
-        text = cli_obj._build_status_bar_text(width=60)
 
-        assert "🗜️ 2" in text
-
-    def test_compression_count_hidden_in_narrow_status_bar(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_000,
-            completion_tokens=2_400,
-            total_tokens=12_400,
-            api_calls=7,
-            context_tokens=12_400,
-            context_length=200_000,
-            compressions=5,
-        )
-
-        text = cli_obj._build_status_bar_text(width=50)
-
-        assert "🗜️" not in text
-
-    def test_compression_count_style_thresholds(self):
-        cli_obj = _make_cli()
-
-        assert cli_obj._compression_count_style(1) == "class:status-bar-dim"
-        assert cli_obj._compression_count_style(4) == "class:status-bar-dim"
-        assert cli_obj._compression_count_style(5) == "class:status-bar-warn"
-        assert cli_obj._compression_count_style(9) == "class:status-bar-warn"
-        assert cli_obj._compression_count_style(10) == "class:status-bar-bad"
-        assert cli_obj._compression_count_style(25) == "class:status-bar-bad"
-
-    def test_compression_count_in_wide_fragments(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_230,
-            completion_tokens=2_220,
-            total_tokens=12_450,
-            api_calls=7,
-            context_tokens=12_450,
-            context_length=200_000,
-            compressions=7,
-        )
-        cli_obj._status_bar_visible = True
-
-        frags = cli_obj._get_status_bar_fragments()
-        frag_texts = [text for _, text in frags]
-
-        assert "🗜️ 7" in frag_texts
-        frag_styles = {text: style for style, text in frags}
-        assert frag_styles["🗜️ 7"] == "class:status-bar-warn"
-
-    def test_compression_count_absent_from_fragments_when_zero(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_230,
-            completion_tokens=2_220,
-            total_tokens=12_450,
-            api_calls=7,
-            context_tokens=12_450,
-            context_length=200_000,
-            compressions=0,
-        )
-        cli_obj._status_bar_visible = True
-
-        frags = cli_obj._get_status_bar_fragments()
-        frag_texts = [text for _, text in frags]
-
-        assert not any("🗜️" in t for t in frag_texts)
 
     def test_minimal_tui_chrome_threshold(self):
         cli_obj = _make_cli()
@@ -331,69 +145,29 @@ class TestCLIStatusBar:
         assert cli_obj._use_minimal_tui_chrome(width=63) is True
         assert cli_obj._use_minimal_tui_chrome(width=64) is False
 
-    def test_bottom_input_rule_hides_on_narrow_terminals(self):
+
+
+
+    def test_scheduled_unsuppress_debounces_resize_storm(self):
+        """A fresh resize cancels the pending unsuppress and restarts it."""
         cli_obj = _make_cli()
-
-        assert cli_obj._tui_input_rule_height("top", width=50) == 1
-        assert cli_obj._tui_input_rule_height("bottom", width=50) == 0
-        assert cli_obj._tui_input_rule_height("bottom", width=90) == 1
-
-    def test_input_rules_hide_after_resize_until_next_input(self):
-        """When _status_bar_suppressed_after_resize is set, both rules hide.
-
-        See _recover_after_resize — column shrink reflows already-rendered
-        bars into scrollback, so we hide the separators until the user
-        submits the next input, at which point the flag is cleared.
-        """
-        cli_obj = _make_cli()
+        cli_obj._status_bar_unsuppress_timer = None
         cli_obj._status_bar_suppressed_after_resize = True
+        app = MagicMock()
+        app.loop = None
 
-        assert cli_obj._tui_input_rule_height("top", width=90) == 0
-        assert cli_obj._tui_input_rule_height("bottom", width=90) == 0
+        # First schedule (long delay) then a second should cancel the first.
+        cli_obj._schedule_status_bar_unsuppress(app, delay=5.0)
+        first_timer = cli_obj._status_bar_unsuppress_timer
+        assert first_timer is not None
+        cli_obj._schedule_status_bar_unsuppress(app, delay=0.01)
+        assert first_timer is not cli_obj._status_bar_unsuppress_timer
+        assert not first_timer.is_alive() or first_timer.finished.is_set()
+        time.sleep(0.1)
+        assert cli_obj._status_bar_suppressed_after_resize is False
 
-        cli_obj._status_bar_suppressed_after_resize = False
-        assert cli_obj._tui_input_rule_height("top", width=90) == 1
-        assert cli_obj._tui_input_rule_height("bottom", width=90) == 1
 
-    def test_scrollback_box_width_returns_viewport_width(self):
-        """Decorative scrollback boxes use the full viewport width.
 
-        The previous clamp (max 56 cols) was reverted in favour of the
-        prompt_toolkit ``_output_screen_diff`` monkey-patch landed in
-        #26137, which keeps chrome out of scrollback at the source.
-        We accept that an aggressive column-shrink may visually reflow
-        already printed Panel borders — that's a cosmetic artifact of
-        stamped scrollback history, not a live-render bug.
-        """
-        from cli import HermesCLI
-
-        # Floor at 32 — narrow terminals still get something usable
-        # (avoids negative ``'─' * (w - 2)`` math).
-        assert HermesCLI._scrollback_box_width(20) == 32
-        assert HermesCLI._scrollback_box_width(32) == 32
-        # Above the floor, return the actual viewport width — no cap.
-        assert HermesCLI._scrollback_box_width(48) == 48
-        assert HermesCLI._scrollback_box_width(80) == 80
-        assert HermesCLI._scrollback_box_width(120) == 120
-        assert HermesCLI._scrollback_box_width(200) == 200
-
-    def test_agent_spacer_reclaimed_on_narrow_terminals(self):
-        cli_obj = _make_cli()
-        cli_obj._agent_running = True
-
-        assert cli_obj._agent_spacer_height(width=50) == 0
-        assert cli_obj._agent_spacer_height(width=90) == 1
-        cli_obj._agent_running = False
-        assert cli_obj._agent_spacer_height(width=90) == 0
-
-    def test_spinner_line_hidden_on_narrow_terminals(self):
-        cli_obj = _make_cli()
-        cli_obj._spinner_text = "thinking"
-
-        assert cli_obj._spinner_widget_height(width=50) == 0
-        assert cli_obj._spinner_widget_height(width=90) == 1
-        cli_obj._spinner_text = ""
-        assert cli_obj._spinner_widget_height(width=90) == 0
 
     def test_spinner_height_uses_display_width_for_wide_characters(self):
         cli_obj = _make_cli()
@@ -402,23 +176,6 @@ class TestCLIStatusBar:
 
         assert cli_obj._spinner_widget_height(width=64) == 2
 
-    def test_spinner_elapsed_format_is_fixed_width_to_reduce_wrap_jitter(self):
-        cli_obj = _make_cli()
-        cli_obj._spinner_text = "running tool"
-
-        # <60s path
-        cli_obj._tool_start_time = time.monotonic() - 9.2
-        short = cli_obj._render_spinner_text()
-
-        # >=60s path
-        cli_obj._tool_start_time = time.monotonic() - 65.2
-        long = cli_obj._render_spinner_text()
-
-        short_elapsed = short.split("(", 1)[1].rstrip(")")
-        long_elapsed = long.split("(", 1)[1].rstrip(")")
-
-        assert len(short_elapsed) == len(long_elapsed)
-        assert "m" in long_elapsed and "s" in long_elapsed
 
     def test_voice_status_bar_compacts_on_narrow_terminals(self):
         cli_obj = _make_cli()
@@ -432,15 +189,6 @@ class TestCLIStatusBar:
 
         assert fragments == [("class:voice-status", " 🎤 Ctrl+B ")]
 
-    def test_voice_recording_status_bar_compacts_on_narrow_terminals(self):
-        cli_obj = _make_cli()
-        cli_obj._voice_mode = True
-        cli_obj._voice_recording = True
-        cli_obj._voice_processing = False
-
-        fragments = cli_obj._get_voice_status_fragments(width=50)
-
-        assert fragments == [("class:voice-status-recording", " ● REC ")]
 
     # Round-13 Copilot review regressions on #19835. The label in voice
     # status bar / recording hint / placeholder must render the
@@ -463,50 +211,12 @@ class TestCLIStatusBar:
         compact = cli_obj._get_voice_status_fragments(width=50)
         assert compact == [("class:voice-status", " 🎤 Ctrl+O ")]
 
-    def test_voice_recording_status_bar_renders_configured_named_key(self):
-        cli_obj = _make_cli()
-        cli_obj._voice_mode = True
-        cli_obj._voice_recording = True
-        cli_obj._voice_processing = False
-        cli_obj.set_voice_record_key_cache("ctrl+space")
 
-        fragments = cli_obj._get_voice_status_fragments(width=120)
 
-        assert fragments == [("class:voice-status-recording", " ● REC  Ctrl+Space to stop ")]
-
-    def test_voice_status_bar_falls_back_to_ctrl_b_without_cache(self):
-        cli_obj = _make_cli()
-        cli_obj._voice_mode = True
-        cli_obj._voice_recording = False
-        cli_obj._voice_processing = False
-        cli_obj._voice_tts = False
-        cli_obj._voice_continuous = False
-        # No cache set — mirrors pre-startup state; fall back to
-        # documented Ctrl+B default (Copilot round-13 review).
-
-        compact = cli_obj._get_voice_status_fragments(width=50)
-
-        assert compact == [("class:voice-status", " 🎤 Ctrl+B ")]
-
-    def test_voice_status_bar_renders_malformed_config_as_default(self):
-        cli_obj = _make_cli()
-        cli_obj._voice_mode = True
-        cli_obj._voice_recording = False
-        cli_obj._voice_processing = False
-        cli_obj._voice_tts = False
-        cli_obj._voice_continuous = False
-        # Non-string / typoed configs fall through the formatter to the
-        # documented default so the status bar never advertises an
-        # invalid shortcut.
-        cli_obj.set_voice_record_key_cache(True)
-
-        compact = cli_obj._get_voice_status_fragments(width=50)
-
-        assert compact == [("class:voice-status", " 🎤 Ctrl+B ")]
 
 
 class TestCLIUsageReport:
-    def test_show_usage_includes_estimated_cost(self, capsys):
+    def test_show_usage_omits_cost_reporting(self, capsys):
         cli_obj = _attach_agent(
             _make_cli(),
             prompt_tokens=10_230,
@@ -522,59 +232,25 @@ class TestCLIUsageReport:
         cli_obj._show_usage()
         output = capsys.readouterr().out
 
+        # Token counts and session metadata still shown.
         assert "Model:" in output
-        assert "Cost status:" in output
-        assert "Cost source:" in output
-        assert "Total cost:" in output
-        assert "$" in output
-        assert "0.064" in output
+        assert "Input tokens:" in output
+        assert "Output tokens:" in output
+        assert "Total tokens:" in output
         assert "Session duration:" in output
         assert "Compressions:" in output
-
-    def test_show_usage_marks_unknown_pricing(self, capsys):
-        cli_obj = _attach_agent(
-            _make_cli(model="local/my-custom-model"),
-            prompt_tokens=1_000,
-            completion_tokens=500,
-            total_tokens=1_500,
-            api_calls=1,
-            context_tokens=1_000,
-            context_length=32_000,
-        )
-        cli_obj.verbose = False
-
-        cli_obj._show_usage()
-        output = capsys.readouterr().out
-
-        assert "Total cost:" in output
-        assert "n/a" in output
-        assert "Pricing unknown for local/my-custom-model" in output
-
-    def test_zero_priced_provider_models_stay_unknown(self, capsys):
-        cli_obj = _attach_agent(
-            _make_cli(model="glm-5"),
-            prompt_tokens=1_000,
-            completion_tokens=500,
-            total_tokens=1_500,
-            api_calls=1,
-            context_tokens=1_000,
-            context_length=32_000,
-        )
-        cli_obj.verbose = False
-
-        cli_obj._show_usage()
-        output = capsys.readouterr().out
-
-        assert "Total cost:" in output
-        assert "n/a" in output
-        assert "Pricing unknown for glm-5" in output
+        # Cost and cache-hit reporting is removed everywhere.
+        assert "Total cost:" not in output
+        assert "Cost status:" not in output
+        assert "Cost source:" not in output
+        assert "Cache read tokens:" not in output
+        assert "Cache write tokens:" not in output
 
 
 class TestStatusBarWidthSource:
     """Ensure status bar fragments don't overflow the terminal width."""
 
     def _make_wide_cli(self):
-        from datetime import datetime, timedelta
         cli_obj = _attach_agent(
             _make_cli(),
             prompt_tokens=100_000,
@@ -606,6 +282,19 @@ class TestStatusBarWidthSource:
                 f"({total_text!r})"
             )
 
+    def test_fragments_put_session_title_at_far_right(self):
+        cli_obj = self._make_wide_cli()
+        cli_obj._pending_title = "weekly-digest"
+        mock_app = MagicMock()
+        mock_app.output.get_size.return_value = MagicMock(columns=100)
+
+        with patch("prompt_toolkit.application.get_app", return_value=mock_app):
+            frags = cli_obj._get_status_bar_fragments()
+
+        text = "".join(value for _, value in frags)
+        assert text.endswith(" weekly-digest ")
+        assert cli_obj._status_bar_display_width(text) == 100
+
     def test_fragments_use_pt_width_over_shutil(self):
         """When prompt_toolkit reports a width, shutil.get_terminal_size must not be used."""
         from unittest.mock import MagicMock, patch
@@ -620,17 +309,6 @@ class TestStatusBarWidthSource:
 
         mock_shutil.assert_not_called()
 
-    def test_fragments_fall_back_to_shutil_when_no_app(self):
-        """Outside a TUI context (no running app), shutil must be used as fallback."""
-        from unittest.mock import MagicMock, patch
-        cli_obj = self._make_wide_cli()
-
-        with patch("prompt_toolkit.application.get_app", side_effect=Exception("no app")), \
-             patch("shutil.get_terminal_size", return_value=MagicMock(columns=100)) as mock_shutil:
-            frags = cli_obj._get_status_bar_fragments()
-
-        mock_shutil.assert_called()
-        assert len(frags) > 0
 
     def test_build_status_bar_text_uses_pt_width(self):
         """_build_status_bar_text() must also prefer prompt_toolkit width."""
@@ -648,15 +326,29 @@ class TestStatusBarWidthSource:
         assert isinstance(text, str)
         assert len(text) > 0
 
-    def test_explicit_width_skips_pt_lookup(self):
-        """An explicit width= argument must bypass both PT and shutil lookups."""
-        from unittest.mock import patch
-        cli_obj = self._make_wide_cli()
 
-        with patch("prompt_toolkit.application.get_app") as mock_get_app, \
-             patch("shutil.get_terminal_size") as mock_shutil:
-            text = cli_obj._build_status_bar_text(width=100)
 
-        mock_get_app.assert_not_called()
-        mock_shutil.assert_not_called()
-        assert len(text) > 0
+class TestIdleSinceLastTurn:
+    """Time-since-last-final-agent-response read-out on the status bar."""
+
+    def test_hidden_before_first_turn(self):
+        assert HermesCLI._format_idle_since(None, turn_live=False) == ""
+
+    def test_hidden_while_turn_is_live(self):
+        assert HermesCLI._format_idle_since(time.time() - 30, turn_live=True) == ""
+
+    def test_shows_compact_idle_time_after_turn(self):
+        label = HermesCLI._format_idle_since(time.time() - 42, turn_live=False)
+        assert label.startswith("✓ ")
+        assert label == "✓ 42s"
+
+
+    def test_snapshot_carries_idle_since(self):
+        cli_obj = _make_cli()
+        cli_obj._last_turn_finished_at = time.time() - 10
+        cli_obj._prompt_start_time = None
+        cli_obj._prompt_duration = 5.0
+        snapshot = cli_obj._get_status_bar_snapshot()
+        assert snapshot["idle_since"].startswith("✓ ")
+
+

@@ -1,26 +1,10 @@
 import {themes as prismThemes} from 'prism-react-renderer';
-import matter from 'gray-matter';
-import yaml from 'js-yaml';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
-// Docusaurus parses front matter with gray-matter, whose default YAML engine
-// calls the removed `js-yaml` v3 `safeLoad`. The repo pins `js-yaml` to
-// `^4.2.0` (the only line without the GHSA-h67p-54hq-rp68 DoS advisory), and
-// v4 dropped `safeLoad` — so the default parser throws on every doc. Parse
-// with v4's `load()` instead, which is safe-by-default (no code execution),
-// keeping the build working without reintroducing a vulnerable js-yaml.
-const parseFrontMatter: NonNullable<Config['markdown']>['parseFrontMatter'] =
-  async ({fileContent}) => {
-    const {data, content} = matter(fileContent, {
-      engines: {yaml: (input: string) => yaml.load(input) as object},
-    });
-    return {frontMatter: structuredClone(data), content: content.trim()};
-  };
-
 const config: Config = {
-  title: 'muse',
-  tagline: 'One mind, many pathways.',
+  title: 'Hermes Agent',
+  tagline: 'The self-improving AI agent',
   favicon: 'img/favicon.ico',
 
   url: 'https://hermes-agent.nousresearch.com',
@@ -33,7 +17,6 @@ const config: Config = {
 
   markdown: {
     mermaid: true,
-    parseFrontMatter,
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
@@ -41,7 +24,7 @@ const config: Config = {
 
   i18n: {
     defaultLocale: 'en',
-    locales: ['en', 'zh-Hans', 'ko'],
+    locales: ['en', 'zh-Hans'],
     localeConfigs: {
       en: {
         label: 'English',
@@ -50,40 +33,43 @@ const config: Config = {
         label: '简体中文',
         htmlLang: 'zh-Hans',
       },
-      ko: {
-        label: '한국어',
-        htmlLang: 'ko',
-      },
     },
   },
 
   themes: [
     '@docusaurus/theme-mermaid',
+  ],
+
+  plugins: [
     [
-      require.resolve('@easyops-cn/docusaurus-search-local'),
-      /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
-      ({
-        hashed: true,
-        language: ['en', 'zh'],
-        indexBlog: false,
-        docsRouteBasePath: '/',
-        // Disabled: appends ?_highlight=... to URLs (before the #anchor),
-        // which makes copy/pasted doc links ugly. Ctrl+F on the page is fine.
-        highlightSearchTermsOnTargetPage: false,
-        // Exclude the auto-generated per-skill catalog pages from search.
-        // There are hundreds of them and they dominate results for generic
-        // terms, drowning out the real user-guide / reference docs.
-        // The two human-written catalog indexes (reference/skills-catalog,
-        // reference/optional-skills-catalog) remain indexed.
-        //
-        // Note: ignoreFiles matches `route` (baseUrl stripped, no leading
-        // slash). With baseUrl '/docs/', `/docs/user-guide/skills/bundled/x`
-        // becomes 'user-guide/skills/bundled/x'.
-        ignoreFiles: [
-          /^user-guide\/skills\/bundled\//,
-          /^user-guide\/skills\/optional\//,
+      '@docusaurus/plugin-client-redirects',
+      {
+        // Static-host redirects for renamed doc pages (GitHub Pages can't
+        // do server-side redirects). Paths are relative to baseUrl (/docs/).
+        redirects: [
+          {
+            // Renamed in #44470 (Automation Blueprints terminology rebrand)
+            from: '/guides/automation-templates',
+            to: '/guides/automation-blueprints',
+          },
+          {
+            // Moved when the Plugins subcategory was created under
+            // Developer Guide > Extending (docs restructure, July 2026)
+            from: '/guides/build-a-hermes-plugin',
+            to: '/developer-guide/plugins',
+          },
+          {
+            // Users guess these short paths from abbreviated links and hit
+            // raw 404s (consumer-onboarding audit finding #1, Aug 2026).
+            from: '/quickstart',
+            to: '/getting-started/quickstart',
+          },
+          {
+            from: '/installation',
+            to: '/getting-started/installation',
+          },
         ],
-      }),
+      },
     ],
   ],
 
@@ -94,7 +80,7 @@ const config: Config = {
         docs: {
           routeBasePath: '/',  // Docs at the root of /docs/
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/edit/main/website/',
+          editUrl: 'https://github.com/NousResearch/hermes-agent/edit/main/website/',
         },
         blog: false,
         theme: {
@@ -105,7 +91,21 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/muse-banner.png',
+    image: 'img/hermes-agent-banner.png',
+    // Algolia DocSearch (replaces @easyops-cn/docusaurus-search-local).
+    // The local plugin shipped a ~16 MB client-side lunr index that every
+    // visitor downloaded and hydrated before their first result; DocSearch
+    // answers from Algolia's servers with no client index at all. These are
+    // public search-only credentials — safe to commit (the admin key is not
+    // in the repo). Index is populated by the Algolia Crawler configured at
+    // crawler.algolia.com; contextualSearch scopes results to the active
+    // locale via the docusaurus_tag/lang facets the crawler records carry.
+    algolia: {
+      appId: '2JLBVEYZN5',
+      apiKey: '8fda2a49223ce185ac30c2dbf6898a07',
+      indexName: 'hermes docs',
+      contextualSearch: true,
+    },
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
@@ -117,9 +117,9 @@ const config: Config = {
       },
     },
     navbar: {
-      title: 'muse',
+      title: 'Hermes Agent',
       logo: {
-        alt: 'muse',
+        alt: 'Hermes Agent',
         src: 'img/logo.png',
       },
       items: [
@@ -135,6 +135,11 @@ const config: Config = {
           position: 'left',
         },
         {
+          href: 'https://hermes-agent.nousresearch.com/',
+          label: 'Download',
+          position: 'left',
+        },
+        {
           type: 'localeDropdown',
           position: 'right',
         },
@@ -144,7 +149,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse',
+          href: 'https://github.com/NousResearch/hermes-agent',
           label: 'GitHub',
           position: 'right',
         },
@@ -171,14 +176,15 @@ const config: Config = {
           title: 'Community',
           items: [
             { label: 'Discord', href: 'https://discord.gg/NousResearch' },
-            { label: 'GitHub Discussions', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/discussions' },
+            { label: 'GitHub Issues', href: 'https://github.com/NousResearch/hermes-agent/issues' },
             { label: 'Skills Hub', href: 'https://agentskills.io' },
           ],
         },
         {
           title: 'More',
           items: [
-            { label: 'GitHub', href: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse' },
+            { label: 'Desktop Download', href: 'https://hermes-agent.nousresearch.com/' },
+            { label: 'GitHub', href: 'https://github.com/NousResearch/hermes-agent' },
             { label: 'Nous Research', href: 'https://nousresearch.com' },
           ],
         },

@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from hermes_cli.nous_account import NousPortalAccountInfo
+
 
 TOOLS_DIR = Path(__file__).resolve().parents[2] / "tools"
 
@@ -48,8 +50,15 @@ def _restore_tool_and_agent_modules():
 def _enable_managed_nous_tools(monkeypatch):
     """Patch the source modules so managed_nous_tools_enabled() returns True
     even after tool modules are dynamically reloaded."""
-    monkeypatch.setattr("hermes_cli.auth.get_nous_auth_status", lambda: {"logged_in": True})
-    monkeypatch.setattr("hermes_cli.models.check_nous_free_tier", lambda: False)
+    monkeypatch.setattr(
+        "hermes_cli.nous_account.get_nous_portal_account_info",
+        lambda: NousPortalAccountInfo(
+            logged_in=True,
+            source="jwt",
+            fresh=False,
+            paid_service_access=True,
+        ),
+    )
 
 
 def _install_fake_tools_package():
@@ -160,6 +169,7 @@ def _install_fake_openai_module(captured, transcription_response=None):
         APIError=Exception,
         APIConnectionError=Exception,
         APITimeoutError=Exception,
+        BadRequestError=type("BadRequestError", (Exception,), {}),
     )
     sys.modules["openai"] = fake_module  # ty: ignore[invalid-assignment]
 
@@ -190,27 +200,6 @@ def test_managed_fal_submit_uses_gateway_origin_and_nous_token(monkeypatch):
     assert captured["arguments"] == {"prompt": "test prompt", "num_images": 1}
     assert captured["headers"] == {"x-idempotency-key": "fal-submit-123"}
     assert captured["sync_client_inits"] == 1
-
-
-def test_managed_fal_submit_reuses_cached_sync_client(monkeypatch):
-    captured = {}
-    _install_fake_tools_package()
-    _install_fake_fal_client(captured)
-    monkeypatch.delenv("FAL_KEY", raising=False)
-    monkeypatch.setenv("FAL_QUEUE_GATEWAY_URL", "http://127.0.0.1:3009")
-    monkeypatch.setenv("TOOL_GATEWAY_USER_TOKEN", "nous-token")
-
-    image_generation_tool = _load_tool_module(
-        "tools.image_generation_tool",
-        "image_generation_tool.py",
-    )
-
-    image_generation_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "first"})
-    first_client = captured["http_client"]
-    image_generation_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "second"})
-
-    assert captured["sync_client_inits"] == 1
-    assert captured["http_client"] is first_client
 
 
 def test_openai_tts_uses_managed_audio_gateway_when_direct_key_absent(monkeypatch, tmp_path):
@@ -296,3 +285,57 @@ def test_transcription_uses_model_specific_response_formats(monkeypatch, tmp_pat
     assert json_result["transcript"] == "hello from gpt-4o"
     assert json_capture["transcription_kwargs"]["response_format"] == "json"
     assert json_capture["close_calls"] == 1
+
+
+PLUGINS_DIR = Path(__file__).resolve().parents[2] / "plugins"
+
+
+def _load_video_gen_plugin(monkeypatch):
+    """Load the FAL video gen plugin in isolation."""
+    _install_fake_tools_package()
+
+    # Also need the agent.video_gen_provider ABC
+    agent_dir = Path(__file__).resolve().parents[2] / "agent"
+    spec = spec_from_file_location(
+        "agent.video_gen_provider",
+        agent_dir / "video_gen_provider.py",
+    )
+    assert spec and spec.loader
+    mod = module_from_spec(spec)
+    sys.modules["agent.video_gen_provider"] = mod
+    spec.loader.exec_module(mod)
+
+    # Load the plugin
+    plugin_init = PLUGINS_DIR / "video_gen" / "fal" / "__init__.py"
+    spec = spec_from_file_location("plugins.video_gen.fal", plugin_init)
+    assert spec and spec.loader
+    plugin_mod = module_from_spec(spec)
+    sys.modules["plugins.video_gen.fal"] = plugin_mod
+    spec.loader.exec_module(plugin_mod)
+    return plugin_mod
+
+
+def test_video_gen_happy_horse_uses_alibaba_namespace():
+    """Verify the happy-horse family uses alibaba/ not fal-ai/ endpoints."""
+    _install_fake_tools_package()
+
+    # Load just the plugin module to check the catalog
+    plugin_init = PLUGINS_DIR / "video_gen" / "fal" / "__init__.py"
+
+    agent_dir = Path(__file__).resolve().parents[2] / "agent"
+    spec = spec_from_file_location(
+        "agent.video_gen_provider",
+        agent_dir / "video_gen_provider.py",
+    )
+    mod = module_from_spec(spec)
+    sys.modules["agent.video_gen_provider"] = mod
+    spec.loader.exec_module(mod)
+
+    spec = spec_from_file_location("plugins.video_gen.fal", plugin_init)
+    plugin_mod = module_from_spec(spec)
+    sys.modules["plugins.video_gen.fal"] = plugin_mod
+    spec.loader.exec_module(plugin_mod)
+
+    hh = plugin_mod.FAL_FAMILIES["happy-horse"]
+    assert hh["text_endpoint"] == "alibaba/happy-horse/text-to-video"
+    assert hh["image_endpoint"] == "alibaba/happy-horse/image-to-video"

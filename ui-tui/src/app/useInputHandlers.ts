@@ -2,7 +2,9 @@ import { forceRedraw, useInput } from '@hermes/ink'
 import { useStore } from '@nanostores/react'
 import { useEffect, useRef } from 'react'
 
-import { TYPING_IDLE_MS } from '../config/timing.js'
+import { DASHBOARD_TUI_MODE } from '../config/env.js'
+import { DOUBLE_ESC_MS, TYPING_IDLE_MS } from '../config/timing.js'
+import { applyCompletion } from '../domain/slash.js'
 import type {
   ApprovalRespondResponse,
   ConfigSetResponse,
@@ -13,16 +15,39 @@ import type {
 import { isAction, isCopyShortcut, isMac, isVoiceToggleKey } from '../lib/platform.js'
 import { computePrecisionWheelStep, initPrecisionWheel } from '../lib/precisionWheel.js'
 import { computeWheelStep, initWheelAccelForHost } from '../lib/wheelAccel.js'
+import { closeWidget, dispatchWidgetInput } from '../sdk/host.js'
 
 import { getInputSelection } from './inputSelectionStore.js'
-import type { InputHandlerContext, InputHandlerResult } from './interfaces.js'
+import {
+  type GatewayRpc,
+  type InputHandlerActions,
+  type InputHandlerContext,
+  type InputHandlerResult,
+  type OverlayState
+} from './interfaces.js'
 import { $isBlocked, $overlayState, patchOverlayState } from './overlayStore.js'
-import { cycleAgentMode } from './agentModeStore.js'
 import { turnController } from './turnController.js'
 import { patchTurnState } from './turnStore.js'
 import { getUiState } from './uiStore.js'
 
 const isCtrl = (key: { ctrl: boolean }, ch: string, target: string) => key.ctrl && ch.toLowerCase() === target
+const DASHBOARD_NEW_SESSION_MESSAGE = 'starting a fresh dashboard chat...'
+
+export const shouldAllowIdleHotkeyExit = (dashboardTuiMode = DASHBOARD_TUI_MODE) => !dashboardTuiMode
+
+export function handleIdleHotkeyExit(
+  actions: Pick<InputHandlerActions, 'die' | 'sys'>,
+  dashboardTuiMode = DASHBOARD_TUI_MODE,
+  requestDashboardNewSession?: () => void
+) {
+  if (!shouldAllowIdleHotkeyExit(dashboardTuiMode)) {
+    requestDashboardNewSession?.()
+
+    return actions.sys(DASHBOARD_NEW_SESSION_MESSAGE)
+  }
+
+  return actions.die()
+}
 
 /**
  * Approval / clarify / confirm overlays mount their own `useInput` handlers
@@ -80,6 +105,32 @@ export function applyVoiceRecordResponse(
   }
 }
 
+export function dismissSensitivePrompt(
+  overlay: Pick<OverlayState, 'secret' | 'sudo'>,
+  rpc: GatewayRpc,
+  sys: (text: string) => void
+) {
+  if (overlay.sudo) {
+    const requestId = overlay.sudo.requestId
+
+    patchOverlayState({ sudo: null })
+    sys('sudo cancelled')
+
+    return rpc<SudoRespondResponse>('sudo.respond', { password: '', request_id: requestId })
+  }
+
+  if (overlay.secret) {
+    const requestId = overlay.secret.requestId
+
+    patchOverlayState({ secret: null })
+    sys('secret entry cancelled')
+
+    return rpc<SecretRespondResponse>('secret.respond', { request_id: requestId, value: '' })
+  }
+}
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+
 export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
   const { actions, composer, gateway, terminal, voice, wheelStep } = ctx
   const { actions: cActions, refs: cRefs, state: cState } = composer
@@ -132,36 +183,48 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
         .then(r => r && (patchOverlayState({ approval: null }), patchTurnState({ outcome: 'denied' })))
     }
 
-    if (overlay.sudo) {
-      return gateway
-        .rpc<SudoRespondResponse>('sudo.respond', { password: '', request_id: overlay.sudo.requestId })
-        .then(r => r && (patchOverlayState({ sudo: null }), actions.sys('sudo cancelled')))
-    }
-
-    if (overlay.secret) {
-      return gateway
-        .rpc<SecretRespondResponse>('secret.respond', { request_id: overlay.secret.requestId, value: '' })
-        .then(r => r && (patchOverlayState({ secret: null }), actions.sys('secret entry cancelled')))
+    if (overlay.sudo || overlay.secret) {
+      return dismissSensitivePrompt(overlay, gateway.rpc, actions.sys)
     }
 
     if (overlay.modelPicker) {
       return patchOverlayState({ modelPicker: false })
     }
 
-    if (overlay.thinkingPicker) {
-      return patchOverlayState({ thinkingPicker: false })
+    if (overlay.petPicker) {
+      return patchOverlayState({ petPicker: false })
+    }
+
+    if (overlay.billing) {
+      return patchOverlayState({ billing: null })
+    }
+
+    if (overlay.subscription) {
+      return patchOverlayState({ subscription: null })
     }
 
     if (overlay.skillsHub) {
       return patchOverlayState({ skillsHub: false })
     }
 
-    if (overlay.picker) {
-      return patchOverlayState({ picker: false })
+    if (overlay.pluginsHub) {
+      return patchOverlayState({ pluginsHub: false })
+    }
+
+    if (overlay.sessions) {
+      return patchOverlayState({ sessions: false })
     }
 
     if (overlay.agents) {
       return patchOverlayState({ agents: false })
+    }
+
+    if (overlay.journey) {
+      return patchOverlayState({ journey: false })
+    }
+
+    if (overlay.widget) {
+      return closeWidget()
     }
   }
 
@@ -176,7 +239,7 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
 
     cActions.setQueueEdit(index)
     cActions.setHistoryIdx(null)
-    cActions.setInput(cRefs.queueRef.current[index] ?? '')
+    cActions.setInput(cRefs.queueRef.current[index]?.display ?? '')
 
     return true
   }
@@ -257,8 +320,32 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       })
   }
 
+  // Double-Esc discards the draft, matching Claude Code / Gemini CLI. It
+  // sits above the isBlocked early-return on purpose: Ctrl+C interrupts a
+  // running turn rather than clearing, so while the agent streams there is
+  // otherwise no way to throw away a half-typed prompt. The draft is pushed
+  // to history first so Up recalls it.
+  const lastEscRef = useRef(0)
+
   useInput((ch, key) => {
     const live = getUiState()
+
+    if (key.escape) {
+      const now = Date.now()
+      const isDouble = now - lastEscRef.current <= DOUBLE_ESC_MS
+
+      lastEscRef.current = isDouble ? 0 : now
+
+      if (isDouble && (cState.input || cState.inputBuf.length)) {
+        if (cState.input.trim()) {
+          cActions.pushHistory(cState.input)
+        }
+
+        cActions.clearIn()
+
+        return
+      }
+    }
 
     if (isBlocked) {
       // When approval/clarify/confirm overlays are active, their own useInput
@@ -273,23 +360,14 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       // answering felt like the prompt had locked the entire UI.  Explicitly
       // skip the prompt-overlay early-return for scroll keys so they fall
       // through to the wheel / PageUp / Shift+arrow handlers below.
-      const promptOverlay = overlay.approval || overlay.clarify || overlay.confirm
+      const promptOverlay =
+        overlay.approval || overlay.billing || overlay.clarify || overlay.confirm || overlay.subscription
+
       const fallThroughForScroll = promptOverlay && shouldFallThroughForScroll(key)
 
       if (promptOverlay && !fallThroughForScroll) {
         if (isCtrl(key, ch, 'c')) {
           cancelOverlayFromCtrlC()
-        }
-
-        return
-      }
-
-      if (overlay.palette) {
-        // Palette mounts its own useInput (typing, ↑↓, ⏎, esc). Only Ctrl+C is
-        // handled globally; every other key is swallowed here so Esc closes the
-        // palette and never the floats beneath it.
-        if (isCtrl(key, ch, 'c')) {
-          return patchOverlayState({ palette: false })
         }
 
         return
@@ -355,10 +433,18 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
         return
       }
 
-      if (isCtrl(key, ch, 'c')) {
+      // Widget apps (SDK): the active app owns every key while open. This
+      // supersedes the demo-only handleStackedModalInput routing from #68999
+      // — grid-test/dialog are now widget apps, so the topmost-modal-owns-
+      // input contract is enforced structurally by the single active widget.
+      if (overlay.widget && dispatchWidgetInput({ ch, key })) {
+        return
+      }
+
+      if (isCtrl(key, ch, 'c') || (key.escape && (overlay.secret || overlay.sudo))) {
         cancelOverlayFromCtrlC()
-      } else if (key.escape && overlay.picker) {
-        patchOverlayState({ picker: false })
+      } else if (key.escape && overlay.sessions) {
+        patchOverlayState({ sessions: false })
       }
 
       // When a prompt overlay is up and the user pressed a scroll key, fall
@@ -495,6 +581,19 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return cActions.clearIn()
     }
 
+    if (isCtrl(key, ch, 'x')) {
+      return patchOverlayState({ sessions: true })
+    }
+
+    // Ctrl+O opens the model picker without disturbing a typed draft — the
+    // same overlay `/model` opens, but reachable without clearing what you've
+    // typed to run the command. Works mid-stream: picking a model writes the
+    // session model (config.set), which the next turn reads while the in-flight
+    // turn keeps streaming.
+    if (isCtrl(key, ch, 'o')) {
+      return patchOverlayState({ modelPicker: true })
+    }
+
     if (key.ctrl && ch.toLowerCase() === 'c') {
       if (live.busy && live.sid) {
         return turnController.interruptTurn({
@@ -509,11 +608,23 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
         return cActions.clearIn()
       }
 
-      return actions.die()
+      return handleIdleHotkeyExit(actions, DASHBOARD_TUI_MODE, () => {
+        gateway.gw.publishLocalEvent({
+          payload: { reason: 'idle_exit_hotkey' },
+          session_id: live.sid ?? undefined,
+          type: 'dashboard.new_session_requested'
+        })
+      })
     }
 
     if (isAction(key, ch, 'd')) {
-      return actions.die()
+      return handleIdleHotkeyExit(actions, DASHBOARD_TUI_MODE, () => {
+        gateway.gw.publishLocalEvent({
+          payload: { reason: 'idle_exit_hotkey' },
+          session_id: live.sid ?? undefined,
+          type: 'dashboard.new_session_requested'
+        })
+      })
     }
 
     if (isAction(key, ch, 'l')) {
@@ -521,14 +632,6 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       forceRedraw(terminal.stdout ?? process.stdout)
 
       return
-    }
-
-    // Ctrl+P opens the command palette (design.md 1.3A). While the palette is
-    // open the blocked-path guard above swallows every key but Ctrl+C, so this
-    // binding is unreachable then — Ctrl+P inside the palette is fzf-style
-    // selection-up, handled by the palette's own useInput.
-    if (isCtrl(key, ch, 'p')) {
-      return patchOverlayState({ palette: true })
     }
 
     if (isVoiceToggleKey(key, ch, voice.recordKey)) {
@@ -567,25 +670,11 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       })
     }
 
-    // design.md rule 8: Tab on an EMPTY composer cycles the agent mode
-    // (solo → moa → fusion → solo). The completion dropdown (below) and the
-    // Shift+Tab yolo toggle (above) keep priority over this binding.
-    if (key.tab && !key.shift && !cState.completions.length && !cState.input && !cState.inputBuf.length) {
-      cycleAgentMode()
-
-      return
-    }
-
     if (key.tab && cState.completions.length) {
       const row = cState.completions[cState.compIdx]
 
       if (row?.text) {
-        const text =
-          cState.input.startsWith('/') && row.text.startsWith('/') && cState.compReplace > 0
-            ? row.text.slice(1)
-            : row.text
-
-        cActions.setInput(cState.input.slice(0, cState.compReplace) + text)
+        cActions.setInput(applyCompletion(cState.input, row.text, cState.compReplace))
       }
 
       return

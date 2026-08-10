@@ -3,6 +3,7 @@
 import json
 import logging
 
+from hermes_cli.urllib_security import open_credentialed_url
 from providers import register_provider
 from providers.base import ProviderProfile
 
@@ -16,6 +17,7 @@ class AnthropicProfile(ProviderProfile):
         self,
         *,
         api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = 8.0,
     ) -> list[str] | None:
         """Anthropic uses x-api-key header and anthropic-version."""
@@ -30,7 +32,7 @@ class AnthropicProfile(ProviderProfile):
             req.add_header("x-api-key", api_key)
             req.add_header("anthropic-version", "2023-06-01")
             req.add_header("Accept", "application/json")
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with open_credentialed_url(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode())
             return [
                 m["id"]

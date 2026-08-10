@@ -9,8 +9,8 @@ description: "Reference for muse MCP configuration keys, filtering semantics, an
 This page is the compact reference companion to the main MCP docs.
 
 For conceptual guidance, see:
-- [MCP (Model Context Protocol)](/docs/user-guide/features/mcp)
-- [Use MCP with Hermes](/docs/guides/use-mcp-with-hermes)
+- [MCP (Model Context Protocol)](/user-guide/features/mcp)
+- [Use MCP with Hermes](/guides/use-mcp-with-hermes)
 
 ## Root config shape
 
@@ -24,6 +24,11 @@ mcp_servers:
     # OR
     url: "..."          # HTTP servers
     headers: {}
+
+    # Optional HTTP/SSE TLS settings:
+    ssl_verify: true                # bool or path to a CA bundle (PEM)
+    client_cert: "/path/to/cert.pem"  # mTLS client certificate (see below)
+    # client_key: "/path/to/key.pem"  # optional, when key lives in a separate file
 
     enabled: true
     timeout: 120
@@ -45,20 +50,67 @@ mcp_servers:
 | `env` | mapping | stdio | Environment passed to the subprocess |
 | `url` | string | HTTP | Remote MCP endpoint |
 | `headers` | mapping | HTTP | Headers for remote server requests |
+| `ssl_verify` | bool or string | HTTP | TLS verification. `true` (default) uses system CAs, `false` disables verification (insecure), or a string path to a custom CA bundle (PEM) |
+| `client_cert` | string or list | HTTP | mTLS client certificate. String = path to a PEM file containing cert + key. List `[cert, key]` = separate files. List `[cert, key, password]` = encrypted key |
+| `client_key` | string | HTTP | Path to the client private key, when `client_cert` is a string and the key is in a separate file |
 | `enabled` | bool | both | Skip the server entirely when false |
-| `timeout` | number | both | Tool call timeout |
-| `connect_timeout` | number | both | Initial connection timeout |
+| `timeout` | number | both | Tool call timeout in seconds (default: `300`) |
+| `connect_timeout` | number | both | Initial connection timeout in seconds (default: `60`) |
 | `supports_parallel_tool_calls` | bool | both | Allow tools from this server to run concurrently |
+| `skip_preflight` | bool | HTTP | Bypass the fail-fast content-type probe for valid Streamable HTTP endpoints whose HEAD/GET answers a non-MCP content type (default: `false`) |
+| `transport` | string | HTTP | Set to `sse` to use the SSE transport instead of Streamable HTTP |
+| `keepalive_interval` | number | both | Liveness ping cadence in seconds (default: `180`, floored at 5s). Set below the server's session TTL for servers that GC idle sessions quickly |
+| `idle_timeout_seconds` | number | stdio | Optional stdio server recycle after idle time (`0` disables). May also live under a `lifecycle:` mapping |
+| `max_lifetime_seconds` | number | stdio | Optional stdio server recycle after age (`0` disables). May also live under a `lifecycle:` mapping |
 | `tools` | mapping | both | Filtering and utility-tool policy |
 | `auth` | string | HTTP | Authentication method. Set to `oauth` to enable OAuth 2.1 with PKCE |
 | `sampling` | mapping | both | Server-initiated LLM request policy (see MCP guide) |
+| `elicitation` | mapping | both | Server-initiated user-input requests. `enabled` (default `true`) and `timeout` in seconds (default `300`). Form-mode requests route through the approval surface; URL-mode is declined (see MCP guide) |
+| `trust` | string | both | Trust tier: `full` (default) or `untrusted`. On an `untrusted` server, every write-capable tool call (any tool without a `readOnlyHint: true` annotation) requires user approval through the standard approval surface before it runs. `readOnlyHint` is a server-supplied *hint* — a lying server can at most skip approval for tools it claims are read-only, never gain extra access — so mark any server you don't fully control as `untrusted`. Unrecognized values are treated as `untrusted` (fail-closed) |
+
+## Environment variable references
+
+String values anywhere in a server entry (`env`, `headers`, `args`, `url`, …) may reference environment variables with `${VAR}` or the Cursor-style SecretRef form `${env:VAR}` — both resolve to the same variable, so MCP snippets copied from Cursor / Claude configs work unchanged:
+
+```yaml
+mcp_servers:
+  github:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "${env:GITHUB_TOKEN}"   # same as "${GITHUB_TOKEN}"
+```
+
+Values resolve from the active profile's secret scope (falling back to the process environment), so put the secret in `~/.hermes/.env`. An unset variable keeps its literal placeholder.
+
+### Context variables
+
+Beyond env vars, the Cursor-style context variables are interpolated too (names are case-sensitive):
+
+| Variable | Resolves to |
+|---|---|
+| `${userHome}` | The current user's home directory |
+| `${workspaceFolder}` | The session workspace root (the session's terminal cwd when known, else the process cwd) |
+| `${workspaceFolderBasename}` | The basename of `${workspaceFolder}` |
+| `${pathSeparator}` / `${/}` | The OS path separator (`os.sep`) |
+
+```yaml
+mcp_servers:
+  filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
+    env:
+      CACHE_DIR: "${userHome}${/}.cache${/}mcp"
+```
+
+Any other `${...}` reference falls through to the env-var lookup above.
 
 ## `tools` policy keys
 
 | Key | Type | Meaning |
 |---|---|---|
-| `include` | string or list | Whitelist server-native MCP tools |
-| `exclude` | string or list | Blacklist server-native MCP tools |
+| `include` | string or list | Whitelist server-native MCP tools. Entries may be exact names or fnmatch-style globs (`*_radar_*`, `get_zones_*`) |
+| `exclude` | string or list | Blacklist server-native MCP tools. Same exact-name / glob semantics as `include` |
 | `resources` | bool-like | Enable/disable `list_resources` + `read_resource` |
 | `prompts` | bool-like | Enable/disable `list_prompts` + `get_prompt` |
 
@@ -191,6 +243,40 @@ mcp_servers:
       prompts: false
 ```
 
+### TLS client certificate (mTLS)
+
+For HTTP/SSE servers that require a client certificate, set `client_cert` (and optionally `client_key`):
+
+```yaml
+mcp_servers:
+  # Combined cert + key in a single PEM file
+  internal_api:
+    url: "https://mcp.internal.example.com/mcp"
+    client_cert: "~/secrets/mcp-client.pem"
+
+  # Separate cert and key files
+  partner_api:
+    url: "https://mcp.partner.example.com/mcp"
+    client_cert: "~/secrets/client.crt"
+    client_key: "~/secrets/client.key"
+
+  # Encrypted key with a passphrase (3-element list form)
+  bank_api:
+    url: "https://mcp.bank.example.com/mcp"
+    client_cert: ["~/secrets/client.crt", "~/secrets/client.key", "my-passphrase"]
+
+  # Custom CA bundle (private CA / self-signed server)
+  lab_api:
+    url: "https://mcp.lab.local/mcp"
+    ssl_verify: "~/secrets/lab-ca.pem"
+    client_cert: "~/secrets/lab-client.pem"
+```
+
+Notes:
+- Paths support `~` expansion. Missing files fail fast at connect time with a server-scoped error message.
+- `ssl_verify: false` disables server certificate verification entirely. Don't use this with real services.
+- Works on both Streamable HTTP and SSE transports.
+
 ## Reloading config
 
 After changing MCP config, reload servers with:
@@ -204,28 +290,30 @@ After changing MCP config, reload servers with:
 Server-native MCP tools become:
 
 ```text
-mcp_<server>_<tool>
+mcp__<server>__<tool>
 ```
 
 Examples:
-- `mcp_github_create_issue`
-- `mcp_filesystem_read_file`
-- `mcp_my_api_query_data`
+- `mcp__github__create_issue`
+- `mcp__filesystem__read_file`
+- `mcp__my_api__query_data`
 
 Utility tools follow the same prefixing pattern:
-- `mcp_<server>_list_resources`
-- `mcp_<server>_read_resource`
-- `mcp_<server>_list_prompts`
-- `mcp_<server>_get_prompt`
+- `mcp__<server>__list_resources`
+- `mcp__<server>__read_resource`
+- `mcp__<server>__list_prompts`
+- `mcp__<server>__get_prompt`
+
+The double-underscore delimiter (`mcp__…__…`) matches the convention used by Claude Code, Codex, and OpenCode, and disambiguates the server/tool boundary even when either component contains underscores.
 
 ### Name sanitization
 
-Hyphens (`-`) and dots (`.`) in both server names and tool names are replaced with underscores before registration. This ensures tool names are valid identifiers for LLM function-calling APIs.
+Any character that is not a letter, digit, or underscore (hyphens, dots, spaces, etc.) in both server names and tool names is replaced with an underscore before registration. This ensures tool names are valid identifiers for LLM function-calling APIs.
 
 For example, a server named `my-api` exposing a tool called `list-items.v2` becomes:
 
 ```text
-mcp_my_api_list_items_v2
+mcp__my_api__list_items_v2
 ```
 
 Keep this in mind when writing `include` / `exclude` filters — use the **original** MCP tool name (with hyphens/dots), not the sanitized version.

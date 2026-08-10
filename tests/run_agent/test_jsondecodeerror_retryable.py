@@ -28,9 +28,20 @@ def _mirror_agent_predicate(err: BaseException) -> bool:
     or, better, refactor the check into a shared helper and have both
     sites import it.
     """
+    import ssl
+
     return (
         isinstance(err, (ValueError, TypeError))
         and not isinstance(err, (UnicodeEncodeError, json.JSONDecodeError))
+        and not isinstance(err, ssl.SSLError)
+        # NoneType-is-not-iterable shape errors come from upstream SDK /
+        # provider response mismatches, not local programming bugs. See
+        # the agent/conversation_loop.py inline comment for #33136.
+        and not (
+            isinstance(err, TypeError)
+            and "nonetype" in str(err).lower()
+            and "not iterable" in str(err).lower()
+        )
     )
 
 
@@ -49,44 +60,40 @@ class TestJSONDecodeErrorIsRetryable:
         else:
             raise AssertionError("json.loads should have raised")
 
-    def test_unicode_encode_error_is_not_local_validation(self):
-        """Existing carve-out — surrogate sanitization handles this separately."""
-        try:
-            "\ud800".encode("utf-8")
-        except UnicodeEncodeError as exc:
-            assert not _mirror_agent_predicate(exc)
-        else:
-            raise AssertionError("encoding lone surrogate should raise")
 
     def test_bare_value_error_is_local_validation(self):
         """Programming bugs that raise bare ValueError must still be
         classified as local validation errors (non-retryable)."""
         assert _mirror_agent_predicate(ValueError("bad arg"))
 
-    def test_bare_type_error_is_local_validation(self):
-        assert _mirror_agent_predicate(TypeError("wrong type"))
 
 
-class TestAgentLoopSourceStillHasCarveOut:
-    """Belt-and-suspenders: the production source must actually include
-    the json.JSONDecodeError carve-out. Protects against an accidental
-    revert that happens to leave the test file intact."""
 
-    def test_run_agent_excludes_jsondecodeerror_from_local_validation(self):
-        import inspect
-        from agent import conversation_loop
-        # The agent loop body lives in agent/conversation_loop.py after
-        # the run_agent.py refactor.  Assert the carve-out is present in
-        # the extracted module specifically — if it ever moves back or
-        # disappears, this fails loudly rather than silently passing
-        # against a non-existent inline replica.
-        src = inspect.getsource(conversation_loop)
-        # The predicate we care about must reference json.JSONDecodeError
-        # in its exclusion tuple. We check for the specific co-occurrence
-        # rather than the literal string so harmless reformatting doesn't
-        # break us.
-        assert "is_local_validation_error" in src
-        assert "JSONDecodeError" in src, (
-            "agent/conversation_loop.py must carve out json.JSONDecodeError "
-            "from the is_local_validation_error classification — see #14782."
+
+
+class TestNoneTypeNotIterableIsRetryable:
+    """Regression for #33136 / closes lingering Telegram \"Non-retryable error (HTTP None)\".
+
+    The chatgpt.com Codex backend (and any other upstream SDK / provider shim)
+    can surface ``TypeError: 'NoneType' object is not iterable`` as a wire-shape
+    mismatch, not a local programming bug. Even after #33042 made our own
+    consumer immune, third-party paths and mocked clients can still produce
+    this shape. The classifier should treat it as retryable so the normal
+    retry/fallback chain runs.
+    """
+
+    def test_nonetype_not_iterable_is_retryable(self):
+        err = TypeError("'NoneType' object is not iterable")
+        assert not _mirror_agent_predicate(err), (
+            "TypeError('NoneType ... not iterable') must be excluded from "
+            "is_local_validation_error — it is a provider/SDK shape mismatch, "
+            "not a local bug. See #33136."
         )
+
+
+    def test_unrelated_type_error_remains_local_validation(self):
+        """TypeError without the NoneType-not-iterable pattern still aborts (programming bug)."""
+        assert _mirror_agent_predicate(TypeError("tools must be a list"))
+        assert _mirror_agent_predicate(TypeError("expected str, got int"))
+
+

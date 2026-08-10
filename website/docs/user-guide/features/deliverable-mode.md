@@ -22,9 +22,10 @@ file natively.
 Three pieces fit together:
 
 1. **The agent has tools that produce files.** `execute_code` for charts via
-   matplotlib, the `latex-pdf-report` skill for PDFs, the `powerpoint` skill
-   for decks, `image_generate` for images, `text_to_speech` for audio, and so
-   on.
+   matplotlib, the `docx` skill for Word documents, the `xlsx` skill for
+   spreadsheets, the `pdf` and `latex-pdf-report` skills for PDFs, the
+   `powerpoint` skill for decks, `image_generate` for images,
+   `text_to_speech` for audio, and so on.
 
 2. **The gateway scans agent responses for file paths.** Any absolute path
    (`/tmp/...`) or home-relative path (`~/...`) ending in a supported
@@ -40,12 +41,13 @@ Three pieces fit together:
 | Category | Extensions | Delivery |
 |---|---|---|
 | Images | `.png .jpg .jpeg .gif .webp .bmp .tiff .svg` | Inline embed |
-| Video | `.mp4 .mov .avi .mkv .webm` | Inline embed (where supported) |
-| Audio | `.mp3 .wav .ogg .m4a .flac` | Voice / audio attachment |
-| Documents | `.pdf .docx .doc .odt .rtf .txt .md` | File upload |
-| Data | `.xlsx .xls .csv .tsv .json .xml .yaml .yml` | File upload |
-| Presentations | `.pptx .ppt .odp` | File upload |
-| Archives | `.zip .tar .gz .tgz .bz2 .7z` | File upload |
+| Video | `.mp4 .mov .avi .mkv .webm .3gp` | Inline embed (where supported) |
+| Audio | `.mp3 .m2a .wav .ogg .opus .m4a .flac` | Voice / audio attachment |
+| Documents | `.pdf .docx .doc .odt .rtf .txt .md .epub` | File upload |
+| Data | `.xlsx .xls .ods .csv .tsv .json .xml .yaml .yml` | File upload |
+| Geospatial | `.kmz .kml .geojson .gpx` | File upload |
+| Presentations | `.pptx .ppt .odp .key` | File upload |
+| Archives | `.zip .tar .gz .tgz .bz2 .xz .7z .rar .apk .ipa` | File upload |
 | Web | `.html .htm` | File upload |
 
 `.py`, `.log`, and other source-file extensions are intentionally excluded so
@@ -63,8 +65,10 @@ personality entry that biases toward artifact-style replies on
 messaging platforms.
 
 **Project-level:** add the bias to `AGENTS.md` / `CLAUDE.md` /
-`.cursorrules` in a project the agent works from, or to your global
-custom instructions in `~/.hermes/config.yaml` under `agent.custom_instructions`.
+`.cursorrules` in a project the agent works from, to your global
+persona in `~/.hermes/SOUL.md`, or as a named preset under
+`agent.personalities` in `~/.hermes/config.yaml` (switchable per session
+via `/personality`).
 
 The mechanic the agent has to use is simple: render the file to an
 absolute path (e.g. `/tmp/q3-revenue.png`) and mention that path as

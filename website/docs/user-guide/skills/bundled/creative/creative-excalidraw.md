@@ -16,8 +16,8 @@ Hand-drawn Excalidraw JSON diagrams (arch, flow, seq).
 |---|---|
 | Source | Bundled (installed by default) |
 | Path | `skills/creative/excalidraw` |
-| Version | `1.0.0` |
-| Author | muse |
+| Version | `1.0.1` |
+| Author | Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Excalidraw`, `Diagrams`, `Flowcharts`, `Architecture`, `Visualization`, `JSON` |
@@ -25,7 +25,7 @@ Hand-drawn Excalidraw JSON diagrams (arch, flow, seq).
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that muse loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Excalidraw Diagram Skill
@@ -66,7 +66,7 @@ Save to any path, e.g. `~/diagrams/my_diagram.excalidraw`.
 Run the upload script (located in this skill's `scripts/` directory) via terminal:
 
 ```bash
-python skills/diagramming/excalidraw/scripts/upload.py ~/diagrams/my_diagram.excalidraw
+python skills/creative/excalidraw/scripts/upload.py ~/diagrams/my_diagram.excalidraw
 ```
 
 This uploads to excalidraw.com (no account needed) and prints a shareable URL. Requires the `cryptography` pip package (`pip install cryptography`).

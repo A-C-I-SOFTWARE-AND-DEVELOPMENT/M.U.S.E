@@ -1,7 +1,10 @@
 # Auto-generated files — collapse diffs and exclude from language stats
 web/package-lock.json linguist-generated=true
 
-# Lockfiles must keep LF line endings — CRLF corruption on Windows
-# breaks uv lock --check (hash mismatch) and npm integrity checks.
-uv.lock text eol=lf
-**/package-lock.json text eol=lf
+# Enforce LF for scripts that run inside Linux containers.
+# Without this, Windows checkout converts to CRLF and breaks `exec` in the
+# container entrypoint with "no such file or directory".
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf
+docker/entrypoint.sh text eol=lf

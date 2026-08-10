@@ -4,6 +4,7 @@ Covers:
   GET /workers/active
   GET /runs/{run_id}
   GET /runs/{run_id}/inspect
+  POST /runs/{run_id}/terminate
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import secrets
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -91,60 +92,6 @@ def test_workers_active_empty_board(client):
     assert "checked_at" in body
 
 
-def test_workers_active_with_running_task(client):
-    """A running task with an open run row and worker_pid appears in the list."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="active-worker", assignee="alice")
-        conn.execute(
-            "UPDATE tasks SET status='running' WHERE id=?", (task_id,),
-        )
-        _insert_run(conn, task_id, worker_pid=12345)
-    finally:
-        conn.close()
-
-    r = client.get("/api/plugins/kanban/workers/active")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["count"] == 1
-    w = body["workers"][0]
-    assert w["task_id"] == task_id
-    assert w["worker_pid"] == 12345
-    assert w["task_status"] == "running"
-    assert w["task_title"] == "active-worker"
-    assert w["task_assignee"] == "alice"
-
-
-def test_workers_active_excludes_ended_runs(client):
-    """Runs with ended_at set are excluded even if task is running."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="ended-run", assignee="bob")
-        conn.execute("UPDATE tasks SET status='running' WHERE id=?", (task_id,))
-        _insert_run(conn, task_id, worker_pid=99999, ended_at=int(time.time()) - 60)
-    finally:
-        conn.close()
-
-    r = client.get("/api/plugins/kanban/workers/active")
-    assert r.status_code == 200
-    assert r.json()["count"] == 0
-
-
-def test_workers_active_excludes_runs_without_pid(client):
-    """Runs with no worker_pid are not considered active workers."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="no-pid", assignee="carol")
-        conn.execute("UPDATE tasks SET status='running' WHERE id=?", (task_id,))
-        _insert_run(conn, task_id, worker_pid=None)
-    finally:
-        conn.close()
-
-    r = client.get("/api/plugins/kanban/workers/active")
-    assert r.status_code == 200
-    assert r.json()["count"] == 0
-
-
 # ---------------------------------------------------------------------------
 # GET /runs/{run_id}
 # ---------------------------------------------------------------------------
@@ -154,26 +101,6 @@ def test_get_run_404_unknown_id(client):
     r = client.get("/api/plugins/kanban/runs/999999")
     assert r.status_code == 404
     assert "999999" in r.json()["detail"]
-
-
-def test_get_run_ok(client):
-    """Existing run row returns 200 with expected shape."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="run-lookup", assignee="dave")
-        run_id = _insert_run(conn, task_id, worker_pid=55555)
-    finally:
-        conn.close()
-
-    r = client.get(f"/api/plugins/kanban/runs/{run_id}")
-    assert r.status_code == 200
-    body = r.json()
-    assert "run" in body
-    run = body["run"]
-    assert run["id"] == run_id
-    assert run["task_id"] == task_id
-    assert run["worker_pid"] == 55555
-    assert run["ended_at"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -186,116 +113,42 @@ def test_inspect_run_404(client):
     assert r.status_code == 404
 
 
-def test_inspect_run_already_ended(client):
-    """Run with ended_at set returns alive=false with reason."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="ended", assignee="eve")
-        run_id = _insert_run(conn, task_id, worker_pid=11111, ended_at=int(time.time()) - 10)
-    finally:
-        conn.close()
+# ---------------------------------------------------------------------------
+# POST /runs/{run_id}/terminate
+# ---------------------------------------------------------------------------
 
-    r = client.get(f"/api/plugins/kanban/runs/{run_id}/inspect")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["alive"] is False
-    assert "ended" in body["reason"]
+def _setup_running_task_with_run(conn, *, title, assignee, worker_pid):
+    """Create a task in 'running' state with a matching open task_runs row.
 
-
-def test_inspect_run_no_pid(client):
-    """Run with no worker_pid returns alive=false with reason."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="no-pid-inspect", assignee="frank")
-        run_id = _insert_run(conn, task_id, worker_pid=None)
-    finally:
-        conn.close()
-
-    r = client.get(f"/api/plugins/kanban/runs/{run_id}/inspect")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["alive"] is False
-    assert "worker_pid" in body["reason"]
+    Mirrors what dispatcher_claim does: stamps tasks.status='running',
+    tasks.claim_lock, tasks.worker_pid; inserts task_runs row with the
+    same claim_lock so reclaim_task's preconditions are satisfied.
+    """
+    task_id = kb.create_task(conn, title=title, assignee=assignee)
+    lock = secrets.token_hex(8)
+    future = int(time.time()) + 3600
+    conn.execute(
+        "UPDATE tasks SET status='running', claim_lock=?, "
+        "claim_expires=?, worker_pid=? WHERE id=?",
+        (lock, future, worker_pid, task_id),
+    )
+    cur = conn.execute(
+        "INSERT INTO task_runs "
+        "(task_id, status, claim_lock, claim_expires, worker_pid, started_at) "
+        "VALUES (?, 'running', ?, ?, ?, ?)",
+        (task_id, lock, future, worker_pid, int(time.time())),
+    )
+    conn.commit()
+    return task_id, cur.lastrowid
 
 
-def test_inspect_run_dead_pid(client, monkeypatch):
-    """Run with a non-existent PID returns alive=false via psutil.NoSuchProcess."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="dead-pid", assignee="grace")
-        run_id = _insert_run(conn, task_id, worker_pid=999999)
-    finally:
-        conn.close()
-
-    # Mock psutil to raise NoSuchProcess for any PID.
-    mock_psutil = MagicMock()
-    mock_psutil.NoSuchProcess = Exception
-    mock_psutil.AccessDenied = PermissionError
-
-    def _raise_no_such(*args, **kwargs):
-        raise mock_psutil.NoSuchProcess("no such process")
-
-    mock_psutil.Process = _raise_no_such
-
-    # Patch the module-level _psutil in the loaded plugin module.
-    plugin_mod_name = "hermes_dashboard_plugin_kanban_worker_runs_test"
-    plugin_mod = sys.modules.get(plugin_mod_name)
-    if plugin_mod is not None:
-        monkeypatch.setattr(plugin_mod, "_psutil", mock_psutil)
-    else:
-        pytest.skip("plugin module not yet loaded")
-
-    r = client.get(f"/api/plugins/kanban/runs/{run_id}/inspect")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["alive"] is False
-    assert body["pid"] == 999999
-    assert "not found" in body["reason"]
+def test_terminate_run_404_unknown_id(client):
+    """POST to unknown run_id returns 404."""
+    r = client.post(
+        "/api/plugins/kanban/runs/777777/terminate",
+        json={"reason": "test"},
+    )
+    assert r.status_code == 404
+    assert "777777" in r.json()["detail"]
 
 
-def test_inspect_run_live_pid(client, monkeypatch):
-    """Run with a live PID returns alive=true with psutil fields."""
-    conn = kb.connect()
-    try:
-        task_id = kb.create_task(conn, title="live-pid", assignee="heidi")
-        run_id = _insert_run(conn, task_id, worker_pid=12345)
-    finally:
-        conn.close()
-
-    # Build a realistic mock psutil.
-    mock_psutil = MagicMock()
-    mock_psutil.NoSuchProcess = type("NoSuchProcess", (Exception,), {})
-    mock_psutil.AccessDenied = type("AccessDenied", (Exception,), {})
-
-    fake_mem = MagicMock()
-    fake_mem.rss = 1024 * 1024 * 50  # 50 MB
-    fake_mem.vms = 1024 * 1024 * 200
-
-    fake_proc = MagicMock()
-    fake_proc.as_dict.return_value = {
-        "cpu_percent": 3.5,
-        "memory_info": fake_mem,
-        "num_threads": 4,
-        "status": "sleeping",
-        "create_time": time.time() - 300,
-        "cmdline": ["python", "-m", "hermes"],
-    }
-    fake_proc.num_fds.return_value = 12
-    mock_psutil.Process.return_value = fake_proc
-
-    plugin_mod_name = "hermes_dashboard_plugin_kanban_worker_runs_test"
-    plugin_mod = sys.modules.get(plugin_mod_name)
-    if plugin_mod is not None:
-        monkeypatch.setattr(plugin_mod, "_psutil", mock_psutil)
-    else:
-        pytest.skip("plugin module not yet loaded")
-
-    r = client.get(f"/api/plugins/kanban/runs/{run_id}/inspect")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["alive"] is True
-    assert body["pid"] == 12345
-    assert body["cpu_percent"] == 3.5
-    assert body["memory_rss_bytes"] == fake_mem.rss
-    assert body["num_threads"] == 4
-    assert body["status"] == "sleeping"

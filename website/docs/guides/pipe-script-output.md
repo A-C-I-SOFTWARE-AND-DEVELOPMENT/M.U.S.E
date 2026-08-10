@@ -1,13 +1,13 @@
 ---
 sidebar_position: 12
 title: "Pipe Script Output to Messaging Platforms"
-description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, Signal, and other platforms using `muse send`."
+description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, Signal, and other platforms using `hermes send`."
 ---
 
 # Pipe Script Output to Messaging Platforms
 
-`muse send` is a small, scriptable CLI that pushes a message to any
-messaging platform muse is already configured for. Think of it as a
+`hermes send` is a small, scriptable CLI that pushes a message to any
+messaging platform Hermes is already configured for. Think of it as a
 cross-platform `curl` for notifications — you don't need a running
 gateway, you don't need an LLM, and you don't need to re-paste bot tokens
 into each of your scripts.
@@ -18,7 +18,7 @@ Use it for:
 - CI/CD notifications (deploy done, test failure)
 - Cron scripts that need to ping you with results
 - Quick one-shot messages from a terminal
-- Piping any tool's output anywhere (`make | muse send --to slack:#builds`)
+- Piping any tool's output anywhere (`make | hermes send --to slack:#builds`)
 
 The command reuses the same credentials and platform adapters that `hermes
 gateway` already uses, so there's no second configuration surface to
@@ -30,25 +30,25 @@ maintain.
 
 ```bash
 # Plain text to the home channel for a platform
-muse send --to telegram "deploy finished"
+hermes send --to telegram "deploy finished"
 
 # Pipe in stdout from anything
-echo "RAM 92%" | muse send --to telegram:-1001234567890
+echo "RAM 92%" | hermes send --to telegram:-1001234567890
 
 # Send a file
-muse send --to discord:#ops --file /tmp/report.md
+hermes send --to discord:#ops --file /tmp/report.md
 
 # Attach a subject/header line
-muse send --to slack:#eng --subject "[CI] build.log" --file build.log
+hermes send --to slack:#eng --subject "[CI] build.log" --file build.log
 
 # Thread target (Telegram topic, Discord thread)
-muse send --to telegram:-1001234567890:17585 "threaded reply"
+hermes send --to telegram:-1001234567890:17585 "threaded reply"
 
 # List every configured target
-muse send --list
+hermes send --list
 
 # Filter by platform
-muse send --list telegram
+hermes send --list telegram
 ```
 
 ---
@@ -76,7 +76,7 @@ muse send --list telegram
 | `platform:#channel` | `discord:#ops` | Human-friendly channel name (resolved against the channel directory) |
 | `platform:+E164` | `signal:+15551234567` | Phone-addressed platforms: Signal, SMS, WhatsApp |
 
-Any platform muse ships adapters for works as a target:
+Any platform Hermes ships adapters for works as a target:
 `telegram`, `discord`, `slack`, `signal`, `sms`, `whatsapp`, `matrix`,
 `mattermost`, `feishu`, `dingtalk`, `wecom`, `weixin`, `email`, and
 others.
@@ -96,13 +96,13 @@ branch on them the same way they would on `curl` or `grep`.
 
 ## Message Body Resolution
 
-`muse send` resolves the message body in this order:
+`hermes send` resolves the message body in this order:
 
-1. **Positional argument** — `muse send --to telegram "hi"`
-2. **`--file PATH`** — `muse send --to telegram --file msg.txt`
-3. **Piped stdin** — `echo hi | muse send --to telegram`
+1. **Positional argument** — `hermes send --to telegram "hi"`
+2. **`--file PATH`** — `hermes send --to telegram --file msg.txt`
+3. **Piped stdin** — `echo hi | hermes send --to telegram`
 
-When stdin is a TTY (no pipe), muse does **not** wait for input — you'll
+When stdin is a TTY (no pipe), Hermes does **not** wait for input — you'll
 get a clear usage error instead. This keeps scripts from hanging if they
 accidentally omit the body.
 
@@ -119,19 +119,19 @@ with a single portable line:
 #!/usr/bin/env bash
 ram_pct=$(free | awk '/^Mem:/ {printf "%d", $3 * 100 / $2}')
 if [ "$ram_pct" -ge 85 ]; then
-  muse send --to telegram --subject "⚠ MEMORY WARNING" \
+  hermes send --to telegram --subject "⚠ MEMORY WARNING" \
     "RAM ${ram_pct}% on $(hostname)"
 fi
 ```
 
-Because `muse send` reuses your muse config, the same script works on
-any host where muse is installed — no need to export bot tokens into
+Because `hermes send` reuses your Hermes config, the same script works on
+any host where Hermes is installed — no need to export bot tokens into
 each machine's environment manually.
 
 :::tip Don't alert the gateway about itself
 For watchdogs that might fire when the gateway itself is struggling (OOM
 alerts, disk-full alerts), keep using a minimal `curl` call instead of
-`muse send`. If the Python interpreter can't load because the box is
+`hermes send`. If the Python interpreter can't load because the box is
 thrashing, you still want that alert to go out.
 :::
 
@@ -140,9 +140,9 @@ thrashing, you still want that alert to go out.
 ```bash
 # In .github/workflows/deploy.yml or any CI script
 if ./scripts/deploy.sh; then
-  muse send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
+  hermes send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
 else
-  tail -n 100 deploy.log | muse send \
+  tail -n 100 deploy.log | hermes send \
     --to slack:#deploys --subject "❌ deploy failed"
   exit 1
 fi
@@ -153,7 +153,7 @@ fi
 ```bash
 # Crontab entry
 0 9 * * * /usr/local/bin/generate-metrics.sh \
-  | /home/me/.hermes/bin/muse send \
+  | /home/me/.hermes/bin/hermes send \
       --to telegram --subject "Daily metrics $(date +%Y-%m-%d)"
 ```
 
@@ -161,30 +161,30 @@ fi
 
 ```bash
 ./train.py --epochs 200 && \
-  muse send --to telegram "training done" || \
-  muse send --to telegram "training failed (exit $?)"
+  hermes send --to telegram "training done" || \
+  hermes send --to telegram "training failed (exit $?)"
 ```
 
 ### Scripting with `--json` and `--quiet`
 
 ```bash
 # Hard-fail a script if delivery fails; don't clutter logs on success
-muse send --to telegram --quiet "keepalive" || {
+hermes send --to telegram --quiet "keepalive" || {
   echo "Telegram delivery failed" >&2
   exit 1
 }
 
 # Capture the message ID for later editing / threading
-msg_id=$(muse send --to discord:#ops --json "build started" \
+msg_id=$(hermes send --to discord:#ops --json "build started" \
   | jq -r .message_id)
 ```
 
 ---
 
-## Does `muse send` Need the Gateway Running?
+## Does `hermes send` Need the Gateway Running?
 
 **Usually no.** For any bot-token platform — Telegram, Discord, Slack,
-Signal, SMS, WhatsApp Cloud API, and most others — `muse send` calls
+Signal, SMS, WhatsApp Cloud API, and most others — `hermes send` calls
 the platform's REST endpoint directly using credentials from
 `~/.hermes/.env` and `~/.hermes/config.yaml`. It's a standalone subprocess
 that exits as soon as the message is delivered.
@@ -192,7 +192,7 @@ that exits as soon as the message is delivered.
 A live gateway is only required for **plugin platforms** that rely on a
 persistent adapter connection (for example, a custom plugin that keeps
 a long-lived WebSocket open). In that case you'll get a clear error
-pointing at the gateway; start it with `muse gateway start` and retry.
+pointing at the gateway; start it with `hermes gateway start` and retry.
 
 ---
 
@@ -202,18 +202,18 @@ Before sending to a specific channel, you can inspect what's available:
 
 ```bash
 # Every target across every configured platform
-muse send --list
+hermes send --list
 
 # Just Telegram targets
-muse send --list telegram
+hermes send --list telegram
 
 # Machine-readable
-muse send --list --json
+hermes send --list --json
 ```
 
 The listing is built from `~/.hermes/channel_directory.json`, which the
 gateway refreshes every few minutes while it's running. If you see
-"no channels discovered yet", start the gateway once (`muse gateway
+"no channels discovered yet", start the gateway once (`hermes gateway
 start`) so it can populate the cache.
 
 Human-friendly names (`discord:#ops`, `slack:#engineering`) are resolved
@@ -224,26 +224,26 @@ IDs.
 
 ## Comparison with Other Approaches
 
-| Approach | Multi-platform | Reuses muse creds | Needs gateway | Best for |
+| Approach | Multi-platform | Reuses Hermes creds | Needs gateway | Best for |
 |----------|----------------|---------------------|---------------|----------|
-| `muse send` | ✅ | ✅ | No (bot-token) | Everything below |
+| `hermes send` | ✅ | ✅ | No (bot-token) | Everything below |
 | Raw `curl` to each platform | Each scripted separately | Manual | No | Critical watchdogs |
 | `cron` job with `--deliver` | ✅ | ✅ | No | Scheduled agent tasks |
-| `send_message` agent tool | ✅ | ✅ | No | Inside an agent loop |
 
-`muse send` is intentionally the simplest possible surface. If you need
-an agent to decide what to say, use the `send_message` tool from within a
-chat or cron job. If you need a scheduled run with LLM-generated content,
+`hermes send` is intentionally the simplest possible surface. If you need
+an agent to decide what to say, schedule a cron job — the agent's final
+response is auto-delivered to the configured `deliver:` target (the agent
+no longer fires messages itself). If you need a scheduled run with LLM-generated content,
 use `cronjob(action='create', prompt=...)` with `deliver='telegram:...'`.
-If you just need to pipe a raw string, reach for `muse send`.
+If you just need to pipe a raw string, reach for `hermes send`.
 
 ---
 
 ## Related
 
-- [Automate Anything with Cron](/docs/guides/automate-with-cron) —
+- [Automate Anything with Cron](/guides/automate-with-cron) —
   scheduled jobs whose output auto-delivers to any platform.
-- [Gateway Internals](/docs/developer-guide/gateway-internals) —
-  the delivery router that `muse send` shares with cron delivery.
-- [Messaging Platform Setup](/docs/user-guide/messaging/) —
+- [Gateway Internals](/developer-guide/gateway-internals) —
+  the delivery router that `hermes send` shares with cron delivery.
+- [Messaging Platform Setup](/user-guide/messaging/) —
   one-time configuration for each platform.
