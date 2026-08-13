@@ -272,3 +272,12 @@ def validate_root(root: Path | str) -> dict[str, Any]:
         report["passed"] = False
     report["manifest_hashes_passed"] = not hash_errors
     return report
+
+
+def refresh_manifest(root: Path | str) -> dict[str, Any]:
+    """Re-hash a built tree after measured run artifacts are appended."""
+    root = Path(root).resolve()
+    current = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    manifest = _artifact_manifest(root, current["dataset_hash"], current["source_hash"])
+    _write_json(root / "manifest.json", manifest)
+    return manifest

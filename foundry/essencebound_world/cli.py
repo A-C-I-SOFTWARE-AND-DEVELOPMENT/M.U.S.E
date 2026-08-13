@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 from .pipeline import build_data, validate_root
+from .runtime_eval import evaluate_rung
+from .report import build_final_report
 from .training import run_training, training_preflight
 
 
@@ -29,6 +31,17 @@ def _parser() -> argparse.ArgumentParser:
     train.add_argument("--batch-size", type=int, default=8)
     train.add_argument("--lr", type=float, default=1e-4)
     train.add_argument("--lora-rank", type=int, default=16)
+    evaluate = sub.add_parser("evaluate-rung", help="compare stock and tuned models, then apply gates")
+    evaluate.add_argument("--root", type=Path, required=True)
+    evaluate.add_argument("--repo-root", type=Path, default=Path.cwd())
+    evaluate.add_argument("--rung", type=int, choices=(250, 500, 1000, 2000, 4000), required=True)
+    evaluate.add_argument("--run-dir", type=Path)
+    report = sub.add_parser(
+        "final-report", aliases=["report"], help="write measured report and conditionally register"
+    )
+    report.add_argument("--root", type=Path, required=True)
+    report.add_argument("--rung", type=int, choices=(250, 500, 1000, 2000, 4000))
+    report.add_argument("--registry", type=Path)
     return parser
 
 
@@ -52,17 +65,27 @@ def main(argv: list[str] | None = None) -> int:
         report = training_preflight(args.root, args.repo_root)
         print(json.dumps(report, indent=2))
         return 0 if report["passed"] else 2
-    result = run_training(
-        root=args.root,
-        repo_root=args.repo_root,
-        rung=args.rung,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        lr=args.lr,
-        lora_rank=args.lora_rank,
+    if args.command in {"final-report", "report"}:
+        report = build_final_report(args.root, rung=args.rung, registry_path=args.registry)
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.command == "train-rung":
+        result = run_training(
+            root=args.root,
+            repo_root=args.repo_root,
+            rung=args.rung,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            lr=args.lr,
+            lora_rank=args.lora_rank,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result["status"] == "TRAINED_UNEVALUATED" else 2
+    result = evaluate_rung(
+        root=args.root, repo_root=args.repo_root, rung=args.rung, run_dir=args.run_dir
     )
     print(json.dumps(result, indent=2))
-    return 0 if result["status"] == "TRAINED_UNEVALUATED" else 2
+    return 0 if result["all_pass"] else 2
 
 
 if __name__ == "__main__":

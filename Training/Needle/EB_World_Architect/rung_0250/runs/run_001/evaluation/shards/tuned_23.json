@@ -1,0 +1,372 @@
+{
+  "duration_s": 914.079,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000343",
+      "latency_s": 48.235,
+      "query": "Unseen holdout situation: At Arena Island, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000344",
+      "latency_s": 51.515,
+      "query": "Unseen holdout situation: At Glyph Ruins, the hero location is indistinguishable from repeated generic towers at distance. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0253,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000345",
+      "latency_s": 16.313,
+      "query": "Unseen holdout situation: At Skyway Station, the generator proposes 1.9 million instances and calls the result performant without measurement. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000346",
+      "latency_s": 46.453,
+      "query": "Unseen holdout situation: At Chronos capital, one giant instance component spans kilometers and gives culling unusable bounds. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000347",
+      "latency_s": 43.938,
+      "query": "Unseen holdout situation: At eastern village, saved cull distances are treated as proof even though runtime bounds and visibility were never measured. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000348",
+      "latency_s": 52.281,
+      "query": "Unseen holdout situation: At western wilderness, a destructible pillar removes the only exit bridge when broken. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000349",
+      "latency_s": 36.734,
+      "query": "Unseen holdout situation: At northern market, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000350",
+      "latency_s": 33.031,
+      "query": "Unseen holdout situation: At southern refinery, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0226,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000351",
+      "latency_s": 14.813,
+      "query": "Unseen holdout situation: At Archive service district, the tower clips through the deck and cliff without a designed joint or load path. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000352",
+      "latency_s": 31.969,
+      "query": "Unseen holdout situation: At Wayfinder terrace, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000353",
+      "latency_s": 29.781,
+      "query": "Unseen holdout situation: At river ravine, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000354",
+      "latency_s": 37.922,
+      "query": "Unseen holdout situation: At outer gate, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000355",
+      "latency_s": 29.406,
+      "query": "Unseen holdout situation: At temple quarter, a missing manifest entry is ignored and the asset is claimed to exist. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000356",
+      "latency_s": 40.578,
+      "query": "Unseen holdout situation: At alchemist lane, process liveness or exit code zero is treated as proof that every world gate passed. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0274,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000357",
+      "latency_s": 14.563,
+      "query": "Unseen holdout situation: At blacksmith yard, a roofline endpoint is approved because the bridge visually reaches the district. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000358",
+      "latency_s": 37.234,
+      "query": "Unseen holdout situation: At library court, greybox geometry with fog is called visually final after automation passes. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000359",
+      "latency_s": 30.922,
+      "query": "Unseen holdout situation: At floating quarry, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0365,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000360",
+      "latency_s": 14.156,
+      "query": "Unseen holdout situation: At coastal shelf, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000361",
+      "latency_s": 29.453,
+      "query": "Unseen holdout situation: Write tavern dialogue about temple district at eastern village; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000362",
+      "latency_s": 32.11,
+      "query": "Unseen holdout situation: Write tavern dialogue about Axiom hub composition at western wilderness; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000363",
+      "latency_s": 30.437,
+      "query": "Unseen holdout situation: Write tavern dialogue about Archive approach at northern market; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000364",
+      "latency_s": 30.578,
+      "query": "Unseen holdout situation: Write tavern dialogue about monumental bridge at southern refinery; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0076,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000365",
+      "latency_s": 18.813,
+      "query": "Unseen holdout situation: Write tavern dialogue about Skyway station at Archive service district; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000366",
+      "latency_s": 31.656,
+      "query": "Unseen holdout situation: Write tavern dialogue about public entrance at Wayfinder terrace; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000367",
+      "latency_s": 30.141,
+      "query": "Unseen holdout situation: Write tavern dialogue about Wayfinder hall at river ravine; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000368",
+      "latency_s": 31.718,
+      "query": "Unseen holdout situation: Write tavern dialogue about maintenance annex at outer gate; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000369",
+      "latency_s": 30.688,
+      "query": "Unseen holdout situation: Write tavern dialogue about floating island underside at temple quarter; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0019,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000370",
+      "latency_s": 20.344,
+      "query": "Unseen holdout situation: Write tavern dialogue about regional island terrain at alchemist lane; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000371",
+      "latency_s": 18.281,
+      "query": "Unseen holdout situation: Write tavern dialogue about wilderness corridor at blacksmith yard; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_23.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+  "weights_sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+}

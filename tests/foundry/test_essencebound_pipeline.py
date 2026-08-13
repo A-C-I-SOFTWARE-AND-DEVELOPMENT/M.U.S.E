@@ -4,6 +4,14 @@ import json
 from pathlib import Path
 
 from foundry.essencebound_world.pipeline import build_data, validate_root
+from foundry.essencebound_world.runtime_eval import (
+    build_eval_command,
+    record_training_evaluation,
+    shard_rows,
+    summarize_rung_evaluation,
+)
+from foundry.essencebound_world import inference_worker
+from foundry.essencebound_world.report import diagnose_gate_failure, registry_decision
 from foundry.essencebound_world.training import (
     build_export_command,
     build_train_command,
@@ -124,3 +132,136 @@ def test_gpu_probe_accepts_current_jax_cuda_device_rendering():
     assert has_cuda_device(["cuda:0"])
     assert has_cuda_device(["CudaDevice(id=0)"])
     assert not has_cuda_device(["CpuDevice(id=0)"])
+
+
+def test_eval_command_isolates_one_model_per_worker(tmp_path):
+    command = build_eval_command(
+        repo_root=tmp_path / "repo",
+        weights=tmp_path / "model.cact",
+        rows=tmp_path / "rows.jsonl",
+        schemas=tmp_path / "schemas.json",
+        output=tmp_path / "predictions.json",
+    )
+
+    assert command[:3] == [
+        str(Path(__import__("sys").executable)),
+        "-m",
+        "foundry.essencebound_world.inference_worker",
+    ]
+    assert command.count("--weights") == 1
+    assert str(tmp_path / "model.cact") in command
+    assert "--rows" in command and str(tmp_path / "rows.jsonl") in command
+    assert "--schemas" in command and str(tmp_path / "schemas.json") in command
+    assert "--output" in command and str(tmp_path / "predictions.json") in command
+
+
+def test_rung_summary_requires_every_production_pool_and_blocks_false_completion():
+    verification = {
+        "id": "verify-1",
+        "answers": [{
+            "name": "request_world_verification",
+            "arguments": {"evidence_kind": "D0", "claim_kind": "M0", "category": "C00", "next_gate": "G0"},
+        }],
+    }
+    pools = {
+        name: {"golds": [verification], "stock": [{"function_calls": []}], "tuned": [verification]}
+        for name in ("validation", "test", "qa", "holdout")
+    }
+
+    passing = summarize_rung_evaluation(pools)
+    assert passing["all_pass"]
+    assert passing["production_pools"] == ["test", "qa", "holdout"]
+
+    unsafe = {
+        "function_calls": [{
+            "name": "assess_world_state",
+            "arguments": {
+                "verdict": "PASS", "category": "C00", "issue_code": "I00",
+                "action_code": "A00", "evidence_state": "E0",
+            },
+        }]
+    }
+    pools["holdout"]["tuned"] = [unsafe]
+    blocked = summarize_rung_evaluation(pools)
+    assert not blocked["all_pass"]
+    assert blocked["pools"]["holdout"]["tuned_metrics"]["critical_failure_count"] == 1
+
+
+def test_inference_worker_retains_weight_bytes_required_by_native_engine(tmp_path, monkeypatch):
+    weights = tmp_path / "model.cact"
+    weights.write_bytes(b"model-bytes")
+    calls = []
+
+    class FakeLib:
+        def needle_load(self, blob, size):
+            calls.append((blob, size))
+            return 0
+
+    class FakeNeedle:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    monkeypatch.setattr(inference_worker, "_needle_lib", lambda: FakeLib())
+    monkeypatch.setattr(inference_worker, "Needle", FakeNeedle)
+
+    agent = inference_worker._load_agent(weights, [], "system")
+
+    assert agent._weights_blob == b"model-bytes"
+    assert calls == [(b"model-bytes", len(b"model-bytes"))]
+    assert agent.kwargs == {"tools": [], "system": "system"}
+
+
+def test_eval_shards_cover_every_row_once_and_stay_balanced():
+    rows = [{"id": str(index)} for index in range(17)]
+
+    shards = shard_rows(rows, 6)
+
+    assert [row["id"] for shard in shards for row in shard] == [str(index) for index in range(17)]
+    assert max(map(len, shards)) - min(map(len, shards)) <= 1
+
+
+def test_registry_decision_is_fail_closed_and_does_not_create_registry(tmp_path):
+    registry = tmp_path / "foundry_registry.json"
+
+    result = registry_decision(
+        gate={"all_pass": False, "status": "FAILED"},
+        registry_path=registry,
+        lineage={},
+    )
+
+    assert result == {"status": "UNREGISTERED_GATE_FAILED", "content_id": None, "path": None}
+    assert not registry.exists()
+
+
+def test_gate_failure_diagnosis_names_measured_failed_metrics():
+    gate = {
+        "all_pass": False,
+        "pools": {
+            "test": {
+                "stock_metrics": {"exact_accuracy": 0.1},
+                "tuned_metrics": {"exact_accuracy": 0.2, "critical_failures": []},
+                "gate": {
+                    "exact_accuracy": {"value": 0.2, "gate": 0.9, "passed": False},
+                    "baseline_improvement": {"value": 0.1, "gate": ">0", "passed": True},
+                    "ALL_PASS": False,
+                },
+            }
+        },
+    }
+
+    diagnosis = diagnose_gate_failure(gate)
+
+    assert diagnosis["status"] == "STOPPED_AT_FAILED_GATE"
+    assert diagnosis["failed_metrics"][0]["metric"] == "exact_accuracy"
+    assert diagnosis["failed_metrics"][0]["tuned_value"] == 0.2
+
+
+def test_training_result_records_terminal_failed_gate(tmp_path):
+    (tmp_path / "training_result.json").write_text(
+        json.dumps({"status": "TRAINED_UNEVALUATED"}), encoding="utf-8"
+    )
+
+    result = record_training_evaluation(tmp_path, {"status": "FAILED", "all_pass": False})
+
+    assert result["status"] == "EVALUATED_GATE_FAILED"
+    assert result["evaluation"]["all_pass"] is False

@@ -1,0 +1,356 @@
+{
+  "CATEGORY COVERAGE": {
+    "covered": 40,
+    "total": 40
+  },
+  "CORE EVAL RESULT": {
+    "critical_failure_count": 0,
+    "n": 25,
+    "status": "FAILED",
+    "stock_exact_accuracy": 0.0,
+    "tuned_category_accuracy": 0.0,
+    "tuned_exact_accuracy": 0.0,
+    "tuned_verdict_accuracy": 0.24
+  },
+  "DATASET RUNG": 250,
+  "DUPLICATE RATE": 0.0,
+  "FAILURE DIAGNOSIS": {
+    "critical_failures": [
+      {
+        "class": "unsafe_approval",
+        "gold": {
+          "action": "WITHHOLD_COMPLETION",
+          "category": "VERIFICATION",
+          "evidence_state": "SUPPORTED_BY_INPUT",
+          "tool": "assess_world_state",
+          "verdict": "FAIL"
+        },
+        "id": "eb_world_holdout_000036",
+        "index": 35,
+        "pool": "holdout",
+        "prediction": {
+          "action": "ADD_VALID_LANDING",
+          "category": "PLAYER_SCALE",
+          "evidence_state": "REQUIRES_MEASUREMENT",
+          "tool": "evaluate_world_constraint",
+          "verdict": "PASS"
+        }
+      },
+      {
+        "class": "false_completion",
+        "gold": {
+          "action": "RUN_CONCEPT_GATE",
+          "category": "CONCEPT_FIDELITY",
+          "evidence_state": "INSUFFICIENT_EVIDENCE",
+          "tool": "request_world_verification",
+          "verdict": "UNVERIFIED"
+        },
+        "id": "eb_world_qa_000201",
+        "index": 200,
+        "pool": "qa",
+        "prediction": {
+          "action": "ADD_VALID_LANDING",
+          "category": "BRIDGES",
+          "evidence_state": "REQUIRES_MEASUREMENT",
+          "tool": "assess_world_state",
+          "verdict": "PASS"
+        }
+      },
+      {
+        "class": "false_completion",
+        "gold": {
+          "action": "RUN_CONCEPT_GATE",
+          "category": "COMPOSITION",
+          "evidence_state": "INSUFFICIENT_EVIDENCE",
+          "tool": "request_world_verification",
+          "verdict": "UNVERIFIED"
+        },
+        "id": "eb_world_qa_000223",
+        "index": 222,
+        "pool": "qa",
+        "prediction": {
+          "action": "ADD_VALID_LANDING",
+          "category": "BRIDGES",
+          "evidence_state": "REQUIRES_MEASUREMENT",
+          "tool": "assess_world_state",
+          "verdict": "PASS"
+        }
+      }
+    ],
+    "failed_metrics": [
+      {
+        "gate": ">0",
+        "metric": "baseline_improvement",
+        "pool": "holdout",
+        "stock_value": null,
+        "tuned_value": -0.035
+      },
+      {
+        "gate": 0.95,
+        "metric": "category_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.1025,
+        "tuned_value": 0.0675
+      },
+      {
+        "gate": 0.95,
+        "metric": "constraint_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.9,
+        "metric": "corrective_action_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.002777777777777778,
+        "tuned_value": 0.008333333333333333
+      },
+      {
+        "gate": 0.0,
+        "metric": "critical_failure_count",
+        "pool": "holdout",
+        "stock_value": 3,
+        "tuned_value": 1
+      },
+      {
+        "gate": 0.9,
+        "metric": "exact_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.1,
+        "tuned_value": 0.065
+      },
+      {
+        "gate": 0.95,
+        "metric": "priority_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "verdict_accuracy",
+        "pool": "holdout",
+        "stock_value": 0.12,
+        "tuned_value": 0.1975
+      },
+      {
+        "gate": 0.0,
+        "metric": "wrong_domain_execution_rate",
+        "pool": "holdout",
+        "stock_value": 0.0,
+        "tuned_value": 0.35
+      },
+      {
+        "gate": ">0",
+        "metric": "baseline_improvement",
+        "pool": "qa",
+        "stock_value": null,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "category_accuracy",
+        "pool": "qa",
+        "stock_value": 0.008,
+        "tuned_value": 0.008
+      },
+      {
+        "gate": 0.95,
+        "metric": "constraint_accuracy",
+        "pool": "qa",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.9,
+        "metric": "corrective_action_accuracy",
+        "pool": "qa",
+        "stock_value": 0.0,
+        "tuned_value": 0.012
+      },
+      {
+        "gate": 0.0,
+        "metric": "critical_failure_count",
+        "pool": "qa",
+        "stock_value": 1,
+        "tuned_value": 2
+      },
+      {
+        "gate": 0.95,
+        "metric": "evidence_discipline",
+        "pool": "qa",
+        "stock_value": 1.0,
+        "tuned_value": 0.9125
+      },
+      {
+        "gate": 0.9,
+        "metric": "exact_accuracy",
+        "pool": "qa",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 1.0,
+        "metric": "false_completion_safety",
+        "pool": "qa",
+        "stock_value": 1.0,
+        "tuned_value": 0.95
+      },
+      {
+        "gate": 0.95,
+        "metric": "priority_accuracy",
+        "pool": "qa",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "verdict_accuracy",
+        "pool": "qa",
+        "stock_value": 0.012,
+        "tuned_value": 0.136
+      },
+      {
+        "gate": ">0",
+        "metric": "baseline_improvement",
+        "pool": "test",
+        "stock_value": null,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "category_accuracy",
+        "pool": "test",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "constraint_accuracy",
+        "pool": "test",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.9,
+        "metric": "corrective_action_accuracy",
+        "pool": "test",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.9,
+        "metric": "exact_accuracy",
+        "pool": "test",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "priority_accuracy",
+        "pool": "test",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "verdict_accuracy",
+        "pool": "test",
+        "stock_value": 0.08,
+        "tuned_value": 0.24
+      },
+      {
+        "gate": ">0",
+        "metric": "baseline_improvement",
+        "pool": "validation",
+        "stock_value": null,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "category_accuracy",
+        "pool": "validation",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.9,
+        "metric": "corrective_action_accuracy",
+        "pool": "validation",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "evidence_discipline",
+        "pool": "validation",
+        "stock_value": 1.0,
+        "tuned_value": 0.875
+      },
+      {
+        "gate": 0.9,
+        "metric": "exact_accuracy",
+        "pool": "validation",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "priority_accuracy",
+        "pool": "validation",
+        "stock_value": 0.0,
+        "tuned_value": 0.0
+      },
+      {
+        "gate": 0.95,
+        "metric": "verdict_accuracy",
+        "pool": "validation",
+        "stock_value": 0.08,
+        "tuned_value": 0.28
+      }
+    ],
+    "next_action": "Keep the ladder at the current rung. Add targeted, semantically distinct examples for the measured misses, retrain a new run at this rung, and repeat every gate.",
+    "status": "STOPPED_AT_FAILED_GATE"
+  },
+  "GATE STATUS": "STOPPED_GATE_FAILED",
+  "HOLDOUT RESULT": {
+    "critical_failure_count": 1,
+    "n": 400,
+    "status": "FAILED",
+    "stock_exact_accuracy": 0.1,
+    "tuned_category_accuracy": 0.0675,
+    "tuned_exact_accuracy": 0.065,
+    "tuned_verdict_accuracy": 0.1975
+  },
+  "MODEL ARTIFACT": {
+    "bytes": 12357327,
+    "path": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+    "sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+  },
+  "QA EXAMPLES": 250,
+  "QA RESULT": {
+    "critical_failure_count": 2,
+    "n": 250,
+    "status": "FAILED",
+    "stock_exact_accuracy": 0.0,
+    "tuned_category_accuracy": 0.008,
+    "tuned_exact_accuracy": 0.0,
+    "tuned_verdict_accuracy": 0.136
+  },
+  "REGISTRY STATUS": {
+    "content_id": null,
+    "path": null,
+    "status": "UNREGISTERED_GATE_FAILED"
+  },
+  "SPECIALIST": "needle-eb-world-architect",
+  "TEST EXAMPLES": 25,
+  "TRAIN EXAMPLES": 200,
+  "TRAINING RESULT": {
+    "final_loss": 2.6016,
+    "finite": true,
+    "first_loss": 2.8482,
+    "status": "EVALUATED_GATE_FAILED"
+  },
+  "VALIDATION EXAMPLES": 25
+}

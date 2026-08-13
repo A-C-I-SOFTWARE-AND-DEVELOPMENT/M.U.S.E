@@ -1,0 +1,111 @@
+{
+  "adapter": {
+    "bytes": 8258883,
+    "path": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\adapter.pkl",
+    "sha256": "6b92abf84916ddb14f096d5d79de69bf615cd5bbfd123742592eaf3c15f658af"
+  },
+  "config": {
+    "batch_size": 8,
+    "epochs": 1,
+    "lora_rank": 16,
+    "lr": 0.0001,
+    "max_len": 2048,
+    "quantization_bits": 2,
+    "rung": 250
+  },
+  "evaluation": {
+    "all_pass": false,
+    "gate": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\gate.json",
+    "status": "FAILED"
+  },
+  "export": {
+    "command": [
+      "wsl.exe",
+      "-d",
+      "Ubuntu",
+      "--",
+      "/root/needle_gpu_probe/.venv/bin/needle",
+      "build",
+      "/mnt/c/Users/Echer/M.U.S.E/third_party/needle/checkpoints/needle2.pkl",
+      "--lora",
+      "/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/adapter.pkl",
+      "--out",
+      "/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/model.cact",
+      "--bits",
+      "2"
+    ],
+    "duration_s": 11.969,
+    "exit_code": 0,
+    "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\export.log"
+  },
+  "losses": {
+    "finite": true,
+    "first": 2.8482,
+    "last": 2.6016,
+    "values": [
+      2.8482,
+      2.8203,
+      2.8876,
+      2.8262,
+      2.7341,
+      2.7839,
+      2.7694,
+      2.7749,
+      2.8125,
+      2.8451,
+      2.8314,
+      2.8953,
+      2.7398,
+      2.7709,
+      2.6771,
+      2.7219,
+      2.7319,
+      2.7289,
+      2.7346,
+      2.7322,
+      2.5712,
+      2.7398,
+      2.6923,
+      2.6144,
+      2.6016,
+      2.6016
+    ]
+  },
+  "model": {
+    "bytes": 12357327,
+    "path": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+    "sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+  },
+  "run_dir": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001",
+  "status": "EVALUATED_GATE_FAILED",
+  "training": {
+    "command": [
+      "wsl.exe",
+      "-d",
+      "Ubuntu",
+      "--",
+      "/root/needle_gpu_probe/.venv/bin/needle",
+      "finetune",
+      "/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/train.jsonl",
+      "--epochs",
+      "1",
+      "--batch-size",
+      "8",
+      "--lr",
+      "0.0001",
+      "--lora-rank",
+      "16",
+      "--max-len",
+      "2048",
+      "--checkpoint",
+      "/mnt/c/Users/Echer/M.U.S.E/third_party/needle/checkpoints/needle2.pkl",
+      "--checkpoint-dir",
+      "/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/checkpoints",
+      "--out",
+      "/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/adapter.pkl"
+    ],
+    "duration_s": 83.047,
+    "exit_code": 0,
+    "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\training.log"
+  }
+}
