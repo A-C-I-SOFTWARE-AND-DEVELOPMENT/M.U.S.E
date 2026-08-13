@@ -190,6 +190,23 @@ GATE_TEXT = {
 }
 
 
+def _compact_codes(values, prefix: str, width: int = 2) -> dict[str, str]:
+    return {value: f"{prefix}{index:0{width}d}" for index, value in enumerate(values)}
+
+
+CATEGORY_CODES = _compact_codes(CATEGORIES, "C")
+EVIDENCE_STATE_CODES = _compact_codes(EVIDENCE_STATES, "E", 1)
+STAGE_CODES = _compact_codes(STAGES, "S", 1)
+ISSUE_CODES = _compact_codes(tuple(ISSUE_TEXT), "I")
+ACTION_CODES = _compact_codes(tuple(ACTION_TEXT), "A")
+PRIORITY_CODES = _compact_codes(tuple(PRIORITY_TEXT), "P", 1)
+BLOCKER_CODES = _compact_codes(tuple(BLOCKER_TEXT), "B", 1)
+CONSTRAINT_CODES = _compact_codes(CONSTRAINTS, "K")
+EVIDENCE_KIND_CODES = _compact_codes(tuple(EVIDENCE_TEXT), "D", 1)
+CLAIM_CODES = _compact_codes(tuple(CLAIM_TEXT), "M", 1)
+GATE_CODES = _compact_codes(tuple(GATE_TEXT), "G", 1)
+
+
 def ontology_payload() -> dict:
     """Return a serialization-safe copy of the specialist vocabulary."""
     return deepcopy(
@@ -207,6 +224,17 @@ def ontology_payload() -> dict:
             "evidence_kinds": list(EVIDENCE_TEXT),
             "claim_kinds": list(CLAIM_TEXT),
             "next_gates": list(GATE_TEXT),
+            "category_codes": CATEGORY_CODES,
+            "evidence_state_codes": EVIDENCE_STATE_CODES,
+            "stage_codes": STAGE_CODES,
+            "issue_code_map": ISSUE_CODES,
+            "action_code_map": ACTION_CODES,
+            "priority_code_map": PRIORITY_CODES,
+            "blocker_code_map": BLOCKER_CODES,
+            "constraint_code_map": CONSTRAINT_CODES,
+            "evidence_kind_codes": EVIDENCE_KIND_CODES,
+            "claim_codes": CLAIM_CODES,
+            "gate_codes": GATE_CODES,
             "rendering": {
                 "issues": ISSUE_TEXT,
                 "actions": ACTION_TEXT,

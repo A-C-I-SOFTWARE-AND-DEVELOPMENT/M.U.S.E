@@ -7,32 +7,32 @@ from typing import Annotated
 from third_party.needle.needle.agent.tools import Field, build_schema
 
 from .ontology import (
-    ACTION_TEXT,
-    BLOCKER_TEXT,
-    CATEGORIES,
-    CLAIM_TEXT,
-    CONSTRAINTS,
-    EVIDENCE_STATES,
-    EVIDENCE_TEXT,
-    GATE_TEXT,
-    ISSUE_TEXT,
-    PRIORITY_TEXT,
-    STAGES,
+    ACTION_CODES,
+    BLOCKER_CODES,
+    CATEGORY_CODES,
+    CLAIM_CODES,
+    CONSTRAINT_CODES,
+    EVIDENCE_KIND_CODES,
+    EVIDENCE_STATE_CODES,
+    GATE_CODES,
+    ISSUE_CODES,
+    PRIORITY_CODES,
+    STAGE_CODES,
     VERDICTS,
 )
 
 Verdict = Annotated[str, Field(enum=VERDICTS)]
-Category = Annotated[str, Field(enum=CATEGORIES)]
-IssueCode = Annotated[str, Field(enum=tuple(ISSUE_TEXT))]
-ActionCode = Annotated[str, Field(enum=tuple(ACTION_TEXT))]
-EvidenceState = Annotated[str, Field(enum=EVIDENCE_STATES)]
-Stage = Annotated[str, Field(enum=STAGES)]
-PriorityCode = Annotated[str, Field(enum=tuple(PRIORITY_TEXT))]
-BlockerCode = Annotated[str, Field(enum=tuple(BLOCKER_TEXT))]
-ConstraintCode = Annotated[str, Field(enum=CONSTRAINTS)]
-EvidenceKind = Annotated[str, Field(enum=tuple(EVIDENCE_TEXT))]
-ClaimKind = Annotated[str, Field(enum=tuple(CLAIM_TEXT))]
-NextGate = Annotated[str, Field(enum=tuple(GATE_TEXT))]
+Category = Annotated[str, Field(enum=tuple(CATEGORY_CODES.values()))]
+IssueCode = Annotated[str, Field(enum=tuple(ISSUE_CODES.values()))]
+ActionCode = Annotated[str, Field(enum=tuple(ACTION_CODES.values()))]
+EvidenceState = Annotated[str, Field(enum=tuple(EVIDENCE_STATE_CODES.values()))]
+Stage = Annotated[str, Field(enum=tuple(STAGE_CODES.values()))]
+PriorityCode = Annotated[str, Field(enum=tuple(PRIORITY_CODES.values()))]
+BlockerCode = Annotated[str, Field(enum=tuple(BLOCKER_CODES.values()))]
+ConstraintCode = Annotated[str, Field(enum=tuple(CONSTRAINT_CODES.values()))]
+EvidenceKind = Annotated[str, Field(enum=tuple(EVIDENCE_KIND_CODES.values()))]
+ClaimKind = Annotated[str, Field(enum=tuple(CLAIM_CODES.values()))]
+NextGate = Annotated[str, Field(enum=tuple(GATE_CODES.values()))]
 
 
 def assess_world_state(

@@ -1,9 +1,20 @@
 """Tests for the Essencebound Needle 2 world-architecture specialist."""
 
+from collections import Counter
+
+from foundry.essencebound_world.generator import (
+    RUNG_SIZES,
+    build_ladder,
+    generate_canonical,
+    generate_holdout,
+    generate_qa,
+)
 from foundry.essencebound_world.ontology import ontology_payload
 from foundry.essencebound_world.renderer import render_decision
 from foundry.essencebound_world.requirements import compile_requirements, parse_sections
 from foundry.essencebound_world.schemas import tool_names, tool_schemas
+from third_party.needle.needle.model.finetune import render_example
+from third_party.needle.needle.model.tokenizer import get_tokenizer
 
 
 def test_native_schema_contract_and_tool_ceiling():
@@ -146,3 +157,84 @@ def test_requirements_do_not_misclassify_essence_infrastructure_as_architecture(
     )
 
     assert rows[0]["category"] == "ESSENCE_INFRASTRUCTURE"
+
+
+def _compiled_test_requirements() -> list[dict]:
+    return compile_requirements(_numbered_source())
+
+
+def test_canonical_generation_is_deterministic_dense_and_native():
+    requirements = _compiled_test_requirements()
+
+    first = generate_canonical(requirements, 4000)
+    second = generate_canonical(requirements, 4000)
+
+    assert first == second
+    assert len(first) == 4000
+    assert [row["id"] for row in first] == [
+        f"eb_world_{index:06d}" for index in range(1, 4001)
+    ]
+    assert {row["category"] for row in first} == set(ontology_payload()["categories"])
+    assert len({row["query"] for row in first}) == 4000
+    assert all(row["specialist"] == "NEEDLE-EB-WORLD-ARCHITECT" for row in first)
+    assert all(row["tools"] == first[0]["tools"] for row in first)
+    assert all(len(row["reasoning"].split()) <= 24 for row in first)
+    assert all("query" in row and "answers" in row for row in first)
+
+    label_counts = Counter(label for row in first for label in row["expected_labels"])
+    failure_fraction = sum(
+        bool({"FAIL", "BLOCKED", "UNVERIFIED"} & set(row["expected_labels"]))
+        for row in first
+    ) / len(first)
+    adversarial_fraction = sum(
+        row["example_type"] in {"adversarial", "repo_evidence"} for row in first
+    ) / len(first)
+    assert failure_fraction >= 0.30
+    assert adversarial_fraction >= 0.15
+    assert label_counts["PASS"] > 0
+
+
+def test_ladder_has_exact_splits_and_is_an_exact_superset():
+    rows = generate_canonical(_compiled_test_requirements(), 4000)
+    ladder = build_ladder(rows)
+
+    previous_ids: set[str] = set()
+    for size in RUNG_SIZES:
+        splits = ladder[size]
+        assert {name: len(values) for name, values in splits.items()} == {
+            "train": size * 8 // 10,
+            "validation": size // 10,
+            "test": size // 10,
+        }
+        current_ids = {row["id"] for values in splits.values() for row in values}
+        assert current_ids == {f"eb_world_{index:06d}" for index in range(1, size + 1)}
+        assert previous_ids <= current_ids
+        previous_ids = current_ids
+
+
+def test_qa_and_holdout_are_isolated_from_training_families():
+    requirements = _compiled_test_requirements()
+    canonical = generate_canonical(requirements, 4000)
+    qa = generate_qa(requirements, 4000)
+    holdout = generate_holdout(requirements, 400)
+
+    assert len(qa) == 4000
+    assert len(holdout) == 400
+    assert qa[0]["id"] == "eb_world_qa_000001"
+    assert holdout[0]["id"] == "eb_world_holdout_000001"
+    canonical_families = {row["semantic_family"] for row in canonical}
+    assert canonical_families.isdisjoint(row["semantic_family"] for row in qa)
+    assert canonical_families.isdisjoint(row["semantic_family"] for row in holdout)
+    assert {row["query"] for row in canonical}.isdisjoint(row["query"] for row in qa)
+    assert {row["query"] for row in canonical}.isdisjoint(row["query"] for row in holdout)
+
+
+def test_native_training_rows_fit_needle_context_with_targets_intact():
+    rows = generate_canonical(_compiled_test_requirements(), 80)
+    tokenizer = get_tokenizer()
+    lengths = []
+    for row in rows:
+        prompt, target = render_example(row)
+        lengths.append(1 + len(tokenizer.encode(prompt)) + len(tokenizer.encode(target)) + 1)
+
+    assert max(lengths) <= 2048
