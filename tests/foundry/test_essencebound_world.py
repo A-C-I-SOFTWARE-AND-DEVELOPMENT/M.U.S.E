@@ -26,8 +26,8 @@ from foundry.essencebound_world.validator import (
     validate_dataset,
     validate_rows,
 )
-from third_party.needle.needle.model.finetune import render_example
-from third_party.needle.needle.model.tokenizer import get_tokenizer
+from needle.model.finetune import render_example
+from needle.model.tokenizer import get_tokenizer
 
 
 def test_native_schema_contract_and_tool_ceiling():

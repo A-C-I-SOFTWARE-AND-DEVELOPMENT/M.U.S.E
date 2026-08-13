@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from third_party.needle.needle.agent.tools import Field, build_schema
+from needle.agent.tools import Field, build_schema
 
 from .ontology import (
     ACTION_CODES,

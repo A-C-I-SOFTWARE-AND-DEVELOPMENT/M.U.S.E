@@ -1,6 +1,9 @@
 """Integration tests for Essencebound dataset artifact construction."""
 
 import json
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 from foundry.essencebound_world.pipeline import build_data, validate_root
@@ -265,3 +268,27 @@ def test_training_result_records_terminal_failed_gate(tmp_path):
 
     assert result["status"] == "EVALUATED_GATE_FAILED"
     assert result["evaluation"]["all_pass"] is False
+
+
+def test_published_foundry_imports_without_local_third_party_checkout(tmp_path):
+    """A clean MUSE clone must use the declared Needle package, not a local repo."""
+    repo_root = Path(__file__).resolve().parents[2]
+    shutil.copytree(repo_root / "foundry" / "essencebound_world", tmp_path / "foundry" / "essencebound_world")
+    smoke = tmp_path / "smoke.py"
+    smoke.write_text(
+        f"import sys\nsys.path.insert(0, {str(tmp_path)!r})\n"
+        "from foundry.essencebound_world.schemas import tool_schemas\n"
+        "from foundry.essencebound_world.validator import validate_rows\n"
+        "assert len(tool_schemas()) == 4\n",
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-I", str(smoke)],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr

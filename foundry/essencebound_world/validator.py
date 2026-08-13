@@ -7,8 +7,8 @@ import re
 from collections import Counter
 from typing import Any
 
-from third_party.needle.needle.model.finetune import render_example
-from third_party.needle.needle.model.tokenizer import get_tokenizer
+from needle.model.finetune import render_example
+from needle.model.tokenizer import get_tokenizer
 
 from .generator import RUNG_SIZES
 from .ontology import CATEGORIES, SPECIALIST_ID
