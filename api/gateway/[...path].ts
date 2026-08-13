@@ -37,6 +37,8 @@ export const config = { runtime: 'edge' };
 // api/_providers.ts so we never depend on @types/node. Secrets are read here and
 // never exposed to the browser; never VITE_-prefixed.
 declare const process: { env?: Record<string, string | undefined> } | undefined;
+const MAX_RELAY_BODY_BYTES = 256 * 1024;
+const RELAY_TIMEOUT_MS = 30_000;
 
 function envVar(name: string): string {
   return (typeof process !== 'undefined' && process.env && process.env[name]) || '';
@@ -61,6 +63,77 @@ export function bearerFromRequest(req: Request): string {
   const h = req.headers.get('authorization') || req.headers.get('Authorization') || '';
   const m = /^Bearer\s+(.+)$/i.exec(h.trim());
   return m ? m[1].trim() : '';
+}
+
+type RelayRoute = { method: 'GET' | 'POST'; pattern: RegExp };
+
+// Owner-session policy preserves the hosted cockpit controls already exposed.
+// Secret/export and DELETE surfaces are intentionally absent.
+export const OWNER_RELAY_ROUTES: readonly RelayRoute[] = [
+  { method: 'GET', pattern: /^\/v1\/health$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/pair\/(?:start|confirm)$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/service-tokens$/ },
+  {
+    method: 'GET',
+    pattern:
+      /^\/v1\/cockpit\/(?:runtime\/(?:status|workers)|diagnostics|axiom|models(?:\/local|\/catalog)?|model-routes|events|trace|audit|capabilities|ledger|jobs(?:\/lanes)?|approvals|channels|schedules|autonomy(?:\/decisions)?|proposals|learning|skills|templates|navigation|second-brain\/status|forge\/leaderboard|federation\/status|council\/dispatch|sessions|seats)$/,
+  },
+  {
+    method: 'GET',
+    pattern:
+      /^\/v1\/cockpit\/(?:audit\/[^/]+\/proof|ledger\/[^/]+\/[^/]+|jobs\/[^/]+(?:\/(?:ledger|diff|files-changed|validation|tree|file|publish\/preview))?)$/,
+  },
+  {
+    method: 'POST',
+    pattern:
+      /^\/v1\/cockpit\/(?:model-routes\/override|emergency-stop|jobs|orchestrate|coding\/(?:audit|plan|execute)|research|autonomy)$/,
+  },
+  {
+    method: 'POST',
+    pattern:
+      /^\/v1\/cockpit\/(?:jobs\/[^/]+\/(?:run|cancel|pause|resume|rerun|approve|validate|revalidate|override|publish)|approvals\/[^/]+|ledger\/[^/]+\/[^/]+\/rollback)$/,
+  },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/jobs\/stream$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/events\/stream$/ },
+  { method: 'GET', pattern: /^\/v1\/observatory\/(?:snapshot|metrics|layout|recommendations|stream|actions)$/ },
+  { method: 'POST', pattern: /^\/v1\/observatory\/recommendations\/[^/]+\/stage$/ },
+  { method: 'POST', pattern: /^\/v1\/agent\/(?:chat|approvals|stop)$/ },
+];
+
+// Buzz service-token policy is intentionally narrower and mirrors the local
+// cockpit's scope policy. A route absent here cannot be reached through relay.
+export const SERVICE_RELAY_ROUTES: readonly RelayRoute[] = [
+  { method: 'GET', pattern: /^\/v1\/health$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/runtime\/(?:status|workers)$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/capabilities$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/models\/catalog$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/model-routes$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/model-routes\/override$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/(?:schedules|seats)$/ },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/jobs(?:\/lanes|\/stream)?$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/jobs$/ },
+  {
+    method: 'GET',
+    pattern:
+      /^\/v1\/cockpit\/jobs\/[^/]+(?:\/(?:ledger|diff|files-changed|validation|tree|file))?$/,
+  },
+  {
+    method: 'POST',
+    pattern:
+      /^\/v1\/cockpit\/jobs\/[^/]+\/(?:run|cancel|pause|resume|rerun|validate|revalidate)$/,
+  },
+  { method: 'GET', pattern: /^\/v1\/cockpit\/approvals$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/approvals\/[^/]+$/ },
+  { method: 'POST', pattern: /^\/v1\/cockpit\/emergency-stop$/ },
+  { method: 'POST', pattern: /^\/v1\/agent\/stop$/ },
+];
+
+export function relayRouteAllowed(
+  routes: readonly RelayRoute[],
+  method: string,
+  pathname: string,
+): boolean {
+  return routes.some((route) => route.method === method && route.pattern.test(pathname));
 }
 
 function json(body: unknown, status: number): Response {
@@ -144,17 +217,37 @@ export async function resolveAccountGateway(accessToken: string): Promise<Accoun
  * ever honored) and refuse any `..` segment so a caller can't climb out of the
  * gateway root.
  */
-function gatewayPathFrom(reqUrl: string): { ok: true; path: string } | { ok: false } {
+function gatewayPathFrom(
+  reqUrl: string,
+): { ok: true; path: string; pathname: string } | { ok: false } {
   const u = new URL(reqUrl);
   const marker = '/api/gateway/';
   const i = u.pathname.indexOf(marker);
   if (i === -1) return { ok: false };
-  let rest = u.pathname.slice(i + marker.length);
-  // Reject path traversal / scheme injection attempts outright.
-  if (rest.includes('..') || rest.includes('://')) return { ok: false };
-  rest = rest.replace(/^\/+/, '');
-  const path = `/${rest}${u.search}`;
-  return { ok: true, path };
+  const rest = u.pathname.slice(i + marker.length).replace(/^\/+/, '');
+  const clean: string[] = [];
+  for (const encoded of rest.split('/')) {
+    let segment = '';
+    try {
+      segment = decodeURIComponent(encoded);
+    } catch {
+      return { ok: false };
+    }
+    if (
+      !segment ||
+      segment === '.' ||
+      segment === '..' ||
+      segment.includes('/') ||
+      segment.includes('\\') ||
+      segment.includes('\0') ||
+      segment.includes('://')
+    ) {
+      return { ok: false };
+    }
+    clean.push(encodeURIComponent(segment));
+  }
+  const pathname = `/${clean.join('/')}`;
+  return { ok: true, pathname, path: `${pathname}${u.search}` };
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -186,6 +279,25 @@ export default async function handler(req: Request): Promise<Response> {
   const parsed = gatewayPathFrom(req.url);
   if (!parsed.ok) {
     return json({ error: 'invalid relay path' }, 400);
+  }
+
+  const serviceAuthorization = (
+    req.headers.get('x-muse-service-authorization') || ''
+  ).trim();
+  const serviceMatch = /^Bearer\s+(muse_svc_[A-Za-z0-9_-]+)$/i.exec(
+    serviceAuthorization,
+  );
+  if (serviceAuthorization && !serviceMatch) {
+    return json({ error: 'invalid service authorization' }, 401);
+  }
+  const serviceToken = serviceMatch?.[1] || '';
+  const routePolicy = serviceToken ? SERVICE_RELAY_ROUTES : OWNER_RELAY_ROUTES;
+  if (!relayRouteAllowed(routePolicy, req.method, parsed.pathname)) {
+    return json({ error: 'route not available' }, 404);
+  }
+  const requestId = (req.headers.get('x-muse-request-id') || '').trim();
+  if (serviceToken && req.method === 'POST' && !requestId) {
+    return json({ error: 'request id required' }, 400);
   }
 
   // Metered lane: full-agent chat (and its companions) carry entitlement +
@@ -227,7 +339,16 @@ export default async function handler(req: Request): Promise<Response> {
   const target = `${account.gatewayUrl}${parsed.path}`;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (account.gatewayToken) headers.Authorization = `Bearer ${account.gatewayToken}`;
+  if (serviceToken) {
+    headers.Authorization = `Bearer ${serviceToken}`;
+  } else if (account.gatewayToken) {
+    headers.Authorization = `Bearer ${account.gatewayToken}`;
+  }
+  if (requestId) headers['X-Muse-Request-Id'] = requestId;
+  const relayToken = envVar('MUSE_GATEWAY_RELAY_TOKEN');
+  if (relayToken) {
+    headers['X-Muse-Relay-Authorization'] = `Bearer ${relayToken}`;
+  }
 
   let body: string | undefined;
   if (req.method === 'POST') {
@@ -235,21 +356,29 @@ export default async function handler(req: Request): Promise<Response> {
     headers['Content-Type'] = ct || 'application/json';
     try {
       body = await req.text();
+      if (new TextEncoder().encode(body).byteLength > MAX_RELAY_BODY_BYTES) {
+        return json({ error: 'request body too large' }, 413);
+      }
     } catch {
       body = undefined;
     }
   }
 
   let upstream: Response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RELAY_TIMEOUT_MS);
   try {
     upstream = await fetch(target, {
       method: req.method,
       headers,
       body,
       redirect: 'manual', // never auto-follow a redirect off the gateway origin
+      signal: controller.signal,
     });
-  } catch (e) {
-    return json({ error: `gateway unreachable: ${(e as Error).message}` }, 502);
+  } catch {
+    return json({ error: 'gateway unreachable' }, 502);
+  } finally {
+    clearTimeout(timeout);
   }
 
   // Pass the upstream body through, but strip hop-by-hop / auth-bearing headers

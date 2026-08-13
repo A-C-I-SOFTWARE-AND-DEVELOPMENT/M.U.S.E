@@ -1,0 +1,416 @@
+{
+  "duration_s": 652.36,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000082",
+      "latency_s": 23.907,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0056,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000083",
+      "latency_s": 15.828,
+      "query": "Unseen holdout situation: At Crystal Sanctum, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000084",
+      "latency_s": 32.047,
+      "query": "Unseen holdout situation: At Arena Island, the span meets bare cliff, lacks anchors, and rises too steeply for the intended encounter, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0037,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M4",
+            "evidence_kind": "D4",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000085",
+      "latency_s": 24.109,
+      "query": "Unseen holdout situation: At Glyph Ruins, the arrival gate faces a wall and gives the player no readable exit, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000086",
+      "latency_s": 31.593,
+      "query": "Unseen holdout situation: At Skyway Station, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0022,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000087",
+      "latency_s": 18.313,
+      "query": "Unseen holdout situation: At Chronos capital, the hall floats above terrain and decorative crystals are its only explanation, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0196,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000088",
+      "latency_s": 13.859,
+      "query": "Unseen holdout situation: At eastern village, twenty towers fill empty space without location, function, entrance, or gameplay purpose, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000089",
+      "latency_s": 29.907,
+      "query": "Unseen holdout situation: At western wilderness, a smooth symmetrical cone forms the entire underside with uniform scaled rocks, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0022,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000090",
+      "latency_s": 22.984,
+      "query": "Unseen holdout situation: At northern market, the island radius grew but every building and crystal was uniformly scaled with it, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0206,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000091",
+      "latency_s": 14.344,
+      "query": "Unseen holdout situation: At southern refinery, uniformly scattered clutter erases paths, silhouettes, and encounter clearings, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.02,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000092",
+      "latency_s": 13.0,
+      "query": "Unseen holdout situation: At Archive service district, ornamental road segments stop in fields and never connect the capital, villages, or services, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000093",
+      "latency_s": 25.906,
+      "query": "Unseen holdout situation: At Wayfinder terrace, the village copies the capital block-for-block and has no regional function or history, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P0",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000094",
+      "latency_s": 26.219,
+      "query": "Unseen holdout situation: At river ravine, stalls block the primary route and have no storage, delivery access, or vendor logic, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0022,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000095",
+      "latency_s": 23.312,
+      "query": "Unseen holdout situation: At outer gate, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0028,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000096",
+      "latency_s": 25.328,
+      "query": "Unseen holdout situation: At temple quarter, the exterior door opens into a blocked wall and rooms have no circulation or service function, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000097",
+      "latency_s": 25.016,
+      "query": "Unseen holdout situation: At alchemist lane, random debris is scattered without explaining work, damage, abandonment, or recovery, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.017,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000098",
+      "latency_s": 11.672,
+      "query": "Unseen holdout situation: At blacksmith yard, uniform clean materials erase age, use, moisture, repairs, and material hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0028,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000099",
+      "latency_s": 18.469,
+      "query": "Unseen holdout situation: At library court, cyan emission covers every edge and fog hides unfinished geometry, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0152,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000100",
+      "latency_s": 13.468,
+      "query": "Unseen holdout situation: At floating quarry, particles and glow appear everywhere without an active system or readable state, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000101",
+      "latency_s": 25.469,
+      "query": "Unseen holdout situation: At coastal shelf, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000102",
+      "latency_s": 26.078,
+      "query": "Unseen holdout situation: At undercity approach, identical crystals cover every surface and flatten the hero hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0198,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000103",
+      "latency_s": 11.031,
+      "query": "Unseen holdout situation: At distant vista cell, foreground, midground, background, and distant silhouettes compete without a focal hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000104",
+      "latency_s": 32.0,
+      "query": "Unseen holdout situation: At Firstbound Arrival, the hero location is indistinguishable from repeated generic towers at distance, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000105",
+      "latency_s": 25.375,
+      "query": "Unseen holdout situation: At Axiom Core, the generator proposes 1.9 million instances and calls the result performant without measurement, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000106",
+      "latency_s": 25.094,
+      "query": "Unseen holdout situation: At Firstbound Overlook, one giant instance component spans kilometers and gives culling unusable bounds, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0057,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000107",
+      "latency_s": 16.75,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, saved cull distances are treated as proof even though runtime bounds and visibility were never measured, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000108",
+      "latency_s": 30.344,
+      "query": "Unseen holdout situation: At Crystal Sanctum, a destructible pillar removes the only exit bridge when broken, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000109",
+      "latency_s": 24.828,
+      "query": "Unseen holdout situation: At Arena Island, the console glows but supplies no affordance, response, inactive state, or failure feedback, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000110",
+      "latency_s": 26.063,
+      "query": "Unseen holdout situation: At Glyph Ruins, invisible collision blocks the intended path while the visible opening appears clear, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_005\\evaluation\\shards\\rows_14.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_005\\model.cact",
+  "weights_sha256": "78463f27ee52e360430e5270765c162ed3fe21a945d698c4502a478220e85056"
+}

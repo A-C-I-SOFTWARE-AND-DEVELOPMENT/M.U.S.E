@@ -151,6 +151,50 @@ def _compile(path: str) -> re.Pattern[str]:
     return re.compile(f"^{pattern}$")
 
 
+# Service credentials are evaluated against this independent, default-deny
+# policy. Owner shared/device credentials continue to use the full route table.
+_SERVICE_ROUTE_POLICY: tuple[tuple[str, re.Pattern[str], frozenset[str]], ...] = (
+    ("GET", _compile("/v1/cockpit/runtime/status"), frozenset({"status"})),
+    ("GET", _compile("/v1/cockpit/capabilities"), frozenset({"status"})),
+    ("GET", _compile("/v1/cockpit/models/catalog"), frozenset({"catalog"})),
+    ("GET", _compile("/v1/cockpit/runtime/workers"), frozenset({"agents"})),
+    ("GET", _compile("/v1/cockpit/seats"), frozenset({"agents", "kanban"})),
+    ("POST", _compile("/v1/agent/stop"), frozenset({"agents"})),
+    ("GET", _compile("/v1/cockpit/schedules"), frozenset({"cron"})),
+    ("GET", _compile("/v1/cockpit/model-routes"), frozenset({"routing"})),
+    ("POST", _compile("/v1/cockpit/model-routes/override"), frozenset({"routing"})),
+    ("GET", _compile("/v1/cockpit/approvals"), frozenset({"approvals"})),
+    ("POST", _compile("/v1/cockpit/approvals/{id}"), frozenset({"approvals"})),
+    ("POST", _compile("/v1/cockpit/emergency-stop"), frozenset({"emergency_stop"})),
+    ("GET", _compile("/v1/cockpit/jobs"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/stream"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/lanes"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/ledger"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/diff"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/files-changed"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/validation"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/tree"), frozenset({"jobs"})),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/file"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/run"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/cancel"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/pause"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/resume"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/rerun"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/validate"), frozenset({"jobs"})),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/revalidate"), frozenset({"jobs"})),
+)
+
+
+def _service_route_scopes(method: str, path: str) -> frozenset[str]:
+    clean = path.rstrip("/") or "/"
+    for allowed_method, pattern, scopes in _SERVICE_ROUTE_POLICY:
+        if method == allowed_method and pattern.fullmatch(clean):
+            return scopes
+    return frozenset()
+
+
 _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/health"), h.health, False),
     # Per-device pairing (Sprint 6) — gated like /v1/health (no shared-token
@@ -159,11 +203,13 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     # shared token still guards every other route below, unchanged.
     ("POST", _compile("/v1/cockpit/pair/start"), h.pair_start, False),
     ("POST", _compile("/v1/cockpit/pair/confirm"), h.pair_confirm, False),
+    ("POST", _compile("/v1/cockpit/service-tokens"), h.service_token_issue, True),
     ("GET", _compile("/v1/cockpit/runtime/status"), h.runtime_status, True),
     ("GET", _compile("/v1/cockpit/runtime/workers"), h.runtime_workers, True),
     ("GET", _compile("/v1/cockpit/diagnostics"), h.diagnostics, True),
     ("GET", _compile("/v1/cockpit/axiom"), h.axiom_panel, True),
     ("GET", _compile("/v1/cockpit/models"), h.models, True),
+    ("GET", _compile("/v1/cockpit/models/catalog"), h.model_catalog, True),
     ("GET", _compile("/v1/cockpit/models/local"), h.models_local, True),
     ("POST", _compile("/v1/cockpit/models/local/smoke"), h.models_local_smoke, True),
     ("GET", _compile("/v1/cockpit/model-routes"), h.model_routes, True),
@@ -448,7 +494,10 @@ def _make_handler(
                 return
             self.send_response(204)
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header(
+                "Access-Control-Allow-Headers",
+                "Authorization, Content-Type, X-Muse-Request-Id",
+            )
             self.send_header("Access-Control-Max-Age", "600")
             # Chrome Private Network Access: a public/HTTPS page reaching this
             # loopback (or LAN) gateway must get explicit consent on the
@@ -466,6 +515,55 @@ def _make_handler(
             # invalid token still fails closed (-> 401).
             presented = cockpit_auth.extract_bearer(self.headers.get("Authorization"))
             return cockpit_auth.authorize_bearer(presented, token)
+
+        def _principal(self) -> cockpit_auth.AuthPrincipal | None:
+            presented = cockpit_auth.extract_bearer(self.headers.get("Authorization"))
+            return cockpit_auth.authenticate_bearer(presented, token)
+
+        def _authorize_service(
+            self,
+            principal: cockpit_auth.AuthPrincipal,
+            method: str,
+            path: str,
+        ) -> tuple[bool, str]:
+            """Apply service-only scope and replay policy; owners bypass it."""
+            request_id = str(self.headers.get("X-Muse-Request-Id") or "").strip()
+            if not principal.is_service:
+                return True, request_id
+            route_scopes = _service_route_scopes(method, path)
+            allowed = bool(route_scopes.intersection(principal.scopes))
+            reason = "scope_denied"
+            if allowed and method in {"POST", "PUT", "PATCH", "DELETE"}:
+                if not cockpit_auth.valid_request_id(request_id):
+                    allowed = False
+                    reason = "request_id_required"
+                elif not cockpit_auth.claim_request_id(principal, request_id):
+                    allowed = False
+                    reason = "request_replayed"
+                else:
+                    reason = "allowed"
+            elif allowed:
+                reason = "allowed"
+            try:
+                from . import event_log
+
+                event_log.emit(
+                    "info" if allowed else "warning",
+                    "gateway",
+                    "service request authorized" if allowed else "service request denied",
+                    attributes={
+                        "identity": principal.identity,
+                        "credential_id": principal.credential_id,
+                        "method": method,
+                        "path": path,
+                        "request_id": request_id or None,
+                        "required_scopes": sorted(route_scopes),
+                        "reason": reason,
+                    },
+                )
+            except Exception:
+                pass
+            return allowed, request_id
 
         # -- JSON helpers ----------------------------------------------
         def _send_json(self, status: int, payload: dict) -> None:
@@ -765,16 +863,26 @@ def _make_handler(
 
             # Streaming chat endpoint (real agent) — POST only.
             if method == "POST" and path.rstrip("/") == CHAT_PATH:
-                if not self._authed():
+                principal = self._principal()
+                if principal is None:
                     self._send_json(401, {"error": "missing or invalid bearer token"})
+                    return
+                allowed, _ = self._authorize_service(principal, method, path)
+                if not allowed:
+                    self._send_json(403, {"error": "service credential not authorized"})
                     return
                 self._stream_chat()
                 return
 
             # Full-agent streaming chat — POST only, opt-in via --agent full.
             if method == "POST" and path.rstrip("/") == AGENT_CHAT_PATH:
-                if not self._authed():
+                principal = self._principal()
+                if principal is None:
                     self._send_json(401, {"error": "missing or invalid bearer token"})
+                    return
+                allowed, _ = self._authorize_service(principal, method, path)
+                if not allowed:
+                    self._send_json(403, {"error": "service credential not authorized"})
                     return
                 if agent_mode != "full":
                     self._send_json(
@@ -794,9 +902,17 @@ def _make_handler(
             if method == "GET":
                 stream_name = _match_stream(path)
                 if stream_name is not None:
-                    if not self._authed():
+                    principal = self._principal()
+                    if principal is None:
                         self._send_json(401, {"error": "missing or invalid bearer token"})
                         return
+                    if principal.is_service:
+                        allowed, _ = self._authorize_service(principal, method, path)
+                        if not allowed:
+                            self._send_json(
+                                403, {"error": "service credential not authorized"}
+                            )
+                            return
                     getattr(self, stream_name)()
                     return
 
@@ -805,15 +921,28 @@ def _make_handler(
                 self._send_json(404, {"error": f"unknown route: {method} {path}"})
                 return
             handler, requires_auth, path_params = matched
-            if requires_auth and not self._authed():
-                self._send_json(401, {"error": "missing or invalid bearer token"})
-                return
+            principal = None
+            request_id = str(self.headers.get("X-Muse-Request-Id") or "").strip()
+            if requires_auth:
+                principal = self._principal()
+                if principal is None:
+                    self._send_json(401, {"error": "missing or invalid bearer token"})
+                    return
+                allowed, request_id = self._authorize_service(principal, method, path)
+                if not allowed:
+                    self._send_json(403, {"error": "service credential not authorized"})
+                    return
             req = h.Request(
                 method=method,
                 path=path,
                 query=self._query(),
                 body=self._read_body() if method in ("POST", "PUT", "PATCH") else {},
                 path_params=path_params,
+                auth_kind=principal.kind if principal else "anonymous",
+                auth_identity=principal.identity if principal else "anonymous",
+                auth_credential_id=principal.credential_id if principal else "",
+                auth_scopes=principal.scopes if principal else frozenset(),
+                request_id=request_id,
             )
             try:
                 resp = handler(req)

@@ -163,6 +163,7 @@ class TestModelSwitchPersistence:
         """ModelSwitchResult has all required fields for CLI state update."""
         from hermes_cli.model_switch import ModelSwitchResult
 
+        pool = MagicMock(provider="anthropic")
         result = ModelSwitchResult(
             success=True,
             new_model="claude-opus-4-6",
@@ -171,6 +172,7 @@ class TestModelSwitchPersistence:
             api_key="test-key",
             base_url="https://api.anthropic.com",
             api_mode="anthropic_messages",
+            credential_pool=pool,
         )
 
         assert result.success
@@ -178,6 +180,7 @@ class TestModelSwitchPersistence:
         assert result.target_provider == "anthropic"
         assert result.api_key == "test-key"
         assert result.base_url == "https://api.anthropic.com"
+        assert result.credential_pool is pool
 
 
 # ---------------------------------------------------------------------------

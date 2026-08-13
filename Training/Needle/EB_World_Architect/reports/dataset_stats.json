@@ -1,0 +1,41 @@
+{
+  "adversarial_fraction": 0.3,
+  "canonical_examples": 4000,
+  "duplicate_rate": 0.0,
+  "failure_fraction": 0.5,
+  "holdout_examples": 400,
+  "max_training_tokens": {
+    "canonical": 1493,
+    "holdout": 1495,
+    "qa": 1503
+  },
+  "qa_examples": 4000,
+  "requirements": 720,
+  "rungs": {
+    "1000": {
+      "test": 100,
+      "train": 800,
+      "validation": 100
+    },
+    "2000": {
+      "test": 200,
+      "train": 1600,
+      "validation": 200
+    },
+    "250": {
+      "test": 25,
+      "train": 200,
+      "validation": 25
+    },
+    "4000": {
+      "test": 400,
+      "train": 3200,
+      "validation": 400
+    },
+    "500": {
+      "test": 50,
+      "train": 400,
+      "validation": 50
+    }
+  }
+}

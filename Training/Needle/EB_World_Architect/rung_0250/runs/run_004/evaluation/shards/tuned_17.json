@@ -1,0 +1,394 @@
+{
+  "duration_s": 740.937,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000169",
+      "latency_s": 26.547,
+      "query": "Unseen holdout situation: At southern refinery, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000170",
+      "latency_s": 120.281,
+      "query": "Unseen holdout situation: At Archive service district, island radius uu is 343000 uu; the reference gate is 343000 uu. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000171",
+      "latency_s": 25.828,
+      "query": "Unseen holdout situation: At Wayfinder terrace, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000172",
+      "latency_s": 25.5,
+      "query": "Unseen holdout situation: At river ravine, ornamental road segments stop in fields and never connect the capital, villages, or services. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0021,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "C",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000173",
+      "latency_s": 25.625,
+      "query": "Unseen holdout situation: At outer gate, the village copies the capital block-for-block and has no regional function or history. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000174",
+      "latency_s": 18.5,
+      "query": "Unseen holdout situation: At temple quarter, stalls block the primary route and have no storage, delivery access, or vendor logic. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000175",
+      "latency_s": 22.594,
+      "query": "Unseen holdout situation: At alchemist lane, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C02",
+            "claim_kind": "M4",
+            "evidence_kind": "D4",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000176",
+      "latency_s": 28.656,
+      "query": "Unseen holdout situation: At blacksmith yard, the exterior door opens into a blocked wall and rooms have no circulation or service function. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000177",
+      "latency_s": 22.031,
+      "query": "Unseen holdout situation: At library court, random debris is scattered without explaining work, damage, abandonment, or recovery. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000178",
+      "latency_s": 17.156,
+      "query": "Unseen holdout situation: At floating quarry, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000179",
+      "latency_s": 26.75,
+      "query": "Unseen holdout situation: At coastal shelf, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000180",
+      "latency_s": 26.954,
+      "query": "Unseen holdout situation: At undercity approach, particles and glow appear everywhere without an active system or readable state. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000181",
+      "latency_s": 28.875,
+      "query": "Unseen holdout situation: At distant vista cell, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0023,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C06",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000182",
+      "latency_s": 25.906,
+      "query": "Unseen holdout situation: At Firstbound Arrival, identical crystals cover every surface and flatten the hero hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000183",
+      "latency_s": 26.328,
+      "query": "Unseen holdout situation: At Axiom Core, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C05",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000184",
+      "latency_s": 26.562,
+      "query": "Unseen holdout situation: At Firstbound Overlook, the hero location is indistinguishable from repeated generic towers at distance. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000185",
+      "latency_s": 26.375,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, island instances is 1.9e+06 instances; the reference gate is 600000 instances. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000186",
+      "latency_s": 28.875,
+      "query": "Unseen holdout situation: At Crystal Sanctum, island instances is 900000 instances; the reference gate is 600000 instances. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000187",
+      "latency_s": 29.438,
+      "query": "Unseen holdout situation: At Arena Island, frame time regression percent is 28 percent; the reference gate is 20 percent. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0023,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000188",
+      "latency_s": 20.75,
+      "query": "Unseen holdout situation: At Glyph Ruins, a destructible pillar removes the only exit bridge when broken. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000189",
+      "latency_s": 22.734,
+      "query": "Unseen holdout situation: At Skyway Station, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000190",
+      "latency_s": 23.391,
+      "query": "Unseen holdout situation: At Chronos capital, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000191",
+      "latency_s": 29.266,
+      "query": "Unseen holdout situation: At eastern village, the tower clips through the deck and cliff without a designed joint or load path. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A23",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "C",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000192",
+      "latency_s": 22.25,
+      "query": "Unseen holdout situation: At western wilderness, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000193",
+      "latency_s": 14.64,
+      "query": "Unseen holdout situation: At northern market, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000194",
+      "latency_s": 14.813,
+      "query": "Unseen holdout situation: At southern refinery, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000195",
+      "latency_s": 10.14,
+      "query": "Unseen holdout situation: At Archive service district, a missing manifest entry is ignored and the asset is claimed to exist. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000196",
+      "latency_s": 3.438,
+      "query": "Unseen holdout situation: At Wayfinder terrace, process liveness or exit code zero is treated as proof that every world gate passed. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0185,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000197",
+      "latency_s": 0.719,
+      "query": "Unseen holdout situation: At river ravine, a roofline endpoint is approved because the bridge visually reaches the district. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_004\\evaluation\\shards\\rows_17.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_004\\model.cact",
+  "weights_sha256": "3273766f9fe6f8a6bc03b260597f11ce751c4de6afb28b755fa07063b65db2d2"
+}

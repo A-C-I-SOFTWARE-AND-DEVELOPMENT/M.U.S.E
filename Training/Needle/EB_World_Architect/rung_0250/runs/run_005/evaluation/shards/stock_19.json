@@ -1,0 +1,332 @@
+{
+  "duration_s": 317.625,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.01,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000227",
+      "latency_s": 12.281,
+      "query": "Unseen holdout situation: At Glyph Ruins, a teammate claims the distant wilderness cells passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0111,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000228",
+      "latency_s": 10.141,
+      "query": "Unseen holdout situation: At Skyway Station, a teammate claims the combat arena support passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0098,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000229",
+      "latency_s": 10.422,
+      "query": "Unseen holdout situation: At Chronos capital, a teammate claims the inactive Wayfinder console passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0089,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000230",
+      "latency_s": 11.719,
+      "query": "Unseen holdout situation: At eastern village, a teammate claims the primary combat route passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0083,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000231",
+      "latency_s": 11.093,
+      "query": "Unseen holdout situation: At western wilderness, a teammate claims the bridge tower joint passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0084,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000232",
+      "latency_s": 13.0,
+      "query": "Unseen holdout situation: At northern market, a teammate claims the Blender world scene passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G1"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000233",
+      "latency_s": 24.11,
+      "query": "Unseen holdout situation: At southern refinery, a teammate claims the Unreal island map passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000234",
+      "latency_s": 31.531,
+      "query": "Unseen holdout situation: At Archive service district, a teammate claims the world placement generator passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0092,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000235",
+      "latency_s": 10.766,
+      "query": "Unseen holdout situation: At Wayfinder terrace, a teammate claims the bridge kit manifest passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0093,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000236",
+      "latency_s": 10.546,
+      "query": "Unseen holdout situation: At river ravine, a teammate claims the world validation claim passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0108,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000237",
+      "latency_s": 10.047,
+      "query": "Unseen holdout situation: At outer gate, a teammate claims the eastern causeway review passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0106,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000238",
+      "latency_s": 11.25,
+      "query": "Unseen holdout situation: At temple quarter, a teammate claims the AAA screenshot gate passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G1"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000239",
+      "latency_s": 25.297,
+      "query": "Unseen holdout situation: At alchemist lane, a teammate claims the island completion report passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G1"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000240",
+      "latency_s": 21.391,
+      "query": "Unseen holdout situation: At blacksmith yard, a teammate claims the Archive production order passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0126,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000241",
+      "latency_s": 7.422,
+      "query": "Unseen holdout situation: Write tavern dialogue about temple district at Glyph Ruins; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0115,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000242",
+      "latency_s": 7.797,
+      "query": "Unseen holdout situation: Write tavern dialogue about Axiom hub composition at Skyway Station; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0113,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000243",
+      "latency_s": 5.859,
+      "query": "Unseen holdout situation: Write tavern dialogue about Archive approach at Chronos capital; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0129,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000244",
+      "latency_s": 6.594,
+      "query": "Unseen holdout situation: Write tavern dialogue about monumental bridge at eastern village; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0117,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000245",
+      "latency_s": 8.562,
+      "query": "Unseen holdout situation: Write tavern dialogue about Skyway station at western wilderness; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0125,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000246",
+      "latency_s": 6.0,
+      "query": "Unseen holdout situation: Write tavern dialogue about public entrance at northern market; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0112,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000247",
+      "latency_s": 7.594,
+      "query": "Unseen holdout situation: Write tavern dialogue about Wayfinder hall at southern refinery; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0124,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000248",
+      "latency_s": 5.828,
+      "query": "Unseen holdout situation: Write tavern dialogue about maintenance annex at Archive service district; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0116,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000249",
+      "latency_s": 6.406,
+      "query": "Unseen holdout situation: Write tavern dialogue about floating island underside at Wayfinder terrace; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.012,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000250",
+      "latency_s": 6.657,
+      "query": "Unseen holdout situation: Write tavern dialogue about regional island terrain at river ravine; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0126,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000251",
+      "latency_s": 10.093,
+      "query": "Unseen holdout situation: Write tavern dialogue about wilderness corridor at outer gate; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0116,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000252",
+      "latency_s": 6.172,
+      "query": "Unseen holdout situation: Write tavern dialogue about capital road network at temple quarter; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.012,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000253",
+      "latency_s": 6.0,
+      "query": "Unseen holdout situation: Write tavern dialogue about satellite village at alchemist lane; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0112,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000254",
+      "latency_s": 6.375,
+      "query": "Unseen holdout situation: Write tavern dialogue about market square at blacksmith yard; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0118,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000255",
+      "latency_s": 6.625,
+      "query": "Unseen holdout situation: Write tavern dialogue about blacksmith shop at library court; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_005\\evaluation\\shards\\rows_19.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

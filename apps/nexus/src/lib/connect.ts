@@ -157,15 +157,15 @@ export async function establishConnections(
         body: JSON.stringify({ device_name: opts.deviceName ?? 'NEXUS PWA' }),
       });
       if (!startRes.ok) throw new Error(`pair/start ${startRes.status}`);
-      const { pairing_code } = await startRes.json();
+      const { pairing_id, pairing_code } = await startRes.json();
 
       const confirmRes = await fetch(`${base}/v1/cockpit/pair/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pairing_code, authorization: opts.ownerPhrase }),
+        body: JSON.stringify({ pairing_id, pairing_code, authorization: opts.ownerPhrase }),
       });
       if (confirmRes.status === 403) {
-        set('pair', 'fail', 'owner phrase rejected — must be exactly "Yes, with authorization."');
+        set('pair', 'fail', 'owner authorization rejected');
       } else if (!confirmRes.ok) {
         set('pair', 'fail', `pair/confirm ${confirmRes.status}`);
       } else {

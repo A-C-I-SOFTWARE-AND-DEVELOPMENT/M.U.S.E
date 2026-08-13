@@ -1,0 +1,22 @@
+{
+  "asset_name": "prop_crate_01",
+  "triangle_count": 108,
+  "ngon_count": 0,
+  "non_manifold_edges": 0,
+  "degenerate_faces": 0,
+  "materials": [
+    "crate_wood"
+  ],
+  "uv_overlap_fraction": 0.0,
+  "objects": [
+    {
+      "name": "prop_crate_01",
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "bounds_m": 1.0
+}

@@ -2838,7 +2838,27 @@ def run_conversation(
                     agent._vprint(f"{agent.log_prefix}   🌐 Endpoint: {_base}", force=True)
                     # Actionable guidance for common auth errors
                     if classified.is_auth or classified.reason == FailoverReason.billing:
-                        if _provider in {"openai-codex", "xai-oauth"} and status_code == 401:
+                        if (
+                            _provider == "ollama-cloud"
+                            and "extra usage" in _err_lower
+                            and (
+                                "balance is empty" in _err_lower
+                                or "extra usage only" in _err_lower
+                            )
+                        ):
+                            agent._vprint(
+                                f"{agent.log_prefix}   💡 Your Ollama key is valid, but {_model} is currently",
+                                force=True,
+                            )
+                            agent._vprint(
+                                f"{agent.log_prefix}      billed as Extra Usage and is not included in plan usage.",
+                                force=True,
+                            )
+                            agent._vprint(
+                                f"{agent.log_prefix}      Add Extra Usage or enable auto-reload: https://ollama.com/settings",
+                                force=True,
+                            )
+                        elif _provider in {"openai-codex", "xai-oauth"} and status_code == 401:
                             if _provider == "openai-codex":
                                 agent._vprint(f"{agent.log_prefix}   💡 Codex OAuth token was rejected (HTTP 401). Your token may have been", force=True)
                                 agent._vprint(f"{agent.log_prefix}      refreshed by another client (Codex CLI, VS Code). To fix:", force=True)

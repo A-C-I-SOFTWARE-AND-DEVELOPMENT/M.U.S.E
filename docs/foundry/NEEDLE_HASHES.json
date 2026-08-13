@@ -1,0 +1,36 @@
+{
+  "huggingface_repo": "Cactus-Compute/needle2",
+  "revision": "07f3e789e993e8ecf69ef5409fd7558f5fe43202",
+  "license_model_card": "apache-2.0",
+  "files": {
+    "checkpoints/needle2.pkl": {
+      "sha256": "4b0a972d163ffc7678fb3c36bace508114872e9d2ce9e10f225825752d3795bc",
+      "size_bytes": 90426504
+    },
+    "needle2.cact": {
+      "sha256": "b43aabfcaf1a6db6acf488076eab71d823c08697c7af4521fc1d174b60ede5ba",
+      "size_bytes": 13737807
+    },
+    "tokenizer/tokenizer.model": {
+      "sha256": "0871b8e3df78e0dd7ccc236e187fc055f75cd57ebe3bec76ca8103030b8fe659",
+      "size_bytes": 132396
+    },
+    "tokenizer/tokenizer.vocab": {
+      "sha256": "ed835aff5b2a3ca67b5896906dd471ab0ce12626d699d90e736e3c7e4ba9b1e3",
+      "size_bytes": 113001
+    },
+    "config.json": {
+      "sha256": "abb8caffb1e078640b6fbccd006cd5462300ab813da1163bc961ce3117d80be8",
+      "size_bytes": 1058
+    },
+    "LICENSE": {
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "size_bytes": 11358
+    },
+    "README.md": {
+      "sha256": "a2947b861d95fce978cc9038a7462e6a9588c56407ebd6396b9e6d791f4fb9e5",
+      "size_bytes": 14979
+    }
+  },
+  "note": "weights/needle2.pkl from earlier snapshot was renamed to checkpoints/needle2.pkl upstream; pinned current revision."
+}

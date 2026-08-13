@@ -1,0 +1,76 @@
+[
+  {
+    "step": "0-brief",
+    "at": 1786579316.6597507,
+    "summary": "Create a game-ready wooden crate prop named prop_crate_01, one meter on a side, small 2 centimeter edge bevel, material crate_wood"
+  },
+  {
+    "step": "1-needle-spec",
+    "at": 1786579317.3913448,
+    "summary": "spec proposal: {'asset_name': 'prop_crate_01', 'category': 'prop_crate', 'size_m': 1, 'bevel_m': 2, 'material': 'crate_wood'} (conf=0.0364)",
+    "proposal": {
+      "asset_name": "prop_crate_01",
+      "category": "prop_crate",
+      "size_m": 1,
+      "bevel_m": 2,
+      "material": "crate_wood"
+    },
+    "confidence": 0.0364
+  },
+  {
+    "step": "2-runtime-gate",
+    "at": 1786579317.3913448,
+    "summary": "execute: all_gates_passed",
+    "action": "execute"
+  },
+  {
+    "step": "3-blender-build",
+    "at": 1786579319.2773001,
+    "summary": "exit=0 1.89s",
+    "exit_code": 0,
+    "wall_clock_s": 1.89,
+    "script_hash": "a442cae34585a33d9226f776e9a46f0579da1dba8d4a0f7f8c74f64e58f71238"
+  },
+  {
+    "step": "4-fbx-validate",
+    "at": 1786579319.2783046,
+    "summary": "passed=True size=16668",
+    "source_hash": "99661f01a5d867b4",
+    "validation": {
+      "exists": true,
+      "size_bytes": 16668,
+      "binary_fbx_magic": true,
+      "ascii_fbx_hint": true,
+      "nonempty": true,
+      "passed": true
+    }
+  },
+  {
+    "step": "5-qa-gate",
+    "at": 1786579319.2783046,
+    "summary": "passed=True",
+    "checks": {
+      "polycount": true,
+      "ngons": true,
+      "manifold": true,
+      "degenerate": true,
+      "materials": true,
+      "uv_overlap": true,
+      "transforms": true
+    }
+  },
+  {
+    "step": "6-axiom-attest",
+    "at": 1786579319.306404,
+    "summary": "unit=52785eefadb4ce15 chain_ok=True",
+    "unit_hash": "52785eefadb4ce157f62ad65aab6b3c5bb0c1a4b18a76d8055ddf6451484a220",
+    "lineage_event": "45253a70090ea1f302bb3527d91904f2fc8d5dc2bc9b70b1ddbf74d64af39430",
+    "chain_valid": true
+  },
+  {
+    "step": "7-registry",
+    "at": 1786579319.3129652,
+    "summary": "content_id=9b871ea8ceead598",
+    "content_id": "9b871ea8ceead598f53a93aa649d20aa6a2c8ee0cec522b52fe470b205b01082"
+  }
+]

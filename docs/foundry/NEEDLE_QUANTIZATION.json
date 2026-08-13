@@ -1,0 +1,32 @@
+{
+  "2bit": {
+    "exact_call_accuracy": 0.5,
+    "function_selection_accuracy": 0.7,
+    "argument_value_accuracy": 1.0,
+    "optional_field_hallucination": 0.75,
+    "wrong_domain_execution_rate": 0.4,
+    "schema_validity_rate": 1.0,
+    "n": 10,
+    "empty_call_precision": 0.75,
+    "empty_call_recall": 0.6
+  },
+  "4bit": {
+    "exact_call_accuracy": 0.5,
+    "function_selection_accuracy": 0.6,
+    "argument_value_accuracy": 1.0,
+    "optional_field_hallucination": 0.75,
+    "wrong_domain_execution_rate": 0.4,
+    "schema_validity_rate": 1.0,
+    "n": 10,
+    "empty_call_precision": 0.6,
+    "empty_call_recall": 0.6
+  },
+  "size_mb": {
+    "2bit": 13.74,
+    "4bit": 23.17
+  },
+  "mean_latency_s": {
+    "2bit": 0.229,
+    "4bit": 0.45299999999999996
+  }
+}

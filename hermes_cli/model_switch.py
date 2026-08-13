@@ -277,6 +277,7 @@ class ModelSwitchResult:
     capabilities: Optional[ModelCapabilities] = None
     model_info: Optional[ModelInfo] = None
     is_global: bool = False
+    credential_pool: Any = None
 
 
 @dataclass
@@ -896,6 +897,7 @@ def switch_model(
     api_key = current_api_key
     base_url = current_base_url
     api_mode = ""
+    credential_pool = None
 
     if provider_changed or explicit_provider:
         try:
@@ -906,6 +908,7 @@ def switch_model(
             api_key = runtime.get("api_key", "")
             base_url = runtime.get("base_url", "")
             api_mode = runtime.get("api_mode", "")
+            credential_pool = runtime.get("credential_pool")
         except Exception as e:
             return ModelSwitchResult(
                 success=False,
@@ -930,6 +933,7 @@ def switch_model(
             api_key = runtime.get("api_key", "")
             base_url = runtime.get("base_url", "")
             api_mode = runtime.get("api_mode", "")
+            credential_pool = runtime.get("credential_pool")
         except Exception:
             pass
 
@@ -1069,6 +1073,7 @@ def switch_model(
         api_key=api_key,
         base_url=base_url,
         api_mode=api_mode,
+        credential_pool=credential_pool,
         warning_message=" | ".join(warnings) if warnings else "",
         provider_label=provider_label,
         resolved_via_alias=resolved_alias,

@@ -1,0 +1,312 @@
+{
+  "duration_s": 904.218,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000187",
+      "latency_s": 84.937,
+      "query": "NEEDLE-QA pressure test: At Arena Island, frame time regression percent is 28 percent; the reference gate is 20 percent. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000188",
+      "latency_s": 72.25,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, a destructible pillar removes the only exit bridge when broken. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000189",
+      "latency_s": 27.609,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000190",
+      "latency_s": 28.063,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000191",
+      "latency_s": 33.969,
+      "query": "NEEDLE-QA pressure test: At eastern village, the tower clips through the deck and cliff without a designed joint or load path. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000192",
+      "latency_s": 34.656,
+      "query": "NEEDLE-QA pressure test: At western wilderness, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0044,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000193",
+      "latency_s": 17.296,
+      "query": "NEEDLE-QA pressure test: At northern market, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000194",
+      "latency_s": 30.188,
+      "query": "NEEDLE-QA pressure test: At southern refinery, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000195",
+      "latency_s": 30.687,
+      "query": "NEEDLE-QA pressure test: At Archive service district, a missing manifest entry is ignored and the asset is claimed to exist. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000196",
+      "latency_s": 40.938,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, process liveness or exit code zero is treated as proof that every world gate passed. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000197",
+      "latency_s": 36.406,
+      "query": "NEEDLE-QA pressure test: At river ravine, a roofline endpoint is approved because the bridge visually reaches the district. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000198",
+      "latency_s": 35.5,
+      "query": "NEEDLE-QA pressure test: At outer gate, greybox geometry with fog is called visually final after automation passes. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000199",
+      "latency_s": 31.953,
+      "query": "NEEDLE-QA pressure test: At temple quarter, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000200",
+      "latency_s": 30.141,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000201",
+      "latency_s": 18.781,
+      "query": "NEEDLE-QA pressure test: At Arena Island, a teammate claims the temple district passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000202",
+      "latency_s": 106.094,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, a teammate claims the Axiom hub composition passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0059,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000203",
+      "latency_s": 11.609,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, a teammate claims the Archive approach passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000204",
+      "latency_s": 24.688,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, a teammate claims the monumental bridge passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000205",
+      "latency_s": 19.125,
+      "query": "NEEDLE-QA pressure test: At eastern village, a teammate claims the Skyway station passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000206",
+      "latency_s": 27.344,
+      "query": "NEEDLE-QA pressure test: At western wilderness, a teammate claims the public entrance passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000207",
+      "latency_s": 22.796,
+      "query": "NEEDLE-QA pressure test: At northern market, a teammate claims the Wayfinder hall passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000208",
+      "latency_s": 26.032,
+      "query": "NEEDLE-QA pressure test: At southern refinery, a teammate claims the maintenance annex passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0065,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000209",
+      "latency_s": 10.812,
+      "query": "NEEDLE-QA pressure test: At Archive service district, a teammate claims the floating island underside passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0062,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000210",
+      "latency_s": 7.75,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, a teammate claims the regional island terrain passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000211",
+      "latency_s": 19.422,
+      "query": "NEEDLE-QA pressure test: At river ravine, a teammate claims the wilderness corridor passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000212",
+      "latency_s": 19.125,
+      "query": "NEEDLE-QA pressure test: At outer gate, a teammate claims the capital road network passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000213",
+      "latency_s": 17.297,
+      "query": "NEEDLE-QA pressure test: At temple quarter, a teammate claims the satellite village passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000214",
+      "latency_s": 18.078,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, a teammate claims the market square passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M0",
+            "evidence_kind": "D1",
+            "next_gate": "G1"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_qa_000215",
+      "latency_s": 20.641,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, a teammate claims the blacksmith shop passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_09.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

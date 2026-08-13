@@ -85,6 +85,10 @@ class TestProviderMapping:
         assert PROVIDER_TO_MODELS_DEV["stepfun"] == "stepfun"
         assert PROVIDER_TO_MODELS_DEV["kilocode"] == "kilo"
         assert PROVIDER_TO_MODELS_DEV["ai-gateway"] == "vercel"
+        assert PROVIDER_TO_MODELS_DEV["kimi-coding"] == "kimi-for-coding"
+        assert PROVIDER_TO_MODELS_DEV["kimi-coding-cn"] == "moonshotai-cn"
+        assert PROVIDER_TO_MODELS_DEV["gmi"] == "gmicloud"
+        assert PROVIDER_TO_MODELS_DEV["alibaba-coding-plan"] == "alibaba"
 
     def test_unmapped_provider_not_in_dict(self):
         assert "nous" not in PROVIDER_TO_MODELS_DEV

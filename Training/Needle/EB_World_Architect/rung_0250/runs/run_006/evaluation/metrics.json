@@ -1,0 +1,629 @@
+{
+  "holdout": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": -0.03
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0725
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.011111111111111112
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 3
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 0.975
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.07
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": false,
+        "value": 0.9875
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.1725
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 0.3
+      }
+    },
+    "n": 400,
+    "stock_metrics": {
+      "category_accuracy": 0.1025,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.002777777777777778,
+      "critical_failure_count": 3,
+      "critical_failures": [
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "MARKETS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000294",
+          "index": 293,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "MACRO_LAYOUT",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_REPO_INSPECTION",
+            "category": "REPO_REASONING",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000315",
+          "index": 314,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "MACRO_LAYOUT",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "VERIFICATION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000316",
+          "index": 315,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.9875,
+      "exact_accuracy": 0.1,
+      "false_completion_safety": 0.9625,
+      "n": 400,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 360,
+        "constraint": 6,
+        "evidence": 160,
+        "false_completion": 80,
+        "priority": 40,
+        "wrong_domain": 40
+      },
+      "verdict_accuracy": 0.12,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.0725,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.011111111111111112,
+      "critical_failure_count": 3,
+      "critical_failures": [
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RUN_QA_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_holdout_000133",
+          "index": 132,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "PLAYER_SCALE",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "evaluate_world_constraint",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RESTORE_CLEARANCE",
+            "category": "WILDERNESS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000171",
+          "index": 170,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "PLAYER_SCALE",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "evaluate_world_constraint",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000320",
+          "index": 319,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "PLAYER_SCALE",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "evaluate_world_constraint",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.975,
+      "exact_accuracy": 0.07,
+      "false_completion_safety": 0.9875,
+      "n": 400,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 360,
+        "constraint": 6,
+        "evidence": 160,
+        "false_completion": 80,
+        "priority": 40,
+        "wrong_domain": 40
+      },
+      "verdict_accuracy": 0.1725,
+      "wrong_domain_execution_rate": 0.3
+    }
+  },
+  "qa": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": -0.008
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.036
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.004166666666666667
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 2
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.9444444444444444
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.032
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": false,
+        "value": 0.95
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.092
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 0.2
+      }
+    },
+    "n": 250,
+    "stock_metrics": {
+      "category_accuracy": 0.048,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 1,
+      "critical_failures": [
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RUN_QA_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_qa_000150",
+          "index": 149,
+          "prediction": {
+            "action": "FIX_STRUCTURE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.04,
+      "false_completion_safety": 1.0,
+      "n": 250,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 240,
+        "constraint": 6,
+        "evidence": 90,
+        "false_completion": 40,
+        "priority": 40,
+        "wrong_domain": 10
+      },
+      "verdict_accuracy": 0.052,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.036,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.004166666666666667,
+      "critical_failure_count": 2,
+      "critical_failures": [
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "INTERIORS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_qa_000216",
+          "index": 215,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "ESSENCE_INFRASTRUCTURE",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_qa_000221",
+          "index": 220,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.9444444444444444,
+      "exact_accuracy": 0.032,
+      "false_completion_safety": 0.95,
+      "n": 250,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 240,
+        "constraint": 6,
+        "evidence": 90,
+        "false_completion": 40,
+        "priority": 40,
+        "wrong_domain": 10
+      },
+      "verdict_accuracy": 0.092,
+      "wrong_domain_execution_rate": 0.2
+    }
+  },
+  "test": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": 0.0
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.04
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 1.0
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.04
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.32
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0.0
+      }
+    },
+    "n": 25,
+    "stock_metrics": {
+      "category_accuracy": 0.04,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.04,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 24,
+        "constraint": 1,
+        "evidence": 9,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 1
+      },
+      "verdict_accuracy": 0.12,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.04,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.04,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 24,
+        "constraint": 1,
+        "evidence": 9,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 1
+      },
+      "verdict_accuracy": 0.32,
+      "wrong_domain_execution_rate": 0.0
+    }
+  },
+  "validation": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": 0.0
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.04
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 1.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 1.0
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.04
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.28
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0.0
+      }
+    },
+    "n": 25,
+    "stock_metrics": {
+      "category_accuracy": 0.04,
+      "constraint_accuracy": 1.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.04,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 24,
+        "constraint": 0,
+        "evidence": 9,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 1
+      },
+      "verdict_accuracy": 0.12,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.04,
+      "constraint_accuracy": 1.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.04,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 24,
+        "constraint": 0,
+        "evidence": 9,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 1
+      },
+      "verdict_accuracy": 0.28,
+      "wrong_domain_execution_rate": 0.0
+    }
+  }
+}

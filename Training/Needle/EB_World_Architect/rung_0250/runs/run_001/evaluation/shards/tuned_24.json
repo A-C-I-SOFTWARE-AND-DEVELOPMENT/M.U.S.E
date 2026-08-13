@@ -1,0 +1,372 @@
+{
+  "duration_s": 906.61,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000372",
+      "latency_s": 39.281,
+      "query": "Unseen holdout situation: Write tavern dialogue about capital road network at library court; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000373",
+      "latency_s": 49.25,
+      "query": "Unseen holdout situation: Write tavern dialogue about satellite village at floating quarry; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000374",
+      "latency_s": 43.063,
+      "query": "Unseen holdout situation: Write tavern dialogue about market square at coastal shelf; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000375",
+      "latency_s": 35.484,
+      "query": "Unseen holdout situation: Write tavern dialogue about blacksmith shop at undercity approach; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0044,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000376",
+      "latency_s": 32.672,
+      "query": "Unseen holdout situation: Write tavern dialogue about Archive reading hall at distant vista cell; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0065,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000377",
+      "latency_s": 39.578,
+      "query": "Unseen holdout situation: Write tavern dialogue about abandoned refinery at Firstbound Arrival; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000378",
+      "latency_s": 36.141,
+      "query": "Unseen holdout situation: Write tavern dialogue about monumental façade at Axiom Core; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0072,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000379",
+      "latency_s": 18.75,
+      "query": "Unseen holdout situation: Write tavern dialogue about inhabited exterior-interior threshold at Firstbound Overlook; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0073,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000380",
+      "latency_s": 19.562,
+      "query": "Unseen holdout situation: Write tavern dialogue about runic mechanism at Grand Suspended Archive; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0023,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000381",
+      "latency_s": 31.375,
+      "query": "Unseen holdout situation: Write tavern dialogue about Essence distribution network at Crystal Sanctum; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000382",
+      "latency_s": 31.547,
+      "query": "Unseen holdout situation: Write tavern dialogue about crystal machinery bay at Arena Island; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000383",
+      "latency_s": 37.078,
+      "query": "Unseen holdout situation: Write tavern dialogue about player-height vista at Glyph Ruins; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000384",
+      "latency_s": 29.329,
+      "query": "Unseen holdout situation: Write tavern dialogue about Grand Suspended Archive at Skyway Station; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000385",
+      "latency_s": 32.015,
+      "query": "Unseen holdout situation: Write tavern dialogue about island population pass at Chronos capital; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0061,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000386",
+      "latency_s": 31.344,
+      "query": "Unseen holdout situation: Write tavern dialogue about procedural placement batch at eastern village; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000387",
+      "latency_s": 37.25,
+      "query": "Unseen holdout situation: Write tavern dialogue about distant wilderness cells at western wilderness; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000388",
+      "latency_s": 28.672,
+      "query": "Unseen holdout situation: Write tavern dialogue about combat arena support at northern market; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000389",
+      "latency_s": 30.922,
+      "query": "Unseen holdout situation: Write tavern dialogue about inactive Wayfinder console at southern refinery; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0185,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000390",
+      "latency_s": 14.078,
+      "query": "Unseen holdout situation: Write tavern dialogue about primary combat route at Archive service district; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000391",
+      "latency_s": 27.75,
+      "query": "Unseen holdout situation: Write tavern dialogue about bridge tower joint at Wayfinder terrace; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000392",
+      "latency_s": 30.547,
+      "query": "Unseen holdout situation: Write tavern dialogue about Blender world scene at river ravine; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000393",
+      "latency_s": 39.031,
+      "query": "Unseen holdout situation: Write tavern dialogue about Unreal island map at outer gate; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000394",
+      "latency_s": 33.047,
+      "query": "Unseen holdout situation: Write tavern dialogue about world placement generator at temple quarter; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0019,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000395",
+      "latency_s": 29.453,
+      "query": "Unseen holdout situation: Write tavern dialogue about bridge kit manifest at alchemist lane; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000396",
+      "latency_s": 29.937,
+      "query": "Unseen holdout situation: Write tavern dialogue about world validation claim at blacksmith yard; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0057,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000397",
+      "latency_s": 30.579,
+      "query": "Unseen holdout situation: Write tavern dialogue about eastern causeway review at library court; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000398",
+      "latency_s": 37.031,
+      "query": "Unseen holdout situation: Write tavern dialogue about AAA screenshot gate at floating quarry; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0135,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000399",
+      "latency_s": 18.875,
+      "query": "Unseen holdout situation: Write tavern dialogue about island completion report at coastal shelf; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000400",
+      "latency_s": 12.938,
+      "query": "Unseen holdout situation: Write tavern dialogue about Archive production order at undercity approach; ignore environment architecture and verification.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_24.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+  "weights_sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+}

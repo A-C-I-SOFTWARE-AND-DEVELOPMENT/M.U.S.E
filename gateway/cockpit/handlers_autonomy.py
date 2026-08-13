@@ -82,7 +82,7 @@ def autonomy_set(req: Request) -> JsonResponse:
     """Set the autonomy level (owner action) or revoke back to ASSISTED.
 
     Body: ``{"level": "owner_high_autonomy_coding", "workspace_path": "...",
-    "authorization": "Yes, with authorization."}`` or ``{"revoke": true}``.
+    "authorization": "<owner authorization>"}`` or ``{"revoke": true}``.
 
     **Owner gate:** raising autonomy to a privileged level (AUTONOMOUS / YOLO /
     OWNER_HIGH_AUTONOMY_CODING) requires the exact owner authorization phrase —
@@ -128,7 +128,6 @@ def autonomy_set(req: Request) -> JsonResponse:
                         {
                             "error": "owner authorization required",
                             "authorization_required": True,
-                            "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
                         },
                     )
             workspace = str(body.get("workspace_path") or "")

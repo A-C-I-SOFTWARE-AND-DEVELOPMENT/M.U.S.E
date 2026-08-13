@@ -1,0 +1,560 @@
+{
+  "duration_s": 762.485,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 30,
+  "predictions": [
+    {
+      "confidence": 0.0042,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000009",
+      "latency_s": 17.047,
+      "query": "At Chronos capital, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0026,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000019",
+      "latency_s": 33.032,
+      "query": "At alchemist lane, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000029",
+      "latency_s": 34.843,
+      "query": "At Grand Suspended Archive, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0021,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S3"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000039",
+      "latency_s": 21.188,
+      "query": "At Archive service district, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0175,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000049",
+      "latency_s": 13.0,
+      "query": "At eastern village, fractured shelves, tapering plates, roots, mineral seams, and selective fragments form an asymmetric silhouette. review occurs before structural sign-off. Does this pass the floating island geology rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A23",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000059",
+      "latency_s": 30.172,
+      "query": "At blacksmith yard, cold restrained Essence light outside contrasts with warm amber inhabited light inside. review occurs before structural sign-off. Does this pass the lighting rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0189,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000069",
+      "latency_s": 11.172,
+      "query": "At Crystal Sanctum, the console communicates availability, interaction, success, damage, and dormant states. review occurs before structural sign-off. Does this pass the interaction rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000079",
+      "latency_s": 29.468,
+      "query": "At Wayfinder terrace, the report remains at its verified stage and names every outstanding gate. review occurs before structural sign-off. Does this pass the completion status rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M3",
+            "evidence_kind": "D2",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000089",
+      "latency_s": 29.953,
+      "query": "At western wilderness, a smooth symmetrical cone forms the entire underside with uniform scaled rocks, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0021,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P0",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000099",
+      "latency_s": 26.75,
+      "query": "At library court, cyan emission covers every edge and fog hides unfinished geometry, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S3"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000109",
+      "latency_s": 30.485,
+      "query": "At Arena Island, the console glows but supplies no affordance, response, inactive state, or failure feedback, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0045,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M4",
+            "evidence_kind": "D4",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000119",
+      "latency_s": 22.719,
+      "query": "At river ravine, the report declares AAA complete while traversal and performance evidence are absent, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000129",
+      "latency_s": 28.921,
+      "query": "At northern market, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A03",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000139",
+      "latency_s": 27.063,
+      "query": "At floating quarry, cyan emission covers every edge and fog hides unfinished geometry. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 20,
+            "observed_value": 29,
+            "unit": "BLOCKED",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000149",
+      "latency_s": 26.937,
+      "query": "At Glyph Ruins, the console glows but supplies no affordance, response, inactive state, or failure feedback. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0037,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000159",
+      "latency_s": 25.672,
+      "query": "At outer gate, the report declares AAA complete while traversal and performance evidence are absent. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000169",
+      "latency_s": 26.828,
+      "query": "At southern refinery, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0019,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P0",
+            "stage": "S3"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_000179",
+      "latency_s": 25.079,
+      "query": "At coastal shelf, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000189",
+      "latency_s": 29.484,
+      "query": "At Skyway Station, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000199",
+      "latency_s": 27.969,
+      "query": "At temple quarter, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0038,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M3",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000209",
+      "latency_s": 23.093,
+      "query": "At Archive service district, a teammate claims the floating island underside passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M3",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000219",
+      "latency_s": 24.079,
+      "query": "At undercity approach, a teammate claims the inhabited exterior-interior threshold passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0049,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000229",
+      "latency_s": 20.656,
+      "query": "At Chronos capital, a teammate claims the inactive Wayfinder console passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0038,
+      "evaluation_pool": "validation",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M3",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_000239",
+      "latency_s": 21.719,
+      "query": "At alchemist lane, a teammate claims the island completion report passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0165,
+      "evaluation_pool": "validation",
+      "function_calls": [],
+      "id": "eb_world_000249",
+      "latency_s": 11.812,
+      "query": "At Wayfinder terrace, fractured shelves, tapering plates, roots, mineral seams, and selective fragments form an asymmetric silhouette. review occurs before structural sign-off. Does this pass the floating island geology rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0023,
+      "evaluation_pool": "test",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 29,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000010",
+      "latency_s": 31.406,
+      "query": "At eastern village, the island radius grew but every building and crystal was uniformly scaled with it. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "test",
+      "function_calls": [],
+      "id": "eb_world_000020",
+      "latency_s": 18.344,
+      "query": "At blacksmith yard, particles and glow appear everywhere without an active system or readable state. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "test",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_000030",
+      "latency_s": 26.813,
+      "query": "At Crystal Sanctum, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "test",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000040",
+      "latency_s": 28.031,
+      "query": "At Wayfinder terrace, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "test",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A23",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 15,
+            "observed_value": 2,
+            "unit": "WE",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_000050",
+      "latency_s": 38.734,
+      "query": "At western wilderness, human-scaled settlements occupy an expanded landscape of wilderness, roads, ruins, and landmarks. review occurs before structural sign-off. Does this pass the landmass rule?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_002\\evaluation\\shards\\rows_01.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_002\\model.cact",
+  "weights_sha256": "ad7116067e5eaf81c3f3a4f62922760522d51f42787ea5388b0f78936ff7c0e2"
+}

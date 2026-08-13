@@ -559,6 +559,29 @@ def recover_with_credential_pool(
     if pool is None:
         return False, has_retried_429
 
+    # A live /model switch can change providers without reconstructing the
+    # agent. Never rotate credentials from the provider we just left: doing so
+    # can replace both the key and base URL (for example Ollama Cloud -> an old
+    # DashScope pool), masking the real provider error with a misleading 404.
+    agent_provider = str(getattr(agent, "provider", "") or "").strip().lower()
+    pool_provider = str(getattr(pool, "provider", "") or "").strip().lower()
+    custom_pool_matches = (
+        agent_provider == "custom" and pool_provider.startswith("custom:")
+    )
+    if (
+        agent_provider
+        and pool_provider
+        and pool_provider != agent_provider
+        and not custom_pool_matches
+    ):
+        _ra().logger.warning(
+            "Ignoring stale credential pool for %s while active provider is %s",
+            pool_provider,
+            agent_provider,
+        )
+        agent._credential_pool = None
+        return False, has_retried_429
+
     effective_reason = classified_reason
     if effective_reason is None:
         if status_code == 402:
@@ -569,6 +592,24 @@ def recover_with_credential_pool(
             effective_reason = FailoverReason.auth
 
     if effective_reason == FailoverReason.billing:
+        billing_text = " ".join(
+            str((error_context or {}).get(key) or "")
+            for key in ("reason", "message")
+        ).lower()
+        if (
+            agent_provider == "ollama-cloud"
+            and "extra usage" in billing_text
+            and ("balance is empty" in billing_text or "extra usage only" in billing_text)
+        ):
+            # Kimi K3's extra-usage gate is model/account specific. The Ollama
+            # key is valid and other included-plan models still work, so
+            # exhausting or rotating the whole credential is both incorrect
+            # and can hide the actionable 402 behind a later provider error.
+            _ra().logger.info(
+                "Ollama Cloud model requires extra usage; preserving the "
+                "credential and surfacing the provider's billing response."
+            )
+            return False, has_retried_429
         rotate_status = status_code if status_code is not None else 402
         next_entry = pool.mark_exhausted_and_rotate(status_code=rotate_status, error_context=error_context)
         if next_entry is not None:
@@ -1282,7 +1323,15 @@ def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: boo
     return client
 
 
-def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mode=''):
+def switch_model(
+    agent,
+    new_model,
+    new_provider,
+    api_key='',
+    base_url='',
+    api_mode='',
+    credential_pool=None,
+):
     """Switch the model/provider in-place for a live agent.
 
     Called by the /model command handlers (CLI and gateway) after
@@ -1317,6 +1366,8 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
 
     old_model = agent.model
     old_provider = agent.provider
+    old_provider_norm = str(old_provider or "").strip().lower()
+    new_provider_norm = str(new_provider or "").strip().lower()
     # Capture the OLD endpoint/credentials before they are swapped below, so a
     # post-swap LM Studio unload targets the model we're leaving (not the new
     # one). ``api_key`` may be a callable (e.g. Azure Foundry token provider);
@@ -1332,6 +1383,12 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
     # ── Swap core runtime fields ──
     agent.model = new_model
     agent.provider = new_provider
+    if old_provider_norm != new_provider_norm:
+        # The caller resolved this pool alongside the new provider's key and
+        # endpoint. Clear the previous pool even when no new pool exists.
+        agent._credential_pool = credential_pool
+    elif credential_pool is not None:
+        agent._credential_pool = credential_pool
     # Use new base_url when provided; only fall back to current when the
     # new provider genuinely has no endpoint (e.g. native SDK providers).
     # Without this guard the old provider's URL (e.g. Ollama's localhost
@@ -1508,8 +1565,8 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
     # primary silently re-activates the provider the user just rejected,
     # which is exactly what was reported during TUI v2 blitz testing
     # ("switched to anthropic, tui keeps trying openrouter").
-    old_norm = (old_provider or "").strip().lower()
-    new_norm = (new_provider or "").strip().lower()
+    old_norm = old_provider_norm
+    new_norm = new_provider_norm
     fallback_chain = list(getattr(agent, "_fallback_chain", []) or [])
     if old_norm and new_norm and old_norm != new_norm:
         fallback_chain = [
