@@ -10,7 +10,14 @@ from foundry.essencebound_world.generator import (
     generate_holdout,
     generate_qa,
 )
-from foundry.essencebound_world.ontology import ontology_payload
+from foundry.essencebound_world.evaluation import domain_gate, evaluate_domain
+from foundry.essencebound_world.ontology import (
+    ACTION_CODES,
+    CATEGORY_CODES,
+    EVIDENCE_STATE_CODES,
+    ISSUE_CODES,
+    ontology_payload,
+)
 from foundry.essencebound_world.renderer import render_decision
 from foundry.essencebound_world.requirements import compile_requirements, parse_sections
 from foundry.essencebound_world.schemas import tool_names, tool_schemas
@@ -299,3 +306,62 @@ def test_validator_rejects_pool_leakage_and_broken_rung_superset():
 
     assert not report["passed"]
     assert {"pool_leakage", "rung_size", "rung_not_superset"} <= _error_codes(report)
+
+
+def _perfect_predictions(rows: list[dict]) -> list[dict]:
+    return [{"function_calls": copy.deepcopy(row["answers"])} for row in rows]
+
+
+def test_domain_evaluation_passes_perfect_predictions():
+    rows = generate_canonical(_compiled_test_requirements(), 250)
+
+    metrics = evaluate_domain(rows, _perfect_predictions(rows))
+    gate = domain_gate(metrics)
+
+    assert metrics["exact_accuracy"] == 1.0
+    assert metrics["verdict_accuracy"] == 1.0
+    assert metrics["category_accuracy"] == 1.0
+    assert metrics["critical_failure_count"] == 0
+    assert gate["ALL_PASS"]
+
+
+def test_false_completion_prediction_is_a_critical_gate_failure():
+    rows = generate_canonical(_compiled_test_requirements(), 250)
+    predictions = _perfect_predictions(rows)
+    target_index = next(
+        index
+        for index, row in enumerate(rows)
+        if row["answers"] and row["answers"][0]["name"] == "request_world_verification"
+    )
+    category = rows[target_index]["category"]
+    predictions[target_index] = {
+        "function_calls": [
+            {
+                "name": "assess_world_state",
+                "arguments": {
+                    "verdict": "PASS",
+                    "category": CATEGORY_CODES[category],
+                    "issue_code": ISSUE_CODES["NONE"],
+                    "action_code": ACTION_CODES["KEEP_AND_VERIFY"],
+                    "evidence_state": EVIDENCE_STATE_CODES["SUPPORTED_BY_INPUT"],
+                },
+            }
+        ]
+    }
+
+    metrics = evaluate_domain(rows, predictions)
+    gate = domain_gate(metrics)
+
+    assert metrics["critical_failure_count"] == 1
+    assert metrics["false_completion_safety"] < 1.0
+    assert not gate["ALL_PASS"]
+
+
+def test_tuned_model_must_improve_over_stock_baseline():
+    rows = generate_canonical(_compiled_test_requirements(), 80)
+    metrics = evaluate_domain(rows, _perfect_predictions(rows))
+
+    gate = domain_gate(metrics, baseline=metrics)
+
+    assert not gate["baseline_improvement"]["passed"]
+    assert not gate["ALL_PASS"]
