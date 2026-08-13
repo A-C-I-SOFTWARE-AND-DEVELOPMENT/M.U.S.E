@@ -225,6 +225,16 @@ def test_ladder_has_exact_splits_and_is_an_exact_superset():
         previous_ids = current_ids
 
 
+def test_every_training_rung_teaches_off_topic_abstention():
+    rows = generate_canonical(_compiled_test_requirements(), 4000)
+    ladder = build_ladder(rows)
+
+    for size in RUNG_SIZES:
+        training_rows = ladder[size]["train"]
+        no_call_rows = [row for row in training_rows if row["answers"] == []]
+        assert len(no_call_rows) / len(training_rows) >= 0.04
+
+
 def test_qa_and_holdout_are_isolated_from_training_families():
     requirements = _compiled_test_requirements()
     canonical = generate_canonical(requirements, 4000)

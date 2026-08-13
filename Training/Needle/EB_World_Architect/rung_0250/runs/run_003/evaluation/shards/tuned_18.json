@@ -1,0 +1,565 @@
+{
+  "duration_s": 628.171,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0021,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000198",
+      "latency_s": 26.546,
+      "query": "Unseen holdout situation: At outer gate, greybox geometry with fog is called visually final after automation passes. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000199",
+      "latency_s": 19.688,
+      "query": "Unseen holdout situation: At temple quarter, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000200",
+      "latency_s": 14.016,
+      "query": "Unseen holdout situation: At alchemist lane, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000201",
+      "latency_s": 19.156,
+      "query": "Unseen holdout situation: At Arena Island, a teammate claims the temple district passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0018,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000202",
+      "latency_s": 20.781,
+      "query": "Unseen holdout situation: At Glyph Ruins, a teammate claims the Axiom hub composition passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000203",
+      "latency_s": 23.453,
+      "query": "Unseen holdout situation: At Skyway Station, a teammate claims the Archive approach passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0038,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D2",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000204",
+      "latency_s": 16.844,
+      "query": "Unseen holdout situation: At Chronos capital, a teammate claims the monumental bridge passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0034,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000205",
+      "latency_s": 21.25,
+      "query": "Unseen holdout situation: At eastern village, a teammate claims the Skyway station passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000206",
+      "latency_s": 23.172,
+      "query": "Unseen holdout situation: At western wilderness, a teammate claims the public entrance passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000207",
+      "latency_s": 20.687,
+      "query": "Unseen holdout situation: At northern market, a teammate claims the Wayfinder hall passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0041,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000208",
+      "latency_s": 18.11,
+      "query": "Unseen holdout situation: At southern refinery, a teammate claims the maintenance annex passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0054,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000209",
+      "latency_s": 16.937,
+      "query": "Unseen holdout situation: At Archive service district, a teammate claims the floating island underside passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M3",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000210",
+      "latency_s": 23.688,
+      "query": "Unseen holdout situation: At Wayfinder terrace, a teammate claims the regional island terrain passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000211",
+      "latency_s": 22.359,
+      "query": "Unseen holdout situation: At river ravine, a teammate claims the wilderness corridor passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0027,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M0",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000212",
+      "latency_s": 20.828,
+      "query": "Unseen holdout situation: At outer gate, a teammate claims the capital road network passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0052,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000213",
+      "latency_s": 17.047,
+      "query": "Unseen holdout situation: At temple quarter, a teammate claims the satellite village passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0032,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000214",
+      "latency_s": 17.797,
+      "query": "Unseen holdout situation: At alchemist lane, a teammate claims the market square passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000215",
+      "latency_s": 27.781,
+      "query": "Unseen holdout situation: At blacksmith yard, a teammate claims the blacksmith shop passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000216",
+      "latency_s": 21.781,
+      "query": "Unseen holdout situation: At library court, a teammate claims the Archive reading hall passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000217",
+      "latency_s": 22.438,
+      "query": "Unseen holdout situation: At floating quarry, a teammate claims the abandoned refinery passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000218",
+      "latency_s": 24.359,
+      "query": "Unseen holdout situation: At coastal shelf, a teammate claims the monumental façade passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0039,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000219",
+      "latency_s": 16.907,
+      "query": "Unseen holdout situation: At undercity approach, a teammate claims the inhabited exterior-interior threshold passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0037,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D2",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000220",
+      "latency_s": 16.75,
+      "query": "Unseen holdout situation: At distant vista cell, a teammate claims the runic mechanism passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C00",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000221",
+      "latency_s": 22.39,
+      "query": "Unseen holdout situation: At Firstbound Arrival, a teammate claims the Essence distribution network passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000222",
+      "latency_s": 29.203,
+      "query": "Unseen holdout situation: At Axiom Core, a teammate claims the crystal machinery bay passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0038,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000223",
+      "latency_s": 22.828,
+      "query": "Unseen holdout situation: At Firstbound Overlook, a teammate claims the player-height vista passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M2",
+            "evidence_kind": "D0",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000224",
+      "latency_s": 27.11,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, a teammate claims the Grand Suspended Archive passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C03",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000225",
+      "latency_s": 25.797,
+      "query": "Unseen holdout situation: At Crystal Sanctum, a teammate claims the island population pass passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000226",
+      "latency_s": 28.453,
+      "query": "Unseen holdout situation: At Arena Island, a teammate claims the procedural placement batch passes, but only a verbal summary is supplied. review occurs before structural sign-off. Is the claim verified?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_003\\evaluation\\shards\\rows_18.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_003\\model.cact",
+  "weights_sha256": "011d5f5d8cfed35825a174d5e5f8d70c6b9e6d9bec2be840981c4534299b3005"
+}

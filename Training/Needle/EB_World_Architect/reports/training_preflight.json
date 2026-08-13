@@ -33,7 +33,7 @@
     "devices": [
       "cuda:0"
     ],
-    "duration_s": 6.546,
+    "duration_s": 5.718,
     "exit_code": 0,
     "jax": "0.11.0",
     "passed": true,

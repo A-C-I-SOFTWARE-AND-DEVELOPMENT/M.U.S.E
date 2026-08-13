@@ -1,0 +1,587 @@
+{
+  "duration_s": 754.281,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 30,
+  "predictions": [
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000041",
+      "latency_s": 26.516,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, dark monumental stone, aged bronze frames, tall arches, and restrained cyan conduits form a coherent identity. review occurs before structural sign-off. Does this pass the concept fidelity rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.003,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000042",
+      "latency_s": 25.797,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, the Axiom Core anchors the view with two secondary landmarks and quieter tertiary detail. review occurs before structural sign-off. Does this pass the macro layout rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0026,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000043",
+      "latency_s": 32.656,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, the primary route reaches a clear landing and an optional loop returns to the hub. review occurs before structural sign-off. Does this pass the traversal rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0031,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000044",
+      "latency_s": 25.203,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, both ends have supported landings, readable anchors, safe width, lighting, and collision. review occurs before structural sign-off. Does this pass the bridges rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000045",
+      "latency_s": 30.0,
+      "query": "NEEDLE-QA pressure test: At Arena Island, the gate frames the destination, provides safe arrival clearance, and connects to the road network. review occurs before structural sign-off. Does this pass the skyways rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0027,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K03",
+            "evidence_state": "E2",
+            "limit_value": 15,
+            "observed_value": 29,
+            "unit": "WARN",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_qa_000046",
+      "latency_s": 33.922,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, the entrance, landing, railing, and stair dimensions remain within the intended human-scale ranges. review occurs before structural sign-off. Does this pass the player scale rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P0",
+            "stage": "S7"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000047",
+      "latency_s": 27.375,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, layered foundations, buttresses, bronze clamps, and Essence machinery explain every major load. review occurs before structural sign-off. Does this pass the architecture rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0036,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S7"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000048",
+      "latency_s": 28.281,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, the annex sits beside the Skyway because it maintains the gate and creates a secondary service route. review occurs before structural sign-off. Does this pass the architectural purpose rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0031,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000049",
+      "latency_s": 24.344,
+      "query": "NEEDLE-QA pressure test: At eastern village, fractured shelves, tapering plates, roots, mineral seams, and selective fragments form an asymmetric silhouette. review occurs before structural sign-off. Does this pass the floating island geology rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000050",
+      "latency_s": 29.656,
+      "query": "NEEDLE-QA pressure test: At western wilderness, human-scaled settlements occupy an expanded landscape of wilderness, roads, ruins, and landmarks. review occurs before structural sign-off. Does this pass the landmass rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0039,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000051",
+      "latency_s": 23.969,
+      "query": "NEEDLE-QA pressure test: At northern market, distance-aware vegetation clusters frame readable trails, clearings, and regional landmarks. review occurs before structural sign-off. Does this pass the wilderness rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0031,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000052",
+      "latency_s": 27.828,
+      "query": "NEEDLE-QA pressure test: At southern refinery, primary, secondary, ring, and service roads connect real destinations through readable junctions. review occurs before structural sign-off. Does this pass the roads rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0019,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000053",
+      "latency_s": 25.453,
+      "query": "NEEDLE-QA pressure test: At Archive service district, the village has a distinct economy, terrain response, civic focus, and connection to regional travel. review occurs before structural sign-off. Does this pass the settlements rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000054",
+      "latency_s": 29.281,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, stalls form navigable edges around a civic focus with service access and readable circulation. review occurs before structural sign-off. Does this pass the markets rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000055",
+      "latency_s": 22.11,
+      "query": "NEEDLE-QA pressure test: At river ravine, the forge, storage, sales space, delivery access, and warm inhabited lighting support its role. review occurs before structural sign-off. Does this pass the shops rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000056",
+      "latency_s": 22.156,
+      "query": "NEEDLE-QA pressure test: At outer gate, entrance, public loop, restricted stacks, vertical route, and service spaces form a coherent plan. review occurs before structural sign-off. Does this pass the interiors rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0029,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000057",
+      "latency_s": 29.328,
+      "query": "NEEDLE-QA pressure test: At temple quarter, tool placement, damaged conduits, repair attempts, and evacuation traces reveal a causal history. review occurs before structural sign-off. Does this pass the environmental storytelling rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000058",
+      "latency_s": 27.906,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, dark stone, aged bronze, localized weathering, and selective luminous details reinforce construction and history. review occurs before structural sign-off. Does this pass the materials rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0021,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000059",
+      "latency_s": 30.532,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, cold restrained Essence light outside contrasts with warm amber inhabited light inside. review occurs before structural sign-off. Does this pass the lighting rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000060",
+      "latency_s": 29.625,
+      "query": "NEEDLE-QA pressure test: At library court, rotation, restrained particles, and light flow appear only where the powered mechanism justifies them. review occurs before structural sign-off. Does this pass the magic rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0026,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000061",
+      "latency_s": 29.297,
+      "query": "NEEDLE-QA pressure test: At floating quarry, a crystal source feeds conduits, floor channels, machinery, and the destination facility with damaged and dormant states. review occurs before structural sign-off. Does this pass the essence infrastructure rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S7"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000062",
+      "latency_s": 24.046,
+      "query": "NEEDLE-QA pressure test: At coastal shelf, crystals cluster at sources, housings, damaged conduits, and high-value machinery. review occurs before structural sign-off. Does this pass the crystals rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000063",
+      "latency_s": 29.938,
+      "query": "NEEDLE-QA pressure test: At undercity approach, foreground framing leads to one primary focus, two secondary landmarks, and quieter distant depth. review occurs before structural sign-off. Does this pass the composition rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0054,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000064",
+      "latency_s": 27.937,
+      "query": "NEEDLE-QA pressure test: At distant vista cell, the Archive reads from silhouette through a unique vertical mass, controlled curves, and suspended structure. review occurs before structural sign-off. Does this pass the silhouette rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0035,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000065",
+      "latency_s": 28.875,
+      "query": "NEEDLE-QA pressure test: At Firstbound Arrival, the island remains within the preferred gate and reports measured VRAM, frame time, culling, and instance counts. review occurs before structural sign-off. Does this pass the performance rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000066",
+      "latency_s": 27.485,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, mesh, materials, cull settings, and kilometer-scale cell form localized instance batches. review occurs before structural sign-off. Does this pass the instancing rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.002,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000067",
+      "latency_s": 16.765,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, localized bounds and distance-aware placement are verified in the defined runtime QA view. review occurs before structural sign-off. Does this pass the culling rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0053,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000068",
+      "latency_s": 8.969,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, breakable props preserve critical traversal or reveal a verified replacement route. review occurs before structural sign-off. Does this pass the destruction rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B2",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000069",
+      "latency_s": 5.125,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, the console communicates availability, interaction, success, damage, and dormant states. review occurs before structural sign-off. Does this pass the interaction rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0038,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A00",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000070",
+      "latency_s": 3.891,
+      "query": "NEEDLE-QA pressure test: At Arena Island, collision follows visible structure and the intended player route passes the traversal test. review occurs before structural sign-off. Does this pass the collision rule?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_002\\evaluation\\shards\\rows_04.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_002\\model.cact",
+  "weights_sha256": "ad7116067e5eaf81c3f3a4f62922760522d51f42787ea5388b0f78936ff7c0e2"
+}

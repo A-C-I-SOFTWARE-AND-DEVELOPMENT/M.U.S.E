@@ -1,0 +1,315 @@
+{
+  "duration_s": 795.422,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0076,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000071",
+      "latency_s": 14.063,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, a layered foundation, pier, clamp, and cut-stone transition make the joint intentional. review occurs before structural sign-off. Does this pass the object intersections rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000072",
+      "latency_s": 30.703,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, the scene is inspected through QA collections, player-eye cameras, scale checks, and duplicate cleanup reports. review occurs before structural sign-off. Does this pass the blender rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K01",
+            "evidence_state": "E1",
+            "limit_value": 5,
+            "observed_value": 0,
+            "unit": "C",
+            "verdict": "BLOCKED"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_qa_000073",
+      "latency_s": 121.719,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, each island uses the verified map and streaming architecture while Axiom remains the measured hub and vista. review occurs before structural sign-off. Does this pass the unreal rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0071,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000074",
+      "latency_s": 13.593,
+      "query": "NEEDLE-QA pressure test: At eastern village, deterministic cell-aware generation emits manifests, counts, bounds, provenance, and verifier inputs. review occurs before structural sign-off. Does this pass the python generation rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0094,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000075",
+      "latency_s": 12.219,
+      "query": "NEEDLE-QA pressure test: At western wilderness, the registered path and hash are inspected before route generation references the asset. review occurs before structural sign-off. Does this pass the repo reasoning rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.012,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000076",
+      "latency_s": 11.235,
+      "query": "NEEDLE-QA pressure test: At northern market, each claim names actual repository, scene, render, test, collision, or performance evidence. review occurs before structural sign-off. Does this pass the verification rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0102,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000077",
+      "latency_s": 12.515,
+      "query": "NEEDLE-QA pressure test: At southern refinery, the suspended endpoint is classified as inaccessible and corrected before materials. review occurs before structural sign-off. Does this pass the failure detection rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000078",
+      "latency_s": 15.672,
+      "query": "NEEDLE-QA pressure test: At Archive service district, clear player-height renders, concept comparison, materials, lighting, collision, and performance all pass. review occurs before structural sign-off. Does this pass the quality gates rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0095,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000079",
+      "latency_s": 13.516,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, the report remains at its verified stage and names every outstanding gate. review occurs before structural sign-off. Does this pass the completion status rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0107,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000080",
+      "latency_s": 12.5,
+      "query": "NEEDLE-QA pressure test: At river ravine, connectivity and structural gates pass before material, lighting, and polish work. review occurs before structural sign-off. Does this pass the task prioritization rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0092,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000081",
+      "latency_s": 15.125,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, white marble columns and neon roof outlines replace the dark-stone and bronze language, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0144,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000082",
+      "latency_s": 20.125,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000083",
+      "latency_s": 30.75,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000084",
+      "latency_s": 115.031,
+      "query": "NEEDLE-QA pressure test: At Arena Island, the span meets bare cliff, lacks anchors, and rises too steeply for the intended encounter, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0054,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000085",
+      "latency_s": 11.937,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, the arrival gate faces a wall and gives the player no readable exit, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000086",
+      "latency_s": 31.422,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0086,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000087",
+      "latency_s": 12.813,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, the hall floats above terrain and decorative crystals are its only explanation, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000088",
+      "latency_s": 34.0,
+      "query": "NEEDLE-QA pressure test: At eastern village, twenty towers fill empty space without location, function, entrance, or gameplay purpose, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0086,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000089",
+      "latency_s": 11.125,
+      "query": "NEEDLE-QA pressure test: At western wilderness, a smooth symmetrical cone forms the entire underside with uniform scaled rocks, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000090",
+      "latency_s": 102.265,
+      "query": "NEEDLE-QA pressure test: At northern market, the island radius grew but every building and crystal was uniformly scaled with it, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000091",
+      "latency_s": 72.735,
+      "query": "NEEDLE-QA pressure test: At southern refinery, uniformly scattered clutter erases paths, silhouettes, and encounter clearings, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000092",
+      "latency_s": 43.125,
+      "query": "NEEDLE-QA pressure test: At Archive service district, ornamental road segments stop in fields and never connect the capital, villages, or services, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.007,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000093",
+      "latency_s": 2.906,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, the village copies the capital block-for-block and has no regional function or history, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000094",
+      "latency_s": 16.031,
+      "query": "NEEDLE-QA pressure test: At river ravine, stalls block the primary route and have no storage, delivery access, or vendor logic, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000095",
+      "latency_s": 8.11,
+      "query": "NEEDLE-QA pressure test: At outer gate, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0058,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000096",
+      "latency_s": 1.0,
+      "query": "NEEDLE-QA pressure test: At temple quarter, the exterior door opens into a blocked wall and rooms have no circulation or service function, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0024,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000097",
+      "latency_s": 1.422,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, random debris is scattered without explaining work, damage, abandonment, or recovery, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000098",
+      "latency_s": 2.359,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, uniform clean materials erase age, use, moisture, repairs, and material hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000099",
+      "latency_s": 5.391,
+      "query": "NEEDLE-QA pressure test: At library court, cyan emission covers every edge and fog hides unfinished geometry, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_003\\evaluation\\shards\\rows_05.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

@@ -1,5 +1,6 @@
 """Integration tests for Essencebound dataset artifact construction."""
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -9,6 +10,8 @@ from pathlib import Path
 from foundry.essencebound_world.pipeline import build_data, validate_root
 from foundry.essencebound_world.runtime_eval import (
     build_eval_command,
+    find_verified_prediction_cache,
+    load_verified_prediction_cache,
     record_training_evaluation,
     shard_rows,
     summarize_rung_evaluation,
@@ -221,6 +224,88 @@ def test_eval_shards_cover_every_row_once_and_stay_balanced():
 
     assert [row["id"] for shard in shards for row in shard] == [str(index) for index in range(17)]
     assert max(map(len, shards)) - min(map(len, shards)) <= 1
+
+
+def _write_prediction_cache_fixture(tmp_path):
+    evaluation = tmp_path / "evaluation"
+    evaluation.mkdir(parents=True)
+    rows = evaluation / "evaluation_rows.jsonl"
+    rows.write_text('{"id":"row-1","evaluation_pool":"test"}\n', encoding="utf-8")
+    weights = tmp_path / "stock.cact"
+    weights.write_bytes(b"stock-weights")
+    payload = {
+        "status": "COMPLETE",
+        "weights_sha256": hashlib.sha256(b"stock-weights").hexdigest(),
+        "n": 1,
+        "errors": [],
+        "predictions": [{"evaluation_pool": "test", "function_calls": []}],
+    }
+    (evaluation / "stock_predictions.json").write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
+    return evaluation, rows, weights
+
+
+def test_verified_prediction_cache_accepts_exact_rows_and_weights(tmp_path):
+    evaluation, rows, weights = _write_prediction_cache_fixture(tmp_path)
+
+    cached = load_verified_prediction_cache(
+        evaluation_dir=evaluation,
+        current_rows=rows,
+        weights=weights,
+        label="stock",
+    )
+
+    assert cached is not None
+    assert cached["n"] == 1
+
+
+def test_verified_prediction_cache_rejects_stale_rows(tmp_path):
+    evaluation, _rows, weights = _write_prediction_cache_fixture(tmp_path)
+    current_rows = tmp_path / "current_rows.jsonl"
+    current_rows.write_text('{"id":"row-2","evaluation_pool":"test"}\n', encoding="utf-8")
+
+    assert load_verified_prediction_cache(
+        evaluation_dir=evaluation,
+        current_rows=current_rows,
+        weights=weights,
+        label="stock",
+    ) is None
+
+
+def test_verified_prediction_cache_rejects_different_weights(tmp_path):
+    evaluation, rows, _weights = _write_prediction_cache_fixture(tmp_path)
+    different_weights = tmp_path / "different.cact"
+    different_weights.write_bytes(b"different-weights")
+
+    assert load_verified_prediction_cache(
+        evaluation_dir=evaluation,
+        current_rows=rows,
+        weights=different_weights,
+        label="stock",
+    ) is None
+
+
+def test_prediction_cache_finds_prior_matching_run(tmp_path):
+    prior_run = tmp_path / "run_001"
+    evaluation, cached_rows, weights = _write_prediction_cache_fixture(prior_run)
+    current_run = tmp_path / "run_002"
+    current_run.mkdir()
+    current_rows = current_run / "evaluation_rows.jsonl"
+    current_rows.write_bytes(cached_rows.read_bytes())
+
+    cached = find_verified_prediction_cache(
+        runs_root=tmp_path,
+        current_run=current_run,
+        current_rows=current_rows,
+        weights=weights,
+        label="stock",
+    )
+
+    assert cached is not None
+    payload, source = cached
+    assert payload["n"] == 1
+    assert source == evaluation
 
 
 def test_registry_decision_is_fail_closed_and_does_not_create_registry(tmp_path):

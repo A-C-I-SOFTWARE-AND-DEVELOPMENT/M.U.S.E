@@ -1,0 +1,312 @@
+{
+  "duration_s": 793.859,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0054,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000129",
+      "latency_s": 13.906,
+      "query": "NEEDLE-QA pressure test: At northern market, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000130",
+      "latency_s": 39.578,
+      "query": "NEEDLE-QA pressure test: At southern refinery, the island radius grew but every building and crystal was uniformly scaled with it. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000131",
+      "latency_s": 29.032,
+      "query": "NEEDLE-QA pressure test: At Archive service district, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000132",
+      "latency_s": 33.531,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, ornamental road segments stop in fields and never connect the capital, villages, or services. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0061,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000133",
+      "latency_s": 11.672,
+      "query": "NEEDLE-QA pressure test: At river ravine, the village copies the capital block-for-block and has no regional function or history. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000134",
+      "latency_s": 37.062,
+      "query": "NEEDLE-QA pressure test: At outer gate, stalls block the primary route and have no storage, delivery access, or vendor logic. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000135",
+      "latency_s": 130.828,
+      "query": "NEEDLE-QA pressure test: At temple quarter, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000136",
+      "latency_s": 129.11,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, the exterior door opens into a blocked wall and rooms have no circulation or service function. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000137",
+      "latency_s": 26.578,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, random debris is scattered without explaining work, damage, abandonment, or recovery. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000138",
+      "latency_s": 117.0,
+      "query": "NEEDLE-QA pressure test: At library court, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000139",
+      "latency_s": 104.422,
+      "query": "NEEDLE-QA pressure test: At floating quarry, cyan emission covers every edge and fog hides unfinished geometry. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0063,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000140",
+      "latency_s": 7.062,
+      "query": "NEEDLE-QA pressure test: At coastal shelf, particles and glow appear everywhere without an active system or readable state. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000141",
+      "latency_s": 15.797,
+      "query": "NEEDLE-QA pressure test: At undercity approach, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000142",
+      "latency_s": 14.11,
+      "query": "NEEDLE-QA pressure test: At distant vista cell, identical crystals cover every surface and flatten the hero hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000143",
+      "latency_s": 14.859,
+      "query": "NEEDLE-QA pressure test: At Firstbound Arrival, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000144",
+      "latency_s": 14.531,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, the hero location is indistinguishable from repeated generic towers at distance. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000145",
+      "latency_s": 14.078,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, the generator proposes 1.9 million instances and calls the result performant without measurement. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000146",
+      "latency_s": 5.969,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, one giant instance component spans kilometers and gives culling unusable bounds. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000147",
+      "latency_s": 5.828,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, saved cull distances are treated as proof even though runtime bounds and visibility were never measured. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000148",
+      "latency_s": 2.172,
+      "query": "NEEDLE-QA pressure test: At Arena Island, a destructible pillar removes the only exit bridge when broken. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000149",
+      "latency_s": 4.109,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, the console glows but supplies no affordance, response, inactive state, or failure feedback. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P1",
+            "stage": "S1"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_qa_000150",
+      "latency_s": 3.36,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, invisible collision blocks the intended path while the visible opening appears clear. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0064,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000151",
+      "latency_s": 1.469,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, the tower clips through the deck and cliff without a designed joint or load path. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000152",
+      "latency_s": 2.734,
+      "query": "NEEDLE-QA pressure test: At eastern village, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000153",
+      "latency_s": 9.281,
+      "query": "NEEDLE-QA pressure test: At western wilderness, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0056,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000154",
+      "latency_s": 0.703,
+      "query": "NEEDLE-QA pressure test: At northern market, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000155",
+      "latency_s": 1.672,
+      "query": "NEEDLE-QA pressure test: At southern refinery, a missing manifest entry is ignored and the asset is claimed to exist. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000156",
+      "latency_s": 1.594,
+      "query": "NEEDLE-QA pressure test: At Archive service district, process liveness or exit code zero is treated as proof that every world gate passed. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000157",
+      "latency_s": 1.797,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, a roofline endpoint is approved because the bridge visually reaches the district. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_003\\evaluation\\shards\\rows_07.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

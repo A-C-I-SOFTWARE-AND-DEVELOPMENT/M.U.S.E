@@ -1,0 +1,341 @@
+{
+  "duration_s": 748.672,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0028,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000314",
+      "latency_s": 28.953,
+      "query": "Unseen holdout situation: At river ravine, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000315",
+      "latency_s": 17.407,
+      "query": "Unseen holdout situation: At outer gate, a missing manifest entry is ignored and the asset is claimed to exist. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000316",
+      "latency_s": 26.922,
+      "query": "Unseen holdout situation: At temple quarter, process liveness or exit code zero is treated as proof that every world gate passed. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000317",
+      "latency_s": 27.937,
+      "query": "Unseen holdout situation: At alchemist lane, a roofline endpoint is approved because the bridge visually reaches the district. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000318",
+      "latency_s": 27.891,
+      "query": "Unseen holdout situation: At blacksmith yard, greybox geometry with fog is called visually final after automation passes. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0025,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000319",
+      "latency_s": 24.843,
+      "query": "Unseen holdout situation: At library court, the report declares AAA complete while traversal and performance evidence are absent. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K01",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000320",
+      "latency_s": 26.063,
+      "query": "Unseen holdout situation: At floating quarry, material polish is scheduled while the major playable landmark has no connection. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0209,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000321",
+      "latency_s": 8.844,
+      "query": "Unseen holdout situation: At Chronos capital, white marble columns and neon roof outlines replace the dark-stone and bronze language. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000322",
+      "latency_s": 29.0,
+      "query": "Unseen holdout situation: At eastern village, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000323",
+      "latency_s": 116.062,
+      "query": "Unseen holdout situation: At western wilderness, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000324",
+      "latency_s": 30.172,
+      "query": "Unseen holdout situation: At northern market, the span meets bare cliff, lacks anchors, and rises too steeply for the intended encounter. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000325",
+      "latency_s": 29.219,
+      "query": "Unseen holdout situation: At southern refinery, the arrival gate faces a wall and gives the player no readable exit. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000326",
+      "latency_s": 24.64,
+      "query": "Unseen holdout situation: At Archive service district, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000327",
+      "latency_s": 21.922,
+      "query": "Unseen holdout situation: At Wayfinder terrace, the hall floats above terrain and decorative crystals are its only explanation. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000328",
+      "latency_s": 25.907,
+      "query": "Unseen holdout situation: At river ravine, twenty towers fill empty space without location, function, entrance, or gameplay purpose. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000329",
+      "latency_s": 26.703,
+      "query": "Unseen holdout situation: At outer gate, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000330",
+      "latency_s": 27.453,
+      "query": "Unseen holdout situation: At temple quarter, the island radius grew but every building and crystal was uniformly scaled with it. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000331",
+      "latency_s": 26.578,
+      "query": "Unseen holdout situation: At alchemist lane, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000332",
+      "latency_s": 27.469,
+      "query": "Unseen holdout situation: At blacksmith yard, ornamental road segments stop in fields and never connect the capital, villages, or services. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000333",
+      "latency_s": 22.968,
+      "query": "Unseen holdout situation: At library court, the village copies the capital block-for-block and has no regional function or history. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000334",
+      "latency_s": 28.016,
+      "query": "Unseen holdout situation: At floating quarry, stalls block the primary route and have no storage, delivery access, or vendor logic. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0191,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000335",
+      "latency_s": 8.5,
+      "query": "Unseen holdout situation: At coastal shelf, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0233,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000336",
+      "latency_s": 6.875,
+      "query": "Unseen holdout situation: At undercity approach, the exterior door opens into a blocked wall and rooms have no circulation or service function. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 1,
+            "unit": "BLOCKED",
+            "verdict": "FAIL"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000337",
+      "latency_s": 83.313,
+      "query": "Unseen holdout situation: At distant vista cell, random debris is scattered without explaining work, damage, abandonment, or recovery. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000338",
+      "latency_s": 11.953,
+      "query": "Unseen holdout situation: At Firstbound Arrival, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000339",
+      "latency_s": 7.453,
+      "query": "Unseen holdout situation: At Axiom Core, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000340",
+      "latency_s": 3.156,
+      "query": "Unseen holdout situation: At Firstbound Overlook, particles and glow appear everywhere without an active system or readable state. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000341",
+      "latency_s": 1.313,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000342",
+      "latency_s": 1.14,
+      "query": "Unseen holdout situation: At Crystal Sanctum, identical crystals cover every surface and flatten the hero hierarchy. review occurs before structural sign-off. Identify the root production failure and corrective direction.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_006\\evaluation\\shards\\rows_22.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_006\\model.cact",
+  "weights_sha256": "bd1c267cf1ddd27593a3d931d84fcdf54a2a8e96303a674f669d8dfddf9e4347"
+}

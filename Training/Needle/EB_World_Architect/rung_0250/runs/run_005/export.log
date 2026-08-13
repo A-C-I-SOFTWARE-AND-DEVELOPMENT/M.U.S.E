@@ -1,0 +1,27 @@
+E0813 10:58:17.845098    2870 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.97GiB (6410993664 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 10:58:17.846831    2870 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.37GiB (5769894400 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 10:58:17.848233    2870 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.84GiB (5192904704 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 10:58:17.849593    2870 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.35GiB (4673614336 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+merged LoRA adapter /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_005/adapter.pkl into 10 weight groups
+exported /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_005/model.cact  (12.36 MB, 405 tensors, W2A8)
+run it with: needle.Needle(weights='/mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_005/model.cact', tools=[...])

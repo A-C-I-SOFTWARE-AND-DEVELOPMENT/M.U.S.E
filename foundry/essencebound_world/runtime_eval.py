@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -36,6 +37,57 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_verified_prediction_cache(
+    *, evaluation_dir: Path, current_rows: Path, weights: Path, label: str
+) -> dict[str, Any] | None:
+    """Return complete predictions only when rows and model bytes are identical."""
+    cached_rows = evaluation_dir / "evaluation_rows.jsonl"
+    cached_predictions = evaluation_dir / f"{label}_predictions.json"
+    if not cached_rows.is_file() or not cached_predictions.is_file() or not weights.is_file():
+        return None
+    if cached_rows.read_bytes() != current_rows.read_bytes():
+        return None
+    payload = json.loads(cached_predictions.read_text(encoding="utf-8"))
+    predictions = payload.get("predictions", [])
+    if (
+        payload.get("status") != "COMPLETE"
+        or payload.get("errors")
+        or payload.get("weights_sha256") != _sha256(weights)
+        or payload.get("n") != len(predictions)
+        or payload.get("n") != len(_read_jsonl(current_rows))
+    ):
+        return None
+    return payload
+
+
+def find_verified_prediction_cache(
+    *, runs_root: Path, current_run: Path, current_rows: Path, weights: Path, label: str
+) -> tuple[dict[str, Any], Path] | None:
+    """Find the newest prior run with byte-identical rows and model weights."""
+    current_run = current_run.resolve()
+    for candidate in sorted(runs_root.glob("run_[0-9][0-9][0-9]"), reverse=True):
+        if candidate.resolve() == current_run:
+            continue
+        evaluation_dir = candidate / "evaluation"
+        payload = load_verified_prediction_cache(
+            evaluation_dir=evaluation_dir,
+            current_rows=current_rows,
+            weights=weights,
+            label=label,
+        )
+        if payload is not None:
+            return payload, evaluation_dir
+    return None
 
 
 def build_eval_command(
@@ -239,6 +291,33 @@ def evaluate_rung(
     outputs = {}
     schemas = root / "source" / "tool_schemas.json"
     for label, weights in models.items():
+        cached = None
+        if label == "stock":
+            cached = find_verified_prediction_cache(
+                runs_root=run_dir.parent,
+                current_run=run_dir,
+                current_rows=bundle_path,
+                weights=weights,
+                label=label,
+            )
+        if cached is not None:
+            output, source = cached
+            output = {
+                **output,
+                "cache_provenance": {
+                    "status": "REUSED_VERIFIED_CACHE",
+                    "source": str(source.resolve()),
+                    "rows_sha256": _sha256(bundle_path),
+                },
+            }
+            _write_json(evaluation_dir / f"{label}_predictions.json", output)
+            worker_reports[label] = {
+                "status": "REUSED_VERIFIED_CACHE",
+                "source": str(source.resolve()),
+                "worker_count": 0,
+            }
+            outputs[label] = output
+            continue
         worker_reports[label], output = _evaluate_model_sharded(
             label=label,
             weights=weights,

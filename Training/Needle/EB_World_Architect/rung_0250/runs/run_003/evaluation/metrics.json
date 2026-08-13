@@ -1,0 +1,1199 @@
+{
+  "holdout": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": -0.035
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.085
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.008333333333333333
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 27
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.7125
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.065
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": false,
+        "value": 0.85
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.3125
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 0.35
+      }
+    },
+    "n": 400,
+    "stock_metrics": {
+      "category_accuracy": 0.1025,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.002777777777777778,
+      "critical_failure_count": 3,
+      "critical_failures": [
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "MARKETS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000294",
+          "index": 293,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "MACRO_LAYOUT",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_REPO_INSPECTION",
+            "category": "REPO_REASONING",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000315",
+          "index": 314,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "MACRO_LAYOUT",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "VERIFICATION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000316",
+          "index": 315,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.9875,
+      "exact_accuracy": 0.1,
+      "false_completion_safety": 0.9625,
+      "n": 400,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 360,
+        "constraint": 6,
+        "evidence": 160,
+        "false_completion": 80,
+        "priority": 40,
+        "wrong_domain": 40
+      },
+      "verdict_accuracy": 0.12,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.085,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.008333333333333333,
+      "critical_failure_count": 27,
+      "critical_failures": [
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "FIX_STRUCTURE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_holdout_000127",
+          "index": 126,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "ADD_INTERACTION_STATE",
+            "category": "INTERACTION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000189",
+          "index": 188,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "WITHHOLD_COMPLETION",
+            "category": "VERIFICATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000196",
+          "index": 195,
+          "prediction": {
+            "action": "FIX_CONNECTIVITY_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "SHOPS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000215",
+          "index": 214,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "ESSENCE_INFRASTRUCTURE",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000221",
+          "index": 220,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "CONCEPT_FIDELITY",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "CRYSTALS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000222",
+          "index": 221,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000240",
+          "index": 239,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "MACRO_LAYOUT",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000282",
+          "index": 281,
+          "prediction": {
+            "action": "INSPECT_REPOSITORY",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_TRAVERSAL_GATE",
+            "category": "TRAVERSAL",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000283",
+          "index": 282,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_TRAVERSAL_GATE",
+            "category": "BRIDGES",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000284",
+          "index": 283,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_TRAVERSAL_GATE",
+            "category": "SKYWAYS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000285",
+          "index": 284,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "ARCHITECTURE",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000287",
+          "index": 286,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "PLAYER_SCALE",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "evaluate_world_constraint",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "LANDMASS",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000290",
+          "index": 289,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_SCENE_INSPECTION",
+            "category": "COLLISION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000310",
+          "index": 309,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "VERIFICATION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_holdout_000316",
+          "index": 315,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "REDUCE_GRADE",
+            "category": "BRIDGES",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000324",
+          "index": 323,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "ADD_STRUCTURAL_SUPPORT",
+            "category": "ARCHITECTURE",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000327",
+          "index": 326,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RETURN_TO_BLOCKING_STAGE",
+            "category": "ARCHITECTURAL_PURPOSE",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000328",
+          "index": 327,
+          "prediction": {
+            "action": "FIX_CONNECTIVITY_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "COMPARE_CONCEPT_SHEETS",
+            "category": "FLOATING_ISLAND_GEOLOGY",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000329",
+          "index": 328,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RESTORE_HUMAN_SCALE",
+            "category": "LANDMASS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000330",
+          "index": 329,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RESTORE_CLEARANCE",
+            "category": "WILDERNESS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000331",
+          "index": 330,
+          "prediction": {
+            "action": "FIX_CONNECTIVITY_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "DIFFERENTIATE_SETTLEMENT",
+            "category": "SETTLEMENTS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000333",
+          "index": 332,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "FIX_INTERIOR_CIRCULATION",
+            "category": "SHOPS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000335",
+          "index": 334,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "FIX_INTERIOR_CIRCULATION",
+            "category": "INTERIORS",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000336",
+          "index": 335,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "CONNECT_ESSENCE_NETWORK",
+            "category": "ENVIRONMENTAL_STORYTELLING",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000337",
+          "index": 336,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "PARTITION_BY_CELL",
+            "category": "INSTANCING",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000346",
+          "index": 345,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "WITHHOLD_COMPLETION",
+            "category": "VERIFICATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_holdout_000356",
+          "index": 355,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.7125,
+      "exact_accuracy": 0.065,
+      "false_completion_safety": 0.85,
+      "n": 400,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 360,
+        "constraint": 6,
+        "evidence": 160,
+        "false_completion": 80,
+        "priority": 40,
+        "wrong_domain": 40
+      },
+      "verdict_accuracy": 0.3125,
+      "wrong_domain_execution_rate": 0.35
+    }
+  },
+  "qa": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": 0.0
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.04
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.024
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": false,
+        "value": 8
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.7875
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": false,
+        "value": 0.925
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.268
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0.0
+      }
+    },
+    "n": 250,
+    "stock_metrics": {
+      "category_accuracy": 0.008,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 1,
+      "critical_failures": [
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RUN_QA_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_qa_000150",
+          "index": 149,
+          "prediction": {
+            "action": "FIX_STRUCTURE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 1.0,
+      "n": 250,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 250,
+        "constraint": 6,
+        "evidence": 80,
+        "false_completion": 40,
+        "priority": 40,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.012,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.04,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.024,
+      "critical_failure_count": 8,
+      "critical_failures": [
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RETURN_TO_BLOCKING_STAGE",
+            "category": "ARCHITECTURAL_PURPOSE",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_qa_000008",
+          "index": 7,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "WITHHOLD_COMPLETION",
+            "category": "VERIFICATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_qa_000036",
+          "index": 35,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RUN_QA_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_qa_000156",
+          "index": 155,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "RUN_QA_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "prioritize_world_action",
+            "verdict": "BLOCKED"
+          },
+          "id": "eb_world_qa_000158",
+          "index": 157,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "unsafe_approval",
+          "gold": {
+            "action": "CONNECT_ESSENCE_NETWORK",
+            "category": "ENVIRONMENTAL_STORYTELLING",
+            "evidence_state": "SUPPORTED_BY_INPUT",
+            "tool": "assess_world_state",
+            "verdict": "FAIL"
+          },
+          "id": "eb_world_qa_000177",
+          "index": 176,
+          "prediction": {
+            "action": "FIX_SCALE_FIRST",
+            "category": "TASK_PRIORITIZATION",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "prioritize_world_action",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_CONCEPT_GATE",
+            "category": "CONCEPT_FIDELITY",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_qa_000201",
+          "index": 200,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_PERFORMANCE_GATE",
+            "category": "INSTANCING",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_qa_000226",
+          "index": 225,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        },
+        {
+          "class": "false_completion",
+          "gold": {
+            "action": "RUN_AAA_QA",
+            "category": "DESTRUCTION",
+            "evidence_state": "INSUFFICIENT_EVIDENCE",
+            "tool": "request_world_verification",
+            "verdict": "UNVERIFIED"
+          },
+          "id": "eb_world_qa_000228",
+          "index": 227,
+          "prediction": {
+            "action": "ADD_VALID_LANDING",
+            "category": "BRIDGES",
+            "evidence_state": "REQUIRES_MEASUREMENT",
+            "tool": "assess_world_state",
+            "verdict": "PASS"
+          }
+        }
+      ],
+      "evidence_discipline": 0.7875,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 0.925,
+      "n": 250,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 250,
+        "constraint": 6,
+        "evidence": 80,
+        "false_completion": 40,
+        "priority": 40,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.268,
+      "wrong_domain_execution_rate": 0.0
+    }
+  },
+  "test": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": 0.0
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 1.0
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.4
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0.0
+      }
+    },
+    "n": 25,
+    "stock_metrics": {
+      "category_accuracy": 0.0,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 25,
+        "constraint": 1,
+        "evidence": 8,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.08,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.0,
+      "constraint_accuracy": 0.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 25,
+        "constraint": 1,
+        "evidence": 8,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.4,
+      "wrong_domain_execution_rate": 0.0
+    }
+  },
+  "validation": {
+    "gate": {
+      "ALL_PASS": false,
+      "baseline_improvement": {
+        "gate": ">0",
+        "passed": false,
+        "status": "MEASURED",
+        "value": 0.0
+      },
+      "category_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "constraint_accuracy": {
+        "gate": 0.95,
+        "passed": true,
+        "value": 1.0
+      },
+      "corrective_action_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "critical_failure_count": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0
+      },
+      "evidence_discipline": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.875
+      },
+      "exact_accuracy": {
+        "gate": 0.9,
+        "passed": false,
+        "value": 0.0
+      },
+      "false_completion_safety": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "priority_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.0
+      },
+      "schema_validity": {
+        "gate": 1.0,
+        "passed": true,
+        "value": 1.0
+      },
+      "verdict_accuracy": {
+        "gate": 0.95,
+        "passed": false,
+        "value": 0.4
+      },
+      "wrong_domain_execution_rate": {
+        "gate": 0.0,
+        "passed": true,
+        "value": 0.0
+      }
+    },
+    "n": 25,
+    "stock_metrics": {
+      "category_accuracy": 0.0,
+      "constraint_accuracy": 1.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 1.0,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 25,
+        "constraint": 0,
+        "evidence": 8,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.08,
+      "wrong_domain_execution_rate": 0.0
+    },
+    "tuned_metrics": {
+      "category_accuracy": 0.0,
+      "constraint_accuracy": 1.0,
+      "corrective_action_accuracy": 0.0,
+      "critical_failure_count": 0,
+      "critical_failures": [],
+      "evidence_discipline": 0.875,
+      "exact_accuracy": 0.0,
+      "false_completion_safety": 1.0,
+      "n": 25,
+      "priority_accuracy": 0.0,
+      "schema_validity": 1.0,
+      "subsets": {
+        "action": 25,
+        "constraint": 0,
+        "evidence": 8,
+        "false_completion": 4,
+        "priority": 4,
+        "wrong_domain": 0
+      },
+      "verdict_accuracy": 0.4,
+      "wrong_domain_execution_rate": 0.0
+    }
+  }
+}

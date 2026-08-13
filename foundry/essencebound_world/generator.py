@@ -31,7 +31,7 @@ SYSTEM_PROMPT = (
 
 _MODES = (
     "correction", "classification_pass", "warning", "priority_blocked", "constraint_fail",
-    "repo_evidence", "classification_pass", "adversarial", "failure_analysis", "adversarial_refusal",
+    "repo_evidence", "adversarial_refusal", "adversarial", "failure_analysis", "classification_pass",
     "choice_pass", "priority_clear", "correction", "classification_pass", "repo_evidence",
     "constraint_pass", "failure_analysis", "choice_pass", "adversarial_refusal", "adversarial",
 )
