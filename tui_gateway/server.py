@@ -1130,6 +1130,7 @@ def _apply_model_switch(sid: str, session: dict, raw_input: str) -> dict:
             api_key=result.api_key,
             base_url=result.base_url,
             api_mode=result.api_mode,
+            credential_pool=result.credential_pool,
         )
         _restart_slash_worker(session)
         _emit("session.info", sid, _session_info(agent))

@@ -1,0 +1,194 @@
+[
+  {
+    "query": "Check the barrel mesh stays within 9000 triangles",
+    "gold_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 9000
+        }
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 9000,
+          "allow_ngons": false
+        }
+      }
+    ],
+    "confidence": 0.0047,
+    "latency_s": 0.38
+  },
+  {
+    "query": "Audit UVs, two material slots max",
+    "gold_calls": [
+      {
+        "name": "inspect_uv_materials",
+        "arguments": {
+          "max_materials": 2
+        }
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "inspect_uv_materials",
+        "arguments": {
+          "max_materials": 2
+        }
+      }
+    ],
+    "confidence": 0.0494,
+    "latency_s": 0.39
+  },
+  {
+    "query": "Make sure all transforms are frozen and units match",
+    "gold_calls": [
+      {
+        "name": "inspect_transform_scale",
+        "arguments": {}
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "inspect_transform_scale",
+        "arguments": {
+          "max_materials": 1,
+          "description": "Units matched"
+        }
+      }
+    ],
+    "confidence": 0.0001,
+    "latency_s": 0.38
+  },
+  {
+    "query": "Verify names match ^[a-z]+_[0-9]+$",
+    "gold_calls": [
+      {
+        "name": "inspect_naming_structure",
+        "arguments": {
+          "pattern": "^[a-z]+_[0-9]+$"
+        }
+      }
+    ],
+    "pred_calls": [],
+    "confidence": 0.6707,
+    "latency_s": 0.21
+  },
+  {
+    "query": "Run the cinematic gate",
+    "gold_calls": [
+      {
+        "name": "run_asset_gate",
+        "arguments": {
+          "profile": "cinematic"
+        }
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "run_asset_gate",
+        "arguments": {
+          "profile": "cinematic"
+        }
+      }
+    ],
+    "confidence": 0.9862,
+    "latency_s": 0.15
+  },
+  {
+    "query": "How do I bake bread?",
+    "gold_calls": [],
+    "pred_calls": [],
+    "confidence": 0.9241,
+    "latency_s": 0.12
+  },
+  {
+    "query": "Build me a medieval castle with towers",
+    "gold_calls": [],
+    "pred_calls": [],
+    "confidence": 0.6179,
+    "latency_s": 0.17
+  },
+  {
+    "query": "Export this scene as OBJ please",
+    "gold_calls": [],
+    "pred_calls": [],
+    "confidence": 0.9851,
+    "latency_s": 0.13
+  },
+  {
+    "query": "Check geometry quality but give it 4000 tris and 9000 tris",
+    "gold_calls": [],
+    "pred_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 4000,
+          "allow_ngons": false
+        }
+      }
+    ],
+    "confidence": 0.4654,
+    "latency_s": 0.43
+  },
+  {
+    "query": "zz qq !!",
+    "gold_calls": [],
+    "pred_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 1,
+          "allow_ngons": true
+        }
+      }
+    ],
+    "confidence": 0.0449,
+    "latency_s": 0.6
+  },
+  {
+    "query": "Check the barrel mesh stays within 9000 triangles",
+    "gold_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 9000
+        }
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "inspect_geometry",
+        "arguments": {
+          "max_tris": 9000,
+          "allow_ngons": false
+        }
+      }
+    ],
+    "confidence": 0.0047,
+    "latency_s": 0.62
+  },
+  {
+    "query": "Audit UVs, two material slots max",
+    "gold_calls": [
+      {
+        "name": "inspect_uv_materials",
+        "arguments": {
+          "max_materials": 2
+        }
+      }
+    ],
+    "pred_calls": [
+      {
+        "name": "inspect_uv_materials",
+        "arguments": {
+          "max_materials": 2
+        }
+      }
+    ],
+    "confidence": 0.0494,
+    "latency_s": 0.86
+  }
+]

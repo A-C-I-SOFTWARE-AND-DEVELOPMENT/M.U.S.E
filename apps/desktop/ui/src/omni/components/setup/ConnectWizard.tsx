@@ -21,8 +21,6 @@ const STATUS_META: Record<ConnectStep['status'], { color: string; glyph: string 
   fail: { color: 'var(--state-error)', glyph: '✕' },
 };
 
-const OWNER_PHRASE = 'Yes, with authorization.';
-
 export function ConnectWizard({ open, onClose }: Props) {
   const [baseUrl, setBaseUrl] = useState(getConfig().museBaseUrl);
   const [phrase, setPhrase] = useState('');
@@ -72,7 +70,7 @@ export function ConnectWizard({ open, onClose }: Props) {
     setRunning(true);
     setDone(false);
     const final = await establishConnections(
-      { baseUrl: (overrideBase ?? baseUrl).trim() || undefined, ownerPhrase: phrase.trim() || OWNER_PHRASE, withPush },
+      { baseUrl: (overrideBase ?? baseUrl).trim() || undefined, ownerPhrase: phrase.trim(), withPush },
       setSteps,
     );
     setRunning(false);
@@ -202,9 +200,9 @@ export function ConnectWizard({ open, onClose }: Props) {
                 <input
                   value={phrase}
                   onChange={(e) => setPhrase(e.target.value)}
-                  placeholder={OWNER_PHRASE}
+                  placeholder="Owner authorization"
                   className="rounded-md border px-3 py-2 text-[12px] text-[var(--ink)]"
-                  style={{ borderColor: phrase.trim() === OWNER_PHRASE ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
+                  style={{ borderColor: phrase.trim() ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
                 />
                 <label className="mt-1 flex items-center gap-2 text-[11px] text-[var(--ink-dim)]">
                   <input type="checkbox" checked={withPush} onChange={(e) => setWithPush(e.target.checked)} />

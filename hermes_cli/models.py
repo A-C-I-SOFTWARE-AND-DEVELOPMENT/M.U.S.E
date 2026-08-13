@@ -43,10 +43,18 @@ COPILOT_REASONING_EFFORTS_O_SERIES = ["low", "medium", "high"]
 # Fallback OpenRouter snapshot used when the live catalog is unavailable.
 # (model_id, display description shown in menus)
 OPENROUTER_MODELS: list[tuple[str, str]] = [
+    ("anthropic/claude-opus-5",                ""),
+    ("anthropic/claude-sonnet-5",              ""),
+    ("anthropic/claude-fable-5",               ""),
+    ("moonshotai/kimi-k3",                     "recommended"),
+    ("openai/gpt-5.6-sol",                     ""),
+    ("openai/gpt-5.6-terra",                   ""),
+    ("openai/gpt-5.6-luna",                    ""),
+    ("google/gemini-3.6-flash",                ""),
     ("anthropic/claude-opus-4.7",              ""),
     ("anthropic/claude-opus-4.6",              ""),
     ("anthropic/claude-sonnet-4.6",            ""),
-    ("moonshotai/kimi-k2.6",                   "recommended"),
+    ("moonshotai/kimi-k2.6",                   ""),
     ("openrouter/pareto-code",                 "auto-routes to cheapest coder meeting openrouter.min_coding_score"),
     ("qwen/qwen3.6-plus",                      ""),
     ("anthropic/claude-haiku-4.5",             ""),
@@ -88,7 +96,15 @@ _openrouter_catalog_cache: list[tuple[str, str]] | None = None
 # Slugs match Vercel's actual /v1/models catalog (e.g. alibaba/ for Qwen,
 # zai/ and xai/ without hyphens).
 VERCEL_AI_GATEWAY_MODELS: list[tuple[str, str]] = [
-    ("moonshotai/kimi-k2.6",                 "recommended"),
+    ("anthropic/claude-opus-5",              ""),
+    ("anthropic/claude-sonnet-5",            ""),
+    ("anthropic/claude-fable-5",             ""),
+    ("moonshotai/kimi-k3",                   "recommended"),
+    ("openai/gpt-5.6-sol",                   ""),
+    ("openai/gpt-5.6-terra",                 ""),
+    ("openai/gpt-5.6-luna",                  ""),
+    ("google/gemini-3.6-flash",              ""),
+    ("moonshotai/kimi-k2.6",                 ""),
     ("alibaba/qwen3.6-plus",                 ""),
     ("zai/glm-5.1",                          ""),
     ("minimax/minimax-m2.7",                 ""),
@@ -248,6 +264,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "gemini-3-flash-preview",
     ],
     "zai": [
+        "glm-5.2",
         "glm-5.1",
         "glm-5",
         "glm-5v-turbo",
@@ -272,17 +289,15 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "openai/gpt-oss-120b",
     ],
     "kimi-coding": [
-        "kimi-k3",
-        "kimi-k3-agent-swarm",
-        "kimi-k2.6",
-        "kimi-k2.5",
+        "k3",
+        "k3-256k",
         "kimi-for-coding",
-        "kimi-k2-thinking",
-        "kimi-k2-thinking-turbo",
-        "kimi-k2-turbo-preview",
-        "kimi-k2-0905-preview",
+        "kimi-for-coding-highspeed",
     ],
     "kimi-coding-cn": [
+        "kimi-k3",
+        "kimi-k2.7-code",
+        "kimi-k2.7-code-highspeed",
         "kimi-k2.6",
         "kimi-k2.5",
         "kimi-k2-thinking",
@@ -295,7 +310,8 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     ],
     "moonshot": [
         "kimi-k3",
-        "kimi-k3-agent-swarm",
+        "kimi-k2.7-code",
+        "kimi-k2.7-code-highspeed",
         "kimi-k2.6",
         "kimi-k2.5",
         "kimi-k2-thinking",
@@ -303,16 +319,19 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "kimi-k2-0905-preview",
     ],
     "minimax": [
+        "MiniMax-M3",
         "MiniMax-M2.7",
         "MiniMax-M2.5",
         "MiniMax-M2.1",
         "MiniMax-M2",
     ],
     "minimax-oauth": [
+        "MiniMax-M3",
         "MiniMax-M2.7",
         "MiniMax-M2.7-highspeed",
     ],
     "minimax-cn": [
+        "MiniMax-M3",
         "MiniMax-M2.7",
         "MiniMax-M2.5",
         "MiniMax-M2.1",
@@ -359,6 +378,14 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "zai-glm-4.7",
     ],
     "gmi": [
+        "zai-org/GLM-5.2-FP8",
+        "moonshotai/kimi-k2.7-code-highspeed",
+        "anthropic/claude-opus-4.8",
+        "Qwen/Qwen3.7-Max",
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "deepseek-ai/DeepSeek-V4-Pro",
+        "openai/gpt-5.5",
+        "moonshotai/Kimi-K2.6",
         "zai-org/GLM-5.1-FP8",
         "deepseek-ai/DeepSeek-V3.2",
         "moonshotai/Kimi-K2.5",
@@ -430,6 +457,8 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     # to https://dashscope-intl.aliyuncs.com/compatible-mode/v1 (OpenAI-compat)
     # or https://dashscope-intl.aliyuncs.com/apps/anthropic (Anthropic-compat).
     "alibaba": [
+        "qwen3.7-plus",
+        "qwen3.7-max",
         "qwen3.6-plus",
         "kimi-k2.5",
         "qwen3.5-plus",
@@ -443,6 +472,8 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     # Alibaba Coding Plan — same platform as alibaba (DashScope coding-intl),
     # separate provider ID with its own base_url_env_var.
     "alibaba-coding-plan": [
+        "qwen3.7-plus",
+        "qwen3.7-max",
         "qwen3.6-plus",
         "qwen3.5-plus",
         "qwen3-coder-plus",
@@ -2133,10 +2164,25 @@ def _resolve_copilot_catalog_api_key() -> str:
 #     OpenRouter's 400+ catalog. Blindly merging would dump everything.
 #   - "nous": curated list and Portal /models endpoint are the source of
 #     truth for the subscription tier.
-# Also excluded: providers that already have dedicated live-endpoint
-# branches below (copilot, anthropic, ai-gateway, ollama-cloud, custom,
-# stepfun, openai-codex) — those paths handle freshness themselves.
+# Also excluded: providers whose dedicated discovery paths fully own their
+# catalogs (copilot, ai-gateway, ollama-cloud, custom, openai-codex). Providers
+# such as Anthropic and StepFun stay in this set so models.dev remains their
+# no-credential fallback when the live endpoint cannot be queried.
 _MODELS_DEV_PREFERRED: frozenset[str] = frozenset({
+    "openai",
+    "anthropic",
+    "novita",
+    "kimi-coding",
+    "kimi-coding-cn",
+    "stepfun",
+    "minimax",
+    "minimax-oauth",
+    "minimax-cn",
+    "xiaomi",
+    "gmi",
+    "alibaba",
+    "alibaba-coding-plan",
+    "cerebras",
     "opencode-go",
     "opencode-zen",
     "deepseek",
@@ -2155,7 +2201,12 @@ _MODELS_DEV_PREFERRED: frozenset[str] = frozenset({
 })
 
 
-def _merge_with_models_dev(provider: str, curated: list[str]) -> list[str]:
+def _merge_with_models_dev(
+    provider: str,
+    curated: list[str],
+    *,
+    force_refresh: bool = False,
+) -> list[str]:
     """Merge curated list with fresh models.dev entries for a preferred provider.
 
     Returns models.dev entries first (in models.dev order), then any
@@ -2166,7 +2217,9 @@ def _merge_with_models_dev(provider: str, curated: list[str]) -> list[str]:
     returned unchanged — this is the offline/CI fallback path.
     """
     try:
-        from agent.models_dev import list_agentic_models
+        from agent.models_dev import fetch_models_dev, list_agentic_models
+        if force_refresh:
+            fetch_models_dev(force_refresh=True)
         mdev = list_agentic_models(provider)
     except Exception:
         mdev = []
@@ -2345,7 +2398,11 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
 
     curated_static = list(_PROVIDER_MODELS.get(normalized, []))
     if normalized in _MODELS_DEV_PREFERRED:
-        return _merge_with_models_dev(normalized, curated_static)
+        return _merge_with_models_dev(
+            normalized,
+            curated_static,
+            force_refresh=force_refresh,
+        )
     return curated_static
 
 
@@ -3370,11 +3427,26 @@ _OLLAMA_CLOUD_CACHE_TTL = 3600  # 1 hour
 # fresh install, offline first run, transient API failure). Keeps headline
 # open models — notably Gemma 4 — selectable in ``hermes model`` out of the box.
 _OLLAMA_CLOUD_CURATED: list[str] = [
+    "kimi-k3",
+    "glm-5.2",
     "gemma4:31b",
     "gemma4",
-    "qwen3-coder:480b",
+    "qwen3.5:397b",
+    "glm-5.1",
+    "minimax-m2.7",
+    "nemotron-3-super",
+    "minimax-m2.5",
+    "minimax-m3",
+    "kimi-k2.7-code",
+    "kimi-k2.6",
+    "deepseek-v4-pro",
+    "deepseek-v4-flash",
+    "nemotron-3-ultra",
     "gpt-oss:120b",
-    "deepseek-v3.1:671b",
+    "gemini-3-flash-preview",
+    "nemotron-3-nano:30b",
+    "kimi-k2.5",
+    "mistral-large-3:675b",
 ]
 
 
@@ -3472,7 +3544,9 @@ def fetch_ollama_cloud_models(
     # 3. models.dev registry
     mdev_models: list[str] = []
     try:
-        from agent.models_dev import list_agentic_models
+        from agent.models_dev import fetch_models_dev, list_agentic_models
+        if force_refresh:
+            fetch_models_dev(force_refresh=True)
         mdev_models = list_agentic_models("ollama-cloud")
     except Exception:
         pass

@@ -1,0 +1,170 @@
+"""Niche Eligibility Compiler — deterministic classification of AXIOM niches.
+
+Reads every *.yaml niche spec, scores it against the Needle contract
+(routing/extraction/classification over supplied context), and emits a
+machine-readable matrix + human-readable report.
+
+Classification taxonomy (directive §10):
+    DETERMINISTIC_ONLY, NEEDLE_NATIVE, NEEDLE_REFERENCE_FED, NEEDLE_ROUTER_ONLY,
+    LOCAL_GENERAL_MODEL, PROVIDER_GENERAL_MODEL, HYBRID, HUMAN_GATED,
+    NOT_AUTOMATABLE, DEPRECATED
+
+Every score carries its evidence so the matrix is auditable and regenerable.
+"""
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, field, asdict
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+# --- Evidence-weighted hint tables -------------------------------------------
+# Grounded in NEEDLE_GROUND_TRUTH.md measurements: Needle does bounded
+# tool-selection + argument extraction over supplied text; it does not do
+# prose, research, or parametric world knowledge.
+EXTRACTION_HINTS = {
+    "triage", "check", "mapping", "detection", "classification", "verify",
+    "audit", "gating", "dedupe", "merge", "records", "report", "placards",
+    "numbers", "segregation", "flags", "coverage", "gaps", "debt", "hygiene",
+    "purge", "sync", "compliance", "review",
+}
+GENERATIVE_HINTS = {
+    "narrative", "writing", "story", "memo", "comms", "briefing",
+    "summarization", "synthesis", "design", "planning", "strategy", "persona",
+    "forecast", "modeling", "formation", "ethics", "motivation", "persuasion",
+    "positioning", "enablement", "ecosystem", "econ", "tradeoffs",
+}
+CODE_HINTS = {
+    "refactor", "patch", "fix", "bisect", "debug", "types", "tdd", "lint",
+    "migration",
+}
+SAFETY_HINTS = {"incident", "emergency", "rights", "phi", "placard", "segregation"}
+
+
+@dataclass(frozen=True)
+class NicheEligibility:
+    niche_id: str
+    domain: str
+    bounded_output_space: bool
+    schema_expressible: bool
+    reference_fed_possible: bool
+    requires_parametric_world_knowledge: bool
+    requires_free_text_generation: bool
+    safety_or_irreversibility_level: str  # low | medium | high
+    candidate_mode: str
+    scores: dict[str, int]
+    evidence: list[str] = field(default_factory=list)
+
+
+def _hints(text: str, table: set[str]) -> list[str]:
+    return sorted(h for h in table if h in text)
+
+
+def classify_niche(spec: dict[str, Any]) -> NicheEligibility:
+    nid = str(spec["id"])
+    domain = str(spec.get("domain", ""))
+    text = " ".join(
+        [spec.get("description", ""), " ".join(spec.get("keywords", [])), nid]
+    ).lower()
+
+    extraction = _hints(text, EXTRACTION_HINTS)
+    generative = _hints(text, GENERATIVE_HINTS)
+    code = _hints(text, CODE_HINTS)
+    safety = _hints(text, SAFETY_HINTS)
+
+    safety_level = (
+        "high" if (domain in ("hazmat-command", "compliance") and safety)
+        else "medium" if safety
+        else "low"
+    )
+    free_text = len(generative) >= 2 and len(generative) > len(extraction)
+    world_knowledge = any(
+        k in text for k in ("research", "literature", "market", "primary source", "history")
+    )
+
+    if safety_level == "high":
+        mode = "HUMAN_GATED"
+    elif free_text and not extraction:
+        mode = "PROVIDER_GENERAL_MODEL"
+    elif len(code) >= 2:
+        mode = "HYBRID"
+    elif len(extraction) >= 2 and not generative:
+        mode = "NEEDLE_ROUTER_ONLY"
+    elif extraction:
+        mode = "NEEDLE_REFERENCE_FED"
+    else:
+        mode = "LOCAL_GENERAL_MODEL"
+
+    evidence = [
+        f"extraction_hints={extraction}",
+        f"generative_hints={generative}",
+        f"code_hints={code}",
+        f"safety_hints={safety}",
+        f"domain={domain}",
+    ]
+    return NicheEligibility(
+        niche_id=nid,
+        domain=domain,
+        bounded_output_space=bool(extraction) and not free_text,
+        schema_expressible=bool(extraction),
+        reference_fed_possible=not world_knowledge,
+        requires_parametric_world_knowledge=world_knowledge,
+        requires_free_text_generation=free_text,
+        safety_or_irreversibility_level=safety_level,
+        candidate_mode=mode,
+        scores={"extraction": len(extraction), "generative": len(generative), "code": len(code)},
+        evidence=evidence,
+    )
+
+
+def run_census(specs_dir: Path, out_json: Path, out_md: Path) -> dict:
+    specs = []
+    for f in sorted(specs_dir.glob("*.yaml")):
+        with open(f, encoding="utf-8") as h:
+            specs.append(yaml.safe_load(h))
+
+    rows = [classify_niche(s) for s in specs]
+    dist: dict[str, int] = {}
+    for r in rows:
+        dist[r.candidate_mode] = dist.get(r.candidate_mode, 0) + 1
+
+    payload = {
+        "total": len(rows),
+        "distribution": dist,
+        "niches": [asdict(r) for r in rows],
+    }
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_json.write_text(json.dumps(payload, indent=2))
+
+    lines = [
+        "# AXIOM Niche Census (auto-generated by foundry.eligibility)",
+        "",
+        f"Total niches: {len(rows)}",
+        "",
+        "| candidate_mode | count |",
+        "|---|---|",
+        *[f"| {k} | {v} |" for k, v in sorted(dist.items(), key=lambda kv: -kv[1])],
+        "",
+        "| niche | mode | safety | evidence |",
+        "|---|---|---|---|",
+        *[
+            f"| {r.niche_id} | {r.candidate_mode} | {r.safety_or_irreversibility_level} | "
+            f"{' '.join(r.evidence[:3])} |"
+            for r in rows
+        ],
+    ]
+    out_md.write_text("\n".join(lines))
+    return payload
+
+
+if __name__ == "__main__":
+    root = Path(__file__).resolve().parent.parent
+    result = run_census(
+        specs_dir=root / "hermes_cli" / "jarvis_prime" / "niches" / "specs",
+        out_json=root / "docs" / "foundry" / "NICHE_CENSUS.json",
+        out_md=root / "docs" / "foundry" / "NICHE_CENSUS.md",
+    )
+    print(json.dumps(result["distribution"], indent=2))

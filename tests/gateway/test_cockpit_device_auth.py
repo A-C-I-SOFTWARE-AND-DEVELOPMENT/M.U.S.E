@@ -79,6 +79,7 @@ def _pair_device(server) -> str:
     confirm = _post(
         "/v1/cockpit/pair/confirm",
         {
+            "pairing_id": start["pairing_id"],
             "pairing_code": start["pairing_code"],
             "authorization": "Yes, with authorization.",
         },
@@ -171,7 +172,7 @@ def test_authorize_bearer_device_token_without_shared(home: Path) -> None:
     # per-device token still authorizes — the two paths are independent.
     start = dp.start_pairing("phone")
     assert start is not None
-    confirm = dp.confirm_pairing(start.pairing_code)
+    confirm = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert confirm is not None
     assert cockpit_auth.authorize_bearer(confirm.token, None) is True
     # ...and a revoked device's token does not.

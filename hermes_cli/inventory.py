@@ -154,6 +154,66 @@ def build_models_payload(
     }
 
 
+def build_catalog_payload(ctx: ConfigContext, *, max_models: int = 250) -> dict:
+    """Build a secret-free canonical provider/model control-plane payload.
+
+    This deliberately projects the existing picker inventory instead of
+    maintaining another provider catalog. Credential values, environment
+    variable names, endpoint URLs, auth-store records, and setup hints are
+    never included.
+    """
+    raw = build_models_payload(
+        ctx,
+        include_unconfigured=True,
+        canonical_order=True,
+        max_models=max_models,
+    )
+    providers: list[dict] = []
+    for row in raw["providers"]:
+        source_name = str(row.get("source") or "unknown")
+        configured = source_name != "canonical"
+        providers.append(
+            {
+                "slug": str(row.get("slug") or ""),
+                "name": str(row.get("name") or ""),
+                "models": [
+                    str(model)
+                    for model in row.get("models", [])
+                    if isinstance(model, str)
+                ],
+                "total_models": int(row.get("total_models") or 0),
+                "current": bool(row.get("is_current")),
+                "source": {
+                    "catalog": "hermes_cli.models",
+                    "inventory": source_name,
+                },
+                "refresh": {
+                    "mode": "cached_or_curated",
+                    "network_requested": False,
+                },
+                "entitlement": {
+                    "state": "configured" if configured else "not_configured",
+                    "configured": configured,
+                },
+            }
+        )
+    return {
+        "providers": providers,
+        "provider": str(raw.get("provider") or ""),
+        "model": str(raw.get("model") or ""),
+        "source": {
+            "module": "hermes_cli.inventory",
+            "provider_catalog": "hermes_cli.models.CANONICAL_PROVIDERS",
+            "model_catalog": "hermes_cli.models",
+        },
+        "refresh": {
+            "mode": "cached_or_curated",
+            "network_requested": False,
+            "available": True,
+        },
+    }
+
+
 # ─── Internal: row post-processing ──────────────────────────────────────
 
 

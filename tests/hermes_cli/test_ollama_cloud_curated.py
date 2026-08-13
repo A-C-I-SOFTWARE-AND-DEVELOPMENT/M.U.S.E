@@ -11,6 +11,10 @@ def test_gemma4_in_curated_list():
     assert "gemma4" in _OLLAMA_CLOUD_CURATED
 
 
+def test_kimi_k3_in_curated_list():
+    assert _OLLAMA_CLOUD_CURATED[0] == "kimi-k3"
+
+
 def test_curated_fallback_when_discovery_empty(monkeypatch):
     monkeypatch.setattr(models, "_load_ollama_cloud_cache", lambda **kw: None)
     monkeypatch.setattr(models, "fetch_api_models", lambda *a, **k: [])

@@ -161,7 +161,7 @@
                 <span style="flex:1; text-align:center; font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:0.04em; color:var(--ring-1); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-sm); padding:9px 0;">{{ c }}</span>
               </sc-for>
             </div>
-            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">To authorize this device, type the owner phrase exactly:<br /><span style="font-family:var(--mono); color:var(--signal);">{{ conn2.ownerPhrase }}</span></div>
+            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">To authorize this device, type the owner phrase exactly. The phrase is never shown here.</div>
             <div style="display:flex; gap:8px;">
               <input type="text" value="{{ conn2.phrase }}" onInput="{{ conn2.onPhrase }}" placeholder="Owner authorization phrase" style="flex:1; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;" style-focus="border-color:var(--ring-1);" />
               <button type="button" onClick="{{ conn2.onConfirm }}" class="btn primary" style="flex:none;">Pair</button>
@@ -1279,6 +1279,7 @@ class Component extends DCLogic {
     gatewayUrl: '',
     gatewayInfo: null,
     deviceName: '',
+    pairId: '',
     pairCode: '',
     pairExpires: 0,
     pairPhrase: '',
@@ -1889,7 +1890,7 @@ class Component extends DCLogic {
 
   // ===== Real muse gateway connection (cockpit HTTP API contract) =====
   GATEWAY_DEFAULT = 'http://127.0.0.1:8765';
-  OWNER_PHRASE = 'Yes, with authorization.';
+  OWNER_PHRASE = '';
 
   _gw() {
     return (this.state.gatewayUrl || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
@@ -1950,7 +1951,7 @@ class Component extends DCLogic {
     try {
       const r = await this._api('/v1/cockpit/pair/start', { method: 'POST', auth: false, body: { device_name: this.state.deviceName || 'muse cockpit (web)' } });
       if (r.status === 201 && r.data && r.data.pairing_code) {
-        this.setState({ pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
+        this.setState({ pairId: r.data.pairing_id || '', pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
       } else if (r.status === 429) {
         this.setState({ connState: 'error', connStep: 'idle', connError: (r.data && r.data.hint) || 'Pairing temporarily unavailable — wait and retry.' });
       } else {
@@ -1962,17 +1963,17 @@ class Component extends DCLogic {
   confirmPair = async () => {
     this.setState({ connError: '' });
     try {
-      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
+      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_id: this.state.pairId, pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
       if (r.status === 201 && r.data && r.data.token) {
         try {
           localStorage.setItem('muse.gateway.token', r.data.token);
           localStorage.setItem('muse.gateway.device', r.data.device_id || '');
           localStorage.setItem('muse.gateway.url', this._gw());
         } catch (e) {}
-        this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
+        this.setState({ deviceId: r.data.device_id || '', pairId: '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
         this.pullRuntime();
       } else if (r.status === 403) {
-        this.setState({ connError: 'Owner authorization phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' });
+        this.setState({ connError: 'Owner authorization did not match.' });
       } else if (r.status === 401) {
         this.setState({ connStep: 'pairing', pairCode: '', connError: 'That pairing code was invalid or expired. Start again.' });
       } else {

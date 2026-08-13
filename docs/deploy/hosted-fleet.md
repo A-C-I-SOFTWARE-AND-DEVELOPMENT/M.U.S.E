@@ -29,7 +29,8 @@ Browser (musehq.io)
   on) and `docker/start-cockpit.sh` runs a `socat` hop to the container's
   published port. Binding `0.0.0.0` directly would silently kill code execution.
 - **Owner gates stay in force.** Owner-gated actions still require the exact
-  owner phrase through the Approvals UI — hosting does not weaken any gate.
+  owner authorization through the Approvals UI — hosting does not weaken any
+  gate or publish the authorization value as a hint.
 
 ## One-time host setup
 
@@ -37,6 +38,8 @@ Browser (musehq.io)
 # On the VPS (Docker + Caddy installed):
 sudo cp deploy/hosted/Caddyfile /etc/caddy/Caddyfile
 sudo sed -i 's/__GW_DOMAIN__/gw.musehq.io/' /etc/caddy/Caddyfile   # your DNS
+# Set the same high-entropy MUSE_GATEWAY_RELAY_TOKEN in Caddy's service
+# environment and Vercel's server-only environment before the first reload.
 sudo systemctl reload caddy
 ```
 
@@ -60,9 +63,10 @@ scripts/fleet/provision_user.sh up <slug> <supabase_user_id> [pub_port]
 
 It builds/starts the user's container, waits for `"agent":"full"` health, reads
 the container's cockpit token, and upserts the `account_gateways` binding via
-the service role. It then prints the `handle_path` block to paste into
-`deploy/hosted/Caddyfile`; add it, `sudo systemctl reload caddy`, and set a
-provider key in the container's `~/.hermes/.env` (a free Groq/Gemini key works):
+the service role. It then points to the hardened `handle_path` template in
+`deploy/hosted/Caddyfile`; copy it without removing the relay-token or
+route/method matchers, reload Caddy, and set a provider key in the container's
+`~/.hermes/.env` (a free Groq/Gemini key works):
 
 ```bash
 docker compose -p muse-<slug> -f docker-compose.hosted.yml exec cockpit \
@@ -80,19 +84,36 @@ scripts/fleet/provision_user.sh down <slug>
 ## Verify a user end-to-end
 
 ```bash
-# health + full-agent mode through the proxy
-curl -s https://gw.musehq.io/u/<slug>/v1/health           # {"agent":"full",...}
+# Direct proxy checks require the server-only relay proof.
+RELAY_PROOF='Bearer <relay-token>'
+curl -s -H "X-Muse-Relay-Authorization: ${RELAY_PROOF}" \
+  https://gw.musehq.io/u/<slug>/v1/health
 # execute lanes survived containerization (the critical check)
-curl -s -H "Authorization: Bearer <token>" \
+curl -s -H "X-Muse-Relay-Authorization: ${RELAY_PROOF}" \
+  -H "Authorization: Bearer <owner-token>" \
   https://gw.musehq.io/u/<slug>/v1/cockpit/capabilities    # execute_allowed: true
 # streaming works through every hop (no proxy buffering)
-curl -N -H "Authorization: Bearer <token>" \
+curl -N -H "X-Muse-Relay-Authorization: ${RELAY_PROOF}" \
+  -H "Authorization: Bearer <owner-token>" \
   -d '{"prompt":"run: python -c \"print(6*7)\""}' \
   https://gw.musehq.io/u/<slug>/v1/agent/chat              # tool_call + body(42)
 ```
 
 Then sign in on musehq.io, confirm the Account panel shows **Full agent ready**,
 and send a message that runs code and pauses on an approval.
+
+### Block-Buzz through musehq.io
+
+Buzz keeps a short-lived service token, while the browser/owner session keeps
+using the account's stored gateway token. To relay Buzz, authenticate the
+request with the normal musehq.io account session and send the scoped token in
+`X-Muse-Service-Authorization: Bearer muse_svc_...`. For POST controls, also
+send a unique `X-Muse-Request-Id`. The relay and cockpit each apply independent
+route+method allowlists; the cockpit attributes accepted and denied calls to
+the token's `block-buzz` identity and credential id.
+
+Never put a service token in a URL, browser storage, Vite variable, Caddyfile,
+or log. Do not reuse the account's owner gateway token for Buzz.
 
 ## Operations
 
