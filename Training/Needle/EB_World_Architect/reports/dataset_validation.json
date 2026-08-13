@@ -1,0 +1,1043 @@
+{
+  "coverage": {
+    "categories": {
+      "ARCHITECTURAL_PURPOSE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "ARCHITECTURE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "BLENDER": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "BRIDGES": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "COLLISION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "COMPLETION_STATUS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "COMPOSITION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "CONCEPT_FIDELITY": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "CRYSTALS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "CULLING": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "DESTRUCTION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "ENVIRONMENTAL_STORYTELLING": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "ESSENCE_INFRASTRUCTURE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "FAILURE_DETECTION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "FLOATING_ISLAND_GEOLOGY": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "INSTANCING": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "INTERACTION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "INTERIORS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "LANDMASS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "LIGHTING": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "MACRO_LAYOUT": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "MAGIC": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "MARKETS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "MATERIALS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "OBJECT_INTERSECTIONS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "PERFORMANCE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "PLAYER_SCALE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "PYTHON_GENERATION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "QUALITY_GATES": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "REPO_REASONING": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "ROADS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "SETTLEMENTS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "SHOPS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      },
+      "SILHOUETTE": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "SKYWAYS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "TASK_PRIORITIZATION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "TRAVERSAL": {
+        "1000": 25,
+        "2000": 50,
+        "250": 7,
+        "4000": 100,
+        "500": 13
+      },
+      "UNREAL": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "VERIFICATION": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 12
+      },
+      "WILDERNESS": {
+        "1000": 25,
+        "2000": 50,
+        "250": 6,
+        "4000": 100,
+        "500": 13
+      }
+    },
+    "example_types": {
+      "adversarial": {
+        "1000": 160,
+        "2000": 400,
+        "4000": 800,
+        "500": 80
+      },
+      "choice": {
+        "1000": 80,
+        "2000": 160,
+        "4000": 400,
+        "500": 40
+      },
+      "classification": {
+        "1000": 160,
+        "2000": 320,
+        "250": 50,
+        "4000": 600,
+        "500": 80
+      },
+      "constraint": {
+        "1000": 120,
+        "2000": 200,
+        "250": 40,
+        "4000": 400,
+        "500": 40
+      },
+      "correction": {
+        "1000": 200,
+        "2000": 320,
+        "250": 80,
+        "4000": 600,
+        "500": 100
+      },
+      "failure_analysis": {
+        "1000": 80,
+        "2000": 200,
+        "4000": 400,
+        "500": 40
+      },
+      "prioritization": {
+        "1000": 120,
+        "2000": 200,
+        "250": 40,
+        "4000": 400,
+        "500": 80
+      },
+      "repo_evidence": {
+        "1000": 80,
+        "2000": 200,
+        "250": 40,
+        "4000": 400,
+        "500": 40
+      }
+    },
+    "labels": {
+      "ARCHITECTURAL_PURPOSE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "ARCHITECTURE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "BLENDER": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "BLOCKED": {
+        "1000": 80,
+        "2000": 120,
+        "250": 40,
+        "4000": 200,
+        "500": 40
+      },
+      "BRIDGES": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "COLLISION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "COMPLETION_STATUS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "COMPOSITION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "CONCEPT_FIDELITY": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "CRYSTALS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "CULLING": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "DESTRUCTION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "ENVIRONMENTAL_STORYTELLING": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "ESSENCE_INFRASTRUCTURE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "FAIL": {
+        "1000": 280,
+        "2000": 520,
+        "250": 80,
+        "4000": 1000,
+        "500": 140
+      },
+      "FAILURE_DETECTION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "FLOATING_ISLAND_GEOLOGY": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "INSTANCING": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "INTERACTION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "INTERIORS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "LANDMASS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "LIGHTING": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "MACRO_LAYOUT": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "MAGIC": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "MARKETS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "MATERIALS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "OBJECT_INTERSECTIONS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "OUT_OF_SCOPE": {
+        "1000": 80,
+        "2000": 200,
+        "4000": 400,
+        "500": 40
+      },
+      "PASS": {
+        "1000": 320,
+        "2000": 640,
+        "250": 50,
+        "4000": 1400,
+        "500": 160
+      },
+      "PERFORMANCE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "PLAYER_SCALE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "PYTHON_GENERATION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "QUALITY_GATES": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "REFUSE": {
+        "1000": 80,
+        "2000": 200,
+        "4000": 400,
+        "500": 40
+      },
+      "REPO_REASONING": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "ROADS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "SETTLEMENTS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "SHOPS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      },
+      "SILHOUETTE": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "SKYWAYS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "TASK_PRIORITIZATION": {
+        "1000": 140,
+        "2000": 240,
+        "250": 45,
+        "4000": 480,
+        "500": 89
+      },
+      "TRAVERSAL": {
+        "1000": 20,
+        "2000": 40,
+        "250": 6,
+        "4000": 80,
+        "500": 10
+      },
+      "UNREAL": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "UNVERIFIED": {
+        "1000": 160,
+        "2000": 400,
+        "250": 40,
+        "4000": 800,
+        "500": 80
+      },
+      "VERIFICATION": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 9
+      },
+      "WARN": {
+        "1000": 80,
+        "2000": 120,
+        "250": 40,
+        "4000": 200,
+        "500": 40
+      },
+      "WILDERNESS": {
+        "1000": 20,
+        "2000": 40,
+        "250": 5,
+        "4000": 80,
+        "500": 10
+      }
+    }
+  },
+  "duplicate_rate": 0.0,
+  "errors": [],
+  "passed": true,
+  "pools": {
+    "canonical": {
+      "counts": {
+        "adversarial_rows": 1200,
+        "categories": {
+          "ARCHITECTURAL_PURPOSE": 100,
+          "ARCHITECTURE": 100,
+          "BLENDER": 100,
+          "BRIDGES": 100,
+          "COLLISION": 100,
+          "COMPLETION_STATUS": 100,
+          "COMPOSITION": 100,
+          "CONCEPT_FIDELITY": 100,
+          "CRYSTALS": 100,
+          "CULLING": 100,
+          "DESTRUCTION": 100,
+          "ENVIRONMENTAL_STORYTELLING": 100,
+          "ESSENCE_INFRASTRUCTURE": 100,
+          "FAILURE_DETECTION": 100,
+          "FLOATING_ISLAND_GEOLOGY": 100,
+          "INSTANCING": 100,
+          "INTERACTION": 100,
+          "INTERIORS": 100,
+          "LANDMASS": 100,
+          "LIGHTING": 100,
+          "MACRO_LAYOUT": 100,
+          "MAGIC": 100,
+          "MARKETS": 100,
+          "MATERIALS": 100,
+          "OBJECT_INTERSECTIONS": 100,
+          "PERFORMANCE": 100,
+          "PLAYER_SCALE": 100,
+          "PYTHON_GENERATION": 100,
+          "QUALITY_GATES": 100,
+          "REPO_REASONING": 100,
+          "ROADS": 100,
+          "SETTLEMENTS": 100,
+          "SHOPS": 100,
+          "SILHOUETTE": 100,
+          "SKYWAYS": 100,
+          "TASK_PRIORITIZATION": 100,
+          "TRAVERSAL": 100,
+          "UNREAL": 100,
+          "VERIFICATION": 100,
+          "WILDERNESS": 100
+        },
+        "exact_duplicate_queries": 0,
+        "example_types": {
+          "adversarial": 800,
+          "choice": 400,
+          "classification": 600,
+          "constraint": 400,
+          "correction": 600,
+          "failure_analysis": 400,
+          "prioritization": 400,
+          "repo_evidence": 400
+        },
+        "failure_rows": 2000,
+        "labels": {
+          "ARCHITECTURAL_PURPOSE": 80,
+          "ARCHITECTURE": 80,
+          "BLENDER": 80,
+          "BLOCKED": 200,
+          "BRIDGES": 80,
+          "COLLISION": 80,
+          "COMPLETION_STATUS": 80,
+          "COMPOSITION": 80,
+          "CONCEPT_FIDELITY": 80,
+          "CRYSTALS": 80,
+          "CULLING": 80,
+          "DESTRUCTION": 80,
+          "ENVIRONMENTAL_STORYTELLING": 80,
+          "ESSENCE_INFRASTRUCTURE": 80,
+          "FAIL": 1000,
+          "FAILURE_DETECTION": 80,
+          "FLOATING_ISLAND_GEOLOGY": 80,
+          "INSTANCING": 80,
+          "INTERACTION": 80,
+          "INTERIORS": 80,
+          "LANDMASS": 80,
+          "LIGHTING": 80,
+          "MACRO_LAYOUT": 80,
+          "MAGIC": 80,
+          "MARKETS": 80,
+          "MATERIALS": 80,
+          "OBJECT_INTERSECTIONS": 80,
+          "OUT_OF_SCOPE": 400,
+          "PASS": 1400,
+          "PERFORMANCE": 80,
+          "PLAYER_SCALE": 80,
+          "PYTHON_GENERATION": 80,
+          "QUALITY_GATES": 80,
+          "REFUSE": 400,
+          "REPO_REASONING": 80,
+          "ROADS": 80,
+          "SETTLEMENTS": 80,
+          "SHOPS": 80,
+          "SILHOUETTE": 80,
+          "SKYWAYS": 80,
+          "TASK_PRIORITIZATION": 480,
+          "TRAVERSAL": 80,
+          "UNREAL": 80,
+          "UNVERIFIED": 800,
+          "VERIFICATION": 80,
+          "WARN": 200,
+          "WILDERNESS": 80
+        },
+        "max_training_tokens": 1493,
+        "rows": 4000,
+        "unique_ids": 4000,
+        "unique_queries": 4000
+      },
+      "errors": [],
+      "passed": true
+    },
+    "holdout": {
+      "counts": {
+        "adversarial_rows": 120,
+        "categories": {
+          "ARCHITECTURAL_PURPOSE": 10,
+          "ARCHITECTURE": 10,
+          "BLENDER": 10,
+          "BRIDGES": 10,
+          "COLLISION": 10,
+          "COMPLETION_STATUS": 10,
+          "COMPOSITION": 10,
+          "CONCEPT_FIDELITY": 10,
+          "CRYSTALS": 10,
+          "CULLING": 10,
+          "DESTRUCTION": 10,
+          "ENVIRONMENTAL_STORYTELLING": 10,
+          "ESSENCE_INFRASTRUCTURE": 10,
+          "FAILURE_DETECTION": 10,
+          "FLOATING_ISLAND_GEOLOGY": 10,
+          "INSTANCING": 10,
+          "INTERACTION": 10,
+          "INTERIORS": 10,
+          "LANDMASS": 10,
+          "LIGHTING": 10,
+          "MACRO_LAYOUT": 10,
+          "MAGIC": 10,
+          "MARKETS": 10,
+          "MATERIALS": 10,
+          "OBJECT_INTERSECTIONS": 10,
+          "PERFORMANCE": 10,
+          "PLAYER_SCALE": 10,
+          "PYTHON_GENERATION": 10,
+          "QUALITY_GATES": 10,
+          "REPO_REASONING": 10,
+          "ROADS": 10,
+          "SETTLEMENTS": 10,
+          "SHOPS": 10,
+          "SILHOUETTE": 10,
+          "SKYWAYS": 10,
+          "TASK_PRIORITIZATION": 10,
+          "TRAVERSAL": 10,
+          "UNREAL": 10,
+          "VERIFICATION": 10,
+          "WILDERNESS": 10
+        },
+        "exact_duplicate_queries": 0,
+        "example_types": {
+          "adversarial": 80,
+          "classification": 80,
+          "constraint": 40,
+          "correction": 80,
+          "failure_analysis": 40,
+          "prioritization": 40,
+          "repo_evidence": 40
+        },
+        "failure_rows": 240,
+        "labels": {
+          "ARCHITECTURAL_PURPOSE": 8,
+          "ARCHITECTURE": 8,
+          "BLENDER": 8,
+          "BLOCKED": 40,
+          "BRIDGES": 8,
+          "COLLISION": 8,
+          "COMPLETION_STATUS": 8,
+          "COMPOSITION": 8,
+          "CONCEPT_FIDELITY": 8,
+          "CRYSTALS": 8,
+          "CULLING": 8,
+          "DESTRUCTION": 8,
+          "ENVIRONMENTAL_STORYTELLING": 8,
+          "ESSENCE_INFRASTRUCTURE": 8,
+          "FAIL": 120,
+          "FAILURE_DETECTION": 8,
+          "FLOATING_ISLAND_GEOLOGY": 8,
+          "INSTANCING": 8,
+          "INTERACTION": 8,
+          "INTERIORS": 8,
+          "LANDMASS": 8,
+          "LIGHTING": 8,
+          "MACRO_LAYOUT": 8,
+          "MAGIC": 8,
+          "MARKETS": 8,
+          "MATERIALS": 8,
+          "OBJECT_INTERSECTIONS": 8,
+          "OUT_OF_SCOPE": 40,
+          "PASS": 80,
+          "PERFORMANCE": 8,
+          "PLAYER_SCALE": 8,
+          "PYTHON_GENERATION": 8,
+          "QUALITY_GATES": 8,
+          "REFUSE": 40,
+          "REPO_REASONING": 8,
+          "ROADS": 8,
+          "SETTLEMENTS": 8,
+          "SHOPS": 8,
+          "SILHOUETTE": 8,
+          "SKYWAYS": 8,
+          "TASK_PRIORITIZATION": 48,
+          "TRAVERSAL": 8,
+          "UNREAL": 8,
+          "UNVERIFIED": 80,
+          "VERIFICATION": 8,
+          "WARN": 40,
+          "WILDERNESS": 8
+        },
+        "max_training_tokens": 1495,
+        "rows": 400,
+        "unique_ids": 400,
+        "unique_queries": 400
+      },
+      "errors": [],
+      "passed": true
+    },
+    "qa": {
+      "counts": {
+        "adversarial_rows": 1200,
+        "categories": {
+          "ARCHITECTURAL_PURPOSE": 100,
+          "ARCHITECTURE": 100,
+          "BLENDER": 100,
+          "BRIDGES": 100,
+          "COLLISION": 100,
+          "COMPLETION_STATUS": 100,
+          "COMPOSITION": 100,
+          "CONCEPT_FIDELITY": 100,
+          "CRYSTALS": 100,
+          "CULLING": 100,
+          "DESTRUCTION": 100,
+          "ENVIRONMENTAL_STORYTELLING": 100,
+          "ESSENCE_INFRASTRUCTURE": 100,
+          "FAILURE_DETECTION": 100,
+          "FLOATING_ISLAND_GEOLOGY": 100,
+          "INSTANCING": 100,
+          "INTERACTION": 100,
+          "INTERIORS": 100,
+          "LANDMASS": 100,
+          "LIGHTING": 100,
+          "MACRO_LAYOUT": 100,
+          "MAGIC": 100,
+          "MARKETS": 100,
+          "MATERIALS": 100,
+          "OBJECT_INTERSECTIONS": 100,
+          "PERFORMANCE": 100,
+          "PLAYER_SCALE": 100,
+          "PYTHON_GENERATION": 100,
+          "QUALITY_GATES": 100,
+          "REPO_REASONING": 100,
+          "ROADS": 100,
+          "SETTLEMENTS": 100,
+          "SHOPS": 100,
+          "SILHOUETTE": 100,
+          "SKYWAYS": 100,
+          "TASK_PRIORITIZATION": 100,
+          "TRAVERSAL": 100,
+          "UNREAL": 100,
+          "VERIFICATION": 100,
+          "WILDERNESS": 100
+        },
+        "exact_duplicate_queries": 0,
+        "example_types": {
+          "adversarial": 800,
+          "choice": 400,
+          "classification": 600,
+          "constraint": 400,
+          "correction": 600,
+          "failure_analysis": 400,
+          "prioritization": 400,
+          "repo_evidence": 400
+        },
+        "failure_rows": 2000,
+        "labels": {
+          "ARCHITECTURAL_PURPOSE": 80,
+          "ARCHITECTURE": 80,
+          "BLENDER": 80,
+          "BLOCKED": 200,
+          "BRIDGES": 80,
+          "COLLISION": 80,
+          "COMPLETION_STATUS": 80,
+          "COMPOSITION": 80,
+          "CONCEPT_FIDELITY": 80,
+          "CRYSTALS": 80,
+          "CULLING": 80,
+          "DESTRUCTION": 80,
+          "ENVIRONMENTAL_STORYTELLING": 80,
+          "ESSENCE_INFRASTRUCTURE": 80,
+          "FAIL": 1000,
+          "FAILURE_DETECTION": 80,
+          "FLOATING_ISLAND_GEOLOGY": 80,
+          "INSTANCING": 80,
+          "INTERACTION": 80,
+          "INTERIORS": 80,
+          "LANDMASS": 80,
+          "LIGHTING": 80,
+          "MACRO_LAYOUT": 80,
+          "MAGIC": 80,
+          "MARKETS": 80,
+          "MATERIALS": 80,
+          "OBJECT_INTERSECTIONS": 80,
+          "OUT_OF_SCOPE": 400,
+          "PASS": 1400,
+          "PERFORMANCE": 80,
+          "PLAYER_SCALE": 80,
+          "PYTHON_GENERATION": 80,
+          "QUALITY_GATES": 80,
+          "REFUSE": 400,
+          "REPO_REASONING": 80,
+          "ROADS": 80,
+          "SETTLEMENTS": 80,
+          "SHOPS": 80,
+          "SILHOUETTE": 80,
+          "SKYWAYS": 80,
+          "TASK_PRIORITIZATION": 480,
+          "TRAVERSAL": 80,
+          "UNREAL": 80,
+          "UNVERIFIED": 800,
+          "VERIFICATION": 80,
+          "WARN": 200,
+          "WILDERNESS": 80
+        },
+        "max_training_tokens": 1503,
+        "rows": 4000,
+        "unique_ids": 4000,
+        "unique_queries": 4000
+      },
+      "errors": [],
+      "passed": true
+    }
+  },
+  "rungs": {
+    "1000": {
+      "test": 100,
+      "train": 800,
+      "validation": 100
+    },
+    "2000": {
+      "test": 200,
+      "train": 1600,
+      "validation": 200
+    },
+    "250": {
+      "test": 25,
+      "train": 200,
+      "validation": 25
+    },
+    "4000": {
+      "test": 400,
+      "train": 3200,
+      "validation": 400
+    },
+    "500": {
+      "test": 50,
+      "train": 400,
+      "validation": 50
+    }
+  }
+}
