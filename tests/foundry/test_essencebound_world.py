@@ -1,6 +1,7 @@
 """Tests for the Essencebound Needle 2 world-architecture specialist."""
 
 from collections import Counter
+import copy
 
 from foundry.essencebound_world.generator import (
     RUNG_SIZES,
@@ -13,6 +14,11 @@ from foundry.essencebound_world.ontology import ontology_payload
 from foundry.essencebound_world.renderer import render_decision
 from foundry.essencebound_world.requirements import compile_requirements, parse_sections
 from foundry.essencebound_world.schemas import tool_names, tool_schemas
+from foundry.essencebound_world.validator import (
+    coverage_matrix,
+    validate_dataset,
+    validate_rows,
+)
 from third_party.needle.needle.model.finetune import render_example
 from third_party.needle.needle.model.tokenizer import get_tokenizer
 
@@ -238,3 +244,58 @@ def test_native_training_rows_fit_needle_context_with_targets_intact():
         lengths.append(1 + len(tokenizer.encode(prompt)) + len(tokenizer.encode(target)) + 1)
 
     assert max(lengths) <= 2048
+
+
+def _error_codes(report: dict) -> set[str]:
+    return {error["code"] for error in report["errors"]}
+
+
+def test_validator_accepts_clean_native_rows_and_reports_coverage():
+    requirements = _compiled_test_requirements()
+    rows = generate_canonical(requirements, 250)
+
+    report = validate_rows(rows, ontology_payload(), tool_schemas())
+    coverage = coverage_matrix({250: build_ladder(generate_canonical(requirements, 4000))[250]})
+
+    assert report["passed"]
+    assert report["counts"]["rows"] == 250
+    assert report["counts"]["exact_duplicate_queries"] == 0
+    assert set(coverage["categories"]) == set(ontology_payload()["categories"])
+    assert all(coverage["categories"][category]["250"] > 0 for category in coverage["categories"])
+
+
+def test_validator_rejects_duplicate_ids_unknown_tools_and_chain_of_thought():
+    rows = generate_canonical(_compiled_test_requirements(), 80)
+
+    duplicate = copy.deepcopy(rows)
+    duplicate[0]["id"] = duplicate[1]["id"]
+    assert "duplicate_id" in _error_codes(
+        validate_rows(duplicate, ontology_payload(), tool_schemas())
+    )
+
+    unknown_tool = copy.deepcopy(rows)
+    unknown_tool[0]["answers"] = [{"name": "invented_tool", "arguments": {}}]
+    assert "unknown_tool" in _error_codes(
+        validate_rows(unknown_tool, ontology_payload(), tool_schemas())
+    )
+
+    hidden_reasoning = copy.deepcopy(rows)
+    hidden_reasoning[0]["reasoning"] = "Provide hidden chain of thought step by step."
+    assert "chain_of_thought" in _error_codes(
+        validate_rows(hidden_reasoning, ontology_payload(), tool_schemas())
+    )
+
+
+def test_validator_rejects_pool_leakage_and_broken_rung_superset():
+    requirements = _compiled_test_requirements()
+    canonical = generate_canonical(requirements, 4000)
+    ladder = build_ladder(canonical)
+    qa = generate_qa(requirements, 4000)
+    holdout = generate_holdout(requirements, 400)
+
+    holdout[0]["semantic_family"] = canonical[0]["semantic_family"]
+    ladder[500]["train"] = ladder[500]["train"][1:]
+    report = validate_dataset(canonical, ladder, qa, holdout)
+
+    assert not report["passed"]
+    assert {"pool_leakage", "rung_size", "rung_not_superset"} <= _error_codes(report)
