@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "static": {
+    "artifacts": {
+      "checkpoint": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\checkpoints\\needle2.pkl",
+      "engine": "C:\\Users\\Echer\\.cache\\cactus-needle\\2.0.0\\libneedle.dll",
+      "stock_model": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+      "tokenizer": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\needle\\model\\tokenizer.model"
+    },
+    "checks": {
+      "checkpoint": true,
+      "checkpoint_hash": true,
+      "dataset_validation": true,
+      "disk_free_5gb": true,
+      "engine_2_0_0": true,
+      "f32_lora_patch": true,
+      "stock_engine_model": true,
+      "tokenizer": true,
+      "tokenizer_hash": true
+    },
+    "passed": true
+  },
+  "wsl_gpu": {
+    "command": [
+      "wsl.exe",
+      "-d",
+      "Ubuntu",
+      "--",
+      "/root/needle_gpu_probe/.venv/bin/python",
+      "-c",
+      "import json,jax; print(json.dumps({'jax':jax.__version__,'devices':[str(x) for x in jax.devices()]}))"
+    ],
+    "devices": [
+      "cuda:0"
+    ],
+    "duration_s": 6.546,
+    "exit_code": 0,
+    "jax": "0.11.0",
+    "passed": true,
+    "stderr": "",
+    "stdout": "{\"jax\": \"0.11.0\", \"devices\": [\"cuda:0\"]}\n"
+  }
+}
