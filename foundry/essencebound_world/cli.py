@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from .pipeline import build_data, validate_root
+from .training import run_training, training_preflight
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -17,6 +18,17 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--output", type=Path, required=True)
     validate = sub.add_parser("validate", help="reload and validate a generated artifact tree")
     validate.add_argument("--root", type=Path, required=True)
+    preflight = sub.add_parser("training-preflight", help="verify pinned artifacts and WSL2 CUDA")
+    preflight.add_argument("--root", type=Path, required=True)
+    preflight.add_argument("--repo-root", type=Path, default=Path.cwd())
+    train = sub.add_parser("train-rung", help="train and export one validated rung")
+    train.add_argument("--root", type=Path, required=True)
+    train.add_argument("--repo-root", type=Path, default=Path.cwd())
+    train.add_argument("--rung", type=int, choices=(250, 500, 1000, 2000, 4000), required=True)
+    train.add_argument("--epochs", type=int, default=1)
+    train.add_argument("--batch-size", type=int, default=8)
+    train.add_argument("--lr", type=float, default=1e-4)
+    train.add_argument("--lora-rank", type=int, default=16)
     return parser
 
 
@@ -32,9 +44,25 @@ def main(argv: list[str] | None = None) -> int:
         }
         print(json.dumps(summary, indent=2))
         return 0
-    report = validate_root(args.root)
-    print(json.dumps(report, indent=2))
-    return 0 if report["passed"] else 2
+    if args.command == "validate":
+        report = validate_root(args.root)
+        print(json.dumps(report, indent=2))
+        return 0 if report["passed"] else 2
+    if args.command == "training-preflight":
+        report = training_preflight(args.root, args.repo_root)
+        print(json.dumps(report, indent=2))
+        return 0 if report["passed"] else 2
+    result = run_training(
+        root=args.root,
+        repo_root=args.repo_root,
+        rung=args.rung,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        lora_rank=args.lora_rank,
+    )
+    print(json.dumps(result, indent=2))
+    return 0 if result["status"] == "TRAINED_UNEVALUATED" else 2
 
 
 if __name__ == "__main__":
