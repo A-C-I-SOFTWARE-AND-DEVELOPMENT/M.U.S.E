@@ -291,6 +291,12 @@ export interface OverlayState {
   ambient: ActiveWidget[]
   /** Modal widget app — owns input, blocks the composer. */
   widget: ActiveWidget | null
+  /**
+   * Fusion router overlay (`/fusion`). The v0.20.0 merge kept both the
+   * FusionOverlay component and the /fusion command but dropped this field
+   * and the render site, so the command set a flag nothing read.
+   */
+  fusion: boolean
   journey: boolean
   modelPicker: boolean | { refresh?: boolean }
   pager: null | PagerState

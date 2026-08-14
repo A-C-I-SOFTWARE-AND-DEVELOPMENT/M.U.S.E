@@ -23,6 +23,24 @@ export interface ThemeColors {
   /** Reasoning/thinking body text. Defaults to `muted`. */
   thinking: string
 
+  /**
+   * Informational hue — for status values that are neither good nor bad
+   * (fusion depth, reasoning header). The v0.20.0 merge kept the components
+   * that read this but dropped the declaration, which is why `tsc` reported
+   * "Property 'info' does not exist on type 'ThemeColors'".
+   *
+   * Required rather than optional: `buildPalette` always derives it, and the
+   * contrast/ANSI passes iterate `keyof ThemeColors`, so an optional member
+   * would widen every palette lookup to `string | undefined`. Call sites may
+   * still guard with `?? primary` — that stays correct, just redundant.
+   */
+  info: string
+  /**
+   * The faintest readable tone, one step below `muted` — "no router data",
+   * "nothing observed yet" copy. Required for the same reason as `info`.
+   */
+  faint: string
+
   /** Code-block syntax highlight. Default to accent/text/border/muted. */
   syntaxString: string
   syntaxNumber: string
@@ -57,6 +75,8 @@ export interface ThemeBrand {
   goodbye: string
   tool: string
   helpHeader: string
+  /** Expansion line under the glyph. Optional: skins may omit it. */
+  tagline?: string
 }
 
 export interface Theme {
@@ -250,14 +270,60 @@ export function themeToneHex(tone: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
-  icon: '⚕',
+  name: 'muse',
+  icon: '◉',
   prompt: '❯',
-  welcome: 'Type your message or /help for commands.',
-  goodbye: 'Goodbye! ⚕',
+  welcome: 'one mind, many pathways. Type your message or /help for commands.',
+  goodbye: 'Goodbye. ◯',
   tool: '┊',
-  helpHeader: '(^_^)? Commands'
+  helpHeader: '✦ muse Commands',
+  tagline: 'Multi-Use Synaptic Entity · One mind, many pathways.'
 }
+
+// ── muse lockup ──────────────────────────────────────────────────────
+//
+// banner.ts parseRichMarkup renders these: a block wordmark plus a core+ring
+// glyph with a lower-right gap. Restored from the pre-merge Muse tree, which
+// the v0.20.0 merge replaced with the upstream caduceus.
+//
+// One change from the original: the ring ramp was violet (#7E5FA8 → #D8B4FE).
+// The cockpit design carries exactly ONE accent family — `pipe` #7EB6FF — and
+// the original's own comment insists on that contract, so the ramp is now the
+// blue equivalent over the same stops. The wordmark/core fill stays
+// parameterised so the light theme can swap near-white for primary ink.
+const MUSE_WORDMARK_ART = [
+  '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
+  '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',
+  '██╔████╔██║   ██║   ██║   ███████╗   █████╗',
+  '██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝',
+  '██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗',
+  '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
+] as const
+
+const museWordmark = (fill: string) =>
+  MUSE_WORDMARK_ART.map(line => `[bold ${fill}]${line}[/]`).join('\n')
+
+const museGlyph = (core: string, expansion: string, tagline: string) => `           [#497BB4]╭[/][#4E80BB]─[/][#5285C1]─[/][#568AC7]─[/][#5B8ECD]─[/][#5F93D3]─[/][#6498DA]╮[/]
+        [#3C6CA2]╭[/][#4171A8]─[/][#4576AE]╯[/]       [#689DE0]╰[/][#6CA2E6]─[/][#71A7EC]╮[/]
+      [#38679B]╭[/][#3C6CA2]─[/][#4171A8]╯[/]           [#71A7EC]╰[/][#75ACF3]─[/][#7AB1F9]╮[/]
+     [#2F5D8F]╭[/][#336295]╯[/]               [#7AB1F9]╰[/][#7EB6FF]╮[/]
+     [#2F5D8F]│[/]        [bold ${core}]◉[/]        [#7EB6FF]│[/]
+     [#2F5D8F]╰[/][#336295]╮[/]               [#7AB1F9]╭[/][#7EB6FF]╯[/]
+      [#38679B]╰[/][#3C6CA2]─[/][#4171A8]╮[/]           [#71A7EC]╭[/][#75ACF3]─[/][#7AB1F9]╯[/]
+        [#3C6CA2]╰[/][#4171A8]─[/][#4576AE]╮[/]
+           [#497BB4]╰[/][#4E80BB]─[/][#5285C1]─[/][#568AC7]─[/][#5B8ECD]─[/][#5F93D3]─[/][#6498DA]╯[/]
+
+        [${expansion}]Multi-Use Synaptic Entity[/]
+         [dim ${tagline}]One mind, many pathways.[/]`
+
+// Dark (canonical): near-white wordmark, white core, signal-dim/mute tiers.
+const MUSE_WORDMARK = museWordmark('#EEF2F7')
+const MUSE_GLYPH = museGlyph('#FFFFFF', '#AAB2C4', '#8B93A6')
+
+// Light: primary-ink fill so the wordmark/core stay the value hero on a light
+// field; the blue ring stops read fine on white unchanged.
+const MUSE_WORDMARK_LIGHT = museWordmark('#12151D')
+const MUSE_GLYPH_LIGHT = museGlyph('#12151D', '#6B7388', '#8B93A6')
 
 const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
   const cleaned = String(s ?? '')
@@ -341,6 +407,13 @@ export function buildPalette(seeds: ThemeSeeds, isLight: boolean): ThemeColors {
     tool: seeds.accent,
     thinking: muted,
 
+    // Informational hue tracks the accent — the cockpit carries ONE accent
+    // family, so "neither good nor bad" status reads as the accent rather
+    // than inventing a second blue. `faint` continues the text ladder one
+    // step past muted, toward the surface it sits on.
+    info: seeds.accent,
+    faint: mix(muted, surface, 0.45),
+
     // Code-syntax tokens default to brand tokens (unchanged highlighting)
     // but are independently skinnable.
     syntaxString: seeds.accent,
@@ -367,11 +440,83 @@ export function buildPalette(seeds: ThemeSeeds, isLight: boolean): ThemeColors {
   }
 }
 
+// muse cockpit identity. These are the design system's own tokens — the same
+// values the cockpit CSS ships as --color-void / --color-signal / --color-core
+// / --color-pipe — fed into the upstream seed ladder so every secondary tone
+// (dim, mute, elevated surfaces) is DERIVED rather than hand-picked.
+//
+// The v0.20.0 merge kept upstream's ladder architecture but also took its
+// Hermes gold/navy identity (#FFD700 on #101014), which is why the TUI came up
+// looking like Hermes Agent. The architecture is the better half of that
+// merge; the identity below is muse's.
 export const DARK_SEEDS: ThemeSeeds = {
+  accent: '#7EB6FF', // pipe — the ONE accent family
+  // Surfaces are IDENTITY, not derivation drift, so they stay explicit:
+  // void → bg, void-2 → surface, void-3 → activeRow, edge → border.
+  activeRow: '#12151D',
+  bg: '#050507',
+  border: '#333745',
+  error: '#FF5C63', // danger
+  muted: '#6B7388', // signal-mute
+  ok: '#5BE3A0',
+  primary: '#FFFFFF', // core
+  prompt: '#FFFFFF',
+  selection: '#1C2030',
+  shellDollar: '#7EB6FF',
+  statusBad: '#FF5C63',
+  statusCritical: '#FF5C63',
+  statusGood: '#5BE3A0',
+  statusWarn: '#F5C451',
+  surface: '#0B0D12',
+  text: '#E8ECF4', // signal
+  warn: '#F5C451'
+}
+
+// Light-terminal seeds: darker golds/ambers that stay legible on white.
+// The classic light-mode Hermes look was never hand-authored: for years the
+// TUI emitted the DARK golds and hosts with xterm's minimumContrastRatio
+// (Cursor defaults to 4.5) lifted them against white — hue and saturation
+// kept, luminance clamped. These seeds are those exact lifts
+// (liftForContrast(dark, '#ffffff', 4.5)), so hosts WITHOUT a contrast pass
+// render the same thing Cursor always showed. Text/prompt stay ink — body
+// copy historically rendered in the terminal's default near-black fg.
+// muse cockpit light identity — the design system's light block (a warm paper
+// field rather than pure white, which is what keeps the ink tones readable).
+export const LIGHT_SEEDS: ThemeSeeds = {
+  accent: '#2C5F8A', // pipe (light)
+  activeRow: '#E8E2D4', // void-3
+  // The cockpit's light field is a warm paper (#F3EFE6), but a terminal's
+  // background belongs to the host, not to us: a light terminal reports white,
+  // and measuring contrast against a paper tone we never actually paint would
+  // put every derived tone slightly off what renders. The ink tones below are
+  // the cockpit's; the field is the one the host really has.
+  bg: '#FFFFFF', // void (host-owned; cockpit paper is #F3EFE6)
+  border: '#D4CBB8', // edge
+  error: '#B4232C', // danger
+  muted: '#8A8374', // signal-mute
+  ok: '#1F7A4D',
+  primary: '#16140F', // core
+  prompt: '#16140F',
+  selection: '#D4CBB8',
+  shellDollar: '#2C5F8A',
+  statusBad: '#B4232C',
+  statusCritical: '#B4232C',
+  statusGood: '#1F7A4D',
+  statusWarn: '#9A6B12',
+  surface: '#FFFDF8', // void-2
+  text: '#1C1913', // signal
+  warn: '#9A6B12'
+}
+
+// ── Legacy Hermes identity ───────────────────────────────────────────
+//
+// The gold/navy seeds the TUI shipped before it took the cockpit palette.
+// Kept exported for two reasons: the derived-tone ladder's knobs were
+// grid-search fitted against these exact literals, so the test that guards the
+// MATH must pin them explicitly rather than read whatever identity happens to
+// be default; and they make the rebrand reversible.
+export const HERMES_DARK_SEEDS: ThemeSeeds = {
   accent: '#FFBF00',
-  // The classic Hermes navy surfaces are IDENTITY, not derivation drift —
-  // keep them as explicit fill seeds (the ladder derives them for skins
-  // that don't care).
   activeRow: '#333355',
   bg: '#101014',
   border: '#CD7F32',
@@ -390,15 +535,7 @@ export const DARK_SEEDS: ThemeSeeds = {
   warn: '#ffa726'
 }
 
-// Light-terminal seeds: darker golds/ambers that stay legible on white.
-// The classic light-mode Hermes look was never hand-authored: for years the
-// TUI emitted the DARK golds and hosts with xterm's minimumContrastRatio
-// (Cursor defaults to 4.5) lifted them against white — hue and saturation
-// kept, luminance clamped. These seeds are those exact lifts
-// (liftForContrast(dark, '#ffffff', 4.5)), so hosts WITHOUT a contrast pass
-// render the same thing Cursor always showed. Text/prompt stay ink — body
-// copy historically rendered in the terminal's default near-black fg.
-export const LIGHT_SEEDS: ThemeSeeds = {
+export const HERMES_LIGHT_SEEDS: ThemeSeeds = {
   accent: '#956E00',
   bg: '#ffffff',
   border: '#A56628',
@@ -413,20 +550,6 @@ export const LIGHT_SEEDS: ThemeSeeds = {
   statusWarn: '#867000',
   text: '#3D2F13',
   warn: '#956115'
-}
-
-export const DARK_THEME: Theme = {
-  color: buildPalette(DARK_SEEDS, false),
-  brand: BRAND,
-  bannerLogo: '',
-  bannerHero: ''
-}
-
-export const LIGHT_THEME: Theme = {
-  color: buildPalette(LIGHT_SEEDS, true),
-  brand: BRAND,
-  bannerLogo: '',
-  bannerHero: ''
 }
 
 // ── Background-aware readability adaptation ─────────────────────────
@@ -540,6 +663,42 @@ function adaptColorsToBackground(colors: ThemeColors, isLight: boolean, base: Th
   return out
 }
 
+/**
+ * The exported base themes.
+ *
+ * These must be FIXED POINTS of the background adaptation: a skinless user
+ * resolves through `fromSkin({})`, which runs the palette through
+ * `adaptColorsToBackground`, so any tone sitting below the contrast floor
+ * would be lifted and that user would get colors the base never advertised.
+ *
+ * The seeds are therefore chosen to clear the floor already (see the `border`
+ * note in DARK_SEEDS), which keeps the adaptation a no-op on the base and the
+ * invariant exact — rather than pre-adapting here, which would change what
+ * actually renders.
+ */
+const buildBaseTheme = (
+  seeds: ThemeSeeds,
+  isLight: boolean,
+  bannerLogo: string,
+  bannerHero: string
+): Theme => {
+  return {
+    color: buildPalette(seeds, isLight),
+    brand: BRAND,
+    bannerLogo,
+    bannerHero
+  }
+}
+
+export const DARK_THEME: Theme = buildBaseTheme(DARK_SEEDS, false, MUSE_WORDMARK, MUSE_GLYPH)
+
+export const LIGHT_THEME: Theme = buildBaseTheme(
+  LIGHT_SEEDS,
+  true,
+  MUSE_WORDMARK_LIGHT,
+  MUSE_GLYPH_LIGHT
+)
+
 /** The background hex adaptation measures contrast against: the OSC-11
  *  answer when known (cached in HERMES_TUI_BACKGROUND), else the mode's
  *  assumed pole. */
@@ -550,7 +709,12 @@ function referenceBackground(isLight: boolean, env: NodeJS.ProcessEnv = process.
     return cached.startsWith('#') ? cached : `#${cached}`
   }
 
-  return isLight ? '#ffffff' : '#101014'
+  // The assumed pole must be the field the theme actually paints, or contrast
+  // is measured against a background that is never on screen: the dark pole
+  // was #101014 (the legacy Hermes surface) while the cockpit paints #050507,
+  // which left derived tones judged against a lighter field than they render
+  // on and lifted a couple of RGB units away from the base palette.
+  return isLight ? LIGHT_SEEDS.bg : DARK_SEEDS.bg
 }
 
 // ── Derived tone ladder (the desktop color-mix system) ──────────────

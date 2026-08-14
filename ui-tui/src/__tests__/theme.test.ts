@@ -52,7 +52,10 @@ describe('DEFAULT_THEME', () => {
     const { DEFAULT_THEME } = await importThemeWithCleanEnv()
 
     expect(DEFAULT_THEME.color.primary).toBe('#FFFFFF')
-    expect(DEFAULT_THEME.color.error).toBe('#E06C75')
+    // The cockpit design system's `danger`. The older muse TUI used #E06C75;
+    // the two muse surfaces had drifted apart, and the terminal now follows
+    // the cockpit tokens so a user moving between them sees one palette.
+    expect(DEFAULT_THEME.color.error).toBe('#FF5C63')
   })
 })
 
@@ -86,11 +89,13 @@ describe('LIGHT_THEME', () => {
     const { LIGHT_THEME } = await importThemeWithCleanEnv()
 
     // Wordmark + glyph render with primary-ink fill on white, keeping the
-    // violet ramp ring stops (accentDim → accent, the Singularity accent family).
+    // ring's ramp stops (accentDim → accent). The ramp was violet
+    // (#7E5FA8 → #D8B4FE); the cockpit carries exactly ONE accent family —
+    // `pipe` — so the ring now runs the blue equivalent over the same stops.
     expect(LIGHT_THEME.bannerLogo).toContain('#12151D')
     expect(LIGHT_THEME.bannerHero).toContain('#12151D')
-    expect(LIGHT_THEME.bannerHero).toContain('#7E5FA8')
-    expect(LIGHT_THEME.bannerHero).toContain('#D8B4FE')
+    expect(LIGHT_THEME.bannerHero).toContain('#2F5D8F')
+    expect(LIGHT_THEME.bannerHero).toContain('#7EB6FF')
   })
 })
 
@@ -450,23 +455,30 @@ describe('derived tone ladder', () => {
     // pre-refactor hand-tuned literals. Contract: every derived tone stays
     // within a-few-RGB-units of the original (imperceptible), so knob edits
     // that drift the classic look fail here instead of shipping as vibes.
-    const dark = await importThemeWithCleanEnv()
-    const light = await importThemeWithEnv({ HERMES_TUI_BACKGROUND: '#ffffff' })
+    //
+    // Those literals belong to the legacy Hermes identity, so this builds
+    // palettes from HERMES_*_SEEDS explicitly rather than reading whichever
+    // identity is currently the default. Otherwise a rebrand — which changes
+    // the seeds, not the math — fails a test that exists to guard the math.
+    const { buildPalette, HERMES_DARK_SEEDS, HERMES_LIGHT_SEEDS } = await importThemeWithCleanEnv()
+
+    const darkPalette = buildPalette(HERMES_DARK_SEEDS, false)
+    const lightPalette = buildPalette(HERMES_LIGHT_SEEDS, true)
 
     const cases: Array<[string, string, string]> = [
-      [dark.DARK_THEME.color.muted, '#CC9B1F', 'dark muted'],
-      [dark.DARK_THEME.color.label, '#DAA520', 'dark label'],
-      [dark.DARK_THEME.color.statusFg, '#C0C0C0', 'dark statusFg'],
-      [dark.DARK_THEME.color.completionBg, '#1a1a2e', 'dark surface'],
-      [dark.DARK_THEME.color.completionCurrentBg, '#333355', 'dark chip'],
-      [dark.DARK_THEME.color.selectionBg, '#3a3a55', 'dark selection'],
+      [darkPalette.muted, '#CC9B1F', 'dark muted'],
+      [darkPalette.label, '#DAA520', 'dark label'],
+      [darkPalette.statusFg, '#C0C0C0', 'dark statusFg'],
+      [darkPalette.completionBg, '#1a1a2e', 'dark surface'],
+      [darkPalette.completionCurrentBg, '#333355', 'dark chip'],
+      [darkPalette.selectionBg, '#3a3a55', 'dark selection'],
       // Light canon = liftForContrast(dark literal, white, 4.5): the exact
       // colors xterm's minimumContrastRatio rendered on light hosts.
-      [light.LIGHT_THEME.color.muted, '#946C08', 'light muted'],
-      [light.LIGHT_THEME.color.statusFg, '#6F6F6F', 'light statusFg'],
-      [light.LIGHT_THEME.color.completionBg, '#F5F5F5', 'light surface'],
-      [light.LIGHT_THEME.color.completionCurrentBg, '#e0d1bf', 'light chip'],
-      [light.LIGHT_THEME.color.selectionBg, '#D4E4F7', 'light selection']
+      [lightPalette.muted, '#946C08', 'light muted'],
+      [lightPalette.statusFg, '#6F6F6F', 'light statusFg'],
+      [lightPalette.completionBg, '#F5F5F5', 'light surface'],
+      [lightPalette.completionCurrentBg, '#e0d1bf', 'light chip'],
+      [lightPalette.selectionBg, '#D4E4F7', 'light selection']
     ]
 
     for (const [got, original, label] of cases) {

@@ -10,6 +10,7 @@ import { $uiSessionId, $uiTheme } from '../app/uiStore.js'
 import { ActiveSessionSwitcher } from './activeSessionSwitcher.js'
 import { FloatBox } from './appChrome.js'
 import { BillingOverlay } from './billingOverlay.js'
+import { FusionOverlay } from './fusionOverlay.js'
 import { MaskedPrompt } from './maskedPrompt.js'
 import { ModelPicker } from './modelPicker.js'
 import { OverlayHint } from './overlayControls.js'
@@ -282,6 +283,17 @@ export function FloatingOverlays({
       render: width => (
         <FloatBox color={theme.color.border}>
           <PluginsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={theme} />
+        </FloatBox>
+      )
+    })
+  }
+
+  if (overlay.fusion) {
+    widgets.push({
+      id: 'fusion',
+      render: () => (
+        <FloatBox color={theme.color.border}>
+          <FusionOverlay gw={gw} onClose={() => patchOverlayState({ fusion: false })} t={theme} />
         </FloatBox>
       )
     })

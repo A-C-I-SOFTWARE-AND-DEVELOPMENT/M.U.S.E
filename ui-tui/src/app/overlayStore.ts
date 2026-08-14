@@ -10,6 +10,7 @@ const buildOverlayState = (): OverlayState => ({
   billing: null,
   clarify: null,
   confirm: null,
+  fusion: false,
   ambient: [],
   widget: null,
   journey: false,
@@ -34,6 +35,7 @@ export const $isBlocked = computed(
     billing,
     clarify,
     confirm,
+    fusion,
     journey,
     modelPicker,
     pager,
@@ -52,6 +54,7 @@ export const $isBlocked = computed(
       billing ||
       clarify ||
       confirm ||
+      fusion ||
       journey ||
       modelPicker ||
       pager ||
@@ -119,6 +122,7 @@ export const $isBlocked = computed(
  */
 export const hasFloatingPanel = (overlay: OverlayState): boolean =>
   Boolean(
+    overlay.fusion ||
     overlay.modelPicker ||
     overlay.pager ||
     overlay.petPicker ||
