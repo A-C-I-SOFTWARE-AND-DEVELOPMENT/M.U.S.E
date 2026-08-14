@@ -5034,7 +5034,10 @@ def fetch_ollama_cloud_models(
         if models:
             return models
 
-    return []
+    # Nothing live, nothing cached — fall back to the curated list so a fresh
+    # install with no OLLAMA_API_KEY (or an offline first run) still offers the
+    # headline open models in ``hermes model`` instead of an empty picker.
+    return list(_OLLAMA_CLOUD_CURATED)
 
 
 def validate_requested_model(
