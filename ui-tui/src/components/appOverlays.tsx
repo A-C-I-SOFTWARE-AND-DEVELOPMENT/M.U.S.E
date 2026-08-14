@@ -11,6 +11,7 @@ import { ActiveSessionSwitcher } from './activeSessionSwitcher.js'
 import { FloatBox } from './appChrome.js'
 import { BillingOverlay } from './billingOverlay.js'
 import { FusionOverlay } from './fusionOverlay.js'
+import { RoomsPanel } from './roomsPanel.js'
 import { MaskedPrompt } from './maskedPrompt.js'
 import { ModelPicker } from './modelPicker.js'
 import { OverlayHint } from './overlayControls.js'
@@ -283,6 +284,17 @@ export function FloatingOverlays({
       render: width => (
         <FloatBox color={theme.color.border}>
           <PluginsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={theme} />
+        </FloatBox>
+      )
+    })
+  }
+
+  if (overlay.rooms) {
+    widgets.push({
+      id: 'rooms',
+      render: width => (
+        <FloatBox color={theme.color.border}>
+          <RoomsPanel gw={gw} maxWidth={width} onClose={() => patchOverlayState({ rooms: false })} t={theme} />
         </FloatBox>
       )
     })

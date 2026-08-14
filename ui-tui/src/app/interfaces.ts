@@ -299,6 +299,8 @@ export interface OverlayState {
   fusion: boolean
   journey: boolean
   modelPicker: boolean | { refresh?: boolean }
+  /** Rooms panel (`/rooms`) — named boards of agents, from hermes_cli.rooms_db. */
+  rooms: boolean
   pager: null | PagerState
   petPicker: boolean
   pluginsHub: boolean

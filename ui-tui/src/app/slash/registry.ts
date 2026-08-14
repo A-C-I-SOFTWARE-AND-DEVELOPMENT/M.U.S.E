@@ -2,6 +2,7 @@ import { coreCommands } from './commands/core.js'
 import { debugCommands } from './commands/debug.js'
 import { fusionCommands } from './commands/fusion.js'
 import { opsCommands } from './commands/ops.js'
+import { roomsCommands } from './commands/rooms.js'
 import { sessionCommands } from './commands/session.js'
 import { setupCommands } from './commands/setup.js'
 import { subscriptionCommands } from './commands/subscription.js'
@@ -18,7 +19,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   ...wakeCommands,
   ...setupCommands,
   ...debugCommands,
-  ...fusionCommands
+  ...fusionCommands,
+  ...roomsCommands
 ]
 
 const byName = new Map<string, SlashCommand>(
