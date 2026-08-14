@@ -20,6 +20,65 @@ import type { Msg, Usage } from '../types.js'
 
 import { scrollbarColors } from './overlayPrimitives.js'
 
+// ── Agent-mode chrome contract ───────────────────────────────────────
+//
+// `agentModeStore` installs a `globalThis.__museAgentMode` getter and its
+// docstring states that the chrome (status badge, composer glyph, banner)
+// reads the mode through it. The v0.20.0 merge took upstream's version of
+// every one of those components, so nothing read it any more: the Solo/MOA/
+// Fusion cycle still ran on Tab, but the UI never showed which mode was live
+// or whether MOA/Fusion were even available.
+//
+// Missing getter, bad payloads, and throws all degrade to solo/default —
+// chrome must never be the reason a turn cannot render.
+
+export type MuseAgentMode = 'fusion' | 'moa' | 'solo'
+
+export interface MuseAgentModeSnapshot {
+  /** Active agent mode (case-insensitive): 'solo' | 'moa' | 'fusion'. */
+  mode?: null | string
+  /** Permission mode (case-insensitive), e.g. 'default' | 'plan' | 'yolo'. */
+  permission?: null | string
+  /** Capability flags for banner/status availability readouts. */
+  fusionAvailable?: boolean
+  moaAvailable?: boolean
+}
+
+export interface MuseAgentModeState {
+  fusionAvailable?: boolean
+  moaAvailable?: boolean
+  mode: MuseAgentMode
+  permission: string
+}
+
+export function readMuseAgentMode(): MuseAgentModeState {
+  try {
+    const getter = (globalThis as { __museAgentMode?: unknown }).__museAgentMode
+
+    if (typeof getter !== 'function') {
+      return { mode: 'solo', permission: '' }
+    }
+
+    const raw = (getter as () => unknown)()
+    const snap: MuseAgentModeSnapshot =
+      typeof raw === 'string' ? { mode: raw } : raw && typeof raw === 'object' ? (raw as MuseAgentModeSnapshot) : {}
+    const mode = String(snap.mode ?? '')
+      .trim()
+      .toLowerCase()
+
+    return {
+      mode: mode === 'moa' || mode === 'fusion' ? mode : 'solo',
+      permission: String(snap.permission ?? '')
+        .trim()
+        .toLowerCase(),
+      moaAvailable: typeof snap.moaAvailable === 'boolean' ? snap.moaAvailable : undefined,
+      fusionAvailable: typeof snap.fusionAvailable === 'boolean' ? snap.fusionAvailable : undefined
+    }
+  } catch {
+    return { mode: 'solo', permission: '' }
+  }
+}
+
 const FACE_TICK_MS = 2500
 const HEART_COLORS = ['#ff5fa2', '#ff4d6d']
 
@@ -30,7 +89,8 @@ export const padVerb = (verb: string) => `${verb}…`.padEnd(VERB_PAD_LEN, ' ')
 
 // Compact alternates for the `emoji` and `ascii` indicator styles.
 // Each entry is a fixed-width (display-width) glyph.
-const EMOJI_FRAMES = ['⚕ ', '🌀', '🤔', '✨', '🍵', '🔮']
+// Leads with the brand mark (◉), not upstream's caduceus (⚕).
+const EMOJI_FRAMES = ['◉ ', '🌀', '🤔', '✨', '🍵', '🔮']
 const ASCII_FRAMES = ['|', '/', '-', '\\']
 
 // Faster tick for spinner-style indicators — they read as motion only
@@ -54,7 +114,7 @@ const renderIndicator = (style: IndicatorStyle, tick: number): IndicatorRender =
 
   if (style === 'emoji') {
     return {
-      frame: EMOJI_FRAMES[tick % EMOJI_FRAMES.length] ?? '⚕ ',
+      frame: EMOJI_FRAMES[tick % EMOJI_FRAMES.length] ?? '◉ ',
       intervalMs: SPINNER_TICK_MS * 6,
       showVerb: true
     }

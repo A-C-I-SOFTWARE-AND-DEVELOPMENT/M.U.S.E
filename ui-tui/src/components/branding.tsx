@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import unicodeSpinners from 'unicode-animations'
 
 import { artWidth, caduceus, CADUCEUS_WIDTH, type Line as BannerLine, logo, LOGO_WIDTH } from '../banner.js'
+import { readMuseAgentMode } from './appChrome.js'
 import { mix } from '../lib/color.js'
 import { flat } from '../lib/text.js'
 import type { Theme } from '../theme.js'
@@ -253,6 +254,10 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
     return line
   }
 
+  // Defensive capability read for the MOA/◈Fusion availability segments,
+  // supplied by the integrator's globalThis.__museAgentMode getter.
+  const caps = readMuseAgentMode()
+
   // ── Collapsible skills section ──
   const skillEntries = Object.entries(info.skills).sort()
   const skillsTotal = flat(info.skills).length
@@ -464,6 +469,27 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
         {info.lazy && !toolsTotal ? '… ' : `${toolsTotal} `}tools{' · '}
         {info.lazy && !skillsTotal ? '… ' : `${skillsTotal} `}skills
         {mcpConnected ? ` · ${mcpConnected} MCP` : ''}
+        {/* Solo/MOA/Fusion availability. Tab cycles the mode on an empty
+            composer; without these the cycle was invisible. Each segment
+            only renders once the gateway has actually answered
+            `fusion.status` — an undefined flag means "not known yet", which
+            is not the same as "unavailable" and must not render as ✖. */}
+        {typeof caps.moaAvailable === 'boolean' ? (
+          <>
+            {' · '}
+            <Text color={caps.moaAvailable ? t.color.ok : t.color.muted}>
+              MOA {caps.moaAvailable ? '✓' : '✖'}
+            </Text>
+          </>
+        ) : null}
+        {typeof caps.fusionAvailable === 'boolean' ? (
+          <>
+            {' · '}
+            <Text color={caps.fusionAvailable ? t.color.ok : t.color.muted}>
+              ◈Fusion {caps.fusionAvailable ? '✓' : '✖'}
+            </Text>
+          </>
+        ) : null}
         {' · '}
         <Text color={t.color.muted}>/help for commands</Text>
       </Text>

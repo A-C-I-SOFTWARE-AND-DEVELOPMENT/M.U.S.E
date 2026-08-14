@@ -443,7 +443,14 @@ const ComposerPane = memo(function ComposerPane({
         )}
       </Box>
 
-      {!composer.empty && !ui.sid && <Text color={ui.theme.color.muted}>⚕ {ui.status}</Text>}
+      {/* Brand glyph comes from the theme, not a literal: this was hardcoded
+          to upstream's caduceus, so the status line kept showing ⚕ even after
+          the TUI was wearing the muse lockup. */}
+      {!composer.empty && !ui.sid && (
+        <Text color={ui.theme.color.muted}>
+          {ui.theme.brand.icon} {ui.status}
+        </Text>
+      )}
 
       <AmbientDock placement="dock-bottom" />
       <StatusRulePane at="bottom" composer={composer} status={status} />
