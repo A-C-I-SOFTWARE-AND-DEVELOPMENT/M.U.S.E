@@ -9,7 +9,7 @@ export function parseRichMarkup(markup: string): Line[] {
     const trimmed = raw.trimEnd()
 
     if (!trimmed) {
-      lines.push(['', ' '])
+      lines.push([['', ' ']])
 
       continue
     }
@@ -17,27 +17,34 @@ export function parseRichMarkup(markup: string): Line[] {
     const matches = [...trimmed.matchAll(RICH_RE)]
 
     if (!matches.length) {
-      lines.push(['', trimmed])
+      lines.push([['', trimmed]])
 
       continue
     }
 
+    // Every span on a source line belongs to THAT line. Emitting one output
+    // line per span (the previous behaviour) exploded any multi-span row into
+    // a vertical column of single characters — which is exactly what the muse
+    // ring, whose every character carries its own ramp stop, rendered as.
+    const segments: Line = []
     let cursor = 0
 
     for (const m of matches) {
       const before = trimmed.slice(cursor, m.index)
 
       if (before) {
-        lines.push(['', before])
+        segments.push(['', before])
       }
 
-      lines.push([m[1]!, m[2]!])
+      segments.push([m[1]!, m[2]!])
       cursor = m.index! + m[0].length
     }
 
     if (cursor < trimmed.length) {
-      lines.push(['', trimmed.slice(cursor)])
+      segments.push(['', trimmed.slice(cursor)])
     }
+
+    lines.push(segments)
   }
 
   return lines
@@ -76,7 +83,7 @@ const CADUC_GRADIENT = [2, 2, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 3] as const
 const colorize = (art: string[], gradient: readonly number[], c: ThemeColors): Line[] => {
   const p = [c.primary, c.accent, c.border, c.muted]
 
-  return art.map((text, i) => [p[gradient[i]!] ?? c.muted, text])
+  return art.map((text, i) => [[p[gradient[i]!] ?? c.muted, text]])
 }
 
 export const LOGO_WIDTH = Math.max(...LOGO_ART.map(line => line.length))
@@ -88,6 +95,10 @@ export const logo = (c: ThemeColors, customLogo?: string): Line[] =>
 export const caduceus = (c: ThemeColors, customHero?: string): Line[] =>
   customHero ? parseRichMarkup(customHero) : colorize(CADUCEUS_ART, CADUC_GRADIENT, c)
 
-export const artWidth = (lines: Line[]) => lines.reduce((m, [, t]) => Math.max(m, t.length), 0)
+export const artWidth = (lines: Line[]) =>
+  lines.reduce((m, segments) => Math.max(m, segments.reduce((w, [, t]) => w + t.length, 0)), 0)
 
-type Line = [string, string]
+/** One coloured run of text. An empty colour means "inherit". */
+export type Segment = [string, string]
+/** A rendered row: the segments that sit side by side on it. */
+export type Line = Segment[]

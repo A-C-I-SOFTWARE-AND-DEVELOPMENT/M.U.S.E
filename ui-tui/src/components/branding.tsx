@@ -2,7 +2,7 @@ import { Box, Text, useStdout } from '@hermes/ink'
 import { useEffect, useState } from 'react'
 import unicodeSpinners from 'unicode-animations'
 
-import { artWidth, caduceus, CADUCEUS_WIDTH, logo, LOGO_WIDTH } from '../banner.js'
+import { artWidth, caduceus, CADUCEUS_WIDTH, type Line as BannerLine, logo, LOGO_WIDTH } from '../banner.js'
 import { mix } from '../lib/color.js'
 import { flat } from '../lib/text.js'
 import type { Theme } from '../theme.js'
@@ -32,7 +32,7 @@ function InlineLoader({ label, t }: { label: string; t: Theme }) {
   )
 }
 
-export function ArtLines({ lines }: { lines: [string, string][] }) {
+export function ArtLines({ lines }: { lines: BannerLine[] }) {
   // No `opaque`: the banner is top-level content with nothing behind it, so
   // it never needs the opaque space-fill (that's for absolute overlays). On a
   // transparent terminal (terminal.background #00000000) the fill's "default
@@ -40,9 +40,13 @@ export function ArtLines({ lines }: { lines: [string, string][] }) {
   // see-through — the reported ugly banner. Glyphs paint fine on their own.
   return (
     <Box flexDirection="column" height={lines.length} width={artWidth(lines)}>
-      {lines.map(([c, text], i) => (
-        <Text color={c} key={i} wrap="truncate-end">
-          {text}
+      {lines.map((segments, i) => (
+        <Text key={i} wrap="truncate-end">
+          {segments.map(([c, text], j) => (
+            <Text color={c || undefined} key={j}>
+              {text}
+            </Text>
+          ))}
         </Text>
       ))}
     </Box>

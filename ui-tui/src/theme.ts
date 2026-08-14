@@ -1121,11 +1121,16 @@ export function fromSkin(
         welcome: branding.welcome ?? d.brand.welcome,
         goodbye: branding.goodbye ?? d.brand.goodbye,
         tool: toolPrefix || d.brand.tool,
-        helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
+        helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader),
+        tagline: branding.tagline ?? d.brand.tagline
       },
 
-      bannerLogo,
-      bannerHero
+      // Fall back to the base theme's lockup, not to ''. An empty string makes
+      // banner.ts drop to its own built-in art, so a skin that only recolors
+      // (or no skin at all) silently lost the muse wordmark and ring and came
+      // up wearing upstream's default instead.
+      bannerLogo: bannerLogo || d.bannerLogo,
+      bannerHero: bannerHero || d.bannerHero
     },
     process.env,
     isLight
