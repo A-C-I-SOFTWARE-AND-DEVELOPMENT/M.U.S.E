@@ -4836,6 +4836,65 @@ def cached_fetch_api_models(
 _OLLAMA_CLOUD_CACHE_TTL = 3600  # 1 hour
 
 
+# Curated Ollama Cloud models surfaced even when the live ``/v1/models`` probe
+# and the models.dev registry are both unavailable (no OLLAMA_API_KEY on a
+# fresh install, offline first run, transient API failure). Keeps headline
+# open models — notably Gemma 4 — selectable in ``hermes model`` out of the box.
+# Synced to live ollama.com/v1/models (2026-08-08). Retired IDs (qwen3-coder:480b,
+# deepseek-v3.1:671b, kimi-k2.5, minimax-m2.5, …) must not reappear here.
+# See https://docs.ollama.com/cloud#retirements
+_OLLAMA_CLOUD_CURATED: list[str] = [
+    "gemma4:31b",
+    "gemma4",
+    "qwen3.5:397b",
+    "gpt-oss:120b",
+    "deepseek-v4-pro",
+    "deepseek-v4-flash:0731",
+    "glm-5.2",
+    "minimax-m3",
+    "kimi-k3",
+    "kimi-k2.6",
+    "nemotron-3-ultra",
+    "mistral-large-3:675b",
+]
+
+# Models retired from Ollama Cloud — strip from models.dev / stale-cache merges
+# so pickers never offer dead IDs. Keys are normalized (no :cloud / -cloud).
+_OLLAMA_CLOUD_RETIRED: frozenset[str] = frozenset({
+    # Past retirements (docs.ollama.com/cloud)
+    "deepseek-v3.1:671b",
+    "deepseek-v3.2",
+    "devstral-2:123b",
+    "devstral-small-2:24b",
+    "ministral-3:14b",
+    "ministral-3:3b",
+    "ministral-3:8b",
+    "gemini-3-flash-preview",
+    "gemma3:12b",
+    "gemma3:27b",
+    "gemma3:4b",
+    "glm-4.7",
+    "glm-5",
+    "minimax-m2.1",
+    "qwen3-coder-next",
+    "qwen3-coder:480b",
+    "rnj-1:8b",
+    "kimi-k2-thinking",
+    "kimi-k2:1t",
+    "minimax-m2",
+    "glm-4.6",
+    "qwen3-next:80b",
+    "qwen3-vl:235b",
+    "qwen3-vl:235b-instruct",
+    "cogito-2.1:671b",
+    # Retired 2026-07-31
+    "minimax-m2.5",
+    "kimi-k2.5",
+    # Superseded — live catalog uses tagged flash variants
+    "deepseek-v4-flash",
+})
+
+
 def _strip_ollama_cloud_suffix(model_id: str) -> str:
     """Strip :cloud / -cloud suffixes that models.dev appends to Ollama Cloud IDs.
 
@@ -4847,6 +4906,11 @@ def _strip_ollama_cloud_suffix(model_id: str) -> str:
         if model_id.endswith(suffix):
             return model_id[: -len(suffix)]
     return model_id
+
+
+def _is_ollama_cloud_retired(model_id: str) -> bool:
+    """True if *model_id* (any :cloud/-cloud form) is retired from Ollama Cloud."""
+    return _strip_ollama_cloud_suffix(model_id) in _OLLAMA_CLOUD_RETIRED
 
 
 def _ollama_cloud_cache_path() -> Path:
@@ -4913,7 +4977,12 @@ def fetch_ollama_cloud_models(
     if not force_refresh:
         cached = _load_ollama_cloud_cache()
         if cached is not None:
-            return cached["models"]
+            models = [
+                m for m in cached["models"]
+                if m and not _is_ollama_cloud_retired(m)
+            ]
+            if models:
+                return models
 
     # 2. Live API probe
     if not api_key:
@@ -4925,7 +4994,7 @@ def fetch_ollama_cloud_models(
     if api_key:
         result = fetch_api_models(api_key, base_url, timeout=8.0)
         if result:
-            live_models = result
+            live_models = [m for m in result if m and not _is_ollama_cloud_retired(m)]
 
     # 3. models.dev registry
     mdev_models: list[str] = []
@@ -4935,27 +5004,35 @@ def fetch_ollama_cloud_models(
     except Exception:
         pass
 
-    # 4. Merge: live first, then models.dev additions (deduped, order-preserving)
+    # 4. Merge: live first, then models.dev additions (deduped, order-preserving).
+    # Drop retired IDs so stale models.dev entries never reappear in the picker.
     if live_models or mdev_models:
         seen: set[str] = set()
         merged: list[str] = []
         for m in live_models:
-            if m and m not in seen:
-                seen.add(m)
-                merged.append(m)
+            if not m or m in seen or _is_ollama_cloud_retired(m):
+                continue
+            seen.add(m)
+            merged.append(m)
         for m in mdev_models:
             normalized = _strip_ollama_cloud_suffix(m)
-            if normalized and normalized not in seen:
-                seen.add(normalized)
-                merged.append(normalized)
+            if not normalized or normalized in seen or _is_ollama_cloud_retired(normalized):
+                continue
+            seen.add(normalized)
+            merged.append(normalized)
         if merged:
             _save_ollama_cloud_cache(merged)
             return merged
 
-    # Total failure — return stale cache if available (ignore TTL)
+    # Total failure — return stale cache if available (ignore TTL), minus retired
     stale = _load_ollama_cloud_cache(ignore_ttl=True)
     if stale is not None:
-        return stale["models"]
+        models = [
+            m for m in stale["models"]
+            if m and not _is_ollama_cloud_retired(m)
+        ]
+        if models:
+            return models
 
     return []
 

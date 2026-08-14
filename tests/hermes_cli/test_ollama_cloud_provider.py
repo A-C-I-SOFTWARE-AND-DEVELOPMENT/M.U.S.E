@@ -159,22 +159,22 @@ class TestOllamaCloudMergedDiscovery:
         mock_mdev = {
             "ollama-cloud": {
                 "models": {
-                    "glm-5": {"tool_call": True},
-                    "kimi-k2.5": {"tool_call": True},
+                    "glm-5.2": {"tool_call": True},
+                    "kimi-k2.6": {"tool_call": True},
                     "nemotron-3-super": {"tool_call": True},
                 }
             }
         }
-        with patch("hermes_cli.models.fetch_api_models", return_value=["qwen3.5:397b", "glm-5"]), \
+        with patch("hermes_cli.models.fetch_api_models", return_value=["qwen3.5:397b", "glm-5.2"]), \
              patch("agent.models_dev.fetch_models_dev", return_value=mock_mdev):
             result = fetch_ollama_cloud_models(force_refresh=True)
 
         # Live models first, then models.dev additions (deduped)
         assert result[0] == "qwen3.5:397b"  # from live API
-        assert result[1] == "glm-5"          # from live API (also in models.dev)
-        assert "kimi-k2.5" in result         # from models.dev only
-        assert "nemotron-3-super" in result  # from models.dev only
-        assert result.count("glm-5") == 1    # no duplicates
+        assert result[1] == "glm-5.2"         # from live API (also in models.dev)
+        assert "kimi-k2.6" in result          # from models.dev only
+        assert "nemotron-3-super" in result   # from models.dev only
+        assert result.count("glm-5.2") == 1   # no duplicates
 
     def test_falls_back_to_models_dev_without_api_key(self, tmp_path, monkeypatch):
         """Without API key, only models.dev results are returned."""
@@ -186,14 +186,14 @@ class TestOllamaCloudMergedDiscovery:
         mock_mdev = {
             "ollama-cloud": {
                 "models": {
-                    "glm-5": {"tool_call": True},
+                    "glm-5.2": {"tool_call": True},
                 }
             }
         }
         with patch("agent.models_dev.fetch_models_dev", return_value=mock_mdev):
             result = fetch_ollama_cloud_models(force_refresh=True)
 
-        assert result == ["glm-5"]
+        assert result == ["glm-5.2"]
 
 
 
@@ -296,6 +296,41 @@ class TestOllamaCloudSuffixStripping:
     users never see broken IDs like 'kimi-k2.6:cloud' in the model picker.
     """
 
+    def test_strips_colon_cloud_suffix(self, tmp_path, monkeypatch):
+        """:cloud suffix from models.dev is stripped before merge."""
+        from hermes_cli.models import fetch_ollama_cloud_models
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+
+        mock_mdev = {
+            "ollama-cloud": {
+                "models": {"kimi-k2.6:cloud": {"tool_call": True}}
+            }
+        }
+        with patch("agent.models_dev.fetch_models_dev", return_value=mock_mdev):
+            result = fetch_ollama_cloud_models(force_refresh=True)
+
+        assert "kimi-k2.6" in result
+        assert "kimi-k2.6:cloud" not in result
+
+    def test_strips_dash_cloud_suffix(self, tmp_path, monkeypatch):
+        """-cloud suffix from models.dev is stripped before merge."""
+        from hermes_cli.models import fetch_ollama_cloud_models
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+
+        mock_mdev = {
+            "ollama-cloud": {
+                "models": {"qwen3.5:397b-cloud": {"tool_call": True}}
+            }
+        }
+        with patch("agent.models_dev.fetch_models_dev", return_value=mock_mdev):
+            result = fetch_ollama_cloud_models(force_refresh=True)
+
+        assert "qwen3.5:397b" in result
+        assert "qwen3.5:397b-cloud" not in result
 
     def test_no_duplicate_when_live_clean_and_mdev_suffixed(self, tmp_path, monkeypatch):
         """Live API returns clean ID; mdev has :cloud variant — result has exactly one entry."""

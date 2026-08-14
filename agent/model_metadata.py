@@ -459,6 +459,8 @@ DEFAULT_CONTEXT_LENGTHS = {
     # ids (e.g. via custom endpoints).
     # https://api-docs.deepseek.com/zh-cn/quick_start/pricing
     "deepseek-v4-pro": 1_000_000,
+    "deepseek-v4-flash:0731": 1_000_000,
+    "deepseek-v4-flash:preview": 1_000_000,
     "deepseek-v4-flash": 1_000_000,
     "deepseek-chat": 1_000_000,
     "deepseek-reasoner": 1_000_000,
@@ -470,6 +472,8 @@ DEFAULT_CONTEXT_LENGTHS = {
     "qwen3.8-max": 1_000_000,     # 1M context (OpenRouter & Nous portal, verified 2026-08-03)
     "qwen3.6-plus": 1048576,      # 1M context (DashScope/Alibaba & OpenRouter)
     "qwen3.7-plus": 1048576,      # 1M context (DashScope/Alibaba)
+    "qwen3.5:397b": 262144,       # Ollama Cloud
+    "qwen3.5": 262144,
     "qwen3-coder-plus": 1000000,  # 1M context
     "qwen3-coder": 262144,        # 256K context
     "qwen3-max": 262144,          # 256K context (qwen3-max-2026-01-23 snapshot, Coding Plan)
@@ -479,15 +483,28 @@ DEFAULT_CONTEXT_LENGTHS = {
     # the generic "minimax" catch-all for the M3 slug on every surface
     # (native MiniMax-M3, OpenRouter/Nous minimax/minimax-m3).
     # https://platform.minimax.io/docs/api-reference/text-chat-openai
+    # The Ollama Cloud sync proposed 512000 here; that is M3's *max output*
+    # cap, not its context window, so the 1M figure stands.
     "minimax-m3": 1000000,
+    "minimax-m2.7": 196608,
     "minimax": 204800,
+    # Kimi / Moonshot (Ollama Cloud + native)
+    "kimi-k3": 262144,
+    "kimi-k2.7-code": 262144,
+    "kimi-k2.6": 262144,
+    # NVIDIA Nemotron (Ollama Cloud)
+    "nemotron-3-ultra": 262144,
+    "nemotron-3-super": 262144,
+    "nemotron-3-nano": 1_048_576,
     # GLM — GLM-5.2 ships with a 1M context window (verified empirically:
     # needle-in-a-haystack retrieval at 789K prompt tokens succeeded with
     # zero errors on api.z.ai/api/coding/paas/v4).  Older GLM models
     # (5, 5.1, 5-turbo) are ~202K.  Longest-key-first substring matching
     # ensures "glm-5.2" resolves to 1M while older variants still hit the
-    # generic 202K fallback.
+    # generic 202K fallback.  Empirical measurement outranks the 976000
+    # figure the Ollama Cloud sync carried.
     "glm-5.2": 1_048_576,
+    "glm-5.1": 202752,
     "glm": 202752,
     # xAI Grok — xAI /v1/models does not return context_length metadata,
     # so these hardcoded fallbacks prevent Hermes from probing-down to

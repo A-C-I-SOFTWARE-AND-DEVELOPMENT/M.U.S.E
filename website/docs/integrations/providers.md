@@ -360,7 +360,7 @@ Get your API key at [novita.ai/settings/key-management](https://novita.ai/settin
 hermes model
 # → pick "Ollama Cloud"
 # → paste your OLLAMA_API_KEY
-# → select from discovered models (gpt-oss:120b, glm-4.6:cloud, qwen3-coder:480b-cloud, etc.)
+# → select from discovered models (gpt-oss:120b, kimi-k3, qwen3.5:397b, glm-5.2, etc.)
 ```
 
 Or `config.yaml` directly:
@@ -370,7 +370,7 @@ model:
   default: "gpt-oss:120b"
 ```
 
-The model catalog is fetched dynamically from `ollama.com/v1/models` and cached for one hour. `model:tag` notation (e.g. `qwen3-coder:480b-cloud`) is preserved through normalization — don't use dashes.
+The model catalog is fetched dynamically from `ollama.com/v1/models` and cached for one hour. `model:tag` notation (e.g. `qwen3.5:397b`) is preserved through normalization — don't use dashes.
 
 :::tip Ollama Cloud vs local Ollama
 Both speak the same OpenAI-compatible API. Cloud is a first-class provider (`--provider ollama-cloud`, `OLLAMA_API_KEY`); local Ollama is reached via the Custom Endpoint flow (base URL `http://localhost:11434/v1`, no key). Use cloud for large models you can't run locally; use local for privacy or offline work.

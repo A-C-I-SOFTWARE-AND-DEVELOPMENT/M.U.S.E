@@ -3076,12 +3076,60 @@ def _read_codex_tokens(*, _lock: bool = True) -> Dict[str, Any]:
     Returns dict with 'tokens' (access_token, refresh_token) and 'last_refresh'.
     Raises AuthError if no Codex tokens are stored.
     """
+    def _load() -> Dict[str, Any]:
+        return _load_auth_store()
+
     if _lock:
         with _auth_store_lock():
-            auth_store = _load_auth_store()
-    else:
-        auth_store = _load_auth_store()
+            auth_store = _load()
+            return _read_codex_tokens_from_store(auth_store, persist_import=_lock)
+    auth_store = _load()
+    return _read_codex_tokens_from_store(auth_store, persist_import=False)
+
+
+def _read_codex_tokens_from_store(
+    auth_store: Dict[str, Any],
+    *,
+    persist_import: bool,
+) -> Dict[str, Any]:
+    """Resolve Codex tokens from *auth_store*, optionally reseeding from ~/.codex."""
     state = _load_provider_state(auth_store, "openai-codex")
+    tokens = state.get("tokens") if isinstance(state, dict) else None
+    access_token = ""
+    refresh_token = ""
+    if isinstance(tokens, dict):
+        access_token = str(tokens.get("access_token", "") or "").strip()
+        refresh_token = str(tokens.get("refresh_token", "") or "").strip()
+
+    # If Hermes store is incomplete/broken (common after refresh_token_reused when
+    # Codex CLI / VS Code consumed the shared refresh token), reseed from the
+    # Codex CLI auth file when it has a still-valid access token.
+    if not access_token or not refresh_token:
+        cli_tokens = _import_codex_cli_tokens()
+        if cli_tokens:
+            logger.info(
+                "Reseeding openai-codex tokens from ~/.codex/auth.json "
+                "(Hermes store was missing access/refresh token)."
+            )
+            tokens = dict(cli_tokens)
+            access_token = str(tokens.get("access_token", "") or "").strip()
+            refresh_token = str(tokens.get("refresh_token", "") or "").strip()
+            if persist_import and access_token and refresh_token:
+                state = dict(state or {})
+                state["tokens"] = tokens
+                state["auth_mode"] = "chatgpt"
+                # Prefer Codex CLI's last_refresh stamp when available.
+                try:
+                    codex_home = os.getenv("CODEX_HOME", "").strip() or str(Path.home() / ".codex")
+                    cli_payload = json.loads((Path(codex_home).expanduser() / "auth.json").read_text(encoding="utf-8"))
+                    if isinstance(cli_payload.get("last_refresh"), str):
+                        state["last_refresh"] = cli_payload["last_refresh"]
+                except Exception:
+                    pass
+                state.pop("last_auth_error", None)
+                _save_provider_state(auth_store, "openai-codex", state)
+                _save_auth_store(auth_store)
+
     if not state:
         raise AuthError(
             "No Codex credentials stored. Run `hermes auth` to authenticate.",
@@ -3089,7 +3137,6 @@ def _read_codex_tokens(*, _lock: bool = True) -> Dict[str, Any]:
             code="codex_auth_missing",
             relogin_required=True,
         )
-    tokens = state.get("tokens")
     if not isinstance(tokens, dict):
         raise AuthError(
             "Codex auth state is missing tokens. Run `hermes auth` to re-authenticate.",
@@ -3097,16 +3144,14 @@ def _read_codex_tokens(*, _lock: bool = True) -> Dict[str, Any]:
             code="codex_auth_invalid_shape",
             relogin_required=True,
         )
-    access_token = tokens.get("access_token")
-    refresh_token = tokens.get("refresh_token")
-    if not isinstance(access_token, str) or not access_token.strip():
+    if not access_token:
         raise AuthError(
             "Codex auth is missing access_token. Run `hermes auth` to re-authenticate.",
             provider="openai-codex",
             code="codex_auth_missing_access_token",
             relogin_required=True,
         )
-    if not isinstance(refresh_token, str) or not refresh_token.strip():
+    if not refresh_token:
         raise AuthError(
             "Codex auth is missing refresh_token. Run `hermes auth` to re-authenticate.",
             provider="openai-codex",
@@ -3115,7 +3160,7 @@ def _read_codex_tokens(*, _lock: bool = True) -> Dict[str, Any]:
         )
     return {
         "tokens": tokens,
-        "last_refresh": state.get("last_refresh"),
+        "last_refresh": (state or {}).get("last_refresh"),
     }
 
 
