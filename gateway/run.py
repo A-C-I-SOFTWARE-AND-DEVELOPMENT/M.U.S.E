@@ -13,6 +13,10 @@ Usage:
     python cli.py --gateway
 """
 
+# Imports required by definitions restored from the merge parent.
+from contextlib import contextmanager as _contextmanager
+
+
 # IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
 # on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
 try:
@@ -18556,3 +18560,317 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _GATEWAY_HYGIENE_PLATFORM -- restored from the upstream merge parent.
+_GATEWAY_HYGIENE_PLATFORM = "gateway_hygiene"
+
+
+# _checkpoint_agent_kwargs -- restored from the upstream merge parent.
+def _checkpoint_agent_kwargs(config: dict | None) -> dict:
+    """Translate gateway checkpoint config into ``AIAgent`` constructor args.
+
+    The gateway reads raw YAML instead of ``load_config()``, so checkpoint
+    defaults must be supplied here.  Keep legacy ``checkpoints: true`` configs
+    working while giving every gateway-created agent the same limits.
+    """
+    cp_cfg = config.get("checkpoints", {}) if isinstance(config, dict) else {}
+    if isinstance(cp_cfg, bool):
+        cp_cfg = {"enabled": cp_cfg}
+    elif not isinstance(cp_cfg, dict):
+        cp_cfg = {}
+
+    from hermes_cli.config import DEFAULT_CONFIG
+    defaults = DEFAULT_CONFIG["checkpoints"]
+    return {
+        "checkpoints_enabled": cp_cfg.get("enabled", defaults["enabled"]),
+        "checkpoint_max_snapshots": cp_cfg.get(
+            "max_snapshots", defaults["max_snapshots"],
+        ),
+        "checkpoint_max_total_size_mb": cp_cfg.get(
+            "max_total_size_mb", defaults["max_total_size_mb"],
+        ),
+        "checkpoint_max_file_size_mb": cp_cfg.get(
+            "max_file_size_mb", defaults["max_file_size_mb"],
+        ),
+    }
+
+
+# _collect_history_media_paths -- restored from the upstream merge parent.
+def _collect_history_media_paths(agent_history: List[Dict[str, Any]]) -> set:
+    """Collect every media path already delivered in prior assistant/tool output.
+
+    Used to dedup auto-appended and model-emitted MEDIA tags so the same file
+    is not re-sent on later turns. Covers three delivery shapes:
+      * ``MEDIA:<path>`` text tags in tool results,
+      * ``MEDIA:<path>`` text tags in assistant messages (model-generated tags),
+      * ``image_generate`` JSON-payload paths (``host_image`` / ``image`` /
+        ``agent_visible_image``), which carry no MEDIA: tag.
+
+    Missing the JSON-payload shape caused #46627; missing the assistant-message
+    shape caused repeated delivery when the model echoed a previous MEDIA tag.
+    """
+    paths: set = set()
+    tool_name_by_call_id: Dict[str, str] = {}
+
+    def _add_text_media_paths(content: str) -> None:
+        for match in _TOOL_MEDIA_RE.finditer(content):
+            path = match.group(1).strip().rstrip('",}')
+            if path:
+                paths.add(path)
+        # The regex alone misses quoted and spaced paths that the delivery
+        # pipeline's extract_media grammar accepts — collect through the same
+        # extractor so the dedup set sees every path that could actually have
+        # been delivered.
+        media_files, _ = BasePlatformAdapter.extract_media(content)
+        paths.update(path for path, _is_voice in media_files)
+
+    for msg in agent_history:
+        if msg.get("role") == "assistant":
+            for call in msg.get("tool_calls") or []:
+                cid = call.get("id") or call.get("call_id")
+                fn = call.get("function") or {}
+                name = str(fn.get("name") or call.get("name") or "")
+                if cid and name:
+                    tool_name_by_call_id[str(cid)] = name
+    for msg in agent_history:
+        role = msg.get("role")
+        if role == "assistant":
+            content = str(msg.get("content", "") or "")
+            if "MEDIA:" in content:
+                _add_text_media_paths(content)
+            continue
+        if role not in {"tool", "function"}:
+            continue
+        content = str(msg.get("content", "") or "")
+        if "MEDIA:" in content:
+            _add_text_media_paths(content)
+            continue
+        cid = str(msg.get("tool_call_id") or msg.get("call_id") or "")
+        if tool_name_by_call_id.get(cid) == "image_generate":
+            try:
+                payload = json.loads(content)
+            except Exception:
+                payload = None
+            if isinstance(payload, dict) and payload.get("success"):
+                for field in _JSON_MEDIA_TOOL_PATH_FIELDS:
+                    jp = payload.get(field)
+                    if isinstance(jp, str) and jp:
+                        paths.add(jp)
+                        break
+    return paths
+
+
+# _current_max_iterations -- restored from the upstream merge parent.
+def _current_max_iterations() -> int:
+    """Return the current per-turn iteration budget after runtime env refresh."""
+    _reload_runtime_env_preserving_config_authority()
+    try:
+        return int(os.getenv("HERMES_MAX_ITERATIONS", "500"))
+    except (TypeError, ValueError):
+        return 500
+
+
+# _profile_runtime_scope -- restored from the upstream merge parent.
+@_contextmanager
+def _profile_runtime_scope(profile_home: "Path"):
+    """Scope config/skills/memory AND credentials to a profile for one turn.
+
+    Combines the two seams the multiplexer needs:
+      1. ``set_hermes_home_override`` — redirects ``get_hermes_home()`` (config,
+         skills, memory, SOUL, sessions) to the profile's home. Contextvar, so
+         it propagates into the agent worker thread via ``copy_context()``.
+      2. ``set_secret_scope`` — installs the profile's ``.env`` secrets as the
+         authoritative credential source, so ``get_secret`` reads this profile's
+         keys and never the process-global ``os.environ`` (which in a
+         multiplexer may hold another profile's values).
+
+    Only used on the multiplexed inbound path. Single-profile gateways never
+    enter this scope, so their behavior is unchanged. Loading the profile's
+    ``.env`` here does NOT mutate ``os.environ`` — ``build_profile_secret_scope``
+    returns an isolated dict — which is what keeps subprocesses (MCP, kanban)
+    from inheriting cross-profile secrets.
+    """
+    from hermes_constants import set_hermes_home_override, reset_hermes_home_override
+    from agent.secret_scope import (
+        build_profile_secret_scope,
+        set_secret_scope,
+        reset_secret_scope,
+    )
+    from hermes_cli.env_loader import hydrate_profile_secret_sources
+
+    home_token = set_hermes_home_override(str(profile_home))
+    hydrate_profile_secret_sources(Path(profile_home))
+    secret_token = set_secret_scope(build_profile_secret_scope(Path(profile_home)))
+    try:
+        yield
+    finally:
+        reset_secret_scope(secret_token)
+        reset_hermes_home_override(home_token)
+
+
+# _reap_gateway_turn_processes -- restored from the upstream merge parent.
+def _reap_gateway_turn_processes(
+    task_id: str,
+    process_baseline,
+    *,
+    source: str,
+    is_still_current: Optional[Callable[[], bool]] = None,
+) -> int:
+    """Reap only background processes created by one abandoned turn.
+
+    ``task_id`` is session-scoped (task_id == session_id), not turn-scoped,
+    so a *replacement* turn on the same session can start and spawn its own
+    legitimate process while this reap is still in flight. ``is_still_current``
+    — a closure over the run_generation captured when the reaping turn began
+    or was interrupted — lets the caller detect that a newer turn has since
+    claimed the session and bail out instead of killing that newer turn's
+    process. The newer turn snapshots its own baseline independently, so
+    skipping here does not leave anything permanently unreaped.
+    """
+    if not task_id:
+        # ProcessSession.task_id defaults to "" for sessionless callers, so a
+        # blank id would match (and kill) every unrelated empty-task process
+        # instead of this turn's own. Nothing session-scoped to reap.
+        return 0
+    if is_still_current is not None:
+        try:
+            if not is_still_current():
+                logger.debug(
+                    "Skipping reap for turn %s (%s): a newer turn already "
+                    "claimed this session; it owns its own baseline.",
+                    task_id,
+                    source,
+                )
+                return 0
+        except Exception:
+            logger.debug(
+                "is_still_current check failed for turn %s (%s); reaping anyway",
+                task_id,
+                source,
+                exc_info=True,
+            )
+
+    from tools.process_registry import process_registry
+
+    try:
+        killed = process_registry.kill_started_since(
+            task_id,
+            process_baseline,
+            source=source,
+        )
+    except Exception:
+        # Runs on a detached daemon thread (interrupt and timeout call
+        # sites both fire-and-forget it) — an uncaught exception here
+        # would only surface via threading.excepthook, bypassing the
+        # app's logger. Swallow and log through the normal channel instead.
+        logger.warning(
+            "Failed to reap background processes for turn %s (%s)",
+            task_id,
+            source,
+            exc_info=True,
+        )
+        return 0
+    if killed:
+        logger.warning(
+            "Reaped %d background process(es) created by abandoned turn %s (%s)",
+            killed,
+            task_id,
+            source,
+        )
+    return killed
+
+
+# _redact_approval_command -- restored from the upstream merge parent.
+def _redact_approval_command(cmd: "str | None") -> str:
+    """Redact credentials from a command before it goes into an approval prompt.
+
+    Tirith's *findings* are already redacted, but the gateway approval prompt
+    is built from the raw command string, so a credential-shaped value Tirith
+    flagged would otherwise be echoed verbatim to the chat platform (#48456).
+    Uses ``redact_sensitive_text(force=True)`` — the same Tirith-grade redactor
+    — so the prompt honors redaction even when ``security.redact_secrets`` is
+    off. Module-level so the wiring is unit-testable (the call site is a deeply
+    nested gateway closure that cannot be driven directly).
+    """
+    from agent.redact import redact_sensitive_text
+
+    return redact_sensitive_text(str(cmd or ""), force=True)
+
+
+# _resolve_runtime_agent_kwargs_for_provider -- restored from the upstream merge parent.
+def _resolve_runtime_agent_kwargs_for_provider(provider: str) -> dict:
+    """Resolve runtime credentials for a specific provider (e.g. from channel override)."""
+    from hermes_cli.runtime_provider import (
+        resolve_runtime_provider,
+        format_runtime_provider_error,
+    )
+    try:
+        runtime = resolve_runtime_provider(requested=provider)
+    except Exception as exc:
+        raise RuntimeError(format_runtime_provider_error(exc)) from exc
+    return {
+        "api_key": runtime.get("api_key"),
+        "base_url": runtime.get("base_url"),
+        "provider": runtime.get("provider"),
+        "requested_provider": runtime.get("requested_provider"),
+        "api_mode": runtime.get("api_mode"),
+        "command": runtime.get("command"),
+        "args": list(runtime.get("args") or []),
+        "credential_pool": runtime.get("credential_pool"),
+    }
+
+
+# _seed_hygiene_system_prompt -- restored from the upstream merge parent.
+def _seed_hygiene_system_prompt(
+    agent: Any,
+    session_row: Optional[Dict[str, Any]],
+) -> bool:
+    """Keep gateway hygiene from rebuilding a live session's system prompt.
+
+    The hygiene helper intentionally skips memory-provider initialization.
+    Compression is allowed to persist a system prompt, so letting that helper
+    rebuild one would strip external provider blocks from the live session.
+    Seed the exact persisted prompt instead.  When no usable prompt can be
+    restored, seed an empty cache entry.  Compression either preserves that
+    unusable value or rebuilds with the hygiene-only platform marker; the real
+    turn will rebuild either form with its fully initialized providers.
+    """
+    stored_prompt = ""
+    if isinstance(session_row, dict):
+        raw_prompt = session_row.get("system_prompt")
+        if isinstance(raw_prompt, str) and raw_prompt.strip():
+            stored_prompt = raw_prompt
+
+    agent._cached_system_prompt = stored_prompt
+    return bool(stored_prompt)
+
+
+# _JSON_MEDIA_TOOL_PATH_FIELDS -- dependency of a restored definition.
+# Tools in this set return their deliverable artifact as a JSON payload with a
+# local-file path field rather than a literal ``MEDIA:`` tag (e.g. image_generate
+# returns ``{"success": true, "image": "/abs/path.png"}``). The auto-append path
+# extracts the path from these fields so delivery is deterministic and does not
+# depend on the model restating the path in its final reply.
+_JSON_MEDIA_TOOL_PATH_FIELDS = ("host_image", "image", "agent_visible_image")
+
+
+# _TOOL_MEDIA_RE -- dependency of a restored definition.
+# Extension-anchored MEDIA: matcher for tool results. Mirrors the dispatch-site
+# pattern so a bare ``MEDIA:`` token in prose (no deliverable extension) is never
+# auto-appended. Kept local to the auto-append path; the producer-tool allowlist
+# below is the primary guard, this is the secondary precision guard.
+_TOOL_MEDIA_RE = re.compile(
+    r'MEDIA:((?:[A-Za-z]:[/\\]|/|~\/)\S+\.(?:png|jpe?g|gif|webp|'
+    r'mp4|mov|avi|mkv|webm|ogg|opus|mp3|wav|m4a|'
+    r'flac|epub|pdf|zip|rar|7z|docx?|xlsx?|pptx?|'
+    r'txt|csv|apk|ipa))',
+    re.IGNORECASE,
+)

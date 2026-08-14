@@ -54,6 +54,13 @@ dependencies = [
   # Python resolves automatically.  No-op on Linux/macOS (which have
   # /usr/share/zoneinfo).  Credits: PR #13182 (@sprmn24).
   "tzdata==2025.3; sys_platform == 'win32'",
+  # ``hermes_logging`` imports ConcurrentRotatingFileHandler unconditionally on
+  # win32 (stdlib RotatingFileHandler cannot handle concurrent writers there,
+  # so the gateway, TUI and CLI would corrupt each other's log rotation).
+  # It was previously undeclared, so any dependency reinstall silently dropped
+  # it and every entry point died with ModuleNotFoundError before reaching
+  # main().  Keep this pinned alongside the other win32-only requirement.
+  "concurrent-log-handler==0.9.29; sys_platform == 'win32'",
   # Cross-platform process / PID management.  `psutil` is the canonical
   # answer for "is this PID alive" and process-tree walking across Linux,
   # macOS and Windows.  It replaces POSIX-only idioms like `os.kill(pid, 0)`

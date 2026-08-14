@@ -4,6 +4,15 @@ Gateway subcommand for hermes CLI.
 Handles: hermes gateway [run|start|stop|restart|status|install|uninstall|setup]
 """
 
+# Imports required by definitions restored from the merge parent.
+from gateway.restart import parse_restart_after_turn_timeout
+import json
+
+
+# Imports required by definitions restored from the merge parent.
+from gateway.restart import resolve_restart_exit_wait_budget
+
+
 import asyncio
 import logging
 import os
@@ -5748,3 +5757,270 @@ def _gateway_command_inner(args):
             print("Legacy unit migration only applies to systemd-based Linux hosts.")
             return
         remove_legacy_hermes_units(interactive=not yes, dry_run=dry_run)
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _capture_gateway_argv -- restored from the upstream merge parent.
+def _capture_gateway_argv(pid: int) -> list[str] | None:
+    """Return the live argv of a running gateway process, or ``None``.
+
+    Used to respawn gateways that have no profile→PID-file mapping (e.g. a
+    Windows Scheduled Task running ``pythonw.exe -m hermes_cli.main gateway
+    run``). ``_pause_windows_gateways_for_update`` force-kills such gateways
+    before mutating the venv; without their original command line we cannot
+    bring them back, so we snapshot it here before the kill.
+
+    Best-effort: returns ``None`` if psutil is unavailable, the process is
+    gone, access is denied, or the argv doesn't look like a gateway command.
+    """
+    if pid <= 1:
+        return None
+    try:
+        import psutil  # type: ignore
+    except ImportError:
+        return None
+    try:
+        argv = list(psutil.Process(pid).cmdline() or [])
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        return None
+    except Exception:
+        return None
+    if not argv:
+        return None
+    # Guard against snapshotting an unrelated process whose PID happened to be
+    # reported by the scan: only respawn things that actually look like a
+    # gateway run command line.
+    try:
+        from gateway.status import looks_like_gateway_command_line
+
+        if not looks_like_gateway_command_line(" ".join(argv)):
+            return None
+    except Exception:
+        pass
+    return argv
+
+
+# _get_restart_exit_wait_budget -- restored from the upstream merge parent.
+def _get_restart_exit_wait_budget() -> float:
+    """CLI wait for gateway exit after SIGUSR1 / self-restart (#77184)."""
+    return resolve_restart_exit_wait_budget(
+        _get_restart_drain_timeout(),
+        _get_restart_after_turn_timeout(),
+    )
+
+
+# _prepare_profile_gateway_update_restart -- restored from the upstream merge parent.
+def _prepare_profile_gateway_update_restart(profile: str, pid: int) -> str | None:
+    """Choose who relaunches a profile gateway after ``hermes update``.
+
+    A gateway started with ``--external-supervisor`` must exit back to that
+    manager. Starting Hermes's detached watcher as well would escape the
+    manager and race its replacement process. Ordinary foreground gateways
+    retain the existing detached-watcher behavior.
+    """
+    argv = _capture_gateway_argv(pid)
+    if argv and "--external-supervisor" in argv:
+        return "external-supervisor"
+    if launch_detached_profile_gateway_restart(profile, pid):
+        return "detached"
+    return None
+
+
+# launch_detached_gateway_restart_by_cmdline -- restored from the upstream merge parent.
+def launch_detached_gateway_restart_by_cmdline(
+    old_pid: int, run_argv: list[str]
+) -> bool:
+    """Relaunch a gateway by replaying its captured command line after exit.
+
+    Companion to ``launch_detached_profile_gateway_restart`` for gateways that
+    have no profile→PID-file mapping (Scheduled-Task / manually-launched
+    ``gateway run`` whose HERMES_HOME or argv doesn't match a known profile).
+    Uses the identical detached-watcher mechanism; only the respawn argv
+    differs (the process's own argv instead of a profile-derived one).
+    """
+    if old_pid <= 0 or not run_argv:
+        return False
+    return _spawn_gateway_restart_watcher(old_pid, list(run_argv))
+
+
+# _get_restart_after_turn_timeout -- dependency of a restored definition.
+def _get_restart_after_turn_timeout() -> float:
+    """Return the in-band restart wait-for-idle timeout in seconds (#77184)."""
+    env_raw = os.getenv("HERMES_RESTART_AFTER_TURN_TIMEOUT")
+    if env_raw is not None and str(env_raw).strip() != "":
+        return parse_restart_after_turn_timeout(env_raw)
+    cfg = read_raw_config()
+    agent_cfg = cfg.get("agent", {}) if isinstance(cfg, dict) else {}
+    if isinstance(agent_cfg, dict) and "restart_after_turn_timeout" in agent_cfg:
+        return parse_restart_after_turn_timeout(agent_cfg.get("restart_after_turn_timeout"))
+    return parse_restart_after_turn_timeout(None)
+
+
+# _spawn_gateway_restart_watcher -- dependency of a restored definition.
+def _spawn_gateway_restart_watcher(old_pid: int, run_argv: list[str]) -> bool:
+    """Spawn the detached watcher that respawns ``run_argv`` once ``old_pid`` exits."""
+    if old_pid <= 0 or not run_argv:
+        return False
+
+    # The watcher is a tiny Python subprocess that polls the old PID and
+    # respawns the gateway once it's gone.  Both legs of the chain need
+    # platform-appropriate detach semantics:
+    #
+    # POSIX — ``start_new_session=True`` (os.setsid in the child) detaches
+    # from the parent's process group so Ctrl+C in the CLI doesn't
+    # propagate and the watcher/gateway survive the CLI exiting.
+    #
+    # Windows — ``start_new_session`` is silently accepted but does NOT
+    # detach.  The watcher stays attached to the CLI's console and dies
+    # when the user closes the terminal, leaving ``hermes update`` users
+    # with no running gateway until they re-invoke ``hermes gateway``
+    # manually.  The Win32 equivalent is the ``CREATE_NEW_PROCESS_GROUP |
+    # DETACHED_PROCESS | CREATE_NO_WINDOW`` creationflags bundle.
+    #
+    # ``windows_detach_popen_kwargs()`` returns the right kwargs for the
+    # host platform and is a no-op on POSIX (just ``start_new_session=True``).
+    from hermes_cli._subprocess_compat import (
+        windows_detach_flags_without_breakaway,
+        windows_detach_popen_kwargs,
+    )
+
+    # On Windows the incoming ``run_argv`` leads with the venv's console
+    # ``python.exe`` (from ``get_python_path()``).  That's the interpreter we
+    # want: the watcher respawns it under CREATE_NO_WINDOW detach flags, so
+    # the gateway owns one hidden console that all descendants inherit —
+    # nothing flashes (#54220/#56747).  The spec helper normalizes the
+    # interpreter and captures the stable cwd + env overlay (HERMES_HOME,
+    # VIRTUAL_ENV, PYTHONPATH) so the respawn doesn't depend on the watcher's
+    # transient working directory.  No-op on POSIX.
+    # See gateway_windows.windowless_gateway_restart_spec.
+    respawn_cwd = ""
+    respawn_env_overlay: dict[str, str] = {}
+    if sys.platform == "win32":
+        try:
+            from hermes_cli.gateway_windows import (
+                windowless_gateway_restart_spec,
+            )
+
+            run_argv, respawn_cwd, respawn_env_overlay = (
+                windowless_gateway_restart_spec(list(run_argv))
+            )
+        except Exception:
+            # Best-effort: if the rewrite fails for any reason, fall back to
+            # the original argv.  A visible window is worse than nothing, but
+            # a failed respawn is worse still — keep the gateway coming back.
+            respawn_cwd = ""
+            respawn_env_overlay = {}
+
+    # Serialized as JSON literals embedded in the watcher source so the
+    # inner respawn can apply cwd= / env= without extra argv plumbing.
+    respawn_cwd_literal = json.dumps(respawn_cwd)
+    respawn_env_literal = json.dumps(respawn_env_overlay)
+
+    watcher = textwrap.dedent(
+        """
+        import os
+        import subprocess
+        import sys
+        import time
+        from hermes_cli._subprocess_compat import (
+            windows_detach_flags,
+            windows_detach_flags_without_breakaway,
+        )
+
+        pid = int(sys.argv[1])
+        cmd = sys.argv[2:]
+        _respawn_cwd = {respawn_cwd_literal}
+        _respawn_env_overlay = {respawn_env_literal}
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            # ``os.kill(pid, 0)`` is not a no-op on Windows — use the
+            # cross-platform existence check.
+            from gateway.status import _pid_exists
+            if not _pid_exists(pid):
+                break
+            time.sleep(0.2)
+
+        # Platform-appropriate detach for the respawned gateway.  On POSIX
+        # start_new_session=True maps to os.setsid; on Windows we need
+        # explicit creationflags because start_new_session is a no-op there.
+        # CREATE_BREAKAWAY_FROM_JOB is critical: the watcher itself may have
+        # been spawned inside a job object (Electron/Tauri parent), and
+        # without breakaway the respawned gateway would die when that job
+        # tears down. See _subprocess_compat.windows_detach_flags().
+        _popen_kwargs = {{
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }}
+        # Anchor the respawned gateway at the stable working dir and overlay
+        # the env (VIRTUAL_ENV / PYTHONPATH / HERMES_HOME) the windowless
+        # base interpreter needs to import hermes_cli.  Empty on POSIX, where
+        # the venv python resolves imports without help.
+        if _respawn_cwd:
+            _popen_kwargs["cwd"] = _respawn_cwd
+        if _respawn_env_overlay:
+            _popen_kwargs["env"] = {{**os.environ, **_respawn_env_overlay}}
+        if sys.platform == "win32":
+            try:
+                _popen_kwargs["creationflags"] = windows_detach_flags()
+                subprocess.Popen(cmd, **_popen_kwargs)
+            except OSError:
+                # CREATE_BREAKAWAY_FROM_JOB can be rejected with
+                # ERROR_ACCESS_DENIED when the parent's job object refuses
+                # breakaway. Retry without it — DETACHED_PROCESS et al.
+                # alone are enough in most setups. Mirrors the canonical
+                # fallback in gateway_windows._spawn_detached.
+                _popen_kwargs["creationflags"] = windows_detach_flags_without_breakaway()
+                subprocess.Popen(cmd, **_popen_kwargs)
+        else:
+            _popen_kwargs["start_new_session"] = True
+            subprocess.Popen(cmd, **_popen_kwargs)
+        """
+    ).strip().format(
+        respawn_cwd_literal=respawn_cwd_literal,
+        respawn_env_literal=respawn_env_literal,
+    )
+
+    watcher_argv = [
+        sys.executable,
+        "-c",
+        watcher,
+        str(old_pid),
+        *run_argv,
+    ]
+
+    # Same platform-aware detach for the watcher process itself — so
+    # closing the user's terminal doesn't kill the watcher.
+    try:
+        subprocess.Popen(
+            watcher_argv,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            **windows_detach_popen_kwargs(),
+        )
+    except OSError:
+        # CREATE_BREAKAWAY_FROM_JOB rejected by the parent job object
+        # (Electron, Windows Terminal with restrictive job settings, …).
+        # Retry without it. POSIX never reaches this branch — there
+        # ``start_new_session=True`` cannot raise OSError — so the
+        # fallback is only meaningful on Windows.
+        try:
+            fallback_kwargs: dict = (
+                {"creationflags": windows_detach_flags_without_breakaway()}
+                if sys.platform == "win32"
+                else {"start_new_session": True}
+            )
+            subprocess.Popen(
+                watcher_argv,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                **fallback_kwargs,
+            )
+        except OSError:
+            return False
+    return True

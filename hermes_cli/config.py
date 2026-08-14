@@ -12,6 +12,15 @@ This module provides:
 - hermes config wizard   - Re-run setup wizard
 """
 
+# Imports required by definitions restored from the merge parent.
+import json
+
+
+# Imports required by definitions restored from the merge parent.
+from hermes_cli.route_identity import normalize_route_base_url
+from utils import fast_safe_load
+
+
 import copy
 import logging
 import os
@@ -6000,3 +6009,640 @@ def _inject_platform_plugin_env_vars() -> None:
 
 # Eagerly inject so that platform plugin env vars show up in the setup wizard.
 _inject_platform_plugin_env_vars()
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _is_ssh_remote_tilde_cwd -- restored from the upstream merge parent.
+def _is_ssh_remote_tilde_cwd(backend: str, cwd: str) -> bool:
+    """Return whether the remote SSH shell must expand *cwd* itself.
+
+    Expanding ``~`` on the Hermes host rewrites it to the host or container
+    home before SSH sees it. Preserve ``~`` and ``~/...`` so they follow the
+    user selected by the SSH connection.
+    """
+    if (backend or "").strip().lower() != "ssh":
+        return False
+    return cwd == "~" or cwd.startswith("~/")
+
+
+# _parse_env_value -- restored from the upstream merge parent.
+def _parse_env_value(raw_value: str) -> str:
+    """Parse the small .env value subset Hermes writes itself."""
+    value = raw_value.strip()
+    if len(value) >= 2 and value[0] == value[-1] == '"':
+        quoted = value[1:-1]
+        parsed: list[str] = []
+        i = 0
+        while i < len(quoted):
+            ch = quoted[i]
+            if ch == "\\" and i + 1 < len(quoted):
+                next_ch = quoted[i + 1]
+                if next_ch in {'"', "\\"}:
+                    parsed.append(next_ch)
+                    i += 2
+                    continue
+            parsed.append(ch)
+            i += 1
+        return "".join(parsed)
+    if len(value) >= 2 and value[0] == value[-1] == "'":
+        return value[1:-1]
+    return value
+
+
+# apply_custom_provider_extra_headers_to_client_kwargs -- restored from the upstream merge parent.
+def apply_custom_provider_extra_headers_to_client_kwargs(
+    client_kwargs: Dict[str, Any],
+    base_url: str,
+    custom_providers: Optional[List[Dict[str, Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Merge per-provider ``extra_headers`` onto OpenAI client ``default_headers``.
+
+    Provider-specific headers win over provider/SDK defaults already present in
+    ``client_kwargs`` — they are the most specific configuration level. No-op
+    when the base_url matches no ``providers`` / ``custom_providers`` entry or
+    the entry declares no headers.
+
+    SECURITY: values may carry credentials — never log them.
+    """
+    extra_headers = get_custom_provider_extra_headers(base_url, custom_providers, config)
+    if not extra_headers:
+        return
+    merged = dict(client_kwargs.get("default_headers") or {})
+    merged.update(extra_headers)
+    client_kwargs["default_headers"] = merged
+
+
+# apply_custom_provider_tls_to_client_kwargs -- restored from the upstream merge parent.
+def apply_custom_provider_tls_to_client_kwargs(
+    client_kwargs: Dict[str, Any],
+    base_url: str,
+    custom_providers: Optional[List[Dict[str, Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Attach per-provider TLS knobs to OpenAI client kwargs when matched."""
+    tls = get_custom_provider_tls_settings(base_url, custom_providers, config)
+    if tls.get("ssl_ca_cert"):
+        client_kwargs["ssl_ca_cert"] = tls["ssl_ca_cert"]
+    if "ssl_verify" in tls:
+        client_kwargs["ssl_verify"] = tls["ssl_verify"]
+
+
+# apply_terminal_config_to_env -- restored from the upstream merge parent.
+def apply_terminal_config_to_env(
+    *,
+    env: Optional[Dict[str, str]] = None,
+    config: Optional[Dict[str, Any]] = None,
+    override: Optional[bool] = None,
+) -> Dict[str, str]:
+    """Bridge ``terminal.*`` config into the env vars terminal tools read.
+
+    ``tools.terminal_tool`` is intentionally environment-driven because it also
+    runs in child processes (TUI, dashboard PTY, gateway workers).  This helper
+    gives those child-process launch paths the same config bridge as classic
+    CLI without importing ``cli.py`` and paying for its startup side effects.
+
+    Explicit keys in the user config's ``terminal`` section are authoritative
+    and override their matching env values.  Merged defaults only backfill
+    missing env vars; they never replace unrelated exported/.env values.
+    """
+    target = os.environ if env is None else env
+
+    raw_config = read_raw_config()
+    raw_terminal_cfg = raw_config.get("terminal")
+    file_has_terminal_config = isinstance(raw_terminal_cfg, dict)
+    if not file_has_terminal_config:
+        raw_terminal_cfg = {}
+    should_override = file_has_terminal_config if override is None else override
+
+    cfg = config if config is not None else load_config_readonly()
+    terminal_cfg = cfg.get("terminal", {}) if isinstance(cfg, dict) else {}
+    if not isinstance(terminal_cfg, dict):
+        return target
+
+    # A caller-supplied config is its own source of explicit keys.  For the
+    # normal merged-config path, only keys present in raw config.yaml may
+    # override existing env values; keys inherited from DEFAULT_CONFIG are
+    # backfill-only.
+    explicit_keys = terminal_cfg.keys() if config is not None else raw_terminal_cfg.keys()
+    backend_is_explicit = config is not None or "backend" in raw_terminal_cfg
+    if backend_is_explicit:
+        terminal_backend = str(
+            terminal_cfg.get("backend") or target.get("TERMINAL_ENV") or ""
+        )
+    else:
+        terminal_backend = str(
+            target.get("TERMINAL_ENV") or terminal_cfg.get("backend") or ""
+        )
+
+    for cfg_key, env_var in TERMINAL_CONFIG_ENV_MAP.items():
+        if cfg_key not in terminal_cfg:
+            continue
+        value = terminal_cfg[cfg_key]
+        if cfg_key == "cwd":
+            raw_cwd = str(value or "").strip()
+            if raw_cwd in {".", "auto", "cwd"}:
+                continue
+            if isinstance(value, str) and not _is_ssh_remote_tilde_cwd(
+                terminal_backend, raw_cwd
+            ):
+                value = os.path.expanduser(value)
+        if (should_override and cfg_key in explicit_keys) or env_var not in target:
+            target[env_var] = _terminal_env_value(value)
+    return target
+
+
+# atomic_config_write -- restored from the upstream merge parent.
+def atomic_config_write(config_path: Path, data: Any, **kwargs: Any) -> None:
+    """Fail-closed atomic write for ``config.yaml``.
+
+    The single chokepoint every config-update path should use instead of
+    calling :func:`utils.atomic_yaml_write` directly. It runs
+    :func:`require_readable_config_before_write` first, so a full-file
+    replacement can never silently clobber an existing ``config.yaml`` that
+    degraded to an empty dict on read (permission error, broken mount,
+    transient I/O). New-file creation still works when the path is absent.
+
+    Root cause this guards: ``read_raw_config()`` returns ``{}`` for BOTH an
+    absent file and an unreadable-but-present file. Callers that read then
+    overwrite can't tell the two apart, so an unreadable config would be
+    replaced with only defaults or the single edited section. Routing every
+    write through this helper enforces the invariant in one place rather than
+    relying on each of ~15 independent write sites to remember the guard.
+
+    ``kwargs`` are forwarded verbatim to ``atomic_yaml_write``
+    (``sort_keys``, ``default_flow_style``, ``extra_content``, ...).
+    """
+    from utils import atomic_yaml_write
+
+    require_readable_config_before_write(config_path)
+    atomic_yaml_write(config_path, data, **kwargs)
+
+
+# clear_model_endpoint_credentials -- restored from the upstream merge parent.
+def clear_model_endpoint_credentials(
+    model_cfg: Dict[str, Any],
+    *,
+    clear_api_key: bool = True,
+    clear_api_mode: bool = True,
+    clear_base_url: bool = False,
+) -> Dict[str, Any]:
+    """Remove stale inline endpoint credentials from a model config.
+
+    ``model.api_key`` is valid only for explicit custom endpoint assignments.
+    Built-in providers resolve credentials from env vars, auth.json, or the
+    credential pool. When switching away from a custom endpoint, leaving these
+    fields behind keeps secrets in config.yaml and can contaminate later custom
+    resolution paths.
+    """
+    if not isinstance(model_cfg, dict):
+        return model_cfg
+    if clear_api_key:
+        model_cfg.pop("api_key", None)
+        model_cfg.pop("api", None)
+    if clear_api_mode:
+        model_cfg.pop("api_mode", None)
+    if clear_base_url:
+        model_cfg.pop("base_url", None)
+    return model_cfg
+
+
+# cron_model_drift_guard_enabled -- restored from the upstream merge parent.
+def cron_model_drift_guard_enabled(
+    config: Optional[Dict[str, Any]] = None,
+) -> bool:
+    """Return whether cron must fail closed on unpinned inference drift.
+
+    Only the literal YAML boolean ``false`` disables this spend-safety guard.
+    Missing, malformed, or non-boolean values stay fail-closed. When *config*
+    is omitted, load the active merged configuration so CLI warnings honor the
+    same user/managed setting as the scheduler.
+    """
+    if config is None:
+        try:
+            config = load_config()
+        except Exception:
+            return True
+    if not isinstance(config, dict):
+        return True
+    cron_config = config.get("cron")
+    if not isinstance(cron_config, dict):
+        return True
+    return cron_config.get("model_drift_guard", True) is not False
+
+
+# custom_endpoint_key_env -- restored from the upstream merge parent.
+def custom_endpoint_key_env(identity: str) -> str:
+    """Env var name holding a custom endpoint's API key.
+
+    ``identity`` is whatever names the endpoint on the calling path — the
+    Desktop panel's endpoint id, or ``host:port`` for the CLI setup flow.
+    Two properties matter:
+
+    - It keys off the endpoint's own identity, not just its hostname, so two
+      endpoints on one host (``127.0.0.1:8000`` and ``:8001``) get separate
+      slots instead of the second save clobbering the first's credential.
+    - The fixed ``HERMES_CUSTOM_`` prefix keeps the result a valid POSIX name
+      even when the slug starts with a digit, which every IP-based local
+      endpoint does (``127.0.0.1`` → ``127_0_0_1``). ``save_env_value``
+      rejects digit-leading names outright.
+    """
+    slug = re.sub(r"[^A-Z0-9]+", "_", str(identity or "").upper()).strip("_")
+    return f"HERMES_CUSTOM_{slug}_API_KEY" if slug else "HERMES_CUSTOM_API_KEY"
+
+
+# format_docker_update_message -- restored from the upstream merge parent.
+def format_docker_update_message() -> str:
+    """Return the user-facing message for ``hermes update`` inside Docker.
+
+    Centralised so ``cmd_update`` (the apply path) and ``_cmd_update_check``
+    (the dry-run path) share the same wording.  See ``_DOCKER_UPDATE_MESSAGE``
+    above for the full rationale.
+    """
+    return _DOCKER_UPDATE_MESSAGE
+
+
+# get_custom_provider_tls_settings -- restored from the upstream merge parent.
+def get_custom_provider_tls_settings(
+    base_url: str,
+    custom_providers: Optional[List[Dict[str, Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Return TLS settings from a matching ``custom_providers`` / ``providers`` entry."""
+    if custom_providers is None:
+        try:
+            custom_providers = get_compatible_custom_providers(config)
+        except Exception:
+            custom_providers = []
+    if not base_url or not isinstance(custom_providers, list):
+        return {}
+
+    target_url = normalize_route_base_url(base_url)
+    for entry in custom_providers:
+        if not isinstance(entry, dict):
+            continue
+        entry_url = normalize_route_base_url(entry.get("base_url"))
+        if not entry_url or entry_url != target_url:
+            continue
+        out: Dict[str, Any] = {}
+        ca = entry.get("ssl_ca_cert")
+        if isinstance(ca, str) and ca.strip():
+            out["ssl_ca_cert"] = ca.strip()
+        verify = _coerce_ssl_verify(entry.get("ssl_verify"))
+        if verify is not None:
+            out["ssl_verify"] = verify
+        return out
+    return {}
+
+
+# is_provider_enabled -- restored from the upstream merge parent.
+def is_provider_enabled(provider_cfg: Optional[Dict[str, Any]]) -> bool:
+    """Return whether a ``providers.<name>`` config block is enabled.
+
+    A provider is enabled by default. Only an explicit ``enabled: false`` in
+    the block hides it from the model picker, ``/models`` listings, the
+    runtime resolver and the doctor / status output.
+
+    Backward-compat: configs without the ``enabled`` key keep working as
+    before — the default is ``True``.
+
+    Pass any non-dict (None, list, string) and you get ``True`` too, so
+    malformed entries don't disappear silently; they'll still be flagged
+    by the existing validation paths.
+    """
+    if not isinstance(provider_cfg, dict):
+        return True
+    flag = provider_cfg.get("enabled", True)
+    if isinstance(flag, bool):
+        return flag
+    # YAML can produce strings for "true"/"false" depending on quoting.
+    if isinstance(flag, str):
+        return flag.strip().lower() not in {"false", "0", "no", "off"}
+    return bool(flag)
+
+
+# normalize_extra_headers -- restored from the upstream merge parent.
+def normalize_extra_headers(extra_headers: Any) -> Dict[str, str]:
+    """Normalize a raw ``extra_headers`` value into a ``dict[str, str]``.
+
+    Stringifies keys and values and drops entries whose value is ``None``.
+    Returns ``{}`` for non-dict or empty inputs. This is the single shared
+    normalizer for per-provider ``extra_headers`` across config normalization,
+    runtime resolution, client construction, and live ``/models`` discovery.
+
+    SECURITY: header values routinely carry credentials (Cloudflare Access
+    service tokens, proxy auth, custom bearer schemes). Callers must never
+    log the returned values.
+    """
+    if not isinstance(extra_headers, dict) or not extra_headers:
+        return {}
+    return {str(k): str(v) for k, v in extra_headers.items() if v is not None}
+
+
+# read_raw_config_readonly -- restored from the upstream merge parent.
+def read_raw_config_readonly() -> Dict[str, Any]:
+    """Fast-path variant of ``read_raw_config()`` for callers that ONLY READ.
+
+    Returns the cached raw-config dict directly, skipping the per-call
+    ``copy.deepcopy`` that ``read_raw_config()`` performs (needed there
+    because some callers mutate the result before ``save_config``).
+
+    **Mutating the returned dict corrupts the in-process cache for every
+    subsequent caller.** Only use on read-only paths — e.g. per-turn policy
+    checks like the shared-metrics gate, which runs 2-3x per agent turn and
+    was paying a full config deepcopy each time.
+
+    Same (mtime_ns, size) freshness key as ``read_raw_config()`` — an edited
+    config.yaml is picked up on the next call.
+    """
+    with _CONFIG_LOCK:
+        try:
+            config_path = get_config_path()
+            st = config_path.stat()
+            cache_key = (st.st_mtime_ns, st.st_size)
+        except (FileNotFoundError, OSError):
+            return {}
+
+        path_key = str(config_path)
+        cached = _RAW_CONFIG_CACHE.get(path_key)
+        if cached is not None and cached[:2] == cache_key:
+            return cached[2]
+
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                data = fast_safe_load(f) or {}
+        except Exception as e:
+            _warn_config_parse_failure(config_path, e)
+            return {}
+
+        if not isinstance(data, dict):
+            data = {}
+        # Store and return THE SAME object (identity invariant): the first
+        # caller must see the exact dict later cache hits return, so a test
+        # asserting ``ro1 is ro2`` holds from the very first call.
+        cached_copy = copy.deepcopy(data)
+        _RAW_CONFIG_CACHE[path_key] = (cache_key[0], cache_key[1], cached_copy)
+        return cached_copy
+
+
+# read_user_config_raw -- restored from the upstream merge parent.
+def read_user_config_raw(config_path: Optional[Path] = None) -> Dict[str, Any]:
+    """Read a user ``config.yaml`` EXACTLY as written on disk.
+
+    No DEFAULT_CONFIG merge, no managed-scope overlay, no ``${ENV_VAR}``
+    expansion, no migration, no root-model normalization, no caching.
+
+    ONLY legal for write-back round-trips and raw-file diagnostics —
+    behavioral reads must use load_config()/load_config_readonly().
+
+    Legal call sites, exhaustively:
+
+      * WRITE-BACK ROUND-TRIPS (read → mutate one key → save): merging
+        defaults or the managed overlay here would persist hundreds of
+        default keys (or administrator-pinned values) into the user's file
+        on the next save. Raw is *correct*, not an optimization.
+      * RAW-FILE DIAGNOSTICS (doctor, deprecation sweeps): these inspect
+        what the user actually wrote — stale root keys, drift against .env —
+        and merged defaults would produce false positives.
+      * PRESENCE-SENSITIVE ENV BRIDGES (gateway/send bridges that only
+        export a key when the user explicitly set it): a defaults merge
+        would make every key "present" and bridge the entire DEFAULT_CONFIG
+        into the environment. These sites must still apply
+        ``managed_scope.apply_managed_overlay`` + ``_expand_env_vars``
+        inline, which they do.
+
+    Semantics (deliberately mirrors the bare ``open()+yaml.safe_load()``
+    pattern this replaces, so migrated sites keep their exact failure
+    behavior):
+
+      * missing file → ``{}``
+      * unparseable YAML / other I/O errors → raises (callers that want
+        fail-open already wrap in try/except; callers with last-known-good
+        or warn semantics rely on the exception)
+      * non-dict YAML root → ``{}``
+
+    ``config_path`` defaults to :func:`get_config_path` (profile-aware).
+    Pass an explicit path when the caller resolves its own home (gateway
+    ``_hermes_home``, tui profile override, multi-profile probes).
+    """
+    if config_path is None:
+        config_path = get_config_path()
+    try:
+        with open(config_path, encoding="utf-8") as f:
+            data = fast_safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+# require_readable_config_before_write -- restored from the upstream merge parent.
+def require_readable_config_before_write(config_path: Optional[Path] = None) -> None:
+    """Refuse to replace an existing config.yaml that cannot be read."""
+    if config_path is None:
+        config_path = get_config_path()
+    try:
+        config_path.stat()
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise RuntimeError(
+            f"Refusing to overwrite {config_path}: existing config.yaml cannot be accessed "
+            f"({exc}). Fix the file permissions or move it aside first."
+        ) from exc
+
+    try:
+        with open(config_path, "rb") as f:
+            f.read(1)
+    except OSError as exc:
+        raise RuntimeError(
+            f"Refusing to overwrite {config_path}: existing config.yaml cannot be read "
+            f"({exc}). Fix the file permissions or move it aside first."
+        ) from exc
+
+
+# resolve_ephemeral_system_prompt_from_config -- restored from the upstream merge parent.
+def resolve_ephemeral_system_prompt_from_config(cfg: Optional[Dict[str, Any]]) -> str:
+    """Resolve the session overlay from config.yaml.
+
+    ``display.personality`` is the selected named personality and wins when set.
+    Otherwise fall back to the user-owned ``agent.system_prompt``. Callers should
+    still prefer ``HERMES_EPHEMERAL_SYSTEM_PROMPT`` when that env var is set.
+
+    Delegates to :mod:`hermes_cli.personality` (single owner).
+    """
+    from hermes_cli.personality import resolve_ephemeral_system_prompt
+
+    return resolve_ephemeral_system_prompt(cfg)
+
+
+# write_platform_config_field -- restored from the upstream merge parent.
+def write_platform_config_field(
+    platform_key: str,
+    field_key: str,
+    value: Any,
+    *,
+    raw: bool = False,
+) -> None:
+    """Persist one scalar field under ``platforms.<platform_key>``.
+
+    ``raw=True`` preserves CLI setup flows that intentionally edit only the
+    user's raw config file. Dashboard routes use the default loaded-config path
+    so they retain their existing profile-scoped ``load_config`` behavior.
+    """
+    config = read_raw_config() if raw else load_config()
+    platforms = config.setdefault("platforms", {})
+    if not isinstance(platforms, dict):
+        platforms = {}
+        config["platforms"] = platforms
+
+    platform_config = platforms.setdefault(platform_key, {})
+    if not isinstance(platform_config, dict):
+        platform_config = {}
+        platforms[platform_key] = platform_config
+
+    platform_config[field_key] = value
+    save_config(config)
+
+
+# TERMINAL_CONFIG_ENV_MAP -- dependency of a restored definition.
+TERMINAL_CONFIG_ENV_MAP = {
+    "backend": "TERMINAL_ENV",
+    "modal_mode": "TERMINAL_MODAL_MODE",
+    "degraded_mode": "TERMINAL_DEGRADED_MODE",
+    "cwd": "TERMINAL_CWD",
+    "timeout": "TERMINAL_TIMEOUT",
+    "lifetime_seconds": "TERMINAL_LIFETIME_SECONDS",
+    "docker_image": "TERMINAL_DOCKER_IMAGE",
+    "docker_forward_env": "TERMINAL_DOCKER_FORWARD_ENV",
+    "singularity_image": "TERMINAL_SINGULARITY_IMAGE",
+    "modal_image": "TERMINAL_MODAL_IMAGE",
+    "daytona_image": "TERMINAL_DAYTONA_IMAGE",
+    "vercel_runtime": "TERMINAL_VERCEL_RUNTIME",
+    "ssh_host": "TERMINAL_SSH_HOST",
+    "ssh_user": "TERMINAL_SSH_USER",
+    "ssh_port": "TERMINAL_SSH_PORT",
+    "ssh_key": "TERMINAL_SSH_KEY",
+    "container_cpu": "TERMINAL_CONTAINER_CPU",
+    "container_memory": "TERMINAL_CONTAINER_MEMORY",
+    "container_disk": "TERMINAL_CONTAINER_DISK",
+    "container_persistent": "TERMINAL_CONTAINER_PERSISTENT",
+    "docker_volumes": "TERMINAL_DOCKER_VOLUMES",
+    "docker_env": "TERMINAL_DOCKER_ENV",
+    "docker_mount_cwd_to_workspace": "TERMINAL_DOCKER_MOUNT_CWD_TO_WORKSPACE",
+    "docker_network": "TERMINAL_DOCKER_NETWORK",
+    "docker_extra_args": "TERMINAL_DOCKER_EXTRA_ARGS",
+    "docker_shm_size": "TERMINAL_DOCKER_SHM_SIZE",
+    "docker_run_as_host_user": "TERMINAL_DOCKER_RUN_AS_HOST_USER",
+    "docker_persist_across_processes": "TERMINAL_DOCKER_PERSIST_ACROSS_PROCESSES",
+    "docker_orphan_reaper": "TERMINAL_DOCKER_ORPHAN_REAPER",
+    "sandbox_dir": "TERMINAL_SANDBOX_DIR",
+    "persistent_shell": "TERMINAL_PERSISTENT_SHELL",
+}
+
+
+# _DOCKER_UPDATE_MESSAGE -- dependency of a restored definition.
+# Long-form text for ``hermes update`` / ``--check`` when running inside the
+# Docker image.  Surfaced by ``cmd_update`` and ``_cmd_update_check`` in
+# hermes_cli/main.py; lives here so the wording stays consistent and we
+# don't grow two slightly-different copies.
+#
+# Why this matters:
+#   - The published image excludes ``.git`` (see .dockerignore), so the
+#     git-based update path can never succeed inside the container.
+#   - The pre-existing fallback message ("✗ Not a git repository. Please
+#     reinstall: curl ... install.sh") is actively misleading inside Docker
+#     — that script installs a *new* host-side Hermes, it doesn't update
+#     the running container.
+#   - The right action is ``docker pull`` + restart the container; this
+#     helper spells that out, with notes on tag pinning and config
+#     persistence so users don't get blindsided.
+_DOCKER_UPDATE_MESSAGE = """\
+✗ ``hermes update`` doesn't apply inside the Docker container.
+
+Hermes Agent runs as a published image (nousresearch/hermes-agent), not a
+git checkout — the container has no working tree to pull into.  Update by
+pulling a fresh image and restarting your container instead:
+
+  docker pull nousresearch/hermes-agent:latest
+  # then restart whatever started the container, e.g.:
+  docker compose up -d --force-recreate hermes-agent
+  # or, for ad-hoc runs, exit the current container and `docker run` again
+
+Verify the new version after restart:
+  docker run --rm nousresearch/hermes-agent:latest --version
+
+Notes:
+  • If you pinned a specific tag (e.g. ``:v0.14.0``) the ``:latest`` tag
+    won't move your container — pull the newer tag you actually want, or
+    switch to ``:latest`` / ``:main`` for rolling updates.  See available
+    tags at https://hub.docker.com/r/nousresearch/hermes-agent/tags
+  • Your config and session history live under ``$HERMES_HOME`` (``/opt/data``
+    in the container, typically bind-mounted from the host) and persist
+    across image upgrades — re-pulling doesn't lose any state.
+  • Running a fork?  Build your own image with this repo's ``Dockerfile``
+    and replace the ``docker pull`` step with your build/push pipeline."""
+
+
+# _coerce_ssl_verify -- dependency of a restored definition.
+def _coerce_ssl_verify(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+    return None
+
+
+# _terminal_env_value -- dependency of a restored definition.
+def _terminal_env_value(value: Any) -> str:
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
+    return str(value)
+
+
+# get_custom_provider_extra_headers -- dependency of a restored definition.
+def get_custom_provider_extra_headers(
+    base_url: str,
+    custom_providers: Optional[List[Dict[str, Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, str]:
+    """Return ``extra_headers`` from a matching ``providers`` / ``custom_providers`` entry.
+
+    Matches the entry whose normalized route identity equals *base_url*,
+    mirroring :func:`get_custom_provider_tls_settings`, and returns its
+    ``extra_headers`` dict, or ``{}`` when no entry matches or declares none.
+
+    SECURITY: header values routinely carry credentials (Cloudflare Access
+    service tokens, proxy auth, custom bearer schemes). Callers must never
+    log the returned values.
+    """
+    if custom_providers is None:
+        try:
+            custom_providers = get_compatible_custom_providers(config)
+        except Exception:
+            custom_providers = []
+    if not base_url or not isinstance(custom_providers, list):
+        return {}
+
+    target_url = normalize_route_base_url(base_url)
+    for entry in custom_providers:
+        if not isinstance(entry, dict):
+            continue
+        entry_url = normalize_route_base_url(entry.get("base_url"))
+        if not entry_url or entry_url != target_url:
+            continue
+        headers = normalize_extra_headers(entry.get("extra_headers"))
+        if headers:
+            return headers
+    return {}

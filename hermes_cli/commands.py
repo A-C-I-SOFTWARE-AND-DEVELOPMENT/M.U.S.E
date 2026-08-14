@@ -1839,3 +1839,99 @@ def _file_size_label(path: str) -> str:
     if size < 1024 * 1024 * 1024:
         return f"{size / (1024 * 1024):.1f}M"
     return f"{size / (1024 * 1024 * 1024):.1f}G"
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# is_interrupt_then_dispatch -- restored from the upstream merge parent.
+def is_interrupt_then_dispatch(command_name: str | None) -> bool:
+    """Return True when *command_name* must interrupt a running agent first.
+
+    Derived from the registry: commands whose ``busy_policy`` is
+    "interrupt_then_dispatch" (the /stop, /new, /reset class).  Guard 1
+    (gateway/platforms/base.py) routes these through the cancel-handoff
+    path that serializes cancellation + runner response + pending drain.
+    Accepts aliases (e.g. "reset" resolves to "new").
+    """
+    if not command_name:
+        return False
+    cmd = resolve_command(command_name)
+    return cmd is not None and cmd.busy_policy == "interrupt_then_dispatch"
+
+
+# telegram_menu_max_commands -- restored from the upstream merge parent.
+def telegram_menu_max_commands() -> int:
+    """Return configured Telegram BotCommand menu cap with safe bounds."""
+    return int(_telegram_command_menu_config()["max_commands"])
+
+
+# _telegram_command_menu_config -- dependency of a restored definition.
+def _telegram_command_menu_config() -> dict[str, Any]:
+    """Return normalized Telegram command-menu config with safe defaults.
+
+    Canonical user-facing path:
+    ``platforms.telegram.extra.command_menu``.
+    """
+    try:
+        from hermes_cli.config import read_raw_config
+        raw_cfg = read_raw_config() or {}
+    except Exception:
+        raw_cfg = {}
+    if not isinstance(raw_cfg, Mapping):
+        raw_cfg = {}
+
+    menu_cfg = dict(_nested_mapping(raw_cfg, "platforms", "telegram", "extra", "command_menu"))
+
+    max_commands = menu_cfg.get("max_commands", _DEFAULT_TELEGRAM_MENU_MAX_COMMANDS)
+    try:
+        max_commands = int(max_commands)
+    except (TypeError, ValueError):
+        max_commands = _DEFAULT_TELEGRAM_MENU_MAX_COMMANDS
+    max_commands = max(1, min(_TELEGRAM_BOT_API_MAX_COMMANDS, max_commands))
+
+    priority_mode = str(menu_cfg.get("priority_mode") or "prepend").strip().lower()
+    if priority_mode not in _TELEGRAM_PRIORITY_MODES:
+        priority_mode = "prepend"
+
+    raw_priority = menu_cfg.get("priority")
+    if isinstance(raw_priority, list):
+        priority = [str(item) for item in raw_priority if str(item).strip()]
+    else:
+        priority = []
+
+    return {
+        "max_commands": max_commands,
+        "priority_mode": priority_mode,
+        "priority": priority,
+    }
+
+
+# _DEFAULT_TELEGRAM_MENU_MAX_COMMANDS -- dependency of a restored definition.
+# Telegram allows up to 100 BotCommands. Hermes ships ~50 built-in commands;
+# a 60-slot default keeps every built-in plus common skill commands visible in
+# the `/` menu while staying comfortably under Telegram's ~4KB payload limit.
+# Users can tune this via platforms.telegram.extra.command_menu.max_commands.
+_DEFAULT_TELEGRAM_MENU_MAX_COMMANDS = 60
+
+
+# _TELEGRAM_BOT_API_MAX_COMMANDS -- dependency of a restored definition.
+_TELEGRAM_BOT_API_MAX_COMMANDS = 100
+
+
+# _TELEGRAM_PRIORITY_MODES -- dependency of a restored definition.
+_TELEGRAM_PRIORITY_MODES = {"prepend", "append", "replace"}
+
+
+# _nested_mapping -- dependency of a restored definition.
+def _nested_mapping(root: Mapping[str, Any], *path: str) -> Mapping[str, Any]:
+    node: Any = root
+    for key in path:
+        if not isinstance(node, Mapping):
+            return {}
+        node = node.get(key)
+    return node if isinstance(node, Mapping) else {}

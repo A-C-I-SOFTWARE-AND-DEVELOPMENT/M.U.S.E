@@ -7755,3 +7755,123 @@ def run_conversation(
 
 
 __all__ = ["run_conversation"]
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# build_usage_record -- restored from the muse merge parent.
+def build_usage_record(
+    source: Any,
+    *,
+    require_tokens: bool = True,
+) -> Optional[Dict[str, Any]]:
+    """Build a machine-readable usage block from a finished run's session totals.
+
+    This is the **producer** side of the per-job cost seam. ``run_conversation``
+    already returns a result dict carrying the agent's session token buckets,
+    ``estimated_cost_usd``, ``model``, and ``provider`` (and an ``AIAgent`` carries
+    the same data on its ``session_*`` attributes). This helper distills either
+    into the exact ``{usage, cost_usd, model, provider}`` shape the orchestrator
+    consumes — see ``hermes_cli.orchestrator_api._extract_usage_report`` and
+    ``hermes_cli.job_cost.JobCost.add_usage``::
+
+        {
+          "usage": {                 # token buckets (omitted if all zero)
+            "input_tokens": int, "output_tokens": int,
+            "cache_read_tokens": int, "cache_write_tokens": int,
+            "reasoning_tokens": int
+          },
+          "cost_usd": float,         # session estimated cost in USD
+          "model": str,              # optional, for the by-model breakdown
+          "provider": str            # optional
+        }
+
+    A worker that runs the agent in a subprocess writes the returned dict to a
+    usage sidecar (``orchestrator_parallel.USAGE_FILENAME``) so the parallel
+    runner can fold it back into ``status.json``; the supported way is to hand
+    this helper's result to
+    :func:`hermes_cli.orchestrator_parallel.write_usage_sidecar`, which atomically
+    writes it to the worker's ``usage_path`` (and no-ops on the ``None`` this
+    returns for an empty turn). A worker that owns the agent in-process can
+    instead report it on its heartbeat / completion payload directly.
+
+    Args:
+        source: Either a ``run_conversation`` result ``dict`` or any object (an
+            ``AIAgent``) exposing ``session_input_tokens`` … and
+            ``session_estimated_cost_usd`` / ``model`` / ``provider`` attributes.
+        require_tokens: When ``True`` (default), return ``None`` if every token
+            bucket is zero *and* there is no positive cost — a no-op turn must
+            not move any meter. Set ``False`` to always emit (e.g. to record a
+            cost-only / flat-charge entry).
+
+    Returns:
+        The usage block, or ``None`` when there is nothing worth reporting.
+    """
+
+    def _read(token_field: str) -> int:
+        if isinstance(source, dict):
+            raw = source.get(token_field)
+        else:
+            raw = getattr(source, f"session_{token_field}", None)
+        try:
+            value = int(raw or 0)
+        except (TypeError, ValueError):
+            return 0
+        return max(0, value)
+
+    tokens: Dict[str, int] = {}
+    for token_field in _USAGE_TOKEN_FIELDS:
+        count = _read(token_field)
+        if count > 0:
+            tokens[token_field] = count
+
+    if isinstance(source, dict):
+        raw_cost = source.get("estimated_cost_usd")
+        model = source.get("model")
+        provider = source.get("provider")
+    else:
+        raw_cost = getattr(source, "session_estimated_cost_usd", None)
+        model = getattr(source, "model", None)
+        provider = getattr(source, "provider", None)
+
+    cost_usd: Optional[float]
+    if isinstance(raw_cost, bool) or not isinstance(raw_cost, (int, float)):
+        cost_usd = None
+    else:
+        cost_usd = float(raw_cost)
+        if cost_usd < 0:
+            cost_usd = None
+
+    has_positive_cost = cost_usd is not None and cost_usd > 0
+    if require_tokens and not tokens and not has_positive_cost:
+        return None
+
+    record: Dict[str, Any] = {}
+    if tokens:
+        record["usage"] = tokens
+    record["cost_usd"] = cost_usd if cost_usd is not None else 0.0
+    if isinstance(model, str) and model.strip():
+        record["model"] = model.strip()
+    if isinstance(provider, str) and provider.strip():
+        record["provider"] = provider.strip()
+    return record
+
+
+# _USAGE_TOKEN_FIELDS -- dependency of a restored definition.
+# Token bucket field names in the canonical (``CanonicalUsage`` /
+# ``hermes_cli.job_cost.UsageLike``) spelling. These are exactly the keys the
+# orchestrator's usage seam (``hermes_cli.orchestrator_api._extract_usage_report``)
+# reads back out of a worker report, so emitting them verbatim lets a worker's
+# usage fold straight into the per-job ``JobCost`` with no translation.
+_USAGE_TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_write_tokens",
+    "reasoning_tokens",
+)

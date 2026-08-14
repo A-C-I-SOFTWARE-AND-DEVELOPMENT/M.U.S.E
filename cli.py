@@ -14814,3 +14814,83 @@ def main(
 
 if __name__ == "__main__":
     fire.Fire(main)
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _d -- restored from the upstream merge parent.
+def _d(s: str) -> str:
+    """Dim-italic if stdout is a real TTY; plain text otherwise."""
+    import sys as _sys
+    try:
+        return f"\x1b[2;3m{s}\x1b[0m" if _sys.stdout.isatty() else str(s)
+    except Exception:
+        return str(s)
+
+
+# _prepare_deferred_agent_startup -- restored from the upstream merge parent.
+def _prepare_deferred_agent_startup() -> None:
+    """Run Termux-deferred agent discovery before the first real agent turn."""
+    global _deferred_agent_startup_done
+    if _deferred_agent_startup_done:
+        return
+    if os.environ.get("HERMES_DEFER_AGENT_STARTUP") != "1":
+        return
+    _deferred_agent_startup_done = True
+    _accept_hooks = os.environ.get("HERMES_ACCEPT_HOOKS", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    try:
+        from hermes_cli.plugins import discover_plugins
+
+        discover_plugins()
+    except Exception:
+        logger.warning(
+            "plugin discovery failed at deferred CLI startup",
+            exc_info=True,
+        )
+    try:
+        from hermes_cli.mcp_startup import start_background_mcp_discovery
+
+        start_background_mcp_discovery(
+            logger=logger,
+            thread_name="termux-cli-mcp-discovery",
+        )
+    except Exception:
+        logger.debug(
+            "MCP tool discovery failed at deferred CLI startup",
+            exc_info=True,
+        )
+    try:
+        from agent.shell_hooks import register_from_config
+        from hermes_cli.config import load_config
+
+        _hooks_cfg = load_config()
+        register_from_config(_hooks_cfg, accept_hooks=_accept_hooks)
+
+        from agent.outbound_webhooks import (
+            register_from_config as register_outbound_webhooks,
+        )
+
+        register_outbound_webhooks(_hooks_cfg)
+    except Exception:
+        logger.debug(
+            "shell-hook registration failed at deferred CLI startup",
+            exc_info=True,
+        )
+
+
+# _sync_process_session_id -- restored from the upstream merge parent.
+def _sync_process_session_id(session_id: str) -> None:
+    """Keep process-local session-id consumers aligned after CLI switches."""
+    from gateway.session_context import set_current_session_id
+
+    set_current_session_id(session_id)

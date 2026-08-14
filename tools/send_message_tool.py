@@ -2114,3 +2114,21 @@ from tools.registry import tool_error
 #   - the standalone MCP server (mcp_serve.py), which is an opt-in surface
 # Those callers import the helpers directly; none of them need the registry
 # entry.
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _derive_forum_thread_name -- restored from the muse merge parent.
+def _derive_forum_thread_name(message: str) -> str:
+    """Derive a thread name from the first line of the message, capped at 100 chars."""
+    first_line = message.strip().split("\n", 1)[0].strip()
+    # Strip common markdown heading prefixes
+    first_line = first_line.lstrip("#").strip()
+    if not first_line:
+        first_line = "New Post"
+    return first_line[:100]

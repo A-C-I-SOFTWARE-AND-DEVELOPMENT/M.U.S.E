@@ -21,6 +21,10 @@ Nous authentication paths:
 
 from __future__ import annotations
 
+# Imports required by definitions restored from the merge parent.
+from typing import FrozenSet
+
+
 import json
 import logging
 import os
@@ -7472,3 +7476,550 @@ def logout_command(args) -> None:
             print("Model provider configuration was unchanged.")
     else:
         print(f"No auth state found for {provider_name}.")
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# ACTUAL_LOCAL_NOAUTH_PLACEHOLDER -- restored from the upstream merge parent.
+ACTUAL_LOCAL_NOAUTH_PLACEHOLDER = "dummy-actual-local-api-key"
+
+
+# _can_open_graphical_browser -- restored from the upstream merge parent.
+def _can_open_graphical_browser() -> bool:
+    """Return True only when a *graphical* browser is likely to open.
+
+    ``webbrowser.open()`` resolves to whatever the platform offers, and on a
+    headless / CLI-only Linux box with no GUI browser installed that is often
+    a text-mode browser (w3m/lynx/links) which launches inside the terminal
+    and takes over the user's session.  This guard distinguishes "a real
+    windowed browser will pop up" from "a console browser will hijack the
+    TTY", so callers can fall back to printing the URL instead.
+
+    Heuristics:
+      * Respect ``$BROWSER`` — if it names a known console browser, refuse.
+      * On Linux, require a display server (``$DISPLAY`` / ``$WAYLAND_DISPLAY``)
+        unless ``$BROWSER`` points at something graphical; no display server
+        almost always means no GUI browser.
+      * Ask ``webbrowser.get()`` what it resolved to and refuse when the
+        underlying command is a known console browser.
+      * macOS and Windows always have a usable default GUI browser.
+    """
+    import webbrowser as _webbrowser
+
+    def _names_console_browser(value: str) -> bool:
+        token = value.strip().split()[0] if value.strip() else ""
+        base = os.path.basename(token).lower()
+        return base in _CONSOLE_BROWSER_NAMES
+
+    browser_env = os.environ.get("BROWSER", "")
+    if browser_env and _names_console_browser(browser_env):
+        return False
+
+    if sys.platform.startswith("linux"):
+        has_display = bool(
+            os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+        )
+        # An explicit graphical $BROWSER can work without $DISPLAY in odd
+        # setups, but a console $BROWSER already returned False above, so the
+        # only way to reach here with a $BROWSER set is a graphical one.
+        if not has_display and not browser_env:
+            return False
+
+    try:
+        controller = _webbrowser.get()
+    except Exception:
+        # No browser resolvable at all → definitely don't auto-open.
+        return False
+
+    candidate = (
+        getattr(controller, "name", "")
+        or getattr(controller, "basename", "")
+        or ""
+    )
+    if candidate and _names_console_browser(candidate):
+        return False
+
+    return True
+
+
+# _load_provider_state_with_source -- restored from the upstream merge parent.
+def _load_provider_state_with_source(
+    auth_store: Dict[str, Any],
+    provider_id: str,
+) -> tuple[Optional[Dict[str, Any]], Optional[Path]]:
+    """Return a provider state plus the auth.json path it came from.
+
+    Most callers only need the state, but refresh paths that rotate single-use
+    OAuth refresh tokens must write the updated token chain back to the same
+    store they read. In profile mode ``_load_provider_state`` can read a
+    global-root fallback state; persisting a rotated Nous refresh token only to
+    the profile would leave the global/root store stale and cause the next
+    process to replay an already-consumed refresh token.
+    """
+    providers = auth_store.get("providers")
+    if isinstance(providers, dict):
+        state = providers.get(provider_id)
+        if isinstance(state, dict):
+            return dict(state), _auth_file_path()
+
+    global_path = _global_auth_file_path()
+    global_store = _load_global_auth_store()
+    if global_store:
+        global_providers = global_store.get("providers")
+        if isinstance(global_providers, dict):
+            global_state = global_providers.get(provider_id)
+            if isinstance(global_state, dict):
+                return dict(global_state), global_path
+    return None, None
+
+
+# _nous_inference_env_override -- restored from the upstream merge parent.
+def _nous_inference_env_override() -> Optional[str]:
+    """Return the user-set ``NOUS_INFERENCE_BASE_URL`` override, if any.
+
+    This is the documented dev/staging escape hatch. The env source is
+    trusted (the OS user set it themselves), so it is intentionally NOT
+    gated by the network host allowlist — unlike Portal-returned URLs.
+
+    Returns a trailing-slash-stripped non-empty string, or ``None`` when
+    the env var is unset/blank.
+    """
+    return _optional_base_url(os.getenv("NOUS_INFERENCE_BASE_URL"))
+
+
+# _same_path -- restored from the upstream merge parent.
+def _same_path(left: Path, right: Path) -> bool:
+    try:
+        return left.resolve(strict=False) == right.resolve(strict=False)
+    except Exception:
+        return left == right
+
+
+# _validate_nous_inference_url_from_network -- restored from the upstream merge parent.
+def _validate_nous_inference_url_from_network(url: Optional[str]) -> Optional[str]:
+    """Validate a Portal-returned inference URL against the host allowlist.
+
+    Returns ``url`` (normalised by stripping trailing slashes) if it's a
+    well-formed ``https://<allowlisted-host>/...`` URL. Returns ``None``
+    if the URL is missing, malformed, non-https, or points at an
+    unexpected host — letting the caller fall back to the configured
+    default rather than persist or forward a poisoned value.
+
+    Defense-in-depth: a compromised refresh response from the Portal API
+    (MITM, malicious response injection) could otherwise redirect every
+    subsequent proxy request — bearing the user's inference JWT — to an
+    attacker-controlled endpoint.
+    Validating scheme + host at the source closes that loop before the
+    poisoned URL ever lands in ``auth.json``.
+
+    The env-var override path (``NOUS_INFERENCE_BASE_URL``) bypasses
+    this — env values come from the trusted OS user, not from the
+    network, and the override is documented for staging/dev use.
+
+    Co-authored-by: memosr <mehmet.sr35@gmail.com>
+    """
+    if not isinstance(url, str):
+        return None
+    cleaned = url.strip()
+    if not cleaned:
+        return None
+    try:
+        parsed = urlparse(cleaned)
+    except Exception:
+        return None
+    if parsed.scheme != "https":
+        logger.warning(
+            "nous: refusing non-https inference URL scheme %r from Portal response",
+            parsed.scheme,
+        )
+        return None
+    if parsed.hostname not in _ALLOWED_NOUS_INFERENCE_HOSTS:
+        logger.warning(
+            "nous: refusing inference URL host %r from Portal response "
+            "(not in allowlist); falling back to default",
+            parsed.hostname,
+        )
+        return None
+    return cleaned.rstrip("/")
+
+
+# build_minimax_oauth_token_provider -- restored from the upstream merge parent.
+def build_minimax_oauth_token_provider() -> Callable[[], str]:
+    """Return a zero-arg callable that yields a fresh MiniMax access token.
+
+    The Anthropic SDK caches ``api_key`` as a static string at construction
+    time, so a session that resolves credentials once at startup will keep
+    sending the same bearer until MiniMax's server returns 401 — typically
+    ~15 minutes in, because MiniMax issues short-lived access tokens.
+
+    Returning a *callable* instead of a string lets us hook into the
+    existing Entra-ID bearer infrastructure in
+    :mod:`agent.anthropic_adapter`: ``build_anthropic_client`` detects a
+    callable and routes through ``_build_anthropic_client_with_bearer_hook``,
+    which mints a fresh ``Authorization`` header on every outbound request.
+    Each invocation re-reads the persisted state from ``auth.json`` and
+    calls :func:`_refresh_minimax_oauth_state` — that helper is a no-op
+    when the token still has more than ``MINIMAX_OAUTH_REFRESH_SKEW_SECONDS``
+    of life left, so the steady-state cost is one file read + one
+    timestamp compare per request.
+
+    Reading state fresh each time also means a refresh persisted by one
+    process (CLI, gateway, cron) is immediately visible to every other
+    process sharing the same ``auth.json``.
+    """
+    def _provide() -> str:
+        state = get_provider_auth_state("minimax-oauth")
+        if not state or not state.get("access_token"):
+            raise AuthError(
+                "Not logged into MiniMax OAuth. Run `hermes model` and select "
+                "MiniMax (OAuth).",
+                provider="minimax-oauth", code="not_logged_in", relogin_required=True,
+            )
+        try:
+            state = _refresh_minimax_oauth_state(state)
+        except AuthError as exc:
+            _minimax_oauth_quarantine_on_terminal_refresh(state, exc)
+            raise
+        token = state.get("access_token")
+        if not token:
+            raise AuthError(
+                "MiniMax OAuth state has no access_token after refresh.",
+                provider="minimax-oauth", code="no_access_token", relogin_required=True,
+            )
+        return token
+
+    return _provide
+
+
+# clear_codex_pool_quota_cooldowns -- restored from the upstream merge parent.
+def clear_codex_pool_quota_cooldowns(access_token: Optional[str] = None) -> int:
+    """Clear rate-limit cooldowns on persisted openai-codex pool entries.
+
+    Called after the upstream quota is KNOWN to be restored (a successful
+    ``/usage reset`` redemption, or a positive live probe) so auth.json stops
+    freezing credentials behind a stale ``last_error_reset_at``.  Only lifts
+    ``exhausted`` entries whose error metadata is 429/quota-shaped — DEAD
+    (terminal auth) entries and non-rate-limit failures are untouched.
+
+    When *access_token* is given, only the matching entry is cleared;
+    otherwise every rate-limited entry clears (a redeemed banked reset
+    restores the whole account, and any entry that is genuinely still
+    exhausted just re-freezes with fresh metadata on its next 429).
+
+    Returns the number of entries cleared.
+    """
+    cleared = 0
+    try:
+        with _auth_store_lock():
+            auth_store = _load_auth_store()
+            pool = auth_store.get("credential_pool")
+            entries = pool.get("openai-codex") if isinstance(pool, dict) else None
+            if not isinstance(entries, list):
+                return 0
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                if entry.get("last_status") != "exhausted":
+                    continue
+                if access_token and str(entry.get("access_token") or "") != access_token:
+                    continue
+                if not _is_codex_rate_limit_shaped(
+                    entry.get("last_error_code"),
+                    entry.get("last_error_reason"),
+                    entry.get("last_error_message"),
+                ):
+                    continue
+                entry["last_status"] = None
+                entry["last_status_at"] = None
+                entry["last_error_code"] = None
+                entry["last_error_reason"] = None
+                entry["last_error_message"] = None
+                entry["last_error_reset_at"] = None
+                cleared += 1
+            if cleared:
+                _save_auth_store(auth_store)
+    except Exception:
+        logger.debug("Failed to clear Codex pool quota cooldowns", exc_info=True)
+    return cleared
+
+
+# get_nous_auth_status_local -- restored from the upstream merge parent.
+def get_nous_auth_status_local() -> Dict[str, Any]:
+    """Refresh-free Nous auth snapshot for read-only display surfaces.
+
+    Unlike :func:`get_nous_auth_status`, this NEVER calls
+    ``resolve_nous_runtime_credentials()`` and therefore never performs an
+    OAuth refresh POST or consumes a single-use refresh token. It reports the
+    persisted auth-store state, classifying the access token with a local
+    invoke-JWT decode only.
+
+    Use this from status panels, doctor checks, and polled dashboard
+    endpoints. Explicit auth actions (login flows, portal operations that
+    need a live credential) should keep using ``get_nous_auth_status()``.
+
+    ``logged_in`` here means "a persisted login exists that the runtime can
+    use or refresh": a currently-usable invoke JWT, or a refresh token that
+    has not been terminally quarantined. It does not prove the refresh token
+    is still accepted server-side — only a live resolve can do that.
+    """
+    try:
+        state = get_provider_auth_state("nous")
+    except Exception:
+        state = None
+
+    if not state:
+        return _snapshot_nous_pool_status()
+
+    access_token = state.get("access_token")
+    jwt_reason = _nous_invoke_jwt_status(
+        access_token,
+        scope=state.get("scope"),
+        expires_at=state.get("expires_at"),
+    )
+    last_err = state.get("last_auth_error")
+    terminal = bool(
+        isinstance(last_err, dict)
+        and last_err.get("relogin_required")
+        and not (access_token or state.get("refresh_token"))
+    )
+    logged_in = (jwt_reason is None) or (
+        bool(state.get("refresh_token")) and not terminal
+    )
+
+    status: Dict[str, Any] = {
+        "logged_in": logged_in,
+        "portal_base_url": state.get("portal_base_url"),
+        "inference_base_url": state.get("inference_base_url"),
+        "access_token": access_token,
+        "access_expires_at": state.get("expires_at"),
+        "agent_key_expires_at": state.get("agent_key_expires_at"),
+        "has_refresh_token": bool(state.get("refresh_token")),
+        "inference_credential_present": bool(
+            access_token or state.get("agent_key")
+        ),
+        "credential_source": "auth_store",
+        "source": "auth_store_local",
+    }
+    if terminal and isinstance(last_err, dict):
+        status["relogin_required"] = True
+        status["error_code"] = last_err.get("code")
+        status["error"] = last_err.get("message") or "re-login required"
+    return status
+
+
+# is_actual_local_base_url -- restored from the upstream merge parent.
+def is_actual_local_base_url(base_url: str) -> bool:
+    """Return True for Actual's loopback local API endpoint."""
+    try:
+        host = (urlparse(base_url or "").hostname or "").lower().rstrip(".")
+    except Exception:
+        return False
+    return host in {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
+
+
+# is_runtime_provider_routable -- restored from the upstream merge parent.
+def is_runtime_provider_routable(provider_id: str) -> bool:
+    """Return whether runtime resolution recognizes a provider identity.
+
+    This is a capability check, not a credential check. It follows the same
+    alias/plugin-aware normalization as ``resolve_provider`` while preserving
+    special runtime identities that intentionally live outside the registry.
+    """
+    normalized = (provider_id or "").strip().lower()
+    if not normalized:
+        return False
+    if normalized in {"auto", "openrouter", "custom", "moa"}:
+        return True
+    if normalized.startswith("custom:"):
+        return True
+    try:
+        resolve_provider(normalized)
+    except AuthError:
+        return False
+    return True
+
+
+# normalize_actual_base_url -- restored from the upstream merge parent.
+def normalize_actual_base_url(base_url: str) -> str:
+    """Return Actual's OpenAI-compatible base URL.
+
+    Actual hosted inference is exposed at api.actual.inc, while the Actual
+    client's offline local server binds a loopback host. Both use a /v1 API
+    surface for Hermes' Responses transport.
+    """
+    url = str(base_url or "").strip().rstrip("/")
+    if not url:
+        return DEFAULT_ACTUAL_BASE_URL
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower().rstrip(".")
+        path = parsed.path.rstrip("/")
+    except Exception:
+        return url
+    if host == "api.actual.inc" and path in {"", "/"}:
+        return url + "/v1"
+    if is_actual_local_base_url(url) and path in {"", "/"}:
+        return url + "/v1"
+    return url
+
+
+# step_up_nous_billing_scope -- restored from the upstream merge parent.
+def step_up_nous_billing_scope(
+    *,
+    open_browser: bool = True,
+    timeout_seconds: float = 15.0,
+    on_verification: Optional[Callable[[str, str], None]] = None,
+) -> bool:
+    """Re-run the device flow requesting ``billing:manage`` and persist the result.
+
+    The lazy step-up (plan D-A): triggered when a billing endpoint returns
+    ``403 insufficient_scope``. Runs a fresh device-connect with
+    ``inference:invoke tool:invoke billing:manage`` on the scope. The user must be
+    an ADMIN/OWNER and select "Allow Remote Spending" in the portal for the minted
+    token to actually carry the scope; otherwise the server silently downscopes and this
+    returns False.
+
+    Reuses the held credential's portal/inference URLs + client_id so the step-up
+    targets the same deployment (incl. a preview via ``HERMES_PORTAL_BASE_URL`` set
+    at the original login). Persists to the auth store + shared store + pool, exactly
+    like ``_login_nous`` — but WITHOUT the model picker (this is a scope upgrade, not
+    a fresh login).
+
+    Returns True iff the new token carries ``billing:manage``.
+    """
+    prior = get_provider_auth_state("nous") or {}
+    pconfig = PROVIDER_REGISTRY["nous"]
+
+    # Build the step-up scope: existing scopes (if any) + billing:manage, deduped,
+    # order-stable. Fall back to the standard inference+tool+billing set.
+    _raw_scope = prior.get("scope")
+    prior_scope = _raw_scope if isinstance(_raw_scope, str) else ""
+    requested: list[str] = []
+    for tok in (prior_scope.split() or [NOUS_INFERENCE_INVOKE_SCOPE, "tool:invoke"]):
+        if tok and tok not in requested:
+            requested.append(tok)
+    if NOUS_BILLING_MANAGE_SCOPE not in requested:
+        requested.append(NOUS_BILLING_MANAGE_SCOPE)
+    scope = " ".join(requested)
+
+    auth_state = _nous_device_code_login(
+        portal_base_url=prior.get("portal_base_url") or None,
+        inference_base_url=prior.get("inference_base_url") or None,
+        client_id=prior.get("client_id") or pconfig.client_id,
+        scope=scope,
+        open_browser=open_browser,
+        timeout_seconds=timeout_seconds,
+        on_verification=on_verification,
+    )
+
+    with _auth_store_lock():
+        auth_store = _load_auth_store()
+        _save_provider_state(auth_store, "nous", auth_state)
+        _save_auth_store(auth_store)
+
+    # Mirror to shared store + reseed the pool (best-effort), same as _login_nous.
+    try:
+        _write_shared_nous_state(auth_state)
+    except Exception:
+        pass
+    try:
+        _sync_nous_pool_from_auth_store()
+    except Exception:
+        pass
+
+    granted = auth_state.get("scope")
+    return isinstance(granted, str) and NOUS_BILLING_MANAGE_SCOPE in granted.split()
+
+
+# DEFAULT_ACTUAL_BASE_URL -- dependency of a restored definition.
+DEFAULT_ACTUAL_BASE_URL = "https://api.actual.inc/v1"
+
+
+# NOUS_BILLING_MANAGE_SCOPE -- dependency of a restored definition.
+NOUS_BILLING_MANAGE_SCOPE = "billing:manage"
+
+
+# _ALLOWED_NOUS_INFERENCE_HOSTS -- dependency of a restored definition.
+# Allowlist of hosts the Nous Portal proxy is willing to forward inference
+# JWTs to. Sending a bearer anywhere else would leak it.
+#
+# This is consulted only for URLs coming from the NETWORK side (Portal
+# refresh responses). User-controlled env-var overrides
+# (NOUS_INFERENCE_BASE_URL) bypass validation — that's the documented
+# dev/staging escape hatch and the env source is already trusted (the
+# user set it themselves).
+_ALLOWED_NOUS_INFERENCE_HOSTS: FrozenSet[str] = frozenset({
+    "inference-api.nousresearch.com",
+})
+
+
+# _CONSOLE_BROWSER_NAMES -- dependency of a restored definition.
+# Console/text-mode browsers that ``webbrowser`` will happily launch INSIDE
+# the terminal.  Opening one of these is worse than not opening anything —
+# it hijacks the user's TTY with an unusable text browser (the xAI OAuth
+# "Account Management" page rendered in w3m, reported May 2026) instead of
+# letting them copy the URL to a real browser.  When the resolved browser is
+# one of these we refuse to auto-open and fall back to the print-the-URL
+# path, same as a remote session.
+_CONSOLE_BROWSER_NAMES: FrozenSet[str] = frozenset(
+    {
+        "w3m",
+        "lynx",
+        "links",
+        "links2",
+        "elinks",
+        "www-browser",
+        "browsh",  # TUI browser — still hijacks the terminal
+    }
+)
+
+
+# _is_codex_rate_limit_shaped -- dependency of a restored definition.
+def _is_codex_rate_limit_shaped(
+    code: Any,
+    reason: Any,
+    message: Any,
+) -> bool:
+    """True when persisted pool-entry error metadata describes a 429/quota stop."""
+    reason_l = str(reason or "").lower()
+    message_l = str(message or "").lower()
+    return (
+        code == 429
+        or "rate_limit" in reason_l
+        or "usage_limit" in reason_l
+        or "quota" in reason_l
+        or "rate limit" in message_l
+        or "usage limit" in message_l
+        or "quota" in message_l
+    )
+
+
+# _minimax_oauth_quarantine_on_terminal_refresh -- dependency of a restored definition.
+def _minimax_oauth_quarantine_on_terminal_refresh(state: Dict[str, Any], exc: AuthError) -> None:
+    """Wipe dead tokens from auth.json after a terminal refresh failure.
+
+    Shared by both the eager-resolve path and the lazy per-request token
+    provider. Mirrors the Nous / xAI-OAuth / Codex-OAuth quarantine pattern
+    so subsequent calls fail fast without a network retry.
+    """
+    if not (exc.relogin_required and state.get("refresh_token")):
+        return
+    for _k in ("access_token", "refresh_token", "expires_at", "expires_in", "obtained_at"):
+        state.pop(_k, None)
+    state["last_auth_error"] = {
+        "provider": "minimax-oauth",
+        "code": exc.code or "refresh_failed",
+        "message": str(exc),
+        "reason": "runtime_refresh_failure",
+        "relogin_required": True,
+        "at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        _minimax_save_auth_state(state)
+    except Exception as _save_exc:
+        logger.debug("MiniMax OAuth: failed to persist quarantined state: %s", _save_exc)

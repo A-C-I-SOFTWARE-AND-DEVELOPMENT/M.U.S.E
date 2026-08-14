@@ -3184,3 +3184,14 @@ def create_anthropic_message(
     create_kwargs = dict(api_kwargs)
     create_kwargs.pop("stream", None)
     return messages_api.create(**create_kwargs)
+
+
+# ----------------------------------------------------------------------
+# Restored after the v0.20.0 merge dropped these definitions while
+# keeping the modules that import them (see
+# docs/superpowers/specs/2026-08-14-muse-consolidation-design.md).
+# ----------------------------------------------------------------------
+
+
+# _HERMES_OAUTH_FILE -- restored from the muse merge parent.
+_HERMES_OAUTH_FILE = get_hermes_home() / ".anthropic_oauth.json"
