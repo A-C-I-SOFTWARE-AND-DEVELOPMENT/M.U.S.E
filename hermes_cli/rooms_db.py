@@ -40,59 +40,54 @@ from typing import Iterator, List, Optional, Sequence
 MIXTURES = ("agents", "council", "experts")
 DEFAULT_MIXTURE = "council"
 
-# Mirrors the cockpit's PRESET_ROOMS so a user moving between the two surfaces
-# sees the same starting boards. Seeded once; editable and deletable after.
-PRESET_ROOMS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
-    (
-        "preset-aos",
-        "Active Council",
-        "council",
-        (
-            "council-director",
-            "evidence-architect",
-            "delivery-scope-controller",
-            "product-experience-architect",
-            "assurance-risk-director",
-            "contrarian-reviewer",
-        ),
-    ),
-    (
-        "preset-shipping",
-        "Shipping Board",
-        "council",
-        ("commander", "verdict", "nitpick", "warden", "axiom", "council-director"),
-    ),
-    (
-        "preset-security",
-        "Security Circle",
-        "agents",
-        ("warden", "cipher", "breach", "auditrix", "clause", "hazmat"),
-    ),
-    (
-        "preset-product",
-        "Product Studio",
-        "experts",
-        ("product", "ux", "empath", "mirror", "strategist", "devux"),
-    ),
-    (
-        "preset-architecture",
-        "The Stacks",
-        "agents",
-        ("axiom", "lattice", "forgemind", "foreman", "pipeline"),
-    ),
-    (
-        "preset-research",
-        "Research Vault",
-        "experts",
-        ("oracle", "archivist", "radar", "evidence", "mneme"),
-    ),
-    (
-        "preset-care",
-        "Care Board",
-        "agents",
-        ("companion", "empath", "nourish", "patch", "mirror"),
-    ),
+# Preset sections, derived from MUSE's OWN agent registry
+# (skills/aos-enterprise-council/operating-registry/registry.json) rather than
+# hardcoded.
+#
+# The cockpit ships seven fixed boards (Shipping Board, Security Circle, The
+# Stacks, …) whose members are ITS agent namespace: warden, cipher, axiom,
+# oracle and so on. Only 7 of those 39 member ids exist in MUSE — seeding them
+# here would have produced six rooms full of agents that cannot be dispatched,
+# which is worse than having no preset at all.
+#
+# So a preset is generated per registry section instead. Every member is an
+# agent MUSE can actually route to, and the presets stay correct as the
+# registry changes.
+_PRESET_SECTIONS: tuple[tuple[str, str, str, str], ...] = (
+    # (room id, section key in the registry, display name, mixture)
+    ("preset-council", "active_council", "Active Council", "council"),
+    ("preset-specialists", "domain_specialists", "Domain Specialists", "experts"),
 )
+
+
+def preset_rooms() -> list[tuple[str, str, str, tuple[str, ...]]]:
+    """Preset definitions built from the live council registry.
+
+    Returns ``[]`` when the registry cannot be read — an empty seed is honest,
+    where a fabricated one is not. The caller leaves the store unseeded in that
+    case so a later open can try again.
+    """
+    try:
+        from hermes_cli.jarvis_prime.aos_council import dispatcher
+
+        sections = dispatcher.roster()
+    except Exception:
+        return []
+
+    presets: list[tuple[str, str, str, tuple[str, ...]]] = []
+
+    for room_id, section_key, name, mixture in _PRESET_SECTIONS:
+        members = tuple(
+            str(member.id).strip()
+            for member in sections.get(section_key, [])
+            if str(getattr(member, "id", "") or "").strip()
+        )
+
+        # A room with no members is not a useful room.
+        if members:
+            presets.append((room_id, name, mixture, members))
+
+    return presets
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS rooms (
@@ -225,9 +220,17 @@ def _seed_presets_once(conn: sqlite3.Connection) -> None:
     if seeded is not None:
         return
 
+    presets = preset_rooms()
+
+    # Registry unreadable → seed nothing AND do not set the flag, so the next
+    # open retries. Marking it seeded here would leave the user permanently
+    # roomless because of one transient failure.
+    if not presets:
+        return
+
     now = _now()
 
-    for room_id, name, mixture, members in PRESET_ROOMS:
+    for room_id, name, mixture, members in presets:
         conn.execute(
             "INSERT OR IGNORE INTO rooms (id, name, mixture, preset, created_at, updated_at)"
             " VALUES (?, ?, ?, 1, ?, ?)",

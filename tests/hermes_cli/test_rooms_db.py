@@ -30,24 +30,42 @@ def _by_id(conn):
 
 
 def test_presets_seeded_on_first_open_with_declared_member_order(conn):
-    """First open materialises the cockpit's preset boards, each with its
-    roster in the order the preset declares (position, not alphabetical)."""
+    """First open materialises a preset per registry section, each with its
+    roster in registry order (position, not alphabetical)."""
     rooms = _by_id(conn)
+    presets = rdb.preset_rooms()
 
-    assert set(rooms) == {preset[0] for preset in rdb.PRESET_ROOMS}
+    assert presets, "the council registry should yield at least one preset"
+    assert set(rooms) == {preset[0] for preset in presets}
 
-    for room_id, name, mixture, members in rdb.PRESET_ROOMS:
+    for room_id, name, mixture, members in presets:
         room = rooms[room_id]
         assert room.name == name
         assert room.mixture == mixture
         assert room.preset is True
         assert room.member_ids == list(members)
 
-    # At least one preset has a roster that is *not* sorted, so the order
-    # assertion above would fail if positions were ignored.
-    assert rooms["preset-shipping"].member_ids != sorted(
-        rooms["preset-shipping"].member_ids
-    )
+
+def test_preset_members_are_real_dispatchable_agents(conn):
+    """Every seeded member must exist in the council registry.
+
+    The presets were originally ported from the cockpit, whose member ids are
+    its OWN agent namespace — only 7 of 39 existed in MUSE, so six of the seven
+    boards were full of agents nothing could route to. Presets are now derived
+    from the registry; this is the assertion that keeps them honest.
+    """
+    from hermes_cli.jarvis_prime.aos_council import dispatcher
+
+    known = {
+        str(member.id)
+        for members in dispatcher.roster().values()
+        for member in members
+    }
+
+    seeded = {mid for room in rdb.list_rooms(conn) for mid in room.member_ids}
+
+    assert seeded, "presets should seed at least one member"
+    assert seeded <= known, f"unknown agent ids seeded: {sorted(seeded - known)}"
 
 
 def test_presets_seeded_exactly_once_so_deletes_stay_deleted(db_path):
@@ -60,18 +78,22 @@ def test_presets_seeded_exactly_once_so_deletes_stay_deleted(db_path):
 
     with rdb.connect_closing(db_path) as conn:
         assert rdb.list_rooms(conn) == []
-        assert rdb.get_room(conn, "preset-aos") is None
+        assert rdb.get_room(conn, "preset-council") is None
 
 
 def test_deleting_one_preset_survives_reopen(db_path):
     """The single-preset case of the same guarantee."""
+    presets = rdb.preset_rooms()
+    assert len(presets) >= 2, "this test needs two presets to tell them apart"
+    doomed, kept = presets[0][0], presets[1][0]
+
     with rdb.connect_closing(db_path) as conn:
-        assert rdb.delete_room(conn, "preset-security") is True
+        assert rdb.delete_room(conn, doomed) is True
 
     with rdb.connect_closing(db_path) as conn:
         ids = {room.id for room in rdb.list_rooms(conn)}
-        assert "preset-security" not in ids
-        assert "preset-aos" in ids
+        assert doomed not in ids
+        assert kept in ids
 
 
 def test_upsert_without_id_creates_non_preset_room_with_generated_id(conn):
@@ -79,7 +101,7 @@ def test_upsert_without_id_creates_non_preset_room_with_generated_id(conn):
         conn, name="  Launch Room  ", mixture="experts", member_ids=("axiom", "warden")
     )
 
-    assert room.id and room.id not in {p[0] for p in rdb.PRESET_ROOMS}
+    assert room.id and room.id not in {p[0] for p in rdb.preset_rooms()}
     assert room.id.startswith("room-")
     assert room.name == "Launch Room"  # whitespace trimmed
     assert room.mixture == "experts"
@@ -128,22 +150,24 @@ def test_upsert_with_empty_roster_clears_members(conn):
 
 def test_editing_a_preset_keeps_the_preset_flag(conn):
     """``preset`` is provenance ("shipped with muse"), not immutability."""
+    target = rdb.preset_rooms()[0][0]
+
     edited = rdb.upsert_room(
         conn,
-        room_id="preset-security",
-        name="My Security Circle",
+        room_id=target,
+        name="My Own Board",
         mixture="experts",
-        member_ids=("warden", "cipher"),
+        member_ids=("council-director",),
     )
 
     assert edited.preset is True
-    assert edited.name == "My Security Circle"
+    assert edited.name == "My Own Board"
     assert edited.mixture == "experts"
-    assert edited.member_ids == ["warden", "cipher"]
+    assert edited.member_ids == ["council-director"]
 
-    reloaded = rdb.get_room(conn, "preset-security")
+    reloaded = rdb.get_room(conn, target)
     assert reloaded.preset is True
-    assert reloaded.member_ids == ["warden", "cipher"]
+    assert reloaded.member_ids == ["council-director"]
 
 
 def test_member_ids_deduplicated_blanks_skipped_order_preserved(conn):

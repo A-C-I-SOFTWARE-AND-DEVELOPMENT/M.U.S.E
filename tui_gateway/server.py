@@ -14414,6 +14414,7 @@ def _browser_disconnect(rid) -> dict:
 from . import (  # noqa: E402
     methods_complete as _methods_complete,
     methods_config as _methods_config,
+    methods_council as _methods_council,
     methods_prompt as _methods_prompt,
     methods_rooms as _methods_rooms,
     methods_session as _methods_session,
@@ -14427,6 +14428,7 @@ for _m in (
     _methods_complete,
     _methods_tools,
     _methods_rooms,
+    _methods_council,
 ):
     _m.register(sys.modules[__name__])
 del _m
