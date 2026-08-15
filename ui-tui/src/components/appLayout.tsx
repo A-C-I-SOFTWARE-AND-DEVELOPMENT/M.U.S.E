@@ -28,6 +28,7 @@ import { AgentsOverlay } from './agentsOverlay.js'
 import { GoodVibesHeart, StatusRule, StickyPromptTracker, TranscriptScrollbar } from './appChrome.js'
 import { FloatingOverlays, PromptZone } from './appOverlays.js'
 import { Banner, Panel, SessionPanel } from './branding.js'
+import { CockpitSidebarSlot, ModeChips } from './cockpitSidebar.js'
 import { FpsOverlay } from './fpsOverlay.js'
 import { HelpHint } from './helpHint.js'
 import { Journey } from './journey.js'
@@ -143,6 +144,9 @@ const TranscriptPane = memo(function TranscriptPane({
 }: Pick<AppLayoutProps, 'actions' | 'composer' | 'progress' | 'transcript'>) {
   const ui = useStore($uiState)
   const petBox = useStore($petBox)
+  // NB: `composer.cols` already excludes the cockpit sidebar (see
+  // useMainApp/usableColumns), so the sidebar must NOT be subtracted again
+  // here — only the ambient rails, which are not in that number.
   const railCols = useAmbientRailWidth('left') + useAmbientRailWidth('right')
 
   // Keep transcript text clear of the floating pet, responsively:
@@ -443,6 +447,12 @@ const ComposerPane = memo(function ComposerPane({
         )}
       </Box>
 
+      {/* Active-mode chips, the cockpit's row under the composer. Reads the
+          live Solo/MOA/Fusion mode (Tab cycles it on an empty composer), so
+          the cycle is visible instead of silent. Hidden while a turn is being
+          composed so it never competes with the input. */}
+      {composer.empty && <ModeChips t={ui.theme} />}
+
       {/* Brand glyph comes from the theme, not a literal: this was hardcoded
           to upstream's caduceus, so the status line kept showing ⚕ even after
           the TUI was wearing the muse lockup. */}
@@ -542,6 +552,11 @@ export const AppLayout = memo(function AppLayout({
     <Shell {...shellProps}>
       <Box flexDirection="column" flexGrow={1} position="relative">
         <Box flexDirection="row" flexGrow={1}>
+          {/* Cockpit sidebar: brand, ways to work, rooms, conversations. Sits
+              outside the overlay panes so a full-screen overlay still owns the
+              whole width, and hides itself on narrow terminals rather than
+              squeezing the transcript. */}
+          {!overlay.agents && !overlay.journey && <CockpitSidebarSlot />}
           {!overlay.agents && !overlay.journey && <AmbientRail side="left" />}
           {overlay.agents ? (
             <PerfPane id="agents">

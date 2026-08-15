@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DASHBOARD_TUI_MODE, STARTUP_RESUME_ID } from '../config/env.js'
 import { WHEEL_SCROLL_STEP } from '../config/limits.js'
 import { RESIZE_COALESCE_MS } from '../config/timing.js'
+import { usableColumns } from '../components/cockpitSidebar.js'
 import { hasLeadGap, prevRenderedMsg } from '../domain/blockLayout.js'
 import { SECTION_NAMES, sectionMode } from '../domain/details.js'
 import { composeTabTitle, fmtProjectCwdBranch, shortCwd } from '../domain/paths.js'
@@ -142,7 +143,11 @@ export async function startPromptLiveSession({
 export function useMainApp(gw: GatewayClient) {
   const { exit } = useApp()
   const { stdout } = useStdout()
-  const [cols, setCols] = useState(stdout?.columns ?? 80)
+  // Usable width EXCLUDES the cockpit sidebar's reserved column. Every
+  // surface (banner, session panel, transcript, composer) derives from this
+  // one number, so subtracting here is what keeps them all inside the pane
+  // instead of rendering into space the sidebar owns.
+  const [cols, setCols] = useState(usableColumns(stdout?.columns ?? 80))
 
   useEffect(() => {
     if (!stdout) {
@@ -156,7 +161,7 @@ export function useMainApp(gw: GatewayClient) {
     // first event reflows immediately (the drag stays responsive), the rest
     // collapse to at most one reflow per RESIZE_COALESCE_MS, and the trailing
     // edge always applies the final width so the settled layout is exact.
-    const coalescer = createResizeCoalescer(() => setCols(stdout.columns ?? 80), RESIZE_COALESCE_MS)
+    const coalescer = createResizeCoalescer(() => setCols(usableColumns(stdout.columns ?? 80)), RESIZE_COALESCE_MS)
     const sync = () => coalescer.schedule()
 
     stdout.on('resize', sync)

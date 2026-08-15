@@ -336,7 +336,9 @@ describe('configureTerminalKeybindings', () => {
     await expect(
       shouldPromptForTerminalSetup({
         env: { TERM_PROGRAM: 'vscode' } as NodeJS.ProcessEnv,
-        fileOps: { readFile: readMissing }
+        fileOps: { readFile: readMissing },
+        homeDir: '/tmp/fake-home',
+        platform: 'darwin'
       })
     ).resolves.toBe(true)
 
@@ -384,7 +386,9 @@ describe('configureTerminalKeybindings', () => {
     await expect(
       shouldPromptForTerminalSetup({
         env: { TERM_PROGRAM: 'vscode' } as NodeJS.ProcessEnv,
-        fileOps: { readFile: readComplete }
+        fileOps: { readFile: readComplete },
+        homeDir: '/tmp/fake-home',
+        platform: 'darwin'
       })
     ).resolves.toBe(false)
   })

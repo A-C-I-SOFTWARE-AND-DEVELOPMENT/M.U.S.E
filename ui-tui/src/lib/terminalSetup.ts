@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 
 export type SupportedTerminal = 'cursor' | 'vscode' | 'windsurf'
 
@@ -164,15 +164,22 @@ export function getVSCodeStyleConfigDir(
   env: NodeJS.ProcessEnv = process.env,
   homeDir: string = homedir()
 ): null | string {
+  // Join with POSIX separators regardless of the host. `join` from node:path
+  // is the HOST's flavour, so asking a Windows box for a darwin config dir
+  // produced `\home\me\Library\...` — a path that exists nowhere. In
+  // production host and argument coincide, so this only surfaced when a
+  // caller passed an explicit platform, which is the point of the parameter.
+  // Forward slashes are also what these paths are written into: VS Code and
+  // friends accept them on Windows.
   if (platform === 'darwin') {
-    return join(homeDir, 'Library', 'Application Support', appName, 'User')
+    return posix.join(homeDir, 'Library', 'Application Support', appName, 'User')
   }
 
   if (platform === 'win32') {
-    return env['APPDATA'] ? join(env['APPDATA'], appName, 'User') : null
+    return env['APPDATA'] ? posix.join(env['APPDATA'], appName, 'User') : null
   }
 
-  return join(homeDir, '.config', appName, 'User')
+  return posix.join(homeDir, '.config', appName, 'User')
 }
 
 function isKeybinding(value: unknown): value is Keybinding {

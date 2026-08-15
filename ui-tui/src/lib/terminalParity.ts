@@ -31,14 +31,23 @@ export function detectMacTerminalContext(env: NodeJS.ProcessEnv = process.env): 
 
 export async function terminalParityHints(
   env: NodeJS.ProcessEnv = process.env,
-  options?: { fileOps?: Partial<FileOps>; homeDir?: string }
+  // `platform` completes the seam its callee already had: shouldPrompt-
+  // ForTerminalSetup takes one, but this wrapper never forwarded it, so the
+  // host's platform always won. That made the hint untestable off POSIX —
+  // on Windows the config dir resolves from %APPDATA% instead of homeDir.
+  options?: { fileOps?: Partial<FileOps>; homeDir?: string; platform?: NodeJS.Platform }
 ): Promise<MacTerminalHint[]> {
   const ctx = detectMacTerminalContext(env)
   const hints: MacTerminalHint[] = []
 
   if (
     ctx.vscodeLike &&
-    (await shouldPromptForTerminalSetup({ env, fileOps: options?.fileOps, homeDir: options?.homeDir }))
+    (await shouldPromptForTerminalSetup({
+      env,
+      fileOps: options?.fileOps,
+      homeDir: options?.homeDir,
+      platform: options?.platform
+    }))
   ) {
     hints.push({
       key: 'ide-setup',
