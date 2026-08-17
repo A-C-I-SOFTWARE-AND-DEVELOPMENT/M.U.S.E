@@ -1,0 +1,5 @@
+name: needle-provider
+kind: model-provider
+version: 1.0.0
+description: Local Needle 2 specialist over OpenAI-compatible HTTP (default 127.0.0.1:8010)
+author: ACI / M.U.S.E

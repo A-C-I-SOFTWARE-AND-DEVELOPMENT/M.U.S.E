@@ -2026,6 +2026,48 @@ def _has_fast_aws_sdk_signal() -> bool:
     )
 
 
+def _has_aws_sdk_creds_for_listing(slug: str, current_provider: str | None = None) -> bool:
+    """Credential check for AWS SDK providers in non-runtime discovery.
+
+    Extracted from ``list_authenticated_providers``. Fast env signals win;
+    otherwise only the *current* provider may pay for a botocore walk.
+    """
+    slug_norm = str(slug or "").strip().lower()
+    current_norm = str(current_provider or "").strip().lower()
+    if _has_fast_aws_sdk_signal():
+        return True
+    if slug_norm != current_norm:
+        return False
+    try:
+        from agent.bedrock_adapter import has_aws_credentials
+        return bool(has_aws_credentials())
+    except Exception:
+        return False
+
+
+def _norm_url(url: str | None) -> str:
+    """Normalize a provider base URL for endpoint dedup.
+
+    Extracted from ``list_authenticated_providers``. Strip, drop a trailing
+    slash, lower-case. None/empty becomes empty string.
+    """
+    return str(url or "").strip().rstrip("/").lower()
+
+
+def _can_probe_custom_provider(
+    *,
+    row_is_current: bool,
+    probe_custom_providers: bool,
+    probe_current_custom_provider: bool,
+) -> bool:
+    """Whether a custom-provider row may be network-probed.
+
+    Extracted from ``list_authenticated_providers``. Global probe wins;
+    otherwise only the current row may be probed.
+    """
+    return bool(probe_custom_providers or (probe_current_custom_provider and row_is_current))
+
+
 def _credential_pool_is_usable(provider: str, *, raw_pool_present: bool = False) -> bool:
     """Return whether *provider* has a credential that can be selected now.
 
@@ -2206,9 +2248,6 @@ def list_authenticated_providers(
     _current_provider_norm = str(current_provider or "").strip().lower()
     _current_base_url_norm = str(current_base_url or "").strip().rstrip("/").lower()
 
-    def _can_probe_custom_provider(*, row_is_current: bool) -> bool:
-        return bool(probe_custom_providers or (probe_current_custom_provider and row_is_current))
-
     # Normalize the excluded-providers list once for fast membership checks.
     # Compared against hermes_id / mdev_id (section 1), pid / hermes_slug
     # (section 2) and canonical slug (section 2b) so a single entry like
@@ -2220,9 +2259,6 @@ def list_authenticated_providers(
     # https://coding-intl.dashscope.aliyuncs.com/v1 collides with the built-in
     # alibaba-coding-plan row when DASHSCOPE_API_KEY is present). Fixes #16970.
     _builtin_endpoints: set = set()
-
-    def _norm_url(url: str) -> str:
-        return str(url or "").strip().rstrip("/").lower()
 
     def _record_builtin_endpoint(slug: str) -> None:
         """Record the effective base URL for a built-in provider row.
@@ -2245,20 +2281,6 @@ def list_authenticated_providers(
         normed = _norm_url(url)
         if normed:
             _builtin_endpoints.add(normed)
-
-    def _has_aws_sdk_creds_for_listing(slug: str) -> bool:
-        """Credential check for AWS SDK providers in non-runtime discovery."""
-        slug_norm = str(slug or "").strip().lower()
-        current_norm = str(current_provider or "").strip().lower()
-        if _has_fast_aws_sdk_signal():
-            return True
-        if slug_norm != current_norm:
-            return False
-        try:
-            from agent.bedrock_adapter import has_aws_credentials
-            return bool(has_aws_credentials())
-        except Exception:
-            return False
 
     data = fetch_models_dev()
 
@@ -2459,7 +2481,7 @@ def list_authenticated_providers(
         # Check if credentials exist
         has_creds = False
         if overlay.auth_type == "aws_sdk":
-            has_creds = _has_aws_sdk_creds_for_listing(hermes_slug)
+            has_creds = _has_aws_sdk_creds_for_listing(hermes_slug, current_provider)
         elif overlay.auth_type == "vertex":
             # Vertex authenticates via OAuth2 (service-account JSON / ADC),
             # not an API key — mirror the aws_sdk gate above, otherwise the
@@ -2663,7 +2685,7 @@ def list_authenticated_providers(
         # credentials come from the boto3 credential chain (env vars,
         # ~/.aws/credentials, instance roles, etc.)
         if not _cp_has_creds and _cp_config and getattr(_cp_config, "auth_type", "") == "aws_sdk":
-            _cp_has_creds = _has_aws_sdk_creds_for_listing(_cp.slug)
+            _cp_has_creds = _has_aws_sdk_creds_for_listing(_cp.slug, current_provider)
 
         if not _cp_has_creds:
             continue
@@ -2900,7 +2922,11 @@ def list_authenticated_providers(
             _probe_live = (
                 _discovery_allowed
                 and (bool(api_key) or not has_explicit_models)
-                and _can_probe_custom_provider(row_is_current=_ep_is_current)
+                and _can_probe_custom_provider(
+                    row_is_current=_ep_is_current,
+                    probe_custom_providers=probe_custom_providers,
+                    probe_current_custom_provider=probe_current_custom_provider,
+                )
             )
             if _discovery_allowed:
                 try:
@@ -3242,7 +3268,11 @@ def list_authenticated_providers(
             _probe_live = (
                 _discovery_allowed
                 and (bool(api_key) or not grp.get("has_explicit_models"))
-                and _can_probe_custom_provider(row_is_current=_grp_is_current)
+                and _can_probe_custom_provider(
+                    row_is_current=_grp_is_current,
+                    probe_custom_providers=probe_custom_providers,
+                    probe_current_custom_provider=probe_current_custom_provider,
+                )
             )
             if _discovery_allowed:
                 try:

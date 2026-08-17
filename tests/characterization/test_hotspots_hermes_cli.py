@@ -13,8 +13,10 @@ A characterization test records what the code **does**, not what it ought to
 do.  Several pins below capture asymmetries that look like defects — they are
 labelled ``CHARACTERIZED ODDITY`` and deliberately left alone.  Changing them is
 a behaviour change and must be made deliberately, not silently during a
-refactor.  One seam has been extracted: ``_has_fast_aws_sdk_signal`` now lives
-at module scope and is still called by ``list_authenticated_providers``.
+rewrite.  Four seams have been extracted from ``list_authenticated_providers``:
+``_has_fast_aws_sdk_signal``, ``_has_aws_sdk_creds_for_listing``,
+``_norm_url``, and ``_can_probe_custom_provider`` now live at module scope
+and are still called by the hotspot.
 
 The two cleanest seams are pinned hardest:
 
@@ -714,6 +716,153 @@ class TestHasFastAwsSdkSignal:
 
         assert calls["n"] >= 1
         assert [r["slug"] for r in rows] == ["custom:one"]
+
+
+class TestHasAwsSdkCredsForListing:
+    """Listing gate lifted out of ``list_authenticated_providers``."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_aws_env(self, monkeypatch):
+        for name in _AWS_SIGNAL_ENV:
+            monkeypatch.delenv(name, raising=False)
+
+    def test_fast_signal_authenticates_any_slug(self, monkeypatch):
+        monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "tok")
+        from hermes_cli.model_switch import _has_aws_sdk_creds_for_listing
+
+        assert _has_aws_sdk_creds_for_listing("bedrock", current_provider="openai") is True
+
+    def test_other_slug_without_signal_is_not_authenticated(self):
+        from hermes_cli.model_switch import _has_aws_sdk_creds_for_listing
+
+        assert _has_aws_sdk_creds_for_listing("bedrock", current_provider="openai") is False
+
+    def test_current_slug_delegates_to_has_aws_credentials(self, monkeypatch):
+        import hermes_cli.model_switch as model_switch
+
+        calls = {"n": 0}
+
+        def _fake():
+            calls["n"] += 1
+            return True
+
+        monkeypatch.setitem(
+            __import__("sys").modules,
+            "agent.bedrock_adapter",
+            type(sys)("agent.bedrock_adapter"),
+        )
+        sys.modules["agent.bedrock_adapter"].has_aws_credentials = _fake
+        assert model_switch._has_aws_sdk_creds_for_listing("bedrock", current_provider="bedrock") is True
+        assert calls["n"] == 1
+
+    def test_botocore_walk_failure_is_unauthenticated(self, monkeypatch):
+        from hermes_cli.model_switch import _has_aws_sdk_creds_for_listing
+
+        class _Boom:
+            def has_aws_credentials(self):
+                raise RuntimeError("no chain")
+
+        monkeypatch.setitem(sys.modules, "agent.bedrock_adapter", _Boom())
+        assert _has_aws_sdk_creds_for_listing("bedrock", current_provider="bedrock") is False
+
+    @pytest.mark.usefixtures("no_provider_discovery")
+    def test_the_hotspot_still_consults_the_extracted_listing_gate(self, monkeypatch):
+        import hermes_cli.model_switch as model_switch
+
+        calls = {"n": 0}
+
+        def _gate(slug, current_provider=None):
+            calls["n"] += 1
+            return False
+
+        monkeypatch.setattr(model_switch, "_has_aws_sdk_creds_for_listing", _gate)
+        rows = _list_providers(
+            custom_providers=[
+                {"name": "One", "base_url": "https://1.example/v1", "models": ["a"]},
+            ]
+        )
+        assert calls["n"] >= 1
+        assert [r["slug"] for r in rows] == ["custom:one"]
+
+
+class TestNormUrl:
+    """Endpoint-dedup helper lifted out of ``list_authenticated_providers``."""
+
+    def test_none_and_empty_become_empty(self):
+        from hermes_cli.model_switch import _norm_url
+
+        assert _norm_url(None) == ""
+        assert _norm_url("") == ""
+        assert _norm_url("   ") == ""
+
+    def test_trailing_slash_and_case_are_folded(self):
+        from hermes_cli.model_switch import _norm_url
+
+        assert _norm_url("https://API.Example.com/V1/") == "https://api.example.com/v1"
+
+    def test_already_canonical_is_unchanged(self):
+        from hermes_cli.model_switch import _norm_url
+
+        assert _norm_url("https://api.example.com/v1") == "https://api.example.com/v1"
+
+    def test_the_hotspot_still_consults_the_extracted_normalizer(self):
+        """``_record_builtin_endpoint`` must keep calling the helper.
+
+        Custom-only listing never records a built-in endpoint, so this pin
+        is the code object, not a row list.
+        """
+        import hermes_cli.model_switch as model_switch
+
+        recorders = [
+            c
+            for c in model_switch.list_authenticated_providers.__code__.co_consts
+            if hasattr(c, "co_name") and c.co_name == "_record_builtin_endpoint"
+        ]
+        assert recorders, "nested _record_builtin_endpoint missing"
+        assert "_norm_url" in recorders[0].co_names
+        assert hasattr(model_switch, "_norm_url")
+
+
+class TestCanProbeCustomProvider:
+    """Probe gate lifted out of ``list_authenticated_providers``."""
+
+    def test_global_probe_wins_even_when_row_is_not_current(self):
+        from hermes_cli.model_switch import _can_probe_custom_provider
+
+        assert _can_probe_custom_provider(
+            row_is_current=False,
+            probe_custom_providers=True,
+            probe_current_custom_provider=False,
+        ) is True
+
+    def test_current_row_only_when_global_probe_is_off(self):
+        from hermes_cli.model_switch import _can_probe_custom_provider
+
+        assert _can_probe_custom_provider(
+            row_is_current=True,
+            probe_custom_providers=False,
+            probe_current_custom_provider=True,
+        ) is True
+        assert _can_probe_custom_provider(
+            row_is_current=False,
+            probe_custom_providers=False,
+            probe_current_custom_provider=True,
+        ) is False
+
+    def test_both_flags_off_never_probes(self):
+        from hermes_cli.model_switch import _can_probe_custom_provider
+
+        assert _can_probe_custom_provider(
+            row_is_current=True,
+            probe_custom_providers=False,
+            probe_current_custom_provider=False,
+        ) is False
+
+    def test_the_hotspot_still_consults_the_extracted_probe_gate(self):
+        import hermes_cli.model_switch as model_switch
+
+        assert "_can_probe_custom_provider" in model_switch.list_authenticated_providers.__code__.co_names
+        assert hasattr(model_switch, "_can_probe_custom_provider")
 
 
 # ===========================================================================
