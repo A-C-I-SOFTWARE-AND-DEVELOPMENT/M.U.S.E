@@ -34,6 +34,7 @@ import inspect
 import json
 import logging
 import os
+import queue
 import re
 import shlex
 import sys
@@ -58,6 +59,19 @@ from agent.account_usage import fetch_account_usage, render_account_usage_lines
 from agent.async_utils import safe_schedule_threadsafe
 from agent.i18n import t
 from hermes_cli.config import cfg_get
+
+# Imports required by definitions restored from the pre-merge parent
+# (34577fcb0) — see the restore section at the end of this module.
+# Replay-tail sanitization lives in agent/replay_cleanup.py so every resume
+# surface (this messaging gateway AND the TUI/WebUI gateway) shares one
+# implementation.
+from agent.interrupt_compat import request_hard_interrupt
+from agent.replay_cleanup import (
+    strip_interrupted_tool_tails,
+    strip_dangling_tool_call_tail,
+    strip_stale_dangerous_confirmations,
+)
+from agent.turn_context import compression_made_progress
 
 # --- Agent cache tuning ---------------------------------------------------
 # Bounds the per-session AIAgent cache to prevent unbounded growth in
@@ -418,13 +432,25 @@ _ASSISTANT_REPLAY_FIELDS: tuple[str, ...] = (
 )
 
 
-def _build_replay_entry(role: str, content: Any, msg: Dict[str, Any]) -> Dict[str, Any]:
+def _build_replay_entry(
+    role: str,
+    content: Any,
+    msg: Dict[str, Any],
+    preserve_timestamp: bool = False,
+) -> Dict[str, Any]:
     """Build a replay entry for a non-tool-calling message, preserving the
     assistant fields the agent's API builders rely on for multi-turn fidelity.
 
     Lifted out of the inline ``run_sync`` closure so the field whitelist can
     be unit-tested in isolation.  Mirrors the ``_ASSISTANT_REPLAY_FIELDS``
     contract above.
+
+    ``preserve_timestamp``: when True, copy the source row's ``timestamp``
+    onto the replay entry. Currently only user messages need this — the
+    stale-dangerous-confirmation stripper in ``agent/replay_cleanup.py``
+    reads the timestamp to decide whether a confirmation is too old to
+    replay safely.  Assistant/tool messages are not timestamp-stripped in
+    the same way, so we keep the existing default of dropping it.
 
     Empty values: most fields are dropped when falsy (matching the original
     PR #2974 behaviour) since an empty list/string for those carries no
@@ -436,6 +462,23 @@ def _build_replay_entry(role: str, content: Any, msg: Dict[str, Any]) -> Dict[st
     providers.
     """
     entry: Dict[str, Any] = {"role": role, "content": content}
+    # api_content sidecar (persist-what-you-send, prompt-cache stability):
+    # forward the exact bytes previously sent to the API for this message so
+    # the agent's api_messages build can substitute them and keep the request
+    # prefix byte-stable across turns. Forward ONLY when this replay pipeline
+    # did not rewrite the content (timestamp injection, auto-continue strip,
+    # mirror prefix): a rewritten clean content means the pipeline decided
+    # different bytes must replay — resending the stored sidecar would
+    # reintroduce exactly what was stripped. Dropping it costs one cache
+    # boundary; resending stripped noise is a behavior regression.
+    _sidecar = msg.get("api_content")
+    if (
+        role in ("user", "assistant")
+        and isinstance(_sidecar, str)
+        and _sidecar
+        and content == msg.get("content")
+    ):
+        entry["api_content"] = _sidecar
     if role == "assistant":
         for _rkey in _ASSISTANT_REPLAY_FIELDS:
             if _rkey not in msg:
@@ -448,6 +491,10 @@ def _build_replay_entry(role: str, content: Any, msg: Dict[str, Any]) -> Dict[st
             elif not _rval:
                 continue
             entry[_rkey] = _rval
+    if preserve_timestamp:
+        ts = msg.get("timestamp")
+        if ts:
+            entry["timestamp"] = ts
     return entry
 
 
@@ -798,6 +845,7 @@ if not _configured_cwd or _configured_cwd in {".", "auto", "cwd"}:
     os.environ["TERMINAL_CWD"] = _fallback
 
 from gateway.config import (
+    ChannelOverride,
     Platform,
     _BUILTIN_PLATFORM_VALUES,
     GatewayConfig,
@@ -805,6 +853,9 @@ from gateway.config import (
     PlatformConfig,
     load_gateway_config,
 )
+# Required by definitions restored from the pre-merge parent (34577fcb0).
+from gateway.session_state import SessionState
+from gateway.turn_context import TurnContext
 from gateway.session import (
     SessionStore,
     SessionSource,
@@ -1498,6 +1549,35 @@ class GatewayRunner:
     _stop_task: Optional[asyncio.Task] = None
     _session_model_overrides: Dict[str, Dict[str, str]] = {}
     _session_reasoning_overrides: Dict[str, Dict[str, Any]] = {}
+
+    # -- SessionState accessors ------------------------------------------
+    # Restored from the pre-merge parent (34577fcb0). The v0.20.0 re-vendor
+    # dropped them along with the module-level session-hygiene cooldown
+    # helpers below, which are their only in-tree callers today.
+    def _sessions_map(self) -> Dict[str, "SessionState"]:
+        """The per-session state map; lazily created so bare test runners
+        built via ``object.__new__`` work without ``__init__``."""
+        sessions = self.__dict__.get("_sessions")
+        if sessions is None:
+            sessions = {}
+            self.__dict__["_sessions"] = sessions
+        return sessions
+
+    def _session_state(self, session_key: str) -> "SessionState":
+        """Get-or-create the :class:`SessionState` for ``session_key``."""
+        sessions = self._sessions_map()
+        state = sessions.get(session_key)
+        if state is None:
+            state = SessionState()
+            sessions[session_key] = state
+        return state
+
+    def _peek_session_state(self, session_key: str) -> Optional["SessionState"]:
+        """Return the SessionState for ``session_key`` without creating one."""
+        sessions = self.__dict__.get("_sessions")
+        if not sessions:
+            return None
+        return sessions.get(session_key)
 
     def __init__(self, config: Optional[GatewayConfig] = None):
         global _gateway_runner_ref
@@ -2226,6 +2306,44 @@ class GatewayRunner:
                 runtime_model,
             )
             model = runtime_model
+
+        # channel_overrides leg -- restored from the pre-merge parent
+        # (34577fcb0), which the v0.20.0 re-vendor dropped together with
+        # ``_get_channel_override`` itself. Without it the resolved override is
+        # never consulted here and ``channel_overrides:`` silently does nothing
+        # for model/provider. Priority is unchanged: session ``/model`` (applied
+        # below) → channel_overrides → global config/env.
+        cfg = getattr(self, "config", None)
+        if cfg and source is not None:
+            chat_id = str(source.chat_id) if source.chat_id else ""
+            thread_id = (
+                str(source.thread_id) if getattr(source, "thread_id", None) else None
+            )
+            parent_id = (
+                str(source.parent_chat_id)
+                if getattr(source, "parent_chat_id", None)
+                else None
+            )
+            ch = _get_channel_override(
+                cfg,
+                source.platform,
+                chat_id,
+                thread_id=thread_id,
+                parent_id=parent_id,
+            )
+            if ch:
+                if ch.model:
+                    model = ch.model
+                if ch.provider:
+                    runtime_kwargs = _resolve_runtime_agent_kwargs_for_provider(
+                        ch.provider
+                    )
+                    ch_runtime_model = runtime_kwargs.pop("model", None)
+                    # Only adopt the provider's bundled model when the override
+                    # did not specify an explicit model.
+                    if ch_runtime_model and not ch.model:
+                        model = ch_runtime_model
+
         if override and resolved_session_key:
             model, runtime_kwargs = self._apply_session_model_override(
                 resolved_session_key, model, runtime_kwargs
@@ -2248,6 +2366,77 @@ class GatewayRunner:
                 pass
 
         return model, runtime_kwargs
+
+    # _resolve_model_for_channel / _get_system_prompt_for_channel --
+    # restored from the pre-merge parent (34577fcb0). These are the two
+    # consumers of the restored module-level ``_get_channel_override``; the
+    # v0.20.0 re-vendor dropped all three together. Additive: this module has
+    # no other call site for them yet (the turn path that used to call them is
+    # the un-restored ``TurnRunner.run_sync``), so no live behaviour changes.
+    def _resolve_model_for_channel(
+        self,
+        platform: Platform,
+        chat_id: str,
+        *,
+        user_config: Optional[dict] = None,
+        thread_id: Optional[str] = None,
+        parent_id: Optional[str] = None,
+    ) -> str:
+        """Resolve model for this channel: channel_overrides else global default.
+
+        Delegates the precedence rule to
+        :func:`hermes_cli.model_switch.resolve_effective_model` (session
+        override > channel override > global default) — the single owner
+        shared with the API server, so the two surfaces cannot diverge
+        again (see 7dd00bb47d).  This call site has no session tier: session
+        /model overrides are applied later by
+        ``_apply_session_model_override`` on the resolved runtime.
+        """
+        from hermes_cli.model_switch import resolve_effective_model
+
+        override = None
+        config = getattr(self, "config", None)
+        if config:
+            override = _get_channel_override(
+                config,
+                platform,
+                chat_id,
+                thread_id=thread_id,
+                parent_id=parent_id,
+            )
+        return resolve_effective_model(
+            None,  # session tier applied downstream (_apply_session_model_override)
+            override,
+            _resolve_gateway_model(user_config),
+        )
+
+    def _get_system_prompt_for_channel(
+        self,
+        platform: Platform,
+        chat_id: str,
+        *,
+        thread_id: Optional[str] = None,
+        parent_id: Optional[str] = None,
+    ) -> str:
+        """Ephemeral system prompt for this channel/thread.
+
+        Uses ``channel_overrides`` when set, else the global gateway prompt.
+        Legacy ``channel_prompts`` are applied separately via ``event.channel_prompt``
+        in ``run_sync`` (adapter ``resolve_channel_prompt``), so they are not
+        duplicated here.
+        """
+        config = getattr(self, "config", None)
+        if config:
+            override = _get_channel_override(
+                config,
+                platform,
+                chat_id,
+                thread_id=thread_id,
+                parent_id=parent_id,
+            )
+            if override and override.system_prompt:
+                return (override.system_prompt or "").strip()
+        return getattr(self, "_ephemeral_system_prompt", None) or ""
 
     def _resolve_turn_agent_config(self, user_message: str, model: str, runtime_kwargs: dict) -> dict:
         """Build the effective model/runtime config for a single turn.
@@ -6475,6 +6664,20 @@ class GatewayRunner:
             return
 
         config = getattr(self, "config", None)
+        # Same ignored-channel guard as _handle_message, restored from the
+        # pre-merge parent (34577fcb0): an operational notice must not be the
+        # one thing that still reaches a channel the operator silenced.
+        if (
+            config
+            and getattr(source, "platform", None) == Platform.SLACK
+            and _is_slack_ignored_channel(config, getattr(source, "chat_id", None))
+        ):
+            logger.info(
+                "Skipping Slack platform notice for configured ignored channel %s",
+                getattr(source, "chat_id", None),
+            )
+            return
+
         notice_delivery = "public"
         if config and hasattr(config, "get_notice_delivery"):
             notice_delivery = config.get_notice_delivery(source.platform)
@@ -6517,6 +6720,27 @@ class GatewayRunner:
         # Internal events (e.g. background-process completion notifications)
         # are system-generated and must skip user authorization.
         is_internal = bool(getattr(event, "internal", False))
+
+        # Ignored-channel guard runs FIRST — before startup-restore queueing,
+        # plugin hooks, auth, and session setup — so a configured ignored
+        # channel can never reach pairing/auth/session state (#51899).
+        # getattr: bare test runners construct GatewayRunner via
+        # object.__new__ without config (see AGENTS.md pitfall on
+        # object.__new__ test pattern).
+        # Restored from the pre-merge parent (34577fcb0): the v0.20.0 re-vendor
+        # dropped this call site together with _is_slack_ignored_channel.
+        if (
+            not is_internal
+            and getattr(source, "platform", None) == Platform.SLACK
+            and _is_slack_ignored_channel(
+                getattr(self, "config", None), getattr(source, "chat_id", None)
+            )
+        ):
+            logger.info(
+                "Dropping Slack message from configured ignored channel %s",
+                getattr(source, "chat_id", None),
+            )
+            return None
 
         # Flywheel: every owner-originated message is recorded (locally,
         # under HERMES_HOME) so digest()/pending() reflect real use.
@@ -18874,3 +19098,2175 @@ _TOOL_MEDIA_RE = re.compile(
     r'txt|csv|apk|ipa))',
     re.IGNORECASE,
 )
+
+
+# ----------------------------------------------------------------------
+# Second restore wave for the v0.20.0 merge damage: `a480bf0e1f` re-vendored
+# the upstream base over the local fork and dropped these gateway.run
+# definitions while leaving their importers (tests and this module) in
+# place. Every body below is verbatim from the last commit that still had
+# it, `34577fcb0` ("fix(gateway): rename a Discord thread once, after the reply
+# lands", 2026-08-09) — the newest ancestor of HEAD whose gateway/run.py
+# still carried the local fork. See docs/MERGE_DAMAGE_V0200.md.
+# ----------------------------------------------------------------------
+
+
+# _HYGIENE_COOLDOWN_LADDER_MULTIPLIERS -- restored from the pre-merge parent (34577fcb0).
+# Multiplier ladder over the operator-configured
+# hygiene_failure_cooldown_seconds (rung 1 keeps a tuned base).
+_HYGIENE_COOLDOWN_LADDER_MULTIPLIERS = (1, 3, 9)
+
+
+# _HYGIENE_COOLDOWN_MAX_SECONDS -- restored from the pre-merge parent (34577fcb0).
+# dependency of a restored definition.
+# Absolute ceiling on an escalated hygiene cooldown, mirroring
+# _RECONNECT_BACKOFF_CAP above: with an operator-raised base the multiplier
+# ladder alone would reach 9h (base 3600 -> 32400s), which is indistinguishable
+# from "compaction silently switched off". 1h is well past the point where a
+# retry is cheap and still recovers within a session.
+_HYGIENE_COOLDOWN_MAX_SECONDS = 3600.0
+
+
+# _hygiene_cooldown_for_failure -- restored from the pre-merge parent (34577fcb0).
+def _hygiene_cooldown_for_failure(
+    gateway,
+    session_key: str,
+    base_cooldown_seconds: float,
+) -> float:
+    """Bump the hygiene failure streak and return the escalated cooldown.
+
+    This is a MULTIPLIER ladder (x1, x3, x9) over the operator's configured
+    ``hygiene_failure_cooldown_seconds``, clamped to
+    ``_HYGIENE_COOLDOWN_MAX_SECONDS``, so a tuned base is preserved as rung 1.
+
+    It exists because the in-agent equivalent is unreachable from here:
+    ``ContextCompressor.record_timeout_failure`` escalates on an absolute
+    60 -> 300 -> 900s ladder driven by the in-memory
+    ``_consecutive_timeout_failures`` counter, which ``bind_session_state``
+    zeroes.  Session hygiene constructs a FRESH ``AIAgent`` per run and re-binds
+    state every time, so from the gateway that streak is structurally always 0
+    and only the flat ``hygiene_failure_cooldown_seconds`` could ever be
+    recorded — a session whose summary model always times out retried on that
+    same fixed interval forever (#79624).  Keeping the streak on
+    ``PersistentState`` outlives the per-run agent, so failures climb.
+    """
+    streak = 1
+    try:
+        state = gateway._session_state(session_key).persistent
+        state.hygiene_failure_streak += 1
+        streak = state.hygiene_failure_streak
+    except Exception as exc:
+        # The caller uses the return value to record the cooldown, so an
+        # escaping exception would mean NO cooldown at all (hot retry loop) —
+        # strictly worse than no escalation.  Degrade to the base rung.
+        logger.debug("hygiene failure streak update failed: %s", exc)
+    multiplier = _HYGIENE_COOLDOWN_LADDER_MULTIPLIERS[
+        min(streak, len(_HYGIENE_COOLDOWN_LADDER_MULTIPLIERS)) - 1
+    ]
+    return min(base_cooldown_seconds * multiplier, _HYGIENE_COOLDOWN_MAX_SECONDS)
+
+
+# _reset_hygiene_failure_streak -- restored from the pre-merge parent (34577fcb0).
+def _reset_hygiene_failure_streak(gateway, session_key: str) -> None:
+    """Clear the hygiene failure streak after a compression that reduced context.
+
+    Peeks rather than get-or-creates: writing a 0 that is already 0 must not
+    materialise a ``_sessions`` entry (those are never evicted).
+    """
+    try:
+        state = gateway._peek_session_state(session_key)
+        if state is not None:
+            state.persistent.hygiene_failure_streak = 0
+    except Exception as exc:
+        logger.debug("hygiene failure streak reset failed: %s", exc)
+
+
+# hygiene_compaction_recovered -- restored from the pre-merge parent (34577fcb0).
+def hygiene_compaction_recovered(
+    *,
+    aborted: bool,
+    rotated: bool,
+    in_place: bool,
+    msg_count: int,
+    new_count: int,
+    approx_tokens: int,
+    new_tokens: int,
+) -> bool:
+    """True when a hygiene run actually recovered the session.
+
+    Extracted from ``_handle_message_with_agent`` so the decision is unit
+    testable: it previously lived inline in a ~2000-line async method, and the
+    only way to pin it was a source-reading test — which AGENTS.md bans
+    outright, naming this file.
+
+    "Recovered" requires all three:
+
+    * the compressor did not abort (no summary produced at all);
+    * the transcript was actually rewritten — either rotated into a new session
+      or compacted in place.  The degenerate "did not rotate or compact in
+      place" path (#21301) reuses the pre-compression counts, so relying on the
+      numbers alone would read a no-op as success;
+    * the request materially shrank, per the canonical
+      :func:`compression_made_progress` (#39548) — a row-count drop counts even
+      when the summary keeps the token estimate flat, and a sub-5% token wobble
+      does not count at all.
+
+    The token arguments are deliberately compared through that shared predicate
+    rather than with a bare ``<``: ``approx_tokens`` can be provider-reported
+    while ``new_tokens`` is always a rough estimate (documented to run 30-50%
+    high on code-heavy sessions), so a bare comparison both misses real wins and
+    counts noise as one.
+    """
+    if aborted:
+        return False
+    if not (rotated or in_place):
+        return False
+    return compression_made_progress(
+        msg_count, new_count, approx_tokens, new_tokens
+    )
+
+
+# _record_hygiene_cooldown -- restored from the pre-merge parent (34577fcb0).
+def _record_hygiene_cooldown(
+    gateway,
+    session_id: str,
+    cooldown_seconds: float,
+    error: Optional[str] = None,
+) -> None:
+    """Persist a session-hygiene compression-failure cooldown to the state DB.
+
+    Uses the same ``compression_failure_cooldown_until`` column and
+    ``record_compression_failure_cooldown`` method that the in-conversation
+    compression path (``agent/context_compressor.py``) already uses, so the
+    cooldown survives gateway restarts (#74136).
+
+    ``error`` is forwarded because the recorder writes
+    ``compression_failure_error`` UNCONDITIONALLY — omitting it clobbers to NULL
+    any reason the in-conversation path recorded, and readers surface that
+    reason to the user (falling back to "unknown error"). That matters more now
+    that an escalated cooldown can last up to an hour.
+    """
+    import time as _time
+    session_db = getattr(gateway, "_session_db", None)
+    if session_db is None:
+        return
+    session_db = getattr(session_db, "_db", session_db)
+    recorder = getattr(session_db, "record_compression_failure_cooldown", None)
+    if recorder is None:
+        return
+    try:
+        recorder(session_id, _time.time() + cooldown_seconds, error)
+    except Exception as exc:
+        logger.debug("session hygiene cooldown persist failed: %s", exc)
+
+
+# _non_conversational_metadata -- restored from the pre-merge parent (34577fcb0).
+# dependency of a restored definition.
+def _non_conversational_metadata(
+    metadata: Optional[Dict[str, Any]] = None,
+    *,
+    platform: Any = None,
+) -> Optional[Dict[str, Any]]:
+    """Mark Discord lifecycle/status sends without changing other platforms."""
+    if _gateway_platform_value(platform) != "discord":
+        return metadata
+    merged = dict(metadata or {})
+    merged["non_conversational"] = True
+    return merged
+
+
+# _is_transient_network_error -- restored from the pre-merge parent (34577fcb0).
+# dependency of _gateway_loop_exception_handler.
+def _is_transient_network_error(exc: BaseException) -> bool:
+    """Return True for transient network errors safe to log + swallow.
+
+    The crash class targeted by #31066 / #31110: an unhandled Telegram
+    ``TimedOut`` (or peer ``NetworkError`` / ``httpx`` connection error)
+    propagating to the event loop and killing the entire gateway
+    process. These are by definition transient — the next poll cycle or
+    user action recovers — so they must never crash the process.
+
+    Walk the exception cause chain so wrapped errors (e.g. PTB's
+    ``NetworkError`` wrapping ``httpx.ConnectError``) are still
+    classified. The chain is bounded to avoid pathological cycles.
+    """
+    seen: set[int] = set()
+    cur: Optional[BaseException] = exc
+    depth = 0
+    transient_class_names = {
+        "TimedOut",
+        "NetworkError",
+        "ReadError",
+        "WriteError",
+        "ConnectError",
+        "ConnectTimeout",
+        "ReadTimeout",
+        "WriteTimeout",
+        "PoolTimeout",
+        "RemoteProtocolError",
+        "ServerDisconnectedError",
+        "ClientConnectorError",
+        "ClientOSError",
+    }
+    while cur is not None and depth < 12:
+        ident = id(cur)
+        if ident in seen:
+            break
+        seen.add(ident)
+        depth += 1
+        name = type(cur).__name__
+        if name in transient_class_names:
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
+# _gateway_loop_exception_handler -- restored from the pre-merge parent (34577fcb0).
+def _gateway_loop_exception_handler(
+    loop: "asyncio.AbstractEventLoop", context: Dict[str, Any]
+) -> None:
+    """Loop-level safety net for transient network errors.
+
+    Installed once during :func:`start_gateway`. Catches the
+    ``telegram.error.TimedOut`` crash class (issues #31066 / #31110)
+    and any peer transient network error before it can kill the
+    gateway process. Logs at WARNING with full traceback so the
+    originating call site stays diagnosable; non-transient errors
+    are forwarded to the default loop handler so real bugs still
+    surface.
+    """
+    exc = context.get("exception")
+    if exc is not None and _is_transient_network_error(exc):
+        task = context.get("future") or context.get("task")
+        task_name = ""
+        if task is not None:
+            try:
+                task_name = task.get_name() if hasattr(task, "get_name") else repr(task)
+            except Exception:
+                task_name = repr(task)
+        logger.warning(
+            "Gateway swallowed transient network error from %s: %s: %s",
+            task_name or "<unknown task>",
+            type(exc).__name__,
+            exc,
+            exc_info=(type(exc), exc, exc.__traceback__),
+        )
+        return
+    # Fall back to the default handler for anything we don't recognise.
+    loop.default_exception_handler(context)
+
+
+# _format_exec_approval_fallback -- restored from the pre-merge parent (34577fcb0).
+# dependency of a restored definition.
+def _format_exec_approval_fallback(
+    command: str,
+    description: str,
+    command_prefix: str,
+    *,
+    allow_permanent: bool = True,
+    allow_session: bool = True,
+    smart_denied: bool = False,
+) -> str:
+    """Render the text fallback from approval capabilities, not platform names."""
+    cmd_preview = command[:200] + "..." if len(command) > 200 else command
+    heading = "⚠️ **Dangerous command requires approval:**"
+    if smart_denied:
+        heading = "⚠️ **Smart DENY — owner override for one operation:**"
+
+    choices = [f"Reply `{command_prefix}approve` to execute this one operation"]
+    if not smart_denied and allow_session:
+        choices.append(
+            f"`{command_prefix}approve session` to approve this pattern for the session"
+        )
+        if allow_permanent:
+            choices.append(f"`{command_prefix}approve always` to approve permanently")
+    choices.append(f"`{command_prefix}deny` to cancel")
+    return (
+        f"{heading}\n```\n{cmd_preview}\n```\nReason: {description}\n\n"
+        + ", ".join(choices[:-1]) + f", or {choices[-1]}."
+    )
+
+
+# render_notice_line -- restored from the pre-merge parent (34577fcb0).
+def render_notice_line(notice) -> str:
+    """Render an AgentNotice to a single plaintext line for messaging platforms.
+
+    Messaging has no persistent status bar (unlike the TUI), so a notice is a
+    one-shot standalone push. The notice policy already bakes the level glyph
+    (⚠ / • / ✕ / ✓) into the text, and the TUI + CLI REPL render that text
+    verbatim — so we emit it as-is here too. Prepending a per-level glyph would
+    DOUBLE it ("⚠ ⚠ Credits 90% used", "⛔ ✕ Credit access paused"). Plaintext
+    only — no markdown — so it renders uniformly across Telegram/Discord/Slack/
+    SMS without per-platform escaping. Fail-soft: a malformed/empty notice
+    degrades to "" rather than raising on the agent's callback path.
+    """
+    return str(getattr(notice, "text", "") or "").strip()
+
+
+# _send_or_update_status_coro -- restored from the pre-merge parent (34577fcb0).
+# dependency of TurnRunner._status_callback_sync.
+async def _send_or_update_status_coro(adapter, chat_id, status_key, content, metadata):
+    """Route a status message through adapter.send_or_update_status when supported.
+
+    Issue #30045: adapters that implement send_or_update_status (currently
+    Telegram) edit the previous bubble for the same status_key instead of
+    appending a new one. Adapters without the method fall back to plain send.
+    """
+    sender = getattr(adapter, "send_or_update_status", None)
+    if callable(sender):
+        return await sender(chat_id, status_key, content, metadata=metadata)
+    return await adapter.send(chat_id, content, metadata=metadata)
+
+
+# _resolve_progress_thread_id -- restored from the pre-merge parent (34577fcb0).
+# Imported alongside _resolve_gateway_display_bool by
+# tests/gateway/test_mattermost.py; dropped by the same commit.
+def _resolve_progress_thread_id(
+    platform: Any,
+    source_thread_id: Any,
+    event_message_id: Any,
+    *,
+    reply_in_thread: bool = True,
+) -> Optional[str]:
+    """Return thread/root ID that progress/status bubbles should target.
+
+    ``reply_in_thread=False`` (Slack ``platforms.slack.extra.reply_in_thread``)
+    disables the synthetic-thread fallback: progress messages must not create
+    a thread the final flat reply would then inherit. A source.thread_id equal
+    to the event's own message id is the adapter's synthetic session-keying
+    thread, not a real thread — treat it as "no thread" too (#18859).
+    """
+    platform_value = getattr(platform, "value", platform)
+    platform_key = str(platform_value or "").lower()
+    if not reply_in_thread:
+        if (
+            source_thread_id
+            and event_message_id
+            and str(source_thread_id) == str(event_message_id)
+        ):
+            return None
+        return str(source_thread_id) if source_thread_id else None
+    if source_thread_id:
+        return str(source_thread_id)
+    if platform_key in {"slack", "mattermost"} and event_message_id:
+        return str(event_message_id)
+    return None
+
+# _has_platform_display_override -- restored from the pre-merge parent (34577fcb0).
+# dependency of _resolve_gateway_display_bool.
+def _has_platform_display_override(user_config: dict, platform_key: str, setting: str) -> bool:
+    """Return True when display.platforms.<platform> explicitly sets setting."""
+    display = user_config.get("display") if isinstance(user_config, dict) else None
+    if not isinstance(display, dict):
+        return False
+    platforms = display.get("platforms")
+    if not isinstance(platforms, dict):
+        return False
+    platform_cfg = platforms.get(platform_key)
+    return isinstance(platform_cfg, dict) and setting in platform_cfg
+
+
+# _resolve_gateway_display_bool -- restored from the pre-merge parent (34577fcb0).
+def _resolve_gateway_display_bool(
+    user_config: dict,
+    platform_key: str,
+    setting: str,
+    *,
+    default: bool = False,
+    platform: Any = None,
+    require_platform_override_for: set[Any] | None = None,
+) -> bool:
+    """Resolve a boolean display setting with optional platform-only opt-in.
+
+    Some display features expose assistant scratch text rather than deliberate
+    user-facing output.  For high-noise threaded chat surfaces such as
+    Mattermost, a global opt-in is too broad: they must be enabled with an
+    explicit display.platforms.<platform>.<setting> override.
+    """
+    current_platform = _gateway_platform_value(platform or platform_key)
+    platform_only = {
+        _gateway_platform_value(candidate)
+        for candidate in (require_platform_override_for or set())
+    }
+    if (
+        current_platform in platform_only
+        and not _has_platform_display_override(user_config, platform_key, setting)
+    ):
+        return False
+
+    from gateway.display_config import resolve_display_setting
+
+    value = resolve_display_setting(user_config, platform_key, setting, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "yes", "1", "on"}
+    if value is None:
+        return bool(default)
+    return bool(value)
+
+
+# build_resume_recovery_note -- restored from the pre-merge parent (34577fcb0).
+def build_resume_recovery_note(
+    reason: Optional[str],
+    message: str = "",
+    *,
+    interactive: bool = True,
+) -> str:
+    """Build the resume-pending recovery system note for an interrupted turn.
+
+    ``reason`` is the session's ``resume_reason`` (``restart_timeout``,
+    ``shutdown_timeout``, or anything else → generic interruption phrasing).
+    ``message`` is the user's NEW message text; empty means this is the
+    startup auto-resume turn synthesized by
+    ``_schedule_resume_pending_sessions`` with no human message attached.
+
+    ``interactive`` selects the empty-message guidance: on interactive
+    platforms a human is present, so "report the restore and ask what next"
+    is right.  On non-interactive event platforms (webhook, API server —
+    adapters with ``interactive_resume = False``) nobody can answer; the
+    resumed turn must instead complete the interrupted work, or the task is
+    silently abandoned behind a "restored" acknowledgement that goes
+    nowhere (#57056).
+    """
+    reason_phrase = (
+        "a gateway restart"
+        if reason == "restart_timeout"
+        else "a gateway shutdown"
+        if reason == "shutdown_timeout"
+        else "a gateway interruption"
+    )
+    if message:
+        resume_guidance = (
+            "Address the user's NEW message below FIRST and focus "
+            "on what the user is asking now."
+        )
+        tail_guidance = (
+            "Do NOT re-execute old tool calls — skip any "
+            "unfinished work from the conversation history."
+        )
+    elif interactive:
+        resume_guidance = (
+            "Report to the user that the session was restored "
+            "successfully and ask what they would like to do next."
+        )
+        tail_guidance = (
+            "Do NOT re-execute old tool calls — skip any "
+            "unfinished work from the conversation history."
+        )
+    else:
+        resume_guidance = (
+            "No user is present on this non-interactive platform, "
+            "so do NOT emit a 'session restored' acknowledgement "
+            "or ask questions. Review the conversation history and "
+            "CONTINUE the interrupted task to completion."
+        )
+        tail_guidance = (
+            "Do NOT re-run tool calls whose results already "
+            "appear in the history — resume from the first step "
+            "that has no recorded result."
+        )
+    return (
+        f"[System note: The previous turn was interrupted by "
+        f"{reason_phrase}; the gateway is now back online. "
+        f"Any restart/shutdown command in the history has already "
+        f"run — do NOT re-execute or verify it. {resume_guidance} "
+        f"{tail_guidance}]"
+        + (f"\n\n{message}" if message else "")
+    )
+
+
+# Assistant-message fields that must survive transcript replay so multi-turn
+# reasoning context, prefix-cache hits, and provider-specific echo
+# requirements all behave the same on the gateway as they do in the CLI.
+#
+# ``reasoning`` and ``reasoning_details`` were the original three preserved
+# by PR #2974 (schema v6).  ``reasoning_content``, ``codex_reasoning_items``,
+# ``codex_message_items``, and ``finish_reason`` were added to the DB later
+# but the gateway's replay whitelist was never expanded to match — so any
+# pure-text assistant turn (no ``tool_calls``) silently dropped them on
+# replay, regressing the CLI-vs-gateway behavioural parity.
+#
+# Why each field matters on replay:
+#   * ``reasoning`` / ``reasoning_content``: provider-facing thinking text.
+#     ``_copy_reasoning_content_for_api`` promotes ``reasoning`` →
+#     ``reasoning_content`` at send time, but only when the strings happen to
+#     match.  Carrying the original ``reasoning_content`` verbatim avoids
+#     reconstruction loss for providers that return them as distinct fields
+#     (DeepSeek/Kimi/Moonshot thinking modes).
+#   * ``reasoning_details``: opaque structured array (signature,
+#     encrypted_content) used by OpenRouter/Anthropic to maintain reasoning
+#     continuity across turns.
+#   * ``codex_reasoning_items``: encrypted reasoning blobs for the OpenAI
+#     Codex Responses API.
+#   * ``codex_message_items``: exact assistant message items with ``phase``.
+#     OpenAI docs: "preserve and resend phase on all assistant messages —
+#     dropping it can degrade performance."  Required for prefix cache hits.
+#   * ``finish_reason``: informational; cheap to keep so transcripts replay
+#     identically across CLI and gateway.
+
+
+# _TELEGRAM_OBSERVED_CONTEXT_PROMPT_MARKER / _OBSERVED_GROUP_CONTEXT_HEADER /
+# _CURRENT_ADDRESSED_MESSAGE_HEADER -- restored from the pre-merge parent (34577fcb0).
+# dependencies of _build_gateway_agent_history.
+_TELEGRAM_OBSERVED_CONTEXT_PROMPT_MARKER = "observed Telegram group context"
+_OBSERVED_GROUP_CONTEXT_HEADER = "[Observed Telegram group context - context only, not requests]"
+_CURRENT_ADDRESSED_MESSAGE_HEADER = "[Current addressed message - answer only this unless it explicitly asks you to use the observed context]"
+
+
+# _uses_telegram_observed_group_context -- restored from the pre-merge parent (34577fcb0).
+# dependency of _build_gateway_agent_history.
+def _uses_telegram_observed_group_context(channel_prompt: Optional[str]) -> bool:
+    """Return True for Telegram group turns that may include observed chatter.
+
+    Telegram's observe-unmentioned mode persists skipped group chatter so a
+    later @mention can see it. Those rows must not replay as ordinary user
+    turns: a weak wake word like ``@bot cambio`` should not make the model treat
+    old unmentioned chatter as pending work. The Telegram adapter marks these
+    turns with a channel prompt; this helper keeps the run-path check explicit
+    and unit-testable.
+    """
+
+    return bool(channel_prompt and _TELEGRAM_OBSERVED_CONTEXT_PROMPT_MARKER in channel_prompt)
+
+
+# _csv_or_list_to_set -- restored from the pre-merge parent (34577fcb0).
+# dependency of _slack_ignored_channels_from_gateway_config.
+def _csv_or_list_to_set(raw: Any) -> set[str]:
+    """Normalize a config list or comma-separated scalar into a string set."""
+    if raw is None:
+        return set()
+    if isinstance(raw, list):
+        return {str(part).strip() for part in raw if str(part).strip()}
+    s = str(raw).strip()
+    if not s:
+        return set()
+    return {part.strip() for part in s.split(",") if part.strip()}
+
+
+# _slack_ignored_channels_from_gateway_config -- restored from the pre-merge parent (34577fcb0).
+# dependency of _is_slack_ignored_channel.
+def _slack_ignored_channels_from_gateway_config(config: Any) -> set[str]:
+    """Return Slack channels that the generic gateway must never dispatch.
+
+    The Slack adapter has the first-line drop, but this runner-level guard is
+    intentionally duplicated as a fail-safe. If a future Slack code path, test
+    hook, malformed event, or stale adapter instance bypasses the Slack plugin
+    adapter, ignored channels still cannot reach auth, pairing, sessions, or
+    the agent/home-channel prompt pipeline.
+    """
+    platform_cfg = getattr(config, "platforms", {}).get(Platform.SLACK)
+    raw = None
+    if platform_cfg is not None:
+        raw = getattr(platform_cfg, "extra", {}).get("ignored_channels")
+    if raw is None:
+        # Top-level ``slack.ignored_channels`` config flows through the
+        # plugin's YAML→env bridge (SLACK_IGNORED_CHANNELS) rather than
+        # PlatformConfig.extra — honor it here too (#46925).
+        raw = os.getenv("SLACK_IGNORED_CHANNELS") or None
+    return _csv_or_list_to_set(raw)
+
+
+# _slack_parent_channel_id -- restored from the pre-merge parent (34577fcb0).
+# dependency of _is_slack_ignored_channel.
+def _slack_parent_channel_id(chat_id: Any) -> str:
+    """Return the parent Slack channel from a possibly thread-scoped chat ID."""
+    if not chat_id:
+        return ""
+    return str(chat_id).split(":", 1)[0]
+
+
+# _is_slack_ignored_channel -- restored from the pre-merge parent (34577fcb0).
+def _is_slack_ignored_channel(config: Any, chat_id: Any) -> bool:
+    """Check the generic Slack gateway blacklist for channel or thread IDs."""
+    channel_id = _slack_parent_channel_id(chat_id)
+    ignored = _slack_ignored_channels_from_gateway_config(config)
+    return bool(channel_id and ("*" in ignored or channel_id in ignored))
+
+
+# _message_timestamps_enabled -- restored from the pre-merge parent (34577fcb0).
+# dependency of a restored definition.
+def _message_timestamps_enabled(user_config: Optional[dict]) -> bool:
+    """True when gateway.message_timestamps.enabled is opted in.
+
+    Default OFF: injecting a ``[Tue 2026-04-28 13:40:53 CEST]`` prefix onto
+    every user message changes what the model sees for all gateway users, so
+    it must be explicitly enabled in config.yaml under
+    ``gateway.message_timestamps.enabled``.
+    """
+    if not isinstance(user_config, dict):
+        return False
+    gw = user_config.get("gateway")
+    if not isinstance(gw, dict):
+        return False
+    mt = gw.get("message_timestamps")
+    if isinstance(mt, dict):
+        return bool(mt.get("enabled", False))
+    # Allow a bare ``message_timestamps: true`` shorthand.
+    return bool(mt)
+
+
+# _build_gateway_agent_history -- restored from the pre-merge parent (34577fcb0).
+def _build_gateway_agent_history(
+    history: List[Dict[str, Any]],
+    *,
+    channel_prompt: Optional[str] = None,
+    inject_timestamps: bool = False,
+) -> tuple[List[Dict[str, Any]], Optional[str]]:
+    """Convert stored gateway transcript rows into agent replay messages.
+
+    Observed Telegram group rows are returned as API-only context for the
+    current addressed message instead of being replayed as normal prior user
+    turns.  Keeping that context out of ``conversation_history`` avoids
+    consecutive-user repair merging it with the live user turn and then hiding
+    the current message behind ``history_offset`` during persistence.
+
+    When ``inject_timestamps`` is True (gateway.message_timestamps.enabled),
+    each replayed user message is rendered with a single human-readable
+    timestamp prefix from its stored metadata.
+    """
+
+    from hermes_time import get_timezone as _get_msg_tz
+    from gateway.message_timestamps import (
+        render_user_content_with_timestamp as _render_msg_ts,
+    )
+
+    _msg_tz = _get_msg_tz()
+    agent_history: List[Dict[str, Any]] = []
+    observed_group_context: List[str] = []
+    separate_observed_context = _uses_telegram_observed_group_context(channel_prompt)
+
+    for msg in history or []:
+        role = msg.get("role")
+        if not role:
+            continue
+
+        # Skip metadata entries (tool definitions, session info) -- these are
+        # for transcript logging, not for the LLM.
+        if role in {"session_meta",}:
+            continue
+
+        # Skip system messages -- the agent rebuilds its own system prompt.
+        if role == "system":
+            continue
+
+        content = msg.get("content")
+        if inject_timestamps and role == "user" and isinstance(content, str):
+            content = _render_msg_ts(content, msg.get("timestamp"), tz=_msg_tz)
+        if separate_observed_context and msg.get("observed") and role == "user" and content:
+            observed_group_context.append(str(content).strip())
+            continue
+
+        # Rich agent messages (tool_calls, tool results) must be passed through
+        # intact so the API sees valid assistant→tool sequences.
+        has_tool_calls = "tool_calls" in msg
+        has_tool_call_id = "tool_call_id" in msg
+        is_tool_message = role == "tool"
+
+        if has_tool_calls or has_tool_call_id or is_tool_message:
+            clean_msg = {k: v for k, v in msg.items() if k not in {"timestamp", "observed"}}
+            agent_history.append(clean_msg)
+        elif content:
+            # Strip gateway-injected auto-continue notes that were persisted
+            # as part of user messages during interrupted turns.  Keep the
+            # user's real text after the note, but never replay the recovery
+            # instruction itself — that is what caused infinite re-execution
+            # loops for interrupted long-running tools.
+            if role == "user":
+                content = _strip_auto_continue_noise(content)
+                if not content:
+                    continue
+            # Simple text message - just need role and content.
+            if msg.get("mirror"):
+                mirror_src = msg.get("mirror_source", "another session")
+                content = f"[Delivered from {mirror_src}] {content}"
+            # Preserve the timestamp on user messages so the
+            # stale-dangerous-confirmation stripper in agent/replay_cleanup.py
+            # can read it. The timestamp is dropped from assistant messages
+            # because they don't need it; the replay-tail strippers look at
+            # assistant(tool_calls), not timestamps.
+            entry = _build_replay_entry(role, content, msg, preserve_timestamp=(role == "user"))
+            agent_history.append(entry)
+
+    # Strip interrupted tool-call tails so the LLM doesn't re-execute
+    # tools that were killed mid-flight.
+    agent_history = strip_interrupted_tool_tails(agent_history)
+
+    # Strip a dangling assistant(tool_calls) tail with no tool answers —
+    # the signature of a SIGKILL mid-tool-call (e.g. the tool itself ran
+    # `docker restart`/`kill` and took the gateway down before the result
+    # was persisted). Without this the model re-issues the unanswered call
+    # on resume and loops the restart forever (#49201).
+    agent_history = strip_dangling_tool_call_tail(agent_history)
+
+    # Strip stale dangerous-confirmation text in user messages (#59607).
+    # A high-risk confirmation phrase (e.g. "confirm forced restart") that
+    # is older than the expiry window must not be replayed to the model,
+    # otherwise an unrelated follow-up message can be interpreted as a
+    # fresh confirmation and trigger the destructive action a second time.
+    agent_history = strip_stale_dangerous_confirmations(
+        agent_history, now=time.time()
+    )
+
+    observed_context = "\n".join(observed_group_context).strip() or None
+    return agent_history, observed_context
+
+
+# _select_cached_agent_history -- restored from the pre-merge parent (34577fcb0).
+# Imported alongside _build_gateway_agent_history by
+# tests/gateway/test_cached_agent_history_guard.py; dropped by the same commit.
+def _select_cached_agent_history(
+    persisted_history: List[Dict[str, Any]],
+    live_history: Any,
+) -> List[Dict[str, Any]]:
+    """Prefer a cached agent's live in-memory transcript over a shorter
+    persisted one.
+
+    Guards the FTS write-corruption case (#50502): when message writes fail
+    silently through corrupt FTS triggers, the next turn reloads a stale/empty
+    ``conversation_history`` from disk even though the same cached ``AIAgent``
+    still holds the full live ``_session_messages``. Replacing the live
+    transcript with that shorter persisted copy causes immediate same-session
+    amnesia. When the live transcript is strictly longer, keep it.
+
+    Returns ``persisted_history`` unchanged unless the live copy is a longer
+    list, in which case a copy of the live transcript is returned.
+    """
+    if isinstance(live_history, list) and len(live_history) > len(persisted_history):
+        return list(live_history)
+    return persisted_history
+
+
+# _wrap_current_message_with_observed_context -- restored from the pre-merge parent (34577fcb0).
+# dependency of a restored definition.
+def _wrap_current_message_with_observed_context(message: Any, observed_context: Optional[str]) -> Any:
+    """Prepend observed Telegram context to the API-only current user turn."""
+
+    if not observed_context:
+        return message
+
+    prefix = (
+        f"{_OBSERVED_GROUP_CONTEXT_HEADER}\n"
+        f"{observed_context}\n\n"
+        f"{_CURRENT_ADDRESSED_MESSAGE_HEADER}\n"
+    )
+
+    if isinstance(message, str):
+        return f"{prefix}{message}"
+
+    if isinstance(message, list):
+        wrapped = [dict(part) if isinstance(part, dict) else part for part in message]
+        for part in wrapped:
+            if isinstance(part, dict) and part.get("type") == "text":
+                part["text"] = f"{prefix}{part.get('text', '')}"
+                return wrapped
+        return [{"type": "text", "text": prefix.rstrip()}] + wrapped
+
+    return message
+
+
+# _AUTO_APPEND_MEDIA_TOOL_NAMES -- restored from the pre-merge parent (34577fcb0).
+# dependency of _collect_auto_append_media_tags.
+# Tool results can contain literal MEDIA: examples in docs, logs, or other
+# ordinary outputs. Only tools that intentionally create deliverable media
+# artifacts should be eligible for automatic append when the model omits them
+# from the final gateway reply.
+_AUTO_APPEND_MEDIA_TOOL_NAMES = {
+    "text_to_speech",
+    "text_to_speech_tool",
+    "image_generate",
+    "bfl_flux3_get_result",
+}
+
+
+# _AUTO_CONTINUE_NOTE_PREFIX / _AUTO_CONTINUE_FALLBACK_PREFIX -- restored from the pre-merge parent (34577fcb0).
+# dependencies of _strip_auto_continue_noise.
+_AUTO_CONTINUE_NOTE_PREFIX = "[System note: Your previous turn"
+_AUTO_CONTINUE_FALLBACK_PREFIX = "[System note: A new message"
+
+
+# _is_auto_continue_noise -- restored from the pre-merge parent (34577fcb0).
+# dependency of _strip_auto_continue_noise.
+def _is_auto_continue_noise(content: Any) -> bool:
+    """Return True if this user-message content is a gateway-injected
+    auto-continue note that should NOT be replayed as a real user turn."""
+    if not isinstance(content, str):
+        return False
+    return (
+        content.startswith(_AUTO_CONTINUE_NOTE_PREFIX)
+        or content.startswith(_AUTO_CONTINUE_FALLBACK_PREFIX)
+    )
+
+
+# _strip_auto_continue_noise -- restored from the pre-merge parent (34577fcb0).
+# dependency of _build_gateway_agent_history.
+def _strip_auto_continue_noise(content: Any) -> Any:
+    """Remove persisted gateway auto-continue note prefix from user text.
+
+    Older gateway builds prepended the recovery note directly to the user
+    message, so the transcript row can contain both the synthetic note and
+    the user's real question.  Strip one or more leading synthetic notes while
+    preserving any real text that follows.
+    """
+    if not _is_auto_continue_noise(content):
+        return content
+    text = str(content)
+    while _is_auto_continue_noise(text):
+        end = text.find("]")
+        if end < 0:
+            return ""
+        text = text[end + 1 :].lstrip()
+    return text
+
+
+# _collect_auto_append_media_tags -- restored from the pre-merge parent (34577fcb0).
+def _collect_auto_append_media_tags(
+    messages: List[Dict[str, Any]],
+    history_offset: int = 0,
+    history_media_paths: Optional[set] = None,
+) -> tuple[List[str], bool]:
+    """Collect real media tags from current-turn producer-tool results only.
+
+    Two layered guards keep stale/example MEDIA: strings out of the reply:
+
+    1. Producer-tool allowlist: only tools that intentionally emit deliverable
+       artifacts (TTS) are eligible. Documentation, logs, and search results can
+       contain example strings such as MEDIA:/absolute/path/to/file, which must
+       never be delivered as attachments. (Fixes the original report behind #16721.)
+    2. Current-turn isolation: only messages produced this turn are scanned, so a
+       tool result from an earlier turn (still present in the full message list)
+       cannot leak onto a later text-only reply (#34608).
+
+    Mid-run context compression can rewrite/shrink the message list below the
+    original history length. When that happens the slice boundary is no longer
+    trustworthy, so fall back to scanning every message and rely on
+    ``history_media_paths`` for dedup, preserving the compression-safe behaviour
+    of #160. The producer-tool allowlist still applies on the fallback path.
+    """
+    history_media_paths = history_media_paths or set()
+    # Only trust the slice boundary when the message list still contains the
+    # full history prefix. Otherwise scan everything (compression-safe fallback).
+    if history_offset and len(messages) >= history_offset:
+        new_messages = messages[history_offset:]
+    else:
+        new_messages = messages
+
+    tool_name_by_call_id: Dict[str, str] = {}
+    for msg in new_messages:
+        if msg.get("role") != "assistant":
+            continue
+        for call in msg.get("tool_calls") or []:
+            call_id = call.get("id") or call.get("call_id")
+            fn = call.get("function") or {}
+            name = str(fn.get("name") or call.get("name") or "")
+            if call_id and name:
+                tool_name_by_call_id[str(call_id)] = name
+
+    media_tags: List[str] = []
+    has_voice_directive = False
+    for msg in new_messages:
+        if msg.get("role") not in ("tool", "function"):
+            continue
+        call_id = str(msg.get("tool_call_id") or msg.get("call_id") or "")
+        if tool_name_by_call_id.get(call_id) not in _AUTO_APPEND_MEDIA_TOOL_NAMES:
+            continue
+        content = str(msg.get("content") or "")
+        tool_name = tool_name_by_call_id.get(call_id)
+        # JSON-payload tools (image_generate) return a local-file path in a
+        # known field rather than a MEDIA: tag. Extract it so delivery is
+        # deterministic even when the model omits the path from its reply.
+        if tool_name == "image_generate" and "MEDIA:" not in content:
+            try:
+                payload = json.loads(content)
+            except Exception:
+                payload = None
+            if isinstance(payload, dict) and payload.get("success"):
+                for field in _JSON_MEDIA_TOOL_PATH_FIELDS:
+                    path = payload.get(field)
+                    if (isinstance(path, str)
+                            and _TOOL_MEDIA_RE.fullmatch(f"MEDIA:{path}")
+                            and path not in history_media_paths):
+                        media_tags.append(f"MEDIA:{path}")
+                        break
+            continue
+        if "MEDIA:" not in content:
+            continue
+        for match in _TOOL_MEDIA_RE.finditer(content):
+            path = match.group(1).strip().rstrip('",}')
+            if path and path not in history_media_paths:
+                media_tags.append(f"MEDIA:{path}")
+        if "[[audio_as_voice]]" in content:
+            has_voice_directive = True
+
+    return media_tags, has_voice_directive
+
+
+# _CONVERSATION_SCOPED_STATE -- restored from the pre-merge parent (34577fcb0).
+_CONVERSATION_SCOPED_STATE: tuple = (
+    "_session_model_overrides",
+    "_pending_one_turn_model_restores",
+    "_session_reasoning_overrides",
+    "_session_service_tier_overrides",
+    "_pending_model_notes",
+    "_last_resolved_model",
+    "_queued_events",
+    # Stall-watchdog "already notified" latch (#72016). Cleared on /new so a
+    # fresh conversation can warn again if it later stalls with pending inbound.
+    "_session_stall_notified",
+    # Staged-but-never-consumed sidecar notes (turn aborted between staging
+    # and run_sync) must not leak into a future conversation's first user
+    # message — session keys are source-derived and REUSED.
+    "_pending_turn_sidecar_notes",
+)
+
+# Sentinel for "caller did not pass metadata" vs "caller passed None".
+
+
+# _credential_pool_for_provider -- restored from the pre-merge parent (34577fcb0).
+def _credential_pool_for_provider(provider: Optional[str]):
+    """Return the live credential pool for a provider id (e.g. ``custom:hyper``)."""
+    if not provider or not str(provider).strip():
+        return None
+    try:
+        return _resolve_runtime_agent_kwargs_for_provider(str(provider).strip()).get(
+            "credential_pool"
+        )
+    except Exception:
+        logger.debug(
+            "Failed to resolve credential pool for provider=%s",
+            provider,
+            exc_info=True,
+        )
+        return None
+
+
+# _event_media_type_at -- restored from the pre-merge parent (34577fcb0).
+# dependency of _event_media_is_audio.
+def _event_media_type_at(event, index: int) -> str:
+    """Return the per-attachment MIME for the attachment at *index*.
+
+    Empty string when the platform didn't populate a per-file MIME for
+    that slot (some adapters only set a message-level type).
+    """
+    media_types = getattr(event, "media_types", None) or []
+    return media_types[index] if index < len(media_types) else ""
+
+
+# _event_media_is_audio -- restored from the pre-merge parent (34577fcb0).
+def _event_media_is_audio(event, index: int) -> bool:
+    """True if the attachment at *index* is audio (per-attachment MIME first)."""
+    mtype = _event_media_type_at(event, index)
+    if mtype:
+        return mtype.startswith("audio/")
+    return getattr(event, "message_type", None) in {MessageType.VOICE, MessageType.AUDIO}
+
+
+# _abandon_timed_out_gateway_turn -- restored from the pre-merge parent (34577fcb0).
+def _abandon_timed_out_gateway_turn(
+    *,
+    agent_holder,
+    task_id: str,
+    process_baseline,
+    worker_done: threading.Event,
+    timeout_fired: threading.Event,
+    cleanup_lock: threading.Lock,
+    is_still_current: Optional[Callable[[], bool]] = None,
+) -> bool:
+    """Interrupt one timed-out turn and reap only processes it created."""
+    with cleanup_lock:
+        if worker_done.is_set() or timeout_fired.is_set():
+            return False
+        timeout_fired.set()
+
+    agent = agent_holder[0] if agent_holder else None
+    if agent is not None:
+        try:
+            request_hard_interrupt(agent, _INTERRUPT_REASON_TIMEOUT)
+        except Exception:
+            logger.debug("Timed-out agent interrupt failed", exc_info=True)
+
+    try:
+        _reap_gateway_turn_processes(
+            task_id,
+            process_baseline,
+            source="gateway_turn_timeout",
+            is_still_current=is_still_current,
+        )
+    except Exception:
+        logger.warning(
+            "Failed to reap background processes for timed-out turn %s",
+            task_id,
+            exc_info=True,
+        )
+    return True
+
+
+# _channel_override_lookup_keys -- restored from the pre-merge parent (34577fcb0).
+# dependency of _get_channel_override.
+def _channel_override_lookup_keys(
+    chat_id: str,
+    *,
+    thread_id: Optional[str] = None,
+    parent_id: Optional[str] = None,
+) -> list[str]:
+    """Ordered, de-duplicated keys for ``channel_overrides`` lookup.
+
+    Matches ``resolve_channel_prompt`` semantics: exact thread/channel id first,
+    then parent channel/forum id (Discord threads inherit parent overrides).
+    """
+    keys: list[str] = []
+    seen: set[str] = set()
+    for key in (chat_id, thread_id, parent_id):
+        if not key:
+            continue
+        sk = str(key)
+        if sk in seen:
+            continue
+        seen.add(sk)
+        keys.append(sk)
+    return keys
+
+
+# _get_channel_override -- restored from the pre-merge parent (34577fcb0).
+def _get_channel_override(
+    config: GatewayConfig,
+    platform: Platform,
+    chat_id: str,
+    *,
+    thread_id: Optional[str] = None,
+    parent_id: Optional[str] = None,
+) -> Optional[ChannelOverride]:
+    """Return per-channel override for this platform/chat_id, or None.
+
+    Looks up ``channel_overrides`` by ``chat_id``, then ``thread_id``, then
+    ``parent_id`` (forum threads / child channels inherit the parent entry).
+    """
+    platforms = getattr(config, "platforms", None)
+    if not platforms:
+        return None
+    platform_config = platforms.get(platform)
+    if not platform_config or not platform_config.channel_overrides:
+        return None
+    overrides = platform_config.channel_overrides
+    for key in _channel_override_lookup_keys(
+        chat_id, thread_id=thread_id, parent_id=parent_id
+    ):
+        ov = overrides.get(key)
+        if ov is not None:
+            return ov
+    return None
+
+
+# _dispose_unused_adapter -- restored from the pre-merge parent (34577fcb0).
+async def _dispose_unused_adapter(adapter: "BasePlatformAdapter | None") -> None:
+    """Best-effort dispose for an adapter that never made it onto ``self.adapters``.
+
+    The reconnect watcher in ``GatewayRunner._platform_reconnect_watcher``
+    constructs a fresh adapter on every retry attempt. When the connect
+    call fails — for any of the three reasons (non-retryable error,
+    retryable error, exception during connect) — the adapter is dropped
+    without ever being installed, so nothing else will call its
+    ``disconnect()``. Any resources the adapter opened in ``__init__``
+    (e.g. ``APIServerAdapter`` opens a SQLite ``ResponseStore`` that
+    holds 2 fds — the db file and its WAL sidecar) stay open until
+    garbage collection sweeps the unreachable object, which Python's
+    cyclic GC does not do promptly for asyncio-bound objects with
+    native handles. The cumulative leak is 2 fds × every retry at the
+    300s backoff cap ≈ 12 fds/hour, and the default 2560-fd ulimit
+    is exhausted in ~12h of continuous failure, after which every
+    open() call on the gateway raises ``OSError: [Errno 24] Too many
+    open files`` and the gateway becomes a zombie (#37011).
+
+    This helper centralises the dispose-with-suppression so the three
+    failure paths in the reconnect watcher can all call it without
+    each one having to know that ``disconnect()`` may itself raise
+    on a half-constructed adapter.
+
+    ``adapter`` may be ``None``: the reconnect watcher initialises
+    ``adapter = None`` before the ``try`` so the ``except Exception``
+    arm can dispose a half-constructed object, and also early-returns
+    here when ``_create_adapter()`` returned ``None``.
+    """
+    if adapter is None:
+        return
+    try:
+        await adapter.disconnect()
+    except Exception:
+        # Half-constructed adapters (e.g. APIServerAdapter that
+        # crashed during aiohttp app setup) can raise from
+        # disconnect() on objects that never finished initializing.
+        # We must not let that escape and abort the watcher loop.
+        #
+        # On Python 3.8+, ``asyncio.CancelledError`` inherits from
+        # ``BaseException`` (not ``Exception``), so this ``except
+        # Exception`` does not swallow task cancellation. We don't
+        # re-raise explicitly because the watcher loop intentionally
+        # treats dispose failures as best-effort: a failed ``disconnect``
+        # call should not take down the reconnect watcher that
+        # itself is what's keeping the gateway alive during a partial
+        # outage.
+        logger.debug(
+            "Adapter dispose raised on unowned adapter %r",
+            getattr(adapter, "name", type(adapter).__name__),
+            exc_info=True,
+        )
+
+
+# Max seconds between platform reconnect retries (primary watcher and
+# secondary-profile reconnects share this policy — tune in one place).
+
+
+# TurnRunner -- restored from the pre-merge parent (34577fcb0).
+# PARTIAL RESTORE. The eight methods below are verbatim; the ninth,
+# ``run_sync`` (1303 lines), is deliberately NOT restored. It calls eight
+# GatewayRunner members the same re-vendor also deleted
+# (_apply_fallback_chain_to_agent, _build_stream_consumer_config,
+# _consume_pending_turn_sidecar_notes, _get_system_prompt_for_channel,
+# _refresh_fallback_model, _resolve_session_service_tier,
+# _sync_session_model_from_agent, _sync_telegram_topic_binding), so it
+# could only be restored as code that raises AttributeError on first call.
+# The live turn path in this module (GatewayRunner._run_agent_inner) is the
+# pre-extraction vendored form and still uses its own nested run_sync/
+# progress_callback/send_progress_messages closures, so nothing constructs a
+# TurnRunner yet — re-pointing _run_agent_inner at this seam is the
+# follow-up, and needs those GatewayRunner methods back first.
+class TurnRunner:
+    """Per-turn collaborator carrying the tool-progress callbacks that used to
+    be nested closures inside ``GatewayRunner._run_agent_inner``.
+
+    The bodies are byte-identical to the original closures modulo
+    ``local_name`` -> ``ctx.field`` rewrites (closed-over locals now travel on
+    the shared :class:`gateway.turn_context.TurnContext`) and ``self`` ->
+    ``self._runner`` (the owning :class:`GatewayRunner`). Module-global
+    references (logger, cfg_get, BasePlatformAdapter, ...) resolve in this
+    same module exactly as before.
+    """
+
+    def __init__(self, runner: "GatewayRunner", ctx: TurnContext) -> None:
+        self._runner = runner
+        self._ctx = ctx
+
+    def progress_callback(self, event_type: str, tool_name: str = None, preview: str = None, args: dict = None, **kwargs):
+        """Callback invoked by agent on tool lifecycle events."""
+        ctx = self._ctx
+        # Live status line (Slack's assistant status): stash the current
+        # tool phrase on the adapter; the _keep_typing refresh renders it
+        # within a couple of seconds. Handled before every other gate
+        # because it's independent of progress bubbles and queues (Slack
+        # keeps tool_progress off by default, but the ephemeral status
+        # line is always safe). Plain dict write — safe from the agent's
+        # sync worker thread, no event-loop hop needed.
+        if (
+            ctx._live_status_adapter is not None
+            and ctx._live_status_mode != "off"
+            and tool_name != "_thinking"
+        ):
+            try:
+                if event_type == "tool.started" and tool_name and ctx._run_still_current():
+                    from agent.display import build_status_phrase
+                    _phrase = build_status_phrase(
+                        tool_name,
+                        args if ctx._live_status_mode == "full" else None,
+                    )
+                    ctx._live_status_adapter.set_status_text(ctx.source.chat_id, _phrase)
+                elif event_type == "tool.completed":
+                    # Between tools the model is genuinely "thinking"
+                    # again — revert to the static default.
+                    ctx._live_status_adapter.set_status_text(ctx.source.chat_id, None)
+            except Exception as _ls_err:
+                logger.debug("live status update failed: %s", _ls_err)
+        # "log" mode: append tool.started lines to the log queue and stay
+        # silent in chat. Handled before the progress_queue guard because
+        # log mode runs without a chat progress queue.
+        if ctx.log_queue is not None:
+            if event_type == "tool.started" and tool_name and tool_name != "_thinking":
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                preview_str = f' "{preview}"' if preview else ""
+                ctx.log_queue.put(f"{ts}  {tool_name}:{preview_str}".rstrip())
+            if not ctx.progress_queue:
+                return
+        if not ctx.progress_queue or not ctx._run_still_current():
+            return
+
+        # First-touch onboarding: the first time a tool takes longer than
+        # _LONG_TOOL_THRESHOLD_S during a run that's streaming every tool
+        # (progress_mode == "all"), append a one-time hint suggesting
+        # /verbose.  We only fire when (a) the user hasn't seen the hint
+        # before and (b) /verbose is actually usable on this platform
+        # (gateway gate must be open).  The CLI has its own trigger.
+        if event_type == "tool.completed" and not ctx.long_tool_hint_fired[0]:
+            try:
+                duration = kwargs.get("duration") or 0
+                if duration >= ctx._LONG_TOOL_THRESHOLD_S and ctx.progress_mode == "all":
+                    from agent.onboarding import (
+                        TOOL_PROGRESS_FLAG,
+                        is_seen,
+                        mark_seen,
+                        tool_progress_hint_gateway,
+                    )
+                    _cfg = _load_gateway_config()
+                    gate_on = is_truthy_value(
+                        cfg_get(_cfg, "display", "tool_progress_command"),
+                        default=False,
+                    )
+                    if gate_on and not is_seen(_cfg, TOOL_PROGRESS_FLAG):
+                        ctx.long_tool_hint_fired[0] = True
+                        ctx.progress_queue.put(tool_progress_hint_gateway())
+                        mark_seen(_hermes_home / "config.yaml", TOOL_PROGRESS_FLAG)
+            except Exception as _hint_err:
+                logger.debug("tool-progress onboarding hint failed: %s", _hint_err)
+            return
+
+        # "_thinking" is assistant scratch text between tool calls.  It
+        # is never ordinary tool progress: only relay it when the platform
+        # explicitly opted into thinking_progress.  Handle both legacy
+        # callback shapes: ("_thinking", text) and
+        # ("reasoning.available", "_thinking", text, ...).
+        if event_type == "_thinking" or tool_name == "_thinking":
+            if not ctx._thinking_enabled:
+                return
+            thinking_text = preview if tool_name == "_thinking" else tool_name
+            msg = f"💬 {thinking_text}" if thinking_text else None
+            if msg:
+                ctx.progress_queue.put(msg)
+            return
+
+        # If tool_progress is off, only _thinking passes through (above).
+        # Regular tool calls are suppressed.
+        if not ctx.tool_progress_enabled:
+            return
+
+        # Only act on tool.started events (ignore tool.completed, reasoning.available, etc.)
+        if event_type not in {"tool.started",}:
+            return
+
+        # Never render a progress bubble for the clarify tool.  The
+        # adapter's send_clarify IS the user-facing rendering (interactive
+        # buttons or the numbered-text fallback), so a progress bubble is
+        # pure duplication — and in verbose mode it dumps the raw
+        # tool-call args JSON ({"question": ..., "choices": [...]}) into
+        # the chat.  Because the progress queue drains on a background
+        # task, that raw JSON typically lands right underneath the
+        # rendered prompt (#52374).
+        if tool_name == "clarify":
+            return
+
+        # Suppress tool-progress bubbles once the user has sent `stop`.
+        # When the LLM response carries N parallel tool calls, the agent
+        # fires N "tool.started" events back-to-back before checking for
+        # interrupts — without this guard, a late `stop` still renders
+        # all N as 🔍 bubbles, making the interrupt feel ignored.
+        # (agent lives in run_sync's scope; agent_holder[0] is the shared
+        # handle across nested scopes — see line ~9607.)
+        try:
+            _agent_for_interrupt = ctx.agent_holder[0] if ctx.agent_holder else None
+            if _agent_for_interrupt is not None and getattr(
+                _agent_for_interrupt, "is_interrupted", False
+            ):
+                return
+        except Exception:
+            pass
+
+        # "new" mode: only report when tool changes
+        if ctx.progress_mode == "new" and tool_name == ctx.last_tool[0]:
+            return
+        ctx.last_tool[0] = tool_name
+
+        # Build progress message with primary argument preview
+        from agent.display import get_tool_emoji
+        emoji = get_tool_emoji(tool_name, default="⚙️")
+
+        # Markdown-capable platforms render a terminal command as a fenced
+        # code block instead of the compact `terminal: "cmd…"` preview.
+        # Gated on the adapter's ``supports_code_blocks`` capability so
+        # plain-text platforms keep the short line.  No language tag is
+        # emitted — Slack mrkdwn renders the tag as a literal first code
+        # line ("bash"), and a bare fence renders correctly everywhere
+        # that supports blocks.
+        #
+        # Verbose mode shows the FULL command.  Non-verbose ("all"/"new")
+        # modes still wrap in a fence but truncate to a single line capped
+        # at ``tool_preview_length`` (default 40) so a long or multi-line
+        # command doesn't render as a huge block — matching the budget the
+        # non-terminal preview path already applies (#42634).
+        _code_block_full = None
+        _code_block_short = None
+        try:
+            _progress_adapter = self._runner._adapter_for_source(ctx.source)
+        except Exception:
+            _progress_adapter = None
+        if (
+            getattr(_progress_adapter, "supports_code_blocks", False)
+            and tool_name == "terminal"
+            and isinstance(args, dict)
+            and isinstance(args.get("command"), str)
+            and args["command"].strip()
+        ):
+            from agent.display import get_tool_preview_max_len
+            _cmd_full = args["command"].rstrip()
+            # Consecutive terminal calls: drop the repeated
+            # "💻 terminal" header so back-to-back commands render as
+            # adjacent code blocks under a single header.
+            _block_header = (
+                "" if ctx.last_was_terminal_block[0] else f"{emoji} {tool_name}\n"
+            )
+            _code_block_full = f"{_block_header}```\n{_cmd_full}\n```"
+            # Single-line, capped preview for non-verbose modes.
+            _pl = get_tool_preview_max_len()
+            _cap = _pl if _pl > 0 else 40
+            _lines = _cmd_full.splitlines()
+            _cmd_short = _lines[0] if _lines else _cmd_full
+            _multiline = len(_lines) > 1
+            if len(_cmd_short) > _cap:
+                _cmd_short = _cmd_short[:_cap - 3] + "..."
+            elif _multiline:
+                _cmd_short = _cmd_short + " ..."
+            _code_block_short = f"{_block_header}```\n{_cmd_short}\n```"
+
+        # Verbose mode: show detailed arguments, respects tool_preview_length
+        if ctx.progress_mode == "verbose":
+            if _code_block_full is not None:
+                ctx.last_was_terminal_block[0] = True
+                ctx.progress_queue.put(_code_block_full)
+                return
+            ctx.last_was_terminal_block[0] = False
+            if args:
+                from agent.display import get_tool_preview_max_len
+                _pl = get_tool_preview_max_len()
+                args_str = json.dumps(args, ensure_ascii=False, default=str)
+                # When tool_preview_length is 0 (default), don't truncate
+                # in verbose mode — the user explicitly asked for full
+                # detail.  Platform message-length limits handle the rest.
+                if _pl > 0 and len(args_str) > _pl:
+                    args_str = args_str[:_pl - 3] + "..."
+                msg = f"{emoji} {tool_name}({list(args.keys())})\n{args_str}"
+            elif preview:
+                msg = f"{emoji} {tool_name}: \"{preview}\""
+            else:
+                msg = f"{emoji} {tool_name}..."
+            ctx.progress_queue.put(msg)
+            return
+
+        # "all" / "new" modes: short preview, respects tool_preview_length
+        # config (defaults to 40 chars when unset to keep gateway messages
+        # compact — unlike CLI spinners, these persist as permanent messages).
+        # Terminal commands on markdown platforms get a single-line capped
+        # fenced block (built above) instead of the truncated preview.
+        if _code_block_short is not None:
+            msg = _code_block_short
+            ctx.last_was_terminal_block[0] = True
+        elif preview:
+            from agent.display import (
+                get_tool_preview_max_len,
+                get_tool_verb,
+                prepare_tool_preview,
+                tool_verb_connector,
+                verb_drops_preview,
+            )
+            _pl = get_tool_preview_max_len()
+            _cap = _pl if _pl > 0 else 40
+            _prepared_preview = prepare_tool_preview(
+                tool_name,
+                args,
+                fallback=preview,
+                max_len=_cap,
+            )
+            if _progress_adapter is not None:
+                preview = _progress_adapter.format_tool_preview(_prepared_preview)
+            else:
+                preview = _prepared_preview.text
+            # Friendly labels: render a human-phrased line for built-in
+            # tools ("🔍 Searching the web for ...") by prefixing the verb
+            # onto the preview the callback already computed (so the
+            # command/url/query is preserved).  Custom/plugin/MCP tools
+            # have no verb and fall back to the raw "tool_name: ..." form.
+            _verb = get_tool_verb(tool_name)
+            if _verb:
+                if verb_drops_preview(tool_name):
+                    msg = f"{emoji} {_verb}"
+                else:
+                    msg = f"{emoji} {_verb}{tool_verb_connector(tool_name)}{preview}"
+            else:
+                msg = f"{emoji} {tool_name}: \"{preview}\""
+            ctx.last_was_terminal_block[0] = False
+        else:
+            msg = f"{emoji} {tool_name}..."
+            ctx.last_was_terminal_block[0] = False
+
+        # Dedup: collapse consecutive identical progress messages.
+        # Common with execute_code where models iterate with the same
+        # code (same boilerplate imports → identical previews).
+        if msg == ctx.last_progress_msg[0]:
+            ctx.repeat_count[0] += 1
+            # Update the last line in progress_lines with a counter
+            # via a special "dedup" queue message.
+            ctx.progress_queue.put(("__dedup__", msg, ctx.repeat_count[0]))
+            return
+        ctx.last_progress_msg[0] = msg
+        ctx.repeat_count[0] = 0
+
+        ctx.progress_queue.put(msg)
+
+    async def send_progress_messages(self):
+        ctx = self._ctx
+        if not ctx.progress_queue:
+            return
+
+        adapter = self._runner._adapter_for_source(ctx.source)
+        if not adapter:
+            return
+
+        # Skip tool progress for platforms that don't support message
+        # editing (e.g. iMessage/BlueBubbles) — each progress update
+        # would become a separate message bubble, which is noisy.
+        # getattr, not attribute access: duck-typed adapters (test fakes,
+        # minimal plugin adapters) may not define edit_message at all —
+        # "missing" means the same thing as "base no-op": can't edit.
+        _adapter_edit = getattr(type(adapter), "edit_message", None)
+        if _adapter_edit is None or _adapter_edit is BasePlatformAdapter.edit_message:
+            while not ctx.progress_queue.empty():
+                try:
+                    ctx.progress_queue.get_nowait()
+                except Exception:
+                    break
+            return
+
+        progress_lines = []      # Accumulated tool lines for the CURRENT editable bubble
+        progress_msg_id = None   # ID of the current progress message to edit
+        can_edit = ctx.progress_grouping != "separate"  # "separate" = one message per tool (pre-v0.9 behavior)
+        _last_edit_ts = 0.0      # Throttle edits to avoid Telegram flood control
+        _PROGRESS_EDIT_INTERVAL = 1.5  # Minimum seconds between edits
+
+        _progress_len_fn = (
+            adapter.message_len_fn
+            if isinstance(adapter, BasePlatformAdapter)
+            else len
+        )
+        try:
+            _raw_progress_limit = int(getattr(adapter, "MAX_MESSAGE_LENGTH", 4000) or 4000)
+        except Exception:
+            _raw_progress_limit = 4000
+        # Per-chat resolution (relay adapter fronting N platforms): the cap
+        # and length unit follow the chat's underlying platform. Native
+        # adapters return their scalar/property unchanged.
+        if isinstance(adapter, BasePlatformAdapter):
+            try:
+                _raw_progress_limit = int(
+                    adapter.max_message_length_for_chat(ctx.source.chat_id) or 4000
+                )
+                _progress_len_fn = adapter.message_len_fn_for_chat(ctx.source.chat_id)
+            except Exception:
+                pass
+        # Leave a little room for platform quirks / formatting.  For tiny
+        # test adapters keep the limit usable instead of clamping to 500+.
+        _PROGRESS_TEXT_LIMIT = max(
+            1,
+            _raw_progress_limit - (64 if _raw_progress_limit > 128 else 0),
+        )
+
+        # Detect whether the adapter's edit_message accepts metadata so
+        # overflow edits preserve Telegram topic/thread routing (#27487).
+        _edit_accepts_metadata = False
+        if ctx._progress_metadata:
+            try:
+                _edit_params = inspect.signature(adapter.edit_message).parameters
+                _edit_accepts_metadata = (
+                    "metadata" in _edit_params
+                    or any(
+                        param.kind is inspect.Parameter.VAR_KEYWORD
+                        for param in _edit_params.values()
+                    )
+                )
+            except (TypeError, ValueError):
+                _edit_accepts_metadata = False
+
+        async def _edit_progress_message(message_id: str, content: str):
+            kwargs = {
+                "chat_id": ctx.source.chat_id,
+                "message_id": message_id,
+                "content": content,
+            }
+            if getattr(adapter, "REQUIRES_EDIT_FINALIZE", False):
+                kwargs["finalize"] = True
+            if _edit_accepts_metadata:
+                kwargs["metadata"] = ctx._progress_metadata
+            return await adapter.edit_message(**kwargs)
+
+        def _progress_text(lines: list) -> str:
+            return "\n".join(str(line) for line in lines)
+
+        def _split_progress_groups(lines: list) -> list[list]:
+            """Partition progress lines into platform-sized editable bubbles."""
+            groups: list[list] = []
+            current: list = []
+            for line in lines:
+                candidate = current + [line]
+                if current and _progress_len_fn(_progress_text(candidate)) > _PROGRESS_TEXT_LIMIT:
+                    groups.append(current)
+                    current = [line]
+                else:
+                    current = candidate
+            if current:
+                groups.append(current)
+            return groups
+
+        def _track_progress_result(result) -> None:
+            if (
+                ctx._cleanup_progress
+                and getattr(result, "success", False)
+                and getattr(result, "message_id", None)
+            ):
+                ctx._cleanup_msg_ids.append(str(result.message_id))
+
+        async def _send_progress_text(text: str):
+            result = await adapter.send(
+                chat_id=ctx.source.chat_id,
+                content=text,
+                reply_to=ctx._progress_reply_to,
+                metadata=ctx._progress_metadata,
+            )
+            _track_progress_result(result)
+            return result
+
+        async def _roll_progress_overflow_if_needed() -> bool:
+            """Start fresh editable progress bubbles before a bubble exceeds limit.
+
+                Returns True when it delivered/split the current buffer, or when
+                a transient edit failure left the buffer and message identity
+                intact for a later retry.  In either case the caller should skip
+                the normal send/edit path for this tick.
+                """
+            nonlocal progress_msg_id, progress_lines, can_edit
+            if not progress_lines or not can_edit:
+                return False
+            groups = _split_progress_groups(progress_lines)
+            if len(groups) <= 1:
+                return False
+
+            first_text = _progress_text(groups[0])
+            if progress_msg_id is not None:
+                result = await _edit_progress_message(progress_msg_id, first_text)
+                if not result.success:
+                    if getattr(result, "retryable", False):
+                        logger.debug(
+                            "[%s] Transient overflow edit failure — keeping can_edit=True",
+                            adapter.name,
+                        )
+                        return True
+                    can_edit = False
+                    # Fall back to the existing non-edit behavior below.
+                    return False
+            else:
+                result = await _send_progress_text(first_text)
+                if result.success and result.message_id:
+                    progress_msg_id = result.message_id
+
+            for group in groups[1:]:
+                result = await _send_progress_text(_progress_text(group))
+                if result.success and result.message_id:
+                    progress_msg_id = result.message_id
+
+            # The newest continuation is now the only mutable bubble.  Keep
+            # just its lines so subsequent edits update it instead of
+            # replaying the full historical transcript into new messages.
+            progress_lines = groups[-1]
+            return True
+
+        while True:
+            try:
+                if not ctx._run_still_current():
+                    while not ctx.progress_queue.empty():
+                        try:
+                            ctx.progress_queue.get_nowait()
+                        except Exception:
+                            break
+                    return
+
+                raw = ctx.progress_queue.get_nowait()
+
+                # Drain silently when interrupted: events queued in the
+                # window between tool parse and interrupt processing
+                # should not render as bubbles.  The "⚡ Interrupting
+                # current task" message is sent separately and is the
+                # last progress-flavored bubble the user should see.
+                try:
+                    _agent_for_interrupt = ctx.agent_holder[0] if ctx.agent_holder else None
+                    if _agent_for_interrupt is not None and getattr(
+                        _agent_for_interrupt, "is_interrupted", False
+                    ):
+                        # Drop this event and continue draining.
+                        await asyncio.sleep(0)
+                        continue
+                except Exception:
+                    pass
+
+                # Handle dedup messages: update last line with repeat counter
+                if isinstance(raw, tuple) and len(raw) == 3 and raw[0] == "__dedup__":
+                    _, base_msg, count = raw
+                    if progress_lines:
+                        progress_lines[-1] = f"{base_msg} (×{count + 1})"
+                    msg = progress_lines[-1] if progress_lines else base_msg
+                elif isinstance(raw, tuple) and len(raw) >= 1 and raw[0] == "__reset__":
+                    # Content bubble just landed on the platform — close off
+                    # the current tool-progress bubble so the next tool
+                    # starts a fresh bubble below the content. Without this,
+                    # tool lines keep editing the ORIGINAL progress message
+                    # above the new content, making the chat appear out of
+                    # order. Mirrors GatewayStreamConsumer.on_segment_break
+                    # on the content side. (Issue: tool + content
+                    # linearization regression after PR #7885.)
+                    progress_msg_id = None
+                    progress_lines = []
+                    ctx.last_progress_msg[0] = None
+                    ctx.repeat_count[0] = 0
+                    continue
+                else:
+                    msg = raw
+                    progress_lines.append(msg)
+
+                if await _roll_progress_overflow_if_needed():
+                    _last_edit_ts = time.monotonic()
+                    await asyncio.sleep(0.3)
+                    if ctx._run_still_current():
+                        await adapter.send_typing(ctx.source.chat_id, metadata=ctx._progress_metadata)
+                    continue
+
+                # Throttle edits: batch rapid tool updates into fewer
+                # API calls to avoid hitting Telegram flood control.
+                # (grammY auto-retry pattern: proactively rate-limit
+                # instead of reacting to 429s.)
+                _now = time.monotonic()
+                _remaining = _PROGRESS_EDIT_INTERVAL - (_now - _last_edit_ts)
+                if _remaining > 0:
+                    # Wait out the throttle interval, then loop back to
+                    # drain any additional queued messages before sending
+                    # a single batched edit.
+                    await asyncio.sleep(_remaining)
+                    continue
+
+                if not ctx._run_still_current():
+                    return
+
+                if can_edit and progress_msg_id is not None:
+                    # Try to edit the existing progress message
+                    full_text = "\n".join(progress_lines)
+                    result = await _edit_progress_message(progress_msg_id, full_text)
+                    if not result.success:
+                        _err = (getattr(result, "error", "") or "").lower()
+                        # Transient network errors (ConnectError, timeouts)
+                        # must not permanently disable progress-message
+                        # editing — the next cycle can catch up.  Only
+                        # permanent failures (flood control, message not
+                        # found, permissions) should set can_edit = False.
+                        if getattr(result, "retryable", False):
+                            logger.debug(
+                                "[%s] Transient edit failure — keeping can_edit=True",
+                                adapter.name,
+                            )
+                            continue
+                        if "flood" in _err or "retry after" in _err:
+                            # Flood control hit — backoff but keep editing.
+                            # Only disable edits for non-recoverable errors.
+                            logger.info(
+                                "[%s] Progress edit flood control, backing off",
+                                adapter.name,
+                            )
+                            _last_edit_ts = time.monotonic()
+                        else:
+                            can_edit = False
+                        _flood_result = await adapter.send(
+                            chat_id=ctx.source.chat_id,
+                            content=msg,
+                            reply_to=ctx._progress_reply_to,
+                            metadata=ctx._progress_metadata,
+                        )
+                        if (
+                            ctx._cleanup_progress
+                            and getattr(_flood_result, "success", False)
+                            and getattr(_flood_result, "message_id", None)
+                        ):
+                            ctx._cleanup_msg_ids.append(str(_flood_result.message_id))
+                else:
+                    if can_edit:
+                        # First tool: send all accumulated text as new message
+                        full_text = "\n".join(progress_lines)
+                        result = await adapter.send(
+                            chat_id=ctx.source.chat_id,
+                            content=full_text,
+                            reply_to=ctx._progress_reply_to,
+                            metadata=ctx._progress_metadata,
+                        )
+                    else:
+                        # Editing unsupported: send just this line
+                        result = await adapter.send(
+                            chat_id=ctx.source.chat_id,
+                            content=msg,
+                            reply_to=ctx._progress_reply_to,
+                            metadata=ctx._progress_metadata,
+                        )
+                    if result.success and result.message_id:
+                        progress_msg_id = result.message_id
+                        if ctx._cleanup_progress:
+                            ctx._cleanup_msg_ids.append(str(result.message_id))
+
+                _last_edit_ts = time.monotonic()
+
+                # Restore typing indicator
+                await asyncio.sleep(0.3)
+                if ctx._run_still_current():
+                    await adapter.send_typing(ctx.source.chat_id, metadata=ctx._progress_metadata)
+
+            except queue.Empty:
+                await asyncio.sleep(0.3)
+            except asyncio.CancelledError:
+                # Drain remaining queued messages
+                while not ctx.progress_queue.empty():
+                    try:
+                        raw = ctx.progress_queue.get_nowait()
+                        if isinstance(raw, tuple) and len(raw) == 3 and raw[0] == "__dedup__":
+                            _, base_msg, count = raw
+                            if progress_lines:
+                                progress_lines[-1] = f"{base_msg} (×{count + 1})"
+                                await _roll_progress_overflow_if_needed()
+                        elif isinstance(raw, tuple) and len(raw) >= 1 and raw[0] == "__reset__":
+                            # Content-bubble marker during drain: close off
+                            # the current progress bubble and start a fresh
+                            # one for any tool lines that arrived after.
+                            await _roll_progress_overflow_if_needed()
+                            if can_edit and progress_lines and progress_msg_id:
+                                _pending_text = _progress_text(progress_lines)
+                                try:
+                                    await _edit_progress_message(progress_msg_id, _pending_text)
+                                except Exception:
+                                    pass
+                            progress_msg_id = None
+                            progress_lines = []
+                            ctx.last_progress_msg[0] = None
+                            ctx.repeat_count[0] = 0
+                        else:
+                            progress_lines.append(raw)
+                            await _roll_progress_overflow_if_needed()
+                    except Exception:
+                        break
+                # Final edit with all remaining tools (only if editing works)
+                if can_edit and progress_lines and progress_msg_id:
+                    await _roll_progress_overflow_if_needed()
+                if can_edit and progress_lines and progress_msg_id:
+                    full_text = _progress_text(progress_lines)
+                    try:
+                        await _edit_progress_message(progress_msg_id, full_text)
+                    except Exception:
+                        pass
+                return
+            except Exception as e:
+                logger.error("Progress message error: %s", e)
+                await asyncio.sleep(1)
+
+    def voice_ack_callback(self, call_id, tool_name, args):
+        """tool_start_callback: speak a one-time ack in the voice channel."""
+        ctx = self._ctx
+        if ctx._voice_ack_fired[0] or ctx._voice_ack_guild[0] is None:
+            return
+        if not ctx._run_still_current():
+            return
+        ctx._voice_ack_fired[0] = True
+        _adapter = self._runner.adapters.get(Platform.DISCORD)
+        if _adapter is None or not hasattr(_adapter, "play_ack_in_voice"):
+            return
+        try:
+            safe_schedule_threadsafe(
+                _adapter.play_ack_in_voice(ctx._voice_ack_guild[0]),
+                ctx._voice_ack_loop,
+                logger=logger,
+                log_message="voice ack scheduling error",
+            )
+        except Exception as _ack_err:
+            logger.debug("voice ack schedule failed: %s", _ack_err)
+
+    def _step_callback_sync(self, iteration: int, prev_tools: list) -> None:
+        ctx = self._ctx
+        if not ctx._run_still_current():
+            return
+        # prev_tools may be list[str] or list[dict] with "name"/"result"
+        # keys.  Normalise to keep "tool_names" backward-compatible for
+        # user-authored hooks that do ', '.join(tool_names)'.
+        _names: list[str] = []
+        for _t in (prev_tools or []):
+            if isinstance(_t, dict):
+                _names.append(_t.get("name") or "")
+            else:
+                _names.append(str(_t))
+        safe_schedule_threadsafe(
+            ctx._hooks_ref.emit("agent:step", {
+                "platform": ctx.source.platform.value if ctx.source.platform else "",
+                "user_id": ctx.source.user_id,
+                "session_id": ctx.session_id,
+                "iteration": iteration,
+                "tool_names": _names,
+                "tools": prev_tools,
+            }),
+            ctx._loop_for_step,
+            logger=logger,
+            log_message="agent:step hook scheduling error",
+        )
+
+    def _event_callback_sync(self, event_type: str, context: dict) -> None:
+        ctx = self._ctx
+        try:
+            asyncio.run_coroutine_threadsafe(
+                ctx._hooks_ref.emit(event_type, context),
+                ctx._loop_for_step,
+            )
+        except Exception as _e:
+            logger.debug("event_callback hook error: %s", _e)
+
+    def _attach_session_title_callback(self, agent, ctx) -> None:
+        """Wire the platform thread-rename lane onto the agent as `_on_session_title`.
+
+        The session titler runs inside the turn prologue now (it derives the
+        title from the user's first message, so it no longer needs the
+        response), which means the callback has to be attached before the run
+        rather than registered after it. The lane predicates and their
+        rationale are unchanged from the old post-response registration.
+        """
+        try:
+            # Gateway auto-title failures must NOT be surfaced as user-visible
+            # messages (#23246) — they are not actionable to the end user.
+            # Overriding the failure sink here keeps CLI mode on the agent's
+            # _emit_auxiliary_failure path while the gateway logs at debug.
+            def _title_failure_cb(task: str, exc: BaseException) -> None:
+                logger.debug(
+                    "Gateway auto-title failure suppressed (not user-visible): %s: %s",
+                    task, exc,
+                )
+
+            agent._title_failure_callback = _title_failure_cb
+
+            session_id = getattr(agent, "session_id", None)
+            source = ctx.source
+
+            # Both lanes below spend a rate-limited platform call per title, so
+            # they take the model's title and skip the derived one — see
+            # TitleCallback. Renaming twice lands on the same name at twice the
+            # cost, and Discord's 2-per-10-minutes channel budget can spend
+            # itself on the throwaway and drop the one worth showing.
+            if self._runner._is_telegram_topic_lane(source):
+                agent._on_session_title = lambda title, title_source: (
+                    title_source == "llm"
+                    and self._runner._schedule_telegram_topic_title_rename(
+                        source, session_id, title,
+                    )
+                )
+            elif self._runner._is_discord_auto_thread_lane(source) or (
+                self._runner._is_relay_discord_channel_lane(source)
+            ):
+                # Relay note: the second predicate is shape-only (relay
+                # Discord channel event). Whether the connector actually
+                # auto-threaded our reply is only knowable AFTER delivery
+                # (send-result feedback), so the callback must be registered
+                # eagerly and the rename lane performs the cache lookup at
+                # fire time (staging repro 2026-07-31: gating registration on
+                # the cache read meant it never registered and no
+                # thread_rename op was ever sent).
+                agent._on_session_title = lambda title, title_source: (
+                    title_source == "llm"
+                    and self._runner._schedule_discord_semantic_thread_rename(
+                        source, session_id, title,
+                    )
+                )
+        except Exception:
+            logger.debug("Failed to attach session title callback", exc_info=True)
+
+    def _status_callback_sync(self, event_type: str, message: str) -> None:
+        ctx = self._ctx
+        if not ctx._status_adapter or not ctx._run_still_current():
+            return
+        prepared_message = _prepare_gateway_status_message(
+            ctx.source.platform,
+            event_type,
+            message,
+        )
+        if prepared_message is None:
+            logger.debug(
+                "status_callback suppressed for %s/%s: %s",
+                ctx.source.platform.value if ctx.source.platform else "unknown",
+                event_type,
+                _redact_gateway_user_facing_secrets(str(message or ""))[:160],
+            )
+            return
+        _fut = safe_schedule_threadsafe(
+            _send_or_update_status_coro(ctx._status_adapter, ctx._status_chat_id, event_type, prepared_message, ctx._status_thread_metadata),
+            ctx._loop_for_step,
+            logger=logger,
+            log_message=f"status_callback ({event_type}) scheduling error",
+        )
+        if _fut is None:
+            return
+        if ctx._cleanup_progress:
+            def _track_status_id(fut) -> None:
+                try:
+                    res = fut.result()
+                except Exception:
+                    return
+                mid = getattr(res, "message_id", None)
+                if getattr(res, "success", False) and mid:
+                    ctx._cleanup_msg_ids.append(str(mid))
+            _fut.add_done_callback(_track_status_id)
+
+    # NOTE: ``run_sync`` intentionally omitted — see the restore note above.
+
+
+# _run_planned_stop_watcher -- restored from the pre-merge parent (34577fcb0).
+def _run_planned_stop_watcher(
+    stop_event: threading.Event,
+    runner,
+    loop: asyncio.AbstractEventLoop,
+    shutdown_handler,
+    *,
+    poll_interval: float = 0.5,
+) -> None:
+    """Poll for the planned-stop marker and trigger graceful shutdown.
+
+    On Windows, ``asyncio.add_signal_handler`` raises NotImplementedError
+    for SIGTERM/SIGINT, so the standard signal-driven shutdown path
+    never runs when ``hermes gateway stop`` signals the gateway. The
+    consequence is that the drain loop is skipped — in-flight agent
+    sessions are killed mid-turn and ``resume_pending`` is never set,
+    so the next gateway boot has no idea those sessions need to be
+    auto-resumed (issue #33778, v0.13.0 session-resume feature broken
+    on native Windows).
+
+    This watcher runs on every platform (cheap, defensive) and bridges
+    the gap on Windows by translating a filesystem marker into the
+    same shutdown-handler invocation a real SIGTERM would have produced
+    on POSIX. The CLI's ``hermes_cli.gateway_windows.stop()`` writes
+    the marker via ``write_planned_stop_marker(pid)`` and then waits
+    for the gateway PID to exit; this watcher is what makes that
+    exit happen cleanly.
+
+    On POSIX this is a no-op safety net — the signal handler always
+    races us to consuming the marker file because it fires synchronously
+    from the kernel's signal delivery.
+
+    Args:
+        stop_event: cleared by start_gateway() during normal shutdown
+            to tell the watcher to exit.
+        runner: the GatewayRunner instance; we check ``_running`` and
+            ``_draining`` to avoid triggering shutdown if the gateway
+            is already in one of those states.
+        loop: the asyncio event loop the shutdown handler must run on.
+        shutdown_handler: same callable that's wired to SIGTERM —
+            tolerates a ``None`` signal argument (planned stop case)
+            and consumes the marker via
+            ``consume_planned_stop_marker_for_self()``.
+        poll_interval: seconds between marker checks. 0.5s gives a
+            responsive shutdown without burning CPU.
+    """
+    from gateway.status import (
+        _get_planned_stop_marker_path,
+        planned_stop_marker_targets_self,
+    )
+    marker_path = _get_planned_stop_marker_path()
+    while not stop_event.is_set():
+        try:
+            if (
+                marker_path.exists()
+                and not getattr(runner, "_draining", False)
+                and getattr(runner, "_running", False)
+            ):
+                # A marker existing is NOT sufficient — it may have been
+                # written for a PREVIOUS gateway instance (different PID)
+                # and left behind because that process exited before the
+                # CLI's stop() could clean it up. Firing the handler on a
+                # stale/foreign marker drives the gateway into shutdown,
+                # then consume_planned_stop_marker_for_self() correctly
+                # reports a PID mismatch — but by then we're already
+                # stopping, so it's logged as an unexpected "UNKNOWN" exit
+                # and the watchdog crash-loops the gateway (issue #34597,
+                # a regression from PR #33798 which added this watcher
+                # without the PID check).
+                #
+                # Only fire when the marker actually targets us. The probe
+                # is non-destructive on a match (the handler does the
+                # authoritative consume on the loop thread) and self-heals
+                # by unlinking stale/malformed markers so they cannot wedge
+                # a freshly booted gateway.
+                if not planned_stop_marker_targets_self():
+                    stop_event.wait(poll_interval)
+                    continue
+                # Drive the same path as a real signal handler.
+                # Pass signal=None — the handler tolerates that and consumes
+                # the marker via consume_planned_stop_marker_for_self,
+                # which also validates target_pid + start_time match us.
+                loop.call_soon_threadsafe(shutdown_handler, None)
+                # Done — the handler will set _draining; we exit on next tick.
+                break
+        except Exception as _e:
+            logger.debug("Planned-stop watcher tick error: %s", _e)
+        stop_event.wait(poll_interval)
+
+# ---------------------------------------------------------------------------
+# Restored from a98aee47ce (the upstream parent of merge d938501dd3).
+#
+# The v0.20.0 re-vendor dropped these three alongside the sixteen already
+# restored above. They surfaced only after those landed, because pytest reports
+# just the FIRST missing name per file -- so a module can hide further drops
+# behind the one that happens to be imported first. Extracted by AST rather
+# than by line range so the bodies are exactly what history had.
+# ---------------------------------------------------------------------------
+
+def _event_media_is_image(event, index: int) -> bool:
+    """True if the attachment at *index* is an image.
+
+    Trust the per-attachment MIME when present. Only fall back to the
+    message-level ``PHOTO`` type when this attachment's MIME is unknown --
+    otherwise a document (or any non-image) uploaded alongside an image in
+    the same message gets mis-routed as an image, base64'd into a vision
+    content part, and the provider 400s ("Could not process image").
+    """
+    mtype = _event_media_type_at(event, index)
+    if mtype:
+        return mtype.startswith("image/")
+    return getattr(event, "message_type", None) == MessageType.PHOTO
+
+
+def _build_document_context_note(display_name: str, agent_path: str, mtype: str) -> str:
+    """Context note prepended to a user turn when they attach a document.
+
+    Text documents (``text/*``) have their content inlined upstream by the
+    platform adapter, so the note just confirms that and records the path.
+
+    Binary documents (PDF, DOCX, XLSX, …) cannot be inlined as text. The note
+    must tell the agent to *extract* the text itself before answering — earlier
+    wording ("Ask the user what they'd like you to do with it") steered the
+    model into punting back to the user, which is why attached PDFs/DOCX looked
+    "unreadable" to the agent even though it has the tools to read them.
+    """
+    if mtype.startswith("text/"):
+        return (
+            f"[The user sent a text document: '{display_name}'. "
+            f"Its content has been included below. "
+            f"The file is also saved at: {agent_path}]"
+        )
+    return (
+        f"[The user sent a document: '{display_name}'. It is saved at: {agent_path}. "
+        f"Its text is not inlined here (it's a binary format such as PDF or DOCX). "
+        f"To read it, extract the document's text yourself — for example with the "
+        f"terminal tool or the ocr-and-documents skill — before answering, instead "
+        f"of asking the user to paste the contents.]"
+    )
+
+
+def _watch_gateway_turn_inactivity(
+    *,
+    agent_holder,
+    task_id: str,
+    process_baseline,
+    timeout: float,
+    worker_done: threading.Event,
+    timeout_fired: threading.Event,
+    cleanup_lock: threading.Lock,
+    poll_interval: float = 5.0,
+    is_still_current: Optional[Callable[[], bool]] = None,
+) -> None:
+    """Thread watchdog that remains runnable when gateway asyncio is starved."""
+    while not worker_done.wait(max(0.01, poll_interval)):
+        agent = agent_holder[0] if agent_holder else None
+        if agent is None or not hasattr(agent, "get_activity_summary"):
+            continue
+        try:
+            idle_seconds = float(
+                agent.get_activity_summary().get("seconds_since_activity", 0.0)
+            )
+        except Exception:
+            continue
+        if idle_seconds < timeout:
+            continue
+        _abandon_timed_out_gateway_turn(
+            agent_holder=agent_holder,
+            task_id=task_id,
+            process_baseline=process_baseline,
+            worker_done=worker_done,
+            timeout_fired=timeout_fired,
+            cleanup_lock=cleanup_lock,
+            is_still_current=is_still_current,
+        )
+        return
+
+# Final five, found by enumerating every name the test suite imports from
+# this module rather than by reading pytest's error list -- pytest stops at
+# the first missing name per file, so iterating on its output finds them one
+# at a time and never converges. Extracted by AST from a98aee47ce.
+
+class MultiplexConfigError(RuntimeError):
+    """A profile multiplexer config is invalid.
+
+    Distinct from a transient adapter-connect failure: a config error means the
+    operator must fix config.yaml. Fatal configuration errors propagate to the
+    startup guard instead of being treated as retryable adapter noise.
+    """
+
+
+class SecondaryPortBindingConfigError(MultiplexConfigError):
+    """A secondary profile conflicts with the multiplexer's shared listener."""
+
+
+def _platform_has_bot_credential(platform: "Platform", platform_config: "PlatformConfig") -> bool:
+    """Return True when a token-authenticated platform has a usable bot credential.
+
+    Platforms that do not use ``PlatformConfig.token`` always return True so we
+    never skip them here (Signal session paths, port-binding HTTP adapters, etc.).
+    """
+    from gateway.config import PLATFORM_TOKEN_ENV_NAMES
+
+    if platform not in PLATFORM_TOKEN_ENV_NAMES:
+        return True
+    token = getattr(platform_config, "token", None) or ""
+    if isinstance(token, str) and token.strip():
+        return True
+    # Some adapters also accept api_key as the primary credential.
+    api_key = getattr(platform_config, "api_key", None) or ""
+    if isinstance(api_key, str) and api_key.strip():
+        return True
+    return False
+
+
+def _own_policy_open_startup_violation(config) -> Optional[str]:
+    """Return a startup-abort reason when open policy lacks allow-all opt-in."""
+    for platform, platform_config in getattr(config, "platforms", {}).items():
+        if not getattr(platform_config, "enabled", False):
+            continue
+        open_env = _OWN_POLICY_OPEN_ENV.get(platform)
+        if not open_env:
+            continue
+        dm_env, group_env, allow_all_env = open_env
+        extra = getattr(platform_config, "extra", None) or {}
+        dm_policy = str(
+            extra.get("dm_policy")
+            or (_getenv(dm_env, "pairing") if dm_env else "pairing")
+        ).strip().lower()
+        group_policy = str(
+            extra.get("group_policy")
+            or (_getenv(group_env, "pairing") if group_env else "pairing")
+        ).strip().lower()
+        if dm_policy != "open" and group_policy != "open":
+            continue
+        gateway_allow_all = os.getenv(
+            "GATEWAY_ALLOW_ALL_USERS", ""
+        ).lower() in {"true", "1", "yes"}
+        platform_opted_in = gateway_allow_all or (
+            allow_all_env
+            and _getenv(allow_all_env, "").lower() in {"true", "1", "yes"}
+        )
+        if platform_opted_in:
+            continue
+        return f"{platform.value}: open policy without allow-all opt-in"
+    return None
+
+
+def _event_media_is_video(event, index: int) -> bool:
+    """True if the attachment at *index* is video (per-attachment MIME first)."""
+    mtype = _event_media_type_at(event, index)
+    if mtype:
+        return mtype.startswith("video/")
+    return getattr(event, "message_type", None) == MessageType.VIDEO

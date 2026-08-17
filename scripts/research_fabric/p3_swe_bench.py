@@ -71,12 +71,20 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 NIM_BASE = "https://integrate.api.nvidia.com/v1"
 # Escalation chain (free-tier NIM). The 70b is the preferred baseline model but
-# is frequently queue-bound (>120s); try it once fast, then fall back down the
-# chain. Each entry: (model_id, per-attempt timeout s).
+# is frequently queue-bound (>120s) and read-times-out; give it a bounded read
+# timeout and exactly one retry, then fall back down the documented chain.
+# Each entry: (model_id, per-attempt read timeout s). urlopen's timeout is the
+# socket timeout; on Windows a stalled NIM body surfaces as
+# "The read operation timed out". This does not claim live 70b works.
+NIM_70B = "meta/llama-3.3-70b-instruct"
+NIM_NEMOTRON_49B = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+NIM_8B = "meta/llama-3.1-8b-instruct"
+NIM_70B_READ_TIMEOUT_S = 75
+NIM_70B_RETRIES = 1  # one retry after the first attempt; then escalate
 NIM_CHAIN = [
-    ("meta/llama-3.3-70b-instruct", 75),
-    ("nvidia/llama-3.3-nemotron-super-49b-v1.5", 120),
-    ("meta/llama-3.1-8b-instruct", 60),
+    (NIM_70B, NIM_70B_READ_TIMEOUT_S),
+    (NIM_NEMOTRON_49B, 120),
+    (NIM_8B, 60),
 ]
 # P3_NIM_SKIP: comma-separated model ids to drop from the chain (e.g. when the
 # 70b is queue-bound all day and you just want the fast fallback).
@@ -245,8 +253,27 @@ def _load_api_key() -> str:
     raise RuntimeError("NVIDIA_API_KEY not found in env or .env")
 
 
+def _nim_urlopen(req, timeout):
+    """POST opener — extracted so tests can mock without hitting live NIM."""
+    import urllib.request
+
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
+def _attempts_for(model: str, default_attempts: int = 2) -> int:
+    """70b is capped at one retry; later rungs use ``default_attempts``."""
+    if model == NIM_70B:
+        return NIM_70B_RETRIES + 1
+    return default_attempts
+
+
 def _nim_call(prompt: str, attempts: int = 2) -> str | None:
-    """POST to NIM, walking the escalation chain on transient failure."""
+    """POST to NIM, walking the escalation chain on transient failure.
+
+    The 70b route uses a bounded read timeout (``NIM_70B_READ_TIMEOUT_S``)
+    and exactly one retry, then the documented fallback
+    (``NIM_NEMOTRON_49B``, then ``NIM_8B``). Later rungs keep ``attempts``.
+    """
     import urllib.request
 
     key = _load_api_key()
@@ -258,7 +285,8 @@ def _nim_call(prompt: str, attempts: int = 2) -> str | None:
             "max_tokens": 1024,
             "stream": False,
         }).encode("utf-8")
-        for attempt in range(1, attempts + 1):
+        model_attempts = _attempts_for(model, attempts)
+        for attempt in range(1, model_attempts + 1):
             req = urllib.request.Request(
                 f"{NIM_BASE}/chat/completions",
                 data=body,
@@ -269,7 +297,7 @@ def _nim_call(prompt: str, attempts: int = 2) -> str | None:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                with _nim_urlopen(req, timeout=timeout_s) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 content = data["choices"][0]["message"].get("content")
                 if content:  # reasoning models may put everything in `reasoning`
@@ -278,8 +306,8 @@ def _nim_call(prompt: str, attempts: int = 2) -> str | None:
                 print(f"    [nim] {model} returned empty content; escalating")
                 break
             except Exception as exc:  # noqa: BLE001
-                print(f"    [nim] {model} attempt {attempt}/{attempts}: {exc}")
-                if attempt < attempts:
+                print(f"    [nim] {model} attempt {attempt}/{model_attempts}: {exc}")
+                if attempt < model_attempts:
                     time.sleep(min(2 ** attempt, 8))
     return None
 

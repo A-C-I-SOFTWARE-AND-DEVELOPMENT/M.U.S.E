@@ -410,6 +410,89 @@ def _ra():
     return run_agent
 
 
+# Tool-name substrings that mark a turn as coding / engineering work. Used to
+# keep the conversation on the Codex entity (stickiness) when a follow-up
+# message is ambiguous but the agent is clearly mid-coding-task.
+_CODING_TOOL_MARKERS = (
+    "edit", "write_file", "create_file", "apply_patch", "str_replace",
+    "terminal", "bash", "shell", "code_execution", "run_command",
+)
+
+
+def _infer_previous_openai_entity(agent, messages) -> "Optional[str]":
+    """Best-effort recovery of the conversation's current entity.
+
+    Prefers the live agent flag (set on the prior turn). For freshly rebuilt
+    agents (gateway creates one per message) it falls back to scanning the
+    most recent assistant turn for coding tool calls.
+    """
+    active = getattr(agent, "_openai_active_entity", None)
+    if active in {"chat", "code"}:
+        return active
+    try:
+        for msg in reversed(messages or []):
+            if not isinstance(msg, dict) or msg.get("role") != "assistant":
+                continue
+            tool_calls = msg.get("tool_calls") or []
+            for tc in tool_calls:
+                name = ""
+                if isinstance(tc, dict):
+                    fn = tc.get("function") or {}
+                    name = str(fn.get("name") or tc.get("name") or "")
+                else:
+                    name = str(getattr(getattr(tc, "function", None), "name", "") or "")
+                if any(marker in name.lower() for marker in _CODING_TOOL_MARKERS):
+                    return "code"
+            # Only inspect the single most recent assistant turn.
+            break
+    except Exception:
+        pass
+    return None
+
+
+def _maybe_route_openai_entity(agent, messages, user_message) -> None:
+    """Swap ``agent.model`` between the GPT chat and Codex entities per turn.
+
+    Inert unless the agent was built with dual-entity routing enabled
+    (openai-codex provider, ``model.openai_dual_entity`` not disabled). Both
+    entities share provider/base_url/api_mode/credentials, so only the model
+    slug changes — no client rebuild required.
+    """
+    if not getattr(agent, "_openai_dual_entity", False):
+        return
+    chat_model = getattr(agent, "_openai_chat_model", "") or ""
+    codex_model = getattr(agent, "_openai_codex_model", "") or ""
+    if not chat_model or not codex_model:
+        return
+    try:
+        from agent.openai_entity_router import select_turn_model
+    except Exception:
+        return
+
+    previous_entity = _infer_previous_openai_entity(agent, messages)
+    new_model, entity = select_turn_model(
+        user_text=user_message,
+        chat_model=chat_model,
+        codex_model=codex_model,
+        previous_entity=previous_entity,
+    )
+    agent._openai_active_entity = entity
+
+    if new_model and new_model != agent.model:
+        agent.model = new_model
+        # Different model ⇒ different context window; force re-resolution.
+        agent._config_context_length = None
+        # Surface the switch to the user via the status callback. We avoid
+        # logging the model slugs here: CodeQL's clear-text-logging query
+        # traces ``agent.model`` to a sensitive source, and the user-facing
+        # status below already communicates the change.
+        try:
+            label = "Codex" if entity == "code" else "GPT"
+            agent._emit_status(f"🔀 Switched to {label}: {new_model}")
+        except Exception:
+            pass
+
+
 def _nous_entitlement_message(capability: str) -> str:
     try:
         from hermes_cli.nous_account import (

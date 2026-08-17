@@ -45,7 +45,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
@@ -1172,15 +1172,43 @@ def read_credential_pool(provider_id: Optional[str] = None) -> Any:
     return list(global_entries) if isinstance(global_entries, list) else []
 
 
-def write_credential_pool(provider_id: str, entries: List[Dict[str, Any]]) -> Path:
-    """Persist one provider's credential pool under auth.json."""
+def write_credential_pool(
+    provider_id: str,
+    entries: List[Dict[str, Any]],
+    *,
+    removed_ids: Optional[Iterable[str]] = None,
+) -> Path:
+    """Persist one provider's credential pool under auth.json.
+
+    ``removed_ids`` names entries the caller intentionally removed. The
+    keyword is restored from a98aee47ce:hermes_cli/auth.py — the v0.20.0
+    merge dropped it from this signature while keeping every caller in
+    ``agent/credential_pool.py`` (``_persist``, entry removal, stale-seed
+    pruning, quarantine), so each of those raised
+    ``TypeError: write_credential_pool() got an unexpected keyword argument
+    'removed_ids'`` at runtime.
+
+    Upstream needs the argument because its body re-reads the on-disk pool
+    under the same lock and merges back entries another process added; without
+    ``removed_ids`` that merge would resurrect a just-removed credential. This
+    body still writes *entries* wholesale (the concurrent-merge arm and its
+    ``_merge_disk_cooldown_state`` / ``sanitize_borrowed_credential_payload``
+    helpers were dropped by the same merge and are NOT restored here), so the
+    argument is honored as a defensive filter: a removed id can never reach
+    disk even if a caller left it in ``entries``.
+    """
+    removed = {rid for rid in (removed_ids or ()) if rid}
     with _auth_store_lock():
         auth_store = _load_auth_store()
         pool = auth_store.get("credential_pool")
         if not isinstance(pool, dict):
             pool = {}
             auth_store["credential_pool"] = pool
-        pool[provider_id] = list(entries)
+        pool[provider_id] = [
+            entry
+            for entry in entries
+            if not (isinstance(entry, dict) and entry.get("id") in removed)
+        ]
         return _save_auth_store(auth_store)
 
 
@@ -4648,6 +4676,23 @@ def _agent_key_is_usable(state: Dict[str, Any], min_ttl_seconds: int) -> bool:
     return not _is_expiring(state.get("agent_key_expires_at"), min_ttl_seconds)
 
 
+# Startup fires a burst of managed-tool check_fns (gateway, MCP, skills, ...),
+# and each one independently triggers a ~15s blocking token-refresh network call
+# when the stored token is expired. On a slow/constrained host that serial burst
+# stretches startup to many minutes. A short-TTL memo collapses the burst into a
+# single network round-trip; callers that need freshness use separate flows
+# (refresh_nous_oauth_pure) and are unaffected.
+#
+# _RESOLVE_TOKEN_CACHE / _RESOLVE_TOKEN_CACHE_LOCK / _RESOLVE_TOKEN_CACHE_TTL_S
+# -- restored from a98aee47ce:hermes_cli/auth.py (PR #66016) together with the
+# memo guard/populate below. The memo cannot serve a token that would otherwise
+# have been refreshed: the fast path only caches a token with at least
+# ``refresh_skew_seconds`` of life left, and the TTL is 5s.
+_RESOLVE_TOKEN_CACHE_LOCK = threading.Lock()
+_RESOLVE_TOKEN_CACHE: "tuple[float, str] | None" = None
+_RESOLVE_TOKEN_CACHE_TTL_S = 5.0
+
+
 def resolve_nous_access_token(
     *,
     timeout_seconds: float = 15.0,
@@ -4656,6 +4701,16 @@ def resolve_nous_access_token(
     refresh_skew_seconds: int = ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
 ) -> str:
     """Resolve a refresh-aware Nous Portal access token for managed tool gateways."""
+    global _RESOLVE_TOKEN_CACHE
+    # Memo: collapse the startup burst of managed-tool check_fns into one
+    # network refresh. Only cache a successful, non-forced resolution for a
+    # short window; custom-TLS callers bypass and don't populate it.
+    if not insecure and ca_bundle is None:
+        with _RESOLVE_TOKEN_CACHE_LOCK:
+            if _RESOLVE_TOKEN_CACHE is not None:
+                cached_at, cached_token = _RESOLVE_TOKEN_CACHE
+                if (time.monotonic() - cached_at) < _RESOLVE_TOKEN_CACHE_TTL_S:
+                    return cached_token
     with _auth_store_lock():
         auth_store = _load_auth_store()
         state = _load_provider_state(auth_store, "nous")
@@ -4691,6 +4746,9 @@ def resolve_nous_access_token(
                 if merged_shared:
                     _save_provider_state(auth_store, "nous", state)
                     _save_auth_store(auth_store)
+                if not insecure and ca_bundle is None:
+                    with _RESOLVE_TOKEN_CACHE_LOCK:
+                        _RESOLVE_TOKEN_CACHE = (time.monotonic(), access_token)
                 return access_token
 
             if not isinstance(refresh_token, str) or not refresh_token:
@@ -4750,7 +4808,11 @@ def resolve_nous_access_token(
             _save_provider_state(auth_store, "nous", state)
             _save_auth_store(auth_store)
             _write_shared_nous_state(state)
-            return state["access_token"]
+            resolved = state["access_token"]
+            if not insecure and ca_bundle is None:
+                with _RESOLVE_TOKEN_CACHE_LOCK:
+                    _RESOLVE_TOKEN_CACHE = (time.monotonic(), resolved)
+            return resolved
 
 
 def refresh_nous_oauth_pure(
@@ -5646,13 +5708,27 @@ def get_api_key_provider_status(provider_id: str) -> Dict[str, Any]:
     else:
         base_url = pconfig.inference_base_url
 
+    # Actual Computer local-offline arm -- restored from
+    # a98aee47ce:hermes_cli/auth.py (originally a9acb400ba). The merge kept
+    # ACTUAL_LOCAL_NOAUTH_PLACEHOLDER / is_actual_local_base_url /
+    # normalize_actual_base_url but dropped every call site, so a keyless
+    # loopback Actual setup reported "not configured".
+    if provider_id == "actual":
+        base_url = normalize_actual_base_url(base_url)
+
+    actual_local_noauth = (
+        provider_id == "actual"
+        and not api_key
+        and is_actual_local_base_url(base_url)
+    )
+
     return {
-        "configured": bool(api_key),
+        "configured": bool(api_key) or actual_local_noauth,
         "provider": provider_id,
         "name": pconfig.name,
-        "key_source": key_source,
+        "key_source": key_source or ("local-offline" if actual_local_noauth else ""),
         "base_url": base_url,
-        "logged_in": bool(api_key),  # compat with OAuth status shape
+        "logged_in": bool(api_key) or actual_local_noauth,  # compat with OAuth status shape
     }
 
 
@@ -5836,6 +5912,16 @@ def resolve_api_key_provider_credentials(provider_id: str) -> Dict[str, Any]:
         base_url = env_url.rstrip("/")
     else:
         base_url = pconfig.inference_base_url
+
+    # Actual Computer local-offline arm -- restored from
+    # a98aee47ce:hermes_cli/auth.py (originally a9acb400ba); see the matching
+    # comment in get_api_key_provider_status.
+    if provider_id == "actual":
+        base_url = normalize_actual_base_url(base_url)
+
+    if not api_key and provider_id == "actual" and is_actual_local_base_url(base_url):
+        api_key = ACTUAL_LOCAL_NOAUTH_PLACEHOLDER
+        key_source = key_source or "local-offline"
 
     return {
         "provider": provider_id,
@@ -7184,6 +7270,7 @@ def _nous_device_code_login(
     insecure: bool = False,
     ca_bundle: Optional[str] = None,
     min_key_ttl_seconds: int = 5 * 60,
+    on_verification: Optional[Callable[[str, str], None]] = None,
 ) -> Dict[str, Any]:
     """Run the Nous device-code flow and return full OAuth state without persisting."""
     pconfig = PROVIDER_REGISTRY["nous"]
@@ -7241,6 +7328,20 @@ def _nous_device_code_login(
                 print("  (Opened browser for verification)")
             else:
                 print("  Could not open browser automatically — use the URL above.")
+
+        # on_verification -- restored from a98aee47ce:hermes_cli/auth.py.
+        # Surface the verification URL/code to an out-of-band consumer (e.g. the
+        # TUI gateway, whose stdout is a JSON-RPC pipe — a plain print() there is
+        # dropped). Fired AFTER the print/browser block and BEFORE polling blocks,
+        # so the consumer can render the link while we wait. Best-effort.
+        # ``step_up_nous_billing_scope`` (restored in the first repair pass) and
+        # tui_gateway/methods_session.py both pass this keyword, so without it
+        # the billing step-up raised TypeError at runtime.
+        if on_verification is not None:
+            try:
+                on_verification(verification_url, user_code)
+            except Exception:
+                pass
 
         effective_interval = max(1, min(interval, DEVICE_AUTH_POLL_INTERVAL_CAP_SECONDS))
         print(f"Waiting for approval (polling every {effective_interval}s)...")
@@ -8068,3 +8169,595 @@ def _minimax_oauth_quarantine_on_terminal_refresh(state: Dict[str, Any], exc: Au
         _minimax_save_auth_state(state)
     except Exception as _save_exc:
         logger.debug("MiniMax OAuth: failed to persist quarantined state: %s", _save_exc)
+
+
+# ----------------------------------------------------------------------
+# Second restoration pass: symbols the v0.20.0 merge (d938501dd3) dropped
+# and the first repair (50d84cb15d) missed. Every definition below is
+# recovered verbatim from the merge's upstream parent a98aee47ce
+# (hermes_cli/auth.py) unless annotated otherwise.
+# ----------------------------------------------------------------------
+
+
+# DEFAULT_ACTUAL_LOCAL_BASE_URL -- restored from a98aee47ce:hermes_cli/auth.py.
+# Actual Computer's offline local server binds loopback :8080; the /v1 suffix is
+# the OpenAI-compatible surface `normalize_actual_base_url` appends. Mirrored (by
+# value) in plugins/model-providers/actual/__init__.py, which is where the copy
+# that survived the merge lives.
+DEFAULT_ACTUAL_LOCAL_BASE_URL = "http://127.0.0.1:8080/v1"
+
+
+# _NOUS_PORTAL_ALLOWED_HOSTS -- restored from a98aee47ce:hermes_cli/auth.py.
+# Allowlist of valid Nous Portal hosts. A portal_base_url outside this
+# set is treated as a misconfiguration and falls back to the default.
+# "localhost" / "127.0.0.1" are valid for local development and testing.
+#
+# NOTE: upstream consults this inside ``resolve_nous_access_token`` and the
+# agent-key resolve path. Those gates are still absent in this tree (the merge
+# also dropped them); restoring the enforcement is a deliberate policy change
+# (a stored non-allowlisted host would start being rewritten to production) and
+# is intentionally NOT done here. The constant is restored with its exact
+# upstream value so the gate can be rewired without re-deriving the policy.
+_NOUS_PORTAL_ALLOWED_HOSTS: FrozenSet[str] = frozenset({
+    "portal.nousresearch.com",
+    "localhost",
+    "127.0.0.1",
+})
+
+
+# _nous_portal_env_override -- dependency of a restored definition.
+def _nous_portal_env_override() -> Optional[str]:
+    """Return the user/deployment-set Portal base URL override, if any.
+
+    Mirrors ``_nous_inference_env_override()``: ``HERMES_PORTAL_BASE_URL`` /
+    ``NOUS_PORTAL_BASE_URL`` are the documented dev/staging escape hatch for
+    pointing Hermes at a non-production Nous Portal (e.g. a hosted agent
+    provisioned on nous-account-service's `staging` environment, which stamps
+    ``HERMES_PORTAL_BASE_URL=https://portal.staging-nousresearch.com`` into
+    the container env). The env source is trusted (the OS user/deployment
+    set it themselves), so — like the inference override — it must NOT be
+    gated by ``_NOUS_PORTAL_ALLOWED_HOSTS``: that allowlist exists to reject
+    an untrusted NETWORK-provided value (a poisoned portal_base_url
+    persisted to auth.json), not a value the operator explicitly configured.
+
+    Returns a trailing-slash-stripped non-empty string, or ``None`` when
+    neither env var is set/blank.
+    """
+    return _optional_base_url(
+        os.getenv("HERMES_PORTAL_BASE_URL") or os.getenv("NOUS_PORTAL_BASE_URL")
+    )
+
+
+# Enum values reported on the dashboard /api/status as ``nous_session_valid``.
+# NAS's health sweep re-mints the bootstrap session ONLY on "terminal"; "valid"
+# and "unknown" are no-ops. Keep this set small and stable — NAS parses it with
+# a permissive schema, so new members are non-breaking but should stay rare.
+#
+# NOUS_SESSION_TERMINAL -- restored from a98aee47ce:hermes_cli/auth.py.
+# NOUS_SESSION_VALID / NOUS_SESSION_UNKNOWN -- dependencies of the same block.
+NOUS_SESSION_VALID = "valid"
+NOUS_SESSION_TERMINAL = "terminal"
+NOUS_SESSION_UNKNOWN = "unknown"
+
+
+# get_nous_session_validity -- dependency of a restored definition.
+def get_nous_session_validity() -> str:
+    """Classify the Nous bootstrap session for the dashboard /api/status probe.
+
+    Returns one of:
+      - ``"valid"``    — a usable Nous credential is present (login healthy).
+      - ``"terminal"`` — the Nous session has taken a terminal auth failure
+        (invalid_grant / quarantined / relogin required). This is the sole
+        signal NAS acts on to re-mint a hosted-agent bootstrap session.
+      - ``"unknown"``  — indeterminate (no Nous provider state, or a transient/
+        non-terminal error). Never triggers a re-mint.
+
+    Determinable with NO working token — it reads local auth-store state only,
+    which is exactly the condition a dead hosted box is in.
+
+    ANTI-FLAP CONTRACT: only a *terminal* failure maps to "terminal". A normal
+    mid-rotation blip, a transient network error, or a merely-expiring token
+    must NOT report "terminal" (that would trigger a spurious NAS re-mint on a
+    healthy box). We key "terminal" on the auth layer's own terminal signal
+    (`relogin_required`) plus a persisted quarantine marker, never on a bare
+    "not logged in".
+    """
+    # A persisted quarantine marker is the strongest, most stable terminal
+    # signal: the refresh path writes `last_auth_error.relogin_required=True`
+    # into the Nous provider state when it clears dead tokens (the exact path
+    # that produced the incident's "No access token found"). Read it directly
+    # so we report "terminal" even after the in-memory AuthError is long gone.
+    try:
+        state = get_provider_auth_state("nous")
+    except Exception:
+        state = None
+
+    if state:
+        last_err = state.get("last_auth_error")
+        if isinstance(last_err, dict) and last_err.get("relogin_required"):
+            # Only terminal while there is no usable credential left. If a later
+            # successful login repopulated tokens, the stale marker must not
+            # keep reporting terminal.
+            if not (state.get("access_token") or state.get("refresh_token")):
+                return NOUS_SESSION_TERMINAL
+
+    try:
+        status = get_nous_auth_status()
+    except Exception:
+        # Status computation itself failed — indeterminate, not terminal.
+        return NOUS_SESSION_UNKNOWN
+
+    if status.get("logged_in"):
+        return NOUS_SESSION_VALID
+
+    # Not logged in. Distinguish a terminal (relogin-required) failure from a
+    # transient / indeterminate one. Only the former is actionable by NAS.
+    if status.get("relogin_required"):
+        return NOUS_SESSION_TERMINAL
+
+    # No Nous provider state at all, or a non-terminal not-logged-in condition
+    # (e.g. a transient refresh error that did not set relogin_required). Treat
+    # as unknown so a healthy box mid-blip never triggers a re-mint.
+    return NOUS_SESSION_UNKNOWN
+
+
+# nous_token_has_billing_scope -- restored from a98aee47ce:hermes_cli/auth.py.
+def nous_token_has_billing_scope() -> bool:
+    """Return True if the currently-held Nous token carries ``billing:manage``.
+
+    Reads the persisted ``scope`` string saved at login (``_save_provider_state``
+    stores ``token_data.get("scope") or scope``). A space-delimited match. Used by
+    the lazy step-up: if False, the first billing call will 403 ``insufficient_scope``
+    anyway, but checking up front lets a surface skip a doomed round-trip.
+    """
+    try:
+        state = get_provider_auth_state("nous") or {}
+    except Exception:
+        return False
+    scope = state.get("scope")
+    if not isinstance(scope, str):
+        return False
+    return NOUS_BILLING_MANAGE_SCOPE in scope.split()
+
+
+# Throttle for the live Codex quota probe below.  The probe runs on the hot
+# credential-selection path while the pool is exhausted, so without a floor a
+# busy gateway would hammer the usage endpoint on every model/auxiliary call.
+#
+# CODEX_QUOTA_PROBE_MIN_INTERVAL_SECONDS / _codex_quota_probe_cache /
+# _codex_quota_probe_lock -- dependencies of a restored definition.
+CODEX_QUOTA_PROBE_MIN_INTERVAL_SECONDS = 300  # 5 minutes
+_codex_quota_probe_cache: Dict[str, Tuple[float, Optional[bool]]] = {}
+_codex_quota_probe_lock = threading.Lock()
+
+
+# _codex_usage_probe_url -- restored from a98aee47ce:hermes_cli/auth.py.
+def _codex_usage_probe_url(base_url: Optional[str]) -> str:
+    """Resolve the Codex usage endpoint for a probe.
+
+    Mirrors the Codex CLI's PathStyle split (codex-rs backend-client, same
+    logic as ``agent.account_usage._codex_backend_urls``): base URLs
+    containing ``/backend-api`` use the ChatGPT ``/wham/usage`` path;
+    everything else uses ``/api/codex/usage``.  Kept local so this low-level
+    auth module doesn't import the auxiliary account-usage module.
+    """
+    normalized = str(base_url or "").strip().rstrip("/")
+    if not normalized:
+        normalized = (
+            os.getenv("HERMES_CODEX_BASE_URL", "").strip().rstrip("/")
+            or DEFAULT_CODEX_BASE_URL
+        )
+    if normalized.endswith("/codex"):
+        normalized = normalized[: -len("/codex")]
+    prefix = normalized + ("/wham" if "/backend-api" in normalized else "/api/codex")
+    return prefix + "/usage"
+
+
+# _probe_codex_quota_restored -- dependency of a restored definition, and the
+# target of a live dangling call site at agent/credential_pool.py:1736
+# (``CredentialPool._codex_quota_restored_upstream``), which raised
+# AttributeError for every exhausted Codex pool entry until this was restored.
+def _probe_codex_quota_restored(
+    access_token: Any,
+    *,
+    base_url: Optional[str] = None,
+    min_interval_seconds: float = CODEX_QUOTA_PROBE_MIN_INTERVAL_SECONDS,
+) -> Optional[bool]:
+    """Ask the Codex usage endpoint whether this account's quota is usable again.
+
+    Hermes persists a Codex 429's ``reset_at`` locally and freezes the
+    credential until it elapses — but the upstream window can reopen EARLY
+    (the user redeems a banked rate-limit reset via the Codex CLI/ChatGPT UI,
+    upgrades their plan, or OpenAI resets the window).  This probe detects
+    that: it GETs the same ``/usage`` endpoint the Codex CLI uses and checks
+    the reported windows.
+
+    Returns:
+      * ``True``  — every reported rate-limit window is below 100% used;
+        the account can serve requests again and stale local cooldowns
+        should be lifted.
+      * ``False`` — a window is still fully used (or the probe itself 429'd);
+        keep the cooldown.
+      * ``None``  — indeterminate (no token, network error, unexpected
+        payload/status); keep the cooldown.
+
+    Probes are throttled per access token (module-local cache) so the hot
+    selection path can fire this freely.
+    """
+    token = str(access_token or "").strip()
+    if not token:
+        return None
+    # Real Codex access tokens are JWTs. Refusing to probe non-JWT tokens
+    # avoids pointless network calls for corrupt/placeholder entries (and
+    # keeps hermetic test fixtures with dummy tokens offline).
+    if not _decode_jwt_claims(token):
+        return None
+    cache_key = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    now = time.monotonic()
+    with _codex_quota_probe_lock:
+        cached = _codex_quota_probe_cache.get(cache_key)
+        if cached is not None and (now - cached[0]) < min_interval_seconds:
+            return cached[1]
+        # Reserve the slot immediately so concurrent selectors don't stampede
+        # the endpoint while this probe is in flight.
+        _codex_quota_probe_cache[cache_key] = (now, None)
+
+    result: Optional[bool] = None
+    try:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "codex-cli",
+        }
+        # Best-effort ChatGPT-Account-Id from the JWT (the backend requires it
+        # for some account shapes; harmless to omit for others).
+        claims = _decode_jwt_claims(token)
+        account_id = (
+            claims.get("https://api.openai.com/auth", {}).get("chatgpt_account_id")
+            if isinstance(claims.get("https://api.openai.com/auth"), dict)
+            else None
+        )
+        if isinstance(account_id, str) and account_id.strip():
+            headers["ChatGPT-Account-Id"] = account_id.strip()
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(_codex_usage_probe_url(base_url), headers=headers)
+        if response.status_code == 200:
+            payload = response.json() or {}
+            rate_limit = payload.get("rate_limit") or {}
+            worst_used: Optional[float] = None
+            for key in ("primary_window", "secondary_window"):
+                used = (rate_limit.get(key) or {}).get("used_percent")
+                if isinstance(used, (int, float)):
+                    worst_used = max(worst_used or 0.0, float(used))
+            if worst_used is not None:
+                result = worst_used < 100.0
+        elif response.status_code == 429:
+            result = False
+    except Exception:
+        logger.debug("Codex quota probe failed", exc_info=True)
+        result = None
+
+    with _codex_quota_probe_lock:
+        _codex_quota_probe_cache[cache_key] = (now, result)
+    return result
+
+
+# _xai_proactive_refresh_skew_seconds -- restored from
+# a98aee47ce:hermes_cli/auth.py. Target of a live dangling call site at
+# agent/credential_pool.py:1760 (``CredentialPool._entry_needs_refresh``),
+# which raised AttributeError for every xai-oauth pool entry.
+#
+# Behaviour note: upstream pairs this with
+# XAI_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 3600, so the short-token cap
+# actually narrows the window. In this tree that constant is 120, so the
+# function returns 120 in every branch — i.e. restoring it changes nothing
+# except removing the crash. The constant is deliberately left at 120.
+def _xai_proactive_refresh_skew_seconds(access_token: str) -> int:
+    """How far before JWT ``exp`` to proactively refresh xAI OAuth tokens.
+
+    SuperGrok sessions can still ship multi-hour access tokens, where the
+    gateway-oriented :data:`XAI_ACCESS_TOKEN_REFRESH_SKEW_SECONDS` window
+    makes sense. Device-code logins often return ~15-minute JWTs; applying
+    the full hour-long skew to those forces a refresh on *every* credential
+    resolution (chat turn, Imagine tool call, ``hermes auth status``, …),
+    which burns single-use refresh tokens and races concurrent callers into
+    ``invalid_grant`` quarantine.
+    """
+    max_skew = XAI_ACCESS_TOKEN_REFRESH_SKEW_SECONDS
+    if not isinstance(access_token, str) or "." not in access_token:
+        return max_skew
+    try:
+        parts = access_token.split(".")
+        if len(parts) < 2:
+            return max_skew
+        payload_b64 = parts[1]
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64.encode("ascii")).decode("utf-8"))
+        exp = payload.get("exp")
+        if not isinstance(exp, (int, float)):
+            return max_skew
+        remaining = float(exp) - time.time()
+        if remaining <= 0:
+            return max_skew
+        if remaining <= 45 * 60:
+            return min(120, max_skew)
+        return max_skew
+    except Exception:
+        return max_skew
+
+
+# XAI_OAUTH_DEVICE_CODE_URL -- dependency of a restored definition.
+XAI_OAUTH_DEVICE_CODE_URL = f"{XAI_OAUTH_ISSUER}/oauth2/device/code"
+
+
+# _xai_oauth_request_device_code -- dependency of a restored definition.
+def _xai_oauth_request_device_code(
+    client: httpx.Client,
+    *,
+    scope: str = XAI_OAUTH_SCOPE,
+) -> Dict[str, Any]:
+    response = client.post(
+        XAI_OAUTH_DEVICE_CODE_URL,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+        data={
+            "client_id": XAI_OAUTH_CLIENT_ID,
+            "scope": scope,
+        },
+    )
+    if response.status_code != 200:
+        raise AuthError(
+            f"xAI device-code request failed (HTTP {response.status_code})."
+            + (f" Response: {response.text.strip()}" if response.text else ""),
+            provider="xai-oauth",
+            code="device_code_request_failed",
+        )
+    payload = response.json()
+    required = (
+        "device_code",
+        "user_code",
+        "verification_uri",
+        "verification_uri_complete",
+        "expires_in",
+        "interval",
+    )
+    missing = [key for key in required if key not in payload]
+    if missing:
+        raise AuthError(
+            f"xAI device-code response missing fields: {', '.join(missing)}",
+            provider="xai-oauth",
+            code="device_code_invalid",
+        )
+    return payload
+
+
+# _xai_oauth_poll_device_token -- restored from a98aee47ce:hermes_cli/auth.py.
+def _xai_oauth_poll_device_token(
+    client: httpx.Client,
+    *,
+    token_endpoint: str,
+    device_code: str,
+    expires_in: int,
+    poll_interval: int,
+) -> Dict[str, Any]:
+    deadline = time.monotonic() + max(1, int(expires_in))
+    current_interval = max(1, int(poll_interval))
+    while time.monotonic() < deadline:
+        response = client.post(
+            token_endpoint,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+            data={
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": XAI_OAUTH_CLIENT_ID,
+                "device_code": device_code,
+            },
+        )
+        if response.status_code == 200:
+            payload = response.json()
+            if not payload.get("access_token"):
+                raise AuthError(
+                    "xAI device-code token response did not include an access_token.",
+                    provider="xai-oauth",
+                    code="xai_device_token_invalid",
+                )
+            if not payload.get("refresh_token"):
+                raise AuthError(
+                    "xAI device-code token response did not include a refresh_token.",
+                    provider="xai-oauth",
+                    code="xai_device_token_invalid",
+                )
+            return payload
+
+        try:
+            error_payload = response.json()
+        except Exception:
+            response.raise_for_status()
+            raise AuthError(
+                "xAI device-code token polling returned a non-JSON error response.",
+                provider="xai-oauth",
+                code="xai_device_token_failed",
+            )
+        error_code = str(error_payload.get("error") or "")
+        if error_code == "authorization_pending":
+            time.sleep(current_interval)
+            continue
+        if error_code == "slow_down":
+            current_interval = min(current_interval + 1, 30)
+            time.sleep(current_interval)
+            continue
+        description = (
+            error_payload.get("error_description")
+            or error_payload.get("error")
+            or response.text
+        )
+        raise AuthError(
+            f"xAI device-code token polling failed: {description}",
+            provider="xai-oauth",
+            code="xai_device_token_failed",
+        )
+    raise AuthError(
+        "Timed out waiting for xAI device authorization.",
+        provider="xai-oauth",
+        code="device_code_timeout",
+    )
+
+
+# _xai_oauth_device_code_login -- dependency of a restored definition, and the
+# target of a live dangling call site at hermes_cli/auth_commands.py:349
+# (``hermes auth add xai-oauth``), which raised AttributeError until this was
+# restored. Note ``_login_xai_oauth`` in this tree still runs the fork's
+# loopback/PKCE flow (``_xai_oauth_loopback_login``) rather than this one —
+# that divergence predates the merge damage and is left alone here.
+def _xai_oauth_device_code_login(
+    *,
+    timeout_seconds: float = 20.0,
+    open_browser: bool = True,
+) -> Dict[str, Any]:
+    discovery = _xai_oauth_discovery(timeout_seconds)
+    token_endpoint = discovery["token_endpoint"]
+    timeout = httpx.Timeout(max(20.0, timeout_seconds))
+    with httpx.Client(timeout=timeout, headers={"Accept": "application/json"}) as client:
+        device_data = _xai_oauth_request_device_code(client)
+        verification_url = str(
+            device_data.get("verification_uri_complete")
+            or device_data["verification_uri"]
+        )
+        user_code = str(device_data["user_code"])
+        expires_in = int(device_data["expires_in"])
+        interval = int(device_data["interval"])
+
+        print()
+        print("To continue:")
+        print(f"  1. Open: {verification_url}")
+        print(f"  2. If prompted, enter code: {user_code}")
+        if open_browser and not _is_remote_session() and _can_open_graphical_browser():
+            try:
+                opened = webbrowser.open(verification_url)
+            except Exception:
+                opened = False
+            if opened:
+                print("  (Opened browser for verification)")
+            else:
+                print("  Could not open browser automatically -- use the URL above.")
+        print(f"Waiting for approval (polling every {max(1, interval)}s)...")
+
+        payload = _xai_oauth_poll_device_token(
+            client,
+            token_endpoint=token_endpoint,
+            device_code=str(device_data["device_code"]),
+            expires_in=expires_in,
+            poll_interval=interval,
+        )
+
+    access_token = str(payload.get("access_token", "") or "").strip()
+    refresh_token = str(payload.get("refresh_token", "") or "").strip()
+    if not access_token or not refresh_token:
+        raise AuthError(
+            "xAI device-code token response was missing required tokens.",
+            provider="xai-oauth",
+            code="xai_device_token_invalid",
+        )
+    base_url = _xai_validate_inference_base_url(
+        os.getenv("HERMES_XAI_BASE_URL", "").strip().rstrip("/")
+        or os.getenv("XAI_BASE_URL", "").strip().rstrip("/"),
+        fallback=DEFAULT_XAI_OAUTH_BASE_URL,
+    )
+    return {
+        "tokens": {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "id_token": str(payload.get("id_token", "") or "").strip(),
+            "expires_in": payload.get("expires_in"),
+            "token_type": str(payload.get("token_type") or "Bearer").strip() or "Bearer",
+        },
+        "discovery": discovery,
+        "redirect_uri": "",
+        "base_url": base_url,
+        "last_refresh": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "source": "oauth-device-code",
+    }
+
+# Restored from a98aee47ce (upstream parent of merge d938501dd3).
+# Adjacent v0.20.0 re-vendor damage, found by enumerating every name the test
+# suite imports from this module -- pytest reports only the first missing name
+# per file, so iterating on its output never converges.
+
+CODEX_RATE_LIMITED_CODE = "codex_rate_limited"
+
+def is_rate_limited_auth_error(error: Exception) -> bool:
+    """True when an :class:`AuthError` represents upstream rate-limiting / quota
+    exhaustion rather than missing or invalid credentials.
+
+    These failures are transient — re-authenticating cannot resolve them — so
+    callers should surface a "retry later" notice and prefer a fallback chain
+    instead of prompting the operator to run ``hermes auth``.
+    """
+    return (
+        isinstance(error, AuthError)
+        and not error.relogin_required
+        and error.code == CODEX_RATE_LIMITED_CODE
+    )
+
+def _nous_device_auth_timeout_message(portal_base_url: str) -> str:
+    """Actionable timeout text for Nous device-code login failures.
+
+    A bare "Timed out waiting for device authorization" gives the user
+    nothing to act on. The most common cause is Portal sign-in failing in
+    the opened browser tab (including the server-side CAPTCHA loop from
+    #20605), so point at the Portal login page and the retry command.
+    """
+    portal = (portal_base_url or DEFAULT_NOUS_PORTAL_URL).rstrip("/")
+    return (
+        "Timed out waiting for device authorization.\n"
+        "  Portal sign-in is required before the device code can be approved.\n"
+        "  If the browser showed a CAPTCHA / 'You did not pass CAPTCHA' error,\n"
+        "  finish signing in at the Portal in a normal browser tab, then retry:\n"
+        "    hermes portal\n"
+        f"  Portal login: {portal}/login"
+    )
+
+_MINIMAX_OAUTH_ERROR_BODY_LIMIT = 16 * 1024
+
+def _minimax_response_error_text(
+    response: httpx.Response,
+    *,
+    limit: int = _MINIMAX_OAUTH_ERROR_BODY_LIMIT,
+) -> str:
+    """Return a bounded error body from a streamed MiniMax OAuth response."""
+    limit = max(0, int(limit))
+    chunks: list[bytes] = []
+    total = 0
+    truncated = False
+    try:
+        if getattr(response, "is_stream_consumed", False):
+            text = response.text
+            return text[:limit] + ("...[truncated]" if len(text) > limit else "")
+
+        for chunk in response.iter_bytes():
+            if not chunk:
+                continue
+            remaining = limit + 1 - total
+            if remaining <= 0:
+                truncated = True
+                break
+            if len(chunk) > remaining:
+                chunks.append(chunk[:remaining])
+                total += remaining
+                truncated = True
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+        raw = b"".join(chunks)
+        if len(raw) > limit:
+            raw = raw[:limit]
+            truncated = True
+        encoding = response.encoding or "utf-8"
+        text = raw.decode(encoding, errors="replace")
+        return text + ("...[truncated]" if truncated else "")
+    finally:
+        response.close()

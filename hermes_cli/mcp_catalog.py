@@ -807,6 +807,147 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     print()
 
 
+def _creds_ready(entry: CatalogEntry) -> bool:
+    """True when an entry needs no credentials, or all required api_key env
+    vars are already present in the environment / ~/.hermes/.env.
+
+    oauth and none auth never block on creds (oauth acquires tokens on first
+    connect; none needs nothing)."""
+    if entry.auth.type != "api_key":
+        return True
+    for spec in entry.auth.env:
+        if spec.required and not get_env_value(spec.name):
+            return False
+    return True
+
+
+def _build_server_config_with_auth_refs(
+    entry: CatalogEntry, install_dir: Optional[Path]
+) -> dict:
+    """Like :func:`_build_server_config`, but also encodes auth credentials as
+    ``${VAR}`` references so a bulk-registered entry is self-documenting and
+    connects the moment ~/.hermes/.env is populated — without ever writing a
+    literal secret.
+
+    - stdio + api_key  -> ``env: {VAR: "${VAR}"}`` for each declared env spec,
+      layered on top of any static ``transport.env`` block.
+    - http  + api_key  -> ``headers`` (inherited from _build_server_config,
+      which emits ``Authorization: Bearer ${MCP_<NAME>_API_KEY}``).
+    - http  + oauth    -> ``auth: oauth`` (inherited from _build_server_config).
+
+    The ${VAR} literals survive save_config untouched (they never equal an
+    expanded value), so credentials are referenced, never persisted.
+    """
+    cfg = _build_server_config(entry, install_dir)
+    auth = entry.auth
+    if auth.type != "api_key":
+        return cfg
+
+    if entry.transport.type == "stdio":
+        env_block = {spec.name: "${" + spec.name + "}" for spec in auth.env}
+        if env_block:
+            # Merge rather than assign: _build_server_config already copied the
+            # manifest's static transport.env (telemetry opt-outs, mode flags)
+            # into cfg["env"], and those are not credentials — clobbering them
+            # would silently diverge from the interactive install_entry() path.
+            cfg.setdefault("env", {}).update(env_block)
+    return cfg
+
+
+def register_entry_noninteractive(
+    entry: CatalogEntry,
+    *,
+    enable_without_creds: bool = False,
+    run_bootstrap: bool = False,
+) -> dict:
+    """Register a single catalog entry WITHOUT prompting, probing, or launching.
+
+    Unlike :func:`install_entry` (the interactive single-server path used by the
+    picker), this never calls ``_prompt_env_vars`` or ``_apply_tool_selection``
+    — so it is safe to fan out across the whole catalog in one shot. Tool
+    filtering is seeded directly from the manifest's ``tools.default_enabled``.
+
+    Returns a status dict ``{"name", "status", "enabled", "detail"}`` where
+    ``status`` is one of:
+      - ``installed``   — written and (creds permitting) enabled.
+      - ``needs_creds`` — written but disabled: required api_key vars are unset
+        in ~/.hermes/.env (unless *enable_without_creds*).
+      - ``skipped``     — has an ``install:`` (git/binary) block and
+        *run_bootstrap* is False; nothing written.
+      - ``failed``      — bootstrap or config write raised (caught here).
+    """
+    name = entry.name
+
+    install_dir: Optional[Path] = None
+    if entry.install is not None:
+        if not run_bootstrap:
+            return {
+                "name": name,
+                "status": "skipped",
+                "enabled": False,
+                "detail": (
+                    f"needs bootstrap — run `hermes mcp install {name}` "
+                    "or re-run --all with --with-bootstrap"
+                ),
+            }
+        try:
+            install_dir = _do_git_install(entry)
+        except Exception as exc:  # noqa: BLE001 — never abort the batch
+            return {"name": name, "status": "failed", "enabled": False,
+                    "detail": str(exc)}
+
+    creds_ok = _creds_ready(entry)
+    enabled = creds_ok or enable_without_creds
+    status = "installed" if creds_ok else "needs_creds"
+
+    try:
+        server_cfg = _build_server_config_with_auth_refs(entry, install_dir)
+        server_cfg["enabled"] = enabled
+        if entry.tools.default_enabled is not None:
+            server_cfg.setdefault("tools", {})["include"] = list(
+                entry.tools.default_enabled
+            )
+        cfg = load_config()
+        cfg.setdefault("mcp_servers", {})[name] = server_cfg
+        save_config(cfg)
+    except Exception as exc:  # noqa: BLE001 — never abort the batch
+        return {"name": name, "status": "failed", "enabled": False,
+                "detail": str(exc)}
+
+    detail = ""
+    if status == "needs_creds":
+        missing = [s.name for s in entry.auth.env
+                   if s.required and not get_env_value(s.name)]
+        detail = "set " + ", ".join(missing) + " in ~/.hermes/.env"
+    return {"name": name, "status": status, "enabled": enabled, "detail": detail}
+
+
+def install_all_entries(
+    *, enable_without_creds: bool = False, run_bootstrap: bool = False
+) -> Dict[str, List[dict]]:
+    """Register every catalog entry non-interactively.
+
+    Each entry is wrapped so one failure never aborts the batch. Returns a
+    summary bucketed by status: ``{"installed": [...], "needs_creds": [...],
+    "skipped": [...], "failed": [...]}``.
+    """
+    summary: Dict[str, List[dict]] = {
+        "installed": [], "needs_creds": [], "skipped": [], "failed": [],
+    }
+    for entry in list_catalog():
+        try:
+            res = register_entry_noninteractive(
+                entry,
+                enable_without_creds=enable_without_creds,
+                run_bootstrap=run_bootstrap,
+            )
+        except Exception as exc:  # noqa: BLE001 — belt-and-suspenders
+            res = {"name": entry.name, "status": "failed", "enabled": False,
+                   "detail": str(exc)}
+        summary.setdefault(str(res["status"]), []).append(res)
+    return summary
+
+
 def uninstall_entry(name: str, *, purge_install_dir: bool = True) -> bool:
     """Remove a catalog-installed MCP from config and (optionally) wipe its
     clone directory. Returns True if anything was removed."""

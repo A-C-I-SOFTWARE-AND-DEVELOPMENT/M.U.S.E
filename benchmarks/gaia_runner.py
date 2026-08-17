@@ -38,6 +38,7 @@ import sys
 import time
 import uuid
 from collections import Counter
+from enum import Enum
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -343,8 +344,52 @@ def _normalize_answer(ans: Any) -> str:
 
 
 def exact_match_score(model_answer: Any, gold_answer: Any) -> bool:
-    """Exact-match against Final answer (case-insensitive, whitespace-normalized)."""
+    """Exact-match against Final answer (case-insensitive, whitespace-normalized).
+
+    Kept byte-for-byte as the GAIA leaderboard's own rule. Do not widen it: a
+    leaderboard number computed with a friendlier comparison is not comparable to
+    anyone else's. `grade_answer` is the wrapper that adds unit interpretation.
+    """
     return _normalize_answer(model_answer) == _normalize_answer(gold_answer)
+
+
+def grade_answer(model_answer: Any, gold_answer: Any, *, context: Any = None):
+    """Grade with unit interpretation applied BEFORE the comparison (§1 p4, §11, §12).
+
+    The driving failure: a Level-1 answer of ``17000`` was graded wrong against a
+    gold field of ``17`` after six correct turns. The work was right and the
+    grader was unit-blind. `exact_match_score` alone cannot tell a unit
+    convention from a wrong answer — and, in the other direction, it reports that
+    ``17 M`` equals ``17 m``.
+
+    Returns the validator's three-way :class:`Verdict`. ``AMBIGUOUS_UNIT`` is not
+    a pass and not a fail: it is a grading defect to surface, because deciding it
+    silently in either direction is how the original bug happened. Callers that
+    need a bool should treat only ``MATCH`` as correct and report the ambiguous
+    count separately rather than folding it into either bucket.
+
+    Falls back to the strict leaderboard rule if the grading tools are absent, so
+    a missing optional dependency degrades to today's behaviour rather than
+    crashing a benchmark run.
+    """
+    try:
+        from tools.grading.validator import Verdict, validate_answer
+    except ImportError:
+        return (
+            _GradeShim.MATCH
+            if exact_match_score(model_answer, gold_answer)
+            else _GradeShim.MISMATCH
+        )
+    result = validate_answer(model_answer, gold_answer, context)
+    return result.verdict if not isinstance(result, tuple) else result[0]
+
+
+class _GradeShim(str, Enum):
+    """Mirrors tools.grading.validator.Verdict when that module is unavailable."""
+
+    MATCH = "match"
+    MISMATCH = "mismatch"
+    AMBIGUOUS_UNIT = "ambiguous_unit"
 
 
 def extract_final_answer(text: str) -> str:

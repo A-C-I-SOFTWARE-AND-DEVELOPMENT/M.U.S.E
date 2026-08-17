@@ -1,9 +1,7 @@
 """Unit tests for resolve_ephemeral_system_prompt_from_config."""
 
-from hermes_cli.config import (
-    render_personality_prompt,
-    resolve_ephemeral_system_prompt_from_config,
-)
+from hermes_cli.config import resolve_ephemeral_system_prompt_from_config
+from hermes_cli.personality import render_personality_prompt
 
 
 def test_resolve_uses_named_personality_when_set():

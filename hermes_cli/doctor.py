@@ -2237,3 +2237,89 @@ def run_doctor(args):
         print(color("  All checks passed! 🎉", Colors.GREEN, Colors.BOLD))
     
     print()
+
+# Restored from a98aee47ce (upstream parent of merge d938501dd3).
+# Adjacent v0.20.0 re-vendor damage, found by enumerating every name the test
+# suite imports from this module -- pytest reports only the first missing name
+# per file, so iterating on its output never converges.
+
+STATE_DB_SIZE_WARN_BYTES = 1 * 1024 * 1024 * 1024   # 1 GiB logical size
+
+def _render_state_db_stats(stats: dict, holders=None) -> list:
+    """Turn a collect_state_db_stats() dict into doctor output lines.
+
+    Returns a list of ``(kind, text, detail)`` tuples where kind is one of
+    'info' / 'warn'. Pure formatting — no I/O — so it is unit-testable
+    without spawning the doctor CLI. Tolerates None in every field.
+    """
+    lines: list = []
+    stats = stats or {}
+
+    logical = stats.get("logical_size_bytes")
+    wal = stats.get("wal_size_bytes")
+    freelist = stats.get("freelist_count")
+
+    size_bits = []
+    if logical is not None:
+        size_bits.append(f"logical size {_human_bytes(logical)}")
+    if stats.get("page_count") is not None:
+        size_bits.append(f"{stats['page_count']:,} pages")
+    if freelist is not None:
+        size_bits.append(f"{freelist:,} free")
+    if wal is not None:
+        size_bits.append(f"WAL {_human_bytes(wal)}")
+    if size_bits:
+        lines.append(("info", "state.db " + ", ".join(size_bits), ""))
+
+    row_bits = []
+    if stats.get("messages") is not None:
+        row_bits.append(f"{stats['messages']:,} messages")
+    if stats.get("sessions") is not None:
+        row_bits.append(f"{stats['sessions']:,} sessions")
+    if stats.get("journal_mode"):
+        row_bits.append(f"journal_mode={stats['journal_mode']}")
+    if holders is not None:
+        row_bits.append(f"{holders} process(es) holding the DB open")
+    if row_bits:
+        lines.append(("info", ", ".join(row_bits), ""))
+
+    fts = stats.get("fts_tables")
+    if fts:
+        present = [t for t, ok in fts.items() if ok]
+        lines.append((
+            "info",
+            "FTS tables: " + (", ".join(present) if present else "none"),
+            "",
+        ))
+
+    # Advisory: oversized database. Suggest auto_prune, and — when the v23
+    # FTS rebuild is pending OR the DB still carries the legacy inline
+    # trigram layout (fts_storage_version marker absent) — the offline
+    # optimize-storage pass that migrates/compacts the FTS indexes.
+    if logical is not None and logical > STATE_DB_SIZE_WARN_BYTES:
+        detail = (
+            "consider enabling sessions.auto_prune in config.yaml "
+            "to bound growth"
+        )
+        legacy_trigram = (
+            fts is not None
+            and fts.get("messages_fts_trigram")
+            and stats.get("fts_storage_version") is None
+        )
+        if stats.get("fts_rebuild_pending") or legacy_trigram:
+            detail += (
+                "; run 'hermes sessions optimize-storage' offline "
+                "(with the gateway stopped) to compact FTS storage"
+            )
+        lines.append((
+            "warn",
+            f"state.db is large ({_human_bytes(logical)})",
+            f"({detail})",
+        ))
+
+    # WAL runaway is deliberately NOT warned here: the pre-existing WAL
+    # check later in the state.db section already warns above 50 MB and
+    # offers a checkpoint via --fix; a second warning at a higher threshold
+    # would only duplicate it.
+
+    return lines

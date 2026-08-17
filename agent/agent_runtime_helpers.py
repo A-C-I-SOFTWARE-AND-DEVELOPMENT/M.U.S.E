@@ -2810,6 +2810,162 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
             )
 
 
+def _tool_bypasses_handle_function_call(agent, function_name: str) -> bool:
+    """True when ``function_name`` is dispatched by a special-case branch that
+    does NOT route through ``model_tools.handle_function_call``.
+
+    Those special-case branches (``delegate_task``, ``todo``, ``memory``,
+    ``session_search``, ``clarify``, memory-provider tools, context-engine
+    tools) never reach ``handle_function_call``'s ``_maybe_broker_block`` call,
+    so a pre-dispatch broker choke point must evaluate them explicitly. Tools
+    that fall through to ``handle_function_call`` are already evaluated there
+    and must NOT be double-evaluated.
+    """
+    # NOTE: this set is the one recovered with the choke point and is kept as-is
+    # deliberately. ``invoke_tool`` has since grown three more special-case
+    # branches (``read_terminal`` / ``read_preview`` / ``read_window_below``,
+    # all read-only view tools) which also bypass ``handle_function_call`` and
+    # are therefore NOT evaluated by the broker. The maintained list of
+    # agent-level branches is ``AGENT_RUNTIME_POST_HOOK_TOOL_NAMES`` above;
+    # widening broker coverage to match it changes what a configured allowlist
+    # denies, so it is left as an explicit, owner-gated decision rather than a
+    # silent side effect of this repair.
+    if function_name in {
+        "delegate_task",
+        "todo",
+        "memory",
+        "session_search",
+        "clarify",
+    }:
+        return True
+    try:
+        mm = getattr(agent, "_memory_manager", None)
+        if mm is not None and mm.has_tool(function_name):
+            return True
+    except Exception:
+        pass
+    try:
+        ce_names = getattr(agent, "_context_engine_tool_names", None)
+        if ce_names and function_name in ce_names:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+# Set once per process the first time the choke point finds
+# ``model_tools._maybe_broker_block`` missing, so the diagnostic below is logged
+# exactly once instead of on every bypassing tool call.
+_BROKER_BRIDGE_MISSING_WARNED = False
+
+
+def _warn_broker_bridge_missing(function_name: str, import_error: Exception) -> None:
+    """Report — once per process — that the broker's config bridge is absent.
+
+    ``maybe_broker_block_bypassing_tool`` is deliberately a thin adapter: the
+    config-to-verdict interpretation (which allowlist/budget/injection controls
+    count as "configured", how a verdict maps onto a block-result) lives in
+    ``model_tools._maybe_broker_block`` and must stay in exactly one place.
+    When that function is missing, this choke point cannot enforce anything and
+    fails open. That is a silent security-relevant gap, so say so out loud
+    rather than swallowing it at debug level: at WARNING when the broker is
+    switched on (the operator believes tools are being gated and they are not),
+    at DEBUG when it is off (the default — nothing is expected to enforce).
+    """
+    global _BROKER_BRIDGE_MISSING_WARNED
+    if _BROKER_BRIDGE_MISSING_WARNED:
+        return
+    _BROKER_BRIDGE_MISSING_WARNED = True
+    enabled = False
+    try:
+        from hermes_cli.jarvis_prime.tool_broker import tool_broker_enabled
+
+        enabled = tool_broker_enabled()
+        if not enabled:
+            from hermes_cli.config import load_config_readonly
+
+            enabled = tool_broker_enabled(load_config_readonly())
+    except Exception:
+        enabled = False
+    message = (
+        "tool_broker pre-dispatch choke point is unwired: "
+        "model_tools._maybe_broker_block is missing (%s), so bypassing tools "
+        "(e.g. %s) are NOT evaluated by the ToolBroker and dispatch fails open"
+    )
+    if enabled:
+        logger.warning(
+            message + " even though security.tool_broker is ENABLED.",
+            import_error,
+            function_name,
+        )
+    else:
+        logger.debug(message + " (broker is off, so nothing changes).", import_error, function_name)
+
+
+def maybe_broker_block_bypassing_tool(
+    agent,
+    function_name: str,
+    function_args: dict,
+    effective_task_id: Optional[str],
+    tool_call_id: Optional[str],
+) -> Optional[str]:
+    """Pre-dispatch ToolBroker choke point for tools that BYPASS
+    ``handle_function_call`` (P1-3).
+
+    Returns a structured block-result string (same shape as
+    ``handle_function_call``'s broker block — starts with ``{"error"``) when a
+    *configured* broker denies / owner-gates / dry-runs the call, otherwise
+    ``None`` (proceed to the special-case dispatch).
+
+    Contract:
+      - Broker OFF (default) → ``_maybe_broker_block`` returns ``None`` after
+        its cheapest gate, so this is a no-op and the special-case dispatch
+        proceeds byte-for-byte unchanged.
+      - Only evaluates tools that bypass ``handle_function_call``; tools that
+        fall through to it are left for its own ``_maybe_broker_block`` call so
+        no tool is double-evaluated.
+      - Never raises: any error fails safe by returning ``None``
+        (pass-through), preserving the fail-safe guarantee.
+      - Requires ``model_tools._maybe_broker_block``, which owns the single
+        copy of the broker's config-to-verdict policy. If that function is
+        absent this choke point cannot enforce and fails open, reporting the
+        gap once via ``_warn_broker_bridge_missing`` rather than silently
+        pretending to gate.
+    """
+    try:
+        if not _tool_bypasses_handle_function_call(agent, function_name):
+            return None
+        # This import is currently dangling and tests/test_no_dangling_imports.py
+        # flags it on purpose: ``_maybe_broker_block`` was dropped from
+        # model_tools.py by the same re-vendor (a480bf0e1f) that dropped this
+        # choke point, and restoring it is a model_tools.py change. Recover it
+        # verbatim from 6c5413e84 (model_tools.py, the "ToolBroker
+        # capability-firewall guard" section) to close both the guard offence
+        # and the broker's enforcement gap. Naming the dependency honestly is
+        # the point — resolving it through getattr() would hide a real gap from
+        # the guard built to catch exactly this.
+        try:
+            from model_tools import _maybe_broker_block
+        except ImportError as _bridge_err:
+            _warn_broker_bridge_missing(function_name, _bridge_err)
+            return None
+
+        return _maybe_broker_block(
+            function_name,
+            function_args if isinstance(function_args, dict) else {},
+            task_id=effective_task_id,
+            session_id=getattr(agent, "session_id", None),
+            tool_call_id=tool_call_id,
+        )
+    except Exception as _broker_err:  # fail-safe: never break dispatch
+        logger.warning(
+            "pre-dispatch tool_broker choke point error; passing through "
+            "(fail-safe): %s",
+            _broker_err,
+        )
+        return None
+
+
 def invoke_tool(agent, function_name: str, function_args: dict, effective_task_id: str,
                  tool_call_id: Optional[str] = None, messages: list = None,
                  pre_tool_block_checked: bool = False,
@@ -2882,6 +3038,18 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
         except Exception:
             pass
         return result
+
+    # ToolBroker pre-dispatch choke point (P1-3) for tools that BYPASS
+    # handle_function_call. Broker OFF (default) → no-op (returns None). A
+    # configured DENY / owner-approval / dry-run short-circuits here with the
+    # structured block-result and skips the special-case dispatch below. Tools
+    # that fall through to handle_function_call are evaluated there instead
+    # (no double-evaluation). Fail-safe: any error passes through.
+    broker_block = maybe_broker_block_bypassing_tool(
+        agent, function_name, function_args, effective_task_id, tool_call_id
+    )
+    if broker_block is not None:
+        return broker_block
 
     tool_start_time = time.monotonic()
 

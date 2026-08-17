@@ -13,7 +13,7 @@ import subprocess
 
 import pytest
 
-from hermes_cli.main import (
+from hermes_cli.update_cmd import (
     _for_each_systemd_gateway_unit,
     _warn_incomplete_gateway_fleet_restart,
 )

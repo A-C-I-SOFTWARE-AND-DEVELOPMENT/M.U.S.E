@@ -56,6 +56,40 @@ class CommandDef:
     gateway_only: bool = False         # only available in gateway/messaging
     gateway_config_gate: str | None = None  # config dotpath; when truthy, overrides cli_only for gateway
     slack_slash: bool = True           # registered in the 50-cap Slack manifest (False: /hermes <name> only)
+    # Mid-run (agent busy) gateway behavior.  Declares what the gateway does
+    # with this command while an agent is already running on the session.
+    # Values:
+    #   "dispatch"                — run the command while the agent is busy
+    #                               (via its normal handler, or the mid-run
+    #                               variant named by ``busy_handler``).
+    #   "reject"                  — refuse mid-run.  Without ``busy_handler``
+    #                               the generic "Agent is running — `/<cmd>`
+    #                               can't run mid-turn" catch-all is returned;
+    #                               with ``busy_handler`` a command-specific
+    #                               reject message is used.
+    #   "interrupt_then_dispatch" — interrupt/kill the running agent first,
+    #                               then dispatch (the /stop, /new, /reset
+    #                               class).  Guard 1 (platforms/base.py)
+    #                               routes these through the cancel-handoff
+    #                               path via is_interrupt_then_dispatch().
+    busy_policy: str = "reject"
+    # Optional key of a special mid-run handler in the Guard-2 handler table
+    # (gateway/run.py) for commands whose busy behavior differs from their
+    # normal handler (e.g. /goal's control-verb whitelist, /queue's FIFO
+    # enqueue, /model's custom busy-reject text).
+    #
+    # NOTE: Guard 2 in this tree is still the explicit per-command if-chain in
+    # ``gateway.run.HermesGateway._handle_message`` (there is no handler
+    # table yet), so no command declares a ``busy_handler`` key today.  The
+    # field is kept so the declarative dispatcher can be re-landed without
+    # another CommandDef signature change.
+    busy_handler: str | None = None
+
+
+# Valid values for CommandDef.busy_policy (see field docs above).
+VALID_BUSY_POLICIES: frozenset[str] = frozenset(
+    {"dispatch", "reject", "interrupt_then_dispatch"}
+)
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +99,8 @@ class CommandDef:
 COMMAND_REGISTRY: list[CommandDef] = [
     # Session
     CommandDef("new", "Start a new session (fresh session ID + history)", "Session",
-               aliases=("reset",), args_hint="[name]"),
+               aliases=("reset",), args_hint="[name]",
+               busy_policy="interrupt_then_dispatch"),
     CommandDef("topic", "Enable or inspect Telegram DM topic sessions", "Session",
                gateway_only=True, args_hint="[off|help|session-id]"),
     CommandDef("clear", "Clear screen and start a new session", "Session",
@@ -90,29 +125,34 @@ COMMAND_REGISTRY: list[CommandDef] = [
                args_hint="[number]"),
     CommandDef("snapshot", "Create or restore state snapshots of muse config/state", "Session",
                cli_only=True, aliases=("snap",), args_hint="[create|restore <id>|prune]"),
-    CommandDef("stop", "Kill all running background processes", "Session"),
+    CommandDef("stop", "Kill all running background processes", "Session",
+               busy_policy="interrupt_then_dispatch"),
     CommandDef("approve", "Approve a pending dangerous command", "Session",
-               gateway_only=True, args_hint="[session|always]"),
+               gateway_only=True, args_hint="[session|always]",
+               busy_policy="dispatch"),
     CommandDef("deny", "Deny a pending dangerous command", "Session",
-               gateway_only=True),
+               gateway_only=True, busy_policy="dispatch"),
     CommandDef("background", "Run a prompt in the background", "Session",
-               aliases=("bg", "btw"), args_hint="<prompt>"),
+               aliases=("bg", "btw"), args_hint="<prompt>",
+               busy_policy="dispatch"),
     CommandDef("agents", "Show active agents and running tasks", "Session",
-               aliases=("tasks",)),
+               aliases=("tasks",), busy_policy="dispatch"),
     CommandDef("queue", "Queue a prompt for the next turn (doesn't interrupt)", "Session",
-               aliases=("q",), args_hint="<prompt>"),
+               aliases=("q",), args_hint="<prompt>", busy_policy="dispatch"),
     CommandDef("steer", "Inject a message after the next tool call without interrupting", "Session",
-               args_hint="<prompt>"),
+               args_hint="<prompt>", busy_policy="dispatch"),
     CommandDef("goal", "Set a standing goal muse works on across turns until achieved", "Session",
-               args_hint="[text | pause | resume | clear | status]"),
+               args_hint="[text | pause | resume | clear | status]",
+               busy_policy="dispatch"),
     CommandDef("subgoal", "Add or manage extra criteria on the active goal", "Session",
-               args_hint="[text | remove N | clear]"),
-    CommandDef("status", "Show session info", "Session"),
+               args_hint="[text | remove N | clear]", busy_policy="dispatch"),
+    CommandDef("status", "Show session info", "Session", busy_policy="dispatch"),
     CommandDef("whoami", "Show your slash command access (admin / user)", "Info"),
     CommandDef("profile",
                "Show active profile name / home, or refresh derived snapshots",
                "Info", args_hint="[build-github-history]",
-               subcommands=("build-github-history",)),
+               subcommands=("build-github-history",),
+               busy_policy="dispatch"),
     CommandDef("sethome", "Set this chat as the home channel", "Session",
                gateway_only=True, aliases=("set-home",)),
     CommandDef("resume", "Resume a previously-named session", "Session",
@@ -138,12 +178,13 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True, aliases=("sb",)),
     CommandDef("verbose", "Cycle tool progress display: off -> new -> all -> verbose",
                "Configuration", cli_only=True,
-               gateway_config_gate="display.tool_progress_command"),
+               gateway_config_gate="display.tool_progress_command",
+               busy_policy="dispatch"),
     CommandDef("footer", "Toggle gateway runtime-metadata footer on final replies",
                "Configuration", args_hint="[on|off|status]",
-               subcommands=("on", "off", "status")),
+               subcommands=("on", "off", "status"), busy_policy="dispatch"),
     CommandDef("yolo", "Toggle YOLO mode (skip all dangerous command approvals)",
-               "Configuration"),
+               "Configuration", busy_policy="dispatch"),
     CommandDef("reasoning", "Manage reasoning effort and display", "Configuration",
                args_hint="[level|show|hide]",
                subcommands=("none", "minimal", "low", "medium", "high", "xhigh", "show", "hide", "on", "off")),
@@ -184,7 +225,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                             "claim", "comment", "complete", "edit", "block", "unblock",
                             "archive", "tail", "dispatch", "stats", "notify-subscribe",
                             "notify-list", "notify-unsubscribe", "log", "runs",
-                            "heartbeat", "assignees", "context", "specify", "gc")),
+                            "heartbeat", "assignees", "context", "specify", "gc"),
+               busy_policy="dispatch"),
     CommandDef("reload", "Reload .env variables into the running session", "Tools & Skills",
                cli_only=True),
     CommandDef("reload-mcp", "Reload MCP servers from config", "Tools & Skills",
@@ -199,10 +241,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
 
     # Info
     CommandDef("commands", "Browse all commands and skills (paginated)", "Info",
-               gateway_only=True, args_hint="[page]"),
-    CommandDef("help", "Show available commands", "Info"),
+               gateway_only=True, args_hint="[page]", busy_policy="dispatch"),
+    CommandDef("help", "Show available commands", "Info", busy_policy="dispatch"),
     CommandDef("restart", "Gracefully restart the gateway after draining active runs", "Session",
-               gateway_only=True),
+               gateway_only=True, busy_policy="dispatch"),
     CommandDef("usage", "Show token usage and rate limits for the current session", "Info"),
     CommandDef("insights", "Show usage insights and analytics", "Info",
                args_hint="[days]"),
@@ -216,7 +258,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("image", "Attach a local image file for your next prompt", "Info",
                cli_only=True, args_hint="<path>"),
-    CommandDef("update", "Update M.U.S.E. — on a fork, autonomously consolidates upstream/main + your current branch into main (auto-resolves conflicts, pushes to origin)", "Info"),
+    CommandDef("update", "Update M.U.S.E. — on a fork, autonomously consolidates upstream/main + your current branch into main (auto-resolves conflicts, pushes to origin)", "Info",
+               busy_policy="dispatch"),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info"),
 
     # Orchestration (native slash commands).
@@ -409,27 +452,14 @@ def is_gateway_known_command(name: str | None) -> bool:
     return False
 
 
-# Commands with explicit Level-2 running-agent handlers in gateway/run.py.
-# Listed here for introspection / tests; semantically a subset of
-# "all resolvable commands" — which is the real bypass set (see
-# should_bypass_active_session below).
+# Commands with explicit mid-run (running-agent) behavior in gateway/run.py.
+# DERIVED from the registry: every command whose ``busy_policy`` is not
+# "reject" either dispatches while the agent is busy or interrupts it first.
+# Kept under its historical public name for introspection / tests;
+# semantically a subset of "all resolvable commands" — which is the real
+# bypass set (see should_bypass_active_session below).
 ACTIVE_SESSION_BYPASS_COMMANDS: frozenset[str] = frozenset(
-    {
-        "agents",
-        "approve",
-        "background",
-        "commands",
-        "deny",
-        "help",
-        "new",
-        "profile",
-        "queue",
-        "restart",
-        "status",
-        "steer",
-        "stop",
-        "update",
-    }
+    cmd.name for cmd in COMMAND_REGISTRY if cmd.busy_policy != "reject"
 )
 
 
@@ -1036,6 +1066,23 @@ _SLACK_RESERVED_COMMANDS = frozenset({
     "topic", "mute", "pro", "shortcuts",
 })
 
+# Canonical commands intentionally NOT given a native Slack slash slot. Slack
+# caps apps at 50 slash commands and the registry is at that ceiling; rather
+# than let the clamp silently drop whichever command sorts last (and break
+# Telegram parity), we explicitly route low-frequency commands through
+# ``/hermes <command>`` on Slack only. They remain native on every other
+# surface (CLI, TUI, Telegram, Discord). The telegram-parity test reads this
+# set, so membership is a deliberate "Slack-via-/hermes" decision rather than
+# a silent clamp.
+#
+# DERIVED from ``CommandDef.slack_slash``: this fork declares the curation on
+# the registry entry itself (``slack_slash=False``, added for /flywheel) and
+# ``slack_native_slashes`` already filters on that field, so the set is
+# computed from it instead of being hand-maintained in two places.
+_SLACK_VIA_HERMES_ONLY: frozenset[str] = frozenset(
+    cmd.name for cmd in COMMAND_REGISTRY if not cmd.slack_slash
+)
+
 
 def _sanitize_slack_name(raw: str) -> str:
     """Convert a command name to a valid Slack slash command name.
@@ -1083,6 +1130,9 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         if not slack_name or slack_name in seen:
             return
         if slack_name in _SLACK_RESERVED_COMMANDS:
+            return
+        if slack_name in _SLACK_VIA_HERMES_ONLY:
+            # Intentionally Slack-via-/hermes only (see _SLACK_VIA_HERMES_ONLY).
             return
         if len(entries) >= _SLACK_MAX_SLASH_COMMANDS:
             return

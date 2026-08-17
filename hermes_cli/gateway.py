@@ -6024,3 +6024,21 @@ def _spawn_gateway_restart_watcher(old_pid: int, run_argv: list[str]) -> bool:
         except OSError:
             return False
     return True
+
+# Restored from a98aee47ce (upstream parent of merge d938501dd3).
+# Adjacent v0.20.0 re-vendor damage, found by enumerating every name the test
+# suite imports from this module -- pytest reports only the first missing name
+# per file, so iterating on its output never converges.
+
+def _strip_optional_systemd_directives(text: str) -> str:
+    """Remove systemd directives that older hosts silently drop."""
+    lines = text.splitlines()
+    filtered = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            key = stripped.split("=", 1)[0].strip()
+            if key in _SYSTEMD_OPTIONAL_DIRECTIVES:
+                continue
+        filtered.append(line)
+    return "\n".join(filtered)

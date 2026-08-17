@@ -785,6 +785,42 @@ class PluginContext:
             self.manifest.name, provider.name,
         )
 
+    # -- 3D asset generation provider registration ---------------------------
+
+    def register_asset3d_gen_provider(self, provider) -> None:
+        """Register a text-to-3D asset generation backend.
+
+        ``provider`` must be an instance of
+        :class:`agent.asset3d_gen_provider.Asset3DGenProvider`. The
+        ``provider.name`` attribute is what ``asset3d_gen.provider`` in
+        ``config.yaml`` matches against when routing ``asset3d_generate``
+        tool calls.
+
+        Restored: the provider protocol, the registry, both bundled backends
+        (``plugins/asset3d_gen/meshy``, ``plugins/asset3d_gen/hunyuan3d``) and
+        their tests all referenced this hook, but the method itself was dropped
+        from ``PluginContext``. Both bundled plugins therefore failed to load
+        with ``'PluginContext' object has no attribute
+        'register_asset3d_gen_provider'``, which took ``asset3d_generate`` --
+        and with it the Game Studio pack's 3D path -- offline. Caught by the
+        registration smoke layer added for Work Packet §5.2.
+        """
+        from agent.asset3d_gen_provider import Asset3DGenProvider
+        from agent.asset3d_gen_registry import register_provider as _register_asset3d_provider
+
+        if not isinstance(provider, Asset3DGenProvider):
+            logger.warning(
+                "Plugin '%s' tried to register an asset3d_gen provider that does "
+                "not inherit from Asset3DGenProvider. Ignoring.",
+                self.manifest.name,
+            )
+            return
+        _register_asset3d_provider(provider)
+        logger.info(
+            "Plugin '%s' registered asset3d_gen provider: %s",
+            self.manifest.name, provider.name,
+        )
+
     # -- web search/extract provider registration ----------------------------
 
     def register_web_search_provider(self, provider) -> None:

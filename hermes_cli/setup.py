@@ -2747,6 +2747,37 @@ def setup_tools(config: dict, first_install: bool = False):
 
 
 # =============================================================================
+# Shared Metrics
+# =============================================================================
+
+
+def setup_telemetry(config: dict):
+    """Configure the local, privacy-safe shared-metrics subscriber."""
+    print_header("Shared Metrics")
+    print_info("Shared metrics contain only bounded counters and histograms.")
+    print_info("Packages stay under this Hermes profile and are not uploaded.")
+
+    telemetry = config.get("telemetry")
+    if not isinstance(telemetry, dict):
+        telemetry = {}
+        config["telemetry"] = telemetry
+    shared_metrics = telemetry.get("shared_metrics")
+    if not isinstance(shared_metrics, dict):
+        shared_metrics = {}
+        telemetry["shared_metrics"] = shared_metrics
+
+    current = shared_metrics.get("enabled") is True
+    shared_metrics["enabled"] = prompt_yes_no(
+        "Enable local shared metrics?",
+        default=current,
+    )
+    if shared_metrics["enabled"]:
+        print_success("Local shared metrics enabled.")
+    else:
+        print_info("Local shared metrics disabled.")
+
+
+# =============================================================================
 # Post-Migration Section Skip Logic
 # =============================================================================
 
@@ -3165,6 +3196,7 @@ SETUP_SECTIONS = [
     ("terminal", "Terminal Backend", setup_terminal_backend),
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),
+    ("telemetry", "Shared Metrics", setup_telemetry),
     ("agent", "Agent Settings", setup_agent_settings),
     ("trio", "Orchestrator Trio (planner/executor/critic)", setup_orchestrator_trio),
 ]
@@ -3319,7 +3351,8 @@ def run_setup_wizard(args):
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
         print_info("Tip: jump straight to a section with 'hermes setup model|terminal|")
-        print_info("     gateway|tools|agent|trio', or fill only missing items with --quick.")
+        print_info("     gateway|tools|telemetry|agent|trio', or fill only missing items")
+        print_info("     with --quick.")
         # Fall through to the "Full Setup — run all sections" block below.
         # --reconfigure is now the default on existing installs; the flag
         # is preserved for backwards compatibility but is a no-op here.
@@ -3341,10 +3374,14 @@ def run_setup_wizard(args):
         setup_mode = prompt_choice("How would you like to set up muse", [
             "Quick setup — provider, model & messaging (recommended)",
             "Full setup — configure everything",
+            "Blank Slate — everything off except the bare minimum; opt in to each capability",
         ], 0)
 
         if setup_mode == 0:
             _run_first_time_quick_setup(config, hermes_home, is_existing)
+            return
+        if setup_mode == 2:
+            _run_blank_slate_setup(config, hermes_home, is_existing)
             return
 
     # ── Full Setup — run all sections ──
@@ -3433,6 +3470,242 @@ def _run_first_time_quick_setup(config: dict, hermes_home, is_existing: bool):
     print_info("  Configure all settings:    hermes setup")
     if gateway_choice != 0:
         print_info("  Connect Telegram/Discord:  hermes setup gateway")
+    print()
+
+    _print_setup_summary(config, hermes_home)
+
+
+def _blank_slate_minimal_toolsets(config: dict):
+    """Write the minimal toolset state for a Blank Slate install.
+
+    Only ``file`` and ``terminal`` are enabled. Two layers enforce this:
+
+    1. ``platform_toolsets["cli"] = ["file", "terminal"]`` — an explicit list of
+       configurable keys, which the resolver treats as authoritative
+       (``has_explicit_config``) so default toolsets aren't re-expanded.
+    2. ``agent.disabled_toolsets`` — a global hard-suppression list (applied last
+       in ``_get_platform_tools``, overriding every other path including the
+       non-configurable platform-toolset recovery that would otherwise re-add
+       toolsets like ``kanban``). We list every known toolset except the two we
+       keep, guaranteeing a true blank slate regardless of platform/recovery
+       quirks. The user re-enables any of them later via ``hermes tools`` (which
+       rewrites ``platform_toolsets``) or by editing ``agent.disabled_toolsets``.
+    """
+    keep = {"file", "terminal"}
+    config.setdefault("platform_toolsets", {})["cli"] = sorted(keep)
+
+    try:
+        from toolsets import TOOLSETS
+        from hermes_cli.tools_config import CONFIGURABLE_TOOLSETS, _get_plugin_toolset_keys
+
+        all_keys = set()
+        all_keys.update(k for k, _, _ in CONFIGURABLE_TOOLSETS)
+        all_keys.update(_get_plugin_toolset_keys())
+        # Plain (non-composite) TOOLSETS entries — catches recovered toolsets
+        # like ``kanban`` that aren't in CONFIGURABLE_TOOLSETS but get re-added.
+        for k, tdef in TOOLSETS.items():
+            if k.startswith("hermes-"):
+                continue  # platform composites — not user-facing toolsets
+            if isinstance(tdef, dict) and tdef.get("includes"):
+                continue  # composite groupings, not leaf toolsets
+            if isinstance(tdef, dict) and tdef.get("posture"):
+                continue  # posture toolsets (e.g. coding) are session-level
+                # selections made by agent/coding_context.py — not permanent
+                # user-facing disables. Adding them here causes model_tools
+                # to subtract their tools (terminal, read_file, …) from the
+                # minimal Blank Slate surface (#57315).
+            all_keys.add(k)
+
+        disabled = sorted(all_keys - keep)
+        if disabled:
+            config.setdefault("agent", {})["disabled_toolsets"] = disabled
+    except Exception as exc:
+        logger.debug("blank-slate disabled_toolsets computation skipped: %s", exc)
+
+
+def _blank_slate_minimize_config(config: dict):
+    """Turn OFF the optional config features for a Blank Slate install.
+
+    Everything here is opt-in afterwards via ``hermes setup agent`` /
+    ``hermes config set``. We keep only what's needed to run.
+    """
+    config.setdefault("agent", {})["max_turns"] = 90
+
+    # Compression off — minimal footprint; user opts in if they want long sessions.
+    config.setdefault("compression", {})["enabled"] = False
+
+    # No automatic memory / user-profile capture.
+    mem = config.setdefault("memory", {})
+    mem["memory_enabled"] = False
+    mem["user_profile_enabled"] = False
+
+    # No filesystem checkpoints, no smart model routing, no auto session reset.
+    config.setdefault("checkpoints", {})["enabled"] = False
+    config.setdefault("smart_model_routing", {})["enabled"] = False
+    config.setdefault("session_reset", {})["mode"] = "none"
+
+    # Quiet, minimal display.
+    config.setdefault("display", {})["tool_progress"] = "all"
+
+
+def _run_blank_slate_setup(config: dict, hermes_home, is_existing: bool):
+    """Blank Slate setup — start with everything off except the bare minimum.
+
+    Forces only the essentials to run an agent (provider + model, the file and
+    terminal toolsets) and turns every other tool/skill/plugin/MCP/config
+    feature OFF. After applying that minimal baseline, the user chooses one of
+    two paths:
+
+      1. Start with everything disabled — finish now with the minimal agent.
+      2. Walk through every configuration — opt each capability back in.
+
+    Either way nothing is enabled that the user did not explicitly choose.
+    """
+
+    print()
+    print_header("Blank Slate Setup")
+    print_info("Everything starts OFF. First we force-enable only what's required")
+    print_info("to run an agent, then you choose whether to stop there or walk")
+    print_info("through enabling more — opting in to exactly what you want.")
+    print_info("")
+    print_info("Forced on: Provider & Model, File Operations, Terminal.")
+    print_info("Everything else (web, browser, code exec, vision, memory,")
+    print_info("delegation, cron, skills, plugins, MCP, …) starts disabled.")
+    print()
+
+    # ── Step 1: Provider & Model (REQUIRED — the agent cannot run without it) ──
+    print_header("Step 1 — Provider & Model (required)")
+    setup_model_provider(config)
+    save_config(config)
+
+    # ── Step 2: Terminal backend (where commands run — a core decision) ──
+    print_header("Step 2 — Terminal Backend")
+    setup_terminal_backend(config)
+
+    # ── Step 3: Lock in the minimal toolset + minimized config knobs ──
+    _blank_slate_minimal_toolsets(config)
+    _blank_slate_minimize_config(config)
+    save_config(config)
+    print()
+    print_success("Minimal baseline applied:")
+    print_info("  Toolsets: file, terminal (everything else off)")
+    print_info("  Compression, memory, checkpoints, smart routing: off")
+
+    # ── The fork: stop here, or walk through enabling things ──
+    print()
+    print_header("How far do you want to go?")
+    path = prompt_choice(
+        "Your minimal agent is ready. What next?",
+        [
+            "Start with everything disabled — finish now (most minimal)",
+            "Walk through all configurations — opt in to tools, skills, plugins, MCP",
+        ],
+        0,
+    )
+
+    if path == 0:
+        save_config(config)
+        # Blank Slate means no bundled skills; record the opt-out so future
+        # `hermes update` runs don't re-inject them.
+        try:
+            from tools.skills_sync import set_bundled_skills_opt_out
+            set_bundled_skills_opt_out(True)
+        except Exception as exc:
+            logger.debug("blank-slate skill opt-out error: %s", exc)
+        print()
+        print_success("Blank Slate setup complete — minimal agent ready.")
+        print_info("Enable anything later, on demand:")
+        print_info("  Enable tools:        hermes tools")
+        print_info("  Seed skills:         hermes skills opt-in --sync")
+        print_info("  Add MCP servers:     hermes mcp add")
+        print_info("  Enable plugins:      hermes plugins")
+        print_info("  Tune agent settings: hermes setup agent")
+        print()
+        _print_setup_summary(config, hermes_home)
+        return
+
+    # ── Walkthrough path — opt in to each capability ──
+    _blank_slate_walkthrough(config, hermes_home)
+
+
+def _blank_slate_walkthrough(config: dict, hermes_home):
+    """Opt-in walkthrough for Blank Slate: skills, tools, plugins, MCP, gateway."""
+    from hermes_cli.config import load_config
+
+    # ── Bundled skills — default to NONE, offer to seed all ──
+    print()
+    print_header("Bundled Skills")
+    print_info("Blank Slate ships with NO bundled skills by default.")
+    seed_skills = prompt_yes_no(
+        "Seed the full bundled skill catalog? (No = start with zero skills)",
+        default=False,
+    )
+    try:
+        from tools.skills_sync import set_bundled_skills_opt_out, sync_skills
+        if seed_skills:
+            # Make sure no stale opt-out marker blocks the seed, then sync.
+            set_bundled_skills_opt_out(False)
+            result = sync_skills(quiet=True)
+            copied = len(result.get("copied", [])) if isinstance(result, dict) else 0
+            print_success(f"Seeded {copied} bundled skills.")
+        else:
+            set_bundled_skills_opt_out(True)
+            print_info("No skills seeded. A .no-bundled-skills marker keeps future")
+            print_info("`hermes update` runs from re-injecting them. Opt back in any")
+            print_info("time with `hermes skills opt-in --sync`.")
+    except Exception as exc:
+        logger.debug("blank-slate skill handling error: %s", exc)
+        print_warning(f"Skill setup step encountered an error: {exc}")
+
+    # ── Walk through enabling additional tools ──
+    print()
+    print_header("Tools")
+    print_info("Pick exactly which additional toolsets to turn on.")
+    print_info("(file and terminal are already on; leave the rest off if you want")
+    print_info(" the most minimal agent.)")
+    if prompt_yes_no("Open the tool selector to enable more tools?", default=False):
+        try:
+            from hermes_cli.tools_config import tools_command
+            tools_command(first_install=False, config=config)
+            # tools_command saves via its own load/save cycle — re-sync.
+            _refreshed = load_config()
+            config.clear()
+            config.update(_refreshed)
+        except Exception as exc:
+            logger.debug("blank-slate tools_command error: %s", exc)
+            print_warning(f"Tool selector encountered an error: {exc}")
+    else:
+        print_info("Keeping the minimal toolset. Add tools later with `hermes tools`.")
+
+    # ── Built-in plugins (off unless chosen) ──
+    print()
+    print_header("Plugins")
+    if prompt_yes_no("Review and enable built-in plugins now?", default=False):
+        print_info("Manage plugins with `hermes plugins list` / `hermes plugins install`.")
+    else:
+        print_info("No plugins enabled. Add later with `hermes plugins`.")
+
+    # ── MCP servers (off unless chosen) ──
+    print()
+    print_header("MCP Servers")
+    if prompt_yes_no("Add an MCP server now?", default=False):
+        print_info("Add servers with `hermes mcp add <name> --url ... | --command ...`.")
+    else:
+        print_info("No MCP servers configured. Add later with `hermes mcp add`.")
+
+    # ── Optional messaging gateway ──
+    print()
+    if prompt_yes_no("Connect a messaging platform (Telegram, Discord, …)?", default=False):
+        setup_gateway(config)
+
+    save_config(config)
+
+    print()
+    print_success("Blank Slate setup complete — minimal agent ready.")
+    print_info("  Enable more tools:   hermes tools")
+    print_info("  Seed skills:         hermes skills opt-in --sync")
+    print_info("  Add MCP servers:     hermes mcp add")
+    print_info("  Tune agent settings: hermes setup agent")
     print()
 
     _print_setup_summary(config, hermes_home)
@@ -3694,3 +3967,19 @@ def _run_portal_one_shot(config: dict) -> None:
     print_success("Portal setup complete.")
     print_info("  Run `hermes portal info` to inspect routing.")
     print_info("  Run `hermes` to start chatting.")
+
+# Restored from a98aee47ce (upstream parent of merge d938501dd3).
+# Adjacent v0.20.0 re-vendor damage, found by enumerating every name the test
+# suite imports from this module -- pytest reports only the first missing name
+# per file, so iterating on its output never converges.
+
+def _profile_name_from_hermes_home(hermes_home) -> str | None:
+    """Return the active profile name when HERMES_HOME is a profile dir."""
+    if hermes_home.parent.name == "profiles":
+        return hermes_home.name
+    return None
+
+def _setup_telegram_auto() -> str | None:
+    """Attempt automatic Telegram bot creation and return only the token."""
+    result = _setup_telegram_auto_result()
+    return result.token if result else None

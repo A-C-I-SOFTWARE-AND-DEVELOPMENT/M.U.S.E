@@ -916,6 +916,40 @@ def _model_sort_key(model_id: str, prefix: str) -> tuple:
     return version_key + (suffix_rank, suffix) + date_key
 
 
+def _suggest_close_models(key: str, current_provider: str) -> list[str]:
+    """Best-effort "did you mean" candidates for a failed model lookup.
+
+    Pools known alias names with the current provider's catalog IDs and
+    returns up to three close matches. Never raises — suggestions are
+    purely cosmetic.
+    """
+    from difflib import get_close_matches
+
+    candidates = set(MODEL_ALIASES)
+    # The handlers below log only exception class names and static text:
+    # provider names and error messages originate in config / HTTP layers
+    # that can carry credentials, and CodeQL treats them as tainted.
+    try:
+        _ensure_direct_aliases()
+        candidates.update(DIRECT_ALIASES)
+    except Exception as exc:
+        logger.debug(
+            "direct-alias pool unavailable for suggestions: %s", type(exc).__name__
+        )
+    if current_provider:
+        try:
+            candidates.update(list_provider_models(current_provider) or [])
+        except Exception as exc:
+            logger.debug(
+                "provider catalog unavailable for suggestions: %s", type(exc).__name__
+            )
+    try:
+        return get_close_matches(key, sorted(candidates), n=3, cutoff=0.5)
+    except Exception as exc:
+        logger.debug("close-match scoring failed: %s", type(exc).__name__)
+        return []
+
+
 class AmbiguousAliasError(Exception):
     """Alias family-matches multiple catalog models; caller must disambiguate.
 
@@ -1543,14 +1577,18 @@ def switch_model(
                     )
                 else:
                     identity = MODEL_ALIASES[key]
+                    message = (
+                        f"Alias '{key}' maps to {identity.vendor}/{identity.family} "
+                        f"but no matching model was found in any provider catalog. "
+                        f"Try specifying the full model name."
+                    )
+                    suggestions = _suggest_close_models(key, current_provider)
+                    if suggestions:
+                        message += "\n  Did you mean: " + ", ".join(suggestions) + "?"
                     return ModelSwitchResult(
                         success=False,
                         is_global=is_global,
-                        error_message=(
-                            f"Alias '{key}' maps to {identity.vendor}/{identity.family} "
-                            f"but no matching model was found in any provider catalog. "
-                            f"Try specifying the full model name."
-                        ),
+                        error_message=message,
                     )
             elif not resolved_moa_preset:
                 # --- Step c: On aggregator, convert vendor:model to vendor/model ---
@@ -1954,6 +1992,40 @@ import threading as _threading  # noqa: E402
 _picker_prewarm_done = _threading.Event()
 
 
+def _has_fast_aws_sdk_signal() -> bool:
+    """Return True when explicit AWS auth config is present.
+
+    Extracted from ``list_authenticated_providers`` so the picker can decide
+    Bedrock is authenticated without asking botocore to walk its full
+    credential chain. Provider discovery runs for non-Bedrock providers too,
+    and botocore may otherwise probe EC2 IMDS (169.254.169.254) on local
+    machines before returning no credentials.
+
+    A signal is: a non-empty ``AWS_BEARER_TOKEN_BEDROCK``; a non-empty
+    access-key *pair*; or any of ``AWS_PROFILE``, the two container-
+    credentials URIs, or ``AWS_WEB_IDENTITY_TOKEN_FILE``. A lone access key
+    without its secret is not a signal.
+    """
+    import os
+
+    if os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip():
+        return True
+    if (
+        os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+        and os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+    ):
+        return True
+    return any(
+        os.environ.get(name, "").strip()
+        for name in (
+            "AWS_PROFILE",
+            "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
+            "AWS_CONTAINER_CREDENTIALS_FULL_URI",
+            "AWS_WEB_IDENTITY_TOKEN_FILE",
+        )
+    )
+
+
 def _credential_pool_is_usable(provider: str, *, raw_pool_present: bool = False) -> bool:
     """Return whether *provider* has a credential that can be selected now.
 
@@ -2173,31 +2245,6 @@ def list_authenticated_providers(
         normed = _norm_url(url)
         if normed:
             _builtin_endpoints.add(normed)
-
-    def _has_fast_aws_sdk_signal() -> bool:
-        """Return True when explicit AWS auth config is present.
-
-        This intentionally avoids botocore's full credential chain. Provider
-        picker/model-switch discovery can run for non-Bedrock providers, and
-        botocore may otherwise probe EC2 IMDS (169.254.169.254) on local
-        machines before returning no credentials.
-        """
-        if os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip():
-            return True
-        if (
-            os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
-            and os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
-        ):
-            return True
-        return any(
-            os.environ.get(name, "").strip()
-            for name in (
-                "AWS_PROFILE",
-                "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
-                "AWS_CONTAINER_CREDENTIALS_FULL_URI",
-                "AWS_WEB_IDENTITY_TOKEN_FILE",
-            )
-        )
 
     def _has_aws_sdk_creds_for_listing(slug: str) -> bool:
         """Credential check for AWS SDK providers in non-runtime discovery."""

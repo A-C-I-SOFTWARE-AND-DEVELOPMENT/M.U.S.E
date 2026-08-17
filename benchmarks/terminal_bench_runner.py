@@ -33,6 +33,52 @@ Usage:
 
     # Filter by tag
     python -m benchmarks.terminal_bench_runner --task_dir tasks/ --tags easy,safe --model kimi-k3
+
+NOTE ON SCOPE: the built-in ``SAMPLE_TASKS`` are a *runner sanity* fixture.
+They are not the canonical Terminal-Bench corpus and nothing this file
+produces is an official Terminal-Bench score.
+
+
+Two recorded defects this module now guards against
+===================================================
+
+**D1 — a provider error was recorded as a benchmark score of 0.**
+The first recorded Terminal-Bench run (``terminal-bench-test.jsonl``,
+2026-07-20T13:24:17) reads ``score 0 / completed false / api_calls 1 /
+test_exit_code 1`` and carries *no* ``error`` field at all. Eleven minutes
+later the identical task passed (``terminal-bench-results.jsonl``,
+13:35:13) with no code change. The cause was structural, not model
+quality: ``client.chat.completions.create`` raised, the agent loop hit
+``except Exception: ... break``, the exception text went to the logger
+(stderr) and was discarded, and the runner then ran ``test_script`` and
+recorded the resulting failure as though the *agent* had failed the task.
+A transport failure and a genuine task failure were indistinguishable in
+the artifact.
+
+Two changes close it:
+
+* transient provider failures are retried with backoff (``api_retries``),
+  which is what an eleven-minute-later re-run was doing by hand; and
+* a task the agent never got to attempt is **not scored**. Its row carries
+  ``score: None``, ``scored: False``, ``status: "provider_error"`` and the
+  full exception, and it is written to the ``.unscored.jsonl`` sidecar
+  rather than into the scored results file. An unmeasured task is ABSENT,
+  never 0 — scoring it 0 would report "the agent tried and failed" about a
+  run in which the agent never ran.
+
+**D2 — the ``__summary__`` row was graded as a failed task.**
+``run_batch`` used to append ``{"__summary__": {...}}`` to the same
+``results.jsonl`` that
+``research_fabric.verifier.terminal_bench.verify`` consumes. That verifier
+counts every row and treats a row with no ``score`` as a failure, so the
+recorded 1/1 (100%) run above grades as **0.5000** — under
+``catalog.ABSOLUTE_FLOOR = 0.80``. A perfect Terminal-Bench run therefore
+failed the promotion ratchet's floor. The summary now goes to a
+``.summary.json`` sidecar and ``results.jsonl`` holds task rows only.
+``include_summary_row=True`` restores the old layout for anyone who was
+parsing it.
+
+Both are locked by ``tests/characterization/test_terminal_bench_regression.py``.
 """
 
 import json
@@ -72,6 +118,42 @@ def _effective_temperature_for_model(
     if result is OMIT_TEMPERATURE:
         return None  # caller must omit temperature
     return result
+
+
+# ============================================================================
+# Result status vocabulary
+# ============================================================================
+
+# The task ran end to end and ``test_script`` decided it. Only these rows are
+# measurements of the agent, and only these rows are written to results.jsonl.
+STATUS_SCORED = "scored"
+# The provider call raised (connection reset, read timeout, 5xx, auth, rate
+# limit) after every retry. The agent never got a turn, so there is nothing to
+# score — see D1 in the module docstring.
+STATUS_PROVIDER_ERROR = "provider_error"
+# ``setup_script`` exited non-zero: the environment was never prepared.
+STATUS_SETUP_FAILED = "setup_failed"
+# The runner itself raised outside the provider call (environment creation,
+# trajectory conversion, ...).
+STATUS_RUNNER_ERROR = "runner_error"
+
+#: Statuses that mean "this row is not a measurement of the agent".
+UNSCORED_STATUSES = frozenset(
+    {STATUS_PROVIDER_ERROR, STATUS_SETUP_FAILED, STATUS_RUNNER_ERROR}
+)
+
+
+def _error_payload(exc: BaseException, attempts: int = 1) -> Dict[str, Any]:
+    """Describe an exception in a form that survives into the JSONL row.
+
+    The recorded 2026-07-20 failure lost exactly this: the message went to
+    ``logging.error`` (stderr) and the artifact kept nothing.
+    """
+    return {
+        "type": type(exc).__name__,
+        "message": str(exc)[:1000],
+        "attempts": attempts,
+    }
 
 
 # ============================================================================
@@ -339,6 +421,8 @@ class TerminalBenchRunner:
         max_iterations: int = 15,
         command_timeout: int = 60,
         verbose: bool = False,
+        api_retries: int = 2,
+        retry_backoff_seconds: float = 2.0,
     ):
         self.model = model
         self.max_iterations = max_iterations
@@ -347,6 +431,13 @@ class TerminalBenchRunner:
         self.env_type = env_type
         self.image = image
         self.cwd = cwd
+        # Extra attempts after the first for a failed provider call. The
+        # recorded 2026-07-20 failure was a transient transport error that
+        # passed on a manual re-run eleven minutes later; retrying is what that
+        # re-run was doing by hand. 0 disables retrying (used by the
+        # characterization tests so they stay fast and offline).
+        self.api_retries = max(0, int(api_retries))
+        self.retry_backoff_seconds = max(0.0, float(retry_backoff_seconds))
 
         # Setup logging
         logging.basicConfig(
@@ -445,6 +536,49 @@ class TerminalBenchRunner:
         safe = script.replace("'", "'\\''")
         cmd = f"bash -lc '{safe}'"
         return self._execute_command(cmd, timeout=timeout or self.command_timeout)
+
+    # -- provider call -------------------------------------------------------
+
+    def _call_model(self, api_messages: List[Dict[str, Any]]):
+        """Call the provider, retrying transient failures with backoff.
+
+        Returns ``(response, error)``. Exactly one of the two is ``None``.
+        ``error`` is the :func:`_error_payload` dict describing the last
+        exception after ``1 + api_retries`` attempts.
+
+        This is the seam that closes D1: the caller can no longer confuse
+        "the provider was unreachable" with "the agent failed the task",
+        because the exception is *returned* rather than logged and dropped.
+        """
+        api_kwargs: Dict[str, Any] = {
+            "model": self.model,
+            "messages": api_messages,
+            "tools": self.tools,
+            "timeout": 300.0,
+        }
+        fixed_temperature = _effective_temperature_for_model(
+            self.model,
+            str(getattr(self.client, "base_url", "") or ""),
+        )
+        if fixed_temperature is not None:
+            api_kwargs["temperature"] = fixed_temperature
+
+        attempts = 1 + self.api_retries
+        last_exc: Optional[BaseException] = None
+        for attempt in range(1, attempts + 1):
+            try:
+                return self.client.chat.completions.create(**api_kwargs), None
+            except Exception as e:  # noqa: BLE001 — any provider failure
+                last_exc = e
+                self.logger.warning(
+                    "provider call failed (attempt %d/%d): %s: %s",
+                    attempt, attempts, type(e).__name__, e,
+                )
+                if attempt < attempts and self.retry_backoff_seconds > 0:
+                    time.sleep(self.retry_backoff_seconds * (2 ** (attempt - 1)))
+
+        assert last_exc is not None
+        return None, _error_payload(last_exc, attempts=attempts)
 
     # -- trajectory formatting (mirrors mini_swe_runner.py) ------------------
 
@@ -562,6 +696,13 @@ class TerminalBenchRunner:
           1. setup_script  (prepares the environment)
           2. agent loop on `instruction` (until completion signal or max iters)
           3. test_script   (verifies the agent's work; exit 0 == pass)
+
+        Every returned row carries ``status`` and ``scored``. ``scored`` is
+        True only when the agent actually got its turn and ``test_script``
+        decided the outcome; in that case ``score`` is 0 or 1. When the run
+        could not be attempted (``setup_failed``, ``provider_error``) the row
+        keeps ``score: None`` and the diagnostic, because an unmeasured task
+        is ABSENT, not a zero.
         """
         task_id = task.get("id", str(uuid.uuid4())[:8])
         instruction = task["instruction"]
@@ -583,16 +724,27 @@ class TerminalBenchRunner:
             print(f"   setup exit_code={setup_result['exit_code']}")
             if setup_result["exit_code"] != 0:
                 self._cleanup_env()
+                # The environment was never prepared, so the agent never had a
+                # fair attempt. Not a score — an unrunnable task.
                 return {
                     "task_id": task_id,
                     "tags": tags,
                     "instruction": instruction,
                     "setup_exit_code": setup_result["exit_code"],
                     "test_exit_code": -1,
-                    "score": 0,
+                    "score": None,
+                    "scored": False,
+                    "status": STATUS_SETUP_FAILED,
                     "completed": False,
                     "api_calls": 0,
-                    "error": f"setup_script failed: {setup_result['output'][:200]}",
+                    "error": {
+                        "type": "SetupScriptFailed",
+                        "message": (
+                            f"setup_script exited {setup_result['exit_code']}: "
+                            f"{setup_result['output'][:500]}"
+                        ),
+                        "attempts": 1,
+                    },
                     "conversations": [],
                     "metadata": {
                         "model": self.model,
@@ -617,6 +769,7 @@ Complete the user's task step by step."""
 
         api_call_count = 0
         completed = False
+        provider_error: Optional[Dict[str, Any]] = None
 
         try:
             while api_call_count < self.max_iterations:
@@ -624,23 +777,20 @@ Complete the user's task step by step."""
                 print(f"\n🔄 API call #{api_call_count}/{self.max_iterations}")
 
                 api_messages = [{"role": "system", "content": system_prompt}] + messages
-                try:
-                    api_kwargs = {
-                        "model": self.model,
-                        "messages": api_messages,
-                        "tools": self.tools,
-                        "timeout": 300.0,
-                    }
-                    fixed_temperature = _effective_temperature_for_model(
-                        self.model,
-                        str(getattr(self.client, "base_url", "") or ""),
+                response, call_error = self._call_model(api_messages)
+                if call_error is not None:
+                    # D1: keep the reason. A provider failure is an
+                    # infrastructure fact about the run, not evidence about the
+                    # agent, and the artifact has to say which one it was.
+                    self.logger.error(
+                        "API call failed after %d attempt(s): %s: %s",
+                        call_error["attempts"], call_error["type"], call_error["message"],
                     )
-                    if fixed_temperature is not None:
-                        api_kwargs["temperature"] = fixed_temperature
-
-                    response = self.client.chat.completions.create(**api_kwargs)
-                except Exception as e:
-                    self.logger.error(f"API call failed: {e}")
+                    print(
+                        f"   ❌ provider error after {call_error['attempts']} attempt(s): "
+                        f"{call_error['type']}: {call_error['message'][:160]}"
+                    )
+                    provider_error = call_error
                     break
 
                 assistant_message = response.choices[0].message
@@ -710,16 +860,32 @@ Complete the user's task step by step."""
             if api_call_count >= self.max_iterations and not completed:
                 print(f"⚠️  Reached max iterations ({self.max_iterations})")
         finally:
-            # 3) test_script — ALWAYS run, even if agent errored,
-            #    so we get a real score. The environment state is left
-            #    intact for the verifier.
+            # 3) test_script — ALWAYS run, even when the provider errored.
+            #    Its exit code is kept as a diagnostic either way; what the
+            #    provider error changes is whether that exit code is allowed
+            #    to become a *score*.
             pass
 
         # Run the verifier
         print("🧪 Running test_script...")
         test_result = self._run_script(test_script, "test")
-        score = 1 if test_result["exit_code"] == 0 else 0
-        print(f"   test exit_code={test_result['exit_code']}  ->  score={score}")
+        test_exit_code = test_result["exit_code"]
+
+        if provider_error is not None:
+            # D1: the agent never completed its turn, so test_script is
+            # measuring an unfinished run. Record it, refuse to score it.
+            status = STATUS_PROVIDER_ERROR
+            scored = False
+            score: Optional[int] = None
+            print(
+                f"   test exit_code={test_exit_code}  ->  UNSCORED "
+                f"({STATUS_PROVIDER_ERROR}); an unmeasured task is ABSENT, not 0"
+            )
+        else:
+            status = STATUS_SCORED
+            scored = True
+            score = 1 if test_exit_code == 0 else 0
+            print(f"   test exit_code={test_exit_code}  ->  score={score}")
 
         # Cleanup
         self._cleanup_env()
@@ -731,11 +897,14 @@ Complete the user's task step by step."""
             "tags": tags,
             "instruction": instruction,
             "setup_exit_code": 0,
-            "test_exit_code": test_result["exit_code"],
+            "test_exit_code": test_exit_code,
             "test_output": test_result["output"][:2000],
             "score": score,
+            "scored": scored,
+            "status": status,
             "completed": completed,
             "api_calls": api_call_count,
+            "error": provider_error,
             "conversations": trajectory,
             "metadata": {
                 "model": self.model,
@@ -746,20 +915,56 @@ Complete the user's task step by step."""
 
     # -- batch entrypoint ----------------------------------------------------
 
+    @staticmethod
+    def sidecar_paths(output_file: str) -> Dict[str, str]:
+        """Return the sidecar paths derived from ``output_file``.
+
+        * ``unscored`` — rows that are not measurements of the agent.
+        * ``summary`` — the batch summary that used to be appended to the
+          results JSONL as a ``__summary__`` row (see D2).
+        """
+        p = Path(output_file)
+        stem = p.name[: -len(p.suffix)] if p.suffix else p.name
+        return {
+            "unscored": str(p.with_name(f"{stem}.unscored.jsonl")),
+            "summary": str(p.with_name(f"{stem}.summary.json")),
+        }
+
     def run_batch(
         self,
         tasks: List[Dict[str, Any]],
         output_file: str = "terminal-bench-results.jsonl",
+        include_summary_row: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Run all tasks sequentially, write results.jsonl, return a summary dict.
-        """
-        results: List[Dict[str, Any]] = []
-        n = len(tasks)
-        print(f"\n📦 Running Terminal-Bench batch: {n} task(s)")
-        print(f"📁 Output: {output_file}")
+        """Run all tasks sequentially, write the artifacts, return a summary.
 
-        with open(output_file, "w", encoding="utf-8") as f:
+        Artifacts written next to ``output_file``:
+
+        * ``output_file`` — **scored task rows only**, one JSON object per
+          line. This is the file
+          ``research_fabric.verifier.terminal_bench.verify`` grades, so it
+          must contain nothing but measurements: that verifier counts every
+          row and treats a row without a ``score`` as a failure (D2).
+        * ``<stem>.unscored.jsonl`` — every task that could not be scored
+          (provider error, setup failure, runner exception), with its full
+          diagnostic. Failures are preserved, never counted.
+        * ``<stem>.summary.json`` — the batch summary.
+
+        ``include_summary_row=True`` also appends the legacy
+        ``{"__summary__": ...}`` row to ``output_file``. It is off by default
+        because that row is what made a recorded 1/1 run grade as 0.5000
+        against ``ABSOLUTE_FLOOR = 0.80``.
+        """
+        scored_rows: List[Dict[str, Any]] = []
+        unscored_rows: List[Dict[str, Any]] = []
+        n = len(tasks)
+        sidecars = self.sidecar_paths(output_file)
+        print(f"\n📦 Running Terminal-Bench batch: {n} task(s)")
+        print(f"📁 Scored results: {output_file}")
+        print(f"📁 Unscored rows:  {sidecars['unscored']}")
+
+        with open(output_file, "w", encoding="utf-8") as scored_f, \
+                open(sidecars["unscored"], "w", encoding="utf-8") as unscored_f:
             for i, task in enumerate(tasks, 1):
                 print(f"\n{'=' * 60}")
                 print(f"📋 Task {i}/{n}: {task.get('id', '?')}")
@@ -772,10 +977,12 @@ Complete the user's task step by step."""
                         "task_id": task.get("id", f"task_{i}"),
                         "tags": task.get("tags", []),
                         "instruction": task.get("instruction", ""),
-                        "score": 0,
+                        "score": None,
+                        "scored": False,
+                        "status": STATUS_RUNNER_ERROR,
                         "completed": False,
                         "api_calls": 0,
-                        "error": str(e),
+                        "error": _error_payload(e),
                         "conversations": [],
                         "metadata": {
                             "model": self.model,
@@ -783,47 +990,84 @@ Complete the user's task step by step."""
                             "timestamp": datetime.now().isoformat(),
                         },
                     }
-                results.append(result)
-                f.write(json.dumps(result, ensure_ascii=False) + "\n")
-                f.flush()
+                line = json.dumps(result, ensure_ascii=False) + "\n"
+                if result.get("scored"):
+                    scored_rows.append(result)
+                    scored_f.write(line)
+                    scored_f.flush()
+                else:
+                    unscored_rows.append(result)
+                    unscored_f.write(line)
+                    unscored_f.flush()
 
-        # Summary
-        scores = [r.get("score", 0) for r in results]
-        passed = sum(scores)
-        accuracy = passed / len(results) if results else 0.0
+        # Summary — computed over SCORED rows only. Unscored tasks are
+        # reported separately and never enter the denominator.
+        passed = sum(1 for r in scored_rows if r.get("score") == 1)
+        n_scored = len(scored_rows)
+        # ABSENT, never zero: with nothing scored there is no accuracy to
+        # report, and 0.0 would read as "everything was tried and failed".
+        accuracy: Optional[float] = (passed / n_scored) if n_scored else None
+
         by_tag: Dict[str, Dict[str, int]] = {}
-        for r in results:
+        for r in scored_rows:
             for t in r.get("tags", []) or ["<untagged>"]:
                 by_tag.setdefault(t, {"passed": 0, "total": 0})
                 by_tag[t]["total"] += 1
-                if r.get("score", 0) == 1:
+                if r.get("score") == 1:
                     by_tag[t]["passed"] += 1
 
+        unscored_by_status: Dict[str, int] = {}
+        for r in unscored_rows:
+            key = str(r.get("status", STATUS_RUNNER_ERROR))
+            unscored_by_status[key] = unscored_by_status.get(key, 0) + 1
+
         summary = {
-            "total": len(results),
+            "tasks_attempted": n,
+            "scored": n_scored,
+            "unscored": len(unscored_rows),
+            "unscored_by_status": unscored_by_status,
             "passed": passed,
             "accuracy": accuracy,
+            "accuracy_basis": "scored_tasks_only",
+            # ``total`` is retained for readers of the old summary shape and
+            # now means "tasks that produced a score", matching ``accuracy``.
+            "total": n_scored,
             "by_tag": {
-                t: {**v, "accuracy": v["passed"] / v["total"] if v["total"] else 0.0}
+                t: {**v, "accuracy": v["passed"] / v["total"] if v["total"] else None}
                 for t, v in by_tag.items()
             },
             "model": self.model,
             "env_type": self.env_type,
+            "results_path": str(output_file),
+            "unscored_path": sidecars["unscored"],
             "timestamp": datetime.now().isoformat(),
+            "note": (
+                "Runner sanity fixture unless --task_dir pointed at the "
+                "canonical Terminal-Bench corpus; not an official score."
+            ),
         }
 
-        # Append a summary line to the JSONL (read by humans / downstream tools)
-        with open(output_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"__summary__": summary}, ensure_ascii=False) + "\n")
+        with open(sidecars["summary"], "w", encoding="utf-8") as f:
+            json.dump(summary, f, ensure_ascii=False, indent=2)
 
+        if include_summary_row:
+            with open(output_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"__summary__": summary}, ensure_ascii=False) + "\n")
+
+        acc_text = "ABSENT (nothing scored)" if accuracy is None else f"{accuracy:.1%}"
         print(f"\n{'=' * 60}")
-        print(f"🏁 Terminal-Bench batch complete")
-        print(f"   Total:    {summary['total']}")
-        print(f"   Passed:   {summary['passed']}")
-        print(f"   Accuracy: {summary['accuracy']:.1%}")
+        print("🏁 Terminal-Bench batch complete")
+        print(f"   Attempted: {summary['tasks_attempted']}")
+        print(f"   Scored:    {summary['scored']}")
+        print(f"   Unscored:  {summary['unscored']}  {unscored_by_status or ''}")
+        print(f"   Passed:    {summary['passed']}")
+        print(f"   Accuracy:  {acc_text}  (over scored tasks only)")
         for tag, stats in summary["by_tag"].items():
-            print(f"   - {tag:12s} {stats['passed']}/{stats['total']}  ({stats['accuracy']:.0%})")
+            tag_acc = stats["accuracy"]
+            tag_text = "ABSENT" if tag_acc is None else f"{tag_acc:.0%}"
+            print(f"   - {tag:12s} {stats['passed']}/{stats['total']}  ({tag_text})")
         print(f"📁 Results written to: {output_file}")
+        print(f"📁 Summary written to: {sidecars['summary']}")
         print(f"{'=' * 60}")
         return summary
 
@@ -846,6 +1090,9 @@ def main(
     max_iterations: int = 10,
     timeout: int = 60,
     verbose: bool = False,
+    api_retries: int = 2,
+    retry_backoff_seconds: float = 2.0,
+    include_summary_row: bool = False,
 ):
     """
     Run Terminal-Bench tasks with Hermes trajectory format output.
@@ -865,6 +1112,18 @@ def main(
         max_iterations: Max tool-calling iterations per task.
         timeout:    Per-command timeout in seconds.
         verbose:    Verbose logging.
+        api_retries: Extra attempts after the first for a failed provider
+                    call (default 2). 0 disables retrying.
+        retry_backoff_seconds: Base delay between provider retries; doubles
+                    per attempt.
+        include_summary_row: Also append the legacy ``{"__summary__": ...}``
+                    row to the results JSONL. Off by default — that row is
+                    graded as a failed task by the ratchet verifier (D2).
+
+    Exit code:
+        2 when tasks were attempted but none could be scored, so a run in
+        which the provider was unreachable cannot be mistaken for a run in
+        which the agent scored 0.
 
     Examples:
         # Quick sanity check (1 built-in task, Kimi K3, local env)
@@ -908,12 +1167,29 @@ def main(
         max_iterations=max_iterations,
         command_timeout=timeout,
         verbose=verbose,
+        api_retries=api_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
     )
 
-    summary = runner.run_batch(tasks, output_file=output)
+    summary = runner.run_batch(
+        tasks, output_file=output, include_summary_row=include_summary_row
+    )
 
-    # Final concise accuracy line for easy grepping
-    print(f"\n📊 SUMMARY accuracy={summary['accuracy']:.4f}  passed={summary['passed']}/{summary['total']}")
+    # Final concise accuracy line for easy grepping. ABSENT rather than
+    # 0.0000 when nothing was scored (see D1).
+    accuracy = summary["accuracy"]
+    acc_text = "ABSENT" if accuracy is None else f"{accuracy:.4f}"
+    print(
+        f"\n📊 SUMMARY accuracy={acc_text}  passed={summary['passed']}/{summary['scored']}"
+        f"  unscored={summary['unscored']} {summary['unscored_by_status'] or ''}"
+    )
+
+    if summary["scored"] == 0 and summary["tasks_attempted"] > 0:
+        print(
+            "❌ No task produced a score — this run measured nothing. "
+            f"See {summary['unscored_path']} for why."
+        )
+        sys.exit(2)
 
 
 if __name__ == "__main__":

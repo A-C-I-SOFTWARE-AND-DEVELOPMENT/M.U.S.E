@@ -324,6 +324,41 @@ override-dependencies = [
   "python-multipart>=0.0.18", # GHSA — transitive (fastapi/mcp)
 ]
 
+# ---------------------------------------------------------------------------
+# Production-build exclusions — the single source of truth.
+#
+# `recovered-agent-sources/` is the byte-preserved archival snapshot of the
+# 2026-07-12 device-consolidation recovery. It is historical evidence, not
+# live code, and it deliberately contains a broken prototype:
+#
+#   recovered-agent-sources/device-consolidation-2026-07-12/
+#     working-tree-overlays/broken-delegate-prototype/tools/delegate_tool.py
+#   line 970 -> IndentationError: expected an indented block after 'elif'
+#               statement on line 968
+#
+# That file is the archive's only whole-tree compile failure, and being broken
+# is exactly what the path name declares it to be.
+#
+# TWO requirements hold at the same time and neither may be dropped:
+#   1. the tree is EXCLUDED from every production build artifact, and
+#   2. the tree is RETAINED ON DISK as historical evidence.
+# Deleting or repairing the prototype to "fix the build" destroys the evidence
+# and is the wrong repair. Excluding it is the right one.
+#
+# The mirrors of this table are:
+#   * MANIFEST.in                              -> `prune recovered-agent-sources`
+#   * [tool.setuptools.packages.find].exclude  -> wheel/sdist package discovery
+#   * [tool.ruff].extend-exclude               -> lint
+#   * [tool.ty.src].exclude                    -> typecheck
+# `tests/characterization/test_build_exclusions.py` enforces that they all
+# agree with this table, that the production file set compiles clean, and that
+# the excluded evidence is still on disk.
+[tool.muse.production-build]
+exclude = ["recovered-agent-sources"]
+retained-evidence = [
+  "recovered-agent-sources/device-consolidation-2026-07-12/working-tree-overlays/broken-delegate-prototype/tools/delegate_tool.py",
+]
+
 [tool.setuptools]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "utils"]
 
@@ -339,6 +374,13 @@ plugins = [
 
 [tool.setuptools.packages.find]
 include = ["agent", "agent.*", "tools", "tools.*", "hermes_cli", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*", "second_brain", "second_brain.*"]
+# Mirrors [tool.muse.production-build].exclude. The include allowlist above
+# already happens to keep the archive out, but that is a side effect of the
+# allowlist rather than a stated rule — one added `"*"` entry would silently
+# pull 209 archived directories (including a nested `hermes_cli`) back into
+# package discovery. This exclude states the rule directly, and is checked by
+# tests/characterization/test_build_exclusions.py.
+exclude = ["recovered-agent-sources", "recovered-agent-sources.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -368,9 +410,13 @@ python-version = "3.13"
 
 [tool.ty.src]
 # Vendored byte-identical upstream payloads are data, not first-party code.
+# recovered-agent-sources/ is the archival snapshot (see
+# [tool.muse.production-build]); it contains a file that does not parse, and
+# typechecking archived evidence is not a goal.
 exclude = [
   "hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor",
   "hermes_cli/jarvis_prime/research_fabric/llm_jepa/vendor",
+  "recovered-agent-sources",
 ]
 
 [tool.ty.rules]

@@ -204,6 +204,108 @@ def _apply_profile_override() -> None:
 
 _apply_profile_override()
 
+
+# Cheap, dependency-free read of `display.interface` from config.yaml for the
+# earliest hot-path decisions (mouse-residue suppression, Termux fast launch)
+# that run *before* hermes_cli.config is importable. Mirrors the explicit
+# precedence used everywhere else: `--cli` always wins, then `--tui`/env, then
+# this config value. Cached so the multiple early callers don't re-parse YAML.
+_EARLY_INTERFACE_CACHE: "list | None" = None
+
+
+def _config_default_interface_early() -> str:
+    """Return the configured default interface ("cli"/"tui") via a minimal
+    YAML read. Best-effort: any error falls back to "cli" (legacy behavior)."""
+    global _EARLY_INTERFACE_CACHE
+    if _EARLY_INTERFACE_CACHE is not None:
+        return _EARLY_INTERFACE_CACHE[0]
+    value = "cli"
+    try:
+        home = os.environ.get("HERMES_HOME")
+        if home:
+            cfg_path = os.path.join(home, "config.yaml")
+        else:
+            cfg_path = os.path.join(os.path.expanduser("~"), ".hermes", "config.yaml")
+        if os.path.exists(cfg_path):
+            import yaml as _yaml_iface
+
+            with open(cfg_path, encoding="utf-8") as _f:
+                raw = _yaml_iface.load(
+                    _f, Loader=getattr(_yaml_iface, "CSafeLoader", None) or _yaml_iface.SafeLoader
+                ) or {}
+            disp = raw.get("display", {})
+            if isinstance(disp, dict):
+                iface = disp.get("interface")
+                if isinstance(iface, str) and iface.strip().lower() == "tui":
+                    value = "tui"
+    except Exception:
+        value = "cli"  # best-effort — default to classic REPL on any error
+    _EARLY_INTERFACE_CACHE = [value]
+    return value
+
+
+def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
+    """Earliest TUI decision, usable before argparse/config imports.
+
+    Precedence: explicit ``--cli`` wins (forces classic REPL), then
+    explicit ``--tui``/``HERMES_TUI=1``, then a real-TTY gate (a
+    non-interactive stdio can't host the Ink UI, so ambient config never
+    boots it there), then ``display.interface`` in config.
+
+    The TTY gate is load-bearing for headless spawners — kanban workers,
+    cron jobs, pipes run ``hermes … chat -q`` with stdio on a pipe. This
+    is the earliest launch decision (it runs before ``cmd_chat`` /
+    ``_resolve_use_tui``), so a ``display.interface: tui`` default used to
+    boot the TUI here — whose no-TTY bail-out exits 0 without doing the
+    task → "protocol violation" on every attempt. An explicit ``--tui``
+    still reaches the informative bail-out.
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    if "--cli" in argv:
+        return False
+    if os.environ.get("HERMES_TUI") == "1" or "--tui" in argv:
+        return True
+    try:
+        if not (sys.stdin.isatty() and sys.stdout.isatty()):
+            return False
+    except Exception:
+        return False
+    return _config_default_interface_early() == "tui"
+
+
+# Mouse-tracking residue suppression — runs BEFORE every other import on the
+# TUI hot path so the terminal stops emitting SGR/X10 mouse reports while the
+# Python launcher is still doing imports (≈100–300ms in cooked + echo mode,
+# before the Node TUI takes stdin into raw mode). During that window any
+# incoming bytes are echoed straight back to the user's shell scrollback as
+# ``^[[<…M`` text. The TUI itself runs `resetTerminalModes()` again in
+# `entry.tsx`; this is just the earlier cousin. ``HERMES_TUI_NO_EARLY_DISABLE``
+# escapes the behaviour for diagnostics.
+def _suppress_mouse_residue_early() -> None:
+    if os.environ.get("HERMES_TUI_NO_EARLY_DISABLE") == "1":
+        return
+    if not _wants_tui_early():
+        return
+    try:
+        # Skip when stdout is redirected (`hermes --tui … >log`, CI capture):
+        # the bytes can't reach the terminal anyway and would just pollute
+        # the log with raw CSI.
+        if not os.isatty(1):
+            return
+        # Disable every mouse-tracking variant we know about. Idempotent and
+        # safe to send even when no tracking is currently asserted.
+        os.write(
+            1,
+            b"\x1b[?1003l\x1b[?1002l\x1b[?1001l\x1b[?1000l\x1b[?9l"
+            b"\x1b[?1006l\x1b[?1005l\x1b[?1015l\x1b[?1016l\x1b[?2029l",
+        )
+    except OSError:
+        pass
+
+
+_suppress_mouse_residue_early()
+
 # Load .env from ~/.hermes/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
 from hermes_cli.config import get_hermes_home
@@ -427,6 +529,25 @@ def _has_any_provider_configured() -> bool:
         pass
 
     return False
+
+
+def _size_delta_label(saved_mb: float) -> str:
+    """Human label for a before/after database size delta, in MB.
+
+    A negative delta means the file GREW — concurrent session writes during a
+    long optimize can outweigh what the rebuild freed. Printing
+    "reclaimed -163.0 MB" for that reads as data loss, so say "grew by"
+    instead.
+
+    Restored verbatim from 0b3a50f108 ("fix(sessions): measure reclaimed space
+    with SQLite page accounting"). The v0.20.0 re-vendor dropped it from this
+    module while leaving `hermes_cli/sessions_cmd.py`'s delegating shim
+    (`return _m()._size_delta_label(...)`) pointing at it, so every call raised
+    AttributeError at runtime, not just under test.
+    """
+    if saved_mb >= 0:
+        return f"reclaimed {saved_mb:.1f} MB"
+    return f"grew by {-saved_mb:.1f} MB"
 
 
 def _session_browse_picker(sessions: list) -> Optional[str]:
@@ -6664,39 +6785,270 @@ def _gateway_prompt(prompt_text: str, default: str = "", timeout: float = 300.0)
 
 
 def _web_ui_build_needed(web_dir: Path) -> bool:
-    """Return True if the web UI dist is missing or stale.
+    """Return True if the web UI dist is missing or its source content changed.
 
-    The Vite build outputs to ``hermes_cli/web_dist/`` (per vite.config.ts
-    outDir: "../hermes_cli/web_dist"), NOT to ``web/dist/``.  Uses the Vite
-    manifest as the sentinel because it is written last and therefore has the
-    newest mtime of any build output.
+    Uses a SHA-256 content hash of the web source tree (the same approach
+    ``_desktop_build_needed()`` already uses for the Electron build), NOT
+    mtime comparison. ``git checkout`` / ``git pull`` / ``muse update``
+    rewrite source mtimes without changing content, which made the old
+    mtime check unreliable in both directions: it could skip a rebuild when
+    source had genuinely changed (serving a stale dashboard) and force a
+    rebuild when nothing had. A content hash is stable across mtime churn.
+
+    The dashboard source lives under ``web/`` but Vite outputs to
+    ``hermes_cli/web_dist/`` (per vite.config.ts outDir), NOT ``web/dist/``,
+    so the dist directory is never part of the hashed source tree.
     """
-    dist_dir = web_dir.parent / "hermes_cli" / "web_dist"
+    project_root = web_dir.parent.parent if web_dir.parent.name == "apps" else web_dir.parent
+    dist_dir = project_root / "hermes_cli" / "web_dist"
     sentinel = dist_dir / ".vite" / "manifest.json"
     if not sentinel.exists():
         sentinel = dist_dir / "index.html"
     if not sentinel.exists():
         return True
-    dist_mtime = sentinel.stat().st_mtime
-    skip = frozenset({"node_modules", "dist"})
+    stamp_file = _web_ui_stamp_path()
+    if not stamp_file.is_file():
+        return True
+    try:
+        stamp_data = json.loads(stamp_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return True
+    if not isinstance(stamp_data, dict):
+        return True
+    saved_hash = stamp_data.get("contentHash")
+    if not saved_hash:
+        return True
+    return _compute_web_ui_content_hash(project_root, web_dir) != saved_hash
+
+
+# Directory / file names that never belong in the web UI source hash when the
+# optional ``pathspec`` package (which lets us honour the repo .gitignore
+# verbatim) is not installed.  Kept deliberately small and literal: it only has
+# to cover build output that would otherwise feed back into its own staleness
+# check.
+_WEB_HASH_FALLBACK_IGNORED_DIRS = frozenset(
+    {"node_modules", "dist", "web_dist", ".vite", "__pycache__", ".git", ".turbo", ".cache"}
+)
+
+
+def _compute_web_ui_content_hash(project_root: Path, web_dir: Path) -> str:
+    """Return a SHA-256 hex digest of the web UI source tree.
+
+    Covers ``web_dir`` (the dashboard frontend source) plus the root
+    ``package.json`` / ``package-lock.json`` (workspace config that
+    determines dependency resolution). Mirrors
+    ``_compute_desktop_content_hash()``: ignored paths (``node_modules/``,
+    ``dist/``, ``*.pyc``, ...) are skipped via the repo-root ``.gitignore``
+    so build output never feeds back into its own staleness check.
+    """
+    import hashlib
+
+    h = hashlib.sha256()
+
+    def _hash_file(path: Path) -> None:
+        rel = str(path.relative_to(project_root))
+        h.update(rel.encode())
+        h.update(b"\0")
+        try:
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(65536), b""):
+                    h.update(chunk)
+        except OSError:
+            pass
+        h.update(b"\0")
+
+    # ``pathspec`` is not a declared dependency of this distribution, so the
+    # .gitignore-accurate filter is best-effort: fall back to a literal
+    # build-output deny list when it isn't importable.  Both filters are
+    # deterministic, which is all the stamp comparison needs (the stamp is
+    # written and read on the same machine).
+    try:
+        from pathspec import PathSpec
+    except ImportError:
+        PathSpec = None
+
+    spec = None
+    if PathSpec is not None:
+        gitignore = project_root / ".gitignore"
+        lines: list[str] = []
+        if gitignore.is_file():
+            lines = gitignore.read_text(encoding="utf-8", errors="replace").splitlines()
+        spec = PathSpec.from_lines("gitignore", lines)
+
+    def _ignored(rel: str, *, is_dir: bool) -> bool:
+        if spec is not None:
+            return spec.match_file(rel)
+        name = rel.replace("\\", "/").rsplit("/", 1)[-1]
+        if is_dir:
+            return name in _WEB_HASH_FALLBACK_IGNORED_DIRS
+        return name.endswith((".pyc", ".pyo", ".log"))
+
+    # Root workspace config (single package-lock.json covers all workspaces).
+    for name in ("package.json", "package-lock.json"):
+        p = project_root / name
+        if p.is_file():
+            rel = str(p.relative_to(project_root))
+            if not _ignored(rel, is_dir=False):
+                _hash_file(p)
+
+    # Walk the web source tree, pruning ignored directories in-place so we
+    # never descend into node_modules/ or a stray dist/. Sort filenames for
+    # a deterministic, order-independent digest.
     for dirpath, dirnames, filenames in os.walk(web_dir, topdown=True):
-        dirnames[:] = [d for d in dirnames if d not in skip]
-        for fn in filenames:
-            if fn.endswith((".ts", ".tsx", ".js", ".jsx", ".css", ".html", ".vue")):
-                if os.path.getmtime(os.path.join(dirpath, fn)) > dist_mtime:
-                    return True
-    for meta in (
-        "package.json",
-        "package-lock.json",
-        "yarn.lock",
-        "pnpm-lock.yaml",
-        "vite.config.ts",
-        "vite.config.js",
-    ):
-        mp = web_dir / meta
-        if mp.exists() and mp.stat().st_mtime > dist_mtime:
-            return True
-    return False
+        dirnames[:] = [
+            d for d in sorted(dirnames)
+            if not _ignored(str((Path(dirpath) / d).relative_to(project_root)), is_dir=True)
+        ]
+        for fn in sorted(filenames):
+            fp = Path(dirpath) / fn
+            rel = str(fp.relative_to(project_root))
+            if not _ignored(rel, is_dir=False):
+                _hash_file(fp)
+
+    return h.hexdigest()
+
+
+def _web_ui_stamp_path() -> Path:
+    """Return the path to the web UI build stamp file under $HERMES_HOME."""
+    from hermes_constants import get_hermes_home
+    return get_hermes_home() / "web-ui-build-stamp.json"
+
+
+def _write_web_ui_build_stamp(project_root: Path, web_dir: Path) -> None:
+    """Write the web UI build stamp after a successful build."""
+    stamp_file = _web_ui_stamp_path()
+    try:
+        stamp_file.parent.mkdir(parents=True, exist_ok=True)
+        from datetime import timezone
+        stamp_data = {
+            "contentHash": _compute_web_ui_content_hash(project_root, web_dir),
+            "builtAt": datetime.now(timezone.utc).isoformat(),
+        }
+        stamp_file.write_text(json.dumps(stamp_data, indent=2) + "\n", encoding="utf-8")
+    except Exception as exc:
+        # Never let stamp-writing block or fail a build.
+        logger.debug("Failed to write web UI build stamp: %s", exc)
+
+
+def _run_with_idle_timeout(
+    cmd: list[str],
+    cwd: Path,
+    *,
+    idle_timeout_seconds: int = 180,
+    indent: str = "    ",
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
+    """Run a subprocess that streams output, with an idle-output timeout.
+
+    Issue #33788: ``npm run build`` (Vite) was invoked with
+    ``capture_output=True`` and no timeout. On low-memory hosts (notably
+    WSL2 with the default 4 GB cap) the build can stall or sit silent for
+    minutes; users see a frozen terminal, assume the update is hung, and
+    reboot — leaving the editable install in a half-state with the
+    ``hermes`` launcher present but ``hermes_cli`` not importable.
+
+    This helper fixes both halves: stdout is streamed (so the user sees
+    progress), and if no bytes have appeared on stdout/stderr for
+    ``idle_timeout_seconds``, the process is terminated and the call
+    returns with a non-zero ``returncode``. The caller's existing
+    stale-dist fallback (#23817) takes over from there.
+
+    Returns a ``CompletedProcess`` with merged stdout (text), empty
+    stderr, and an integer returncode. Never raises on idle timeout —
+    propagation of failure is via the returncode.
+    """
+    merged_chunks: list[str] = []
+    last_output_ts = _time.monotonic()
+    lock = threading.Lock()
+
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+            env=env,
+        )
+    except OSError as exc:
+        # E.g. npm not on PATH between the which() check and now.
+        return subprocess.CompletedProcess(cmd, 127, stdout="", stderr=str(exc))
+
+    def _reader() -> None:
+        nonlocal last_output_ts
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            try:
+                print(f"{indent}{line.rstrip()}", flush=True)
+            except UnicodeEncodeError:
+                # Windows cp1252 fallback — same pattern as _say().
+                enc = getattr(sys.stdout, "encoding", None) or "ascii"
+                safe = line.rstrip().encode(enc, errors="replace").decode(enc, errors="replace")
+                print(f"{indent}{safe}", flush=True)
+            with lock:
+                merged_chunks.append(line)
+                last_output_ts = _time.monotonic()
+
+    reader_thread = threading.Thread(target=_reader, daemon=True)
+    reader_thread.start()
+
+    idle_killed = False
+    while True:
+        try:
+            rc = proc.wait(timeout=5)
+            break
+        except subprocess.TimeoutExpired:
+            with lock:
+                idle = _time.monotonic() - last_output_ts
+            if idle > idle_timeout_seconds:
+                idle_killed = True
+                proc.terminate()
+                try:
+                    rc = proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    rc = proc.wait()
+                break
+
+    # Drain reader so we don't leak the stdout file descriptor.
+    reader_thread.join(timeout=2)
+
+    combined = "".join(merged_chunks)
+    if idle_killed:
+        msg = (
+            f"\n  ⚠ Build produced no output for {idle_timeout_seconds}s — terminated.\n"
+            "    Common causes: out-of-memory on a low-RAM host (WSL/container),\n"
+            "    a stuck Node process, or an antivirus scan stalling I/O.\n"
+        )
+        combined += msg
+        # Force a non-zero rc even if terminate() raced with a clean exit.
+        if rc == 0:
+            rc = 124  # GNU `timeout` convention
+    return subprocess.CompletedProcess(cmd, rc, stdout=combined, stderr="")
+
+
+def _missing_web_build_tool(output: str) -> str | None:
+    """Return the build tool a failed ``npm run build`` could not resolve.
+
+    Each shell words this differently: ``sh: 1: tsc: not found`` (dash),
+    ``vite: command not found`` (bash/zsh), and ``'tsc' is not recognized as
+    an internal or external command`` (cmd.exe).
+    """
+    lowered = output.lower()
+    for tool in ("tsc", "vite"):
+        if any(
+            phrase in lowered
+            for phrase in (
+                f"{tool}: not found",
+                f"{tool}: command not found",
+                f"'{tool}' is not recognized",
+            )
+        ):
+            return tool
+    return None
 
 
 def _run_npm_install_deterministic(
@@ -6804,31 +7156,36 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
         if fatal:
             _say("  Run manually:  cd web && npm install && npm run build")
         return False
-    # First attempt
-    r2 = subprocess.run(
-        [npm, "run", "build"],
-        cwd=web_dir,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    # First attempt — stream output via idle-timeout helper (issue #33788).
+    # capture_output=True on a long Vite build looks identical to a hang;
+    # users react by rebooting, which leaves the editable install in a
+    # half-state. Streaming + idle-kill makes failures observable AND
+    # recoverable (the stale-dist fallback below handles the kill path).
+    r2 = _run_with_idle_timeout([npm, "run", "build"], cwd=web_dir)
     if r2.returncode != 0:
-        # Retry once after a short delay — covers boot-time races on Windows
-        # (antivirus scanning Node.js binaries, npm cache not ready, transient
-        # I/O when launched via Scheduled Task at logon). See issue #23817.
-        _time.sleep(3)
-        r2 = subprocess.run(
-            [npm, "run", "build"],
-            cwd=web_dir,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        # The install above can exit 0 while leaving the tree without a build
+        # toolchain — a lockfile-hash skip over a half-installed tree, or an
+        # interrupted link step. The generic retry below just reruns the same
+        # command, so `tsc: not found` survives it and the stale dist is
+        # served forever. Reinstall (non-silent, so the user sees it) first.
+        missing_tool = _missing_web_build_tool((r2.stdout or "") + (r2.stderr or ""))
+        if missing_tool:
+            _say(f"  ⚠ Build could not resolve {missing_tool} — reinstalling web dependencies...")
+            _run_npm_install_deterministic(npm, web_dir)
+            r2 = _run_with_idle_timeout([npm, "run", "build"], cwd=web_dir)
+        if r2.returncode != 0:
+            # Retry once after a short delay — covers boot-time races on Windows
+            # (antivirus scanning Node.js binaries, npm cache not ready, transient
+            # I/O when launched via Scheduled Task at logon). See issue #23817.
+            _time.sleep(3)
+            r2 = _run_with_idle_timeout([npm, "run", "build"], cwd=web_dir)
 
     if r2.returncode != 0:
-        stderr_preview = (r2.stderr or "").strip()
+        # _run_with_idle_timeout merges stderr into stdout; older callers
+        # using subprocess.run kept them split. Pull from whichever has
+        # content so the error surfaces regardless of which path produced
+        # the CompletedProcess.
+        stderr_preview = ((r2.stderr or "") + (r2.stdout or "")).strip()
         stderr_tail = "\n  ".join(stderr_preview.splitlines()[-10:]) if stderr_preview else ""
         dist_dir = web_dir.parent / "hermes_cli" / "web_dist"
         dist_index = dist_dir / "index.html"
@@ -6851,6 +7208,11 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
             _say("  Run manually:  cd web && npm install && npm run build")
         return False
     _say("  ✓ Web UI built")
+    # Record the content hash that this dist was built from so the next
+    # _web_ui_build_needed() can skip an identical rebuild (mtime churn from
+    # `git pull` / `muse update` no longer forces one).
+    project_root = web_dir.parent.parent if web_dir.parent.name == "apps" else web_dir.parent
+    _write_web_ui_build_stamp(project_root, web_dir)
     return True
 
 
@@ -10926,6 +11288,96 @@ def _report_dashboard_status() -> int:
     return len(pids)
 
 
+def _read_ssh_session_token_file(path: str) -> str:
+    """Read and unlink a Desktop SSH token from its private runtime directory."""
+    if sys.platform == "win32":
+        from hermes_cli.windows_ssh_runtime import read_token
+        return read_token(path)
+
+    import re
+    import stat as _stat
+    from pathlib import Path as _Path
+
+    if not os.path.isabs(path):
+        raise SystemExit("--ssh-session-token-file must be absolute")
+
+    token_path = _Path(path)
+    # The Desktop client writes the token under $HOME/.hermes/desktop-ssh: a
+    # literal "~/.hermes/desktop-ssh" in apps/desktop/electron/remote-lifecycle.ts
+    # expanded against the account's $HOME, independent of HERMES_HOME and the
+    # active profile. Anchor validation to that same OS-home path, NOT to
+    # get_hermes_home(): a non-default sticky profile (or any HERMES_HOME pointing
+    # elsewhere, e.g. a Docker /opt/data root) re-homes get_hermes_home() and
+    # would otherwise reject every token the client legitimately wrote (#69551).
+    token_root = _Path.home() / ".hermes" / "desktop-ssh"
+    try:
+        relative = token_path.relative_to(token_root)
+    except ValueError as exc:
+        raise SystemExit("--ssh-session-token-file must be under the desktop-ssh directory") from exc
+    if len(relative.parts) != 2 or not re.fullmatch(r"[0-9a-f]{32}", relative.parts[0]):
+        raise SystemExit("--ssh-session-token-file has an invalid runtime path")
+    if not re.fullmatch(r"[0-9a-f]{16}\.token", relative.parts[1]):
+        raise SystemExit("--ssh-session-token-file has an invalid filename")
+
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    root_fd = -1
+    directory_fd = -1
+    file_fd = -1
+    try:
+        try:
+            root_fd = os.open(token_root, directory_flags)
+            root_stat = os.fstat(root_fd)
+            if not _stat.S_ISDIR(root_stat.st_mode):
+                raise SystemExit("--ssh-session-token-file has an unsafe runtime root")
+            if hasattr(os, "getuid") and root_stat.st_uid != os.getuid():
+                raise SystemExit("--ssh-session-token-file runtime root has the wrong owner")
+            directory_fd = os.open(relative.parts[0], directory_flags, dir_fd=root_fd)
+            directory_stat = os.fstat(directory_fd)
+            if not _stat.S_ISDIR(directory_stat.st_mode):
+                raise SystemExit("--ssh-session-token-file has an unsafe parent directory")
+            if hasattr(os, "getuid") and directory_stat.st_uid != os.getuid():
+                raise SystemExit("--ssh-session-token-file parent has the wrong owner")
+            if (directory_stat.st_mode & 0o777) != 0o700:
+                raise SystemExit("--ssh-session-token-file parent has unsafe permissions")
+            file_fd = os.open(relative.parts[1], file_flags, dir_fd=directory_fd)
+        except SystemExit:
+            raise
+        except OSError as exc:
+            if exc.errno == getattr(__import__("errno"), "ELOOP", -1):
+                raise SystemExit("--ssh-session-token-file is a symlink") from exc
+            raise SystemExit("--ssh-session-token-file is not accessible") from exc
+
+        file_stat = os.fstat(file_fd)
+        if not _stat.S_ISREG(file_stat.st_mode):
+            raise SystemExit("--ssh-session-token-file is not a regular file")
+        if file_stat.st_size != 64:
+            raise SystemExit("--ssh-session-token-file contains an invalid token")
+        if hasattr(os, "getuid") and file_stat.st_uid != os.getuid():
+            raise SystemExit("--ssh-session-token-file has the wrong owner")
+        if hasattr(os, "getuid") and (file_stat.st_mode & 0o777) & ~0o600:
+            raise SystemExit("--ssh-session-token-file has unsafe permissions")
+
+        with os.fdopen(file_fd, "r", encoding="utf-8") as token_stream:
+            file_fd = -1
+            token = token_stream.read(65)
+
+        if not re.fullmatch(r"[0-9a-f]{64}", token):
+            raise SystemExit("--ssh-session-token-file contains an invalid token")
+        return token
+    finally:
+        if file_fd >= 0:
+            os.close(file_fd)
+        if directory_fd >= 0:
+            try:
+                os.unlink(relative.parts[1], dir_fd=directory_fd)
+            except OSError:
+                pass
+            os.close(directory_fd)
+        if root_fd >= 0:
+            os.close(root_fd)
+
+
 def cmd_dashboard(args):
     """Start the web UI server, or (with --stop/--status) manage running ones."""
     # --status: report running dashboards and exit, no deps needed.
@@ -11151,8 +11603,58 @@ def _plugin_cli_discovery_needed() -> bool:
     return True
 
 
+def _resolve_deferred_platform_cli_command(command_name: str | None) -> None:
+    """Materialize the deferred platform whose top-level CLI command matches.
+
+    Bundled platform plugins are cheap-registered as *deferred* entries to
+    avoid importing every gateway SDK during normal startup. A platform that
+    registers a top-level ``hermes <name>`` command (e.g. Photon ->
+    ``ctx.register_cli_command(name="photon", ...)``) only runs that side
+    effect when its module is imported. On the unknown-top-level-command slow
+    path, ``discover_plugins()`` records the deferred loader but does not
+    import it, so the CLI registration never happens and ``hermes photon``
+    fails with argparse ``invalid choice`` (issue #54678).
+
+    Resolving only the platform whose name matches the first positional token
+    keeps normal startup cheap while making the targeted command available.
+    """
+    if not command_name:
+        return
+    try:
+        from gateway.platform_registry import platform_registry
+
+        platform_registry.get(command_name)
+    except Exception as exc:
+        logging.getLogger(__name__).debug(
+            "Deferred platform CLI resolution failed for %s: %s",
+            command_name,
+            exc,
+        )
+
+
+def _advertise_agent_env() -> None:
+    """Advertise the agent harness to child processes.
+
+    ``AI_AGENT`` is the emerging cross-agent standard (huggingface_hub's agent
+    detection reads it; pi and other agents set it — earendil-works/pi#7493)
+    so generic tooling can attribute subprocesses to the harness that spawned
+    them. The value must be our id in the public agent-harness registry
+    (``hermes-agent`` in huggingface.js ``agent-harnesses.ts``): standard-var
+    matching is exact, so any other value is counted as "unknown".
+    ``HERMES_AGENT`` is the Hermes-specific marker. setdefault: never
+    clobber an outer harness (e.g. Hermes running inside another agent's
+    terminal).
+    """
+    os.environ.setdefault("AI_AGENT", "hermes-agent")
+    os.environ.setdefault("HERMES_AGENT", "true")
+
+
 def main():
     """Main entry point for hermes CLI."""
+    # Let child processes (and tools like huggingface_hub) detect they run
+    # under an AI agent harness.
+    _advertise_agent_env()
+
     # Force UTF-8 stdio on Windows before anything prints.  No-op elsewhere.
     try:
         from hermes_cli.stdio import configure_windows_stdio
@@ -13049,6 +13551,11 @@ Examples:
                 seen_plugin_commands.add(cmd_info["name"])
 
             discover_plugins()
+            # A bundled platform whose top-level CLI command is the one being
+            # invoked is still only a deferred entry at this point; import it
+            # so its register_cli_command side effect runs before we read
+            # _cli_commands (issue #54678).
+            _resolve_deferred_platform_cli_command(_first_positional_argv())
             for cmd_info in get_plugin_manager()._cli_commands.values():
                 if cmd_info["name"] in seen_plugin_commands:
                     continue
@@ -14550,4 +15057,307 @@ def _read_packed_ref(common_dir: Path, ref: str) -> str | None:
         parts = line.split(" ", 1)
         if len(parts) == 2 and parts[1].strip() == ref:
             return parts[0].strip()
+    return None
+
+# Restored from a98aee47ce (upstream parent of merge d938501dd3).
+# Adjacent v0.20.0 re-vendor damage, found by enumerating every name the test
+# suite imports from this module -- pytest reports only the first missing name
+# per file, so iterating on its output never converges.
+
+def _all_aux_tasks() -> list[tuple[str, str, str]]:
+    """Return built-in + plugin-registered auxiliary tasks for picker/menu use.
+
+    Built-in tasks come first (preserving order), followed by plugin tasks
+    sorted by key. Used by ``_aux_config_menu``, ``_reset_aux_to_auto``, and
+    display-name lookups so plugin-registered tasks (registered via
+    :meth:`hermes_cli.plugins.PluginContext.register_auxiliary_task`) appear
+    in the same surfaces as built-in ones without core knowing about them.
+    """
+    tasks = list(_AUX_TASKS)
+    try:
+        from hermes_cli.plugins import get_plugin_auxiliary_tasks
+        for entry in get_plugin_auxiliary_tasks():
+            tasks.append((entry["key"], entry["display_name"], entry["description"]))
+    except Exception:
+        # Plugin discovery failure must not break the aux config UI.
+        # Built-in tasks remain available.
+        pass
+    return tasks
+
+def _verify_console_scripts_installed(
+    install_cmd_prefix: list[str],
+    *,
+    env: dict[str, str] | None = None,
+) -> None:
+    """Ensure every declared console_script shim exists on disk after install.
+
+    On Windows, ``uv pip install -e .`` can register ``hermes.exe`` in the
+    wheel RECORD while the file never lands on disk — typically when the live
+    ``hermes.exe`` shim is locked during ``hermes update``, or when uv/distlib
+    skips a launcher write. The symptom is ``hermes-agent.exe`` and
+    ``hermes-acp.exe`` present but ``hermes.exe`` missing, so ``hermes`` drops
+    off PATH even though the install reported success (issue #52931).
+
+    If any shim is missing we reinstall with ``--reinstall -e .`` under the
+    same quarantine dance as the primary install path, then re-check.
+    """
+    if not _is_windows():
+        return
+
+    scripts_dir = _venv_scripts_dir()
+    if scripts_dir is None:
+        return
+
+    names = _load_console_script_names()
+    if not names:
+        return
+
+    def _missing() -> list[str]:
+        return [
+            name
+            for name in names
+            if not (scripts_dir / f"{name}.exe").is_file()
+        ]
+
+    missing = _missing()
+    if not missing:
+        return
+
+    print(
+        f"  ⚠ Verification: {len(missing)} console script(s) missing on disk: "
+        f"{', '.join(missing)}"
+    )
+    print("  → Reinstalling entry points with --reinstall...")
+
+    try:
+        _run_quarantined_install(
+            install_cmd_prefix + ["install", "--reinstall", "-e", "."],
+            env=env,
+            scripts_dir=scripts_dir,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.warning("console script verification: repair install failed: %s", e)
+        print(
+            "  ⚠ Entry point repair failed; try `hermes update --force` after "
+            "closing other hermes processes."
+        )
+        return
+
+    still_missing = _missing()
+    if still_missing:
+        print(
+            f"  ⚠ Still missing after repair: {', '.join(still_missing)}. "
+            "Workaround: python -m hermes_cli.main <command>"
+        )
+    else:
+        print("  ✓ All console entry points restored")
+
+def _verify_core_dependencies_installed(
+    install_cmd_prefix: list[str],
+    *,
+    env: dict[str, str] | None = None,
+    group: str = "all",
+) -> None:
+    """Check that every base dep from pyproject.toml is importable; if not, retry.
+
+    Reads ``pyproject.toml`` directly (so we don't trust the venv's stale
+    metadata), filters out deps gated by ``;`` environment markers that don't
+    apply to this platform, and runs ``importlib.metadata.version()`` in the
+    venv interpreter for each one. If anything is missing we reinstall the
+    base group with ``--reinstall`` to force uv to re-resolve, then check
+    again. We treat the final state as a warning rather than a hard failure
+    so a single broken-on-PyPI dep can't block an otherwise-successful
+    update — but the warning makes the partial install visible at the spot
+    that caused it, instead of hours later in a downstream subprocess.
+    """
+    try:
+        import tomllib  # Python 3.11+
+    except ImportError:  # pragma: no cover — Python < 3.11 unsupported but be safe
+        return
+
+    pyproject = PROJECT_ROOT / "pyproject.toml"
+    if not pyproject.is_file():
+        return
+
+    try:
+        with open(pyproject, "rb") as f:
+            data = tomllib.load(f)
+        raw_deps = data.get("project", {}).get("dependencies", []) or []
+    except Exception as e:
+        logger.debug("dep verification: failed to read pyproject.toml: %s", e)
+        return
+
+    # Parse each "name OP version ; marker" string into (dist_name, marker_obj).
+    # We use packaging.requirements when available (it ships with pip/uv envs),
+    # falling back to a naive split that's good enough for the canonical
+    # ``name==version[; marker]`` style this repo uses.
+    deps: list[tuple[str, "object | None"]] = []
+    try:
+        from packaging.requirements import Requirement  # type: ignore
+
+        for spec in raw_deps:
+            try:
+                req = Requirement(spec)
+                deps.append((req.name, req.marker))
+            except Exception:
+                continue
+    except Exception:
+        for spec in raw_deps:
+            head = spec.split(";", 1)[0]
+            for op in ("==", ">=", "<=", "~=", ">", "<", "!="):
+                if op in head:
+                    head = head.split(op, 1)[0]
+                    break
+            name = head.strip().split("[", 1)[0].strip()
+            if name:
+                deps.append((name, None))
+
+    # Apply environment markers to drop deps that don't apply on this platform
+    # (e.g. ``ptyprocess ; sys_platform != 'win32'`` is correctly skipped on
+    # Windows). Without markers we'd false-positive every cross-platform exclusion.
+    applicable: list[str] = []
+    for name, marker in deps:
+        if marker is None:
+            applicable.append(name)
+            continue
+        try:
+            if marker.evaluate():  # type: ignore[union-attr]
+                applicable.append(name)
+        except Exception:
+            applicable.append(name)
+
+    if not applicable:
+        return
+
+    # Run the check inside the venv Python — sys.executable here may be the
+    # outer Python that drove ``hermes update``, not the venv we just wrote
+    # to. The uv install_cmd_prefix encodes which environment we targeted
+    # (either ``[uv, pip]`` with VIRTUAL_ENV in env, or
+    # ``[sys.executable, -m, pip]`` for the in-process Python); resolve the
+    # right interpreter for the verification.
+    venv_python = _resolve_install_target_python(install_cmd_prefix, env)
+    if venv_python is None:
+        return
+
+    def _missing_deps() -> list[str]:
+        check_script = (
+            "import importlib.metadata as md, sys\n"
+            "missing=[]\n"
+            "for name in sys.argv[1:]:\n"
+            "    try: md.version(name)\n"
+            "    except md.PackageNotFoundError: missing.append(name)\n"
+            "print('\\n'.join(missing))\n"
+        )
+        try:
+            result = subprocess.run(
+                [str(venv_python), "-c", check_script, *applicable],
+                capture_output=True,
+                text=True, encoding="utf-8", errors="replace",
+                check=False,
+                env=env,
+            )
+        except Exception as e:
+            logger.debug("dep verification: subprocess failed: %s", e)
+            return []
+        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+    missing = _missing_deps()
+    if not missing:
+        return
+
+    print(
+        f"  ⚠ Verification: {len(missing)} declared dep(s) missing after install: "
+        f"{', '.join(missing[:8])}{'...' if len(missing) > 8 else ''}"
+    )
+    print("  → Reinstalling base group with --reinstall to repair...")
+
+    # Reinstall base group with --reinstall so uv re-resolves from scratch
+    # against the current pyproject. We don't pass ``[{group}]`` here on
+    # purpose — the missing dep is in *base* deps; rerunning the full all-
+    # extras install can cost minutes and trips on whatever optional extra
+    # was already broken upstream. Base is fast and is what's actually wrong.
+    #
+    # Quarantine the running ``hermes.exe`` first: ``--reinstall -e .``
+    # rewrites the entry-point shims, and on Windows pip can't overwrite the
+    # live launcher, which would leave ``hermes`` off PATH.
+    scripts_dir = _venv_scripts_dir() if _is_windows() else None
+    repair_args = ["install", "--reinstall", "-e", "."]
+    try:
+        _run_quarantined_install(
+            install_cmd_prefix + repair_args, env=env, scripts_dir=scripts_dir
+        )
+    except subprocess.CalledProcessError as e:
+        logger.warning("dep verification: repair install failed: %s", e)
+        print("  ⚠ Repair install failed; check `hermes update` output above.")
+        return
+
+    still_missing = _missing_deps()
+    if not still_missing:
+        print("  ✓ All declared core dependencies now installed")
+        return
+
+    # Last-ditch: install each remaining missing dep with its pin directly.
+    # Useful when uv's resolver thinks the env is satisfied but the on-disk
+    # package metadata says otherwise (rare but observed).
+    name_to_spec = {}
+    for spec in raw_deps:
+        head = spec.split(";", 1)[0].strip()
+        bare = head
+        for op in ("==", ">=", "<=", "~=", ">", "<", "!="):
+            if op in bare:
+                bare = bare.split(op, 1)[0]
+                break
+        name_to_spec[bare.strip().split("[", 1)[0].strip()] = head
+
+    specs = [name_to_spec.get(n, n) for n in still_missing]
+    print(
+        f"  → Force-installing remaining missing dep(s): {', '.join(specs)}"
+    )
+    try:
+        _run_install_with_heartbeat(
+            install_cmd_prefix + ["install", "--reinstall", *specs], env=env
+        )
+    except subprocess.CalledProcessError as e:
+        logger.warning("dep verification: per-package repair failed: %s", e)
+        print(
+            f"  ⚠ Could not install: {', '.join(still_missing)}. "
+            "Run `hermes update --force` after closing other hermes processes."
+        )
+        return
+
+    final_missing = _missing_deps()
+    if final_missing:
+        print(
+            f"  ⚠ Still missing after repair: {', '.join(final_missing)}. "
+            "Run `hermes update --force` after closing other hermes processes."
+        )
+    else:
+        print("  ✓ All declared core dependencies now installed")
+
+def _resolve_install_target_python(
+    install_cmd_prefix: list[str], env: dict[str, str] | None
+) -> Path | None:
+    """Figure out which Python interpreter the install just targeted.
+
+    ``_install_python_dependencies_with_optional_fallback`` is called with
+    either ``[uv, pip]`` (and a ``VIRTUAL_ENV`` env var pointing at the
+    target venv) or ``[sys.executable, -m, pip]`` (the in-process Python).
+    The verification step needs the *resulting* environment's Python so
+    ``importlib.metadata`` queries the right site-packages.
+    """
+    if env and "VIRTUAL_ENV" in env:
+        from hermes_constants import venv_python_path
+
+        venv_root = Path(env["VIRTUAL_ENV"])
+        candidate = venv_python_path(venv_root, windows=_is_windows())
+        if candidate.exists():
+            return candidate
+
+    # Fallback: assume install_cmd_prefix[0] is the python interpreter (the
+    # ``[sys.executable, -m, pip]`` shape). Skip if it looks like ``uv``.
+    if install_cmd_prefix:
+        first = Path(install_cmd_prefix[0])
+        if first.exists() and "uv" not in first.name.lower():
+            return first
+
     return None

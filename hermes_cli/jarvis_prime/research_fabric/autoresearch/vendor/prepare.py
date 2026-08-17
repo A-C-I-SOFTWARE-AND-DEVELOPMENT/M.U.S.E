@@ -23,6 +23,65 @@ import rustbpe
 import tiktoken
 import torch
 
+
+# ---------------------------------------------------------------------------
+# Hash-pinned deserialisation (Work Packet §9.1)
+# ---------------------------------------------------------------------------
+# `tokenizer.pkl` is loaded with pickle, which executes whatever code the
+# producer embedded. Normally this repository produces the file itself in
+# train_tokenizer() below -- but the tokenizer directory is a cache path
+# (~/.cache/autoresearch/tokenizer), so if it is ever repopulated from a
+# downloaded artifact the load becomes remote code execution.
+#
+# tools/security/safe_pickle.py closes that: the SHA-256 of the artifact is
+# recorded alongside it and re-verified before a single opcode is unpickled.
+# It does NOT make untrusted pickle safe -- nothing does. Its contract is
+# "only load what we already vouched for".
+#
+# This file is vendored and is also run as a bare script (`python prepare.py`),
+# so the helper is located by walking up to the repository root when the normal
+# package import is unavailable. If it cannot be found we fail closed rather
+# than falling back to a bare pickle.load().
+
+def _load_safe_pickle_module():
+    """Import tools.security.safe_pickle, by path if necessary. Fails closed."""
+    try:
+        from tools.security import safe_pickle as _mod  # noqa: PLC0415
+        return _mod
+    except ImportError:
+        pass
+
+    import importlib.util  # noqa: PLC0415
+
+    directory = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        candidate = os.path.join(directory, "tools", "security", "safe_pickle.py")
+        if os.path.isfile(candidate):
+            spec = importlib.util.spec_from_file_location(
+                "muse_tools_security_safe_pickle", candidate
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            raise ImportError(
+                "tools/security/safe_pickle.py not found. Refusing to fall back to "
+                "an unverified pickle.load() of the tokenizer (Work Packet §9.1)."
+            )
+        directory = parent
+
+
+_SAFE_PICKLE = None
+
+
+def _safe_pickle():
+    global _SAFE_PICKLE
+    if _SAFE_PICKLE is None:
+        _SAFE_PICKLE = _load_safe_pickle_module()
+    return _SAFE_PICKLE
+
+
 # ---------------------------------------------------------------------------
 # Constants (fixed, do not modify)
 # ---------------------------------------------------------------------------
@@ -178,8 +237,25 @@ def train_tokenizer():
     with open(tokenizer_pkl, "wb") as f:
         pickle.dump(enc, f)
 
+    # Pin it at the moment we produce it (Work Packet §9.1). Pinning here is
+    # strictly stronger than record-on-first-use: these are bytes this process
+    # just wrote, so the pin vouches for a known provenance rather than for
+    # whatever happened to be on disk at first read. Any later swap of the
+    # cache directory is then refused by Tokenizer.from_directory().
+    sp = _safe_pickle()
+    store = sp.PinStore(os.path.join(TOKENIZER_DIR, sp.PIN_FILE_NAME))
+    store.record(
+        "tokenizer.pkl",
+        sp.sha256_file(tokenizer_pkl),
+        size_bytes=os.path.getsize(tokenizer_pkl),
+        note=f"tiktoken Encoding produced by prepare.py train_tokenizer (vocab={VOCAB_SIZE})",
+        recorded_by="produced-by-prepare.py",
+        overwrite=True,
+    )
+
     t1 = time.time()
     print(f"Tokenizer: trained in {t1 - t0:.1f}s, saved to {tokenizer_pkl}")
+    print(f"Tokenizer: SHA-256 pinned in {store.path}")
 
     # --- Build token_bytes lookup for BPB evaluation ---
     print("Tokenizer: building token_bytes lookup...")
@@ -215,8 +291,20 @@ class Tokenizer:
 
     @classmethod
     def from_directory(cls, tokenizer_dir=TOKENIZER_DIR):
-        with open(os.path.join(tokenizer_dir, "tokenizer.pkl"), "rb") as f:
-            enc = pickle.load(f)
+        # Work Packet §9.1: verify the artifact against its recorded SHA-256
+        # before unpickling. train_tokenizer() pins the file when it writes it,
+        # so the normal path here is "verified". A tokenizer directory
+        # populated from somewhere else has no pin: the helper records one with
+        # a loud warning on first use and refuses every later mismatch, and
+        # MUSE_PICKLE_PINS_STRICT=1 turns that first use into a refusal too.
+        sp = _safe_pickle()
+        tokenizer_pkl = os.path.join(tokenizer_dir, "tokenizer.pkl")
+        enc = sp.safe_pickle_load(
+            tokenizer_pkl,
+            key="tokenizer.pkl",
+            store=sp.PinStore(os.path.join(tokenizer_dir, sp.PIN_FILE_NAME)),
+            note="autoresearch tiktoken Encoding (unpinned at first load)",
+        )
         return cls(enc)
 
     def get_vocab_size(self):

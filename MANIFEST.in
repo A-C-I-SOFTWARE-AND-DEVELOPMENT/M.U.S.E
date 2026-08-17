@@ -1,0 +1,17 @@
+# MANIFEST.in — production-build exclusions for the source distribution.
+#
+# This file mirrors `[tool.muse.production-build]` in pyproject.toml, which
+# carries the full rationale. The short version:
+#
+#   recovered-agent-sources/ is the byte-preserved archival snapshot of the
+#   2026-07-12 device-consolidation recovery. It is historical evidence, not
+#   live code, and it deliberately contains a broken prototype whose
+#   tools/delegate_tool.py raises IndentationError at line 970.
+#
+#   It must be EXCLUDED from build artifacts and RETAINED ON DISK. Do not
+#   delete the tree to make a build or a lint run pass — the exclusion below
+#   is the supported fix, and deleting the evidence is not.
+#
+# `tests/characterization/test_build_exclusions.py` asserts that this file,
+# pyproject.toml and the on-disk tree stay in agreement.
+prune recovered-agent-sources
