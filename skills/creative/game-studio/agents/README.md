@@ -8,14 +8,14 @@ and this roster is cohesive to one domain.
 
 | Role | Authority | Produces | Does NOT |
 |---|---|---|---|
-| `studio-director` | L3 | Scope, engine choice, stage plan, disjoint domains, gate checklist | Build anything; spawn; publish |
-| `game-designer` | L1 | GDD, core loop, systems spec, slice definition | Implement; pick engine |
-| `level-designer` | L1 | Greybox layout + scene-graph plan | Final art; gameplay code |
+| `studio-director` | L3 | Scope, engine, stage plan, WorldClaw `P` Plan, domains, gates | Build; spawn; publish |
+| `game-designer` | L1 | GDD, systems spec, slice def, WorldClaw Intent | Implement; pick engine |
+| `level-designer` | L1 | Greybox **or** WorldClaw terrain `T` + region plans | Final art; gameplay code |
 | `gameplay-engineer` | L2 | Player controller + systems code | Assets; self-merge; spawn |
-| `graphics-tech-artist` | L2 | Lighting, materials, post, SOTA render path | Gameplay logic; spawn |
-| `3d-asset-artist` | L1 | Meshes (`asset3d_generate`) + textures (`comfyui`) | Approve spend/licensing |
+| `graphics-tech-artist` | L2 | Lighting, materials, WorldClaw refine renders | Gameplay logic; spawn |
+| `3d-asset-artist` | L1 | Hero meshes + WorldClaw instances `O` | Approve spend/licensing |
 | `audio-designer` | L1 | Music/SFX + cue list | Ship without QA; approve spend |
-| `qa-playtest` | L2 | Playtest report + gate verdict + evidence | Fix code it reviews; publish |
+| `qa-playtest` | L2 | Playtest + WorldClaw contact/float gate | Fix code it reviews; publish |
 | `build-release-engineer` | L3 | Headless export, artifact + log | Publish; set spawn grant |
 
 **Maker-checker:** builders (`gameplay-engineer`, `3d-asset-artist`,

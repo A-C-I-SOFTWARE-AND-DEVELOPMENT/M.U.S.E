@@ -1,0 +1,576 @@
+{
+  "timestamp": "2026-08-12T15:44:03.744843Z",
+  "providers": {
+    "openrouter": {
+      "requires_env": "OPENROUTER_API_KEY",
+      "model_count": 15,
+      "models": [
+        {
+          "id": "llama-3.3-70b",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "params_b": 70,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "general",
+            "tools"
+          ]
+        },
+        {
+          "id": "llama-3.1-8b",
+          "model": "meta-llama/llama-3.1-8b-instruct",
+          "params_b": 8,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "fast"
+          ]
+        },
+        {
+          "id": "qwen-2.5-72b",
+          "model": "qwen/qwen-2.5-72b-instruct",
+          "params_b": 72,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "general",
+            "coding"
+          ]
+        },
+        {
+          "id": "deepseek-r1",
+          "model": "deepseek/deepseek-r1",
+          "params_b": 671,
+          "context": 65536,
+          "tags": [
+            "oss",
+            "reasoning"
+          ]
+        },
+        {
+          "id": "mixtral-8x22b",
+          "model": "mistralai/mixtral-8x22b-instruct",
+          "params_b": 141,
+          "context": 65536,
+          "tags": [
+            "oss",
+            "general"
+          ]
+        },
+        {
+          "id": "deepseek-v4",
+          "model": "deepseek/deepseek-v4",
+          "params_b": 671,
+          "context": 1000000,
+          "tags": [
+            "oss",
+            "coding",
+            "reasoning",
+            "agentic",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "glm-5",
+          "model": "z-ai/glm-5",
+          "params_b": 744,
+          "context": 200000,
+          "tags": [
+            "oss",
+            "coding",
+            "agentic",
+            "bug-fix",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "glm-5.2",
+          "model": "z-ai/glm-5.2",
+          "params_b": 744,
+          "context": 1048576,
+          "tags": [
+            "oss",
+            "coding",
+            "agentic",
+            "bug-fix",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "longcat-2.0",
+          "model": "meituan/longcat-2.0",
+          "params_b": 560,
+          "context": 262144,
+          "tags": [
+            "oss",
+            "coding",
+            "agentic",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "grok-4.5",
+          "model": "x-ai/grok-4.5",
+          "params_b": null,
+          "context": 262144,
+          "tags": [
+            "reasoning",
+            "coding",
+            "agentic",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "kimi-k2",
+          "model": "moonshotai/kimi-k2",
+          "params_b": 1000,
+          "context": 256000,
+          "tags": [
+            "oss",
+            "coding",
+            "agentic",
+            "reasoning",
+            "candidate"
+          ]
+        },
+        {
+          "id": "minimax-m2",
+          "model": "minimax/minimax-m2",
+          "params_b": 230,
+          "context": 1000000,
+          "tags": [
+            "oss",
+            "coding",
+            "agentic",
+            "multimodal",
+            "candidate"
+          ]
+        },
+        {
+          "id": "qwen3-coder",
+          "model": "qwen/qwen3-coder",
+          "params_b": 80,
+          "context": 256000,
+          "tags": [
+            "oss",
+            "coding",
+            "code-edit",
+            "tools",
+            "candidate"
+          ]
+        },
+        {
+          "id": "qwen3-235b",
+          "model": "qwen/qwen3-235b-a22b",
+          "params_b": 235,
+          "context": 262000,
+          "tags": [
+            "oss",
+            "reasoning",
+            "math",
+            "candidate"
+          ]
+        },
+        {
+          "id": "qwen3-vl",
+          "model": "qwen/qwen3-vl",
+          "params_b": 235,
+          "context": 256000,
+          "tags": [
+            "oss",
+            "multimodal",
+            "doc",
+            "vision",
+            "candidate"
+          ]
+        }
+      ]
+    },
+    "novita": {
+      "requires_env": "NOVITA_API_KEY",
+      "model_count": 3,
+      "models": [
+        {
+          "id": "llama-3.3-70b",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "params_b": 70,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "general"
+          ]
+        },
+        {
+          "id": "qwen-2.5-7b",
+          "model": "qwen/qwen-2.5-7b-instruct",
+          "params_b": 7,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "fast"
+          ]
+        },
+        {
+          "id": "deepseek-v3",
+          "model": "deepseek/deepseek-v3",
+          "params_b": 671,
+          "context": 65536,
+          "tags": [
+            "oss",
+            "general",
+            "coding"
+          ]
+        }
+      ]
+    },
+    "cerebras": {
+      "requires_env": "CEREBRAS_API_KEY",
+      "model_count": 2,
+      "models": [
+        {
+          "id": "gpt-oss-120b",
+          "model": "gpt-oss-120b",
+          "params_b": 120,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "fast",
+            "general",
+            "reasoning",
+            "tools"
+          ]
+        },
+        {
+          "id": "zai-glm-4.7",
+          "model": "zai-glm-4.7",
+          "params_b": 357,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "fast",
+            "coding",
+            "reasoning",
+            "tools"
+          ]
+        }
+      ]
+    },
+    "nvidia": {
+      "requires_env": "NVIDIA_API_KEY",
+      "model_count": 2,
+      "models": [
+        {
+          "id": "llama-3.1-nemotron-70b",
+          "model": "nvidia/llama-3.1-nemotron-70b-instruct",
+          "params_b": 70,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "general",
+            "tuned"
+          ]
+        },
+        {
+          "id": "mistral-nemo-12b",
+          "model": "nv-mistralai/mistral-nemo-12b-instruct",
+          "params_b": 12,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "fast"
+          ]
+        }
+      ]
+    },
+    "huggingface": {
+      "requires_env": "HF_TOKEN",
+      "model_count": 2,
+      "models": [
+        {
+          "id": "qwen-2.5-coder-32b",
+          "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+          "params_b": 32,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "coding"
+          ]
+        },
+        {
+          "id": "llama-3.1-8b",
+          "model": "meta-llama/Llama-3.1-8B-Instruct",
+          "params_b": 8,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "fast"
+          ]
+        }
+      ]
+    },
+    "ollama-cloud": {
+      "requires_env": "OLLAMA_CLOUD_API_KEY",
+      "model_count": 2,
+      "models": [
+        {
+          "id": "llama3.3-70b",
+          "model": "llama3.3:70b",
+          "params_b": 70,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "general"
+          ]
+        },
+        {
+          "id": "deepseek-r1-70b",
+          "model": "deepseek-r1:70b",
+          "params_b": 70,
+          "context": 65536,
+          "tags": [
+            "oss",
+            "reasoning"
+          ]
+        }
+      ]
+    },
+    "ollama-local": {
+      "requires_env": null,
+      "model_count": 13,
+      "models": [
+        {
+          "id": "gemma4-e2b",
+          "model": "gemma4:e2b",
+          "params_b": 2,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "gemma",
+            "mobile",
+            "voice",
+            "fast",
+            "memory",
+            "multimodal"
+          ]
+        },
+        {
+          "id": "gemma4-e4b",
+          "model": "gemma4:e4b",
+          "params_b": 4,
+          "context": 131072,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "gemma",
+            "reasoning",
+            "memory",
+            "voice",
+            "mobile",
+            "multimodal",
+            "doc"
+          ]
+        },
+        {
+          "id": "qwen3-coder-30b",
+          "model": "qwen3-coder:30b",
+          "params_b": 30,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "coding",
+            "code-edit",
+            "tools"
+          ]
+        },
+        {
+          "id": "gpt-oss-20b",
+          "model": "gpt-oss:20b",
+          "params_b": 20,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "reasoning",
+            "agentic",
+            "tools",
+            "thinking"
+          ]
+        },
+        {
+          "id": "gemma4-12b",
+          "model": "gemma4:12b",
+          "params_b": 12,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "general",
+            "vision",
+            "tools",
+            "thinking"
+          ]
+        },
+        {
+          "id": "qwen3_5-9b",
+          "model": "qwen3.5:9b",
+          "params_b": 9,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "fast",
+            "general",
+            "vision",
+            "tools",
+            "thinking"
+          ]
+        },
+        {
+          "id": "qwythos-mythos-9b",
+          "model": "hf.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q5_K_M",
+          "params_b": 9,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "creative",
+            "companion",
+            "long-context",
+            "tools",
+            "thinking",
+            "vision"
+          ]
+        },
+        {
+          "id": "ornith-9b",
+          "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+          "params_b": 9,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "reasoning",
+            "tools",
+            "thinking"
+          ]
+        },
+        {
+          "id": "qwen2.5-7b",
+          "model": "qwen2.5:7b",
+          "params_b": 7,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline"
+          ]
+        },
+        {
+          "id": "qwen3-embedding",
+          "model": "qwen3-embedding",
+          "params_b": 8,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "embedding",
+            "retrieval"
+          ]
+        },
+        {
+          "id": "bge-m3",
+          "model": "bge-m3",
+          "params_b": 0.6,
+          "context": 8192,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "embedding",
+            "retrieval",
+            "multilingual"
+          ]
+        },
+        {
+          "id": "qwen3-reranker",
+          "model": "qwen3-reranker",
+          "params_b": 8,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "rerank",
+            "retrieval"
+          ]
+        },
+        {
+          "id": "bge-reranker",
+          "model": "bge-reranker",
+          "params_b": 0.6,
+          "context": 8192,
+          "tags": [
+            "oss",
+            "local",
+            "offline",
+            "rerank",
+            "retrieval"
+          ]
+        }
+      ]
+    },
+    "llamacpp-local": {
+      "requires_env": null,
+      "model_count": 1,
+      "models": [
+        {
+          "id": "qwen2.5-7b",
+          "model": "qwen2.5-7b-instruct",
+          "params_b": 7,
+          "context": 32768,
+          "tags": [
+            "oss",
+            "local",
+            "offline"
+          ]
+        }
+      ]
+    }
+  },
+  "defaults": {
+    "frontier": [
+      "openrouter/llama-3.3-70b",
+      "novita/llama-3.3-70b",
+      "nvidia/llama-3.1-nemotron-70b",
+      "cerebras/zai-glm-4.7"
+    ],
+    "fast": [
+      "ollama-local/qwen3_5-9b",
+      "ollama-local/gemma4-12b",
+      "cerebras/gpt-oss-120b",
+      "openrouter/llama-3.1-8b"
+    ],
+    "local": [
+      "ollama-local/qwen3_5-9b",
+      "ollama-local/gemma4-12b",
+      "ollama-local/qwen3-coder-30b"
+    ]
+  },
+  "note": "Provider information extracted from model-catalog.yaml. For full routing logic, see auxiliary_client.py and auth.py."
+}

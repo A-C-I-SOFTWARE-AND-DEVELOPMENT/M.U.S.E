@@ -1,0 +1,22 @@
+{
+  "load_ok": true,
+  "terrain_pbr": true,
+  "pbr_material_actors": 769,
+  "engine_basicshapes": 0,
+  "wheat_kit": 214,
+  "materials": {
+    "/Game/PBR/M_forest_floor.M_forest_floor": 1,
+    "/Game/PBR/M_wood_planks_grey.M_wood_planks_grey": 29,
+    "/Game/PBR/M_pine_bark.M_pine_bark": 474,
+    "/Game/PBR/M_rock_face_03.M_rock_face_03": 51,
+    "/Game/PBR/M_leafy_grass.M_leafy_grass": 214
+  },
+  "meshes": {
+    "/Game/Terrain/province_terrain.province_terrain": 1,
+    "/Game/Kits/longhouse.longhouse": 5,
+    "/Game/Kits/pine.pine": 474,
+    "/Game/Kits/rock1.rock1": 51,
+    "/Game/Kits/wheat1.wheat1": 214,
+    "/Game/Kits/barrel.barrel": 24
+  }
+}

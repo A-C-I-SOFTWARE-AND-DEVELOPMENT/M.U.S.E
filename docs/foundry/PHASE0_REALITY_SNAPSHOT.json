@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-08-12T15:22:38.393535Z",
+  "current_commit": "bb78a5bf1c4373672a949056d256c75cc3165945",
+  "branch": "main",
+  "dirty_files_count": 56,
+  "dirty_files": [
+    "M agent/agent_runtime_helpers.py",
+    " M agent/conversation_loop.py",
+    " M agent/fusion_model_router.py",
+    " M agent/fusion_router.py",
+    " M agent/models_dev.py",
+    " M api/gateway/[...path].ts",
+    " M apps/desktop/ui/src/omni/components/setup/ConnectWizard.tsx",
+    " M apps/desktop/ui/src/omni/lib/capabilities.ts",
+    " M apps/desktop/ui/src/omni/lib/connect.ts",
+    " M apps/desktop/ui/src/omni/lib/modelCatalog.ts",
+    " M apps/desktop/ui/src/omni/lib/providers.ts",
+    " M apps/desktop/ui/src/omni/pages/ApprovalsPage.tsx",
+    " M apps/nexus/src/components/muse/CapabilityDrawer.tsx",
+    " M apps/nexus/src/components/setup/ConnectWizard.tsx",
+    " M apps/nexus/src/lib/capabilities.ts",
+    " M apps/nexus/src/lib/connect.ts",
+    " M apps/nexus/src/lib/modelCatalog.ts",
+    " M apps/nexus/src/lib/providers.ts",
+    " M apps/nexus/src/pages/AxiomGatePage.tsx",
+    " M apps/nexus/tsconfig.tsbuildinfo"
+  ]
+}

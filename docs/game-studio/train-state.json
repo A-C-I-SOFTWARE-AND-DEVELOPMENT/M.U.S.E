@@ -1,0 +1,38 @@
+{
+  "updated": "2026-08-15T22:24:42Z",
+  "download_complete": false,
+  "download_running": true,
+  "gguf_name": "Qwen3.8-27B-UD-Q3_K_XL.gguf",
+  "gguf_expected": 13441059904,
+  "gguf_path": "C:/Users/Echer/models/agents/game-pipeline/base/Qwen3.8-27B-UD-Q3_K_XL.gguf",
+  "mmproj_complete": false,
+  "train_started": true,
+  "train_completed": true,
+  "retrain_167": {
+    "examples": 167,
+    "epochs": 3,
+    "steps": 63,
+    "train_loss": 1.996,
+    "last_token_acc": 0.914,
+    "runtime_s": 320.4
+  },
+  "retrain_176": {
+    "examples": 176,
+    "epochs": 3,
+    "steps": 66,
+    "max_steps": 66,
+    "train_loss": 2.049,
+    "last_step_loss": 0.7435,
+    "last_token_acc": 0.8583,
+    "num_tokens": 91530,
+    "runtime_s": 328.9,
+    "adapter_bytes": 174655536,
+    "adapter_mtime": "2026-08-15T22:24:23Z",
+    "trainer_state": "C:/Users/Echer/models/agents/game-pipeline/loras/worldclaw-skyrim-class/checkpoint-66/trainer_state.json",
+    "log": "C:/Users/Echer/models/agents/game-pipeline/logs/retrain_176.log"
+  },
+  "adapter_path": "C:/Users/Echer/models/agents/game-pipeline/loras/worldclaw-skyrim-class/final_adapter",
+  "smoke_infer": "adapter loads; sample director reply was repetitive/unusable — do not treat seats as reliable",
+  "blocker": null,
+  "next": "PBR+wheat on HearthTerrain; then 27B curl finish + hole-check + mmproj + hardlink"
+}

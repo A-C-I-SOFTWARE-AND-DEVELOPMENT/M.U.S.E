@@ -14,20 +14,58 @@ metadata:
       - "build a game"
       - "create a game"
       - "game studio"
+      - "game creator"
+      - "ultimate game creator"
       - "vertical slice"
       - "prototype a game"
       - "greybox a level"
       - "design a game"
       - "build the vertical slice"
       - "generate a 3d asset"
+      - "world vision"
+      - "game trailer"
+      - "interactive world"
+      - "cinematic concept"
+      - "worldclaw"
+      - "open world"
+      - "generate a 3d world"
+      - "explorable terrain"
     related_skills:
+      - lingbot-world
+      - reactor-video-ai
+      - muse-frontier-assets
+      - game-asset-pipeline
+      - guide-first
       - ue5-render
+      - ue5-mega-world
       - comfyui
       - aos-enterprise-council
       - kanban-orchestrator
 ---
 
 # Game Studio Skill
+
+## References
+
+- `references/world-model-routing.md` — **Stage 2.5 World Vision**: Reactor
+  Helios (primary) + LingBot-World 2.0 local (secondary) via
+  `world_vision_router.py`. Hardware truth, license, stop-Laguna procedure.
+  Clips are look-dev, not meshes.
+- `references/worldclaw-pipeline.md` — **Stages 2.6 / 3.5 / 4 / 4.5**: Tencent
+  Hunyuan WorldClaw (arXiv:2608.05248) distilled into Muse seats. Explicit
+  terrain + instance meshes. Template: `templates/world-spec.md`.
+- `references/game-dev-api-catalog.md` — comprehensive catalog of
+  game-dev APIs (3D gen, world gen, animation, audio, NPCs, networking,
+  marketplaces) with pricing tiers and URLs. Consult when choosing
+  tools/services for a game pipeline.
+- `references/game-dev-api-toolkit.md` — install instructions for the
+  unified Python game-dev API client (venv at `~/game-dev-apis/`), free
+  no-key APIs (AmbientCG, Poly Haven via Blender), self-hosted model
+  repos (TripoSR, Hunyuan3D-2), and API key locations. Consult when
+  setting up or using the API toolkit.
+- `../guide-first/SKILL.md` — **LEGO box**: official + one dated tutorial →
+  numbered instruction card → judge → swap if the kit is blocky. Required
+  when a 3D asset looks like crap or the seat does not know the next step.
 
 muse's apex-grade surface for **orchestrating the production of a graphically
 state-of-the-art PC game**. It routes a one-line brief through a gated,
@@ -64,11 +102,14 @@ routing decision to memory under `game-studio/<slug>/`.
 
 | Request signal | Primary roles dispatched |
 |---|---|
-| "make/build/create a game", "vertical slice" | `studio-director` → `game-designer` → `graphics-tech-artist` + `3d-asset-artist` → `level-designer` → `gameplay-engineer` → `audio-designer` → `qa-playtest` → `build-release-engineer` |
+| "make/build/create a game", "vertical slice", "game creator" | `studio-director` → `game-designer` → **World Vision** (`world_vision_router`) → **WorldClaw spec** (open-world only) → `graphics-tech-artist` + `3d-asset-artist` → `level-designer` → `gameplay-engineer` → `audio-designer` → `qa-playtest` → `build-release-engineer` |
 | "design a game" / GDD only | `game-designer` (+ `studio-director` for scope) |
+| "world vision" / "game trailer" / "interactive world" / "cinematic concept" | `studio-director` → World Vision via `world_vision_router.py` (Reactor primary; LingBot if VRAM free) → `graphics-tech-artist` consumes clips as look-dev refs |
+| "worldclaw" / "open world" / "generate a 3d world" / "explorable terrain" | `studio-director` → `game-designer` (Intent) → WorldClaw stages 2.6–4.5 (`references/worldclaw-pipeline.md`) → `qa-playtest` |
 | "greybox a level" / "blockout" | `level-designer` + `gameplay-engineer` |
 | "make this look SOTA" / lighting / materials | `graphics-tech-artist` + `art-direction` (UE5 path via `ue5-render`) |
 | "generate a 3D asset" | `3d-asset-artist` (uses the `asset3d_generate` tool) |
+| "blocky / crap mesh", "follow a tutorial", "how-to" | `3d-asset-artist` + **guide-first** (ledger → card → judge → swap) |
 | "add music / SFX" | `audio-designer` (uses `comfyui` audio) |
 | "build & ship the slice" | `build-release-engineer` (**owner-gated**) |
 
@@ -82,6 +123,7 @@ Engines are pluggable **worker profiles** (`hermes_cli/profiles.py`), so
 
 | Profile | Engine | Status here |
 |---|---|---|
+| `game-creator` | Godot default + full creative stack | **Muse Game Creator mode** — preloads `game-studio`, `lingbot-world`, `reactor-video-ai`, frontier assets. Switch via Hermes profile `game-creator`. |
 | `game-godot` | Godot 4 | **The only headless-verifiable path in this environment / CI** (`godot --headless --export`). Default for the vertical slice. |
 | `game-ue5` | Unreal Engine 5 | The documented **SOTA-graphics path** (Nanite/Lumen/MetaHuman). Requires an owner-provided GPU + licensed engine host; drives renders via the `ue5-render` skill. |
 | `game-unity` | Unity 6 | Documented profile only. |
@@ -161,3 +203,13 @@ Role agents emit structured, gate-ready artifacts from `templates/`:
 - Sharing a writable file between two parallel roles (sequence them instead).
 - Treating UE5 as runnable in this environment — it needs a GPU host; the
   runnable demo is Godot.
+- **Three.js "hyper-fidelity" fail:** shipping `MeshBasicMaterial` + colored
+  `CircleGeometry` blobs with camera at `(0,0,10)`. That is a 2D prototype, not
+  a 3D game. Before claiming done, open
+  `references/threejs-visual-quality-gate.md` and pass every PASS check.
+  Empty `assets/` + Vite exit 0 ≠ success.
+- **Three.js white-screen fail (2026-07-25 Frogger):** `ReferenceError: laneWidth
+  is not defined` (forgot `this.`), and first-frame `deltaTime` explosion from
+  `lastTime = 0` → instant gravity death. Always load the page and check the
+  console before claiming PASS. Cap deltaTime; initialize `lastTime` with
+  `performance.now()`; lane `BoxGeometry` length must be on **Z**.

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Muse InstructionCard",
+  "type": "object",
+  "required": ["task", "subject", "official", "tutorial", "steps", "verify", "fail_if"],
+  "properties": {
+    "task": { "type": "string", "enum": ["blender-kit", "fbx-ue", "pbr", "landscape", "pcg", "lighting"] },
+    "subject": { "type": "string" },
+    "official": {
+      "type": "object",
+      "required": ["id", "title", "url"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "tutorial": {
+      "type": "object",
+      "required": ["id", "title", "url"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "tried": { "type": "array", "items": { "type": "string" } },
+    "swap": { "type": "integer", "minimum": 0, "maximum": 2 },
+    "steps": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["n", "do", "adapt"],
+        "properties": {
+          "n": { "type": "integer" },
+          "do": { "type": "string" },
+          "adapt": { "type": "string" }
+        }
+      }
+    },
+    "verify": { "type": "array", "items": { "type": "string" } },
+    "fail_if": { "type": "array", "items": { "type": "string" } }
+  }
+}

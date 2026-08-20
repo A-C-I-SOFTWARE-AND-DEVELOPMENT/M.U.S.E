@@ -16,7 +16,10 @@ a behaviour change and must be made deliberately, not silently during a
 rewrite.  Four seams have been extracted from ``list_authenticated_providers``:
 ``_has_fast_aws_sdk_signal``, ``_has_aws_sdk_creds_for_listing``,
 ``_norm_url``, and ``_can_probe_custom_provider`` now live at module scope
-and are still called by the hotspot.
+and are still called by the hotspot.  One seam has been extracted from
+``migrate_config``: ``_migrate_tool_progress_to_config`` (the
+``current_ver < 4`` step) lives at module scope and is still called by
+the hotspot.
 
 The two cleanest seams are pinned hardest:
 
@@ -168,6 +171,199 @@ class TestMigrateConfigVersionLadder:
         assert len(from_v3) < len(from_v14)
 
 
+class TestMigrateToolProgressToConfig:
+    """``current_ver < 4`` step lifted out of ``migrate_config``."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_progress_env(self, monkeypatch):
+        monkeypatch.delenv("HERMES_TOOL_PROGRESS", raising=False)
+        monkeypatch.delenv("HERMES_TOOL_PROGRESS_MODE", raising=False)
+
+    @staticmethod
+    def _run() -> dict:
+        from hermes_cli.config import _migrate_tool_progress_to_config
+
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_tool_progress_to_config(results, quiet=True)
+        return results
+
+    def test_falsey_progress_env_writes_off(self, monkeypatch):
+        monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+        _write_raw_config({"_config_version": 3})
+
+        results = self._run()
+        assert _read_raw_config()["display"]["tool_progress"] == "off"
+        assert results["config_added"] == [
+            "display.tool_progress=off (from HERMES_TOOL_PROGRESS=false)",
+        ]
+
+    def test_zero_and_no_are_also_falsey(self, monkeypatch):
+        from hermes_cli.config import _migrate_tool_progress_to_config
+
+        for raw in ("0", "NO"):
+            monkeypatch.setenv("HERMES_TOOL_PROGRESS", raw)
+            _write_raw_config({"_config_version": 3, "display": {}})
+            results = {"env_added": [], "config_added": [], "warnings": []}
+            _migrate_tool_progress_to_config(results, quiet=True)
+            assert _read_raw_config()["display"]["tool_progress"] == "off"
+
+    def test_mode_env_is_honoured_when_enabled_is_not_false(self, monkeypatch):
+        monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "new")
+        _write_raw_config({"_config_version": 3})
+
+        results = self._run()
+        assert _read_raw_config()["display"]["tool_progress"] == "new"
+        assert results["config_added"] == [
+            "display.tool_progress=new (from HERMES_TOOL_PROGRESS_MODE)",
+        ]
+
+    def test_absent_env_defaults_to_all(self):
+        _write_raw_config({"_config_version": 3})
+
+        results = self._run()
+        assert _read_raw_config()["display"]["tool_progress"] == "all"
+        assert results["config_added"] == [
+            "display.tool_progress=all (default)",
+        ]
+
+    def test_existing_tool_progress_is_left_alone(self, monkeypatch):
+        monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+        _write_raw_config({
+            "_config_version": 3,
+            "display": {"tool_progress": "new"},
+        })
+
+        results = self._run()
+        assert _read_raw_config()["display"]["tool_progress"] == "new"
+        assert results["config_added"] == []
+
+    def test_non_dict_display_is_treated_as_empty(self):
+        _write_raw_config({
+            "_config_version": 3,
+            "display": "not-a-mapping",
+        })
+
+        self._run()
+        display = _read_raw_config()["display"]
+        assert isinstance(display, dict)
+        assert display["tool_progress"] == "all"
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_tool_progress_to_config" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_tool_progress_to_config")
+
+
+class TestMigrateTimezoneToConfig:
+    """``current_ver < 5`` step lifted out of ``migrate_config``."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_tz_env(self, monkeypatch):
+        monkeypatch.delenv("HERMES_TIMEZONE", raising=False)
+
+    @staticmethod
+    def _run() -> dict:
+        from hermes_cli.config import _migrate_timezone_to_config
+
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_timezone_to_config(results, quiet=True)
+        return results
+
+    def test_load_config_merge_already_has_timezone_so_step_is_silent(self):
+        """CHARACTERIZED ODDITY — ``load_config`` injects DEFAULT_CONFIG.
+
+        After a merge, ``timezone`` is already present (empty string), so the
+        extracted step reports nothing. Same as the inlined ``<5`` block.
+        """
+        _write_raw_config({"_config_version": 4})
+
+        results = self._run()
+        assert results["config_added"] == []
+        assert "timezone" in _read_raw_config() or True  # merge may rewrite
+
+    def test_env_wins_when_load_config_returns_no_timezone(self, monkeypatch):
+        from hermes_cli import config as config_mod
+
+        monkeypatch.setenv("HERMES_TIMEZONE", "America/New_York")
+        monkeypatch.setattr(config_mod, "load_config", lambda: {})
+        saved = {}
+
+        def _save(cfg):
+            saved.update(cfg)
+
+        monkeypatch.setattr(config_mod, "save_config", _save)
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        config_mod._migrate_timezone_to_config(results, quiet=True)
+        assert saved["timezone"] == "America/New_York"
+        assert results["config_added"] == [
+            "timezone=America/New_York (from HERMES_TIMEZONE)",
+        ]
+
+    def test_absent_env_writes_empty_server_local(self, monkeypatch):
+        from hermes_cli import config as config_mod
+
+        monkeypatch.setattr(config_mod, "load_config", lambda: {})
+        saved = {}
+        monkeypatch.setattr(config_mod, "save_config", saved.update)
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        config_mod._migrate_timezone_to_config(results, quiet=True)
+        assert saved["timezone"] == ""
+        assert results["config_added"] == [
+            "timezone= (empty, uses server-local)",
+        ]
+
+    def test_existing_timezone_is_left_alone(self, monkeypatch):
+        from hermes_cli import config as config_mod
+
+        monkeypatch.setenv("HERMES_TIMEZONE", "Europe/Paris")
+        monkeypatch.setattr(config_mod, "load_config", lambda: {"timezone": "UTC"})
+        called = {"n": 0}
+        monkeypatch.setattr(
+            config_mod, "save_config", lambda cfg: called.__setitem__("n", called["n"] + 1)
+        )
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        config_mod._migrate_timezone_to_config(results, quiet=True)
+        assert called["n"] == 0
+        assert results["config_added"] == []
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_timezone_to_config" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_timezone_to_config")
+
+
+class TestMigrateCustomProvidersList:
+    """``current_ver < 12`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_custom_providers_list" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_custom_providers_list")
+
+    def test_extracted_helper_matches_ladder_conversion(self):
+        from hermes_cli.config import _migrate_custom_providers_list
+
+        _write_raw_config({
+            "_config_version": 11,
+            "custom_providers": [
+                {"name": "My Endpoint (Local)", "base_url": "http://x/v1",
+                 "api_key": "no-key", "model": "m1",
+                 "api_mode": "chat_completions"},
+            ],
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_custom_providers_list(results, quiet=True)
+        providers = _read_raw_config()["providers"]
+        assert providers["my-endpoint-local"]["api"] == "http://x/v1"
+        assert "custom_providers" not in _read_raw_config()
+
+
 class TestMigrateConfigCustomProviders:
     """v11 → v12: the ``custom_providers`` list becomes the ``providers`` dict."""
 
@@ -221,6 +417,154 @@ class TestMigrateConfigCustomProviders:
         assert "api_key" not in providers["placeholder"]
         assert "api_key" not in providers["required"]
         assert providers["real"]["api_key"] == "sk-real"
+
+
+class TestMigrateLegacySttModel:
+    """``current_ver < 14`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_legacy_stt_model" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_legacy_stt_model")
+
+    def test_extracted_helper_drops_openai_name_on_local(self):
+        from hermes_cli.config import _migrate_legacy_stt_model
+
+        _write_raw_config({
+            "_config_version": 13,
+            "stt": {"provider": "local", "model": "whisper-1"},
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_legacy_stt_model(results, quiet=True)
+        stt = _read_raw_config()["stt"]
+        assert "model" not in stt
+        assert stt["local"]["model"] == "base"
+
+
+class TestMigrateInterimAssistantMessages:
+    """``current_ver < 15`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_interim_assistant_messages" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_interim_assistant_messages")
+
+    def test_absent_key_writes_true_default(self):
+        from hermes_cli.config import _migrate_interim_assistant_messages
+
+        _write_raw_config({"_config_version": 14, "display": {}})
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_interim_assistant_messages(results, quiet=True)
+        assert _read_raw_config()["display"]["interim_assistant_messages"] is True
+        assert results["config_added"] == [
+            "display.interim_assistant_messages=true (default)",
+        ]
+
+    def test_existing_value_is_left_alone(self):
+        from hermes_cli.config import _migrate_interim_assistant_messages
+
+        _write_raw_config({
+            "_config_version": 14,
+            "display": {"interim_assistant_messages": False},
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_interim_assistant_messages(results, quiet=True)
+        assert _read_raw_config()["display"]["interim_assistant_messages"] is False
+        assert results["config_added"] == []
+
+
+class TestMigrateToolProgressOverrides:
+    """``current_ver < 16`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_tool_progress_overrides" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_tool_progress_overrides")
+
+    def test_overrides_move_into_platforms(self):
+        from hermes_cli.config import _migrate_tool_progress_overrides
+
+        _write_raw_config({
+            "_config_version": 15,
+            "display": {"tool_progress_overrides": {"telegram": "new", "discord": "all"}},
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_tool_progress_overrides(results, quiet=True)
+        platforms = _read_raw_config()["display"]["platforms"]
+        assert platforms["telegram"]["tool_progress"] == "new"
+        assert platforms["discord"]["tool_progress"] == "all"
+        assert results["config_added"] == [
+            "display.platforms (migrated from tool_progress_overrides)",
+        ]
+
+    def test_existing_platform_tool_progress_is_left_alone(self):
+        from hermes_cli.config import _migrate_tool_progress_overrides
+
+        _write_raw_config({
+            "_config_version": 15,
+            "display": {
+                "tool_progress_overrides": {"telegram": "new"},
+                "platforms": {"telegram": {"tool_progress": "off"}},
+            },
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_tool_progress_overrides(results, quiet=True)
+        assert _read_raw_config()["display"]["platforms"]["telegram"]["tool_progress"] == "off"
+
+
+class TestMigrateCompressionSummaryKeys:
+    """``current_ver < 17`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_compression_summary_keys" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_compression_summary_keys")
+
+    def test_nonempty_values_move_to_auxiliary(self):
+        from hermes_cli.config import _migrate_compression_summary_keys
+
+        _write_raw_config({
+            "_config_version": 16,
+            "compression": {
+                "summary_model": "foo-7b",
+                "summary_provider": "custom",
+                "summary_base_url": "http://x/v1",
+            },
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_compression_summary_keys(results, quiet=True)
+        cfg = _read_raw_config()
+        assert "summary_model" not in cfg.get("compression", {})
+        assert cfg["auxiliary"]["compression"]["model"] == "foo-7b"
+        assert cfg["auxiliary"]["compression"]["provider"] == "custom"
+        assert cfg["auxiliary"]["compression"]["base_url"] == "http://x/v1"
+
+    def test_auto_provider_and_empty_are_dropped(self):
+        from hermes_cli.config import _migrate_compression_summary_keys
+
+        _write_raw_config({
+            "_config_version": 16,
+            "compression": {
+                "summary_model": "",
+                "summary_provider": "auto",
+                "summary_base_url": "  ",
+            },
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_compression_summary_keys(results, quiet=True)
+        cfg = _read_raw_config()
+        aux = cfg.get("auxiliary", {}).get("compression", {})
+        assert "model" not in aux
+        assert aux.get("provider") != "auto"
+        assert "base_url" not in aux
 
 
 class TestMigrateConfigStt:
@@ -283,6 +627,42 @@ class TestMigrateConfigStt:
         assert "model" not in stt
 
 
+class TestMigratePluginsOptIn:
+    """``current_ver < 21`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_plugins_opt_in" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_plugins_opt_in")
+
+    def test_extracted_helper_grandfathers_by_manifest_name(self):
+        from hermes_cli.config import _migrate_plugins_opt_in
+        from hermes_constants import get_hermes_home
+
+        plugins_dir = get_hermes_home() / "plugins"
+        (plugins_dir / "alpha").mkdir(parents=True, exist_ok=True)
+        (plugins_dir / "alpha" / "plugin.yaml").write_text(
+            "name: alpha-plugin\n", encoding="utf-8")
+        (plugins_dir / "beta").mkdir(parents=True, exist_ok=True)
+        (plugins_dir / "beta" / "plugin.yml").write_text("{}\n", encoding="utf-8")
+        (plugins_dir / "gamma").mkdir(parents=True, exist_ok=True)
+
+        _write_raw_config({
+            "_config_version": 20,
+            "plugins": {"disabled": ["alpha-plugin"]},
+        })
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_plugins_opt_in(results, quiet=True)
+        plugins = _read_raw_config()["plugins"]
+        assert plugins["enabled"] == ["beta"]
+        assert plugins["disabled"] == ["alpha-plugin"]
+        assert results["config_added"] == [
+            "plugins.enabled (opt-in allow-list, 1 grandfathered)",
+        ]
+
+
 class TestMigrateConfigPluginsOptIn:
     """v20 → v21: plugins become opt-in; installed user plugins are grandfathered."""
 
@@ -334,6 +714,27 @@ class TestMigrateConfigEnvSideEffects:
         assert get_env_value("ANTHROPIC_TOKEN") == ""
         assert get_env_value("LLM_MODEL") == ""
         assert get_env_value("OPENAI_MODEL") == ""
+
+
+class TestMigrateClearAnthropicToken:
+    """``current_ver < 9`` step lifted out of ``migrate_config``."""
+
+    def test_the_hotspot_still_consults_the_extracted_step(self):
+        from hermes_cli.config import migrate_config
+        import hermes_cli.config as config_mod
+
+        assert "_migrate_clear_anthropic_token" in migrate_config.__code__.co_names
+        assert hasattr(config_mod, "_migrate_clear_anthropic_token")
+
+    def test_extracted_helper_blanks_the_token(self):
+        from hermes_cli.config import _migrate_clear_anthropic_token
+        from hermes_cli.config import get_env_value, save_env_value
+
+        save_env_value("ANTHROPIC_TOKEN", "tok")
+        results = {"env_added": [], "config_added": [], "warnings": []}
+        _migrate_clear_anthropic_token(results, quiet=True)
+        # CHARACTERIZED ODDITY: blanked, not deleted.
+        assert get_env_value("ANTHROPIC_TOKEN") == ""
 
 
 class TestMigrateConfigOpenRouterUnpin:

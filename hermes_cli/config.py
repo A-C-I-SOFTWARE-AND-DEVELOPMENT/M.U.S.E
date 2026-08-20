@@ -3928,6 +3928,386 @@ def warn_deprecated_cwd_env_vars(config: Optional[Dict[str, Any]] = None) -> Non
         sys.stderr.write("\n".join(lines) + "\n\n")
 
 
+def _migrate_tool_progress_to_config(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 3 → 4: migrate tool progress from .env into config.yaml.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 4`` step) so the
+    first ladder step is pin-able without replaying the rest of the chain.
+    ``load_config`` / ``save_config`` stay inside the helper — that write is
+    what materialises DEFAULT_CONFIG into a one-key file, a characterized
+    oddity, not a side effect to strip.
+    """
+    config = load_config()
+    display = config.get("display", {})
+    if not isinstance(display, dict):
+        display = {}
+    if "tool_progress" not in display:
+        old_enabled = get_env_value("HERMES_TOOL_PROGRESS")
+        old_mode = get_env_value("HERMES_TOOL_PROGRESS_MODE")
+        if old_enabled and old_enabled.lower() in {"false", "0", "no"}:
+            display["tool_progress"] = "off"
+            results["config_added"].append("display.tool_progress=off (from HERMES_TOOL_PROGRESS=false)")
+        elif old_mode and old_mode.lower() in {"new", "all"}:
+            display["tool_progress"] = old_mode.lower()
+            results["config_added"].append(f"display.tool_progress={old_mode.lower()} (from HERMES_TOOL_PROGRESS_MODE)")
+        else:
+            display["tool_progress"] = "all"
+            results["config_added"].append("display.tool_progress=all (default)")
+        config["display"] = display
+        save_config(config)
+        if not quiet:
+            print(f"  ✓ Migrated tool progress to config.yaml: {display['tool_progress']}")
+
+
+def _migrate_timezone_to_config(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 4 → 5: add timezone field.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 5`` step).
+    ``HERMES_TIMEZONE`` wins when set; otherwise the key is written empty
+    (server-local). Existing ``timezone`` is left alone.
+    """
+    config = load_config()
+    if "timezone" not in config:
+        old_tz = os.getenv("HERMES_TIMEZONE", "")
+        if old_tz and old_tz.strip():
+            config["timezone"] = old_tz.strip()
+            results["config_added"].append(f"timezone={old_tz.strip()} (from HERMES_TIMEZONE)")
+        else:
+            config["timezone"] = ""
+            results["config_added"].append("timezone= (empty, uses server-local)")
+        save_config(config)
+        if not quiet:
+            tz_display = config["timezone"] or "(server-local)"
+            print(f"  ✓ Added timezone to config.yaml: {tz_display}")
+
+
+def _migrate_custom_providers_list(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 11 → 12: migrate custom_providers list → providers dict.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 12`` step).
+    Empty / non-list values are a no-op. Entries with no URL are skipped.
+    Placeholder api_keys (``no-key``, ``no-key-required``, empty) are dropped.
+    """
+    config = load_config()
+    custom_list = config.get("custom_providers")
+    if isinstance(custom_list, list) and custom_list:
+        providers_dict = config.get("providers", {})
+        if not isinstance(providers_dict, dict):
+            providers_dict = {}
+        migrated_count = 0
+        for entry in custom_list:
+            if not isinstance(entry, dict):
+                continue
+            old_name = entry.get("name", "")
+            old_url = entry.get("base_url", "") or entry.get("url", "") or ""
+            old_key = entry.get("api_key", "")
+            if not old_url:
+                continue  # skip entries with no URL
+
+            # Generate a kebab-case key from the display name
+            key = old_name.strip().lower().replace(" ", "-").replace("(", "").replace(")", "")
+            # Remove consecutive hyphens and trailing hyphens
+            while "--" in key:
+                key = key.replace("--", "-")
+            key = key.strip("-")
+            if not key:
+                # Fallback: derive from URL hostname
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(old_url)
+                    key = (parsed.hostname or "endpoint").replace(".", "-")
+                except Exception:
+                    key = f"endpoint-{migrated_count}"
+
+            # Don't overwrite existing entries
+            if key in providers_dict:
+                key = f"{key}-{migrated_count}"
+
+            new_entry = {"api": old_url}
+            if old_name:
+                new_entry["name"] = old_name
+            if old_key and old_key not in {"no-key", "no-key-required", ""}:
+                new_entry["api_key"] = old_key
+
+            # Carry over model and api_mode if present
+            if entry.get("model"):
+                new_entry["default_model"] = entry["model"]
+            if entry.get("api_mode"):
+                new_entry["transport"] = entry["api_mode"]
+
+            providers_dict[key] = new_entry
+            migrated_count += 1
+
+        if migrated_count > 0:
+            config["providers"] = providers_dict
+            # Remove the old list — runtime reads via get_compatible_custom_providers()
+            config.pop("custom_providers", None)
+            save_config(config)
+            if not quiet:
+                print(f"  ✓ Migrated {migrated_count} custom provider(s) to providers: section")
+                for key in list(providers_dict.keys())[-migrated_count:]:
+                    ep = providers_dict[key]
+                    print(f"    → {key}: {ep.get('api', '')}")
+
+
+def _migrate_legacy_stt_model(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 13 → 14: migrate legacy flat stt.model to provider section.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 14`` step).
+    Reads raw config so DEFAULT_CONFIG merge cannot invent a flat key.
+    OpenAI names (``whisper-1``) are dropped when provider is local.
+    """
+    raw = read_raw_config()
+    raw_stt = raw.get("stt", {})
+    if isinstance(raw_stt, dict) and "model" in raw_stt:
+        legacy_model = raw_stt["model"]
+        provider = raw_stt.get("provider", "local")
+        config = load_config()
+        stt = config.get("stt", {})
+        stt.pop("model", None)
+        if provider in {"local", "local_command"}:
+            _local_models = {
+                "tiny.en", "tiny", "base.en", "base", "small.en", "small",
+                "medium.en", "medium", "large-v1", "large-v2", "large-v3",
+                "large", "distil-large-v2", "distil-medium.en",
+                "distil-small.en", "distil-large-v3", "distil-large-v3.5",
+                "large-v3-turbo", "turbo",
+            }
+            if legacy_model in _local_models:
+                raw_local = raw_stt.get("local", {})
+                if not isinstance(raw_local, dict) or "model" not in raw_local:
+                    local_cfg = stt.setdefault("local", {})
+                    local_cfg["model"] = legacy_model
+        else:
+            raw_provider = raw_stt.get(provider, {})
+            if not isinstance(raw_provider, dict) or "model" not in raw_provider:
+                provider_cfg = stt.setdefault(provider, {})
+                provider_cfg["model"] = legacy_model
+        config["stt"] = stt
+        save_config(config)
+        if not quiet:
+            print("  ✓ Migrated legacy stt.model to provider-specific config")
+
+
+def _migrate_interim_assistant_messages(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 14 → 15: add explicit gateway interim-message gate.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 15`` step).
+    Reads raw config so DEFAULT_CONFIG merge cannot invent the key.
+    Existing ``display.interim_assistant_messages`` is left alone.
+    """
+    config = read_raw_config()
+    display = config.get("display", {})
+    if not isinstance(display, dict):
+        display = {}
+    if "interim_assistant_messages" not in display:
+        display["interim_assistant_messages"] = True
+        config["display"] = display
+        results["config_added"].append("display.interim_assistant_messages=true (default)")
+        save_config(config)
+        if not quiet:
+            print("  ✓ Added display.interim_assistant_messages=true")
+
+
+def _migrate_tool_progress_overrides(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 15 → 16: migrate tool_progress_overrides into display.platforms.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 16`` step).
+    Reads raw config. Existing ``platforms[plat].tool_progress`` is left
+    alone; missing platform slots get the old override mode.
+    """
+    config = read_raw_config()
+    display = config.get("display", {})
+    if not isinstance(display, dict):
+        display = {}
+    old_overrides = display.get("tool_progress_overrides")
+    if isinstance(old_overrides, dict) and old_overrides:
+        platforms = display.get("platforms", {})
+        if not isinstance(platforms, dict):
+            platforms = {}
+        for plat, mode in old_overrides.items():
+            if plat not in platforms:
+                platforms[plat] = {}
+            if "tool_progress" not in platforms[plat]:
+                platforms[plat]["tool_progress"] = mode
+        display["platforms"] = platforms
+        config["display"] = display
+        save_config(config)
+        if not quiet:
+            migrated = ", ".join(f"{p}={m}" for p, m in old_overrides.items())
+            print(f"  ✓ Migrated tool_progress_overrides → display.platforms: {migrated}")
+        results["config_added"].append("display.platforms (migrated from tool_progress_overrides)")
+
+
+def _migrate_compression_summary_keys(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 16 → 17: remove legacy compression.summary_* keys.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 17`` step).
+    Non-empty, non-default values move to ``auxiliary.compression``.
+    Empty / ``auto`` values are dropped. Existing auxiliary keys win.
+    """
+    config = read_raw_config()
+    comp = config.get("compression", {})
+    if isinstance(comp, dict):
+        s_model = comp.pop("summary_model", None)
+        s_provider = comp.pop("summary_provider", None)
+        s_base_url = comp.pop("summary_base_url", None)
+        migrated_keys = []
+        if s_model and str(s_model).strip():
+            aux = config.setdefault("auxiliary", {})
+            aux_comp = aux.setdefault("compression", {})
+            if not aux_comp.get("model"):
+                aux_comp["model"] = str(s_model).strip()
+                migrated_keys.append(f"model={s_model}")
+        if s_provider and str(s_provider).strip() not in {"", "auto"}:
+            aux = config.setdefault("auxiliary", {})
+            aux_comp = aux.setdefault("compression", {})
+            if not aux_comp.get("provider") or aux_comp.get("provider") == "auto":
+                aux_comp["provider"] = str(s_provider).strip()
+                migrated_keys.append(f"provider={s_provider}")
+        if s_base_url and str(s_base_url).strip():
+            aux = config.setdefault("auxiliary", {})
+            aux_comp = aux.setdefault("compression", {})
+            if not aux_comp.get("base_url"):
+                aux_comp["base_url"] = str(s_base_url).strip()
+                migrated_keys.append(f"base_url={s_base_url}")
+        if migrated_keys or s_model is not None or s_provider is not None or s_base_url is not None:
+            config["compression"] = comp
+            save_config(config)
+            if not quiet:
+                if migrated_keys:
+                    print(f"  ✓ Migrated compression.summary_* → auxiliary.compression: {', '.join(migrated_keys)}")
+                else:
+                    print("  ✓ Removed unused compression.summary_* keys")
+
+
+def _migrate_plugins_opt_in(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 20 → 21: plugins are now opt-in; grandfather existing user plugins.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 21`` step).
+    Only runs when ``plugins.enabled`` is absent. Bundled plugins are
+    not grandfathered. Disabled names stay out of the allow-list.
+    """
+    config = read_raw_config()
+    plugins_cfg = config.get("plugins")
+    if not isinstance(plugins_cfg, dict):
+        plugins_cfg = {}
+    if "enabled" not in plugins_cfg:
+        disabled = plugins_cfg.get("disabled", []) or []
+        if not isinstance(disabled, list):
+            disabled = []
+        disabled_set = set(disabled)
+
+        grandfathered: List[str] = []
+        try:
+            user_plugins_dir = get_hermes_home() / "plugins"
+            if user_plugins_dir.is_dir():
+                for child in sorted(user_plugins_dir.iterdir()):
+                    if not child.is_dir():
+                        continue
+                    manifest_file = child / "plugin.yaml"
+                    if not manifest_file.exists():
+                        manifest_file = child / "plugin.yml"
+                    if not manifest_file.exists():
+                        continue
+                    try:
+                        with open(manifest_file, encoding="utf-8") as _mf:
+                            manifest = yaml.safe_load(_mf) or {}
+                    except Exception:
+                        manifest = {}
+                    name = manifest.get("name") or child.name
+                    if name in disabled_set:
+                        continue
+                    grandfathered.append(name)
+        except Exception:
+            grandfathered = []
+
+        plugins_cfg["enabled"] = grandfathered
+        config["plugins"] = plugins_cfg
+        save_config(config)
+        results["config_added"].append(
+            f"plugins.enabled (opt-in allow-list, {len(grandfathered)} grandfathered)"
+        )
+        if not quiet:
+            if grandfathered:
+                print(
+                    f"  ✓ Plugins now opt-in: grandfathered "
+                    f"{len(grandfathered)} existing plugin(s) into plugins.enabled"
+                )
+            else:
+                print(
+                    "  ✓ Plugins now opt-in: no existing plugins to grandfather. "
+                    "Use `hermes plugins enable <name>` to activate."
+                )
+
+
+def _migrate_clear_anthropic_token(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 8 → 9: clear ANTHROPIC_TOKEN from .env.
+
+    Extracted from ``migrate_config`` (the ``current_ver < 9`` step).
+    The new Anthropic auth flow no longer uses this env var. The key
+    is blanked, not deleted — characterized oddity.
+    """
+    try:
+        old_token = get_env_value("ANTHROPIC_TOKEN")
+        if old_token:
+            save_env_value("ANTHROPIC_TOKEN", "")
+            if not quiet:
+                print("  ✓ Cleared ANTHROPIC_TOKEN from .env (no longer used)")
+    except Exception:
+        pass
+
+
+
+
+def _migrate_clear_dead_model_env(
+    results: Dict[str, Any],
+    quiet: bool,
+) -> None:
+    """Version 12 → 13: clear dead LLM_MODEL / OPENAI_MODEL from .env.
+
+    Extracted from migrate_config (the current_ver < 13 step).
+    These env vars were written by the old setup wizard but nothing reads
+    them anymore. Keys are blanked, not deleted — characterized oddity.
+    """
+    for dead_var in ("LLM_MODEL", "OPENAI_MODEL"):
+        try:
+            old_val = get_env_value(dead_var)
+            if old_val:
+                save_env_value(dead_var, "")
+                if not quiet:
+                    print(f"  ✓ Cleared {dead_var} from .env (no longer used — config.yaml is source of truth)")
+        except Exception:
+            pass
+
+
 def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, Any]:
     """
     Migrate config to latest version, prompting for new required fields.
@@ -3954,322 +4334,43 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
     
     # ── Version 3 → 4: migrate tool progress from .env to config.yaml ──
     if current_ver < 4:
-        config = load_config()
-        display = config.get("display", {})
-        if not isinstance(display, dict):
-            display = {}
-        if "tool_progress" not in display:
-            old_enabled = get_env_value("HERMES_TOOL_PROGRESS")
-            old_mode = get_env_value("HERMES_TOOL_PROGRESS_MODE")
-            if old_enabled and old_enabled.lower() in {"false", "0", "no"}:
-                display["tool_progress"] = "off"
-                results["config_added"].append("display.tool_progress=off (from HERMES_TOOL_PROGRESS=false)")
-            elif old_mode and old_mode.lower() in {"new", "all"}:
-                display["tool_progress"] = old_mode.lower()
-                results["config_added"].append(f"display.tool_progress={old_mode.lower()} (from HERMES_TOOL_PROGRESS_MODE)")
-            else:
-                display["tool_progress"] = "all"
-                results["config_added"].append("display.tool_progress=all (default)")
-            config["display"] = display
-            save_config(config)
-            if not quiet:
-                print(f"  ✓ Migrated tool progress to config.yaml: {display['tool_progress']}")
+        _migrate_tool_progress_to_config(results, quiet)
     
     # ── Version 4 → 5: add timezone field ──
     if current_ver < 5:
-        config = load_config()
-        if "timezone" not in config:
-            old_tz = os.getenv("HERMES_TIMEZONE", "")
-            if old_tz and old_tz.strip():
-                config["timezone"] = old_tz.strip()
-                results["config_added"].append(f"timezone={old_tz.strip()} (from HERMES_TIMEZONE)")
-            else:
-                config["timezone"] = ""
-                results["config_added"].append("timezone= (empty, uses server-local)")
-            save_config(config)
-            if not quiet:
-                tz_display = config["timezone"] or "(server-local)"
-                print(f"  ✓ Added timezone to config.yaml: {tz_display}")
+        _migrate_timezone_to_config(results, quiet)
 
     # ── Version 8 → 9: clear ANTHROPIC_TOKEN from .env ──
-    # The new Anthropic auth flow no longer uses this env var.
     if current_ver < 9:
-        try:
-            old_token = get_env_value("ANTHROPIC_TOKEN")
-            if old_token:
-                save_env_value("ANTHROPIC_TOKEN", "")
-                if not quiet:
-                    print("  ✓ Cleared ANTHROPIC_TOKEN from .env (no longer used)")
-        except Exception:
-            pass
+        _migrate_clear_anthropic_token(results, quiet)
 
     # ── Version 11 → 12: migrate custom_providers list → providers dict ──
     if current_ver < 12:
-        config = load_config()
-        custom_list = config.get("custom_providers")
-        if isinstance(custom_list, list) and custom_list:
-            providers_dict = config.get("providers", {})
-            if not isinstance(providers_dict, dict):
-                providers_dict = {}
-            migrated_count = 0
-            for entry in custom_list:
-                if not isinstance(entry, dict):
-                    continue
-                old_name = entry.get("name", "")
-                old_url = entry.get("base_url", "") or entry.get("url", "") or ""
-                old_key = entry.get("api_key", "")
-                if not old_url:
-                    continue  # skip entries with no URL
-
-                # Generate a kebab-case key from the display name
-                key = old_name.strip().lower().replace(" ", "-").replace("(", "").replace(")", "")
-                # Remove consecutive hyphens and trailing hyphens
-                while "--" in key:
-                    key = key.replace("--", "-")
-                key = key.strip("-")
-                if not key:
-                    # Fallback: derive from URL hostname
-                    try:
-                        from urllib.parse import urlparse
-                        parsed = urlparse(old_url)
-                        key = (parsed.hostname or "endpoint").replace(".", "-")
-                    except Exception:
-                        key = f"endpoint-{migrated_count}"
-
-                # Don't overwrite existing entries
-                if key in providers_dict:
-                    key = f"{key}-{migrated_count}"
-
-                new_entry = {"api": old_url}
-                if old_name:
-                    new_entry["name"] = old_name
-                if old_key and old_key not in {"no-key", "no-key-required", ""}:
-                    new_entry["api_key"] = old_key
-
-                # Carry over model and api_mode if present
-                if entry.get("model"):
-                    new_entry["default_model"] = entry["model"]
-                if entry.get("api_mode"):
-                    new_entry["transport"] = entry["api_mode"]
-
-                providers_dict[key] = new_entry
-                migrated_count += 1
-
-            if migrated_count > 0:
-                config["providers"] = providers_dict
-                # Remove the old list — runtime reads via get_compatible_custom_providers()
-                config.pop("custom_providers", None)
-                save_config(config)
-                if not quiet:
-                    print(f"  ✓ Migrated {migrated_count} custom provider(s) to providers: section")
-                    for key in list(providers_dict.keys())[-migrated_count:]:
-                        ep = providers_dict[key]
-                        print(f"    → {key}: {ep.get('api', '')}")
+        _migrate_custom_providers_list(results, quiet)
 
     # ── Version 12 → 13: clear dead LLM_MODEL / OPENAI_MODEL from .env ──
-    # These env vars were written by the old setup wizard but nothing reads
-    # them anymore (config.yaml is the sole source of truth since March 2026).
-    # Stale entries cause user confusion — see issue report.
     if current_ver < 13:
-        for dead_var in ("LLM_MODEL", "OPENAI_MODEL"):
-            try:
-                old_val = get_env_value(dead_var)
-                if old_val:
-                    save_env_value(dead_var, "")
-                    if not quiet:
-                        print(f"  ✓ Cleared {dead_var} from .env (no longer used — config.yaml is source of truth)")
-            except Exception:
-                pass
+        _migrate_clear_dead_model_env(results, quiet)
 
     # ── Version 13 → 14: migrate legacy flat stt.model to provider section ──
-    # Old configs (and cli-config.yaml.example) had a flat `stt.model` key
-    # that was provider-agnostic.  When the provider was "local" this caused
-    # OpenAI model names (e.g. "whisper-1") to be fed to faster-whisper,
-    # crashing with "Invalid model size".  Move the value into the correct
-    # provider-specific section and remove the flat key.
     if current_ver < 14:
-        # Read raw config (no defaults merged) to check what the user actually
-        # wrote, then apply changes to the merged config for saving.
-        raw = read_raw_config()
-        raw_stt = raw.get("stt", {})
-        if isinstance(raw_stt, dict) and "model" in raw_stt:
-            legacy_model = raw_stt["model"]
-            provider = raw_stt.get("provider", "local")
-            config = load_config()
-            stt = config.get("stt", {})
-            # Remove the legacy flat key
-            stt.pop("model", None)
-            # Place it in the appropriate provider section only if the
-            # user didn't already set a model there
-            if provider in {"local", "local_command"}:
-                # Don't migrate an OpenAI model name into the local section
-                _local_models = {
-                    "tiny.en", "tiny", "base.en", "base", "small.en", "small",
-                    "medium.en", "medium", "large-v1", "large-v2", "large-v3",
-                    "large", "distil-large-v2", "distil-medium.en",
-                    "distil-small.en", "distil-large-v3", "distil-large-v3.5",
-                    "large-v3-turbo", "turbo",
-                }
-                if legacy_model in _local_models:
-                    # Check raw config — only set if user didn't already
-                    # have a nested local.model
-                    raw_local = raw_stt.get("local", {})
-                    if not isinstance(raw_local, dict) or "model" not in raw_local:
-                        local_cfg = stt.setdefault("local", {})
-                        local_cfg["model"] = legacy_model
-                # else: drop it — it was an OpenAI model name, local section
-                # already defaults to "base" via DEFAULT_CONFIG
-            else:
-                # Cloud provider — put it in that provider's section only
-                # if user didn't already set a nested model
-                raw_provider = raw_stt.get(provider, {})
-                if not isinstance(raw_provider, dict) or "model" not in raw_provider:
-                    provider_cfg = stt.setdefault(provider, {})
-                    provider_cfg["model"] = legacy_model
-            config["stt"] = stt
-            save_config(config)
-            if not quiet:
-                print(f"  ✓ Migrated legacy stt.model to provider-specific config")
+        _migrate_legacy_stt_model(results, quiet)
 
     # ── Version 14 → 15: add explicit gateway interim-message gate ──
     if current_ver < 15:
-        config = read_raw_config()
-        display = config.get("display", {})
-        if not isinstance(display, dict):
-            display = {}
-        if "interim_assistant_messages" not in display:
-            display["interim_assistant_messages"] = True
-            config["display"] = display
-            results["config_added"].append("display.interim_assistant_messages=true (default)")
-            save_config(config)
-            if not quiet:
-                print("  ✓ Added display.interim_assistant_messages=true")
+        _migrate_interim_assistant_messages(results, quiet)
 
     # ── Version 15 → 16: migrate tool_progress_overrides into display.platforms ──
     if current_ver < 16:
-        config = read_raw_config()
-        display = config.get("display", {})
-        if not isinstance(display, dict):
-            display = {}
-        old_overrides = display.get("tool_progress_overrides")
-        if isinstance(old_overrides, dict) and old_overrides:
-            platforms = display.get("platforms", {})
-            if not isinstance(platforms, dict):
-                platforms = {}
-            for plat, mode in old_overrides.items():
-                if plat not in platforms:
-                    platforms[plat] = {}
-                if "tool_progress" not in platforms[plat]:
-                    platforms[plat]["tool_progress"] = mode
-            display["platforms"] = platforms
-            config["display"] = display
-            save_config(config)
-            if not quiet:
-                migrated = ", ".join(f"{p}={m}" for p, m in old_overrides.items())
-                print(f"  ✓ Migrated tool_progress_overrides → display.platforms: {migrated}")
-            results["config_added"].append("display.platforms (migrated from tool_progress_overrides)")
+        _migrate_tool_progress_overrides(results, quiet)
 
     # ── Version 16 → 17: remove legacy compression.summary_* keys ──
     if current_ver < 17:
-        config = read_raw_config()
-        comp = config.get("compression", {})
-        if isinstance(comp, dict):
-            s_model = comp.pop("summary_model", None)
-            s_provider = comp.pop("summary_provider", None)
-            s_base_url = comp.pop("summary_base_url", None)
-            migrated_keys = []
-            # Migrate non-empty, non-default values to auxiliary.compression
-            if s_model and str(s_model).strip():
-                aux = config.setdefault("auxiliary", {})
-                aux_comp = aux.setdefault("compression", {})
-                if not aux_comp.get("model"):
-                    aux_comp["model"] = str(s_model).strip()
-                    migrated_keys.append(f"model={s_model}")
-            if s_provider and str(s_provider).strip() not in {"", "auto"}:
-                aux = config.setdefault("auxiliary", {})
-                aux_comp = aux.setdefault("compression", {})
-                if not aux_comp.get("provider") or aux_comp.get("provider") == "auto":
-                    aux_comp["provider"] = str(s_provider).strip()
-                    migrated_keys.append(f"provider={s_provider}")
-            if s_base_url and str(s_base_url).strip():
-                aux = config.setdefault("auxiliary", {})
-                aux_comp = aux.setdefault("compression", {})
-                if not aux_comp.get("base_url"):
-                    aux_comp["base_url"] = str(s_base_url).strip()
-                    migrated_keys.append(f"base_url={s_base_url}")
-            if migrated_keys or s_model is not None or s_provider is not None or s_base_url is not None:
-                config["compression"] = comp
-                save_config(config)
-                if not quiet:
-                    if migrated_keys:
-                        print(f"  ✓ Migrated compression.summary_* → auxiliary.compression: {', '.join(migrated_keys)}")
-                    else:
-                        print("  ✓ Removed unused compression.summary_* keys")
+        _migrate_compression_summary_keys(results, quiet)
 
     # ── Version 20 → 21: plugins are now opt-in; grandfather existing user plugins ──
-    # The loader now requires plugins to appear in ``plugins.enabled`` before
-    # loading. Existing installs had all discovered plugins loading by default
-    # (minus anything in ``plugins.disabled``). To avoid silently breaking
-    # those setups on upgrade, populate ``plugins.enabled`` with the set of
-    # currently-installed user plugins that aren't already disabled.
-    #
-    # Bundled plugins (shipped in the repo itself) are NOT grandfathered —
-    # they ship off for everyone, including existing users, so any user who
-    # wants one has to opt in explicitly.
     if current_ver < 21:
-        config = read_raw_config()
-        plugins_cfg = config.get("plugins")
-        if not isinstance(plugins_cfg, dict):
-            plugins_cfg = {}
-        # Only migrate if the enabled allow-list hasn't been set yet.
-        if "enabled" not in plugins_cfg:
-            disabled = plugins_cfg.get("disabled", []) or []
-            if not isinstance(disabled, list):
-                disabled = []
-            disabled_set = set(disabled)
-
-            # Scan ``$HERMES_HOME/plugins/`` for currently installed user plugins.
-            grandfathered: List[str] = []
-            try:
-                user_plugins_dir = get_hermes_home() / "plugins"
-                if user_plugins_dir.is_dir():
-                    for child in sorted(user_plugins_dir.iterdir()):
-                        if not child.is_dir():
-                            continue
-                        manifest_file = child / "plugin.yaml"
-                        if not manifest_file.exists():
-                            manifest_file = child / "plugin.yml"
-                        if not manifest_file.exists():
-                            continue
-                        try:
-                            with open(manifest_file, encoding="utf-8") as _mf:
-                                manifest = yaml.safe_load(_mf) or {}
-                        except Exception:
-                            manifest = {}
-                        name = manifest.get("name") or child.name
-                        if name in disabled_set:
-                            continue
-                        grandfathered.append(name)
-            except Exception:
-                grandfathered = []
-
-            plugins_cfg["enabled"] = grandfathered
-            config["plugins"] = plugins_cfg
-            save_config(config)
-            results["config_added"].append(
-                f"plugins.enabled (opt-in allow-list, {len(grandfathered)} grandfathered)"
-            )
-            if not quiet:
-                if grandfathered:
-                    print(
-                        f"  ✓ Plugins now opt-in: grandfathered "
-                        f"{len(grandfathered)} existing plugin(s) into plugins.enabled"
-                    )
-                else:
-                    print(
-                        "  ✓ Plugins now opt-in: no existing plugins to grandfather. "
-                        "Use `hermes plugins enable <name>` to activate."
-                    )
+        _migrate_plugins_opt_in(results, quiet)
 
     # ── Version 22 → 23: seed curator defaults + create logs/curator/ ──
     # The curator (background skill maintenance) was added in PR #16049, but

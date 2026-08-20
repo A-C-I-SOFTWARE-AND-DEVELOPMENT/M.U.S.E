@@ -1,0 +1,103 @@
+{
+  "base_model": "unsloth/Qwen3.8-27B-GGUF",
+  "quant": "UD-Q3_K_XL",
+  "mmproj": "mmproj-F16.gguf",
+  "cache": "C:\\Users\\Echer\\.cache\\huggingface\\hub\\models--unsloth--Qwen3.8-27B-GGUF",
+  "slots_root": "C:\\Users\\Echer\\models\\agents\\game-pipeline",
+  "note": "One GGUF, nine LoRAs. Do not copy the 13.4GB file per role. WorldClaw is a workflow, not a tenth weight file.",
+  "worldclaw": {
+    "paper": "https://arxiv.org/abs/2608.05248",
+    "procedure": "skills/creative/game-studio/references/worldclaw-pipeline.md",
+    "plan": "C:\\Users\\Echer\\models\\agents\\game-pipeline\\design\\world-spec.md"
+  },
+  "trainable_base": {
+    "repo": "unsloth/Qwen3-8B-bnb-4bit",
+    "path": "C:\\Users\\Echer\\models\\agents\\game-pipeline\\train-base\\qwen3-8b-4bit",
+    "model_safetensors_bytes": 6073558089,
+    "complete": true,
+    "hole_check": "0/8 zero blocks"
+  },
+  "shared_adapter": "C:\\Users\\Echer\\models\\agents\\game-pipeline\\loras\\worldclaw-skyrim-class\\final_adapter",
+  "infer": "python infer_role.py --role <seat> --prompt \"...\"",
+  "training": {
+    "dataset": "C:\\Users\\Echer\\models\\agents\\game-pipeline\\datasets\\worldclaw-skyrim-class.jsonl",
+    "format": "chatml",
+    "examples": 176,
+    "watchdog": "qwen38-train-when-ready.py cron a9e00f20218d every 10m (resumes 27B download; never POSTs GGUF train)",
+    "state": "C:\\Users\\Echer\\models\\agents\\game-pipeline\\train-state.json",
+    "gates": "SKYRIM-GATES.md",
+    "honesty": "LoRA teaches seats to plan/drive a Skyrim-class province. It does not emit 37km2.",
+    "retrain_176": {
+      "steps": 66,
+      "epochs": 3,
+      "train_loss": 2.049,
+      "last_token_acc": 0.8583,
+      "runtime_s": 328.9
+    }
+  },
+  "roles": [
+    {
+      "id": "studio-director",
+      "job": "Creative director / orchestrator",
+      "worldclaw": "scene planning (complete P)",
+      "vision": false,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "game-designer",
+      "job": "Game designer",
+      "worldclaw": "intent analysis (extract only)",
+      "vision": false,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "level-designer",
+      "job": "Level / terrain designer",
+      "worldclaw": "terrain T + regional plan R+",
+      "vision": true,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "gameplay-engineer",
+      "job": "Gameplay engineer",
+      "worldclaw": null,
+      "vision": false,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "graphics-tech-artist",
+      "job": "Graphics / tech artist",
+      "worldclaw": "materials + render-inspect refine",
+      "vision": true,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "3d-asset-artist",
+      "job": "3D asset artist",
+      "worldclaw": "instance set O + T_place",
+      "vision": true,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "audio-designer",
+      "job": "Audio designer",
+      "worldclaw": null,
+      "vision": false,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "qa-playtest",
+      "job": "QA / playtest",
+      "worldclaw": "contact / float / scale gate",
+      "vision": true,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    },
+    {
+      "id": "build-release-engineer",
+      "job": "Build / release engineer",
+      "worldclaw": null,
+      "vision": false,
+      "adapter": "loras/worldclaw-skyrim-class/final_adapter"
+    }
+  ]
+}

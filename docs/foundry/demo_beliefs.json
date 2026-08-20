@@ -1,0 +1,16 @@
+[
+  {
+    "claim_id": "demo.verification_escape.prevented",
+    "statement": "Validator rejected bad executor output; v0.0.2 quarantined; known-good restored",
+    "status": "MEASURED",
+    "evidence": [
+      "FAILURE_DEMO_TRANSCRIPT.json case 5"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786579316.5100267,
+    "invalidates": []
+  }
+]

@@ -1,0 +1,289 @@
+[
+  {
+    "claim_id": "needle.runs.locally",
+    "statement": "Needle 2 engine 2.0.1 runs tool-calling inference on this machine",
+    "status": "MEASURED",
+    "evidence": [
+      "needle_load rc=0; TEST1-4 outputs 2026-08-12",
+      "hypothetical self-test of reopen mechanics"
+    ],
+    "source_revision": "07f3e789e993e8ecf69ef5409fd7558f5fe43202",
+    "measurement": "prefill 315-353 tok/s, decode 80-149 tok/s, peak 107MB",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786573490.9000053,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.top5_retrieval",
+    "statement": "Only top-5 retrieved tools are reachable per turn",
+    "status": "MEASURED",
+    "evidence": [
+      "8-tool probe: strip_unused (8th) unreachable -> empty call"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.95,
+    "depends_on": [],
+    "last_checked": 1786573490.8894782,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.confidence_gates",
+    "statement": "Confidence head separates good from bad calls",
+    "status": "REFUTED",
+    "evidence": [
+      "probe: correct calls 0.001-0.21, broken 0.0003; native-dialect run: correct 0.012-0.028, spurious 0.08-0.25 \u2014 overlap too small to gate safely without calibration"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.85,
+    "depends_on": [],
+    "last_checked": 1786576227.93124,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.finetune.pipeline",
+    "statement": "LoRA fine-tune runs end-to-end locally",
+    "status": "MEASURED",
+    "evidence": [
+      "26-example 1-epoch run completed in 295s, adapter saved",
+      "reopened: dependency needle.runs.locally was REFUTED"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [
+      "needle.runs.locally"
+    ],
+    "last_checked": 1786573490.9000053,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.finetune.default_lr",
+    "statement": "Default lr=1e-4 converges on tiny QA set",
+    "status": "REFUTED",
+    "evidence": [
+      "loss NaN from step 2 at lr 1e-4 (probe 2026-08-12)"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.9,
+    "depends_on": [],
+    "last_checked": 1786573490.896001,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.license.clear",
+    "statement": "Needle 2 weights Apache-2.0, package MIT \u2014 both permissive",
+    "status": "VERIFIED_UPSTREAM",
+    "evidence": [
+      "HF model card license: apache-2.0; repo LICENSE MIT"
+    ],
+    "source_revision": "07f3e789",
+    "measurement": "",
+    "confidence": 0.95,
+    "depends_on": [],
+    "last_checked": 1786573490.8980014,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.schema_dialect_native",
+    "statement": "Engine requires native build_schema/Field dialect ('parameters' key); raw JSON-Schema-with-'arguments' breaks the decode grammar",
+    "status": "MEASURED",
+    "evidence": [
+      "arg_value_accuracy 0.000 vs 1.000 on identical 10-query eval"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786576227.9216769,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.container_pairing",
+    "statement": "Vendored exporter writes 0x82 .cact which only engine 2.0.0 loads; HF .cact is 0x83 for engine 2.0.1",
+    "status": "MEASURED",
+    "evidence": [
+      "needle_load rc=-1 for 0x82 on 2.0.1; rc=0 on 2.0.0"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786576227.9241974,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.finetune.f32_fix",
+    "statement": "f32 LoRA adapters fix the f16 AdamW eps-underflow NaN; 3-epoch run converges with finite losses",
+    "status": "MEASURED",
+    "evidence": [
+      "12/12 finite steps, 0 non-finite elems; stock path NaN'd 2064382/2064384"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [
+      "needle.finetune.pipeline"
+    ],
+    "last_checked": 1786576227.925208,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.stock_qa_below_gates",
+    "statement": "Stock Needle 2 on the QA probe suite (native dialect) is below acceptance gates (exact 0.5, refusal recall 0.6, wrong-domain 0.4)",
+    "status": "MEASURED",
+    "evidence": [
+      "NEEDLE_STOCK_VS_TUNED.json native-dialect run 2026-08-12"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.95,
+    "depends_on": [],
+    "last_checked": 1786576227.9277172,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.tiny_tuning_insufficient",
+    "statement": "26-example 3-epoch LoRA does not move held-out metrics (tuned == stock within noise)",
+    "status": "MEASURED",
+    "evidence": [
+      "tuned_engine200 metrics identical to stock_engine200"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.9,
+    "depends_on": [],
+    "last_checked": 1786576227.9292264,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.jax_cpu_only_windows",
+    "statement": "JAX training on this machine runs on CPU (win_amd64 jaxlib has no CUDA plugin); GPU path requires WSL2 probe",
+    "status": "REFUTED",
+    "evidence": [
+      "jaxlib 0.10.2 win_amd64; 45M-model epoch ~3.5min CPU; nvidia-smi idle during training",
+      "WSL2 probe 2026-08-12: jax[cuda12] on Ubuntu exposes CudaDevice; GPU fine-tune completed in 62s"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.95,
+    "depends_on": [],
+    "last_checked": 1786579154.1827865,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.era.reference_fed_viable",
+    "statement": "NEEDLE-ERA works mechanically reference-fed but stock accuracy is weak (field conflation, duplicate calls, empty on long refs); HIGH RISK confirmed \u2014 needs training set or kill",
+    "status": "MEASURED",
+    "evidence": [
+      "ERA probe 2026-08-12: long-ref -> empty; short-ref array-schema -> sloppy; scalar-schema -> duplicate calls"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.9,
+    "depends_on": [],
+    "last_checked": 1786577832.3237143,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.tokenization_domain_ok",
+    "statement": "Game-dev vocabulary tokenizes at avg 2.83 tokens/term; no evidence of task-accuracy harm (arg accuracy 1.0 with FBX terms present)",
+    "status": "MEASURED",
+    "evidence": [
+      "NEEDLE_TOKENIZATION.json"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.9,
+    "depends_on": [],
+    "last_checked": 1786577832.326715,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.quantization_2bit_best",
+    "statement": "2-bit mixed export matches 4-bit on quality gates and is 2x faster + 40% smaller; choose 2-bit",
+    "status": "MEASURED",
+    "evidence": [
+      "NEEDLE_QUANTIZATION.json: exact 0.5/0.5, arg 1.0/1.0, latency 0.23s vs 0.45s"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 0.95,
+    "depends_on": [],
+    "last_checked": 1786577832.3282294,
+    "invalidates": []
+  },
+  {
+    "claim_id": "foundry.e2e_pipeline_works",
+    "statement": "Full NL->spec->Blender->FBX->QA->AXIOM->registry pipeline executes end-to-end on this machine",
+    "status": "VERIFIED_LOCAL",
+    "evidence": [
+      "E2E_DEMO_TRANSCRIPT.json: real Blender 5.2 headless build exit=0, 16.7KB FBX, QA pass, AXIOM chain valid"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786577832.329213,
+    "invalidates": []
+  },
+  {
+    "claim_id": "foundry.failure_containment_works",
+    "statement": "All five \u00a787 failure classes are contained: refuse/escalate/reject/quarantine+rollback with ledger evidence",
+    "status": "VERIFIED_LOCAL",
+    "evidence": [
+      "FAILURE_DEMO_TRANSCRIPT.json: ALL EXPECTATIONS MET"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786577832.330245,
+    "invalidates": []
+  },
+  {
+    "claim_id": "axiom.tamper_evident",
+    "statement": "AXIOM ledger detects payload/prev-link/signature tamper via verify_chain(); bad units fail-closed rejected",
+    "status": "MEASURED",
+    "evidence": [
+      "\u00a773 probe table in SECURITY_MODEL.md"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786577832.331244,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.performance_tier0_viable",
+    "statement": "Needle 2 inference is fast enough for Tier-0 reflex routing on this machine: cold start ~0.6s, warm p50 0.21s p95 0.25s, peak ~107MB RAM",
+    "status": "MEASURED",
+    "evidence": [
+      "NEEDLE_PERFORMANCE.json: 3 cold probes + 12-request warm distribution"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786578160.557305,
+    "invalidates": []
+  },
+  {
+    "claim_id": "needle.gpu_training_wsl2",
+    "statement": "GPU LoRA fine-tune runs on WSL2 + CUDA: JAX 0.11.0 sees CudaDevice(RTX 5070), 1 epoch 26 examples in 62s (vs 295s Windows CPU) with finite losses",
+    "status": "MEASURED",
+    "evidence": [
+      "WSL2 needle_gpu_probe venv; qa_lora_gpu.pkl saved; all finite losses; 4.7x faster than CPU"
+    ],
+    "source_revision": "",
+    "measurement": "",
+    "confidence": 1.0,
+    "depends_on": [],
+    "last_checked": 1786579154.181295,
+    "invalidates": []
+  }
+]

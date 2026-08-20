@@ -19,6 +19,8 @@ its milestone quality gate before it can be called done.
    (cf. `agent/studio/types.py` `Milestone.qa_threshold`).
 3. **Verification evidence** — for the reference slice, the output of
    `scripts/verify_slice.py` (artifact exists + non-empty).
+4. **WorldClaw contact gate** (open-world) — diagnostic render plus a written
+   float / sink / scale note. No systematic hovering or buried instances.
 
 ## Discipline
 

@@ -19,7 +19,11 @@ generative production engine documented in [`../studio/README.md`](../studio/REA
 |---|---|---|
 | Council skill | `skills/creative/game-studio/SKILL.md` | Routing layer — maps a brief to game-dev roles, engine profiles, and owner gates. |
 | Agent roster | `skills/creative/game-studio/agents/` | 9 single-domain roles (director, designer, gameplay, graphics, 3D, audio, QA, release). |
-| Workflow | `skills/creative/game-studio/workflows/game-production-pipeline.md` | The staged pipeline mapped to muse verification gates. |
+| Workflow | `skills/creative/game-studio/workflows/game-production-pipeline.md` | Staged pipeline + WorldClaw open-world stages (2.6 / 3.5 / 4 / 4.5). |
+| WorldClaw | `skills/creative/game-studio/references/worldclaw-pipeline.md` | Tencent Hunyuan arXiv:2608.05248 distilled onto the 9 seats. Explicit terrain + instance meshes. |
+| World spec | `skills/creative/game-studio/templates/world-spec.md` | Intent (extract) vs Plan (complete schema). |
+| Nine-hold plan | `skills/creative/game-studio/references/nine-hold-world-spec.md` | Filled Skyrim-class *plan* (not a shipped world). |
+| Weight/STATUS | `docs/game-studio/STATUS.md` + `C:\\Users\\Echer\\models\\agents\\game-pipeline\\STATUS.md` | Honest download + LoRA state. |
 | Engine profiles | [`engine-profiles.md`](engine-profiles.md) | UE5 / Godot / Unity as pluggable worker profiles. |
 | 3D asset tool | `tools/asset3d_generation_tool.py` + `agent/asset3d_gen_provider.py` | `asset3d_generate` — text-to-3D meshes via a pluggable backend. |
 | 3D backends | `plugins/asset3d_gen/meshy/`, `plugins/asset3d_gen/hunyuan3d/` | Meshy (hosted text-to-3D) and Hunyuan3D-2 (Replicate, image-to-3D) — both opt-in behind their API keys. |

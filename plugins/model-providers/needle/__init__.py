@@ -5,7 +5,7 @@ M.U.S.E. Worker/model primitive, not only as a dsh route. Named alias of
 the custom OpenAI profile so routing can say `needle` instead of `custom`.
 
 Environment:
-  NEEDLE_BASE_URL   default http://127.0.0.1:8010/v1
+  NEEDLE_BASE_URL   default http://127.0.0.1:8011/v1
   NEEDLE_API_KEY    optional; local server does not require one
 """
 
@@ -24,7 +24,7 @@ needle = ProviderProfile(
     description="Local Cactus Needle 2 specialist over OpenAI-compatible HTTP",
     signup_url="",
     fallback_models=("needle2",),
-    base_url=os.environ.get("NEEDLE_BASE_URL", "http://127.0.0.1:8010/v1"),
+    base_url=os.environ.get("NEEDLE_BASE_URL", "http://127.0.0.1:8011/v1"),
     default_max_tokens=1024,
 )
 

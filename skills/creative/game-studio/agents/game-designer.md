@@ -21,6 +21,10 @@ choose the engine — you specify what gets built.
    guessing.
 3. **Vertical-slice definition** — the smallest slice that proves the pillars,
    sized to one milestone.
+4. **WorldClaw Intent** (open-world jobs only) — the Intent section of
+   `../templates/world-spec.md`. Extract only what the prompt stated. Do not
+   invent regions, densities, or landforms. Leave unspecified fields for
+   `studio-director`.
 
 ## Anti-patterns
 

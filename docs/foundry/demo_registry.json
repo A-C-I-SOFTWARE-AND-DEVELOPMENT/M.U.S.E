@@ -1,0 +1,69 @@
+[
+  {
+    "specialist_id": "needle-qa",
+    "niche_id": "qa.ci.gating",
+    "specialist_version": "0.0.2",
+    "status": "QUARANTINED",
+    "base_model_id": "Cactus-Compute/needle2",
+    "base_revision": "",
+    "base_hash": "4b0a972d",
+    "engine_hash": "",
+    "tokenizer_hash": "",
+    "schema_hash": "sch",
+    "dataset_hash": "dat",
+    "adapter_hash": "",
+    "final_model_hash": "",
+    "eval_report_hash": "",
+    "training_config_hash": "",
+    "metrics": {},
+    "thresholds": {},
+    "provider_lineage": [],
+    "axiom_attestation": "",
+    "created_at": 1786579316.5065212,
+    "promoted_at": 1786579316.507507,
+    "history": [
+      {
+        "from": "CANDIDATE",
+        "to": "TRAINING",
+        "reason": "probe",
+        "at": 1786579316.507507
+      },
+      {
+        "from": "TRAINING",
+        "to": "ACTIVE",
+        "reason": "demo promotion",
+        "at": 1786579316.507507
+      },
+      {
+        "from": "ACTIVE",
+        "to": "QUARANTINED",
+        "reason": "verification rejection: executor output failed deterministic gate",
+        "at": 1786579316.5085077
+      }
+    ]
+  },
+  {
+    "specialist_id": "needle-qa",
+    "niche_id": "qa.ci.gating",
+    "specialist_version": "0.0.1",
+    "status": "CANDIDATE",
+    "base_model_id": "Cactus-Compute/needle2",
+    "base_revision": "",
+    "base_hash": "4b0a972d",
+    "engine_hash": "",
+    "tokenizer_hash": "",
+    "schema_hash": "sch",
+    "dataset_hash": "dat0",
+    "adapter_hash": "",
+    "final_model_hash": "",
+    "eval_report_hash": "",
+    "training_config_hash": "",
+    "metrics": {},
+    "thresholds": {},
+    "provider_lineage": [],
+    "axiom_attestation": "",
+    "created_at": 1786579316.5085077,
+    "promoted_at": null,
+    "history": []
+  }
+]
