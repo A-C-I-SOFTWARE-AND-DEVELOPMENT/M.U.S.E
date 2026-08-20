@@ -37,10 +37,12 @@ SKIP_DIRS = {
 # in a given deployment and every call site guards with try/except. Keep this
 # list short and justified -- it is an allowlist for *known* absent modules,
 # not a dumping ground for new breakage.
-KNOWN_OPTIONAL = {
-    ("plugins.memory", "sqlite"),
-    ("plugins.github_assistant", "api"),
-}
+# Empty on purpose. Both inherited entries -- ("plugins.memory", "sqlite") and
+# ("plugins.github_assistant", "api") -- named modules that do not exist here
+# and that nothing imports, so they allowlisted nothing. A dead entry weakens
+# the guard silently: it is a standing permission for an import to break.
+# Add one only with a live, guarded import to point at.
+KNOWN_OPTIONAL: set[tuple[str, str]] = set()
 
 
 def _iter_py_files():
