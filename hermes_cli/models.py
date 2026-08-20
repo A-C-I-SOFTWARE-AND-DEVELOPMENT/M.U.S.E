@@ -6685,3 +6685,154 @@ def validate_requested_model(
             f"If the service isn't down, this model may not be valid."
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# LM Studio local-model management
+#
+# LM Studio exposes a small REST surface on localhost for pulling, polling and
+# unloading models. These wrap it so a tool can manage local weights without
+# the caller shelling out to the lms CLI.
+# ---------------------------------------------------------------------------
+def download_lmstudio_model(
+    model: str,
+    base_url: Optional[str],
+    api_key: Optional[str] = None,
+    quantization: Optional[str] = None,
+    timeout: float = 30.0,
+) -> Optional[dict]:
+    """Start (or detect) a model download via ``/api/v1/models/download``.
+
+    ``model`` is a catalog id (e.g. ``"ibm/granite-4-micro"``) or a Hugging Face
+    link; ``quantization`` (e.g. ``"Q4_K_M"``) is only honoured for HF links.
+
+    Returns the parsed response dict on success. ``status`` is one of
+    ``"downloading"``, ``"paused"``, ``"completed"``, ``"failed"``, or
+    ``"already_downloaded"``; ``job_id`` is present while a job is running and
+    absent when ``"already_downloaded"``. This only *starts* the job — poll
+    progress with :func:`lmstudio_download_status`. Returns ``None`` on a network
+    error or an empty/invalid base URL; never raises.
+    """
+    _load_urllib()
+    server_root = _lmstudio_server_root(base_url)
+    if not server_root:
+        return None
+
+    headers = dict(_lmstudio_request_headers(api_key))
+    headers["Content-Type"] = "application/json"
+    payload: dict[str, str] = {"model": model}
+    if quantization:
+        payload["quantization"] = quantization
+    body = json.dumps(payload).encode()
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(
+                server_root + "/api/v1/models/download",
+                data=body,
+                headers=headers,
+                method="POST",
+            ),
+            timeout=timeout,
+        ) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).debug("LM Studio download of %s failed: %s", model, exc)
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def lmstudio_download_status(
+    job_id: str,
+    base_url: Optional[str],
+    api_key: Optional[str] = None,
+    timeout: float = 10.0,
+) -> Optional[dict]:
+    """Poll a download job via ``GET /api/v1/models/download/status?job_id=…``.
+
+    Returns the parsed status dict (passed through verbatim — LM Studio does not
+    formally document the status response schema), or ``None`` on a network
+    error or an empty/invalid base URL / job id. Never raises.
+    """
+    _load_urllib()
+    server_root = _lmstudio_server_root(base_url)
+    if not server_root or not str(job_id or "").strip():
+        return None
+
+    query = urllib.parse.urlencode({"job_id": job_id})
+    url = server_root + "/api/v1/models/download/status?" + query
+    headers = _lmstudio_request_headers(api_key)
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(url, headers=headers),
+            timeout=timeout,
+        ) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).debug(
+            "LM Studio download status for %s failed: %s", job_id, exc,
+        )
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def unload_lmstudio_model(
+    model: str,
+    base_url: Optional[str],
+    api_key: Optional[str] = None,
+    timeout: float = 30.0,
+) -> bool:
+    """Unload ``model`` from LM Studio to free VRAM via ``/api/v1/models/unload``.
+
+    Mirrors the load request shape (``{"model": <key>}``; LM Studio does not
+    document a distinct unload field). Returns ``True`` on a 2xx response and on
+    HTTP 404 (nothing loaded under that key — already free, so unload is
+    idempotent). Returns ``False`` on any other error or an empty/invalid base
+    URL. Best-effort: never raises.
+    """
+    _load_urllib()
+    server_root = _lmstudio_server_root(base_url)
+    if not server_root:
+        return False
+
+    headers = dict(_lmstudio_request_headers(api_key))
+    headers["Content-Type"] = "application/json"
+    body = json.dumps({"model": model}).encode()
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(
+                server_root + "/api/v1/models/unload",
+                data=body,
+                headers=headers,
+                method="POST",
+            ),
+            timeout=timeout,
+        ) as resp:
+            resp.read()
+        return True
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            # No instance loaded under that key — already free.
+            return True
+        import logging
+        logging.getLogger(__name__).debug(
+            "LM Studio unload of %s failed with HTTP %s", model, exc.code,
+        )
+        return False
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).debug("LM Studio unload of %s failed: %s", model, exc)
+        return False
+
+
+def _load_urllib() -> None:
+    """Bind ``urllib.request``/``urllib.error`` lazily.
+
+    They cost ~14ms at import and this module sits on the CLI startup path;
+    every network-fetch function calls this first, which makes the
+    ``urllib.request.*`` / ``urllib.error.*`` attribute lookups below work
+    (the module-level ``import urllib.parse`` keeps the package name bound).
+    """
+    import urllib.error  # noqa: F401
+    import urllib.request  # noqa: F401
