@@ -4,9 +4,25 @@ Repo: NousResearch/hermes-agent @ `2d92793045` (v0.20.4), 2026-08-20
 Command: `HERMES_HOME=~/.hermes-port bash scripts/run_tests.sh`
 Result: **exit 1 — 40 test files fail on untouched upstream.**
 
-This set is the baseline. A tranche is clean when its run fails these and
-nothing more. Never compare to zero: upstream is not green here, and a gate
-demanding zero would be permanently red and therefore ignored.
+**This list is a LOWER BOUND, not the complete set.** It was captured through
+`tail -40`, which truncated the run's output.
+`tests/plugins/video_gen/test_fal_plugin.py` is known to fail on pristine
+upstream (8 failed, 36 passed) and is absent from this list, which proves the
+truncation. Do not treat absence from this list as evidence a test passes
+upstream.
+
+**Use the control worktree instead.** `C:\Users\Echer\refs\baseline` is pinned to
+pristine upstream `2d92793045`. When a test fails during a tranche, run that same
+test there:
+
+    cd C:\Users\Echer\refs\baseline
+    HERMES_HOME=~/.hermes-port uv run python -m pytest <failing test> -o addopts="" -q
+
+The same failure there means it is upstream's, not ours. This is decisive per
+case and costs seconds, where a full re-run costs hours.
+
+Never compare to zero: upstream is not green here, and a gate demanding zero
+would be permanently red and therefore ignored.
 
 Recorded before any fork material was ported, so every one of these is
 upstream's, not ours.
