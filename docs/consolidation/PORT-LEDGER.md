@@ -71,7 +71,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T2 | `pr/tools-generic` | **done** | Generic tools, security + grading layers. See below |
 | T3 | `port/tokenjuice` | **done** | Compaction library + notice infrastructure. See below |
 | T4 | `pr/plugins-batch-{a,b,c}` | **done** | 18 plugins landed, 6 deferred. See below |
-| T5 | `pr/fix-*` | planned | Individual upstream bug-fix PRs |
+| T5 | `pr/fix-*` | **done** | 4 of 5 landed; 1 rejected as dead code. See below |
 | T6 | `port/repair-damaged-deltas` | planned | The 13 damaged files. **Only core-edit tranche** |
 | T7 | `port/branding-seam` | planned | Must land before T8+ |
 | T8–T18 | see plan | planned | Feature tranches |
@@ -323,6 +323,59 @@ at a repo that cannot answer for it. All three now identify this project.
 |---|---|---|
 | dangling imports | 1 passed | 1 passed |
 | smoke | 1451 / 310 skipped | 1473 / 325 skipped |
+| `ruff check .` | clean | clean |
+
+## T5 — individual fixes (done)
+
+Four branches merged (`2b79f561f5`, `9adf511c64`, `bfb114f95b`, `28329e7a29`). Each was cut
+from `upstream/main` and verified against the control worktree.
+
+| Fix | Outcome |
+|---|---|
+| `plugins/platforms/sms/adapter.py` | Landed — **trimmed**. Only the TYPE_CHECKING fix; dropped a `capabilities()`/`_platform_id()` describe surface that no platform adapter implements and nothing calls, in either tree |
+| `hermes_cli/mcp_catalog.py` | Landed. Non-interactive install that skips entries whose credentials are absent. 7 tests. CLI-dispatcher tests deferred — they assert routing that differs here |
+| `plugins/model-providers/custom/__init__.py` | Landed. Not "multi-provider keys" as planned but an Ollama `/v1` diagnostic: the shim accepts `options.num_ctx` then ignores it, so a user's context window silently stays at 4096 |
+| `hermes_cli/models.py` | Landed — **split**. LM Studio helpers kept; Ollama Cloud retirement filter dropped (below) |
+| `agent/conversation_loop.py` | **Rejected.** See below |
+| `tools/lmstudio_tools.py` | **Restored** — the T2 deferral closing, verified not assumed |
+
+### Rejected: the "Codex entity stickiness" fix is dead code
+
+The plan called this the highest-value upstream contribution (+203 lines). It is not
+reachable. `_maybe_route_openai_entity` is called **only from tests**, in *both* trees —
+`grep` across the entire fork finds no production call site. `build_usage_record`, bundled
+into the same delta, is consumed only by `hermes_cli/orchestrator_parallel.py`, which
+belongs to the orchestration tranche.
+
+Porting it would have added 203 lines of unreachable code. It needs a production call site
+before it means anything; that the fork never wired it either is worth knowing.
+
+### Split: a hardcoded retirement list had gone stale
+
+`hermes_cli/models.py` bundled LM Studio helpers with an Ollama Cloud retirement filter.
+The filter marks **`glm-5` retired while this repo still serves it**, so landing it broke
+two passing tests (`TestOllamaCloudMergedDiscovery::test_merges_live_and_models_dev` and
+`::test_falls_back_to_models_dev_without_api_key`).
+
+Applied by AST extraction of the wanted functions rather than patch surgery, since the
+isolated hunk's line context assumed the earlier hunks. Result: 30 ollama tests pass,
+matching pristine upstream exactly.
+
+A hardcoded retirement list is a snapshot that decays. If wanted later, read the live
+catalog.
+
+### Working note: clean `__pycache__` after switching branches
+
+`__pycache__/` is gitignored, so `git checkout` removes a directory's tracked files but
+leaves the cache behind — and `tests/providers/test_plugin_discovery.py` iterates
+directories on disk, so it then reports `cerebras missing __init__.py`. That looks exactly
+like a regression and is not one. Clear caches before trusting a disk-iterating test after
+a branch switch.
+
+| Gate | Baseline | After T5 |
+|---|---|---|
+| dangling imports | 1 passed | 1 passed |
+| smoke | 1451 / 310 skipped | 1474 / 325 skipped |
 | `ruff check .` | clean | clean |
 
 ## ⚠ Correction: the de-branding gate cannot grep for "muse"
