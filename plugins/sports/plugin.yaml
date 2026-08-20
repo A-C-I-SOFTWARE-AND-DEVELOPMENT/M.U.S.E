@@ -1,0 +1,8 @@
+name: sports
+version: 1.0.0
+description: "Free sports scores + standings for Hermes via ESPN's public JSON endpoints — no API key required. Two read-only tools: sports_scores (recent/live/upcoming games for a league) and sports_standings (league table). Host-pinned to site.api.espn.com; responses are size-capped. Opt-in via `sports.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - sports_scores
+  - sports_standings

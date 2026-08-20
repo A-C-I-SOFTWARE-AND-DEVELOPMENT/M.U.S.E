@@ -1,0 +1,7 @@
+name: image_search
+version: 1.0.0
+description: "Free image search for Hermes via the Openverse API — no API key required. One read-only tool: image_search (query → openly-licensed images with title, thumbnail, source, creator, and license/attribution). Host-pinned to api.openverse.org; responses are size-capped; results are Creative-Commons / public-domain works with attribution preserved. Opt-in via `image_search.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - image_search
