@@ -83,8 +83,42 @@ Landed on `integration`, de-branded:
 | File | Source | State |
 |---|---|---|
 | `tests/test_no_dangling_imports.py` | fork | **green on pristine upstream** (1 passed, 20s) |
-| `tests/smoke/` (9 files) | fork | ported, baseline pending dependency install |
+| `tests/smoke/` (9 files) | fork | **green** — 1451 passed, 310 skipped, 45s |
 | `scripts/focused_verification.py` | fork | ported as a **scaffold** — see below |
+
+Landed as `c8988af683`, directly on upstream `2d92793045`.
+
+## Baselines on pristine upstream (2026-08-20)
+
+**Every gate compares to these, never to zero.** Upstream is not clean by absolute
+measures; the question is only whether *we* made it worse.
+
+| Measure | Baseline | Notes |
+|---|---|---|
+| `tests/test_no_dangling_imports.py` | 1 passed | The critical gate. Green from the start |
+| `tests/smoke/` | 1451 passed, 310 skipped, 0 failed | Skips are missing optional deps, by design |
+| `ruff check` (T0 files) | clean | |
+| `ty check` | **15,382 diagnostics**, exit 101 | Upstream is not type-clean. Gate = no *new* diagnostics |
+| `scripts/run_tests.sh` | _running_ | 3,177 test files, per-file subprocess isolation |
+
+Environment for all port work: `HERMES_HOME=C:\Users\Echer\.hermes-port` (risk R7 — never
+let a run touch the production home at `C:\Users\Echer\AppData\Local\hermes`).
+Repo venv: `uv sync --extra dev` (pytest 9.1.1, Python 3.11.15).
+
+### Discovery-floor recalibration
+
+`MIN_DISCOVERED` in `tests/smoke/_discovery.py` was calibrated to the fork's module counts
+and had to be retuned to upstream's:
+
+| Package | Fork count | Upstream count | Old floor | New floor |
+|---|---|---|---|---|
+| `hermes_cli` | 619 | 287 | 400 (**failed**) | 200 |
+| `gateway` | 120 | 91 | 90 (margin of **1**) | 63 |
+| `agent` | 254 | 196 | 180 | 137 |
+| `tools` | 162 | 148 | 110 | 103 |
+
+These floors **rise** as tranches land modules. Raise them deliberately; never lower one to
+make a red run green.
 
 ### Deviations from the plan, and why
 
