@@ -70,7 +70,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T1 | `pr/model-providers` | **done** | 5 generic providers. See below |
 | T2 | `pr/tools-generic` | **done** | Generic tools, security + grading layers. See below |
 | T3 | `port/tokenjuice` | **done** | Compaction library + notice infrastructure. See below |
-| T4 | `pr/plugins-batch-{a,b,c}` | planned | ~20 general plugins + provider kinds |
+| T4 | `pr/plugins-batch-{a,b,c}` | **done** | 18 plugins landed, 6 deferred. See below |
 | T5 | `pr/fix-*` | planned | Individual upstream bug-fix PRs |
 | T6 | `port/repair-damaged-deltas` | planned | The 13 damaged files. **Only core-edit tranche** |
 | T7 | `port/branding-seam` | planned | Must land before T8+ |
@@ -260,6 +260,69 @@ in the triage queue are unchanged.
 |---|---|---|
 | dangling imports | 1 passed | 1 passed |
 | smoke | 1451 / 310 skipped | 1473 / 309 skipped |
+| `ruff check .` | clean | clean |
+
+## T4 — plugins (done)
+
+Three stacked branches merged to `integration` (`6c8fa41fd7`, `72dee18cef`, `8e0bd18372`).
+
+| Batch | Landed |
+|---|---|
+| A — pure/offline | `timeutil`, `webutils`, `codeintel`, `devtools`, `knowledge`, `learning`, `recipe`, `cooking` (73 tests) |
+| B — keyed services | `apify`, `finance`, `github_assistant`, `image_search`, `news`, `places`, `sports`, `weather` (136 tests) |
+| C — provider kinds | `memory/supabase`, `image_gen/gemini` (+19 tests) |
+
+**Deferred, with cause:**
+
+| Deferred | Why |
+|---|---|
+| `recommend` | A catalog of the fork's own product surfaces (cockpit, Android, GraphRAG, Termux). Shipping it hands the agent a tool that recommends features the user does not have |
+| `supabase`, `vercel` | Import `hermes_cli.action_executors` and `hermes_cli.decision_engine` — the orchestration tranche |
+| `asset3d_gen/{meshy,hunyuan3d}` | Need `agent.asset3d_gen_provider` **and** a `register_asset3d_gen_provider` seam on `PluginContext` — a core extension, not a plugin |
+| `memory/holographic` | See below |
+
+### "Applies cleanly" is not "is correct" — the holographic case
+
+The triage classified `plugins/memory/holographic/*.py` as `PORT-AS-IS`, and
+`git apply --3way` confirmed it applied cleanly. Landing it anyway produced **28 new
+failures, 14 of them in this repo's own holographic tests** (`test_holographic_auto_extract`,
+`test_holographic_store`, `test_holographic_shutdown_closes_db`).
+
+The fork's holographic work assumes sibling modules that moved on **both** sides since the
+fork point, so a textually clean patch lands semantically incompatible code. It also needed
+two fork-only additions (`embeddings.py`, `consolidation.py`) that were not in the modified-
+file set at all.
+
+Backed out entirely. Holographic needs its own tranche reconciling the whole subsystem.
+**The `PORT-AS-IS` class means git can merge the text, not that the result works** — treat
+it as a cost estimate, never as a verdict.
+
+### Pre-flight lesson: two AST node types, not one
+
+A first pre-flight pass checked only `from X import Y` (`ast.ImportFrom`) and pronounced
+batch A clear. Seven of eight plugins then failed to import because they use plain
+`import tools.http_client` — an `ast.Import` node. Batch A became a **stacked** PR on the
+tools branch rather than an independent one. Check both node types, or the pre-flight gives
+false confidence.
+
+### Guard hardening
+
+`KNOWN_OPTIONAL` in the dangling-import guard is now **empty**. Both inherited entries
+(`plugins.memory.sqlite`, `plugins.github_assistant.api`) named modules that do not exist
+here and that nothing imports — they allowlisted nothing while reading as though they
+covered something. Guard re-run with the stricter list: still green.
+
+### Correcting outbound identity
+
+`image_search`, `places` and `sports` sent an HTTP **User-Agent** naming the fork's
+repository. OpenStreetMap Nominatim's usage policy requires a User-Agent identifying the
+application; sending a stale third-party URL misattributes the traffic and points operators
+at a repo that cannot answer for it. All three now identify this project.
+
+| Gate | Baseline | After T4 |
+|---|---|---|
+| dangling imports | 1 passed | 1 passed |
+| smoke | 1451 / 310 skipped | 1473 / 325 skipped |
 | `ruff check .` | clean | clean |
 
 ## ⚠ Correction: the de-branding gate cannot grep for "muse"
