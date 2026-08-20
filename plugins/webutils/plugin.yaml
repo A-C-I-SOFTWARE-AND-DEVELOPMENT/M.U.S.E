@@ -1,0 +1,10 @@
+name: webutils
+version: 1.0.0
+description: "Small web utilities for Hermes — no API key required. qr_code (goQR URL builder), ip_info (ipapi.co geolocation), public_ip (ipify), and sunrise_sunset (SunriseSunset.io). All read-only and host-pinned; qr_code returns a URL, never a binary blob. Opt-in via `webutils.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - qr_code
+  - ip_info
+  - public_ip
+  - sunrise_sunset

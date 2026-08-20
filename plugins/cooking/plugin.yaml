@@ -1,0 +1,10 @@
+name: cooking
+version: 1.0.0
+description: "Recipes and food data for Hermes — no API key required. recipe_search, recipe_lookup (TheMealDB), cocktail_search (TheCocktailDB), and food_product (Open Food Facts barcode lookup). All read-only and host-pinned. Opt-in via `cooking.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - recipe_search
+  - recipe_lookup
+  - cocktail_search
+  - food_product
