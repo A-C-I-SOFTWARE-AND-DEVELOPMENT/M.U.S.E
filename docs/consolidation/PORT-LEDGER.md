@@ -68,7 +68,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 |---|---|---|---|
 | T0 | (on `integration`) | **done** | Guard tests. See below |
 | T1 | `pr/model-providers` | **done** | 5 generic providers. See below |
-| T2 | `pr/tools-generic` | planned | Generic tools; also unblocks `test_output_normalization` |
+| T2 | `pr/tools-generic` | **done** | Generic tools, security + grading layers. See below |
 | T3 | `port/tokenjuice` | planned | Licensing-gated; needs `THIRD_PARTY_NOTICES.md` first |
 | T4 | `pr/plugins-batch-{a,b,c}` | planned | ~20 general plugins + provider kinds |
 | T5 | `pr/fix-*` | planned | Individual upstream bug-fix PRs |
@@ -172,6 +172,65 @@ Not ported: `needle` — fork-specific, goes with the model-switch seam work.
 | `ruff check .` | clean | clean |
 | `tests/providers` | 66 passed | 84 passed |
 | providers registered | 41 | 46 |
+
+## T2 — generic tools, security, grading (done)
+
+`pr/tools-generic` @ `7a3d6d84f5`, merged to `integration` as `b39360b042`.
+
+Ported: `tools/http_client.py`, `tools/skill_cache.py`, `tools/skill_search_tool.py`,
+`tools/security/`, `tools/grading/`. Every dependency already existed here.
+
+Deferred, because their imports do not resolve yet:
+
+| File | Blocked on |
+|---|---|
+| `tools/graph_query_tool.py` | `hermes_cli.jarvis_prime.graphrag` → the prime tranche |
+| `tools/mixture_of_agents_tool.py` | `agent.auxiliary_client`; belongs with the MOA surfaces |
+| `tools/lmstudio_tools.py` | three symbols in `hermes_cli/models.py` → the models tranche |
+| `tools/security/tests/test_pickle_site_adoption.py` | `research_fabric/autoresearch/vendor/prepare.py` |
+
+### The guard earned its place on day one
+
+`tools/lmstudio_tools.py` passed an import-level scan — `hermes_cli.models` *does* exist
+upstream — and then failed the dangling-import guard at merge:
+
+```
+tools/lmstudio_tools.py:63  hermes_cli.models.download_lmstudio_model
+tools/lmstudio_tools.py:79  hermes_cli.models.lmstudio_download_status
+tools/lmstudio_tools.py:92  hermes_cli.models.unload_lmstudio_model
+```
+
+All three are fork additions to a class-D file. **Module presence is not symbol presence**
+— precisely the gap that produced the original 67 dangling symbols. Caught at merge time
+instead of at a user's terminal. The merge was reset and the file deferred.
+
+### The suppression baseline was regenerated, not inherited
+
+The fork's `secret_scan_suppressions.json` had 625 entries, **201 (32%) naming files absent
+from this tree**. Its own `test_hand_triaged_paths_still_exist` would have failed on it.
+Rebuilt via the documented `python -m tools.security.build_suppressions`: **496
+suppressions over 9,845 files**. Three hardcoded `HAND` entries were pruned and commented
+in place for restoration by the tranche that lands each file.
+
+**Seven locations are left in the triage queue deliberately** — `cli.py:12106`,
+`hermes_cli/cli_agent_setup_mixin.py:113`, `hermes_cli/model_switch.py:{2014,2020,2022}`,
+`hermes_cli/prompt_size.py:74`, `hermes_cli/runtime_provider.py:1369`. All are
+pre-existing code here, not ported material, and the tool is explicit that a heuristic hit
+is a triage aid and never a finding. Suppressing them unread would defeat the purpose.
+
+De-branded: `MUSE_PICKLE_PINS_STRICT`/`_FILE` → `HERMES_PICKLE_PINS_*`,
+`.muse-pickle-pins.json` → `.hermes-pickle-pins.json`, `muse-pin` → `hermes-pin`. No
+deprecation shim needed — these names never shipped here.
+
+Resolved the T0 deferral: `tests/characterization/test_output_normalization.py` now runs
+(128 passed, 2 skipped) because `tools.grading` is present.
+
+| Gate | Baseline | After T2 |
+|---|---|---|
+| dangling imports | 1 passed | 1 passed |
+| smoke | 1451 / 310 skipped | 1463 / 309 skipped |
+| tranche surfaces | — | 314 passed, 2 skipped |
+| `ruff check .` | clean | clean |
 
 ## ⚠ Correction: the de-branding gate cannot grep for "muse"
 
