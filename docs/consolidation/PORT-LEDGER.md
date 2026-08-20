@@ -99,7 +99,7 @@ measures; the question is only whether *we* made it worse.
 | `tests/smoke/` | 1451 passed, 310 skipped, 0 failed | Skips are missing optional deps, by design |
 | `ruff check` (T0 files) | clean | |
 | `ty check` | **15,382 diagnostics**, exit 101 | Upstream is not type-clean. Gate = no *new* diagnostics |
-| `scripts/run_tests.sh` | _running_ | 3,177 test files, per-file subprocess isolation |
+| `scripts/run_tests.sh` | **40 failing test files**, exit 1 | 3,177 files, per-file isolation. Set recorded in `BASELINE-full-suite.md` |
 
 Environment for all port work: `HERMES_HOME=C:\Users\Echer\.hermes-port` (risk R7 — never
 let a run touch the production home at `C:\Users\Echer\AppData\Local\hermes`).
@@ -157,10 +157,43 @@ Not ported. Preserved in the fork archive if ever needed.
 | Fork CI/hygiene churn | Upstream has its own conventions. Exception: `.importlinter` ships as `pr/import-linter` |
 | 87 MB `checkpoints/needle2.pkl` | Binary; lives in the filesystem archive, not git |
 
-## Per-file triage
+## Per-file triage (done)
 
-Populated by the Stage 2 classifier (`path, class, gone_syms, lines_*, applies_3way,
-tranche`). Classes: `D` (damage — port the true fork delta onto upstream),
-`BRANDING` (discard), `PORT-AS-IS`, `PORT-DELTA`.
+`scripts/consolidation/triage_shared_files.py` → `docs/consolidation/triage.csv`.
+Run once; do not re-derive by hand.
 
-_Not yet run._
+**699 shared files the fork modified:**
+
+| Class | Count | Meaning |
+|---|---|---|
+| `PORT-AS-IS` | **650** | The fork's delta applies cleanly onto upstream today |
+| `BRANDING` | **28** | Every touched line is a pure rename. Discard |
+| `D` | **13** | Damage. Port the true fork delta, never the fork's file |
+| `BINARY-ASSET` | **8** | Logos/banners/favicons. Decided by eye, never merged |
+
+The `D` set reproduces the independently-derived damage list **exactly** — same 13 files,
+same line counts. Two independent methods agreeing is the reason to trust it.
+
+### "Applies cleanly" is not "should port"
+
+Of the 650 `PORT-AS-IS` files, **285 still mention fork branding** in their diff and need a
+keep/discard decision; **364 are brand-free** and safe to port mechanically. The
+`carries_brand` column records this per file. The branded ones cluster in `website/` (179),
+`web/` (19), `agent/` (17), `hermes_cli/` (16).
+
+### Three classifier bugs found and fixed
+
+Recorded because each produced confident, wrong output that would have mis-sized the port:
+
+1. **Text-mode diff capture corrupted every patch.** Capturing `git diff` with
+   `encoding="utf-8", errors="replace"` silently rewrote bytes; the resulting patch no
+   longer matched its own blobs, so `git apply --3way` reported conflicts that did not
+   exist. Measured on one 5,776-byte diff: 12 bytes lost, clean apply turned into failure.
+   **The first run reported 657 files needing hand-porting. The true number is 0** — every
+   one of those was this bug. Diffs are now handled as bytes end to end.
+2. **Binary assets masqueraded as hand-port work.** `git apply` cannot 3-way a PNG, so 8
+   logos and favicons classified as `PORT-DELTA`. They are now `BINARY-ASSET`.
+3. **A branding rename read as merge damage.** `\bmuse\b` cannot match inside
+   `test_muse_launcher_x` — `_` is a word character, so there is no boundary before `m`.
+   One renamed test function therefore looked like a vanished symbol. Symbol comparison now
+   uses boundary-free normalization, which is what brought `D` from 14 to the correct 13.
