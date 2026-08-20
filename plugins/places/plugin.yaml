@@ -1,0 +1,8 @@
+name: places
+version: 1.0.0
+description: "Free places search + map links for Hermes via OpenStreetMap Nominatim — no API key required. Two read-only tools: places_search (name/query → matching places with coordinates) and places_map (coordinates → shareable OpenStreetMap map + directions URL, pure URL builder, no network). Host-pinned to nominatim.openstreetmap.org; responses are size-capped. Opt-in via `places.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - places_search
+  - places_map

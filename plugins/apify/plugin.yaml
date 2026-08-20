@@ -1,0 +1,10 @@
+name: apify
+version: 1.0.0
+description: "Apify web-scraping & automation for Hermes — four tools over the Apify REST API. Read tools (list/search Actors, fetch dataset items, check run status) appear when apify.enabled is true and APIFY_TOKEN is set; apify_run_actor triggers a billable Actor run and stays hidden until apify.allow_runs is also true. The token is sent as a Bearer header, never logged, and never returned to the model. An optional allowed_actors allowlist hardens which Actors may run."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - apify_list_actors
+  - apify_get_dataset_items
+  - apify_get_run
+  - apify_run_actor

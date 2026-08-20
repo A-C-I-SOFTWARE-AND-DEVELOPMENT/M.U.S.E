@@ -1,0 +1,9 @@
+name: finance
+version: 1.0.0
+description: "Free market data for Hermes — no API key required. crypto_price (CoinGecko), currency_convert (Frankfurter / European Central Bank reference rates), and stock_quote (Stooq). All read-only and host-pinned. Opt-in via `finance.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - crypto_price
+  - currency_convert
+  - stock_quote

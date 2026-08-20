@@ -1,0 +1,14 @@
+name: github_assistant
+version: 1.0.0
+description: "Native GitHub access for Hermes — eight read/write tools backed by the REST API, gated by a config-level enable flag, write-block, and per-repo allowlist. Token is read from GITHUB_PERSONAL_ACCESS_TOKEN (env / ~/.hermes/.env) and never logged or returned to the model."
+author: NousResearch
+kind: standalone
+provides_tools:
+  - github_audit_repo
+  - github_get_repo_file
+  - github_list_branches
+  - github_list_issues
+  - github_create_issue
+  - github_list_pull_requests
+  - github_get_pull_request
+  - github_comment_on_issue_or_pr
