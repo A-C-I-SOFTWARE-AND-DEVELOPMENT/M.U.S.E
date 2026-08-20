@@ -69,7 +69,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T0 | (on `integration`) | **done** | Guard tests. See below |
 | T1 | `pr/model-providers` | **done** | 5 generic providers. See below |
 | T2 | `pr/tools-generic` | **done** | Generic tools, security + grading layers. See below |
-| T3 | `port/tokenjuice` | planned | Licensing-gated; needs `THIRD_PARTY_NOTICES.md` first |
+| T3 | `port/tokenjuice` | **done** | Compaction library + notice infrastructure. See below |
 | T4 | `pr/plugins-batch-{a,b,c}` | planned | ~20 general plugins + provider kinds |
 | T5 | `pr/fix-*` | planned | Individual upstream bug-fix PRs |
 | T6 | `port/repair-damaged-deltas` | planned | The 13 damaged files. **Only core-edit tranche** |
@@ -230,6 +230,36 @@ Resolved the T0 deferral: `tests/characterization/test_output_normalization.py` 
 | dangling imports | 1 passed | 1 passed |
 | smoke | 1451 / 310 skipped | 1463 / 309 skipped |
 | tranche surfaces | — | 314 passed, 2 skipped |
+| `ruff check .` | clean | clean |
+
+## T3 — TokenJuice (done)
+
+`port/tokenjuice` @ `115e19e1f2`, merged to `integration` as `ccbeb022b3`.
+
+107 files, **zero first-party imports** — a self-contained library that compacts tool
+output before it enters the model context.
+
+**The licensing infrastructure landed in the same commit**, which is the whole reason this
+was its own tranche. This repo had no `THIRD_PARTY_NOTICES.md`; it does now, and it is
+where any future vendored material gets recorded. The 96 rule JSONs are vendored verbatim
+from the MIT-licensed `vincentkoc/tokenjuice` set, full license text reproduced,
+attribution preserved in `rules/NOTICE.md`. The Python reducer is a clean-room
+reimplementation from the public spec — no source from any TokenJuice port, including
+GPL-licensed ports, is copied.
+
+Ported 3 of 4 test files (32 passed). `test_tokenjuice_tool_loop` deferred: it imports
+`agent.tool_executor`, and wiring compaction into the tool loop is a core edit that
+belongs in its own change.
+
+The scanner found 4 new locations — tokenjuice's own credential-redaction patterns in
+`scrub.py` and its tests — and classified all four as `redaction_code`. Suppressions
+regenerated: **500 over 9,982 files**. TokenJuice adds **no** unsuppressed findings; the 7
+in the triage queue are unchanged.
+
+| Gate | Baseline | After T3 |
+|---|---|---|
+| dangling imports | 1 passed | 1 passed |
+| smoke | 1451 / 310 skipped | 1473 / 309 skipped |
 | `ruff check .` | clean | clean |
 
 ## ⚠ Correction: the de-branding gate cannot grep for "muse"
