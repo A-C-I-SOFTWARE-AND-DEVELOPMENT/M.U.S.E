@@ -1,0 +1,9 @@
+name: timeutil
+version: 1.0.0
+description: "Time and calendar awareness for Hermes — no API key required. time_now (current time in a timezone), world_clock (current time across several zones at once), and public_holidays (by country/year via Nager.Date). All read-only and host-pinned. Opt-in via `timeutil.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - time_now
+  - world_clock
+  - public_holidays

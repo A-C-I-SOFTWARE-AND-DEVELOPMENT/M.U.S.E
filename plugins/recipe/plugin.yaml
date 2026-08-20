@@ -1,0 +1,7 @@
+name: recipe
+version: 1.0.0
+description: "Structured recipe cards for Hermes — a pure, deterministic tool (no network, no API key). recipe_card takes a title plus structured ingredients and steps, validates units, assigns stable ids, and scales every ingredient amount proportionally to a target serving count. Mirrors the contract's recipe widget. Opt-in via `recipe.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - recipe_card

@@ -1,0 +1,10 @@
+name: knowledge
+version: 1.0.0
+description: "General-knowledge lookups for Hermes — no API key required. wikipedia_summary, wikipedia_search (Wikimedia), dictionary_define (Free Dictionary), and country_info (REST Countries). All read-only and host-pinned. Opt-in via `knowledge.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - wikipedia_summary
+  - wikipedia_search
+  - dictionary_define
+  - country_info
