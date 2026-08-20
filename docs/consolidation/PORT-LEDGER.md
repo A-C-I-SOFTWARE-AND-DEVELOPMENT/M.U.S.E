@@ -67,7 +67,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | # | Branch | Status | Notes |
 |---|---|---|---|
 | T0 | (on `integration`) | **done** | Guard tests. See below |
-| T1 | `pr/model-providers` | planned | 5 generic providers + auth env aliases |
+| T1 | `pr/model-providers` | **done** | 5 generic providers. See below |
 | T2 | `pr/tools-generic` | planned | Generic tools; also unblocks `test_output_normalization` |
 | T3 | `port/tokenjuice` | planned | Licensing-gated; needs `THIRD_PARTY_NOTICES.md` first |
 | T4 | `pr/plugins-batch-{a,b,c}` | planned | ~20 general plugins + provider kinds |
@@ -145,6 +145,61 @@ against pristine upstream before copying:
 `KNOWN_OPTIONAL` in the dangling-import guard names `plugins.memory.sqlite` and
 `plugins.github_assistant.api`. Both are absent from pristine upstream, so both entries are
 inert today. `github_assistant` arrives in T4 — re-verify the entry is still justified then.
+
+## T1 — model providers (done)
+
+`pr/model-providers` @ `bff2764a77`, cut from `upstream/main`, merged to `integration` as
+`6232e06390`.
+
+Ported: `plugins/model-providers/{cerebras,groq,mistral,perplexity,together}/`. Zero
+branding, zero fork coupling — each imports only `providers.register_provider` and
+`providers.base.ProviderProfile`. **No API drift**: every field these profiles pass is
+accepted by upstream's current `ProviderProfile`, which has since gained further optional
+fields. The plan's flagged risk (that they might reference the fork's
+`hermes_model_catalog.py`) does not exist.
+
+Added `tests/providers/test_bundled_openai_compatible_profiles.py` — a profile that fails
+to register raises nothing at import time, it just stops resolving. Includes a
+registry-wide alias-collision check, since two providers claiming one alias is decided by
+registration order and the loser vanishes silently.
+
+Not ported: `needle` — fork-specific, goes with the model-switch seam work.
+
+| Gate | Baseline | After T1 |
+|---|---|---|
+| dangling imports | 1 passed | 1 passed |
+| smoke | 1451 passed / 310 skipped | 1451 passed / 309 skipped |
+| `ruff check .` | clean | clean |
+| `tests/providers` | 66 passed | 84 passed |
+| providers registered | 41 | 46 |
+
+## ⚠ Correction: the de-branding gate cannot grep for "muse"
+
+The plan's Stage 4 acceptance gate was *"`git grep -ni 'muse'` returns zero."* That is
+**impossible to satisfy and harmful to attempt.** Upstream itself contains "muse" in **45
+files**, none of it fork branding:
+
+| Upstream use | Where |
+|---|---|
+| **Meta AI's Muse Spark model family** — `muse-spark-1.2`, and `muse` is a live provider **alias** | `plugins/model-providers/meta-ai/`, `agent/models_dev.py`, `hermes_cli/models.py`, `hermes_cli/model_data_policy_guard.py`, `tests/agent/test_auxiliary_client.py` |
+| **Muse EEG headband** | `optional-skills/health/neuroskill-bci/` |
+| **Substring false positives** | `MEMUSED` (vendored `native/fts5_cjk/vendor/sqlite3.h`), `isSystemUser` (nix), `SpectrumUser`, `FromUserName`, `randomuser`, `museum` |
+
+A blanket `muse` → `hermes` rewrite would rename Meta's models, break the `meta-ai`
+provider and its aliases, corrupt a vendored C header, and turn "museum" into "hermeseum".
+
+**The branding gate must instead match fork-specific markers** — `M.U.S.E`, the `MUSE_`
+env prefix, `◉ muse`, the `singularity`/`caduceus` skins, `jarvis` — with an explicit
+allowlist for the upstream uses above. Bare case-insensitive `muse` is not a usable signal
+in this repo.
+
+## Upstream defect found: Windows tests write into the repo root
+
+The full-suite baseline left 14 artifacts in the repo root: `$tmp`, a `%SystemDrive%/`
+directory tree containing copied Windows cache files, and 12 files whose names are entire
+mangled Windows paths (`C:UsersEcherAppDataLocalTemppytest-of-unknown...`). Tests are
+expanding path variables literally and writing relative to the CWD instead of a temp dir.
+Cleaned with `git clean`; worth an upstream issue.
 
 ## Deliberate drops
 
