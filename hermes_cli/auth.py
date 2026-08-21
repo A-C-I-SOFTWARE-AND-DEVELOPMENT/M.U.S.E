@@ -318,7 +318,7 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         name="Z.AI / GLM",
         auth_type="api_key",
         inference_base_url="https://api.z.ai/api/paas/v4",
-        api_key_env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"),
+        api_key_env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY", "ZHIPU_API_KEY"),
         base_url_env_var="GLM_BASE_URL",
     ),
     "kimi-coding": ProviderConfig(
@@ -329,7 +329,7 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         # sk-kimi- (Kimi Code) keys are auto-redirected to api.kimi.com/coding
         # by _resolve_kimi_base_url() below.
         inference_base_url="https://api.moonshot.ai/v1",
-        api_key_env_vars=("KIMI_API_KEY", "KIMI_CODING_API_KEY"),
+        api_key_env_vars=("KIMI_API_KEY", "KIMI_CODING_API_KEY", "MOONSHOT_API_KEY"),
         base_url_env_var="KIMI_BASE_URL",
     ),
     "kimi-coding-cn": ProviderConfig(
@@ -452,7 +452,7 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         name="NVIDIA NIM",
         auth_type="api_key",
         inference_base_url="https://integrate.api.nvidia.com/v1",
-        api_key_env_vars=("NVIDIA_API_KEY",),
+        api_key_env_vars=("NVIDIA_API_KEY", "NIM_API_KEY", "NVIDIA_NIM_API_KEY"),
         base_url_env_var="NVIDIA_BASE_URL",
     ),
     "ai-gateway": ProviderConfig(
