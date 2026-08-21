@@ -72,9 +72,80 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T3 | `port/tokenjuice` | **done** | Compaction library + notice infrastructure. See below |
 | T4 | `pr/plugins-batch-{a,b,c}` | **done** | 18 plugins landed, 6 deferred. See below |
 | T5 | `pr/fix-*` | **done** | 4 of 5 landed; 1 rejected as dead code. See below |
-| T6 | `port/repair-damaged-deltas` | planned | The 13 damaged files. **Only core-edit tranche** |
-| T7 | `port/branding-seam` | planned | Must land before T8+ |
-| T8–T18 | see plan | planned | Feature tranches |
+| T6 | `port/repair-damaged-deltas` | **done** | The 13 damaged files. **Only core-edit tranche**. See below |
+| T7 | `port/branding-seam` | planned | Must land before T8+. See `PLAN.md` |
+| T8–T18 | see `PLAN.md` | planned | Feature tranches |
+
+## T6 — repair damaged deltas (done)
+
+The only tranche permitted to hand-edit core. All 13 class-D files resolved.
+
+**Method.** Each file's port source is the true fork delta
+(`git diff e2fd462ebe bb78a5bf1c -- <path>`), applied onto upstream's current file —
+never the fork's post-merge blob. Every candidate was analysed once, then reviewed a
+second time by a pass whose only instruction was to **refute** it.
+
+**43 claims raised, 24 survived, 19 killed.** The refutation stage is the reason to
+trust the result; a sample of what it caught:
+
+| Killed | Why |
+|---|---|
+| `config.py` "stop echoing credential characters" | Not a leak. The line keeps `U+{ord(ch):04X}`, which uniquely determines the character it claimed to redact |
+| `doctor.py` connectivity/OAuth-fallback row | Breaks a currently-passing test (`test_run_doctor_ignores_invalid_direct_keys_when_oauth_fallback_is_healthy`) |
+| `doctor.py` punch-list narrowing | Regresses under `provider=auto` and `provider=moa`, the most common config values |
+| `setup.py` `setup_orchestrator_trio()` | References a module that does not exist here yet. Deferred to T11, where it arrives with its feature |
+| `web_server.py` `POST /api/env/test` | Dead on arrival — no call site, and the proposed code was not the fork's |
+| 4 of 8 proposed `cli.py` ty suppressions | ty does not flag those lines; landing them is a net lint **regression** (`unused-ignore-comment`) |
+| `gateway.py` `gateway.auto_start` | Depends on unported material. Deferred |
+
+### What landed
+
+| File | True delta | Outcome |
+|---|---|---|
+| `hermes_cli/banner.py` | 65/31 | **Discarded** — 100% branding (the ASCII wordmark) |
+| `hermes_cli/slack_cli.py` | 9/9 | **Discarded** — pure rename |
+| `hermes_cli/auth.py` | 37/37 | 3 provider env aliases (`ZHIPU_API_KEY`, `MOONSHOT_API_KEY`, `NIM_API_KEY`/`NVIDIA_NIM_API_KEY`). The delta's two "restored" functions already existed upstream |
+| `hermes_cli/uninstall.py` | 16/16 | 8 `ty: ignore` on `winreg` call sites (absent off-Windows) |
+| `cli.py` | 466/178 | `/model` surfaces inventory-load failures instead of masking them; `TypeError` on unhashable `min_coding_score`; 22 implicit-Optional params; `value: any` → `Any`; 4 ty suppressions |
+| `hermes_cli/doctor.py` | 316/63 | Azure Foundry probe no longer passes `url=None` to `httpx.get`; Azure authenticates with `api-key` not Bearer; Kimi row honours `KIMI_CODING_API_KEY`/`MOONSHOT_API_KEY`; `--fix` seeds `DEFAULT_SOUL_MD` instead of a fourth divergent template |
+| `hermes_cli/gateway.py` | 324/41 | Windows arm restored to the "Start it now?" recovery dispatch; `hermes gateway ensure`; one load-bearing ty suppression for `ctypes.windll` |
+| `hermes_cli/web_server.py` | 143/13 | Swagger UI moved to `/api-explorer` |
+| `hermes_cli/config.py` | 540/84 | Inline `open()`/`os.fdopen()` encoding kwargs; `redact_key()` accepts `Optional[str]` |
+| `hermes_cli/main.py` | 1585/338 | 8 argparse ty suppressions |
+| `hermes_cli/setup.py` | 92/45 | Headless guidance names `ANTHROPIC_API_KEY`; 2 implicit-Optional |
+| `hermes_cli/commands.py` | 100/15 | Gate narrowing before `.split()`; widened tuple annotations |
+| `gateway/run.py` | 486/133 | `_gateway_runner_ref` annotation corrected; implicit-Optional on `session_key` (×3) and `TurnRunner.progress_callback` |
+
+### The Swagger/SPA collision, recorded because it is easy to re-introduce
+
+FastAPI registers its docs route inside `FastAPI.__init__` → `setup()`, long before
+`mount_spa()` installs the SPA catch-all. It therefore wins the match-order race and
+served Swagger UI on every hard load, refresh, or deep link of `/docs` — shadowing the
+SPA's own Documentation page. Fixed with `docs_url="/api-explorer"`. The fork's
+`redoc_url=None` was **not** ported: nothing collides at `/redoc`.
+
+### Deviation from strict fork-delta-only, taken deliberately
+
+One of the three `session_key` implicit-Optional fixes lands on `_run_agent_inner`, an
+**upstream-only** function created after the fork point that carries the identical
+defect. Annotation-only, no runtime effect. Recorded here rather than silently included.
+
+### Gate results
+
+Every measure compared against pristine upstream, never against zero.
+
+| Measure | Result |
+|---|---|
+| `ruff check .` | clean |
+| dangling-imports guard + `tests/smoke/` | 1475 passed, 325 skipped, **0 failed** |
+| doctor/config/setup/commands/gateway/web_server test files | 26 failed, 812 passed, 24 skipped — a **byte-identical failure set** to pristine upstream |
+| gateway files + dangling guard, after `gateway ensure` landed | 22 failed — **identical** to the control's gateway subset |
+| `ty` | `main.py` 50 → 18, `doctor.py` 7 → 1, no `unused-ignore` at any new site |
+| Runtime | `hermes --version` ok; `hermes doctor` runs end to end; `hermes gateway ensure` present in `gateway --help` |
+
+The 26 pre-existing failures are Linux `systemd`/`launchd`/XDG-runtime paths and Windows
+symlink-permission tests that cannot pass on this host. They fail identically on pristine
+upstream, which is the only thing that matters.
 
 ## T0 — guard tests (done)
 
