@@ -363,10 +363,10 @@ def remove_path_from_windows_registry(hermes_home: Path) -> list[str]:
     removed: list[str] = []
     key_path = "Environment"
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0,
-                            winreg.KEY_READ | winreg.KEY_WRITE) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0,  # ty: ignore[unresolved-attribute]  # win32-only
+                            winreg.KEY_READ | winreg.KEY_WRITE) as key:  # ty: ignore[unresolved-attribute]  # win32-only
             try:
-                path_value, path_type = winreg.QueryValueEx(key, "Path")
+                path_value, path_type = winreg.QueryValueEx(key, "Path")  # ty: ignore[unresolved-attribute]  # win32-only
             except FileNotFoundError:
                 return []
             # Preserve REG_EXPAND_SZ vs REG_SZ so unexpanded %VARS% survive.
@@ -382,7 +382,7 @@ def remove_path_from_windows_registry(hermes_home: Path) -> list[str]:
                     kept.append(entry)
             if removed:
                 new_value = ";".join(kept)
-                winreg.SetValueEx(key, "Path", 0, path_type, new_value)
+                winreg.SetValueEx(key, "Path", 0, path_type, new_value)  # ty: ignore[unresolved-attribute]  # win32-only
     except OSError as e:
         log_warn(f"Could not edit User PATH in registry: {e}")
     return removed
@@ -397,15 +397,15 @@ def remove_hermes_env_vars_windows() -> list[str]:
 
     removed: list[str] = []
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,
-                            winreg.KEY_READ | winreg.KEY_WRITE) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,  # ty: ignore[unresolved-attribute]  # win32-only
+                            winreg.KEY_READ | winreg.KEY_WRITE) as key:  # ty: ignore[unresolved-attribute]  # win32-only
             for name in ("HERMES_HOME", "HERMES_GIT_BASH_PATH"):
                 try:
-                    winreg.QueryValueEx(key, name)
+                    winreg.QueryValueEx(key, name)  # ty: ignore[unresolved-attribute]  # win32-only
                 except FileNotFoundError:
                     continue
                 try:
-                    winreg.DeleteValue(key, name)
+                    winreg.DeleteValue(key, name)  # ty: ignore[unresolved-attribute]  # win32-only
                     removed.append(name)
                 except OSError as e:
                     log_warn(f"Could not delete {name} from User env: {e}")
