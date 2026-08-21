@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The focused verification run, as a standing gate. Work Packet §4.2, §8.2, §14.2.
+"""The focused verification run, as a standing gate.
 
 The packet records a focused run over the modules that carry the architecture:
 Agent Factory, Agent Market, Blackboard, Grainler, the swarm executor and

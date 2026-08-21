@@ -1,6 +1,6 @@
 """Rebuild `secret_scan_suppressions.json` from a scan plus the recorded triage.
 
-Work Packet §9.2 asks for hand triage *and* a versioned suppression file. The
+Hand triage *and* a versioned suppression file are both wanted here. The
 file alone is an assertion; this module is the record of how it was reached, so
 the triage can be re-derived, argued with, and re-run after the tree moves.
 
@@ -142,7 +142,7 @@ CLASS_REASON: Dict[str, str] = {
     ),
     "vendor": "reviewed as a class: vendored or third-party paths",
     "archived_source": (
-        "reviewed as a class: recovered-agent-sources/, which Work Packet 4.2 "
+        "reviewed as a class: recovered-agent-sources/, which the security review "
         "excludes from the production build and which is retained as historical "
         "evidence"
     ),

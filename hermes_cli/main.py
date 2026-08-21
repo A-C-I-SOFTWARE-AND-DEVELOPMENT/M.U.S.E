@@ -12368,6 +12368,15 @@ def main():
     # in ps/top/htop.  Non-fatal — just a nicer UX.
     _set_process_title()
 
+    # Carry any legacy fork environment variables onto their current names
+    # before anything reads config. A renamed flag that nothing reads is a
+    # feature silently switched off, so this runs first.
+    try:
+        from hermes_cli.env_compat import apply_legacy_env_aliases
+        apply_legacy_env_aliases()
+    except Exception:
+        pass
+
     # Let child processes (and tools like huggingface_hub) detect they run
     # under an AI agent harness.
     _advertise_agent_env()

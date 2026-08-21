@@ -1,4 +1,4 @@
-"""Hash-pinned pickle loading — Work Packet §9.1.
+"""Hash-pinned pickle loading.
 
 What this is, and what it is emphatically not
 ---------------------------------------------
@@ -113,7 +113,7 @@ _READ_CHUNK = 1024 * 1024
 
 _PIN_FILE_COMMENT = (
     "SHA-256 pins for pickle artifacts in this directory. Verified before "
-    "unpickling; a mismatch refuses the load (Work Packet 9.1). Untrusted "
+    "unpickling; a mismatch refuses the load. Untrusted "
     "pickle is not made safe by this file -- the contract is 'only load what "
     "we already vouched for'. Re-pinning is deliberate: delete the entry or "
     "run 'python -m tools.security.safe_pickle --repin <artifact>'."
@@ -557,7 +557,7 @@ def _selftest() -> int:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m tools.security.safe_pickle",
-        description="Hash-pin pickle artifacts (Work Packet 9.1). "
+        description="Hash-pin pickle artifacts. "
         "Pinning never unpickles.",
     )
     parser.add_argument("artifact", nargs="?", help="path to the pickle artifact")

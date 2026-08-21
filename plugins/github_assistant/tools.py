@@ -147,7 +147,7 @@ def _require_client() -> GithubClient:
 
 _OWNER_PROP = {
     "type": "string",
-    "description": "Repository owner (user or org login), e.g. 'echerd27-design'.",
+    "description": "Repository owner (user or org login), e.g. 'NousResearch'.",
 }
 _NAME_PROP = {
     "type": "string",

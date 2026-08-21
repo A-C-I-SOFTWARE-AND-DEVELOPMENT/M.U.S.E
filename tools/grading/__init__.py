@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Pre-grading output normalization and unit interpretation.
 
-Work Packet §1 p4, §11, §12.
 
 Run this *before* a grader compares an answer to a gold field.  It answers one
 question — "can these two strings be compared at all, and if so do they agree?"

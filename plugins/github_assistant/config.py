@@ -7,7 +7,7 @@ The plugin reads a single top-level ``github:`` block from
       enabled: true
       allow_writes: false
       allowed_repositories:
-        - "echerd27-design/hermes-agent"
+        - "NousResearch/hermes-agent"
 
 Defaults err on the safer side:
 

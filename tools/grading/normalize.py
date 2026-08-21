@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Parsing and canonicalization for the pre-grading output validator.
 
-Work Packet §1 p4, §11, §12.
 
 This module turns a raw answer string into one of four typed readings —
 number, boolean, date, or plain text — **without deciding whether two answers

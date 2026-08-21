@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Command-line precheck over a benchmark results file.
 
-Work Packet §1 p4, §11, §12.
 
     python -m tools.grading.cli results.jsonl
     python -m tools.grading.cli results.jsonl --json report.json
