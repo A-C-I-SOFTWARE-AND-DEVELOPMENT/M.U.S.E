@@ -73,7 +73,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T4 | `pr/plugins-batch-{a,b,c}` | **done** | 18 plugins landed, 6 deferred. See below |
 | T5 | `pr/fix-*` | **done** | 4 of 5 landed; 1 rejected as dead code. See below |
 | T6 | `port/repair-damaged-deltas` | **done** | The 13 damaged files. **Only core-edit tranche**. See below |
-| T7 | `port/branding-seam` | planned | Must land before T8+. See `PLAN.md` |
+| T7 | `port/branding-seam` | **done** | Branding gate live and green. See below |
 | T8–T18 | see `PLAN.md` | planned | Feature tranches |
 
 ## T6 — repair damaged deltas (done)
@@ -146,6 +146,94 @@ Every measure compared against pristine upstream, never against zero.
 The 26 pre-existing failures are Linux `systemd`/`launchd`/XDG-runtime paths and Windows
 symlink-permission tests that cannot pass on this host. They fail identically on pristine
 upstream, which is the only thing that matters.
+
+## T7 — branding seam (done)
+
+### The plan's marker list was wrong, and it would have produced an unusable gate
+
+`PLAN.md` proposed gating on `M.U.S.E`, `MUSE_`, `singularity`, `caduceus` and `jarvis`.
+Three of those mean something else entirely in this repo:
+
+| Marker | Plan assumed | What it actually is here | Hits |
+|---|---|---|---|
+| `singularity` | a fork skin | the **Singularity/Apptainer container runtime**, an upstream terminal backend beside docker/modal/ssh/daytona | 181 |
+| `caduceus` | "the MUSE serpent glyph" | `HERMES_CADUCEUS` — upstream's **own** ASCII art. The caduceus is Hermes's staff | 10 |
+| `jarvis` | the fork's `jarvis_prime` | openWakeWord's built-in `hey_jarvis` wake word, a cron incident note, a desktop test fixture | 34 |
+| `M.U.S.E` | fork branding | fork branding — the only one that was right | 2 |
+
+This is the same class of error already recorded for bare `muse`. **Judge what the string
+means, never the substring.** The skins question resolved itself: the fork's `singularity`
+skin was never ported here, and `caduceus` is upstream's own.
+
+### The guard
+
+`tests/test_no_fork_branding.py` — 15 markers over git-tracked file **content and paths**,
+~2.9 s across 10,099 files.
+
+**Scanning paths is not incidental.** A ported `hermes_cli/jarvis_prime/` package whose file
+contents are perfectly clean is invisible to a content-only scan — and T12 is 426 such files.
+Same for `contributors/emails/<address>`, where the identity is the filename and there is
+nothing to grep.
+
+42 upstream-legitimate strings and 9 upstream-legitimate paths are pinned as **executable
+negative controls**. If a future widening starts eating `muse-spark`, the Singularity backend
+or `HERMES_CADUCEUS`, the guard fails loudly rather than teaching people to ignore it.
+
+**Documented residual gaps** — recorded so nobody "fixes" them into false positives: bare
+title-case `Muse` (35 legitimate lines) and bare lowercase `muse` (~110) cannot be gated. A
+context-negated attempt produced 73 false positives across 19 files. `HERMES_MUSE_MODE` also
+escapes, since `` cannot hold after `_`. Those spellings still need human review.
+
+### The 32 leaks it found
+
+| Marker | Sites | Notes |
+|---|---|---|
+| `echerd27-design` | 7 (from T4) | The fork owner's GitHub org. The worst is `plugins/github_assistant/tools.py:150` — a **tool-schema `description`**, so it shipped into the model's tool context at runtime and would be echoed back as the suggested repo owner. Now `NousResearch` |
+| `M.U.S.E` | 2 (from T2) | Fork product name in `tools/security/` docstrings |
+| `Work Packet §…` | 23 | Citations to a fork-private planning document that does not exist in this repo — dangling for any reader |
+
+Two could not be fixed as isolated lines:
+
+- `tools/grading/README.md` **transcribes the literal banner** emitted by
+  `tools/grading/validator.py:337`. Changed together, so the documented sample output stays
+  truthful.
+- `tools/security/secret_scan_suppressions.json` is **generated**. De-branded the constant in
+  `secret_scan.py` and re-ran `python -m tools.security.build_suppressions` rather than
+  hand-editing. Verified afterwards that all 500 entries are byte-identical modulo the
+  re-stamped `added_at`.
+
+### `hermes_cli/env_compat.py` — landed early, deliberately
+
+The legacy `MUSE_*` → `HERMES_*` shim, with an **empty table by design**: no ported material
+carries a legacy name yet.
+
+It landed now rather than at T11 for a structural reason. The shim must run at process start,
+and installing a process-start hook is a **core edit** — and T6 was the last tranche permitted
+to make one. Wiring it now cost two lines each in `hermes_cli/main.py` and `gateway/run.py`;
+wiring it at T11 would have required breaking the seams-over-core-edits rule. Recorded here as
+a deliberate exception rather than smuggled in.
+
+`tests/hermes_cli/test_env_compat.py` pins that both hooks stay in place — without them the
+shim is dead code and every legacy variable silently stops working, which is exactly the
+failure the shim exists to prevent.
+
+**Contract for T8–T18:** every tranche that ports material carrying a `MUSE_*` name adds its
+rows to `LEGACY_ENV_ALIASES` *in the same commit* as the rename, and registers the legacy name
+in `_DEPRECATED_ENV_VARS` in `doctor.py`. Never regex-rename across the tree.
+
+### Gate results
+
+| Measure | Result |
+|---|---|
+| `ruff check .` | clean |
+| `tests/smoke/` + both guards | 1531 passed, 326 skipped, **0 failed** |
+| branding guard alone | 54 passed — every negative control green, zero false positives |
+| `env_compat` + guards | 68 passed |
+| github_assistant + security + grading + characterization | 290 passed, 2 skipped |
+| Runtime | `hermes --version` ok |
+
+From here the **fast gate gains `tests/test_no_fork_branding.py`**, so no later tranche can
+re-introduce fork branding silently.
 
 ## T0 — guard tests (done)
 
