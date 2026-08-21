@@ -1,4 +1,4 @@
-"""Tests for the suppression builder — Work Packet §9.2.
+"""Tests for the suppression builder.
 
 The suppression file is an assertion about a human's judgement, so the code that
 writes it has to be as testable as the scanner. These tests run against small

@@ -15,7 +15,7 @@ github:
   enabled: true
   allow_writes: false                       # write tools refuse to run
   allowed_repositories:
-    - "echerd27-design/hermes-agent"        # everything else is denied
+    - "NousResearch/hermes-agent"        # everything else is denied
 ```
 
 ```bash

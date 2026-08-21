@@ -1,4 +1,4 @@
-"""Security utilities for M.U.S.E. — Work Packet §9.1 / §9.2.
+"""Security utilities for Hermes Agent.
 
 Deliberately dependency-free and side-effect-free on import, because the
 consumers include vendored training scripts and developer tooling that run

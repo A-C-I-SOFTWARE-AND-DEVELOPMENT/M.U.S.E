@@ -30806,6 +30806,14 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 
 def main():
     """CLI entry point for the gateway."""
+    # Carry any legacy fork environment variables onto their current names
+    # before anything reads config. See hermes_cli/env_compat.py.
+    try:
+        from hermes_cli.env_compat import apply_legacy_env_aliases
+        apply_legacy_env_aliases()
+    except Exception:
+        pass
+
     # Advertise the agent harness to child processes (AI_AGENT is the
     # cross-agent standard; HERMES_AGENT the Hermes-specific marker — see
     # _advertise_agent_env in hermes_cli/main.py, kept inline here to avoid

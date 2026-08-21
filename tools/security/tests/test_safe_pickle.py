@@ -1,4 +1,4 @@
-"""Tests for the hash-pinned pickle gate — Work Packet §9.1.
+"""Tests for the hash-pinned pickle gate.
 
 The load-bearing test is :func:`test_tampered_artifact_never_executes`: it
 builds a pickle whose ``__reduce__`` writes a sentinel file when unpickled,

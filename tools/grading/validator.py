@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Output-normalization and unit-interpretation validator, run *before* grading.
 
-Work Packet §1 p4, §11, §12.
 
 **The failure this exists for.** A Level-1 QA answer was graded WRONG because
 the model produced ``17000`` against a gold field of ``17``, after completing 6
@@ -334,7 +333,7 @@ class ValidationReport:
         lines = [
             # ASCII only: this is printed to consoles whose codepage is not
             # UTF-8, and a section sign turns into mojibake there.
-            "output-normalization precheck (Work Packet sec.1 p4, sec.11, sec.12)",
+            "output-normalization precheck",
             f"  rows                 : {self.total}",
             f"  match                : {self.matched}",
             f"  mismatch             : {self.mismatched}",

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Corpus + characterization tests for ``tools/grading``.
 
-Work Packet §1 p4, §11, §12.
 
 The driving failure is concrete: a Level-1 QA answer was graded WRONG because
 the model produced ``17000`` against a gold field of ``17``, after completing 6

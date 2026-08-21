@@ -1,4 +1,4 @@
-"""Tests for the credential scanner — Work Packet §9.2.
+"""Tests for the credential scanner.
 
 The most important property under test is negative: **no matched value ever
 reaches the output.** ``test_values_never_reach_any_output`` asserts that over

@@ -1,4 +1,4 @@
-"""Credential scanner for M.U.S.E. — Work Packet §9.2, §4.1, Appendix A.
+"""Credential scanner for Hermes Agent.
 
 Why this exists
 ---------------
@@ -118,7 +118,7 @@ TRIAGE_BUCKETS = (
 )
 
 DISCLAIMER = (
-    "Work Packet 29.2: these are heuristic locations and are a TRIAGE AID, NOT "
+    "These are heuristic locations and are a TRIAGE AID, NOT "
     "a finding of leaked credentials. No matched value is stored here. This "
     "file licenses no no-secret and no no-vulnerability claim in either "
     "direction."
@@ -1166,7 +1166,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m tools.security.secret_scan",
         description=(
-            "Credential scanner recording LOCATIONS ONLY (Work Packet 9.2). "
+            "Credential scanner recording LOCATIONS ONLY. "
             "Output is a triage queue, never a finding of leaked credentials."
         ),
     )

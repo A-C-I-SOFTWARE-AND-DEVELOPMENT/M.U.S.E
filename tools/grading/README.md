@@ -1,6 +1,5 @@
 # `tools/grading` — output normalization and unit interpretation, before grading
 
-Work Packet §1 p4, §11, §12.
 
 ## The failure this exists for
 
@@ -138,7 +137,7 @@ unit was stated in the task all along.
 
 ```
 $ python -m tools.grading.cli results.jsonl
-output-normalization precheck (Work Packet sec.1 p4, sec.11, sec.12)
+output-normalization precheck
   rows                 : 1
   match                : 1
   mismatch             : 0

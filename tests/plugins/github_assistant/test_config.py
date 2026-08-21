@@ -29,12 +29,12 @@ def test_from_mapping_full():
     cfg = from_mapping({
         "enabled": True,
         "allow_writes": True,
-        "allowed_repositories": ["echerd27-design/hermes-agent", "octo/cat"],
+        "allowed_repositories": ["NousResearch/hermes-agent", "octo/cat"],
     })
     assert cfg.enabled is True
     assert cfg.allow_writes is True
     assert cfg.allowed_repositories == (
-        "echerd27-design/hermes-agent",
+        "NousResearch/hermes-agent",
         "octo/cat",
     )
 
@@ -59,7 +59,7 @@ def test_bad_bool_raises():
 
 def test_allowed_repositories_must_be_a_list():
     with pytest.raises(ConfigError):
-        from_mapping({"allowed_repositories": "echerd27-design/hermes-agent"})
+        from_mapping({"allowed_repositories": "NousResearch/hermes-agent"})
 
 
 def test_allowed_repositories_entry_must_be_owner_slash_name():
@@ -96,7 +96,7 @@ def test_is_repo_allowed_populated_means_deny_by_default():
 @pytest.mark.parametrize(
     "owner,name",
     [
-        ("echerd27-design", "hermes-agent"),
+        ("NousResearch", "hermes-agent"),
         ("oct", "cat-1"),
         ("a.b", "c_d"),
     ],

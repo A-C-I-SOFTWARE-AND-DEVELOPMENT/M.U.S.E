@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Unit, scale, currency and boolean tables for the pre-grading normalizer.
 
-Work Packet §1 p4, §11, §12.
 
 These tables are deliberately conservative.  A token only appears here when its
 meaning is unambiguous in the context "a benchmark answer field".  Tokens whose
