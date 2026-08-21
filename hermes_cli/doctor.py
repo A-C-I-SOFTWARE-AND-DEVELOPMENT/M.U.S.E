@@ -920,9 +920,9 @@ def _build_apikey_providers_list() -> list:
     Base list augmented with any ProviderProfile with auth_type="api_key" not
     already present — adding plugins/model-providers/<name>/ is sufficient to get into doctor.
     """
-    _static = [
+    _static: list[tuple] = [
         ("Z.AI / GLM",      ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"), "https://api.z.ai/api/paas/v4/models", "GLM_BASE_URL", True),
-        ("Kimi / Moonshot",  ("KIMI_API_KEY",),                              "https://api.moonshot.ai/v1/models",   "KIMI_BASE_URL", True),
+        ("Kimi / Moonshot",  ("KIMI_API_KEY", "KIMI_CODING_API_KEY", "MOONSHOT_API_KEY"), "https://api.moonshot.ai/v1/models", "KIMI_BASE_URL", True),
         ("StepFun Step Plan", ("STEPFUN_API_KEY",),                          "https://api.stepfun.ai/step_plan/v1/models", "STEPFUN_BASE_URL", True),
         ("Kimi / Moonshot (China)", ("KIMI_CN_API_KEY",),                    "https://api.moonshot.cn/v1/models",   None, True),
         ("Arcee AI",         ("ARCEEAI_API_KEY",),                           "https://api.arcee.ai/api/v1/models",  "ARCEE_BASE_URL", True),
@@ -1304,7 +1304,7 @@ def run_doctor(args):
                 )
                 known_providers = set(PROVIDER_REGISTRY.keys()) | {"openrouter", "custom", "auto", "moa"}
             except Exception:
-                _resolve_auth_provider = None
+                _resolve_auth_provider = None  # ty: ignore[invalid-assignment]
                 pass
             try:
                 from hermes_cli.config import get_compatible_custom_providers as _compatible_custom_providers
@@ -1314,10 +1314,10 @@ def run_doctor(args):
                     resolve_provider_full as _resolve_provider_full,
                 )
             except Exception:
-                _compatible_custom_providers = None
-                _custom_provider_aliases = None
-                _normalize_catalog_provider = None
-                _resolve_provider_full = None
+                _compatible_custom_providers = None  # ty: ignore[invalid-assignment]
+                _custom_provider_aliases = None  # ty: ignore[invalid-assignment]
+                _normalize_catalog_provider = None  # ty: ignore[invalid-assignment]
+                _resolve_provider_full = None  # ty: ignore[invalid-assignment]
 
             custom_providers = []
             if _compatible_custom_providers is not None:
@@ -1790,13 +1790,10 @@ def run_doctor(args):
     else:
         check_warn(f"{_DHH}/SOUL.md not found", "(create it to give Hermes a custom personality)")
         if should_fix:
+            from hermes_cli.default_soul import DEFAULT_SOUL_MD
+
             soul_path.parent.mkdir(parents=True, exist_ok=True)
-            soul_path.write_text(
-                "# Hermes Agent Persona\n\n"
-                "<!-- Edit this file to customize how Hermes communicates. -->\n\n"
-                "You are Hermes, a helpful AI assistant.\n",
-                encoding="utf-8",
-            )
+            soul_path.write_text(DEFAULT_SOUL_MD, encoding="utf-8")
             check_ok(f"Created {_DHH}/SOUL.md with basic template")
             fixed_count += 1
     
@@ -2635,10 +2632,33 @@ def run_doctor(args):
             if base_url_host_matches(base, "api.kimi.com") and base.rstrip("/").endswith("/coding"):
                 base = base.rstrip("/") + "/v1"
             url = (base.rstrip("/") + "/models") if base else default_url
+            # Profiles with no base_url and no models_url (azure-foundry today)
+            # yield url=None; httpx.get(None) raises TypeError, which the outer
+            # except turns into a garbled warning row. Give an actionable hint.
+            if not url:
+                hint = (
+                    f"Set {base_env} to your endpoint, then re-run doctor."
+                    if base_env else
+                    f"{pname}: no health-check URL configured."
+                )
+                return _ConnectivityResult(
+                    pname,
+                    [(color("⚠", Colors.YELLOW), label,
+                      color("(missing base URL for health check)", Colors.DIM))],
+                    [hint],
+                )
             headers = {
                 "Authorization": f"Bearer {key}",
                 "User-Agent": _HERMES_USER_AGENT,
             }
+            # Azure Foundry / Azure OpenAI authenticate with the ``api-key``
+            # header, not Bearer. Mirror azure_detect._apply_auth_headers,
+            # which sends BOTH in api_key mode for broad compatibility across
+            # Azure resource types.
+            if pname == "Azure Foundry" or (
+                url and ("openai.azure.com" in url or "services.ai.azure.com" in url)
+            ):
+                headers["api-key"] = key
             if base_url_host_matches(base, "api.kimi.com"):
                 headers["User-Agent"] = "claude-code/0.1.0"
             # Google's Generative Language API (generativelanguage.googleapis.com)

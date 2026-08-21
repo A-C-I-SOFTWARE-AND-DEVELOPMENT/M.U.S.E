@@ -3259,7 +3259,7 @@ def cmd_chat(args):
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
     try:
-        cli_main(**kwargs)
+        cli_main(**kwargs)  # ty: ignore[invalid-argument-type]  # argparse Namespace -> untyped kwargs
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -10499,11 +10499,11 @@ def cmd_profile(args):
         # --text path: just write the user-authored description.
         if text_value:
             try:
-                if _profiles_mod.normalize_profile_name(name) == "default":
+                if _profiles_mod.normalize_profile_name(name) == "default":  # ty: ignore[invalid-argument-type]  # argparse arg is Any | None here
                     from hermes_constants import get_hermes_home as _hh
                     profile_dir = Path(_hh())
                 else:
-                    profile_dir = _profiles_mod.get_profile_dir(name)
+                    profile_dir = _profiles_mod.get_profile_dir(name)  # ty: ignore[invalid-argument-type]  # argparse arg is Any | None here
                 _profiles_mod.write_profile_meta(
                     profile_dir,
                     description=text_value,
@@ -10529,7 +10529,7 @@ def cmd_profile(args):
         ok_count = 0
         fail_count = 0
         for tgt in targets:
-            outcome = _pd.describe_profile(tgt, overwrite=overwrite_flag)
+            outcome = _pd.describe_profile(tgt, overwrite=overwrite_flag)  # ty: ignore[invalid-argument-type]  # argparse arg is str | Any | None
             if outcome.ok:
                 ok_count += 1
                 print(f"Described '{outcome.profile_name}': {outcome.description}")
@@ -11526,11 +11526,11 @@ def cmd_completion(args, parser=None):
 
     shell = getattr(args, "shell", "bash")
     if shell == "zsh":
-        print(generate_zsh(parser))
+        print(generate_zsh(parser))  # ty: ignore[invalid-argument-type]  # parser param defaults to None
     elif shell == "fish":
-        print(generate_fish(parser))
+        print(generate_fish(parser))  # ty: ignore[invalid-argument-type]  # parser param defaults to None
     else:
-        print(generate_bash(parser))
+        print(generate_bash(parser))  # ty: ignore[invalid-argument-type]  # parser param defaults to None
 
 
 def cmd_prompt_size(args):
@@ -11773,7 +11773,7 @@ def _prepare_agent_startup(args) -> None:
     _sub_attr, _sub_set = _AGENT_SUBCOMMANDS.get(args.command, (None, None))
     if not (
         args.command in _AGENT_COMMANDS
-        or (_sub_attr and getattr(args, _sub_attr, None) in _sub_set)
+        or (_sub_attr and getattr(args, _sub_attr, None) in _sub_set)  # ty: ignore[unsupported-operator]  # _sub_set is None only when _sub_attr is None
     ):
         return
 

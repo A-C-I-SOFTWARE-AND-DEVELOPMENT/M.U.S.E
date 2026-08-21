@@ -223,6 +223,16 @@ def build_gateway_parser(
     # gateway setup
     gateway_subparsers.add_parser("setup", help="Configure messaging platforms")
 
+    # gateway ensure - non-interactive, idempotent "establish it and forget it"
+    gateway_subparsers.add_parser(
+        "ensure",
+        help=(
+            "Establish the gateway non-interactively and idempotently "
+            "(install+enable+start as a service, bring up the container slot, "
+            "or background run) - no prompts; safe to call from boot hooks"
+        ),
+    )
+
     # gateway migrate-legacy
     gateway_migrate_legacy = gateway_subparsers.add_parser(
         "migrate-legacy",

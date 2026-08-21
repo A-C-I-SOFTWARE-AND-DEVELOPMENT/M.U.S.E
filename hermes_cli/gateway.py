@@ -5589,7 +5589,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, fo
         try:
             import ctypes
 
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # win32-only
             # BOOL SetConsoleCtrlHandler(NULL, Add)  —  Add=TRUE means
             # "install the NULL handler", which has the documented
             # effect of ignoring Ctrl+C. Called twice for defense in
@@ -7054,6 +7054,10 @@ def gateway_setup():
                     systemd_start()
                 elif is_macos():
                     launchd_start()
+                elif is_windows():
+                    from hermes_cli import gateway_windows
+
+                    gateway_windows.start()
             except UserSystemdUnavailableError as e:
                 print_error("  Failed to start — user systemd not reachable:")
                 for line in str(e).splitlines():
@@ -7244,6 +7248,182 @@ def gateway_setup():
         print_info("No platforms configured. Run 'hermes gateway setup' when ready.")
 
     print()
+
+
+# =============================================================================
+# Ensure - non-interactive, idempotent "establish it and forget it"
+# =============================================================================
+
+def _ensure_background_gateway() -> int | None:
+    """Launch a detached background ``gateway run`` for the active profile.
+
+    The escape hatch for platforms with no service manager (Termux, bare
+    Docker without s6, WSL without systemd). Output is appended to
+    ``$HERMES_HOME/logs/gateway.log`` and the child is fully detached
+    (its own session/process group) so it survives the CLI exiting.
+
+    Returns the child PID, or ``None`` if the process could not be spawned.
+    """
+    from hermes_cli._subprocess_compat import windows_detach_popen_kwargs
+    from hermes_cli.profiles import get_active_profile_name
+
+    log_dir = get_hermes_home() / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "gateway.log"
+
+    args = _gateway_run_args_for_profile(get_active_profile_name())
+
+    log_fh = None
+    try:
+        log_fh = open(log_path, "ab")
+    except OSError:
+        log_fh = None
+    try:
+        proc = subprocess.Popen(
+            args,
+            stdin=subprocess.DEVNULL,
+            stdout=log_fh or subprocess.DEVNULL,
+            stderr=subprocess.STDOUT if log_fh else subprocess.DEVNULL,
+            **windows_detach_popen_kwargs(),
+        )
+    except OSError:
+        return None
+    finally:
+        # The child has already inherited (dup'd) the fd at exec time, so
+        # closing the parent's copy here is safe and avoids a leaked handle.
+        if log_fh is not None:
+            log_fh.close()
+    return proc.pid
+
+
+def _report_background_launch() -> int:
+    """Spawn a detached background gateway and print a friendly summary."""
+    pid = _ensure_background_gateway()
+    if pid is None:
+        print_error("✗ Failed to launch a background gateway process")
+        return 1
+    log_path = get_hermes_home() / "logs" / "gateway.log"
+    print_success(f"✓ Gateway launched in the background (pid {pid})")
+    print_info(f"  Logs: {log_path}")
+    print_info("  Stop it with: hermes gateway stop")
+    return 0
+
+
+def _ensure_via_s6_or_background() -> int:
+    """Container path: bring up the s6 gateway slot, else a background run.
+
+    Inside an s6-overlay container the per-profile gateway slot is
+    pre-registered at boot, so all "establish" has to do is bring the slot
+    up. On plain Docker (no s6) there is no supervisor, so fall back to a
+    detached background run.
+    """
+    try:
+        from hermes_cli.service_manager import (
+            S6Error,
+            detect_service_manager,
+            get_service_manager,
+        )
+    except Exception:  # noqa: BLE001 - service_manager import is best-effort
+        return _report_background_launch()
+
+    if detect_service_manager() == "s6":
+        # Slot naming must match _dispatch_via_service_manager_if_s6().
+        slot = f"gateway-{_profile_suffix() or 'default'}"
+        try:
+            sm = get_service_manager()
+            if sm.is_running(slot):
+                print_success(f"✓ Gateway slot {slot!r} already up - nothing to do")
+                return 0
+            sm.start(slot)
+            print_success(f"✓ Started gateway slot {slot!r} via s6")
+            return 0
+        except S6Error as exc:
+            print_warning(f"  s6 start failed ({exc}); falling back to a background run")
+        except Exception as exc:  # noqa: BLE001 - any s6 fault -> background fallback
+            print_warning(f"  s6 dispatch unavailable ({exc}); falling back to a background run")
+
+    return _report_background_launch()
+
+
+def gateway_ensure() -> int:
+    """Idempotently establish the gateway so it never has to be set up by hand.
+
+    Run once and forget. If a gateway is already running for the active
+    profile this is a no-op; otherwise it picks the right "establish" path
+    for the platform - with **no** start/boot prompts:
+
+    * **systemd / launchd / Windows** - install + enable + start the
+      service, so the gateway also comes back automatically on every reboot.
+    * **s6 container** - bring up the pre-registered per-profile slot.
+    * **Termux / bare Docker / WSL-without-systemd** - launch a detached
+      background ``gateway run`` (logged to ``$HERMES_HOME/logs/gateway.log``).
+
+    This is the non-interactive counterpart to ``gateway install`` +
+    ``gateway start`` and is safe to call from automation or boot hooks.
+    Returns a process exit code (``0`` = established or already running).
+    """
+    if is_managed():
+        managed_error("establish gateway (managed by NixOS)")
+        return 0
+
+    # Idempotent short-circuit: a gateway is already running for this profile.
+    try:
+        running = find_gateway_pids()
+    except Exception:  # noqa: BLE001 - a probe failure must not block establish
+        running = []
+    if running:
+        print_success(f"✓ Gateway already running (pid {running[0]}) - nothing to do")
+        return 0
+
+    if is_termux():
+        print_info("Termux has no service manager - establishing a background gateway.")
+        return _report_background_launch()
+
+    if is_container():
+        return _ensure_via_s6_or_background()
+
+    if supports_systemd_services():
+        if is_wsl():
+            print_warning("WSL detected - systemd services may not survive WSL restarts.")
+        try:
+            systemd_install(
+                force=False, system=False, enable_on_startup=True, non_interactive=True,
+            )
+            systemd_start(system=False)
+            print_success(
+                "✓ Gateway established as a systemd user service (auto-starts on login)."
+            )
+            return 0
+        except UserSystemdUnavailableError as exc:
+            print_warning("  systemd user session unreachable; falling back to a background run:")
+            for line in str(exc).splitlines():
+                print(f"  {line}")
+            return _report_background_launch()
+        except subprocess.CalledProcessError as exc:
+            print_error(f"  systemd install/start failed: {exc}")
+            return 1
+
+    if is_macos():
+        launchd_install(force=False)
+        launchd_start()
+        print_success("✓ Gateway established as a launchd service (auto-starts on login).")
+        return 0
+
+    if is_windows():
+        from hermes_cli import gateway_windows
+
+        gateway_windows.install(force=False, start_now=True, start_on_login=True)
+        print_success(
+            "✓ Gateway established as a Windows Scheduled Task (auto-starts on login)."
+        )
+        return 0
+
+    if is_wsl():
+        print_info("WSL without systemd - establishing a background gateway.")
+        return _report_background_launch()
+
+    print_info("No service manager detected - establishing a background gateway.")
+    return _report_background_launch()
 
 
 # =============================================================================
@@ -7507,6 +7687,12 @@ def _gateway_command_inner(args):
 
     if subcmd == "setup":
         gateway_setup()
+        return
+
+    if subcmd == "ensure":
+        rc = gateway_ensure()
+        if rc:
+            sys.exit(rc)
         return
 
     # Service management commands

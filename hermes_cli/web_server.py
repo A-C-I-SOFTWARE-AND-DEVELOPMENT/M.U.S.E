@@ -478,7 +478,17 @@ def _get_pty_active_session_files(app: "FastAPI") -> dict[str, Path]:
         return app.state.pty_active_session_files
 
 
-app = FastAPI(title="Hermes Agent", version=__version__, lifespan=_lifespan)
+# Swagger UI is moved off the default "/docs": the SPA owns that path
+# (web/src/App.tsx -> DocsPage, the "Documentation" sidebar entry). FastAPI
+# registers its docs route during FastAPI.__init__ -> setup(), i.e. long
+# before mount_spa()'s catch-all, so it wins the match-order race and serves
+# Swagger UI on any hard load, refresh, or deep link of /docs.
+app = FastAPI(
+    title="Hermes Agent",
+    version=__version__,
+    lifespan=_lifespan,
+    docs_url="/api-explorer",
+)
 
 
 # Memory-provider OAuth connect routes live in the memory layer, not here.

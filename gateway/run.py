@@ -3894,7 +3894,9 @@ def _drain_gateway_watch_events(completion_queue) -> "list[dict]":
 # Used by tools (e.g. send_message) that need to route through a live
 # adapter for plugin platforms.  Set in GatewayRunner.__init__().
 import weakref as _weakref
-_gateway_runner_ref: _weakref.ref = lambda: None
+# Holds either a real ``weakref.ref`` or the initial ``lambda: None``
+# placeholder — both are zero-arg callables returning the runner or None.
+_gateway_runner_ref: "Callable[[], Any]" = lambda: None
 
 
 def _normalize_empty_agent_response(
@@ -4194,7 +4196,7 @@ class TurnRunner:
         self._runner = runner
         self._ctx = ctx
 
-    def progress_callback(self, event_type: str, tool_name: str = None, preview: str = None, args: dict = None, **kwargs):
+    def progress_callback(self, event_type: str, tool_name: Optional[str] = None, preview: Optional[str] = None, args: Optional[dict] = None, **kwargs):
         """Callback invoked by agent on tool lifecycle events."""
         ctx = self._ctx
         # Live status line (Slack's assistant status): stash the current
@@ -27453,7 +27455,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         history: List[Dict[str, Any]],
         source: "SessionSource",
         session_id: str,
-        session_key: str = None,
+        session_key: Optional[str] = None,
         run_generation: Optional[int] = None,
         event_message_id: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -27738,7 +27740,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         history: List[Dict[str, Any]],
         source: SessionSource,
         session_id: str,
-        session_key: str = None,
+        session_key: Optional[str] = None,
         run_generation: Optional[int] = None,
         _interrupt_depth: int = 0,
         event_message_id: Optional[str] = None,
@@ -27914,7 +27916,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         history: List[Dict[str, Any]],
         source: SessionSource,
         session_id: str,
-        session_key: str = None,
+        session_key: Optional[str] = None,
         run_generation: Optional[int] = None,
         _interrupt_depth: int = 0,
         event_message_id: Optional[str] = None,

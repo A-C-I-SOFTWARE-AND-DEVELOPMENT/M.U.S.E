@@ -1782,7 +1782,7 @@ def _resolve_worktree_base(
     return "HEAD", "HEAD (local — could not reach remote)"
 
 
-def _setup_worktree(repo_root: str = None, sync_base: bool = True,
+def _setup_worktree(repo_root: Optional[str] = None, sync_base: bool = True,
                     name: Optional[str] = None) -> Optional[Dict[str, str]]:
     """Create an isolated git worktree for this CLI session.
 
@@ -2422,7 +2422,7 @@ def _worktree_lock_is_live(repo_root: str, worktree_path: str, timeout: int = 10
     return None
 
 
-def _cleanup_worktree(info: Dict[str, str] = None) -> None:
+def _cleanup_worktree(info: Optional[Dict[str, str]] = None) -> None:
     """Remove a worktree and its branch on exit.
 
     Preserves the worktree only if it has unpushed commits (real work
@@ -4856,7 +4856,7 @@ def _parse_skills_argument(skills: str | list[str] | tuple[str, ...] | None) -> 
     return parsed
 
 
-def save_config_value(key_path: str, value: any) -> bool:
+def save_config_value(key_path: str, value: Any) -> bool:
     """
     Save a value to the active config file at the specified key path.
     
@@ -4977,17 +4977,17 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
     
     def __init__(
         self,
-        model: str = None,
-        toolsets: List[str] = None,
-        provider: str = None,
-        reasoning: str = None,
-        api_key: str = None,
-        base_url: str = None,
-        max_turns: int = None,
-        run_budget: float = None,
+        model: Optional[str] = None,
+        toolsets: Optional[List[str]] = None,
+        provider: Optional[str] = None,
+        reasoning: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_turns: Optional[int] = None,
+        run_budget: Optional[float] = None,
         verbose: Optional[bool] = None,
         compact: bool = False,
-        resume: str = None,
+        resume: Optional[str] = None,
         checkpoints: bool = False,
         pass_session_id: bool = False,
         ignore_rules: bool = False,
@@ -5347,7 +5347,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         _or_cfg = CLI_CONFIG.get("openrouter", {}) or {}
         _raw_score = _or_cfg.get("min_coding_score")
         self._openrouter_min_coding_score: Optional[float] = None
-        if _raw_score not in {None, ""}:
+        if _raw_score is not None and _raw_score != "":
             try:
                 _f = float(_raw_score)
                 if 0.0 <= _f <= 1.0:
@@ -6434,7 +6434,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         try:
             from prompt_toolkit.utils import get_cwidth
         except Exception:
-            get_cwidth = None
+            get_cwidth = None  # ty: ignore[invalid-assignment]
 
         if cls._status_bar_display_width(text) <= max_width:
             return text
@@ -10992,7 +10992,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                     current_base_url=self.base_url or "",
                     current_api_key=self.api_key or "",
                     is_global=persist_global,
-                    explicit_provider=provider_data.get("slug"),
+                    explicit_provider=provider_data.get("slug") or "",
                     user_providers=state.get("user_provs"),
                     custom_providers=state.get("custom_provs"),
                 )
@@ -11078,14 +11078,16 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         # clobber disk config.
         from hermes_cli.inventory import build_models_payload, load_picker_context
 
+        inventory_error: Optional[str] = None
         try:
             ctx = load_picker_context().with_overrides(
                 current_provider=self.provider or "",
                 current_model=self.model or "",
                 current_base_url=self.base_url or "",
             )
-        except Exception:
+        except Exception as exc:
             ctx = None
+            inventory_error = str(exc) or type(exc).__name__
 
         # switch_model() + _open_model_picker still need the raw provider
         # dicts; ConfigContext is the canonical source for both.
@@ -11097,19 +11099,24 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             model_display = self.model or "unknown"
             provider_display = get_label(self.provider) if self.provider else "unknown"
 
-            try:
-                if ctx is None:
-                    raise RuntimeError("inventory context unavailable")
-                providers = build_models_payload(
-                    ctx,
-                    probe_custom_providers=force_refresh,
-                    probe_current_custom_provider=not force_refresh,
-                )["providers"]
-            except Exception:
-                providers = []
+            providers = []
+            if ctx is not None:
+                try:
+                    providers = build_models_payload(
+                        ctx,
+                        probe_custom_providers=force_refresh,
+                        probe_current_custom_provider=not force_refresh,
+                    )["providers"]
+                except Exception as exc:
+                    inventory_error = str(exc) or type(exc).__name__
 
             if not providers:
-                _cprint("  No authenticated providers found.")
+                if inventory_error:
+                    _cprint(f"  ✗ Could not load the model inventory: {inventory_error}")
+                    _cprint("    Run `hermes doctor` to diagnose provider configuration.")
+                else:
+                    _cprint("  No authenticated providers found.")
+                    _cprint("    Run `hermes setup` or `hermes model` to configure a provider.")
                 _cprint("")
                 _cprint("  /model <name>                        switch model (persists)")
                 _cprint("  /model <name> --once                 switch for the next turn only")
@@ -13972,7 +13979,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
     # Tool progress callback (audio cues for voice mode)
     # ====================================================================
 
-    def _on_tool_progress(self, event_type: str, function_name: str = None, preview: str = None, function_args: dict = None, **kwargs):
+    def _on_tool_progress(self, event_type: str, function_name: Optional[str] = None, preview: Optional[str] = None, function_args: Optional[dict] = None, **kwargs):
         """Called on tool lifecycle events (tool.started, tool.completed, reasoning.available, etc.).
 
         Updates the TUI spinner widget so the user can see what the agent
@@ -15864,7 +15871,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             except Exception:
                 pass
 
-    def chat(self, message, images: list = None, voice_input: bool = False) -> Optional[str]:
+    def chat(self, message, images: Optional[list] = None, voice_input: bool = False) -> Optional[str]:
         """
         Send a message to the agent and get a response.
         
@@ -16181,7 +16188,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 except Exception:
                     reset_current_session_key = None  # type: ignore[assignment]
                     _approval_session_token = None
-                agent_message = _voice_prefix + message if _voice_prefix else message
+                agent_message = _voice_prefix + message if _voice_prefix else message  # ty: ignore[unsupported-operator]  # voice turns are always str
                 # Prepend pending notes via _prepend_note_to_message, which
                 # handles both plain-string and multimodal content-parts list
                 # messages. Naive ``note + "\n\n" + agent_message`` crashed with
@@ -19775,8 +19782,8 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                         size, previous_width,
                     )
 
-                _pt_renderer._output_screen_diff = _patched_output_screen_diff
-                _pt_renderer._hermes_osd_patched = True
+                _pt_renderer._output_screen_diff = _patched_output_screen_diff  # ty: ignore[invalid-assignment]
+                _pt_renderer._hermes_osd_patched = True  # ty: ignore[unresolved-attribute]
         except Exception:
             pass
 
@@ -20511,25 +20518,25 @@ def _run_kanban_goal_loop_q(cli: "HermesCLI", first_response: str) -> None:
 
 
 def main(
-    query: str = None,
-    q: str = None,
-    image: str = None,
-    toolsets: str = None,
-    skills: str | list[str] | tuple[str, ...] = None,
-    model: str = None,
-    provider: str = None,
-    reasoning: str = None,
-    api_key: str = None,
-    base_url: str = None,
-    max_turns: int = None,
-    run_budget: float = None,
+    query: Optional[str] = None,
+    q: Optional[str] = None,
+    image: Optional[str] = None,
+    toolsets: Optional[str] = None,
+    skills: str | list[str] | tuple[str, ...] | None = None,
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    reasoning: Optional[str] = None,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    max_turns: Optional[int] = None,
+    run_budget: Optional[float] = None,
     verbose: Optional[bool] = None,
     quiet: bool = False,
     compact: bool = False,
     list_tools: bool = False,
     list_toolsets: bool = False,
     gateway: bool = False,
-    resume: str = None,
+    resume: Optional[str] = None,
     worktree: bool = False,
     w: bool = False,
     checkpoints: bool = False,

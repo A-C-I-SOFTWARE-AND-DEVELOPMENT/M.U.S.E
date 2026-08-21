@@ -194,12 +194,14 @@ def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     print_info("  hermes config set model.base_url http://localhost:8080/v1")
     print_info("  hermes config set model.default your-model-name")
     print()
-    print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
+    print_info(
+        "Or set OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY in your environment."
+    )
     print_info("Run 'hermes setup' in an interactive terminal to use the full wizard.")
     print()
 
 
-def prompt(question: str, default: str = None, password: bool = False) -> str:
+def prompt(question: str, default: Optional[str] = None, password: bool = False) -> str:
     """Prompt for input with optional default."""
     if default:
         display = f"{question} [{default}]: "
@@ -338,7 +340,7 @@ def prompt_yes_no(question: str, default: bool = True) -> bool:
         print_error("Please enter 'y' or 'n'")
 
 
-def prompt_checklist(title: str, items: list, pre_selected: list = None) -> list:
+def prompt_checklist(title: str, items: list, pre_selected: Optional[list] = None) -> list:
     """
     Display a multi-select checklist and return the indices of selected items.
 

@@ -563,8 +563,10 @@ def _resolve_config_gates() -> set[str]:
         return set()
     result: set[str] = set()
     for cmd in gated:
+        gate = cmd.gateway_config_gate
+        assert gate is not None  # `gated` is filtered to truthy gates above
         val: Any = cfg
-        for key in cmd.gateway_config_gate.split("."):
+        for key in gate.split("."):
             if isinstance(val, dict):
                 val = val.get(key)
             else:
@@ -943,7 +945,7 @@ def _collect_gateway_skill_entries(
     all_entries: list[tuple[str, str, str]] = []
 
     # --- Tier 1: Plugin slash commands (never trimmed) ---------------------
-    plugin_pairs: list[tuple[str, str]] = []
+    plugin_pairs: list[tuple[str, ...]] = []
     try:
         from hermes_cli.plugins import get_plugin_commands
         plugin_cmds = get_plugin_commands()
@@ -972,7 +974,7 @@ def _collect_gateway_skill_entries(
     except Exception:
         pass
 
-    skill_triples: list[tuple[str, str, str]] = []
+    skill_triples: list[tuple[str, ...]] = []
     try:
         from agent.skill_commands import get_skill_commands
         from tools.skills_tool import SKILLS_DIR
