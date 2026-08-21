@@ -137,6 +137,10 @@ ALLOWLIST: dict[str, str] = {
     # HERMES_* replacement, so it must be allowed to spell them.
     "hermes_cli/env_compat.py":
         "legacy env shim; its table must spell every legacy MUSE_ name",
+    # The shim's test, for the same reason: it exercises the mechanism with
+    # legacy names, so it must be free to spell them.
+    "tests/hermes_cli/test_env_compat.py":
+        "exercises the legacy env shim; must spell legacy MUSE_ names",
     # This file. Markers, samples and negative controls are literal fork
     # branding by construction; without this entry the guard fails on itself.
     "tests/test_no_fork_branding.py":
@@ -218,11 +222,33 @@ MARKERS: tuple[Marker, ...] = (
         "the de-branded module name is hermes_cli.prime",
     ),
     Marker(
-        "fork owner handle",
+        "fork owner identity",
         (b"echer",),
-        re.compile(r"echerd27", re.IGNORECASE),
+        # Widened from the bare "echerd27" handle to the surname stem, which
+        # covers the handle, the "echerd27-design" org AND the fork owner's
+        # legal name. The name is baked into a system prompt in the fork
+        # (jarvis_prime/system_contract.py: "<Name>'s local-first AI operating
+        # partner") and was matched by nothing -- a private individual's real
+        # name reaching an upstream PR is worse than shipping late.
+        # Deliberately no trailing \b: "echerd" is followed by a word
+        # character in "echerd27", so a closing boundary would not hold.
+        re.compile(r"\becherd", re.IGNORECASE),
         '- "echerd27-design/hermes-agent"',
-        "use NousResearch/hermes-agent or a neutral placeholder (octo/cat)",
+        "use NousResearch/hermes-agent, or a neutral placeholder (octo/cat)",
+    ),
+    Marker(
+        "fork owner org (android/java package + signing identity)",
+        (b"aci",),
+        # The fork's Android applicationId is com.aci.hermes and its signing
+        # identity is A-C-I-SOFTWARE-AND-DEVELOPMENT -- 2,286 references across
+        # apps/android. The written plan asserted the id was "com.muse.*", so a
+        # rename keyed on "muse" would have reported success while shipping all
+        # of them. Anchored to the package/identity shapes so it cannot fire on
+        # the English word, on "aci" inside another word, or on ACI as an
+        # unrelated acronym.
+        re.compile(r"\bcom\.aci\b|A-C-I-SOFTWARE", re.IGNORECASE),
+        'applicationId = "com.aci.hermes"',
+        "use the upstream package namespace, not the fork org's",
     ),
     Marker(
         "MuseHQ org",
@@ -367,6 +393,10 @@ UPSTREAM_LEGITIMATE: tuple[tuple[str, str], ...] = (
     ("#: Meta Model API (Muse): minimal..xhigh; rejects ``none``.",
      "bare title-case Muse as the Meta family shorthand"),
     ("The Louvre museum is in", "'museum' substring"),
+    ("from lecher import x", "'echer' inside another word must not match"),
+    ("cache.evict(pacific=True)", "'aci' inside another word must not match"),
+    ("ACI_TIMEOUT = 30", "a bare ACI acronym is not the fork org"),
+    ("veracity checks", "'aci' inside 'veracity'"),
     ("SQLITE_STATUS_MEMUSED", "MEMUSED substring in vendored sqlite3.h"),
     ("randomuser2026x@proton.me", "'randomuser' substring"),
     ("class SpectrumUser(TypedDict):", "'SpectrumUser' substring"),

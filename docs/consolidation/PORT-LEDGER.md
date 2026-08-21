@@ -74,7 +74,7 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T5 | `pr/fix-*` | **done** | 4 of 5 landed; 1 rejected as dead code. See below |
 | T6 | `port/repair-damaged-deltas` | **done** | The 13 damaged files. **Only core-edit tranche**. See below |
 | T7 | `port/branding-seam` | **done** | Branding gate live and green. See below |
-| T8–T18 | see `PLAN.md` | planned | Feature tranches |
+| T8–T18 | see below | **scoped** | Measured against upstream. Most of the plan is dropped; ~200 files genuinely deliverable. See below |
 
 ## T6 — repair damaged deltas (done)
 
@@ -234,6 +234,143 @@ in `_DEPRECATED_ENV_VARS` in `doctor.py`. Never regex-rename across the tree.
 
 From here the **fast gate gains `tests/test_no_fork_branding.py`**, so no later tranche can
 re-introduce fork branding silently.
+
+## T8-T18 — measured, and mostly not what the plan said (scoping done)
+
+Every remaining tranche was scoped against what upstream **actually ships**, because the
+plan's estimates had already been materially wrong three times. They were wrong at least
+five more times. The measurements below supersede `PLAN.md` wherever the two disagree.
+
+### Two systemic traps that invalidate directory-level planning
+
+**1. The CRLF trap.** The fork checkout is CRLF, upstream is LF, so a raw `diff` reports
+every file as 100% changed and inflates volume roughly **60x**. `web/` reads as 159 files /
+105,822 lines; normalized it is **37 files / 1,656 lines**.
+
+> **Rule:** never size a delta from a raw diff against `refs/muse-tip`. Normalize first:
+> `diff -u <(tr -d '\r' < A) <(tr -d '\r' < B)`.
+>
+> Every T0-T7 estimate taken from a raw diff should be treated as suspect.
+
+**2. Upstream is AHEAD of the fork in places, so a "port" is a revert.** Confirmed for
+`agent/moa_loop.py`, `agent/moa_trace.py`, `kanban_db.py`, `kanban.py` and `web/`.
+
+### Already upstream — do not port these, porting them DELETES shipped fixes
+
+| File | Status |
+|---|---|
+| `hermes_cli/moa_cmd.py`, `hermes_cli/moa_config.py` | **byte-identical** to upstream |
+| `hermes_cli/kanban_swarm.py` | **byte-identical** to upstream |
+| `agent/moa_trace.py` | upstream is ahead: it has `slot_metrics(acct, label, output=)`; the fork does not |
+| `agent/moa_loop.py` | upstream is ahead by 183 lines: the `cache_ttl` threading that fixes the advisor prompt-cache 1h→5m regression (**#84733**), plus `_last_reference_metrics` on both MoAClient layers |
+
+Copying the fork's `moa_loop.py` or `moa_trace.py` over upstream's would delete a shipped
+bug fix and the observability hooks. Upstream also ships a far deeper MoA subsystem than the
+plan assumed — `provider=moa` is a first-class provider wired into `cli.py`, `gateway/run.py`
+(6 sites), `run_agent.py`, `conversation_loop.py`, `auxiliary_client.py` and `acp_adapter/`.
+
+### The seam gap — the one genuine design problem left, and it needs a decision
+
+The plan asserts a plugin router seam: *"a plugin `plugin_api.py` router — never a
+`web_server.py` edit."* **It does not exist.** All 14 `include_router` calls are hand-written
+lines in `hermes_cli/web_server.py`; `web_routers/` is a code-organization split with no
+discovery mechanism. The only auto-mounting path, `_mount_plugin_api_routes()`, hard-codes
+`prefix=f"/api/plugins/{name}"` — so it is available but it **moves the URLs**.
+
+The same gap exists for the TUI: upstream has **no** extension point for gateway method
+families or TUI overlays. `sessions`, `skillsHub`, `pluginsHub` and `petPicker` are each
+hand-edited entries in the same hardcoded tuples.
+
+This blocks T10 (Rooms) and both web APIs. Since T6 closed core edits, the honest options are
+a sanctioned **T-SEAM** tranche that builds the extension points properly, or 19 quiet core
+edits. **This needs a decision from someone with authority; it is not a detail to absorb.**
+
+### Corrections to specific claims in the plan
+
+| Plan said | Measured reality |
+|---|---|
+| `gateway/cockpit/room_store.py` is a rooms dependency to extract | It is **AI room-decor assets**, unrelated to `rooms_db` — the fork's own docstring says so |
+| `ctx.register_platform()` is the cockpit's HTTP seam | It registers a chat `BasePlatformAdapter`, **not an HTTP surface** |
+| T11 is "most likely to touch `cli.py`/`main.py`" | T11 is the **best-served** tranche: upstream ships an injectable `dispatch_once(spawn_fn=)` at `kanban_db.py:9811` and four live kanban worker-lifecycle hooks |
+| T17's Android id is `com.muse.*` | It is **`com.aci.hermes`**. A rename keyed on "muse" would have reported success while shipping 2,286 references to the fork owner's org |
+| T16 `apps/nexus` is a 175-file tranche | **Byte-subsumed by T15**: 57 identical, 34 older, 0 unique. Scoping both would put two copies of the same SPA in the tree |
+
+### Branding gate hardened (T-LEDGER)
+
+Three markers were missing and are now added:
+
+- **fork owner identity** — widened from the `echerd27` handle to the surname stem, which also
+  catches the owner's **legal name**. That name is baked into a system prompt in the fork
+  (`jarvis_prime/system_contract.py`) and was matched by nothing. A private individual's real
+  name reaching an upstream PR is worse than shipping late.
+- **`com.aci` / `A-C-I-SOFTWARE`** — the fork's Android package and signing identity, 2,286
+  references, previously matched by nothing on any list.
+- Four new negative controls (`lecher`, `pacific`, `veracity`, bare `ACI_`) so the widened
+  markers are proven not to over-fire.
+
+Also fixed: `tests/hermes_cli/test_env_compat.py` was allowlisted. **T7 merged with a latent
+guard failure** — the guard scans git-*tracked* files, and it was validated before the new
+T7 files were tracked, so its own shim test went unscanned. Validate the guard *after*
+`git add`, not before.
+
+### The governing rule for everything that remains
+
+> **Nothing lands without a live caller in this repo, in the same commit.**
+
+The recurring danger is not effort, it is dead-on-arrival code. The fusion leaves,
+`fusion_router`, `agent/studio`, `axiom`, `second_brain`, the orphaned web pages and the
+entire Android app all share the property that their consumers live in tranches that are
+dropped or unscoped. This is the `conversation_loop.py` trap from T5, repeated at scale.
+
+### Additional deliberate drops
+
+Beyond those already recorded. Each was measured, not assumed.
+
+| Dropped | Why |
+|---|---|
+| **T13 cockpit, in full** (27 py / 15,117 lines + 46 static, plus `deploy/cockpit-https/`, `docs/android/`, 53 test files) | Product surface (a PWA), double-blocked on `jarvis_prime` and on the router seam that does not exist |
+| **T16 `apps/nexus`, in full** | Byte-subsumed by T15. Salvage at most the vite config |
+| **T17 `apps/android`** (458 files, 59k lines) | Well-engineered, but a thin client for two unported server bodies; its own KDoc cites `jarvis_prime/research_vault.py`. Ported as scoped it compiles, installs, and reaches nothing |
+| `hermes_cli/orchestrator_*.py` (9), `job_*.py` (5), `worker_lease*.py` + `lease_scheduler.py` | A **second, weaker scheduler** duplicating upstream `kanban_db`'s claim/heartbeat/release_stale |
+| `hermes_cli/{release_gate,release_readiness_doctor,sync_releases}.py` | Release-engineering product surface; `sync_releases` dispatches the fork's own GitHub Actions |
+| `hermes_cli/web_moa_api.py`, `web_fusion_api.py` (490 lines) | No legal seam, and their only consumers are dashboard product surface |
+| `jarvis_prime/federation/` (11 files) and `forge/` minus `glicko2.py` | Every docstring cites a fork-private volume; a constitution amendment engine and sovereignty index |
+| `jarvis_prime` persona layer (~1,800 lines) | **Hardcodes a named private individual** as the agent's operating partner |
+| `jarvis_prime/niches/specs/` (137 YAML) | Machine-generated 20-line templates encoding the fork's consumer verticals |
+| 233 AOS recovery stubs + `registry/ docs/ migration/ archive/` | 87% name skills this repo already ships; 79 point at the already-dropped `recovered-agent-sources/` |
+| `skills/mlops/local-role-loras` | Windows-only; hardcodes the operator's private `localhost:8888` and machine paths |
+| `enterprise/` (13), `axiom/` (50), `second_brain/` (30), `templates/` (8), `design-system/` (8) | Zero non-test callers in this repo — the `conversation_loop.py` trap verbatim |
+| `apps/synapse-ue` (92) | The fork's own README stages it for migration to a private standalone repo; UE 5.6 C++ |
+| The fork's `web/` wholesale | A **regression**: 15 files exist only upstream and upstream's `plugins/registry.ts` is a strict superset |
+
+### Licensing risk carried forward
+
+`jarvis_prime/research_fabric/` ships **two vendored third-party trees**
+(`autoresearch/vendor/`, `llm_jepa/vendor/`, each with its own `VENDOR.md` and
+`checksums.json`), already carved out of the fork's own lint and packaging config. They are
+not the fork's to relicense. Same class as the `tools/tokenjuice/rules/` notice requirement
+(R9) — no upstream PR may carry them without the notice infrastructure.
+
+### Remaining work, sized honestly
+
+The plan describes 2,000+ files. After measurement the genuinely deliverable capability is
+**roughly 200 files / 25,000-30,000 lines**, and the tractable orders are **8-12 weeks** of
+focused work. Everything else is already upstream, dead in the fork, product surface, or
+blocked on a seam that does not exist.
+
+| Order | Tranche | Effort | What lands |
+|---|---|---|---|
+| 1 | **T-LEDGER** | done | These corrections + the hardened gate |
+| 2 | T9a fusion leaves | 1-2 d | 1,528 lines pure-stdlib + 784 lines of tests. **Only with a live caller** |
+| 3 | T18a web UX subset | 2-3 d | Backend-free components riding APIs upstream already serves |
+| 4 | T8a `mixture_of_agents_tool` | ~2 wk rebased | Model-invocable fan-out tool. **Rebase onto upstream MoA**; as-is it is OpenRouter-hardwired with 4 hardcoded slugs |
+| 5 | T14a AOS skills | 3-4 d | ~89 authored files of 354. **Three quarters of the work is deletion** |
+| 6 | T12a prime navigation + graphrag | 1.5-2 wk | ~26 files / 4,900 lines — the two genuinely excellent nuggets in a 66k-line package |
+| 7 | T11a orchestration | 3-4 wk | 55 files / 15,544 lines on three verified seams |
+| 8 | **T-SEAM** | 1 wk | TUI/router extension points. **Decision required before any code** |
+| 9 | T10 rooms | 1 wk | Gated on order 8. A redesign, not a copy |
+| 10 | T12b prime NL→IR | 1 wk | Optional; regenerate a generic spec set, not the fork's 137 |
+| 11 | T12c self-audit / research_fabric | — | **Defer, do not schedule.** Needs a written diff against upstream's counterparts first, plus the vendoring decision |
 
 ## T0 — guard tests (done)
 
