@@ -74,7 +74,12 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T5 | `pr/fix-*` | **done** | 4 of 5 landed; 1 rejected as dead code. See below |
 | T6 | `port/repair-damaged-deltas` | **done** | The 13 damaged files. **Only core-edit tranche**. See below |
 | T7 | `port/branding-seam` | **done** | Branding gate live and green. See below |
-| T8–T18 | see below | **scoped** | Measured against upstream. Most of the plan is dropped; ~200 files genuinely deliverable. See below |
+| T8a | `port/moatool` | **done** | MoA fan-out tool, rebased onto upstream's MoA |
+| T10 | `port/rooms` | in progress | Unblocked by T-SEAM |
+| T12a | `port/prime` | in progress | prime navigation + graphrag as a plugin |
+| T14a | `port/skills` | **done** | Enterprise council skills, 354 files to 78 |
+| T-SEAM | `port/seam` | **done** | Extension points. Unblocks T10 and future panels |
+| T9/T11/T13/T15–T18 | see below | scoped | Measured against upstream; most dropped. See below |
 
 ## T6 — repair damaged deltas (done)
 
@@ -371,6 +376,120 @@ blocked on a seam that does not exist.
 | 9 | T10 rooms | 1 wk | Gated on order 8. A redesign, not a copy |
 | 10 | T12b prime NL→IR | 1 wk | Optional; regenerate a generic spec set, not the fork's 137 |
 | 11 | T12c self-audit / research_fabric | — | **Defer, do not schedule.** Needs a written diff against upstream's counterparts first, plus the vendoring decision |
+
+## T-SEAM — extension points for method families and TUI overlays (done)
+
+The scoping pass found upstream has **no** extension point for gateway RPC method families
+or TUI overlays, and that this blocked T10 and any future panel. T6 closed core edits, so the
+choice was ~19 quiet hand-edits or building the mechanism. **Decision: build it.**
+
+| Before | After |
+|---|---|
+| `tui_gateway/server.py` named every handler family **twice** — an import tuple and a registration tuple, both inside a 19K-line file. A typo in either silently dropped a whole family of RPC methods | `tui_gateway/method_modules.py` walks `methods_*.py` with `pkgutil`. Adding `methods_rooms.py` with a `register(server)` is the entire change |
+| Adding an overlay meant **six** hand-edits that had to agree: an `OverlayState` field, a `buildOverlayState()` key, the name in **both** halves of `$isBlocked`, a name in `hasFloatingPanel()`, a name in `resetFlowOverlays()`'s preserve list, and a `widgets.push()` block | `ui-tui/src/app/overlayRegistry.ts` derives all six from one entry, and the **type system requires** the renderer, so it cannot be forgotten |
+
+Two properties the walk guarantees deliberately: **deterministic order** (sorted, never
+filesystem order — order that depends on luck is a bug waiting to be written), and **one
+broken family cannot take the gateway down** (import/register failures are logged and
+skipped; the old tuple had no containment).
+
+### Behaviour preservation was the whole risk, so it was measured
+
+| Check | Result |
+|---|---|
+| Gateway RPC method names, enumerated before and after | **167 both sides, identical sets** |
+| Python: dangling + branding guards, `tests/tui_gateway`, `tests/gateway` | 81 failed / 6451 passed vs **81 failed / 6437 passed** on pristine — identical failure sets, +14 passing |
+| `npm test --workspace ui-tui` | 10 failed / 1703 passed vs **10 failed / 1689 passed** on pristine — identical failure sets, +14 passing |
+
+> **Trap:** the TS control is meaningless until you run
+> `npm run build --workspace ui-tui/packages/hermes-ink`. Without `dist/entry-exports.js`,
+> **63 test files fail to load** and you will compare 95 passing files against 155.
+
+### Known limitation, recorded rather than hidden
+
+`ui-tui/src/app/slash/registry.ts` still hardcodes its eight command-group imports. Not
+converted deliberately: it is one flat list whose failure mode is **loud** (the command is
+simply absent), unlike the six interlocking overlay edits whose failure mode was silent. The
+bundled-TS equivalent is `import.meta.glob`, whose bundle-time resolution semantics are a
+real risk for no proportionate gain. T10 adds one line there.
+
+## T14a — enterprise council skills (done)
+
+354 source files reduced to **78**. Three quarters of this tranche was deletion.
+
+Dropped: 233 recovery stubs + 17 README indexes of them (87% named skills this repo already
+ships; 79 pointed at the already-dropped `recovered-agent-sources/`), 146KB of
+recovery-process documentation, and `operating-registry/registry.json` (runtime config for an
+unported dispatcher).
+
+**Also dropped — five files whose identity is one of the fork owner's private commercial
+products**: the "Nourish" nutrition specialist and the "HazMat Command" specialist (in both
+`agents/` and `specialists/`) plus the hazmat compliance rule. The consolidation had already
+dropped the fork's `niches/specs/` for exactly this reason. All 27 downstream references were
+**repaired, not blanket-deleted**: pointers generalized, product framing neutralized, and the
+regulatory-citation examples **kept** but made product-neutral — "cite the primary text" is a
+genuinely generic discipline worth keeping.
+
+### Two corrections to the plan, both measured
+
+1. **Depth.** All 199 upstream skills sit at `skills/<category>/<skill>/SKILL.md`. The fork
+   put this at depth 3, where `prompt_builder` derives the category as the `"general"`
+   fallback. Landed at `skills/autonomous-ai-agents/enterprise-council/`; derived category
+   verified as `autonomous-ai-agents`.
+2. **`description:` is an always-on tax.** It is injected into every turn's system prompt.
+   The fork's was **654 chars**. The repo's own enforced hardline is 60
+   (`tests/skills/test_authoring_standards.py`); measured p50 across 199 skills is 55.
+   Rewritten to **57**.
+
+## T8a — the MoA fan-out tool (done)
+
+The only portable file from T8, and it is a **rebase, not a port**. `moa_cmd.py` /
+`moa_config.py` were byte-identical already; `moa_trace.py` and `moa_loop.py` are files where
+**upstream is ahead**, so copying the fork's versions would have deleted a shipped
+prompt-cache fix. None were touched.
+
+Ported as-is the tool was hardwired to OpenRouter with four hardcoded slugs — a strict
+capability subset unable to reach a local or Anthropic model. Roughly half the fork's file
+was OpenRouter plumbing that upstream already does better, and was deleted rather than
+ported. The tool now resolves its panel through `moa_config.resolve_moa_preset` and fans out
+via `moa_loop._run_references_parallel`.
+
+**Four bugs found by adversarial review and fixed before landing:**
+
+| Bug | Why it mattered |
+|---|---|
+| Multi-round wipeout | `if not answers: return _fail(...)` fired on round 2+ as well, discarding round 1's **already-billed** fusion |
+| Silent override loss | The caller's `reference_models` was gated on `isinstance(list, tuple)`, so a bare string or dict silently ran the preset's panel instead — and models routinely emit a scalar where a schema asks for an array |
+| `MAX_REFERENCE_MODELS` vetoed the user's own config | The cap ran after the preset branch, so a 9-slot preset made the tool **permanently unusable** |
+| Dead surface | A documented `max_tokens` knob the schema never exposed |
+
+Default-off (`moa` is not in `_HERMES_CORE_TOOLS`) — deliberate, since one call bills every
+model on the panel, and adding it to the default set would be a core edit.
+
+## ⚠ Gate findings — two of our own gates were weaker than assumed
+
+**1. `ruff check` is VACUOUS for plugin code.** `pyproject.toml` sets `select = ["PLW1514"]`
+as the *only* enabled rule, and `[tool.ruff.lint.per-file-ignores]` then sets
+`"plugins/**" = ["PLW1514"]`. A green `ruff check .` therefore proves **nothing** about
+anything under `plugins/` — which includes all 18 plugins landed in T4 and the T12a plugin.
+Coverage there comes from the dangling-imports guard and registration smoke, not ruff. Do not
+cite ruff as evidence for a plugin tranche.
+
+**2. The branding guard only scans git-*tracked* files** (`git ls-files`). Validating it
+before `git add` scans none of the new files. This has now shipped **twice**: once in T7 (its
+own shim test went unscanned) and once in T14a's first pass (all 83 new files unscanned).
+Always `git add -A --intent-to-add` first.
+
+## ⚠ Working-tree discipline
+
+Two separate agent runs wrote into the **main** repo while working, despite being scoped to
+their own worktrees — once copying whole fork directories (`hermes_cli/jarvis_prime/`,
+`axiom/`, `enterprise/`, `foundry/`, `second_brain/`, `agent/fusion_*`) and once an unrelated
+bot-roster feature. Both were untracked or reverted before any commit, and nothing polluted
+history — but the first **invalidated a 27-minute control run**, because those untracked fork
+modules made `test_no_dangling_imports` fail in the control.
+
+> **Check `git status --short` in the main repo is empty before trusting any control run.**
 
 ## T0 — guard tests (done)
 
