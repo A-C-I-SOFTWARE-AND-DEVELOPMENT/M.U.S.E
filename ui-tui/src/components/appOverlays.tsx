@@ -3,9 +3,12 @@ import { useStore } from '@nanostores/react'
 import type { ReactNode } from 'react'
 
 import { useGateway } from '../app/gatewayContext.js'
-import type { AppOverlaysProps } from '../app/interfaces.js'
+import type { AppOverlaysProps, OverlayState } from '../app/interfaces.js'
+import type { FloatingOverlayId } from '../app/overlayRegistry.js'
+import { FLOATING_OVERLAY_IDS } from '../app/overlayRegistry.js'
 import { $overlayState, hasFloatingPanel, patchOverlayState } from '../app/overlayStore.js'
 import { $uiSessionId, $uiTheme } from '../app/uiStore.js'
+import type { Theme } from '../theme.js'
 
 import { ActiveSessionSwitcher } from './activeSessionSwitcher.js'
 import { FloatBox } from './appChrome.js'
@@ -167,6 +170,138 @@ export function PromptZone({
   return null
 }
 
+/** Everything a floating panel's renderer needs; assembled once per render. */
+interface FloatingOverlayCtx extends Pick<
+  AppOverlaysProps,
+  | 'onActiveSessionClose'
+  | 'onActiveSessionSelect'
+  | 'onModelSelect'
+  | 'onNewLiveSession'
+  | 'onNewPromptSession'
+  | 'onResumeSelect'
+  | 'pagerPageSize'
+> {
+  gw: ReturnType<typeof useGateway>['gw']
+  overlay: OverlayState
+  sid: ReturnType<(typeof $uiSessionId)['get']>
+  t: Theme
+}
+
+/**
+ * One renderer per `floating: true` entry in OVERLAY_REGISTRY. `Record` over
+ * `FloatingOverlayId` is the enforcement: declare a floating overlay in the
+ * registry and this table stops typechecking until its panel exists. A
+ * renderer may return null when the open value carries no payload to draw.
+ */
+const FLOATING_OVERLAY_RENDERERS: Record<FloatingOverlayId, (ctx: FloatingOverlayCtx) => null | WidgetGridWidget> = {
+  modelPicker: ctx => {
+    const initialRefresh = typeof ctx.overlay.modelPicker === 'object' && ctx.overlay.modelPicker.refresh === true
+
+    return {
+      id: 'model-picker',
+      render: width => (
+        <FloatBox color={ctx.t.color.border}>
+          <ModelPicker
+            gw={ctx.gw}
+            initialRefresh={initialRefresh}
+            maxWidth={width}
+            onCancel={() => patchOverlayState({ modelPicker: false })}
+            onSelect={ctx.onModelSelect}
+            sessionId={ctx.sid}
+            t={ctx.t}
+          />
+        </FloatBox>
+      )
+    }
+  },
+
+  pager: ctx => {
+    const pager = ctx.overlay.pager
+
+    if (!pager) {
+      return null
+    }
+
+    const pagerPageSize = ctx.pagerPageSize
+
+    return {
+      id: 'pager',
+      render: () => (
+        <FloatBox color={ctx.t.color.border}>
+          <Box flexDirection="column" paddingX={1} paddingY={1}>
+            {pager.title && (
+              <Box justifyContent="center" marginBottom={1}>
+                <Text bold color={ctx.t.color.primary}>
+                  {pager.title}
+                </Text>
+              </Box>
+            )}
+
+            {pager.lines.slice(pager.offset, pager.offset + pagerPageSize).map((line, i) => (
+              <Text key={i}>{line}</Text>
+            ))}
+
+            <Box marginTop={1}>
+              <OverlayHint t={ctx.t}>
+                {pager.offset + pagerPageSize < pager.lines.length
+                  ? `↑↓/jk line · Enter/Space/PgDn page · b/PgUp back · g/G top/bottom · Esc/q close (${Math.min(pager.offset + pagerPageSize, pager.lines.length)}/${pager.lines.length})`
+                  : `end · ↑↓/jk · b/PgUp back · g top · Esc/q close (${pager.lines.length} lines)`}
+              </OverlayHint>
+            </Box>
+          </Box>
+        </FloatBox>
+      )
+    }
+  },
+
+  petPicker: ctx => ({
+    id: 'pet-picker',
+    render: width => (
+      <FloatBox color={ctx.t.color.border}>
+        <PetPicker gw={ctx.gw} maxWidth={width} onClose={() => patchOverlayState({ petPicker: false })} t={ctx.t} />
+      </FloatBox>
+    )
+  }),
+
+  pluginsHub: ctx => ({
+    id: 'plugins-hub',
+    render: width => (
+      <FloatBox color={ctx.t.color.border}>
+        <PluginsHub gw={ctx.gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={ctx.t} />
+      </FloatBox>
+    )
+  }),
+
+  sessions: ctx => ({
+    id: 'sessions',
+    render: width => (
+      <FloatBox color={ctx.t.color.border}>
+        <ActiveSessionSwitcher
+          currentSessionId={ctx.sid}
+          gw={ctx.gw}
+          maxWidth={width}
+          onCancel={() => patchOverlayState({ sessions: false })}
+          onClose={ctx.onActiveSessionClose}
+          onNew={ctx.onNewLiveSession}
+          onNewPrompt={ctx.onNewPromptSession}
+          onResume={ctx.onResumeSelect}
+          onSelect={ctx.onActiveSessionSelect}
+          t={ctx.t}
+        />
+      </FloatBox>
+    )
+  }),
+
+  skillsHub: ctx => ({
+    id: 'skills-hub',
+    render: width => (
+      <FloatBox color={ctx.t.color.border}>
+        <SkillsHub gw={ctx.gw} maxWidth={width} onClose={() => patchOverlayState({ skillsHub: false })} t={ctx.t} />
+      </FloatBox>
+    )
+  })
+}
+
 export function FloatingOverlays({
   cols,
   compIdx,
@@ -216,113 +351,34 @@ export function FloatingOverlays({
   // column it never binds, so rendering is identical to the pre-grid layout.
   const widgets: WidgetGridWidget[] = []
 
-  if (overlay.sessions) {
-    widgets.push({
-      id: 'sessions',
-      render: width => (
-        <FloatBox color={theme.color.border}>
-          <ActiveSessionSwitcher
-            currentSessionId={sid}
-            gw={gw}
-            maxWidth={width}
-            onCancel={() => patchOverlayState({ sessions: false })}
-            onClose={onActiveSessionClose}
-            onNew={onNewLiveSession}
-            onNewPrompt={onNewPromptSession}
-            onResume={onResumeSelect}
-            onSelect={onActiveSessionSelect}
-            t={theme}
-          />
-        </FloatBox>
-      )
-    })
+  const ctx: FloatingOverlayCtx = {
+    gw,
+    onActiveSessionClose,
+    onActiveSessionSelect,
+    onModelSelect,
+    onNewLiveSession,
+    onNewPromptSession,
+    onResumeSelect,
+    overlay,
+    pagerPageSize,
+    sid,
+    t: theme
   }
 
-  if (overlay.modelPicker) {
-    const initialRefresh = typeof overlay.modelPicker === 'object' && overlay.modelPicker.refresh === true
+  // Paint order is FLOATING_OVERLAY_IDS, i.e. registry declaration order.
+  // Panels used to be pushed by a chain of hand-written `if (overlay.x)`
+  // blocks; the chain WAS the order, so reordering the source silently
+  // reordered the screen.
+  for (const id of FLOATING_OVERLAY_IDS) {
+    if (!overlay[id]) {
+      continue
+    }
 
-    widgets.push({
-      id: 'model-picker',
-      render: width => (
-        <FloatBox color={theme.color.border}>
-          <ModelPicker
-            gw={gw}
-            initialRefresh={initialRefresh}
-            maxWidth={width}
-            onCancel={() => patchOverlayState({ modelPicker: false })}
-            onSelect={onModelSelect}
-            sessionId={sid}
-            t={theme}
-          />
-        </FloatBox>
-      )
-    })
-  }
+    const widget = FLOATING_OVERLAY_RENDERERS[id](ctx)
 
-  if (overlay.petPicker) {
-    widgets.push({
-      id: 'pet-picker',
-      render: width => (
-        <FloatBox color={theme.color.border}>
-          <PetPicker gw={gw} maxWidth={width} onClose={() => patchOverlayState({ petPicker: false })} t={theme} />
-        </FloatBox>
-      )
-    })
-  }
-
-  if (overlay.skillsHub) {
-    widgets.push({
-      id: 'skills-hub',
-      render: width => (
-        <FloatBox color={theme.color.border}>
-          <SkillsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ skillsHub: false })} t={theme} />
-        </FloatBox>
-      )
-    })
-  }
-
-  if (overlay.pluginsHub) {
-    widgets.push({
-      id: 'plugins-hub',
-      render: width => (
-        <FloatBox color={theme.color.border}>
-          <PluginsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={theme} />
-        </FloatBox>
-      )
-    })
-  }
-
-  const pager = overlay.pager
-
-  if (pager) {
-    widgets.push({
-      id: 'pager',
-      render: () => (
-        <FloatBox color={theme.color.border}>
-          <Box flexDirection="column" paddingX={1} paddingY={1}>
-            {pager.title && (
-              <Box justifyContent="center" marginBottom={1}>
-                <Text bold color={theme.color.primary}>
-                  {pager.title}
-                </Text>
-              </Box>
-            )}
-
-            {pager.lines.slice(pager.offset, pager.offset + pagerPageSize).map((line, i) => (
-              <Text key={i}>{line}</Text>
-            ))}
-
-            <Box marginTop={1}>
-              <OverlayHint t={theme}>
-                {pager.offset + pagerPageSize < pager.lines.length
-                  ? `↑↓/jk line · Enter/Space/PgDn page · b/PgUp back · g/G top/bottom · Esc/q close (${Math.min(pager.offset + pagerPageSize, pager.lines.length)}/${pager.lines.length})`
-                  : `end · ↑↓/jk · b/PgUp back · g top · Esc/q close (${pager.lines.length} lines)`}
-              </OverlayHint>
-            </Box>
-          </Box>
-        </FloatBox>
-      )
-    })
+    if (widget) {
+      widgets.push(widget)
+    }
   }
 
   if (completions.length) {
