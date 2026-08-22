@@ -84,6 +84,29 @@ const LEGACY_STICKY = [
  */
 const LEGACY_PAINT_ORDER = ['sessions', 'modelPicker', 'petPicker', 'skillsHub', 'pluginsHub', 'pager']
 
+/**
+ * Overlays declared AFTER the registry landed, kept in their own block so the
+ * LEGACY_* oracles above stay a verbatim snapshot of the hand-written
+ * structures the registry replaced. Every id here is a deliberate addition;
+ * drift still fails, because the expectations below are LEGACY ++ this and
+ * nothing else.
+ *
+ * `rooms` (T10) is blocking, floating and sticky — a user-opened modal panel,
+ * like the hubs.
+ */
+const ADDED_BLOCKING = ['rooms']
+const ADDED_FLOATING = ['rooms']
+const ADDED_STICKY = ['rooms']
+const ADDED_INITIAL = { rooms: false }
+
+const EXPECTED_INITIAL_STATE = { ...LEGACY_INITIAL_STATE, ...ADDED_INITIAL }
+const EXPECTED_BLOCKING = [...LEGACY_BLOCKING, ...ADDED_BLOCKING]
+const EXPECTED_FLOATING = [...LEGACY_FLOATING, ...ADDED_FLOATING]
+const EXPECTED_STICKY = [...LEGACY_STICKY, ...ADDED_STICKY]
+
+/** Paint order with each addition at its declared position, not appended. */
+const EXPECTED_PAINT_ORDER = ['sessions', 'modelPicker', 'petPicker', 'skillsHub', 'pluginsHub', 'rooms', 'pager']
+
 /** A truthy "open" value for every overlay, keyed by id. */
 const OPEN_VALUE: Record<string, unknown> = {
   agents: true,
@@ -98,6 +121,7 @@ const OPEN_VALUE: Record<string, unknown> = {
   pager: { lines: ['x'], offset: 0 },
   petPicker: true,
   pluginsHub: true,
+  rooms: true,
   secret: { envVar: 'X' },
   sessions: true,
   skillsHub: true,
@@ -118,12 +142,12 @@ afterEach(() => {
 
 describe('overlay registry — field set and initial values', () => {
   it('covers exactly the fields OverlayState used to declare by hand', () => {
-    expect([...OVERLAY_IDS].sort()).toEqual(Object.keys(LEGACY_INITIAL_STATE).sort())
+    expect([...OVERLAY_IDS].sort()).toEqual(Object.keys(EXPECTED_INITIAL_STATE).sort())
   })
 
   it('builds the same closed state the hardcoded initializer built', () => {
     resetOverlayState()
-    expect(getOverlayState()).toEqual(LEGACY_INITIAL_STATE)
+    expect(getOverlayState()).toEqual(EXPECTED_INITIAL_STATE)
   })
 
   it('gives every build its own mutable seeds', () => {
@@ -140,13 +164,13 @@ describe('overlay registry — field set and initial values', () => {
 
 describe('overlay registry — $isBlocked', () => {
   it('derives the same input set as the old destructure + chain', () => {
-    expect([...BLOCKING_OVERLAY_IDS].sort()).toEqual([...LEGACY_BLOCKING].sort())
+    expect([...BLOCKING_OVERLAY_IDS].sort()).toEqual([...EXPECTED_BLOCKING].sort())
   })
 
   it('blocks for each blocking overlay and only those', () => {
     for (const id of OVERLAY_IDS) {
       openOnly(id)
-      expect({ blocked: $isBlocked.get(), id }).toEqual({ blocked: LEGACY_BLOCKING.includes(id), id })
+      expect({ blocked: $isBlocked.get(), id }).toEqual({ blocked: EXPECTED_BLOCKING.includes(id), id })
     }
   })
 
@@ -158,15 +182,15 @@ describe('overlay registry — $isBlocked', () => {
 
 describe('overlay registry — hasFloatingPanel', () => {
   it('derives the same set as the old chain, in paint order', () => {
-    expect(FLOATING_OVERLAY_IDS).toEqual(LEGACY_PAINT_ORDER)
-    expect([...FLOATING_OVERLAY_IDS].sort()).toEqual([...LEGACY_FLOATING].sort())
+    expect(FLOATING_OVERLAY_IDS).toEqual(EXPECTED_PAINT_ORDER)
+    expect([...FLOATING_OVERLAY_IDS].sort()).toEqual([...EXPECTED_FLOATING].sort())
   })
 
   it('matches the old chain for every overlay opened alone', () => {
     for (const id of OVERLAY_IDS) {
       openOnly(id)
       expect({ floating: hasFloatingPanel(getOverlayState()), id }).toEqual({
-        floating: LEGACY_FLOATING.includes(id),
+        floating: EXPECTED_FLOATING.includes(id),
         id
       })
     }
@@ -185,7 +209,7 @@ describe('overlay registry — hasFloatingPanel', () => {
 
 describe('overlay registry — resetFlowOverlays', () => {
   it('derives the same preserve list the hardcoded reset spread', () => {
-    expect([...STICKY_OVERLAY_IDS].sort()).toEqual([...LEGACY_STICKY].sort())
+    expect([...STICKY_OVERLAY_IDS].sort()).toEqual([...EXPECTED_STICKY].sort())
   })
 
   it('keeps user-toggled overlays and drops flow-scoped ones', () => {
@@ -197,12 +221,12 @@ describe('overlay registry — resetFlowOverlays', () => {
     const after = getOverlayState()
 
     for (const id of OVERLAY_IDS) {
-      if (LEGACY_STICKY.includes(id)) {
+      if (EXPECTED_STICKY.includes(id)) {
         expect({ id, value: after[id] }).toEqual({ id, value: before[id] })
       } else {
         expect({ id, value: after[id] }).toEqual({
           id,
-          value: LEGACY_INITIAL_STATE[id as keyof typeof LEGACY_INITIAL_STATE]
+          value: EXPECTED_INITIAL_STATE[id as keyof typeof EXPECTED_INITIAL_STATE]
         })
       }
     }

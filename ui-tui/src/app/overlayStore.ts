@@ -44,7 +44,7 @@ export const $isBlocked = computed($overlayState, state => BLOCKING_OVERLAY_IDS.
  *   subtree) so it can anchor the full-screen absolute `Overlay`
  *   (`components/overlay.tsx`) against the whole terminal.
  * - The FloatingOverlays set — `modelPicker`, `pager`, `petPicker`,
- *   `sessions`, `skillsHub`, `pluginsHub` — but ONLY when the rule sits at
+ *   `sessions`, `skillsHub`, `pluginsHub`, `rooms` — but ONLY when the rule sits at
  *   the top.  That panel is `position="absolute" bottom="100%"` inside
  *   ComposerPane's relative Box (`appOverlays.tsx:387`), so it grows UPWARD
  *   over the `at="top"` rule and never reaches the `at="bottom"` one.

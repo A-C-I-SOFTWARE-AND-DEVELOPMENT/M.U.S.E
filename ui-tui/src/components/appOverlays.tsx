@@ -20,6 +20,7 @@ import { listRowStyle } from './overlayPrimitives.js'
 import { PetPicker } from './petPicker.js'
 import { PluginsHub } from './pluginsHub.js'
 import { ApprovalPrompt, ClarifyPrompt, ConfirmPrompt } from './prompts.js'
+import { RoomsPanel } from './roomsPanel.js'
 import { SkillsHub } from './skillsHub.js'
 import { SubscriptionOverlay } from './subscriptionOverlay.js'
 import { WidgetGrid, type WidgetGridWidget } from './widgetGrid.js'
@@ -268,6 +269,15 @@ const FLOATING_OVERLAY_RENDERERS: Record<FloatingOverlayId, (ctx: FloatingOverla
     render: width => (
       <FloatBox color={ctx.t.color.border}>
         <PluginsHub gw={ctx.gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={ctx.t} />
+      </FloatBox>
+    )
+  }),
+
+  rooms: ctx => ({
+    id: 'rooms',
+    render: width => (
+      <FloatBox color={ctx.t.color.border}>
+        <RoomsPanel gw={ctx.gw} maxWidth={width} onClose={() => patchOverlayState({ rooms: false })} t={ctx.t} />
       </FloatBox>
     )
   }),
