@@ -1,70 +1,32 @@
 import { atom, computed } from 'nanostores'
 
 import type { OverlayState } from './interfaces.js'
+import {
+  BLOCKING_OVERLAY_IDS,
+  FLOATING_OVERLAY_IDS,
+  OVERLAY_IDS,
+  OVERLAY_REGISTRY,
+  STICKY_OVERLAY_IDS
+} from './overlayRegistry.js'
 import { $uiState } from './uiStore.js'
 
-const buildOverlayState = (): OverlayState => ({
-  agents: false,
-  agentsInitialHistoryIndex: 0,
-  approval: null,
-  billing: null,
-  clarify: null,
-  confirm: null,
-  ambient: [],
-  widget: null,
-  journey: false,
-  modelPicker: false,
-  pager: null,
-  petPicker: false,
-  pluginsHub: false,
-  secret: null,
-  sessions: false,
-  skillsHub: false,
-  subscription: null,
-  sudo: null
-})
+/**
+ * Every closed overlay, seeded from the registry's `initial` factories — one
+ * fresh value per field per call, so the mutable seeds (`ambient: []`) are
+ * never shared between two states.
+ */
+const buildOverlayState = (): OverlayState =>
+  Object.fromEntries(OVERLAY_IDS.map(id => [id, OVERLAY_REGISTRY[id].initial()])) as OverlayState
 
 export const $overlayState = atom<OverlayState>(buildOverlayState())
 
-export const $isBlocked = computed(
-  $overlayState,
-  ({
-    agents,
-    approval,
-    billing,
-    clarify,
-    confirm,
-    journey,
-    modelPicker,
-    pager,
-    petPicker,
-    pluginsHub,
-    secret,
-    sessions,
-    skillsHub,
-    subscription,
-    sudo,
-    widget
-  }) =>
-    Boolean(
-      agents ||
-      approval ||
-      billing ||
-      clarify ||
-      confirm ||
-      journey ||
-      modelPicker ||
-      pager ||
-      petPicker ||
-      pluginsHub ||
-      secret ||
-      sessions ||
-      skillsHub ||
-      subscription ||
-      sudo ||
-      widget
-    )
-)
+/**
+ * Is text input suspended? True while ANY overlay with `blocks: true` is open.
+ * Same truthiness test the hand-written `a || b || …` chain ran, minus the
+ * chance of a new overlay being added to the destructure and missed in the
+ * chain (or the reverse).
+ */
+export const $isBlocked = computed($overlayState, state => BLOCKING_OVERLAY_IDS.some(id => Boolean(state[id])))
 
 /**
  * Does an open overlay actually PAINT OVER the status rule?
@@ -114,18 +76,12 @@ export const $isBlocked = computed(
  *
  * SINGLE SOURCE for the floating-panel kind set: consumed by both
  * FloatingOverlays' render gate (plus completions, which it adds locally)
- * and $isStatusRuleOccluded's top-statusbar occlusion arm. Add new floating
- * panels HERE so the timer gate can't silently miss them.
+ * and $isStatusRuleOccluded's top-statusbar occlusion arm. The set itself is
+ * `floating: true` in OVERLAY_REGISTRY, so a new floating panel joins the
+ * timer gate the moment it is declared — it can no longer be missed here.
  */
 export const hasFloatingPanel = (overlay: OverlayState): boolean =>
-  Boolean(
-    overlay.modelPicker ||
-    overlay.pager ||
-    overlay.petPicker ||
-    overlay.pluginsHub ||
-    overlay.sessions ||
-    overlay.skillsHub
-  )
+  FLOATING_OVERLAY_IDS.some(id => Boolean(overlay[id]))
 
 export const $isStatusRuleOccluded = computed([$overlayState, $uiState], (overlay, ui) =>
   Boolean(overlay.widget || (ui.statusBar === 'top' && hasFloatingPanel(overlay)))
@@ -147,17 +103,11 @@ export const resetOverlayState = () => $overlayState.set(buildOverlayState())
  * every turn completion / interrupt; the old "reset everything" behaviour
  * silently closed /agents the moment delegation finished.
  */
-export const resetFlowOverlays = () =>
+export const resetFlowOverlays = () => {
+  const current = $overlayState.get()
+
   $overlayState.set({
     ...buildOverlayState(),
-    agents: $overlayState.get().agents,
-    agentsInitialHistoryIndex: $overlayState.get().agentsInitialHistoryIndex,
-    ambient: $overlayState.get().ambient,
-    widget: $overlayState.get().widget,
-    journey: $overlayState.get().journey,
-    modelPicker: $overlayState.get().modelPicker,
-    petPicker: $overlayState.get().petPicker,
-    pluginsHub: $overlayState.get().pluginsHub,
-    sessions: $overlayState.get().sessions,
-    skillsHub: $overlayState.get().skillsHub
+    ...(Object.fromEntries(STICKY_OVERLAY_IDS.map(id => [id, current[id]])) as Partial<OverlayState>)
   })
+}

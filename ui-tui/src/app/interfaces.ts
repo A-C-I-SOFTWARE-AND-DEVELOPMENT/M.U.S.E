@@ -15,22 +15,10 @@ import type {
 import type { QueueItem } from '../hooks/useQueue.js'
 import type { ParsedVoiceRecordKey } from '../lib/platform.js'
 import type { RpcResult } from '../lib/rpc.js'
-import type { ActiveWidget } from '../sdk/types.js'
 import type { Theme } from '../theme.js'
-import type {
-  ApprovalReq,
-  ClarifyReq,
-  ConfirmReq,
-  DetailsMode,
-  Msg,
-  PanelSection,
-  SecretReq,
-  SectionVisibility,
-  SessionInfo,
-  SlashCatalog,
-  SudoReq,
-  Usage
-} from '../types.js'
+import type { DetailsMode, Msg, PanelSection, SectionVisibility, SessionInfo, SlashCatalog, Usage } from '../types.js'
+
+import type { OverlayRegistryState } from './overlayRegistry.js'
 
 export interface StateSetter<T> {
   (value: SetStateAction<T>): void
@@ -280,28 +268,12 @@ export interface SubscriptionOverlayState {
   stepUpRetry?: null | SubscriptionStepUpRetry
 }
 
-export interface OverlayState {
-  agents: boolean
-  agentsInitialHistoryIndex: number
-  approval: ApprovalReq | null
-  billing: BillingOverlayState | null
-  clarify: ClarifyReq | null
-  confirm: ConfirmReq | null
-  /** Ambient widget apps — glanceable dock, non-blocking (never in $isBlocked). */
-  ambient: ActiveWidget[]
-  /** Modal widget app — owns input, blocks the composer. */
-  widget: ActiveWidget | null
-  journey: boolean
-  modelPicker: boolean | { refresh?: boolean }
-  pager: null | PagerState
-  petPicker: boolean
-  pluginsHub: boolean
-  secret: null | SecretReq
-  sessions: boolean
-  skillsHub: boolean
-  subscription: SubscriptionOverlayState | null
-  sudo: null | SudoReq
-}
+/**
+ * DERIVED, one field per entry in `OVERLAY_REGISTRY` — the field list, the
+ * initial values, `$isBlocked`, `hasFloatingPanel()` and the FloatingOverlays
+ * widget list all come off that one registry. Add overlays there, not here.
+ */
+export type OverlayState = OverlayRegistryState
 
 export interface PagerState {
   lines: string[]

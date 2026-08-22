@@ -15599,26 +15599,13 @@ def _mcp_summarize_server(name, cfg):  # noqa: E402
 
 
 # ── Split @method handler modules (see method_ctx.py) ────────────────
-# Imported at the end of this module so every global the handlers close
-# over already exists; register() rebinds them onto this namespace.
-from . import (  # noqa: E402
-    methods_complete as _methods_complete,
-    methods_config as _methods_config,
-    methods_images as _methods_images,
-    methods_profiles as _methods_profiles,
-    methods_prompt as _methods_prompt,
-    methods_session as _methods_session,
-    methods_tools as _methods_tools,
-)
+# Installed at the end of this module so every global the handlers close
+# over already exists; each family's register() rebinds them onto this
+# namespace.  The families are DISCOVERED by walking tui_gateway/methods_*.py
+# in sorted name order (see method_modules.py) instead of being named in a
+# hardcoded import tuple plus a hardcoded registration tuple — adding
+# methods_<family>.py is now the whole change, and a family that fails to
+# import is logged and skipped rather than taking the gateway down.
+from .method_modules import install_method_modules  # noqa: E402
 
-for _m in (
-    _methods_session,
-    _methods_prompt,
-    _methods_config,
-    _methods_complete,
-    _methods_tools,
-    _methods_profiles,
-    _methods_images,
-):
-    _m.register(sys.modules[__name__])
-del _m
+install_method_modules(sys.modules[__name__])
