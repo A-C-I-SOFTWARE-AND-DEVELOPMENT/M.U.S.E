@@ -1,0 +1,11 @@
+name: prime
+version: 1.0.0
+description: "Deterministic repo navigation and a local knowledge graph. Ships four operator CLI commands (hermes navigate / graph / memory-tree / research) and the graph_query tool. Navigation is a five-signal issue localizer, dependency tracer and edit-site ranker over a plain repo walk — stdlib only, no LLM, no network. GraphRAG builds a typed, source-backed knowledge graph over that repo index plus the Memory Tree and Research Vault, and answers local/global/coding queries against it. All state is a local JSON/JSONL cache under $HERMES_HOME/prime, safe to delete and rebuild."
+author: NousResearch
+kind: standalone
+platforms:
+  - linux
+  - macos
+  - windows
+provides_tools:
+  - graph_query
