@@ -75,8 +75,9 @@ material and an 87 MB checkpoint deliberately kept out of git).
 | T6 | `port/repair-damaged-deltas` | **done** | The 13 damaged files. **Only core-edit tranche**. See below |
 | T7 | `port/branding-seam` | **done** | Branding gate live and green. See below |
 | T8a | `port/moatool` | **done** | MoA fan-out tool, rebased onto upstream's MoA |
-| T10 | `port/rooms` | in progress | Unblocked by T-SEAM |
-| T12a | `port/prime` | in progress | prime navigation + graphrag as a plugin |
+| T9 | — | **dropped** | Every live consumer of fusion_router is absent, dropped, or a core edit. See below |
+| T10 | `port/rooms` | **done** | Rooms, on the T-SEAM seams. See below |
+| T12a | `port/prime` | **done** | prime navigation + graphrag as a plugin. See below |
 | T14a | `port/skills` | **done** | Enterprise council skills, 354 files to 78 |
 | T-SEAM | `port/seam` | **done** | Extension points. Unblocks T10 and future panels |
 | T9/T11/T13/T15–T18 | see below | scoped | Measured against upstream; most dropped. See below |
@@ -490,6 +491,89 @@ history — but the first **invalidated a 27-minute control run**, because those
 modules made `test_no_dangling_imports` fail in the control.
 
 > **Check `git status --short` in the main repo is empty before trusting any control run.**
+
+## T12a — prime navigation, graphrag and memory tree (done)
+
+`plugins/prime/`, on `register_cli_command` + `register_tool`. **Zero core edits.**
+Subcommands: `navigate`, `graph`, `memory-tree`, `research`.
+
+Of the fork's 426-file / 66k-line `jarvis_prime/`, this lands ~30 files. Dropped: the persona
+layer (which hardcodes a named private individual as the agent's operating partner),
+`federation/` and `forge/` governance doctrine, 137 machine-generated niche YAMLs,
+`muse_eval/`, `bench/`, `fleet/`.
+
+**Fork taxonomy removed.** `component_registry.py` enforced
+`VALID_KINDS = (surface, runtime, orchestration, cognition, governance, integration, worker,
+provider)` as a *hard validator* — `kind: service` and `kind: library` were rejected outright.
+Any repo wanting `hermes graph components` would have had to adopt the fork's architecture
+vocabulary. Dropped with `component_indexer.py`.
+
+**Tests: 0 → 242.** The tranche originally landed ~5,000 lines with no test file at all.
+
+### What adversarial review caught
+
+| Defect | Consequence |
+|---|---|
+| Contradiction lineage destroyed on re-write | Node id is a function of (namespace, title, text), so rewriting a fact rebuilt the record: `contradiction_status` reset, `supersedes`/`superseded_by` cleared, operator approval lost. Verified against the real binary — re-writing a *resolved losing* fact resurrected it and emptied search of both. Violated the module's own stated guarantee |
+| Duplicate contradiction reports | The report id mirrored on the reverse pair, so a repeat write opened a second report; resolving one left the other CONTESTED forever against an already-superseded node |
+| Windows path portability | Module node keys were backslash-separated, so `graph related graphrag.indexers` could not resolve, and the same repo produced a different graph cache on Windows than POSIX |
+| Agent tool blocked ~88 s | `graph_query` called `load_or_build('.')`, `ast.parse`-ing 10,209 files with no bound and no timeout. Now cache-only, naming `hermes graph build` (0.45 s) |
+| Silent data loss | `load_diagnostics` had no non-test reader on three stores, so a corrupt JSONL line was dropped in production with no operator signal — while the tests celebrated "diagnostic not raise" |
+| **Three tests that could not fail** | A merge test passing the *same* dict to both branches; a layer-ranking test confounded by confidence and provenance; a weights test that recomputed the score from the table it was checking. Each rewritten and verified to fail under mutation |
+
+## T10 — rooms (done)
+
+**The first tranche to ride T-SEAM, and it validates the seam**: `tui_gateway/server.py` and
+`ui-tui/src/app/interfaces.ts` are *untouched*. `methods_rooms.py` is found by the pkgutil
+walk; one `OVERLAY_REGISTRY` entry derives the `OverlayState` field, the initializer, both
+halves of `$isBlocked`, `hasFloatingPanel()` and the sticky list. Only the one sanctioned
+line in `slash/registry.ts` and the compiler-required renderer were hand-written.
+
+**The design call.** The fork's store was built around a preset roster from an `aos_council`
+dispatcher that does not exist here — T14a landed the council as a *markdown skill pack*, not
+Python. Rather than fabricate member ids nothing can route to, this ships the **write path**.
+A first run is empty and says how to stop being empty. `mixture` (council/experts/agents) and
+`preset` were dropped as fork vocabulary with no consumer.
+
+**Stated honestly in the store's own docstring: rooms dispatch nothing today.** It is a store
+plus an editor. The fork did not dispatch either, so it is not a regression — but it is a fair
+thing to challenge at merge time.
+
+### What adversarial review caught
+
+- **Data loss in the only interactive surface.** Both `TextInput` `onSubmit` handlers
+  discarded the submitted value and read React state instead. hermes-ink coalesces bytes
+  arriving together into one keypress, and `valueForReturnSubmit()` folds printable text from
+  that same event into the value passed to `onSubmit` — text `onChange` never fired for. So an
+  IME commit or a pasted roster followed by Enter saved `memberIds: []`, and on an edit `[]`
+  is the **clear** spelling. Every other `onSubmit` consumer in the repo takes the value;
+  this was the lone exception.
+- **Wrong-profile reads/writes.** None of the four handlers was `@_profile_scoped`, though all
+  four `projects.*` handlers — the twin this module's docstring says it mirrors — carry it.
+- **A fork noun squatting an upstream one.** The slash command carried `aliases: ['boards']`.
+  Here a *board* is a kanban board (`kanban_db.py`, `hermes kanban boards switch`, `--board`).
+  A user typing `/boards` got a roster editor. The branding guard cannot see this class.
+
+Mutation-tested seven ways, each confirmed to fail a test.
+
+## T9 — fusion: dropped
+
+`agent/fusion_*.py` is genuinely absent upstream and the four leaf modules are clean
+pure-stdlib code with existing tests. **They still do not land**, because every live consumer
+of `fusion_router` is absent, dropped, or a core edit:
+
+| Fork consumer | Status here |
+|---|---|
+| `hermes_cli/web_server.py:5182` | a core edit, and there is no router seam |
+| `tui_gateway/feature_status.py` | does not exist upstream; unported |
+| `gateway/cockpit/agent_full.py` | cockpit is dropped entirely |
+| `ui-tui` fusion overlay + slash command | unported TUI surface |
+| `web/src/pages/FusionPage.tsx` | dashboard product surface |
+
+Landed in isolation the leaves are dead on arrival — the exact `conversation_loop.py` trap
+from T5, which cost 203 lines of dead code before it was caught. The governing rule applies:
+**nothing lands without a live caller in this repo, in the same commit.** Preserved in the
+fork archive if a consumer is ever built.
 
 ## T0 — guard tests (done)
 
