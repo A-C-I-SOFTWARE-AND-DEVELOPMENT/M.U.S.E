@@ -32,6 +32,14 @@ LEGACY_METHOD_MODULES = (
     "methods_tools",
 )
 
+# Families added AFTER the walk replaced the tuple. Kept separate so the oracle
+# above stays a verbatim snapshot of what server.py hardcoded: every name here
+# is a deliberate addition, and drift still fails because the expectations are
+# LEGACY ++ this and nothing else.
+ADDED_METHOD_MODULES = ("methods_rooms",)
+
+ALL_METHOD_MODULES = LEGACY_METHOD_MODULES + ADDED_METHOD_MODULES
+
 
 def _declared_names(module_name: str) -> list[str]:
     """Method names a family declares, read off its deferred HandlerRegistry."""
@@ -39,8 +47,8 @@ def _declared_names(module_name: str) -> list[str]:
     return [name for name, _fn in module._registry._pending]
 
 
-def test_walk_finds_every_legacy_method_module():
-    assert method_modules.discover_method_modules() == sorted(LEGACY_METHOD_MODULES)
+def test_walk_finds_every_declared_method_module():
+    assert method_modules.discover_method_modules() == sorted(ALL_METHOD_MODULES)
 
 
 def test_walk_order_is_sorted_not_filesystem_order():
@@ -49,17 +57,17 @@ def test_walk_order_is_sorted_not_filesystem_order():
 
 
 def test_registered_method_names_match_the_legacy_tuple():
-    """The walk must register the same method-name SET as the old tuple."""
-    legacy = {name for mod in LEGACY_METHOD_MODULES for name in _declared_names(mod)}
+    """Every declared family's method names must reach the live registry."""
+    declared = {name for mod in ALL_METHOD_MODULES for name in _declared_names(mod)}
     walked = {
         name
         for mod in method_modules.discover_method_modules()
         for name in _declared_names(mod)
     }
 
-    assert walked == legacy
+    assert walked == declared
     # ...and every one of them actually reached the live server registry.
-    assert legacy <= set(server._methods)
+    assert declared <= set(server._methods)
 
 
 def test_family_method_names_are_unique_so_order_cannot_matter():
@@ -84,14 +92,14 @@ def test_install_returns_modules_in_sorted_order():
     stub = _stub_server()
     installed = method_modules.install_method_modules(stub)
 
-    assert installed == sorted(LEGACY_METHOD_MODULES)
+    assert installed == sorted(ALL_METHOD_MODULES)
     assert set(stub._methods) == {
-        name for mod in LEGACY_METHOD_MODULES for name in _declared_names(mod)
+        name for mod in ALL_METHOD_MODULES for name in _declared_names(mod)
     }
 
 
 def test_a_broken_family_is_logged_and_skipped(monkeypatch, caplog):
-    """A family that fails to import must not take the other six down."""
+    """A family that fails to import must not take the others down."""
     real_import = importlib.import_module
 
     def exploding_import(name, package=None):
@@ -106,7 +114,7 @@ def test_a_broken_family_is_logged_and_skipped(monkeypatch, caplog):
         installed = method_modules.install_method_modules(stub)
 
     assert "methods_tools" not in installed
-    assert installed == sorted(set(LEGACY_METHOD_MODULES) - {"methods_tools"})
+    assert installed == sorted(set(ALL_METHOD_MODULES) - {"methods_tools"})
     assert any("methods_tools" in rec.message for rec in caplog.records)
     # The surviving families still registered their handlers.
     assert set(stub._methods) >= set(_declared_names("methods_session"))
@@ -130,7 +138,7 @@ def test_family_without_register_is_skipped(monkeypatch, caplog):
     assert any("methods_images" in rec.message for rec in caplog.records)
 
 
-@pytest.mark.parametrize("module_name", LEGACY_METHOD_MODULES)
+@pytest.mark.parametrize("module_name", ALL_METHOD_MODULES)
 def test_every_family_exposes_register(module_name):
     module = importlib.import_module(f"tui_gateway.{module_name}")
     assert callable(getattr(module, "register", None))

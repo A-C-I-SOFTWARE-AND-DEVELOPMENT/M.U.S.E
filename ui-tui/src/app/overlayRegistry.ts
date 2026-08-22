@@ -166,6 +166,12 @@ export const OVERLAY_REGISTRY = {
     initial: (): boolean => false,
     sticky: true
   }),
+  rooms: defineOverlay({
+    blocks: true,
+    floating: true,
+    initial: (): boolean => false,
+    sticky: true
+  }),
   /**
    * Flow-scoped despite being floating: a pager is put up BY a turn, so turn
    * teardown closes it. `floating` and `sticky` are independent axes.
