@@ -88,6 +88,37 @@ from agent.skill_utils import (
 
 logger = logging.getLogger(__name__)
 
+
+def _collapse_repeated_skill_name(name: str) -> str:
+    """Map the broken hint form 'dogfood/dogfood' back to 'dogfood'."""
+    parts = [p for p in str(name).replace("\\", "/").split("/") if p]
+    if len(parts) == 2 and parts[0] == parts[1]:
+        return parts[0]
+    return name
+
+
+def _prefer_skill_md(candidates):
+    """Prefer real ``SKILL.md`` skills over loose ``<name>.md`` documents.
+
+    Discovery strategy 3 also matches legacy flat ``<name>.md`` files. Large
+    skill bundles ship agent / workflow / specialist *definitions* as loose
+    ``.md`` files inside a skill that already owns a ``SKILL.md`` of the same
+    name, so every such skill resolved to 2-5 candidates and refused to load
+    as "Ambiguous skill name". A loose ``.md`` sitting beside a real
+    ``SKILL.md`` of the same name is documentation, not a competing skill, so
+    it loses.
+
+    Deliberately name-based rather than path-based: keying on a bundle
+    directory name would fix one vendor's layout and miss the next one.
+    Ambiguity *between* real ``SKILL.md`` skills is untouched and still
+    refuses — that collision is genuine and only the caller can resolve it.
+    """
+    skill_md_hits = [(sd, smd) for sd, smd in candidates if smd.name == "SKILL.md"]
+    if skill_md_hits and len(skill_md_hits) < len(candidates):
+        return skill_md_hits
+    return candidates
+
+
 # Per-session skill discovery cache.  _find_all_skills() re-reads every
 # SKILL.md on every call; with hundreds of skills this is wasteful.
 # Cache validation (mirrors hermes_cli/profiles.py::_count_skills, d5eee133e):
@@ -1095,6 +1126,7 @@ def skill_view(
         # path (e.g. C:\skills\foo) can't be reinterpreted as a plugin
         # namespace, and so a traversal/absolute name never reaches the
         # search-dir join that builds direct_path below.
+        name = _collapse_repeated_skill_name(name)
         lookup_error = _skill_lookup_path_error(name)
         if lookup_error:
             return json.dumps(
@@ -1352,6 +1384,8 @@ def skill_view(
             if project_candidates:
                 candidates = project_candidates
 
+        candidates = _prefer_skill_md(candidates)
+
         if len(candidates) > 1:
             paths = [str(smd) for _, smd in candidates]
             logging.getLogger(__name__).warning(
@@ -1367,6 +1401,10 @@ def skill_view(
                         "Refusing to guess — load one explicitly by its categorized path."
                     ),
                     "matches": paths,
+                    "choices": [
+                        {"path": p, "label": Path(p).parent.name if Path(p).name == "SKILL.md" else Path(p).stem}
+                        for p in paths
+                    ],
                     "hint": (
                         "Pass the full relative path instead of the bare name "
                         "(e.g., 'category/skill-name'), or rename one of the "

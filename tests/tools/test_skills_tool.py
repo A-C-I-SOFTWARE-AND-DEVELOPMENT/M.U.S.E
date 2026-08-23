@@ -883,9 +883,12 @@ class TestSkillViewCollisionDetection:
         assert "Ambiguous skill name 'explore-codebase'" in result["error"]
         assert "matches" in result
         assert len(result["matches"]) == 2
-        # Both paths surfaced
-        assert any("foundations/runtime" in p for p in result["matches"])
-        assert any("external" in p for p in result["matches"])
+        # Both paths surfaced.  Normalise separators first: matches carry
+        # native paths, so a hardcoded "/" made this assertion POSIX-only and
+        # it failed on Windows for a reason unrelated to what it tests.
+        surfaced = [p.replace("\\", "/") for p in result["matches"]]
+        assert any("foundations/runtime" in p for p in surfaced)
+        assert any("external" in p for p in surfaced)
         assert "hint" in result
 
 
@@ -921,7 +924,9 @@ class TestSkillViewCollisionDetection:
 
         result = json.loads(raw)
         assert result["success"] is True
-        assert result["path"] == "creative/sketch/SKILL.md"
+        # ``path`` is built from native separators, so compare on a
+        # normalised form rather than assuming POSIX (Windows: #skills).
+        assert result["path"].replace("\\", "/") == "creative/sketch/SKILL.md"
         assert "REAL SKETCH SKILL" in result["content"]
 
 
@@ -946,3 +951,91 @@ class TestSkillViewCollisionDetection:
         assert result["success"] is False
         assert "Ambiguous" in result["error"]
         assert len(result["matches"]) == 2
+
+class TestLooseMarkdownDoesNotShadowRealSkill:
+    """A loose ``<name>.md`` never makes a real ``SKILL.md`` ambiguous.
+
+    Large skill bundles ship agent / workflow / specialist definitions as
+    plain ``.md`` files inside a skill that already owns a ``SKILL.md`` of the
+    same name.  Before ``_prefer_skill_md`` those extra files counted as
+    competing candidates, so the real skill refused to load with "Ambiguous
+    skill name" — 81 of 401 installed skills were unloadable this way.
+    """
+
+    def test_loose_md_beside_real_skill_does_not_make_it_ambiguous(self, tmp_path):
+        local_dir = tmp_path / "local"
+        local_dir.mkdir()
+        _make_skill(local_dir, "dogfood", body="REAL DOGFOOD")
+        for sub in ("agents/qa", "workflows", "specialists"):
+            stub = local_dir / "some-bundle" / sub / "dogfood.md"
+            stub.parent.mkdir(parents=True, exist_ok=True)
+            stub.write_text("---\nname: dogfood\n---\n# stub\n")
+
+        with patch("tools.skills_tool.SKILLS_DIR", local_dir), patch(
+            "agent.skill_utils.get_external_skills_dirs", return_value=[]
+        ):
+            raw = skill_view("dogfood")
+        result = json.loads(raw)
+        assert result.get("success") is True, raw
+        assert "REAL DOGFOOD" in result.get(
+            "content", result.get("skill_content", raw)
+        )
+
+    def test_two_real_skills_still_refuse(self, tmp_path):
+        """The rule only demotes loose .md — genuine SKILL.md collisions
+        must still refuse rather than silently pick one."""
+        local_dir = tmp_path / "local"
+        external_dir = tmp_path / "external"
+        local_dir.mkdir()
+        external_dir.mkdir()
+        _make_skill(local_dir, "dogfood", body="LOCAL")
+        _make_skill(external_dir, "dogfood", body="EXTERNAL")
+
+        with patch("tools.skills_tool.SKILLS_DIR", local_dir), patch(
+            "agent.skill_utils.get_external_skills_dirs",
+            return_value=[external_dir],
+        ):
+            raw = skill_view("dogfood")
+        result = json.loads(raw)
+        assert result.get("success") is False, raw
+        assert "Ambiguous" in result["error"]
+        assert len(result["matches"]) == 2
+
+    def test_repeated_name_path_resolves(self, tmp_path):
+        """``skill_view("x/x")`` is what a caller builds from the ambiguity
+        hint for a top-level skill; it must resolve, not 404."""
+        local_dir = tmp_path / "local"
+        local_dir.mkdir()
+        _make_skill(local_dir, "dogfood", body="REAL DOGFOOD")
+        with patch("tools.skills_tool.SKILLS_DIR", local_dir), patch(
+            "agent.skill_utils.get_external_skills_dirs", return_value=[]
+        ):
+            raw = skill_view("dogfood/dogfood")
+        result = json.loads(raw)
+        assert result.get("success") is True, raw
+
+
+class TestRepeatedNameCollapseKeepsLookupGuards:
+    """Collapsing "x/x" runs before the traversal/absolute-path check, so
+    pin that it cannot launder a malicious name into an accepted one."""
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "../..",
+            "..\\..",
+            "../../etc/passwd",
+            "..",
+            "/etc/passwd",
+            "C:/Windows/System32",
+        ],
+    )
+    def test_traversal_and_absolute_names_still_refused(self, name, tmp_path):
+        local_dir = tmp_path / "local"
+        local_dir.mkdir()
+        with patch("tools.skills_tool.SKILLS_DIR", local_dir), patch(
+            "agent.skill_utils.get_external_skills_dirs", return_value=[]
+        ):
+            result = json.loads(skill_view(name))
+        assert result.get("success") is False, name
+        assert "content" not in result

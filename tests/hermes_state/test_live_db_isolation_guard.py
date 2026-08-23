@@ -199,3 +199,51 @@ class TestSubprocessChildCovered:
         )
         assert proc.returncode == 0, proc.stderr
         assert "OK" in proc.stdout
+
+
+class TestGuardNotDisarmedByArgv:
+    """The guard must not read ``sys.argv`` to decide it is "not a test".
+
+    Regression for a local patch that returned early from
+    ``_ensure_test_isolation`` whenever argv mentioned a desktop/TUI surface
+    ("web_server", "tui_gateway", "apps/desktop").  Those substrings are
+    exactly what argv holds during ``pytest tests/tui_gateway/`` and
+    ``pytest tests/test_web_server.py`` — the suites most likely to open a
+    state DB — so the bypass disarmed the guard for the runs that need it
+    most, re-opening #82770.  The real Desktop backend is spawned as
+    ``python -m hermes_cli.main serve`` and matches none of those markers,
+    so the bypass never protected the case it was written for either.
+    """
+
+    @pytest.mark.parametrize(
+        "argv",
+        [
+            ["pytest", "tests/tui_gateway/test_methods_session.py"],
+            ["pytest", "tests/test_web_server.py"],
+            ["pytest", "apps/desktop/e2e"],
+            ["python", "-m", "hermes_cli.web_server"],
+        ],
+    )
+    def test_production_db_still_refused_for_any_argv(self, monkeypatch, argv):
+        monkeypatch.setattr(sys, "argv", argv)
+        with pytest.raises(RuntimeError, match="live-system guard"):
+            SessionDB(db_path=REAL_ROOT / "state.db")
+
+    @pytest.mark.parametrize(
+        "platform", ["desktop", "gui", "tui", "electron", "web"]
+    )
+    def test_production_db_still_refused_for_session_platform(
+        self, monkeypatch, platform
+    ):
+        """A session-platform env var is not an isolation opt-out either."""
+        monkeypatch.setenv("HERMES_SESSION_PLATFORM", platform)
+        with pytest.raises(RuntimeError, match="live-system guard"):
+            SessionDB(db_path=REAL_ROOT / "state.db")
+
+    def test_documented_bypass_env_still_works(self, monkeypatch):
+        """The supported escape hatch keeps working — this is the seam a
+        genuinely-live child process is meant to use."""
+        monkeypatch.setenv(hermes_state._STATE_DB_GUARD_BYPASS_ENV, "1")
+        # Not asserting a successful open (that would touch the live DB);
+        # only that the guard itself declines to raise.
+        hermes_state._ensure_test_isolation(REAL_ROOT / "state.db")
