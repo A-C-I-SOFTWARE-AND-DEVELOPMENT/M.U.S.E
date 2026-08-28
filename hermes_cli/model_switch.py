@@ -1382,9 +1382,25 @@ def _configured_provider_matches(
                     matches[slug] = hit
                     break
 
+    # ``get_compatible_custom_providers()`` synthesizes a list-shaped shadow of
+    # every ``providers:`` entry (config.py: providers_dict_to_custom_providers
+    # stamps the originating slug into ``provider_key``).  Scanning both views
+    # registers a single provider twice -- once as ``<slug>`` and once as
+    # ``custom:<Display Name>`` -- which made switch_model()'s ambiguity guard
+    # below reject essentially every cross-provider switch.  Skip a synthesized
+    # entry whose originating provider was already considered above.
+    _declared_slugs = (
+        {k.strip().lower() for k in user_providers if isinstance(k, str)}
+        if isinstance(user_providers, dict)
+        else set()
+    )
+
     if isinstance(custom_providers, list):
         for entry in custom_providers:
             if not isinstance(entry, dict):
+                continue
+            provider_key = str(entry.get("provider_key", "") or "").strip().lower()
+            if provider_key and provider_key in _declared_slugs:
                 continue
             name = entry.get("name")
             if not isinstance(name, str) or not name.strip():
@@ -1505,13 +1521,22 @@ def switch_model(
     # =================================================================
     if explicit_provider:
         # Resolve the provider
-        pdef = resolve_provider_full(
-            explicit_provider,
-            user_providers,
-            custom_providers,
-        )
-        if pdef is None and explicit_provider.strip().lower() == "custom":
+        # Bare ``custom`` names the session's OWN direct endpoint, so resolve
+        # it from the live base_url FIRST.  resolve_custom_provider() self-heals
+        # a bare "custom" to the first configured custom entry
+        # (providers.py:881); with a real endpoint in play that silently
+        # reroutes the session to an unrelated provider and still reports
+        # success.  Fall back to that heuristic only when there is no live
+        # endpoint to preserve.
+        pdef = None
+        if explicit_provider.strip().lower() == "custom":
             pdef = _bare_custom_provider_def(current_base_url)
+        if pdef is None:
+            pdef = resolve_provider_full(
+                explicit_provider,
+                user_providers,
+                custom_providers,
+            )
         if pdef is None:
             _switch_err = (
                 f"Unknown provider '{explicit_provider}'. "

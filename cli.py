@@ -12719,10 +12719,29 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             )
             return
 
-        # Extract the agent's final response for this turn.
-        last_response = ""
+        # If the turn failed outright (retries exhausted, stream error), PAUSE
+        # rather than returning silently.  This hook is the only thing that
+        # re-arms the goal loop, so a bare `return` here stops an unattended
+        # run dead while `/goal status` still reports "active".  Mirrors the
+        # Ctrl+C path above: observable and recoverable.
+        if getattr(self, "_last_turn_failed", False):
+            try:
+                mgr.pause(reason="turn failed (provider/API error)")
+            except Exception as exc:
+                logging.debug("goal pause-on-failure failed: %s", exc)
+            _cprint(
+                f"  {_DIM}⏸ Goal paused — the last turn failed. "
+                f"Use /goal resume to continue, or /goal clear to stop.{_RST}"
+            )
+            return
+
+        # Extract the agent's final response for this turn.  Prefer the turn's
+        # OWN final_response: scanning conversation_history backwards picks up
+        # the PREVIOUS turn's answer when this turn failed before appending,
+        # which would have the judge rule on stale text.
+        last_response = str(getattr(self, "_last_turn_final_response", "") or "")
         try:
-            hist = self.conversation_history or []
+            hist = [] if last_response.strip() else (self.conversation_history or [])
             for msg in reversed(hist):
                 if msg.get("role") == "assistant":
                     content = msg.get("content", "")
@@ -12738,7 +12757,8 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                         last_response = str(content or "")
                     break
         except Exception:
-            last_response = ""
+            # Never clobber a final_response we already have from the turn.
+            last_response = last_response or ""
 
         # Skip judging on empty/whitespace-only responses. These are almost
         # always transient failures (API error, empty stream) where the
@@ -16483,6 +16503,19 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             # Expose the flag for post-turn hooks (e.g. goal continuation)
             # so they can skip themselves when the turn was user-cancelled.
             self._last_turn_interrupted = _interrupted_this_turn
+            # Expose this turn's OWN outcome for post-turn hooks (goal
+            # continuation).  Reconstructing the answer from
+            # conversation_history is unreliable in two ways: a tool-call turn
+            # that fails on a later API call leaves an assistant row with empty
+            # content (the goal hook then bails and the loop stops dead), and a
+            # first-call failure leaves the PREVIOUS turn's answer as the newest
+            # assistant row (the judge then rules on stale text).
+            self._last_turn_failed = bool(
+                result and (result.get("failed") or result.get("partial"))
+            )
+            self._last_turn_final_response = str(
+                (result or {}).get("final_response") or ""
+            )
             if _interrupted_this_turn:
                 pending_message = result.get("interrupt_message") or interrupt_msg
                 # #60920: Don't append the interruption marker to response so it

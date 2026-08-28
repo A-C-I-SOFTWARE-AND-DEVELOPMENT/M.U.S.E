@@ -304,16 +304,36 @@ def _validate_registry(data: Any) -> bool:
     return isinstance(data, dict) and len(data) > 0
 
 
+# Memoizes the parsed disk cache on (path, mtime_ns, size).  The file is
+# multi-megabyte (204 providers / 7k+ models) and _load_disk_cache is called
+# more than once per process -- twice during ``import hermes_cli.models``
+# alone -- so re-parsing it dominated import cost.  Keyed on stat() so an
+# out-of-band refresh is still picked up.
+_disk_cache_memo: Dict[tuple, Dict[str, Any]] = {}
+
+
 def _load_disk_cache() -> Dict[str, Any]:
     """Load models.dev data from disk cache.
 
     A corrupt cache (invalid JSON, not a dict, or empty) is rejected with
     a warning so it doesn't silently masquerade as ``{}`` and break
     provider/model resolution for every caller.
+
+    The parsed result is memoized on the file's (path, mtime, size); a
+    changed file re-parses, an unchanged one is returned as-is.
     """
     try:
         cache_path = _get_cache_path()
         if cache_path.exists():
+            _memo_key = None
+            try:
+                _st = cache_path.stat()
+                _memo_key = (str(cache_path), _st.st_mtime_ns, _st.st_size)
+                _hit = _disk_cache_memo.get(_memo_key)
+                if _hit is not None:
+                    return _hit
+            except OSError:
+                _memo_key = None
             with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
             if not _validate_registry(data):
@@ -323,6 +343,8 @@ def _load_disk_cache() -> Dict[str, Any]:
                 )
                 _quarantine_corrupt_cache(cache_path)
                 return {}
+            if _memo_key is not None:
+                _disk_cache_memo[_memo_key] = data
             return data
     except Exception as e:
         logger.warning(
