@@ -44,10 +44,6 @@ _HERMES_CORE_TOOLS = [
     "read_file", "write_file", "patch", "search_files",
     # Vision + image generation
     "vision_analyze", "image_generate",
-    # BFL FLUX 3 video generation
-    "bfl_flux3_text_to_video", "bfl_flux3_image_to_video",
-    "bfl_flux3_keyframes_to_video", "bfl_flux3_video_continuation",
-    "bfl_flux3_get_result", "bfl_flux3_prompting_guide",
     # Skills
     "skills_list", "skill_view", "skill_manage",
     # Browser automation
@@ -161,25 +157,6 @@ TOOLSETS = {
         "includes": []
     },
 
-    "bfl": {
-        "description": (
-            "Black Forest Labs FLUX 3 video generation through the Nous tool "
-            "gateway: per-mode submit tools (text, image, keyframes, "
-            "continuation), a poll tool, and a prompting guide. Generations "
-            "take minutes, so submit returns a job id and the model polls for "
-            "the result."
-        ),
-        "tools": [
-            "bfl_flux3_text_to_video",
-            "bfl_flux3_image_to_video",
-            "bfl_flux3_keyframes_to_video",
-            "bfl_flux3_video_continuation",
-            "bfl_flux3_get_result",
-            "bfl_flux3_prompting_guide",
-        ],
-        "includes": []
-    },
-
     "computer_use": {
         "description": (
             "Background desktop control via cua-driver (macOS/Windows/Linux) — "
@@ -279,7 +256,7 @@ TOOLSETS = {
             "open_preview", "close_preview", "read_preview", "drive_preview", "annotate_preview",
             "read_window_below",
             "focus_pane", "react_to_message",
-            "setup_mcp", "tour",
+            "setup_mcp", "tour", "tip",
         ],
         "includes": []
     },
@@ -469,10 +446,6 @@ TOOLSETS = {
             "read_file", "write_file", "patch", "search_files",
             # Vision + image generation
             "vision_analyze", "image_generate",
-            # BFL FLUX 3 video generation
-            "bfl_flux3_text_to_video", "bfl_flux3_image_to_video",
-            "bfl_flux3_keyframes_to_video", "bfl_flux3_video_continuation",
-            "bfl_flux3_get_result", "bfl_flux3_prompting_guide",
             # Skills
             "skills_list", "skill_view", "skill_manage",
             # Browser automation

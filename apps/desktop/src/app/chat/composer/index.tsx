@@ -2,6 +2,7 @@ import { ComposerPrimitive } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
 import { type ClipboardEvent, type FormEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef } from 'react'
 
+import { useTourMarker } from '@/app/chat/tour-marker'
 import { useHudComposerDrag } from '@/app/hud/composer-drag'
 import { composerFill, composerFloatingStrip, composerSurfaceGlass } from '@/components/chat/composer-dock'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ import { AttachmentList } from './attachments'
 import {
   acceptsTriggerCompletion,
   COMPOSER_FADE_BACKGROUND,
+  implicitSlashAcceptIndex,
   type QueueEditState,
   slashArgStage
 } from './composer-utils'
@@ -107,7 +109,13 @@ export function ChatBar({
   onTranscribeAudio
 }: ChatBarProps) {
   const hudMode = useStore($hudMode)
-  const { grabbing: hudGrabbing, onPointerDown: onHudDragPointerDown } = useHudComposerDrag(hudMode)
+  const hudWindowing = window.hermesDesktop?.hud?.windowing
+  const hudNativeDrag = hudMode && hudWindowing?.nativeDrag === true
+
+  const { grabbing: hudGrabbing, onPointerDown: onHudDragPointerDown } = useHudComposerDrag(hudMode && !hudNativeDrag, {
+    controlDrag: hudWindowing?.controlDrag === true,
+    workspaceTransfer: hudWindowing?.workspaceTransfer === true
+  })
 
   // Typed stop phrase during an active voice conversation ends it — same
   // semantics as SAYING "stop" (voice-stop-word.ts) or clicking the pill's
@@ -168,6 +176,8 @@ export function ChatBar({
   // session id — gateway events and process.list both speak that id. Only the
   // queue uses the stored-session fallback key (prompts can queue pre-resume).
   const statusSessionId = sessionId ?? null
+
+  const composerTourMarker = useTourMarker('composer')
 
   // Coarse edge: re-renders ChatBar only when the stack shows/hides, NOT on
   // every per-item status mutation or other sessions' churn (see the hook).
@@ -685,9 +695,11 @@ export function ChatBar({
         return
       }
 
-      // Accepting the highlighted item: a no-arg command commits its directive
-      // chip, an arg-taking command expands to its options step, and an arg
-      // option commits the full `/cmd arg` chip.
+      // Accepting a completion: a no-arg command commits its directive chip,
+      // an arg-taking command expands to its options step, and an arg option
+      // commits the full `/cmd arg` chip. Space/Enter resolve the pick so a
+      // leftover highlight does not replace a typed command; Tab still takes
+      // the highlight.
       const accept = acceptsTriggerCompletion({
         activeExplicit: triggerActiveExplicit,
         freeTextArgStage: slashFreeTextArgStage,
@@ -697,17 +709,34 @@ export function ChatBar({
       })
 
       if (accept) {
-        event.preventDefault()
-        triggerKeyConsumedRef.current = true
-        const item = triggerItems[triggerActive]
+        const itemTexts = triggerItems.map(item => {
+          const meta = item.metadata as { command?: string; rawText?: string } | undefined
+
+          return meta?.command || meta?.rawText || item.label
+        })
+
+        const item =
+          trigger.kind === '/' && event.key !== 'Tab'
+            ? triggerItems[
+                implicitSlashAcceptIndex(trigger.query, itemTexts, triggerActive, triggerActiveExplicit) ?? -1
+              ]
+            : triggerItems[triggerActive]
 
         if (item) {
+          event.preventDefault()
+          triggerKeyConsumedRef.current = true
           // Tab means "go deeper" on a folder; Enter means "I want this one".
-          // Everything else treats them alike.
           replaceTriggerWithChip(item, { descend: event.key === 'Tab' })
+
+          return
         }
 
-        return
+        if (event.key === 'Tab') {
+          event.preventDefault()
+          triggerKeyConsumedRef.current = true
+
+          return
+        }
       }
 
       // Backspace climbs out of an `@` path one segment at a time, mirroring
@@ -1006,7 +1035,11 @@ export function ChatBar({
           'min-h-[1.625rem] min-h-(--composer-input-min-height) max-h-(--composer-input-max-height) cursor-text overflow-y-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-transparent pb-1 pr-1 pt-1 leading-normal text-foreground outline-none disabled:cursor-not-allowed',
           '**:data-ref-text:cursor-default',
           stacked && 'pl-3',
-          stacked ? 'w-full' : 'min-w-(--composer-input-inline-min-width) flex-1'
+          stacked ? 'w-full' : 'min-w-(--composer-input-inline-min-width) flex-1',
+          // Inside the native Wayland HUD drag region: a drag region swallows
+          // the page's mouse input whole, so the input must opt back out or it
+          // becomes unclickable. Buttons use the global no-drag rule.
+          hudNativeDrag && '[-webkit-app-region:no-drag]'
         )}
         contentEditable={!inputDisabled}
         data-placeholder={placeholder}
@@ -1184,7 +1217,12 @@ export function ChatBar({
             className={cn(
               'group/composer relative w-full overflow-visible rounded-2xl',
               poppedOut && 'bg-transparent',
-              dragging && 'cursor-grabbing select-none touch-none'
+              dragging && 'cursor-grabbing select-none touch-none',
+              // Native Wayland HUD: setBounds cannot position a top-level
+              // surface, so the bar must ask the compositor to move it. X11
+              // stays out of app-region mode so the renderer receives its
+              // Ctrl+primary-button drag. pt-4 is the carved-out grab band.
+              hudNativeDrag && 'hud-native-drag pt-4 [-webkit-app-region:drag]'
             )}
             data-drag-active={dragActive ? '' : undefined}
             data-hud-grabbing={hudGrabbing ? '' : undefined}
@@ -1192,11 +1230,14 @@ export function ChatBar({
             data-slot="composer-root"
             data-status-stack={statusStackVisible ? '' : undefined}
             data-thread-scrolled-up={scrolledUp ? '' : undefined}
+            data-tip-region=""
+            data-tour={composerTourMarker}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            onPointerDown={hudMode ? onHudDragPointerDown : popoutAllowed ? onComposerGesturePointerDown : undefined}
+            onPointerDown={!hudMode && popoutAllowed ? onComposerGesturePointerDown : undefined}
+            onPointerDownCapture={hudMode ? onHudDragPointerDown : undefined}
             onSubmit={e => {
               e.preventDefault()
 

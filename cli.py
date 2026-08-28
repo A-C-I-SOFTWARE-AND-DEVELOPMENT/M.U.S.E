@@ -458,6 +458,7 @@ def load_cli_config() -> Dict[str, Any]:
             "daytona_image": "nikolaik/python-nodejs:python3.11-nodejs20",
             "docker_volumes": [],  # host:container volume mounts for Docker backend
             "docker_mount_cwd_to_workspace": False,  # explicit opt-in only; default off for sandbox isolation
+            "docker_shared_container_key": "",
         },
         "browser": {
             "inactivity_timeout": 120,  # Auto-cleanup inactive browser sessions after 2 min
@@ -524,12 +525,6 @@ def load_cli_config() -> Dict[str, Any]:
         },
         "auxiliary": {
             "vision": {
-                "provider": "auto",
-                "model": "",
-                "base_url": "",
-                "api_key": "",
-            },
-            "web_extract": {
                 "provider": "auto",
                 "model": "",
                 "base_url": "",
@@ -683,6 +678,7 @@ def load_cli_config() -> Dict[str, Any]:
         "docker_network": "TERMINAL_DOCKER_NETWORK",
         "docker_run_as_host_user": "TERMINAL_DOCKER_RUN_AS_HOST_USER",
         "docker_persist_across_processes": "TERMINAL_DOCKER_PERSIST_ACROSS_PROCESSES",
+        "docker_shared_container_key": "TERMINAL_DOCKER_SHARED_CONTAINER_KEY",
         "docker_orphan_reaper": "TERMINAL_DOCKER_ORPHAN_REAPER",
         "sandbox_dir": "TERMINAL_SANDBOX_DIR",
         # Persistent shell (non-local backends)
@@ -734,12 +730,6 @@ def load_cli_config() -> Dict[str, Any]:
             "model": "AUXILIARY_VISION_MODEL",
             "base_url": "AUXILIARY_VISION_BASE_URL",
             "api_key": "AUXILIARY_VISION_API_KEY",
-        },
-        "web_extract": {
-            "provider": "AUXILIARY_WEB_EXTRACT_PROVIDER",
-            "model": "AUXILIARY_WEB_EXTRACT_MODEL",
-            "base_url": "AUXILIARY_WEB_EXTRACT_BASE_URL",
-            "api_key": "AUXILIARY_WEB_EXTRACT_API_KEY",
         },
         "approval": {
             "provider": "AUXILIARY_APPROVAL_PROVIDER",
@@ -1436,9 +1426,50 @@ def _flush_one_shot_session_store(cli) -> None:
         logger.debug("one-shot end_session failed", exc_info=True)
 
 
+def _wait_for_oneshot_background_completions(cli) -> None:
+    """Bounded linger for notify_on_complete background processes (#90879).
+
+    A one-shot run (``-q`` / ``-Q``) that spawned bounded background work —
+    most importantly a Bot Mode handoff reply via ``message_agent`` /
+    ``bot_relay``, spawned as ``terminal(background=true,
+    notify_on_complete=true)`` — must not exit while that work is still
+    running: the children write to pipes owned by this process and are
+    destroyed shortly after it dies. Delegates the actual wait (and its
+    ``terminal.oneshot_completion_wait_seconds`` bound) to the process
+    registry. Cheap no-op when nothing is pending.
+    """
+    from tools.process_registry import process_registry
+
+    agent = getattr(cli, "agent", None)
+    task_id = getattr(agent, "session_id", None) or getattr(cli, "session_id", None)
+    # Wait on the whole registry, not just this task's processes: a one-shot
+    # CLI process hosts exactly one agent, so every tracked process in this
+    # interpreter was spawned by this run (task_id filtering would silently
+    # skip processes registered before the session id settled).
+    result = process_registry.wait_for_pending_completions(None)
+    if result.get("waited"):
+        logger.info(
+            "One-shot exit linger for session %s: completed=%s timed_out=%s",
+            task_id or "<unknown>",
+            result.get("completed"),
+            result.get("timed_out"),
+        )
+
+
 def _finalize_single_query(cli) -> None:
     """Close one-shot CLI resources before releasing the active session lease."""
     try:
+        # Linger (bounded) for background processes the turn spawned with
+        # notify_on_complete=true BEFORE any teardown. The one-shot parent
+        # owns those children's stdout pipes; exiting now kills the delivery
+        # a few seconds later. Bot Mode handoff replies dispatched from a
+        # short-lived `hermes -p <bot> chat -Q` recipient (message_agent /
+        # bot_relay spawns) are exactly this shape and were silently
+        # destroyed on parent exit (#90879).
+        try:
+            _wait_for_oneshot_background_completions(cli)
+        except Exception:
+            logger.debug("one-shot background completion wait failed", exc_info=True)
         # Durable flush FIRST: memory-provider shutdown inside _run_cleanup
         # can issue aux-LLM calls, and nothing after it may fail in a way
         # that loses the turn (#88583).
@@ -5233,25 +5264,26 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         else:
             self.api_key = api_key or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
         # Max turns priority: CLI arg > config file > env var > default
+        # All paths go through resolve_turn_limit() so that agent.max_turns
+        # accepts "none"/"unlimited" (→ sys.maxsize) in addition to ints.
+        # See hermes_cli.config.resolve_turn_limit for the full spelling table.
+        from hermes_cli.config import resolve_turn_limit as _resolve_turn_limit
         if max_turns is not None:  # CLI arg was explicitly set
-            self.max_turns = max_turns
-        elif CLI_CONFIG["agent"].get("max_turns"):
-            self.max_turns = CLI_CONFIG["agent"]["max_turns"]
-        elif CLI_CONFIG.get("max_turns"):  # Backwards compat: root-level max_turns
+            self.max_turns = _resolve_turn_limit(max_turns)
+        elif CLI_CONFIG["agent"].get("max_turns") is not None:
+            self.max_turns = _resolve_turn_limit(CLI_CONFIG["agent"]["max_turns"])
+        elif CLI_CONFIG.get("max_turns") is not None:  # Backwards compat: root-level max_turns
             # KEEP (evaluated for the v12 support-floor cleanup, July 2026):
             # no versioned config migration ever rewrote root-level max_turns
             # to agent.max_turns on disk — only load-time normalization
             # (_normalize_max_turns_config) folds it, and configs read through
             # other paths may bypass it. This fallback is therefore the only
             # safety net for configs that still carry the root key.
-            self.max_turns = CLI_CONFIG["max_turns"]
-        elif os.getenv("HERMES_MAX_ITERATIONS"):
-            try:
-                self.max_turns = int(os.getenv("HERMES_MAX_ITERATIONS", ""))
-            except (TypeError, ValueError):
-                self.max_turns = 500
+            self.max_turns = _resolve_turn_limit(CLI_CONFIG["max_turns"])
         else:
-            self.max_turns = 500
+            # Env var bridge (set by gateway/run.py from config.yaml, or by the
+            # user directly). Empty/unset → default (unlimited).
+            self.max_turns = _resolve_turn_limit(os.getenv("HERMES_MAX_ITERATIONS"))
 
         # Wall-clock run budget: CLI flag wins over config; both optional.
         # None keeps the feature fully off (AIAgent stays dormant).
@@ -5259,7 +5291,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             self.run_budget_seconds = run_budget
         else:
             self.run_budget_seconds = CLI_CONFIG["agent"].get("run_budget_seconds")
-        
+
         # Parse and validate toolsets
         self.enabled_toolsets = toolsets
         from agent.skill_utils import parse_config_string_list
@@ -5490,6 +5522,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             self._composer_placeholder = get_random_composer_placeholder()
         except Exception:
             self._composer_placeholder = ""
+        self._command_palette_state = None
         # Armed when a bare `/resume` prints the recent-sessions list so the
         # very next bare numeric input (e.g. `3`) resolves to that session.
         # Holds the exact list used for index resolution; one-shot (cleared on
@@ -7076,7 +7109,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             return f"⚕ {self.model if getattr(self, 'model', None) else 'Hermes'}"
 
     def _get_status_bar_fragments(self):
-        if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
+        if not self._status_bar_visible or getattr(self, '_model_picker_state', None) or getattr(self, '_command_palette_state', None):
             return []
         try:
             snapshot = self._get_status_bar_snapshot()
@@ -7382,7 +7415,9 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 pass
             return changed
 
-        if resolved_provider in {"opencode-zen", "opencode-go"}:
+        from hermes_cli.models import opencode_provider_family
+
+        if opencode_provider_family(resolved_provider) is not None:
             try:
                 from hermes_cli.models import normalize_opencode_model_id, opencode_model_api_mode
 
@@ -9256,9 +9291,31 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             return self._fast_command_available()
         return True
 
-    def show_help(self):
-        """Display help information with categorized commands."""
-        from hermes_cli.commands import COMMANDS_BY_CATEGORY
+    def show_help(self, arg: str = ""):
+        """Display help. Bare /help shows categorized core commands with the
+        skill list collapsed to one line; /help skills lists all skill
+        commands; /help <query> filters commands by substring.
+        """
+        from hermes_cli.commands import COMMANDS_BY_CATEGORY, HELP_SESSION_SUBGROUPS
+
+        arg = (arg or "").strip()
+        skill_commands = _ensure_skill_commands()
+
+        # /help skills — the full skill-command list (kept out of the default
+        # view so core commands don't scroll off screen).
+        if arg.lower() in ("skills", "skill"):
+            if not skill_commands:
+                _cprint("\n  No skill commands installed.\n")
+                return
+            _cprint(f"\n  ⚡ {_BOLD}Skill Commands{_RST} ({len(skill_commands)} installed):")
+            for cmd, info in sorted(skill_commands.items()):
+                ChatConsole().print(
+                    f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
+                )
+            _cprint("")
+            return
+
+        query = arg.lower() if arg else ""
 
         try:
             from hermes_cli.skin_engine import get_active_help_header
@@ -9273,23 +9330,76 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         _cprint(f"{_BOLD}|{header:^{inner_width}}|{_RST}")
         _cprint(f"{_BOLD}+{'-' * inner_width}+{_RST}")
 
+        def _emit(cmd: str, desc: str) -> bool:
+            if not self._command_available(cmd):
+                return False
+            if query and query not in cmd.lower() and query not in desc.lower():
+                return False
+            ChatConsole().print(
+                f"    [bold {_accent_hex()}]{cmd:<15}[/] [dim]-[/] {_escape(desc)}"
+            )
+            return True
+
         for category, commands in COMMANDS_BY_CATEGORY.items():
-            _cprint(f"\n  {_BOLD}── {category} ──{_RST}")
+            if category == "Session":
+                # Split the oversized Session category into readable sub-groups
+                # (Session / Context / Background & Automation) in the renderer.
+                sub_of: dict[str, str] = {}
+                for _sub, _names in HELP_SESSION_SUBGROUPS.items():
+                    for _n in _names:
+                        sub_of[f"/{_n}"] = _sub
+                buckets: dict[str, list[tuple[str, str]]] = {"Session": []}
+                for _sub in HELP_SESSION_SUBGROUPS:
+                    buckets[_sub] = []
+                for cmd, desc in commands.items():
+                    buckets[sub_of.get(cmd, "Session")].append((cmd, desc))
+                for _sub in ("Session", *HELP_SESSION_SUBGROUPS.keys()):
+                    rows = buckets.get(_sub) or []
+                    printed_header = False
+                    for cmd, desc in rows:
+                        if not self._command_available(cmd):
+                            continue
+                        if query and query not in cmd.lower() and query not in desc.lower():
+                            continue
+                        if not printed_header:
+                            _cprint(f"\n  {_BOLD}── {_sub} ──{_RST}")
+                            printed_header = True
+                        _emit(cmd, desc)
+                continue
+
+            printed_header = False
             for cmd, desc in commands.items():
                 if not self._command_available(cmd):
                     continue
-                ChatConsole().print(f"    [bold {_accent_hex()}]{cmd:<15}[/] [dim]-[/] {_escape(desc)}")
+                if query and query not in cmd.lower() and query not in desc.lower():
+                    continue
+                if not printed_header:
+                    _cprint(f"\n  {_BOLD}── {category} ──{_RST}")
+                    printed_header = True
+                _emit(cmd, desc)
 
-        skill_commands = _ensure_skill_commands()
-        if skill_commands:
-            _cprint(f"\n  ⚡ {_BOLD}Skill Commands{_RST} ({len(skill_commands)} installed):")
-            for cmd, info in sorted(skill_commands.items()):
-                ChatConsole().print(
-                    f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
-                )
+        # Skill commands: collapsed to a one-line pointer by default so the
+        # 60+ skill entries don't bury the core command reference (C-04).
+        if query:
+            # In filter mode, DO include matching skill commands inline.
+            matched_skills = [
+                (cmd, info) for cmd, info in sorted(skill_commands.items())
+                if query in cmd.lower() or query in (info.get("description", "").lower())
+            ]
+            if matched_skills:
+                _cprint(f"\n  ⚡ {_BOLD}Skill Commands{_RST} (matching '{arg}'):")
+                for cmd, info in matched_skills:
+                    ChatConsole().print(
+                        f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
+                    )
+        elif skill_commands:
+            _cprint(
+                f"\n  ⚡ {_BOLD}Skill Commands{_RST}: {len(skill_commands)} installed "
+                f"— {_DIM}/help skills{_RST} to list them"
+            )
 
         _bundles_now = get_skill_bundles()
-        if _bundles_now:
+        if _bundles_now and not query:
             _cprint(f"\n  ▣ {_BOLD}Skill Bundles{_RST} ({len(_bundles_now)} installed):")
             for cmd, info in sorted(_bundles_now.items()):
                 skill_count = len(info.get("skills", []))
@@ -9300,7 +9410,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 )
 
         quick_commands = self.config.get("quick_commands", {})
-        if quick_commands:
+        if quick_commands and not query:
             _cprint(f"\n  ⚡ {_BOLD}Quick Commands{_RST} ({len(quick_commands)} configured):")
             for name, qcmd in sorted(quick_commands.items()):
                 desc = qcmd.get("description", qcmd.get("type", ""))
@@ -9308,8 +9418,12 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                     f"    [bold {_accent_hex()}]{('/' + name):<22}[/] [dim]-[/] {_escape(desc)}"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Hermes!{_RST}")
-        _cprint(f"  {_DIM}Multi-line: Ctrl+J, Alt+Enter, or \\+Enter for a new line{_RST}")
+        if query:
+            _cprint(f"\n  {_DIM}Filtered by '{arg}' — run /help for the full list.{_RST}\n")
+            return
+
+        _cprint(f"\n  {_DIM}Tip: /help skills lists skill commands · /help <text> filters · Ctrl+P opens the command palette{_RST}")
+        _cprint(f"  {_DIM}Multi-line: Ctrl+J, Alt+Enter, or \\\\+Enter for a new line{_RST}")
         _cprint(f"  {_DIM}Draft editor: Ctrl+G (Alt+G in VSCode/Cursor){_RST}")
         if _is_termux_environment():
             _cprint(f"  {_DIM}Attach image: /image {_termux_example_image_path()} or start your prompt with a local image path{_RST}\n")
@@ -10050,6 +10164,118 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 print(f"       Resume the live session with: hermes --resume {self.session_id}")
         except Exception as e:
             print(f"(x_x) Failed to save: {e}")
+
+    def _rewind_persisted_user_turn(
+        self,
+        *,
+        warm_history: List[Dict[str, Any]],
+        user_ordinal: int,
+        warm_live_view: Dict[str, Any],
+    ) -> tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
+        """Bind one warm user ordinal to a durable row and rewind it atomically."""
+        if self._session_db is None or not self.session_id:
+            raise RuntimeError("session database is unavailable")
+
+        from agent.context_compressor import (
+            history_before_user_originated_turn,
+            split_user_originated_turn,
+            user_originated_turn_view,
+        )
+        from agent.memory_manager import sanitize_context
+        from agent.tool_dispatch_helpers import (
+            _is_multimodal_tool_result,
+            _multimodal_text_summary,
+        )
+        from run_agent import _is_ephemeral_scaffolding
+
+        def _persistence_content(content: Any) -> Any:
+            """Project warm content exactly as the session DB flush does."""
+            if _is_multimodal_tool_result(content):
+                return _multimodal_text_summary(content)
+            if isinstance(content, list):
+                text_parts = []
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") == "text":
+                        text_parts.append(str(part.get("text", "")))
+                    elif isinstance(part, dict) and part.get("type") in {
+                        "image",
+                        "image_url",
+                        "input_image",
+                    }:
+                        text_parts.append("[screenshot]")
+                return "\n".join(text_parts) if text_parts else None
+            return content
+
+        def _comparison_content(message: Dict[str, Any]) -> Any:
+            content = _persistence_content(message.get("content"))
+            if message.get("role") in {"user", "assistant"} and isinstance(
+                content, str
+            ):
+                return sanitize_context(content).strip()
+            return content
+
+        expected_active_ids = self._session_db.get_active_message_ids(
+            self.session_id
+        )
+        durable = self._session_db.get_messages_as_conversation(
+            self.session_id,
+            include_row_ids=True,
+        )
+        warm_persistence_history = [
+            message
+            for message in warm_history
+            if not _is_ephemeral_scaffolding(message)
+        ]
+        warm_user_indices = [
+            index
+            for index, message in enumerate(warm_persistence_history)
+            if user_originated_turn_view(message) is not None
+        ]
+        durable_user_indices = [
+            index
+            for index, message in enumerate(durable)
+            if user_originated_turn_view(message) is not None
+        ]
+        if len(durable_user_indices) != len(warm_user_indices):
+            raise RuntimeError(
+                "session history changed before the rewind could be persisted"
+            )
+        if user_ordinal < 0 or user_ordinal >= len(durable_user_indices):
+            raise RuntimeError("persisted rewind target is no longer available")
+
+        warm_prefix, _ = history_before_user_originated_turn(
+            warm_persistence_history, warm_user_indices[user_ordinal]
+        )
+        durable_target_index = durable_user_indices[user_ordinal]
+        durable_target = durable[durable_target_index]
+        durable_prefix, durable_live_view = history_before_user_originated_turn(
+            durable, durable_target_index
+        )
+        if _comparison_content(durable_live_view) != _comparison_content(
+            warm_live_view
+        ):
+            raise RuntimeError(
+                "session history changed before the rewind could be persisted"
+            )
+        target_row_id = durable_target.get("_row_id")
+        if not isinstance(target_row_id, int):
+            raise RuntimeError("persisted rewind target has no row identity")
+        scaffold, _ = split_user_originated_turn(durable_target)
+        result = self._session_db.rewind_to_message(
+            self.session_id,
+            target_row_id,
+            preserve_compaction_handoff=scaffold is not None,
+            expected_active_ids=expected_active_ids,
+            expected_target_content=durable_live_view.get("content"),
+        )
+        if scaffold is not None:
+            replacement_id = result.get("replacement_message_id")
+            if not isinstance(replacement_id, int) or not durable_prefix:
+                raise RuntimeError("rewind did not retain its compaction handoff")
+            durable_prefix[-1]["_row_id"] = replacement_id
+            durable_prefix[-1]["_db_persisted"] = True
+            warm_prefix[-1] = durable_prefix[-1]
+        return warm_prefix, durable_live_view, result
     
     def retry_last(self):
         """Retry the last user message by removing the last exchange and re-sending.
@@ -10064,25 +10290,71 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         
         # Walk backwards to the last *real* user message. Timeline bookkeeping
         # rows (display_kind set) are role=user but are not user turns — match
-        # CLI resume counting and list_recent_user_messages. Compaction
+        # CLI resume counting and user_originated_turn_view. Compaction
         # handoffs are excluded too (durable role=user, sometimes without
         # display_kind on legacy sessions; #80622).
-        from agent.context_compressor import is_user_originated_turn
+        from agent.context_compressor import (
+            history_before_user_originated_turn,
+            retryable_user_text,
+            user_originated_turn_view,
+        )
+        from agent.memory_manager import sanitize_context
+        from run_agent import _is_ephemeral_scaffolding
 
-        last_user_idx = None
-        for i in range(len(self.conversation_history) - 1, -1, -1):
-            msg = self.conversation_history[i]
-            if is_user_originated_turn(msg):
-                last_user_idx = i
-                break
+        warm_history = list(self.conversation_history)
+
+        user_indices = [
+            index
+            for index, message in enumerate(warm_history)
+            if not _is_ephemeral_scaffolding(message)
+            and user_originated_turn_view(message) is not None
+        ]
         
-        if last_user_idx is None:
+        if not user_indices:
             print("(._.) No user message found to retry.")
             return None
+        last_user_idx = user_indices[-1]
         
-        # Extract the message text and remove everything from that point forward
-        last_message = self.conversation_history[last_user_idx].get("content", "")
-        self.conversation_history = self.conversation_history[:last_user_idx]
+        # Resolve a lossless live payload before touching either persistence or
+        # memory. A force-user-leading compaction row is one physical carrier:
+        # its historical handoff remains in the prefix while only the embedded
+        # human ask is retried. Media cannot be replayed by /retry, so fail
+        # closed before archiving anything.
+        try:
+            truncated, live_view = history_before_user_originated_turn(
+                warm_history, last_user_idx
+            )
+            live_content = live_view.get("content")
+            if isinstance(live_content, str):
+                live_content = sanitize_context(live_content).strip()
+            last_message = retryable_user_text(live_content)
+        except ValueError as exc:
+            print(f"(._.) Cannot retry that message safely: {exc}")
+            return None
+
+        # Persist the rewind before publishing the shorter in-memory view.
+        # The DB owns the physical carrier split so the archived original and
+        # retained scaffold are committed atomically. A plain user row keeps
+        # the legacy rewind shape (no replacement scaffold).
+        if self._session_db is not None and self.session_id:
+            try:
+                truncated, _, _ = self._rewind_persisted_user_turn(
+                    warm_history=warm_history,
+                    user_ordinal=len(user_indices) - 1,
+                    warm_live_view=live_view,
+                )
+            except Exception as exc:
+                print(f"(x_x) Retry rewind failed; history was not changed: {exc}")
+                return None
+
+        self.conversation_history = truncated
+        if self.agent is not None:
+            if hasattr(self.agent, "_session_messages"):
+                self.agent._session_messages = self.conversation_history
+            if hasattr(self.agent, "_last_flushed_db_idx"):
+                self.agent._last_flushed_db_idx = len(self.conversation_history)
+            if hasattr(self.agent, "_db_flush_scan_prefix"):
+                self.agent._db_flush_scan_prefix = self.conversation_history[:]
         
         print(f"(^_^)b Retrying: \"{last_message[:60]}{'...' if len(last_message) > 60 else ''}\"")
         return last_message
@@ -10119,61 +10391,64 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
 
         # Walk backwards collecting the indices of the last N *real* user
         # messages (exclude display_kind timeline rows and compaction
-        # handoffs — same predicate as list_recent_user_messages, resume
+        # handoffs — same predicate as user_originated_turn_view, resume
         # turn counting, and /retry; #80622).
-        from agent.context_compressor import is_user_originated_turn
+        from agent.context_compressor import (
+            history_before_user_originated_turn,
+            user_originated_turn_view,
+        )
+        from run_agent import _is_ephemeral_scaffolding
 
-        user_indices = []
-        for i in range(len(self.conversation_history) - 1, -1, -1):
-            msg = self.conversation_history[i]
-            if is_user_originated_turn(msg):
-                user_indices.append(i)
-                if len(user_indices) >= n:
-                    break
+        warm_history = list(self.conversation_history)
+
+        user_indices = [
+            index
+            for index, message in enumerate(warm_history)
+            if not _is_ephemeral_scaffolding(message)
+            and user_originated_turn_view(message) is not None
+        ]
 
         if not user_indices:
             print("(._.) No user message found to undo.")
             return
 
-        # The oldest of the collected user messages is our truncation point.
-        cut_idx = user_indices[-1]
-        turns_undone = len(user_indices)
+        turns_undone = min(n, len(user_indices))
+        target_ordinal = len(user_indices) - turns_undone
+        cut_idx = user_indices[target_ordinal]
 
-        removed_count = len(self.conversation_history) - cut_idx
-        removed_msg = self.conversation_history[cut_idx].get("content", "")
-        removed_text = self._undo_content_to_text(removed_msg)
-
-        # Truncate the in-memory history to before that user message.
-        self.conversation_history = self.conversation_history[:cut_idx]
+        removed_count = len(warm_history) - cut_idx
+        truncated, live_view = history_before_user_originated_turn(
+            warm_history, cut_idx
+        )
+        removed_text = self._undo_content_to_text(live_view.get("content"))
 
         # Soft-delete the truncated rows on disk so re-prompts and search
         # see the clean transcript while the rows survive for audit.
         rewound_rows = 0
         if self._session_db is not None and self.session_id:
             try:
-                recents = self._session_db.list_recent_user_messages(
-                    self.session_id, limit=max(turns_undone, 10)
+                truncated, durable_live_view, result = (
+                    self._rewind_persisted_user_turn(
+                        warm_history=warm_history,
+                        user_ordinal=target_ordinal,
+                        warm_live_view=live_view,
+                    )
                 )
-                if recents:
-                    target_idx = min(turns_undone - 1, len(recents) - 1)
-                    target_id = recents[target_idx]["id"]
-                    result = self._session_db.rewind_to_message(
-                        self.session_id, target_id
-                    )
-                    rewound_rows = result.get("rewound_count", 0)
-                    # Prefer the DB's decoded target text for the prefill —
-                    # it's the canonical persisted copy.
-                    db_text = self._undo_content_to_text(
-                        (result.get("target_message") or {}).get("content")
-                    )
-                    if db_text:
-                        removed_text = db_text
-            except ValueError as e:
-                # Non-user target / cross-session — keep the in-memory undo
-                # but skip the soft-delete; surface a debug-level note.
-                logger.debug("undo: soft-delete skipped: %s", e)
+                # Canonicalize the editable prefill before mutation. The raw
+                # physical carrier contains the reference summary wrapper.
+                durable_text = self._undo_content_to_text(
+                    durable_live_view.get("content")
+                )
+                if durable_text:
+                    removed_text = durable_text
+                rewound_rows = result.get("rewound_count", 0)
             except Exception as e:
-                logger.debug("undo: soft-delete failed: %s", e)
+                logger.debug("undo: durable rewind failed: %s", e)
+                print(f"(x_x) Undo failed; history was not changed: {e}")
+                return
+
+        # Publish only after the durable rewind succeeds (or no store exists).
+        self.conversation_history = truncated
 
         # Agent surgery: invalidate the system-prompt cache and reset the
         # flush index so the next turn re-flushes from the truncated head.
@@ -10188,6 +10463,10 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                     self.agent._last_flushed_db_idx = len(self.conversation_history)
                 except Exception:
                     pass
+            if hasattr(self.agent, "_session_messages"):
+                self.agent._session_messages = self.conversation_history
+            if hasattr(self.agent, "_db_flush_scan_prefix"):
+                self.agent._db_flush_scan_prefix = self.conversation_history[:]
             # Notify memory providers — same hook /branch fires, with the
             # rewound flag so per-turn document caches invalidate (#6672, #21910).
             try:
@@ -10575,6 +10854,121 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         _append_panel_line(lines, 'class:approval-border', 'class:approval-cmd', 'Type 1/2/3 or use ↑/↓ then Enter. ESC/Ctrl+C cancels.', box_width)
         lines.append(('class:approval-border', '╰' + ('─' * box_width) + '╯\n'))
         return lines
+
+    def _build_command_palette_entries(self) -> list:
+        """Flat list of (command, description) for the Ctrl+P palette.
+
+        Sourced from the same COMMAND_REGISTRY that backs /help, filtered to
+        commands available on this surface, plus installed skill commands.
+        Selecting an entry inserts the exact command string — never a fuzzy
+        resolution.
+        """
+        from hermes_cli.commands import COMMANDS_BY_CATEGORY
+
+        entries: list[tuple[str, str, str]] = []  # (command, category, desc)
+        for category, commands in COMMANDS_BY_CATEGORY.items():
+            for cmd, desc in commands.items():
+                if not self._command_available(cmd):
+                    continue
+                entries.append((cmd, category, desc))
+        try:
+            for cmd, info in sorted(_ensure_skill_commands().items()):
+                entries.append((cmd, "Skill", info.get("description", "")))
+        except Exception:
+            pass
+        return entries
+
+    def _open_command_palette(self) -> None:
+        """Open the Ctrl+P fuzzy command palette modal."""
+        if getattr(self, "_command_palette_state", None):
+            return
+        # Don't stack over other modals.
+        if (self._model_picker_state or self._clarify_state or self._approval_state
+                or self._slash_confirm_state or self._sudo_state or self._secret_state):
+            return
+        self._capture_modal_input_snapshot()
+        self._command_palette_state = {
+            "entries": self._build_command_palette_entries(),
+            "filter": "",
+            "selected": 0,
+            "_scroll_offset": 0,
+        }
+        self._invalidate(min_interval=0.0)
+
+    def _close_command_palette(self) -> None:
+        self._command_palette_state = None
+        self._restore_modal_input_snapshot()
+        self._invalidate(min_interval=0.0)
+
+    def _command_palette_visible_entries(self) -> list:
+        """Return (command, category, desc) rows matching the active filter.
+
+        Ranked, command-name-focused matching (a bare subsequence over the
+        whole "cmd category desc" string is uselessly permissive — "steer"
+        would match 130+ rows via description text). Priority:
+          0 exact command match
+          1 command startswith query
+          2 query substring in command
+          3 query subsequence in command
+          4 query substring in description
+        Rows that match nowhere are dropped. Ties keep registry order.
+        """
+        state = self._command_palette_state or {}
+        entries = state.get("entries") or []
+        q = (state.get("filter", "") or "").strip().lower()
+        if not q:
+            return list(entries)
+
+        def _subseq(needle: str, hay: str) -> bool:
+            it = iter(hay)
+            return all(ch in it for ch in needle)
+
+        ranked = []
+        for order, row in enumerate(entries):
+            cmd, _cat, desc = row
+            name = cmd.lower().lstrip("/")
+            qn = q.lstrip("/")
+            desc_l = (desc or "").lower()
+            if name == qn:
+                rank = 0
+            elif name.startswith(qn):
+                rank = 1
+            elif qn in name:
+                rank = 2
+            elif _subseq(qn, name):
+                rank = 3
+            elif q in desc_l:
+                rank = 4
+            else:
+                continue
+            ranked.append((rank, order, row))
+        ranked.sort(key=lambda t: (t[0], t[1]))
+        return [row for (_r, _o, row) in ranked]
+
+    def _handle_command_palette_selection(self) -> None:
+        """Insert the selected command into the composer (does not auto-run)."""
+        state = self._command_palette_state
+        if not state:
+            return
+        rows = self._command_palette_visible_entries()
+        selected = state.get("selected", 0)
+        if not (0 <= selected < len(rows)):
+            self._close_command_palette()
+            return
+        cmd = rows[selected][0]  # exact command string, e.g. "/model"
+        self._close_command_palette()
+        # Prefill the composer so the user can add args / confirm — never
+        # auto-execute (a palette pick should be explicit, and many commands
+        # take arguments).
+        try:
+            app = getattr(self, "_app", None)
+            if app is not None:
+                buf = app.current_buffer
+                buf.text = cmd + " "
+                buf.cursor_position = len(buf.text)
+                self._invalidate(min_interval=0.0)
+        except Exception:
+            logger.debug("command palette prefill failed", exc_info=True)
 
     def _open_model_picker(self, providers: list, current_model: str, current_provider: str, user_provs=None, custom_provs=None) -> None:
         """Open prompt_toolkit-native /model picker modal."""
@@ -11634,7 +12028,10 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 return True
             return False
         elif canonical == "help":
-            self.show_help()
+            _help_parts = cmd_original.split(None, 1)
+            self.show_help(_help_parts[1].strip() if len(_help_parts) > 1 else "")
+        elif canonical == "palette":
+            self._open_command_palette()
         elif canonical == "whoami":
             self._handle_whoami_command()
         elif canonical == "profile":
@@ -12079,6 +12476,8 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             self._handle_heartbeat_command(cmd_original)
         elif canonical == "refine":
             self._handle_refine_command(cmd_original)
+        elif canonical == "review":
+            self._handle_review_command(cmd_original)
         elif canonical == "loop":
             self._handle_loop_command(cmd_original)
         elif canonical == "moa":
@@ -15487,14 +15886,16 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
 
     def _approval_callback(self, command: str, description: str,
                            *, allow_permanent: bool = True,
+                           allow_session: bool = True,
                            smart_denied: bool = False) -> str:
         """
         Prompt for dangerous command approval through the prompt_toolkit UI.
 
         Called from the agent thread. Shows a selection UI similar to clarify
         with choices: once / session / always / deny. Smart DENY owner
-        overrides show only once / deny. When allow_permanent is False for
-        another reason (for example tirith), only 'always' is hidden.
+        overrides show only once / deny, as do gates that re-ask every time
+        (allow_session=False). When allow_permanent is False for another
+        reason (for example tirith), only 'always' is hidden.
         Long commands also get a 'view' option so the full command can be
         expanded before deciding.
 
@@ -15514,6 +15915,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 "choices": self._approval_choices(
                     command,
                     allow_permanent=allow_permanent,
+                    allow_session=allow_session,
                     smart_denied=smart_denied,
                 ),
                 "selected": 0,
@@ -15565,9 +15967,10 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             return "timeout"
 
     def _approval_choices(self, command: str, *, allow_permanent: bool = True,
+                          allow_session: bool = True,
                           smart_denied: bool = False) -> list[str]:
         """Return approval choices for a dangerous command prompt."""
-        if smart_denied:
+        if smart_denied or not allow_session:
             choices = ["once", "deny"]
         else:
             choices = ["once", "session", "always", "deny"] if allow_permanent else ["once", "session", "deny"]
@@ -17140,6 +17543,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         slash_confirm_widget=None,
         clarify_widget,
         model_picker_widget=None,
+        command_palette_widget=None,
         spinner_widget=None,
         spacer,
         status_bar,
@@ -17165,6 +17569,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 slash_confirm_widget,
                 clarify_widget,
                 model_picker_widget,
+                command_palette_widget,
                 spinner_widget,
                 spacer,
                 *self._get_extra_tui_widgets(),
@@ -18183,6 +18588,69 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             event.app.current_buffer.reset()
             event.app.invalidate()
 
+        # --- Ctrl+P command palette keybindings ---
+        def _palette_active() -> bool:
+            return bool(self._command_palette_state)
+
+        @kb.add('c-p', filter=Condition(
+            lambda: not self._command_palette_state
+            and not self._model_picker_state and not self._clarify_state
+            and not self._approval_state and not self._slash_confirm_state
+            and not self._sudo_state and not self._secret_state
+        ))
+        def open_command_palette(event):
+            self._open_command_palette()
+            event.app.invalidate()
+
+        @kb.add('up', filter=Condition(_palette_active))
+        def command_palette_up(event):
+            st = self._command_palette_state
+            if st:
+                st["selected"] = max(0, st.get("selected", 0) - 1)
+                event.app.invalidate()
+
+        @kb.add('down', filter=Condition(_palette_active))
+        def command_palette_down(event):
+            st = self._command_palette_state
+            if st:
+                n = st.get("_visible_count", len(self._command_palette_visible_entries()))
+                st["selected"] = min(max(0, n - 1), st.get("selected", 0) + 1)
+                event.app.invalidate()
+
+        @kb.add('enter', filter=Condition(_palette_active))
+        def command_palette_enter(event):
+            self._handle_command_palette_selection()
+            event.app.invalidate()
+
+        @kb.add('backspace', filter=Condition(_palette_active))
+        def command_palette_backspace(event):
+            st = self._command_palette_state
+            if st:
+                st["filter"] = (st.get("filter", "") or "")[:-1]
+                st["selected"] = 0
+                st["_scroll_offset"] = 0
+                event.app.invalidate()
+
+        @kb.add('escape', filter=Condition(_palette_active), eager=True)
+        def command_palette_escape(event):
+            self._close_command_palette()
+            event.app.invalidate()
+
+        def _make_palette_char_handler(ch: str):
+            def handler(event):
+                st = self._command_palette_state
+                if not st:
+                    return
+                st["filter"] = (st.get("filter", "") or "") + ch
+                st["selected"] = 0
+                st["_scroll_offset"] = 0
+                event.app.invalidate()
+            return handler
+
+        import string as _pstring
+        for _pch in _pstring.digits + _pstring.ascii_letters + "-_.:/ ":
+            kb.add(_pch, filter=Condition(_palette_active))(_make_palette_char_handler(_pch))
+
         # Number keys for quick approval selection (1-9, 0 for 10th item)
         def _make_approval_number_handler(idx):
             def handler(event):
@@ -18216,7 +18684,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         # Buffer.auto_up/auto_down handle both: cursor movement when multi-line,
         # history browsing when on the first/last line (or single-line input).
         _normal_input = Condition(
-            lambda: not self._clarify_state and not self._approval_state and not self._slash_confirm_state and not self._sudo_state and not self._secret_state and not self._model_picker_state
+            lambda: not self._clarify_state and not self._approval_state and not self._slash_confirm_state and not self._sudo_state and not self._secret_state and not self._model_picker_state and not self._command_palette_state
         )
 
         def _recall_without_recollapse(buf, move):
@@ -18300,6 +18768,13 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             # Cancel /model picker (foreground UI — cancel and stop here).
             if self._model_picker_state:
                 self._close_model_picker()
+                event.app.current_buffer.reset()
+                event.app.invalidate()
+                return
+
+            # Cancel command palette (foreground UI — cancel and stop here).
+            if self._command_palette_state:
+                self._close_command_palette()
                 event.app.current_buffer.reset()
                 event.app.invalidate()
                 return
@@ -19541,6 +20016,62 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
             filter=Condition(lambda: cli_ref._model_picker_state is not None),
         )
 
+        # --- Ctrl+P command palette: display widget ---
+        def _get_command_palette_display():
+            state = cli_ref._command_palette_state
+            if not state:
+                return []
+            rows = cli_ref._command_palette_visible_entries()
+            state["_visible_count"] = len(rows)
+            _query = state.get("filter", "") or ""
+            total = len(state.get("entries") or [])
+            title = "⚙ Command Palette"
+            if _query:
+                hint = f"Filter: {_query}▏  ({len(rows)}/{total} match — Enter inserts, Esc cancels)"
+            else:
+                hint = f"Type to filter {total} commands — ↑/↓ then Enter inserts, Esc cancels"
+
+            labels = [f"{c}  —  {d}" if d else c for (c, _cat, d) in rows]
+            if not labels:
+                labels = ["(no matching commands)"]
+            box_width = _panel_box_width(title, [hint] + labels, min_width=50, max_width=90)
+            inner_text_width = max(8, box_width - 6)
+            selected = state.get("selected", 0)
+            try:
+                from prompt_toolkit.application import get_app
+                term_rows = get_app().output.get_size().rows
+            except Exception:
+                term_rows = shutil.get_terminal_size((100, 24)).lines
+            scroll_offset, visible = HermesCLI._compute_model_picker_viewport(
+                selected, state.get("_scroll_offset", 0), len(labels), term_rows,
+            )
+            state["_scroll_offset"] = scroll_offset
+
+            lines = []
+            lines.append(('class:clarify-border', '╭─ '))
+            lines.append(('class:clarify-title', title))
+            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len(title) - 3)) + '╮\n'))
+            _append_blank_panel_line(lines, 'class:clarify-border', box_width)
+            _append_panel_line(lines, 'class:clarify-border', 'class:clarify-hint', hint, box_width)
+            _append_blank_panel_line(lines, 'class:clarify-border', box_width)
+            for idx in range(scroll_offset, min(scroll_offset + visible, len(labels))):
+                label = labels[idx]
+                style = 'class:clarify-selected' if idx == selected else 'class:clarify-choice'
+                prefix = '❯ ' if idx == selected else '  '
+                for wrapped in _wrap_panel_text(prefix + label, inner_text_width, subsequent_indent='    '):
+                    _append_panel_line(lines, 'class:clarify-border', style, wrapped, box_width)
+            _append_blank_panel_line(lines, 'class:clarify-border', box_width)
+            lines.append(('class:clarify-border', '╰' + ('─' * box_width) + '╯\n'))
+            return lines
+
+        command_palette_widget = ConditionalContainer(
+            Window(
+                FormattedTextControl(_get_command_palette_display),
+                wrap_lines=True,
+            ),
+            filter=Condition(lambda: cli_ref._command_palette_state is not None),
+        )
+
         # Horizontal rules above and below the input.
         # On narrow/mobile terminals we keep the top separator for structure but
         # hide the bottom one to recover a full row for conversation content.
@@ -19645,6 +20176,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                     slash_confirm_widget=slash_confirm_widget,
                     clarify_widget=clarify_widget,
                     model_picker_widget=model_picker_widget,
+                    command_palette_widget=command_palette_widget,
                     spinner_widget=spinner_widget,
                     spacer=spacer,
                     status_bar=status_bar,
@@ -21040,9 +21572,25 @@ def main(
                         cli.agent.suppress_status_output = True
                         # Suppress streaming display callbacks so stdout stays
                         # machine-readable (no styled "Hermes" box, no tool-gen
-                        # status lines).  The response is printed once below.
+                        # status lines, no reasoning box).  The response is
+                        # printed once below.
                         cli.agent.stream_delta_callback = None
                         cli.agent.tool_gen_callback = None
+                        cli.agent.reasoning_callback = None
+                        # Inline-diff and progress callbacks print directly to
+                        # stdout and are gated by NEITHER quiet_mode nor
+                        # tool_progress_mode: _on_tool_complete renders full
+                        # file diffs via render_edit_diff_with_delta, and
+                        # _on_tool_progress prints MoA reference blocks before
+                        # its mode check. Neutralize them too so -Q stdout
+                        # carries only the final response (#93220).
+                        cli.agent.tool_progress_callback = None
+                        cli.agent.tool_start_callback = None
+                        cli.agent.tool_complete_callback = None
+                        # Belt-and-braces for the executor's direct prints
+                        # (they check agent.tool_progress_mode, initialized
+                        # from display.tool_progress at construction).
+                        cli.agent.tool_progress_mode = "off"
                         try:
                             result = cli.agent.run_conversation(
                                 user_message=effective_query,
