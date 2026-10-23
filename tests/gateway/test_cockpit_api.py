@@ -1214,7 +1214,7 @@ def test_coding_execute_stages_when_unauthorized(server) -> None:
     assert payload["authorization_required"] is True
     assert payload["job"]["id"]
     assert payload["worker_id"].endswith("-execute")
-    assert "send authorization exactly" in payload["authorization_hint"]
+    assert payload["authorization_hint"] == "owner authorization required"
 
 
 def test_coding_execute_requires_prompt(server) -> None:

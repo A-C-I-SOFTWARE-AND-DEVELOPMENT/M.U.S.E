@@ -1,0 +1,106 @@
+E0813 09:27:06.542000     303 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.97GiB (6410993664 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 09:27:06.542777     303 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.37GiB (5769894400 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 09:27:06.543452     303 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.84GiB (5192904704 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0813 09:27:06.544220     303 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.35GiB (4673614336 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+training on 200 examples, seq_len 2048
+LoRA rank 16 on 10 weight groups (compiling...)
+epoch 1/3  step 1/75  loss 2.8677
+epoch 1/3  step 2/75  loss 2.8385
+epoch 1/3  step 3/75  loss 2.8571
+epoch 1/3  step 4/75  loss 2.8451
+epoch 1/3  step 5/75  loss 2.6761
+epoch 1/3  step 6/75  loss 2.8233
+epoch 1/3  step 7/75  loss 2.8960
+epoch 1/3  step 8/75  loss 2.8160
+epoch 1/3  step 9/75  loss 2.8327
+epoch 1/3  step 10/75  loss 2.8227
+epoch 1/3  step 11/75  loss 2.7821
+epoch 1/3  step 12/75  loss 2.8418
+epoch 1/3  step 13/75  loss 2.7251
+epoch 1/3  step 14/75  loss 2.8042
+epoch 1/3  step 15/75  loss 2.8334
+epoch 1/3  step 16/75  loss 2.6915
+epoch 1/3  step 17/75  loss 2.7301
+epoch 1/3  step 18/75  loss 2.7319
+epoch 1/3  step 19/75  loss 2.7270
+epoch 1/3  step 20/75  loss 2.7010
+epoch 1/3  step 21/75  loss 2.6074
+epoch 1/3  step 22/75  loss 2.6715
+epoch 1/3  step 23/75  loss 2.6976
+epoch 1/3  step 24/75  loss 2.6677
+epoch 1/3  step 25/75  loss 2.4537
+epoch 1/3  loss 2.4537
+epoch 2/3  step 26/75  loss 2.5739
+epoch 2/3  step 27/75  loss 2.4850
+epoch 2/3  step 28/75  loss 2.6469
+epoch 2/3  step 29/75  loss 2.5370
+epoch 2/3  step 30/75  loss 2.6352
+epoch 2/3  step 31/75  loss 2.7021
+epoch 2/3  step 32/75  loss 2.5240
+epoch 2/3  step 33/75  loss 2.5359
+epoch 2/3  step 34/75  loss 2.5102
+epoch 2/3  step 35/75  loss 2.5388
+epoch 2/3  step 36/75  loss 2.4871
+epoch 2/3  step 37/75  loss 2.5547
+epoch 2/3  step 38/75  loss 2.5161
+epoch 2/3  step 39/75  loss 2.4022
+epoch 2/3  step 40/75  loss 2.5715
+epoch 2/3  step 41/75  loss 2.4899
+epoch 2/3  step 42/75  loss 2.3391
+epoch 2/3  step 43/75  loss 2.4209
+epoch 2/3  step 44/75  loss 2.3127
+epoch 2/3  step 45/75  loss 2.3642
+epoch 2/3  step 46/75  loss 2.4720
+epoch 2/3  step 47/75  loss 2.4075
+epoch 2/3  step 48/75  loss 2.4172
+epoch 2/3  step 49/75  loss 2.3758
+epoch 2/3  step 50/75  loss 2.3361
+epoch 2/3  loss 2.3361
+epoch 3/3  step 51/75  loss 2.4159
+epoch 3/3  step 52/75  loss 2.3585
+epoch 3/3  step 53/75  loss 2.3037
+epoch 3/3  step 54/75  loss 2.3440
+epoch 3/3  step 55/75  loss 2.2376
+epoch 3/3  step 56/75  loss 2.3324
+epoch 3/3  step 57/75  loss 2.3293
+epoch 3/3  step 58/75  loss 2.2114
+epoch 3/3  step 59/75  loss 2.2575
+epoch 3/3  step 60/75  loss 2.2182
+epoch 3/3  step 61/75  loss 2.1611
+epoch 3/3  step 62/75  loss 2.2414
+epoch 3/3  step 63/75  loss 2.1930
+epoch 3/3  step 64/75  loss 2.0801
+epoch 3/3  step 65/75  loss 2.2063
+epoch 3/3  step 66/75  loss 2.2089
+epoch 3/3  step 67/75  loss 2.1243
+epoch 3/3  step 68/75  loss 2.1318
+epoch 3/3  step 69/75  loss 2.1478
+epoch 3/3  step 70/75  loss 2.1377
+epoch 3/3  step 71/75  loss 2.0600
+epoch 3/3  step 72/75  loss 2.0841
+epoch 3/3  step 73/75  loss 2.0643
+epoch 3/3  step 74/75  loss 2.0361
+epoch 3/3  step 75/75  loss 2.0502
+epoch 3/3  loss 2.0502
+saved LoRA adapter -> /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_002/adapter.pkl
+merge + export with: needle build /mnt/c/Users/Echer/M.U.S.E/third_party/needle/checkpoints/needle2.pkl --lora /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_002/adapter.pkl

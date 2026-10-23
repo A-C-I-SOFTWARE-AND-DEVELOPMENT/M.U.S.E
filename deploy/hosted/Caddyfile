@@ -22,9 +22,32 @@ __GW_DOMAIN__ {
 	# --- BEGIN per-user routes (managed by provision_user.sh) ---
 	# Example (one block per provisioned user):
 	# handle_path /u/jeremiah/* {
-	# 	reverse_proxy 127.0.0.1:8801 {
-	# 		flush_interval -1   # stream NDJSON/SSE without buffering
+	# 	# Fail closed unless the Vercel relay proves its server identity.
+	# 	# MUSE_GATEWAY_RELAY_TOKEN must be the same high-entropy value in
+	# 	# Caddy's environment and the Vercel project (never VITE_-prefixed).
+	# 	@relayGet {
+	# 		method GET
+	# 		header X-Muse-Relay-Authorization "Bearer {$MUSE_GATEWAY_RELAY_TOKEN}"
+	# 		path /v1/health /v1/cockpit/runtime/status /v1/cockpit/runtime/workers /v1/cockpit/capabilities /v1/cockpit/models /v1/cockpit/models/catalog /v1/cockpit/models/local /v1/cockpit/model-routes /v1/cockpit/jobs /v1/cockpit/jobs/* /v1/cockpit/approvals /v1/cockpit/schedules /v1/cockpit/seats /v1/cockpit/audit /v1/cockpit/events /v1/cockpit/events/stream /v1/observatory/*
 	# 	}
+	# 	@relayPost {
+	# 		method POST
+	# 		header X-Muse-Relay-Authorization "Bearer {$MUSE_GATEWAY_RELAY_TOKEN}"
+	# 		path /v1/cockpit/pair/start /v1/cockpit/pair/confirm /v1/cockpit/service-tokens /v1/cockpit/model-routes/override /v1/cockpit/jobs /v1/cockpit/jobs/* /v1/cockpit/approvals/* /v1/cockpit/emergency-stop /v1/cockpit/orchestrate /v1/cockpit/coding/* /v1/agent/chat /v1/agent/approvals /v1/agent/stop /v1/observatory/recommendations/*/stage
+	# 	}
+	# 	handle @relayGet {
+	# 		reverse_proxy 127.0.0.1:8801 {
+	# 			header_up -X-Muse-Relay-Authorization
+	# 			flush_interval -1
+	# 		}
+	# 	}
+	# 	handle @relayPost {
+	# 		reverse_proxy 127.0.0.1:8801 {
+	# 			header_up -X-Muse-Relay-Authorization
+	# 			flush_interval -1
+	# 		}
+	# 	}
+	# 	respond "not found" 404
 	# }
 	# --- END per-user routes ---
 

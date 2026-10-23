@@ -67,6 +67,7 @@ function wireToken() {
 }
 
 let pendingPairCode = "";
+let pendingPairId = "";
 function wirePairing() {
   $("#pairbtn").addEventListener("click", () => {
     $("#paircode").textContent = "";
@@ -74,6 +75,7 @@ function wirePairing() {
     $("#pairconfirmrow").style.display = "none";
     $("#pairconfirm").disabled = true;
     pendingPairCode = "";
+    pendingPairId = "";
     $("#pairdlg").showModal();
   });
 
@@ -91,6 +93,7 @@ function wirePairing() {
         $("#pairmsg").textContent = "Pairing unavailable: " + (d.error || r.status) + (d.hint ? " — " + d.hint : "");
         return;
       }
+      pendingPairId = d.pairing_id || "";
       pendingPairCode = d.pairing_code || "";
       $("#paircode").textContent = "code: " + pendingPairCode;
       $("#pairconfirmrow").style.display = "block";
@@ -101,10 +104,10 @@ function wirePairing() {
 
   $("#pairconfirm").addEventListener("click", async () => {
     const phrase = $("#pairphrase").value.trim();
-    if (!pendingPairCode) { $("#pairmsg").textContent = "Get a pairing code first."; return; }
+    if (!pendingPairId || !pendingPairCode) { $("#pairmsg").textContent = "Get a pairing code first."; return; }
     $("#pairmsg").textContent = "Confirming…";
     try {
-      const body = { pairing_code: pendingPairCode };
+      const body = { pairing_id: pendingPairId, pairing_code: pendingPairCode };
       if (phrase) body.authorization = phrase; // only sent if the user typed one
       const r = await fetch("/v1/cockpit/pair/confirm", {
         method: "POST",
@@ -116,6 +119,7 @@ function wirePairing() {
       if (!r.ok || !d.token) { $("#pairmsg").textContent = "Pairing failed: " + (d.error || r.status); return; }
       api.setToken(d.token);
       $("#pairphrase").value = "";
+      pendingPairId = "";
       pendingPairCode = "";
       onTokenChanged();
       $("#pairmsg").textContent = "Paired. This device now has its own token.";

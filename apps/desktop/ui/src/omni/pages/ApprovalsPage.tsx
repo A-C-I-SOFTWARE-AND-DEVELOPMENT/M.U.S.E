@@ -4,8 +4,6 @@ import { useLinkState } from '@/lib/health';
 import { routeForPath } from '@/universe/catalog';
 import { UniversePage } from '@/universe/components/UniversePage';
 
-const OWNER_PHRASE = 'Yes, with authorization.';
-
 function asApprovals(raw: { approvals?: CockpitApproval[] } | CockpitApproval[] | null): CockpitApproval[] {
   if (!raw) return [];
   return Array.isArray(raw) ? raw : raw.approvals ?? [];
@@ -17,7 +15,7 @@ export default function ApprovalsPage() {
   const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const route = routeForPath('/approvals');
-  const exact = phrase.trim() === OWNER_PHRASE;
+  const authorizationPresent = phrase.trim().length > 0;
 
   const refresh = useCallback(() => {
     if (!connected) {
@@ -75,7 +73,7 @@ export default function ApprovalsPage() {
               <button
                 type="button"
                 className="universe-button universe-button--primary"
-                disabled={!exact}
+                disabled={!authorizationPresent}
                 onClick={() => void cockpit.approve(item.id, phrase).then(refresh)}
               >
                 Approve
@@ -92,12 +90,12 @@ export default function ApprovalsPage() {
             <input
               value={phrase}
               onChange={(event) => setPhrase(event.target.value)}
-              placeholder={OWNER_PHRASE}
+              placeholder="Owner authorization"
               className="mt-1 w-full rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-2.5 py-2 text-[12px] text-[var(--ink)]"
-              style={{ borderColor: exact ? 'var(--ok)' : undefined }}
+              style={{ borderColor: authorizationPresent ? 'var(--ok)' : undefined }}
             />
             <span className="mt-1 block text-[10px] text-[var(--ink-faint)]">
-              Type exactly “Yes, with authorization.” — the phrase is never stored.
+              Enter owner authorization. It is sent only for this decision and is never stored.
             </span>
           </label>
         )}

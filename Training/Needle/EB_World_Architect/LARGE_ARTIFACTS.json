@@ -1,0 +1,127 @@
+{
+  "_note": "Large regenerable artifacts kept out of main to keep clones small. Byte-exact copies live on branch agent/all-local-changes-20260813 at commit fb2edc76 (PR #633). Verify any restored file against these hashes.",
+  "source_branch": "agent/all-local-changes-20260813",
+  "source_commit": "fb2edc76",
+  "files": {
+    "holdout/needle_eb_world_holdout.jsonl": {
+      "sha256": "471894604b9052d87b26aa8259c2c9241fd69bb87445a16732c55a208f50c7c0",
+      "size_bytes": 1682394
+    },
+    "qa/qa_0250.jsonl": {
+      "sha256": "d7cb47b76ceb28fe7e4439d5407dd69fcad8299beab3b07a830872a757cf17dd",
+      "size_bytes": 1050578
+    },
+    "qa/qa_0500.jsonl": {
+      "sha256": "bf23cdc7a35ef307f164f5f4987af91d1b9045249d3970a30d011e9ea527e8f2",
+      "size_bytes": 2098822
+    },
+    "qa/qa_1000.jsonl": {
+      "sha256": "87452e0cd9779b120c38099c25a5b1be5d9fbc85d6db71a94da02bc33d4d8b63",
+      "size_bytes": 4198057
+    },
+    "qa/qa_2000.jsonl": {
+      "sha256": "a03e40d427f4e8834f273724070f10529245ffa4a9a940558e7889739f1eb9f0",
+      "size_bytes": 8400308
+    },
+    "qa/qa_4000.jsonl": {
+      "sha256": "84b39c0bfd7e1f543d0a9118eed70e2d076ca94561338d9c440b7e6445b43bff",
+      "size_bytes": 16796035
+    },
+    "rung_0250/runs/run_001/adapter.pkl": {
+      "sha256": "6b92abf84916ddb14f096d5d79de69bf615cd5bbfd123742592eaf3c15f658af",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_001/evaluation/evaluation_rows.jsonl": {
+      "sha256": "d78683b53d52e051632261ff2a24d9ce4955f30a9a00142a4e33fb482ddbddb8",
+      "size_bytes": 2963096
+    },
+    "rung_0250/runs/run_001/model.cact": {
+      "sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa",
+      "size_bytes": 12357327
+    },
+    "rung_0250/runs/run_002/adapter.pkl": {
+      "sha256": "301b3501d12c56100476303ca90e3fdf05ce857ea0d7b9152be20ead2fd1a6f8",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_002/evaluation/evaluation_rows.jsonl": {
+      "sha256": "d78683b53d52e051632261ff2a24d9ce4955f30a9a00142a4e33fb482ddbddb8",
+      "size_bytes": 2963096
+    },
+    "rung_0250/runs/run_002/model.cact": {
+      "sha256": "ad7116067e5eaf81c3f3a4f62922760522d51f42787ea5388b0f78936ff7c0e2",
+      "size_bytes": 12357327
+    },
+    "rung_0250/runs/run_003/adapter.pkl": {
+      "sha256": "0eba643ea8d2abdd8015c24597b10d30cd171e19ce3d9d225e8f73323ce1dda5",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_003/evaluation/evaluation_rows.jsonl": {
+      "sha256": "d78683b53d52e051632261ff2a24d9ce4955f30a9a00142a4e33fb482ddbddb8",
+      "size_bytes": 2963096
+    },
+    "rung_0250/runs/run_003/model.cact": {
+      "sha256": "011d5f5d8cfed35825a174d5e5f8d70c6b9e6d9bec2be840981c4534299b3005",
+      "size_bytes": 12357327
+    },
+    "rung_0250/runs/run_004/adapter.pkl": {
+      "sha256": "9b2076b808065a6bacaf627de78e2fd2b9e560ffb738c908b0f92bf500b53230",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_004/evaluation/evaluation_rows.jsonl": {
+      "sha256": "d78683b53d52e051632261ff2a24d9ce4955f30a9a00142a4e33fb482ddbddb8",
+      "size_bytes": 2963096
+    },
+    "rung_0250/runs/run_004/model.cact": {
+      "sha256": "3273766f9fe6f8a6bc03b260597f11ce751c4de6afb28b755fa07063b65db2d2",
+      "size_bytes": 12357327
+    },
+    "rung_0250/runs/run_005/adapter.pkl": {
+      "sha256": "50399f68ae715a8e709206949c4974f95846c19abfb38e170c0ed110fcecc8b2",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_005/evaluation/evaluation_rows.jsonl": {
+      "sha256": "42e7f4da2708933454c2bf7abaccdce56dafaee69ba7d1f57acee535d0cfb75e",
+      "size_bytes": 2960527
+    },
+    "rung_0250/runs/run_005/model.cact": {
+      "sha256": "78463f27ee52e360430e5270765c162ed3fe21a945d698c4502a478220e85056",
+      "size_bytes": 12357327
+    },
+    "rung_0250/runs/run_006/adapter.pkl": {
+      "sha256": "51efed38492de158a3bfa17827f644f4670606c0fb0e9d6322f0b6809dc08c15",
+      "size_bytes": 8258883
+    },
+    "rung_0250/runs/run_006/evaluation/evaluation_rows.jsonl": {
+      "sha256": "42e7f4da2708933454c2bf7abaccdce56dafaee69ba7d1f57acee535d0cfb75e",
+      "size_bytes": 2960527
+    },
+    "rung_0250/runs/run_006/model.cact": {
+      "sha256": "bd1c267cf1ddd27593a3d931d84fcdf54a2a8e96303a674f669d8dfddf9e4347",
+      "size_bytes": 12357327
+    },
+    "rung_0500/train.jsonl": {
+      "sha256": "d4aa854b048c2b9aec5ef2839019de7656f9f9405fcadea96a1ad137f94c9d33",
+      "size_bytes": 1669944
+    },
+    "rung_1000/train.jsonl": {
+      "sha256": "579e1b11b2266c4ef9b87f3628c52bdd19343ae12e135cb24f12ce4c88080bb5",
+      "size_bytes": 3340192
+    },
+    "rung_2000/train.jsonl": {
+      "sha256": "94bf162f096031c036c43786758de802c6cffa24df2956b82951e9f9ff14ef32",
+      "size_bytes": 6683614
+    },
+    "rung_4000/test.jsonl": {
+      "sha256": "6b380a0327253b39307fcf6743cffbd038b9376ac67814f92a7f038cbb368690",
+      "size_bytes": 1667033
+    },
+    "rung_4000/train.jsonl": {
+      "sha256": "38acbc65a2d248fa4b00bb05d587bf6818bd024f6399d839331dc8ea4757a8ab",
+      "size_bytes": 13363584
+    },
+    "rung_4000/validation.jsonl": {
+      "sha256": "70de73036b211b454e2e1ebfeff260f8c5c718b2dd8eb6f518edab1ddc690008",
+      "size_bytes": 1677418
+    }
+  }
+}

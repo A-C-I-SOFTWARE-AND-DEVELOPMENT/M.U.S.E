@@ -1,0 +1,346 @@
+{
+  "duration_s": 994.485,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000100",
+      "latency_s": 52.0,
+      "query": "NEEDLE-QA pressure test: At floating quarry, particles and glow appear everywhere without an active system or readable state, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000101",
+      "latency_s": 40.157,
+      "query": "NEEDLE-QA pressure test: At coastal shelf, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000102",
+      "latency_s": 39.093,
+      "query": "NEEDLE-QA pressure test: At undercity approach, identical crystals cover every surface and flatten the hero hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000103",
+      "latency_s": 47.235,
+      "query": "NEEDLE-QA pressure test: At distant vista cell, foreground, midground, background, and distant silhouettes compete without a focal hierarchy, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000104",
+      "latency_s": 37.156,
+      "query": "NEEDLE-QA pressure test: At Firstbound Arrival, the hero location is indistinguishable from repeated generic towers at distance, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000105",
+      "latency_s": 56.563,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, the generator proposes 1.9 million instances and calls the result performant without measurement, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000106",
+      "latency_s": 38.765,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, one giant instance component spans kilometers and gives culling unusable bounds, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000107",
+      "latency_s": 42.281,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, saved cull distances are treated as proof even though runtime bounds and visibility were never measured, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000108",
+      "latency_s": 42.016,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, a destructible pillar removes the only exit bridge when broken, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000109",
+      "latency_s": 33.094,
+      "query": "NEEDLE-QA pressure test: At Arena Island, the console glows but supplies no affordance, response, inactive state, or failure feedback, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000110",
+      "latency_s": 39.469,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, invisible collision blocks the intended path while the visible opening appears clear, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000111",
+      "latency_s": 44.5,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, the tower clips through the deck and cliff without a designed joint or load path, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000112",
+      "latency_s": 34.703,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C01",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000113",
+      "latency_s": 40.781,
+      "query": "NEEDLE-QA pressure test: At eastern village, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C01",
+            "evidence_state": "E2",
+            "issue_code": "I01",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000114",
+      "latency_s": 39.781,
+      "query": "NEEDLE-QA pressure test: At western wilderness, the generator creates millions of uniform objects without manifests, cells, seeds, or validation, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A21",
+            "category": "C01",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000115",
+      "latency_s": 38.656,
+      "query": "NEEDLE-QA pressure test: At northern market, a missing manifest entry is ignored and the asset is claimed to exist, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000116",
+      "latency_s": 22.391,
+      "query": "NEEDLE-QA pressure test: At southern refinery, process liveness or exit code zero is treated as proof that every world gate passed, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000117",
+      "latency_s": 44.25,
+      "query": "NEEDLE-QA pressure test: At Archive service district, a roofline endpoint is approved because the bridge visually reaches the district, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000118",
+      "latency_s": 36.953,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, greybox geometry with fog is called visually final after automation passes, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000119",
+      "latency_s": 41.047,
+      "query": "NEEDLE-QA pressure test: At river ravine, the report declares AAA complete while traversal and performance evidence are absent, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000120",
+      "latency_s": 40.875,
+      "query": "NEEDLE-QA pressure test: At outer gate, material polish is scheduled while the major playable landmark has no connection, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000121",
+      "latency_s": 41.797,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, white marble columns and neon roof outlines replace the dark-stone and bronze language. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000122",
+      "latency_s": 20.734,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000123",
+      "latency_s": 13.953,
+      "query": "NEEDLE-QA pressure test: At Arena Island, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000124",
+      "latency_s": 14.297,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, the span meets bare cliff, lacks anchors, and rises too steeply for the intended encounter. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000125",
+      "latency_s": 14.172,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, the arrival gate faces a wall and gives the player no readable exit. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000126",
+      "latency_s": 15.375,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000127",
+      "latency_s": 15.438,
+      "query": "NEEDLE-QA pressure test: At eastern village, the hall floats above terrain and decorative crystals are its only explanation. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000128",
+      "latency_s": 6.937,
+      "query": "NEEDLE-QA pressure test: At western wilderness, twenty towers fill empty space without location, function, entrance, or gameplay purpose. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_06.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+  "weights_sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+}

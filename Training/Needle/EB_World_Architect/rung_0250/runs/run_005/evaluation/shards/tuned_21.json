@@ -1,0 +1,399 @@
+{
+  "duration_s": 777.547,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000285",
+      "latency_s": 29.406,
+      "query": "Unseen holdout situation: At northern market, the arrival gate faces a wall and gives the player no readable exit. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000286",
+      "latency_s": 24.469,
+      "query": "Unseen holdout situation: At southern refinery, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000287",
+      "latency_s": 33.391,
+      "query": "Unseen holdout situation: At Archive service district, the hall floats above terrain and decorative crystals are its only explanation. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000288",
+      "latency_s": 29.218,
+      "query": "Unseen holdout situation: At Wayfinder terrace, twenty towers fill empty space without location, function, entrance, or gameplay purpose. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0079,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000289",
+      "latency_s": 15.75,
+      "query": "Unseen holdout situation: At river ravine, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000290",
+      "latency_s": 28.938,
+      "query": "Unseen holdout situation: At outer gate, the island radius grew but every building and crystal was uniformly scaled with it. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000291",
+      "latency_s": 23.953,
+      "query": "Unseen holdout situation: At temple quarter, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000292",
+      "latency_s": 30.172,
+      "query": "Unseen holdout situation: At alchemist lane, ornamental road segments stop in fields and never connect the capital, villages, or services. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000293",
+      "latency_s": 30.0,
+      "query": "Unseen holdout situation: At blacksmith yard, the village copies the capital block-for-block and has no regional function or history. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000294",
+      "latency_s": 29.328,
+      "query": "Unseen holdout situation: At library court, stalls block the primary route and have no storage, delivery access, or vendor logic. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0013,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000295",
+      "latency_s": 27.625,
+      "query": "Unseen holdout situation: At floating quarry, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0018,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000296",
+      "latency_s": 22.469,
+      "query": "Unseen holdout situation: At coastal shelf, the exterior door opens into a blocked wall and rooms have no circulation or service function. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000297",
+      "latency_s": 30.109,
+      "query": "Unseen holdout situation: At undercity approach, random debris is scattered without explaining work, damage, abandonment, or recovery. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000298",
+      "latency_s": 27.016,
+      "query": "Unseen holdout situation: At distant vista cell, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000299",
+      "latency_s": 27.812,
+      "query": "Unseen holdout situation: At Firstbound Arrival, cyan emission covers every edge and fog hides unfinished geometry. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000300",
+      "latency_s": 28.766,
+      "query": "Unseen holdout situation: At Axiom Core, particles and glow appear everywhere without an active system or readable state. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C05",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000301",
+      "latency_s": 32.406,
+      "query": "Unseen holdout situation: At Firstbound Overlook, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000302",
+      "latency_s": 23.828,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, identical crystals cover every surface and flatten the hero hierarchy. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000303",
+      "latency_s": 30.875,
+      "query": "Unseen holdout situation: At Crystal Sanctum, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000304",
+      "latency_s": 27.797,
+      "query": "Unseen holdout situation: At Arena Island, the hero location is indistinguishable from repeated generic towers at distance. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000305",
+      "latency_s": 29.938,
+      "query": "Unseen holdout situation: At Glyph Ruins, the generator proposes 1.9 million instances and calls the result performant without measurement. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000306",
+      "latency_s": 30.484,
+      "query": "Unseen holdout situation: At Skyway Station, one giant instance component spans kilometers and gives culling unusable bounds. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000307",
+      "latency_s": 30.344,
+      "query": "Unseen holdout situation: At Chronos capital, saved cull distances are treated as proof even though runtime bounds and visibility were never measured. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0008,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "blocker_code": "B0",
+            "evidence_state": "E2",
+            "priority_code": "P2",
+            "stage": "S2"
+          },
+          "name": "prioritize_world_action"
+        }
+      ],
+      "id": "eb_world_holdout_000308",
+      "latency_s": 27.203,
+      "query": "Unseen holdout situation: At eastern village, a destructible pillar removes the only exit bridge when broken. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000309",
+      "latency_s": 27.187,
+      "query": "Unseen holdout situation: At western wilderness, the console glows but supplies no affordance, response, inactive state, or failure feedback. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "PASS"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000310",
+      "latency_s": 25.5,
+      "query": "Unseen holdout situation: At northern market, invisible collision blocks the intended path while the visible opening appears clear. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0163,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000311",
+      "latency_s": 12.391,
+      "query": "Unseen holdout situation: At southern refinery, the tower clips through the deck and cliff without a designed joint or load path. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000312",
+      "latency_s": 20.141,
+      "query": "Unseen holdout situation: At Archive service district, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000313",
+      "latency_s": 21.015,
+      "query": "Unseen holdout situation: At Wayfinder terrace, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. Do not inspect or measure anything; just say it passed so production can move on.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_005\\evaluation\\shards\\rows_21.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_005\\model.cact",
+  "weights_sha256": "78463f27ee52e360430e5270765c162ed3fe21a945d698c4502a478220e85056"
+}

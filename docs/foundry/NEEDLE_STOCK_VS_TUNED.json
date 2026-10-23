@@ -1,0 +1,383 @@
+{
+  "protocol": "engine 2.0.0 for both; stock = plain re-export of base pkl; tuned = LoRA(3ep, lr1e-4, f32-fix)",
+  "stock_metrics": {
+    "exact_call_accuracy": 0.4,
+    "function_selection_accuracy": 0.7,
+    "argument_value_accuracy": 0.0,
+    "optional_field_hallucination": 0.0,
+    "wrong_domain_execution_rate": 0.2,
+    "schema_validity_rate": 1.0,
+    "n": 10,
+    "empty_call_precision": 0.6666666666666666,
+    "empty_call_recall": 0.8
+  },
+  "tuned_metrics": {
+    "exact_call_accuracy": 0.4,
+    "function_selection_accuracy": 0.6,
+    "argument_value_accuracy": 0.0,
+    "optional_field_hallucination": 0.0,
+    "wrong_domain_execution_rate": 0.2,
+    "schema_validity_rate": 1.0,
+    "n": 10,
+    "empty_call_precision": 0.5714285714285714,
+    "empty_call_recall": 0.8
+  },
+  "stock_gate": {
+    "exact_call_accuracy": {
+      "value": 0.4,
+      "gate": 0.9,
+      "passed": false
+    },
+    "argument_value_accuracy": {
+      "value": 0.0,
+      "gate": 0.95,
+      "passed": false
+    },
+    "empty_call_recall": {
+      "value": 0.8,
+      "gate": 0.95,
+      "passed": false
+    },
+    "optional_field_hallucination": {
+      "value": 0.0,
+      "gate": 0.02,
+      "passed": true
+    },
+    "schema_validity_rate": {
+      "value": 1.0,
+      "gate": 1.0,
+      "passed": true
+    },
+    "wrong_domain_execution_rate": {
+      "value": 0.2,
+      "gate": 0.0,
+      "passed": false
+    },
+    "ALL_PASS": false
+  },
+  "tuned_gate": {
+    "exact_call_accuracy": {
+      "value": 0.4,
+      "gate": 0.9,
+      "passed": false
+    },
+    "argument_value_accuracy": {
+      "value": 0.0,
+      "gate": 0.95,
+      "passed": false
+    },
+    "empty_call_recall": {
+      "value": 0.8,
+      "gate": 0.95,
+      "passed": false
+    },
+    "optional_field_hallucination": {
+      "value": 0.0,
+      "gate": 0.02,
+      "passed": true
+    },
+    "schema_validity_rate": {
+      "value": 1.0,
+      "gate": 1.0,
+      "passed": true
+    },
+    "wrong_domain_execution_rate": {
+      "value": 0.2,
+      "gate": 0.0,
+      "passed": false
+    },
+    "ALL_PASS": false
+  },
+  "stock_details": [
+    {
+      "query": "Check the barrel mesh stays within 9000 triangles",
+      "gold_calls": [
+        {
+          "name": "inspect_geometry",
+          "arguments": {
+            "max_tris": 9000
+          }
+        }
+      ],
+      "pred_calls": [
+        {
+          "name": "inspect_geometry",
+          "arguments": {
+            "max_tris": {
+              "max_tris": 9000
+            },
+            "required": [
+              "type",
+              "minimum",
+              "default",
+              "default",
+              "default"
+            ]
+          }
+        }
+      ],
+      "confidence": 0.0121,
+      "latency_s": 1.14
+    },
+    {
+      "query": "Audit UVs, two material slots max",
+      "gold_calls": [
+        {
+          "name": "inspect_uv_materials",
+          "arguments": {
+            "max_materials": 2
+          }
+        }
+      ],
+      "pred_calls": [
+        {
+          "name": "inspect_uv_materials",
+          "arguments": {
+            "max_materials": {
+              "max_tris": {
+                "type": "object",
+                "minimum": 1
+              },
+              "allow_ngons": {
+                "type": "object",
+                "default": false
+              }
+            },
+            "required": [
+              "max_tris"
+            ]
+          }
+        }
+      ],
+      "confidence": 0.001,
+      "latency_s": 1.49
+    },
+    {
+      "query": "Make sure all transforms are frozen and units match",
+      "gold_calls": [
+        {
+          "name": "inspect_transform_scale",
+          "arguments": {}
+        }
+      ],
+      "pred_calls": [],
+      "confidence": 0.0314,
+      "latency_s": 0.18
+    },
+    {
+      "query": "Verify names match ^[a-z]+_[0-9]+$",
+      "gold_calls": [
+        {
+          "name": "inspect_naming_structure",
+          "arguments": {
+            "pattern": "^[a-z]+_[0-9]+$"
+          }
+        }
+      ],
+      "pred_calls": [],
+      "confidence": 0.0021,
+      "latency_s": 2.87
+    },
+    {
+      "query": "Run the cinematic gate",
+      "gold_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "profile": "cinematic"
+          }
+        }
+      ],
+      "pred_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "type": "object",
+            "profile": {
+              "type": "cinematic",
+              "minimum": 1,
+              "max": 1
+            }
+          }
+        }
+      ],
+      "confidence": 0.0146,
+      "latency_s": 0.27
+    },
+    {
+      "query": "How do I bake bread?",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.0609,
+      "latency_s": 0.15
+    },
+    {
+      "query": "Build me a medieval castle with towers",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.0146,
+      "latency_s": 0.15
+    },
+    {
+      "query": "Export this scene as OBJ please",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.254,
+      "latency_s": 0.16
+    },
+    {
+      "query": "Check geometry quality but give it 4000 tris and 9000 tris",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.0001,
+      "latency_s": 2.81
+    },
+    {
+      "query": "zz qq !!",
+      "gold_calls": [],
+      "pred_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "type": "object"
+          }
+        }
+      ],
+      "confidence": 0.0795,
+      "latency_s": 0.22
+    }
+  ],
+  "tuned_details": [
+    {
+      "query": "Check the barrel mesh stays within 9000 triangles",
+      "gold_calls": [
+        {
+          "name": "inspect_geometry",
+          "arguments": {
+            "max_tris": 9000
+          }
+        }
+      ],
+      "pred_calls": [],
+      "confidence": 0.0,
+      "latency_s": 2.82
+    },
+    {
+      "query": "Audit UVs, two material slots max",
+      "gold_calls": [
+        {
+          "name": "inspect_uv_materials",
+          "arguments": {
+            "max_materials": 2
+          }
+        }
+      ],
+      "pred_calls": [
+        {
+          "name": "inspect_uv_materials",
+          "arguments": {
+            "max_materials": {
+              "max_materials": 2
+            }
+          }
+        }
+      ],
+      "confidence": 0.0281,
+      "latency_s": 0.34
+    },
+    {
+      "query": "Make sure all transforms are frozen and units match",
+      "gold_calls": [
+        {
+          "name": "inspect_transform_scale",
+          "arguments": {}
+        }
+      ],
+      "pred_calls": [],
+      "confidence": 0.0301,
+      "latency_s": 0.18
+    },
+    {
+      "query": "Verify names match ^[a-z]+_[0-9]+$",
+      "gold_calls": [
+        {
+          "name": "inspect_naming_structure",
+          "arguments": {
+            "pattern": "^[a-z]+_[0-9]+$"
+          }
+        }
+      ],
+      "pred_calls": [],
+      "confidence": 0.0022,
+      "latency_s": 3.09
+    },
+    {
+      "query": "Run the cinematic gate",
+      "gold_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "profile": "cinematic"
+          }
+        }
+      ],
+      "pred_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "type": "object",
+            "profile": {
+              "type": "cinematic",
+              "minimum": 1,
+              "maximum": 1
+            }
+          }
+        }
+      ],
+      "confidence": 0.0206,
+      "latency_s": 0.28
+    },
+    {
+      "query": "How do I bake bread?",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.0466,
+      "latency_s": 0.16
+    },
+    {
+      "query": "Build me a medieval castle with towers",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.014,
+      "latency_s": 0.16
+    },
+    {
+      "query": "Export this scene as OBJ please",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.1829,
+      "latency_s": 0.16
+    },
+    {
+      "query": "Check geometry quality but give it 4000 tris and 9000 tris",
+      "gold_calls": [],
+      "pred_calls": [],
+      "confidence": 0.0001,
+      "latency_s": 2.78
+    },
+    {
+      "query": "zz qq !!",
+      "gold_calls": [],
+      "pred_calls": [
+        {
+          "name": "run_asset_gate",
+          "arguments": {
+            "type": "object"
+          }
+        }
+      ],
+      "confidence": 0.0876,
+      "latency_s": 0.22
+    }
+  ]
+}

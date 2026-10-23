@@ -1,0 +1,302 @@
+{
+  "duration_s": 468.719,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.013,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000111",
+      "latency_s": 9.734,
+      "query": "Unseen holdout situation: At Skyway Station, the tower clips through the deck and cliff without a designed joint or load path, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000112",
+      "latency_s": 30.688,
+      "query": "Unseen holdout situation: At Chronos capital, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.008,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000113",
+      "latency_s": 12.562,
+      "query": "Unseen holdout situation: At eastern village, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0063,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000114",
+      "latency_s": 12.219,
+      "query": "Unseen holdout situation: At western wilderness, the generator creates millions of uniform objects without manifests, cells, seeds, or validation, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0071,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000115",
+      "latency_s": 9.531,
+      "query": "Unseen holdout situation: At northern market, a missing manifest entry is ignored and the asset is claimed to exist, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0107,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000116",
+      "latency_s": 10.953,
+      "query": "Unseen holdout situation: At southern refinery, process liveness or exit code zero is treated as proof that every world gate passed, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.013,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000117",
+      "latency_s": 9.532,
+      "query": "Unseen holdout situation: At Archive service district, a roofline endpoint is approved because the bridge visually reaches the district, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000118",
+      "latency_s": 120.562,
+      "query": "Unseen holdout situation: At Wayfinder terrace, greybox geometry with fog is called visually final after automation passes, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0072,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000119",
+      "latency_s": 12.031,
+      "query": "Unseen holdout situation: At river ravine, the report declares AAA complete while traversal and performance evidence are absent, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0075,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000120",
+      "latency_s": 12.86,
+      "query": "Unseen holdout situation: At outer gate, material polish is scheduled while the major playable landmark has no connection, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0096,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000121",
+      "latency_s": 9.344,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, white marble columns and neon roof outlines replace the dark-stone and bronze language. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000122",
+      "latency_s": 23.421,
+      "query": "Unseen holdout situation: At Crystal Sanctum, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0079,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000123",
+      "latency_s": 8.782,
+      "query": "Unseen holdout situation: At Arena Island, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0077,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000124",
+      "latency_s": 8.609,
+      "query": "Unseen holdout situation: At Glyph Ruins, the span meets bare cliff, lacks anchors, and rises too steeply for the intended encounter. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.011,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000125",
+      "latency_s": 8.531,
+      "query": "Unseen holdout situation: At Skyway Station, the arrival gate faces a wall and gives the player no readable exit. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0039,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000126",
+      "latency_s": 15.578,
+      "query": "Unseen holdout situation: At Chronos capital, a ninety-five-centimeter door and oversized stair rise conflict with the 180 cm player reference. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0081,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000127",
+      "latency_s": 13.735,
+      "query": "Unseen holdout situation: At eastern village, the hall floats above terrain and decorative crystals are its only explanation. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0099,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000128",
+      "latency_s": 8.594,
+      "query": "Unseen holdout situation: At western wilderness, twenty towers fill empty space without location, function, entrance, or gameplay purpose. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0058,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000129",
+      "latency_s": 14.406,
+      "query": "Unseen holdout situation: At northern market, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0076,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000130",
+      "latency_s": 11.187,
+      "query": "Unseen holdout situation: At southern refinery, the island radius grew but every building and crystal was uniformly scaled with it. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0071,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000131",
+      "latency_s": 12.36,
+      "query": "Unseen holdout situation: At Archive service district, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0015,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000132",
+      "latency_s": 13.656,
+      "query": "Unseen holdout situation: At Wayfinder terrace, ornamental road segments stop in fields and never connect the capital, villages, or services. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000133",
+      "latency_s": 24.922,
+      "query": "Unseen holdout situation: At river ravine, the village copies the capital block-for-block and has no regional function or history. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0051,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000134",
+      "latency_s": 8.39,
+      "query": "Unseen holdout situation: At outer gate, stalls block the primary route and have no storage, delivery access, or vendor logic. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0065,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000135",
+      "latency_s": 7.688,
+      "query": "Unseen holdout situation: At temple quarter, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0098,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000136",
+      "latency_s": 10.766,
+      "query": "Unseen holdout situation: At alchemist lane, the exterior door opens into a blocked wall and rooms have no circulation or service function. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0086,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000137",
+      "latency_s": 11.312,
+      "query": "Unseen holdout situation: At blacksmith yard, random debris is scattered without explaining work, damage, abandonment, or recovery. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0065,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000138",
+      "latency_s": 8.391,
+      "query": "Unseen holdout situation: At library court, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0087,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000139",
+      "latency_s": 8.359,
+      "query": "Unseen holdout situation: At floating quarry, cyan emission covers every edge and fog hides unfinished geometry. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_004\\evaluation\\shards\\rows_15.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

@@ -33,6 +33,11 @@ class Request:
     query: dict[str, str] = field(default_factory=dict)
     body: dict[str, Any] = field(default_factory=dict)
     path_params: dict[str, str] = field(default_factory=dict)
+    auth_kind: str = "anonymous"
+    auth_identity: str = "anonymous"
+    auth_credential_id: str = ""
+    auth_scopes: frozenset[str] = frozenset()
+    request_id: str = ""
 
 
 @dataclass
@@ -46,6 +51,35 @@ class JsonResponse:
 # this is True — a second guard on top of the owner-approval phrase, so a
 # remotely-reachable cockpit can never trigger repo-editing execution.
 _ALLOW_REMOTE_EXECUTE = False
+
+# Owner credential kinds. Service tokens are deliberately excluded.
+_OWNER_AUTH_KINDS = frozenset({"owner_shared", "owner_device"})
+
+
+def hosted_mode() -> bool:
+    """True when the cockpit runs behind the hosted relay (docker/start-cockpit.sh).
+
+    A hosted cockpit binds loopback inside its container, but every request
+    really arrives from the internet through Caddy + socat. Loopback-based
+    trust shortcuts (the pairing owner-phrase skip) must not apply there.
+    """
+    import os
+
+    return os.environ.get("HERMES_COCKPIT_HOSTED", "").strip() == "1"
+
+
+def pairing_requires_owner(path: str) -> bool:
+    """Pairing routes need an existing owner credential in hosted mode."""
+    clean = path.rstrip("/")
+    return hosted_mode() and clean in {"/v1/cockpit/pair/start", "/v1/cockpit/pair/confirm"}
+
+
+def _pairing_denied(req: "Request") -> Optional["JsonResponse"]:
+    if req.auth_kind == "service":
+        return JsonResponse(403, {"error": "service credentials cannot pair devices"})
+    if hosted_mode() and req.auth_kind not in _OWNER_AUTH_KINDS:
+        return JsonResponse(401, {"error": "owner credential required to pair a device"})
+    return None
 
 
 def configure_runtime(*, allow_remote_execute: bool) -> None:
@@ -349,6 +383,76 @@ def models(_req: Request) -> JsonResponse:
     return JsonResponse(200, policy)
 
 
+def model_catalog(_req: Request) -> JsonResponse:
+    """Canonical provider/model inventory with non-secret provenance metadata."""
+    try:
+        from hermes_cli.inventory import build_catalog_payload, load_picker_context
+
+        return JsonResponse(200, build_catalog_payload(load_picker_context()))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200,
+            {
+                "providers": [],
+                "provider": "",
+                "model": "",
+                "source": {"module": "hermes_cli.inventory"},
+                "refresh": {"mode": "cached", "available": False},
+                "error": str(exc),
+            },
+        )
+
+
+def service_token_issue(req: Request) -> JsonResponse:
+    """Mint a short-lived service token; owner credentials only."""
+    if req.auth_kind not in {"owner_shared", "owner_device"}:
+        return JsonResponse(403, {"error": "owner credential required"})
+    from gateway.cockpit import auth as cockpit_auth
+
+    body = req.body or {}
+    identity = str(body.get("identity") or "block-buzz").strip().lower()
+    raw_scopes = body.get("scopes")
+    if not isinstance(raw_scopes, list):
+        return JsonResponse(400, {"error": "scopes must be a JSON list"})
+    try:
+        issued = cockpit_auth.issue_service_token(
+            identity,
+            [str(scope) for scope in raw_scopes],
+            ttl_seconds=body.get(
+                "ttl_seconds", cockpit_auth.SERVICE_TOKEN_DEFAULT_TTL_SECONDS
+            ),
+        )
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    from . import event_log
+
+    event_log.emit(
+        "info",
+        "gateway",
+        "service credential issued",
+        attributes={
+            "identity": issued.identity,
+            "credential_id": issued.credential_id,
+            "scopes": sorted(issued.scopes),
+            "expires_at": issued.expires_at,
+            "issued_by": req.auth_identity,
+            "request_id": req.request_id or None,
+        },
+    )
+    return JsonResponse(
+        201,
+        {
+            "credential_id": issued.credential_id,
+            "identity": issued.identity,
+            "token": issued.token,
+            "token_type": "Bearer",
+            "scopes": sorted(issued.scopes),
+            "issued_at": issued.issued_at,
+            "expires_at": issued.expires_at,
+        },
+    )
+
+
 def model_routes(_req: Request) -> JsonResponse:
     """Evidence-backed per-task-class model routes (read-only).
 
@@ -537,6 +641,11 @@ def model_route_override(req: Request) -> JsonResponse:
         )
 
     if want_paid:
+        if req.auth_kind == "service":
+            return JsonResponse(
+                403,
+                {"error": "owner credential required to change paid routing"},
+            )
         from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
         phrase = str(body.get("authorization", "")).strip()
@@ -545,7 +654,7 @@ def model_route_override(req: Request) -> JsonResponse:
                 403,
                 {
                     "error": "owner authorization required to change paid routing",
-                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                    "authorization_required": True,
                 },
             )
 
@@ -936,7 +1045,7 @@ def evidence_promote(req: Request) -> JsonResponse:
             {
                 "promoted": False,
                 "reasons": list(result.reasons),
-                "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+                "authorization_required": True,
             },
         )
     payload: dict[str, Any] = {"promoted": True, "node_id": result.node.id if result.node else None}
@@ -1348,6 +1457,13 @@ def job_run(req: Request) -> JsonResponse:
         gate = _evaluate_execute_gate(worker_id, authorization)
         if gate.error is not None:
             return gate.error
+        if gate.requires_approval and req.auth_kind == "service":
+            # The owner phrase is a public constant, so it is never an
+            # authentication factor for a service token: execute lanes need a
+            # real owner credential.
+            return JsonResponse(
+                403, {"error": "owner credential required to run an execute lane"}
+            )
         if gate.requires_approval and not gate.authorized:
             return JsonResponse(
                 403,
@@ -1445,9 +1561,14 @@ def pair_start(req: Request) -> JsonResponse:
     request is refused (rate-limited, locked out after repeated bad confirms,
     or too many codes already pending) — honest, never a fabricated code.
     """
+    denied = _pairing_denied(req)
+    if denied is not None:
+        return denied
     from . import device_pairing as dp
 
     device_name = str((req.body or {}).get("device_name", "")).strip()
+    if len(device_name) > 120 or any(ord(char) < 32 for char in device_name):
+        return JsonResponse(400, {"error": "invalid device_name"})
     result = dp.start_pairing(device_name)
     if result is None:
         return JsonResponse(
@@ -1465,6 +1586,7 @@ def pair_start(req: Request) -> JsonResponse:
     return JsonResponse(
         201,
         {
+            "pairing_id": result.pairing_id,
             "pairing_code": result.pairing_code,
             "expires_at": result.expires_at,
             "expires_in": dp.CODE_TTL_SECONDS,
@@ -1489,11 +1611,15 @@ def pair_confirm(req: Request) -> JsonResponse:
     """
     from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
+    denied = _pairing_denied(req)
+    if denied is not None:
+        return denied
     from . import device_pairing as dp
 
     code = str((req.body or {}).get("pairing_code", "")).strip()
-    if not code:
-        return JsonResponse(400, {"error": "pairing_code is required"})
+    pairing_id = str((req.body or {}).get("pairing_id", "")).strip()
+    if not code or not pairing_id:
+        return JsonResponse(400, {"error": "pairing_id and pairing_code are required"})
 
     # Owner gate: pair/start only mints a short-lived, rate-limited code (no
     # credential), so it stays open; the device token is issued only here.
@@ -1507,11 +1633,11 @@ def pair_confirm(req: Request) -> JsonResponse:
             403,
             {
                 "error": "owner authorization required",
-                "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                "authorization_required": True,
             },
         )
 
-    result = dp.confirm_pairing(code)
+    result = dp.confirm_pairing(code, pairing_id)
     if result is None:
         return JsonResponse(
             401, {"error": "invalid or expired pairing code"}
@@ -1841,7 +1967,7 @@ def job_approve(req: Request) -> JsonResponse:
         return JsonResponse(
             403,
             {"error": "owner approval required to grant a gated phase",
-             "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}"},
+             "authorization_required": True},
         )
     if kind != "orchestrator":
         return JsonResponse(
@@ -2462,7 +2588,6 @@ def job_publish(req: Request) -> JsonResponse:
             "status": "approval_required",
             "preview": preview,
             "authorization_required": True,
-            "authorization_hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
         })
 
     # --- past the owner gate: open a real PR (requires a configured PAT) ------
@@ -3163,6 +3288,11 @@ def approvals_decide(req: Request) -> JsonResponse:
     decision = str(req.body.get("decision", "")).lower().strip()
     if decision not in ("approve", "reject"):
         return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
+    if req.auth_kind == "service" and decision != "reject":
+        return JsonResponse(
+            403,
+            {"error": "service credentials may reject but cannot grant owner approval"},
+        )
 
     from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
@@ -3193,7 +3323,11 @@ def approvals_decide(req: Request) -> JsonResponse:
             decided = decide_bound_approval(
                 approval_id,
                 approve=decision == "approve",
-                decided_by="cockpit-owner",
+                decided_by=(
+                    f"service:{req.auth_identity}:{req.auth_credential_id}"
+                    if req.auth_kind == "service"
+                    else "cockpit-owner"
+                ),
             )
         except ApprovalNotFoundError:
             return JsonResponse(404, {"error": "approval not found"})
@@ -3266,7 +3400,12 @@ def approvals_decide(req: Request) -> JsonResponse:
 
     matched["status"] = "approved" if decision == "approve" else "rejected"
     matched["resolved_at"] = _now_iso()
-    matched["owner_decision_note"] = f"{decision} via cockpit"
+    actor = (
+        f"service:{req.auth_identity}:{req.auth_credential_id}"
+        if req.auth_kind == "service"
+        else "cockpit-owner"
+    )
+    matched["owner_decision_note"] = f"{decision} via {actor}"
     _save_proposals(items)
 
     # Best-effort: clear the now-decided proposal from the shared pending-approval
@@ -3341,7 +3480,7 @@ def learning_decide(req: Request) -> JsonResponse:
                 403,
                 {
                     "error": "owner authorization required",
-                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                    "authorization_required": True,
                 },
             )
 
@@ -3792,7 +3931,7 @@ def _evaluate_execute_gate(worker_id: str, authorization: str) -> _ExecuteGate:
         requires_approval=requires_approval,
         authorized=(authorization == AUTHORIZATION_PHRASE),
         error=None,
-        authorization_hint=f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+        authorization_hint="owner authorization required",
     )
 
 

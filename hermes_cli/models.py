@@ -112,7 +112,15 @@ _openrouter_catalog_cache: list[tuple[str, str]] | None = None
 # Slugs match Vercel's actual /v1/models catalog (e.g. alibaba/ for Qwen,
 # zai/ and xai/ without hyphens).
 VERCEL_AI_GATEWAY_MODELS: list[tuple[str, str]] = [
-    ("moonshotai/kimi-k2.6",                 "recommended"),
+    ("anthropic/claude-opus-5",              ""),
+    ("anthropic/claude-sonnet-5",            ""),
+    ("anthropic/claude-fable-5",             ""),
+    ("moonshotai/kimi-k3",                   "recommended"),
+    ("openai/gpt-5.6-sol",                   ""),
+    ("openai/gpt-5.6-terra",                 ""),
+    ("openai/gpt-5.6-luna",                  ""),
+    ("google/gemini-3.6-flash",              ""),
+    ("moonshotai/kimi-k2.6",                 ""),
     ("alibaba/qwen3.6-plus",                 ""),
     ("zai/glm-5.1",                          ""),
     ("minimax/minimax-m2.7",                 ""),
@@ -434,6 +442,14 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "trinity-mini",
     ],
     "gmi": [
+        "zai-org/GLM-5.2-FP8",
+        "moonshotai/kimi-k2.7-code-highspeed",
+        "anthropic/claude-opus-4.8",
+        "Qwen/Qwen3.7-Max",
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "deepseek-ai/DeepSeek-V4-Pro",
+        "openai/gpt-5.5",
+        "moonshotai/Kimi-K2.6",
         "zai-org/GLM-5.1-FP8",
         "deepseek-ai/DeepSeek-V3.2",
         "moonshotai/Kimi-K2.5",
@@ -2754,10 +2770,25 @@ def _resolve_copilot_catalog_api_key() -> str:
 #     OpenRouter's 400+ catalog. Blindly merging would dump everything.
 #   - "nous": curated list and Portal /models endpoint are the source of
 #     truth for the subscription tier.
-# Also excluded: providers that already have dedicated live-endpoint
-# branches below (copilot, anthropic, ai-gateway, ollama-cloud, custom,
-# stepfun, openai-codex) — those paths handle freshness themselves.
+# Also excluded: providers whose dedicated discovery paths fully own their
+# catalogs (copilot, ai-gateway, ollama-cloud, custom, openai-codex). Providers
+# such as Anthropic and StepFun stay in this set so models.dev remains their
+# no-credential fallback when the live endpoint cannot be queried.
 _MODELS_DEV_PREFERRED: frozenset[str] = frozenset({
+    "openai",
+    "anthropic",
+    "novita",
+    "kimi-coding",
+    "kimi-coding-cn",
+    "stepfun",
+    "minimax",
+    "minimax-oauth",
+    "minimax-cn",
+    "xiaomi",
+    "gmi",
+    "alibaba",
+    "alibaba-coding-plan",
+    "cerebras",
     "opencode-go",
     "opencode-zen",
     "deepseek",
@@ -2794,7 +2825,12 @@ def _model_dedup_key(model_id: str) -> str:
         return key
 
 
-def _merge_with_models_dev(provider: str, curated: list[str]) -> list[str]:
+def _merge_with_models_dev(
+    provider: str,
+    curated: list[str],
+    *,
+    force_refresh: bool = False,
+) -> list[str]:
     """Merge curated list with fresh models.dev entries for a preferred provider.
 
     Returns models.dev entries first (in models.dev order), then any
@@ -2805,7 +2841,9 @@ def _merge_with_models_dev(provider: str, curated: list[str]) -> list[str]:
     returned unchanged — this is the offline/CI fallback path.
     """
     try:
-        from agent.models_dev import list_agentic_models
+        from agent.models_dev import fetch_models_dev, list_agentic_models
+        if force_refresh:
+            fetch_models_dev(force_refresh=True)
         mdev = list_agentic_models(provider)
     except Exception:
         mdev = []
@@ -3103,7 +3141,11 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
 
     curated_static = list(_PROVIDER_MODELS.get(normalized, []))
     if normalized in _MODELS_DEV_PREFERRED:
-        return _merge_with_models_dev(normalized, curated_static)
+        return _merge_with_models_dev(
+            normalized,
+            curated_static,
+            force_refresh=force_refresh,
+        )
     return curated_static
 
 
@@ -4844,6 +4886,8 @@ _OLLAMA_CLOUD_CACHE_TTL = 3600  # 1 hour
 # deepseek-v3.1:671b, kimi-k2.5, minimax-m2.5, …) must not reappear here.
 # See https://docs.ollama.com/cloud#retirements
 _OLLAMA_CLOUD_CURATED: list[str] = [
+    "kimi-k3",
+    "glm-5.2",
     "gemma4:31b",
     "gemma4",
     "qwen3.5:397b",
@@ -4999,7 +5043,9 @@ def fetch_ollama_cloud_models(
     # 3. models.dev registry
     mdev_models: list[str] = []
     try:
-        from agent.models_dev import list_agentic_models
+        from agent.models_dev import fetch_models_dev, list_agentic_models
+        if force_refresh:
+            fetch_models_dev(force_refresh=True)
         mdev_models = list_agentic_models("ollama-cloud")
     except Exception:
         pass

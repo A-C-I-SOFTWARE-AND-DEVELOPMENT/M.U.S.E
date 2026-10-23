@@ -7,10 +7,10 @@ path **alongside** it — it does not replace or alter the shared token.
 
 A new device pairs in two steps:
 
-1. :func:`start_pairing` mints a short-lived pairing code (no token yet)
-   and stores it pending. Rate-limited and lockout-protected, mirroring
+1. :func:`start_pairing` mints a short-lived pairing id + code (no token yet)
+   and stores them pending. Rate-limited and lockout-protected, mirroring
    :mod:`gateway.pairing`.
-2. :func:`confirm_pairing` exchanges a valid, unexpired code for a fresh
+2. :func:`confirm_pairing` exchanges that matching, unexpired pair for a fresh
    per-device token (via :func:`hermes_cli.cockpit_token.generate_token`).
    Only the token's **hash** is persisted (keyed by a new ``device_id``);
    the raw token is returned exactly once and never stored or logged.
@@ -68,6 +68,7 @@ _LOCK = threading.RLock()
 class PairingStart:
     """Result of :func:`start_pairing`."""
 
+    pairing_id: str
     pairing_code: str
     expires_at: float
 
@@ -97,6 +98,10 @@ def _new_pairing_code() -> str:
     return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
 
 
+def _new_pairing_id() -> str:
+    return "pair_" + secrets.token_urlsafe(18)
+
+
 # --- durable store ----------------------------------------------------------
 #
 # The store is a JSON-lines file with exactly two record kinds:
@@ -110,7 +115,7 @@ def _new_pairing_code() -> str:
 def _empty_state() -> dict[str, Any]:
     return {
         "meta": {
-            "pending": {},          # code -> {device_name, created_at}
+            "pending": {},          # code -> {pairing_id, device_name, created_at}
             _RATE_KEY: 0.0,         # last start_pairing time
             _FAILURES_KEY: 0,       # consecutive failed confirms
             _LOCKOUT_KEY: 0.0,      # locked-out until (epoch)
@@ -217,7 +222,7 @@ def _record_failed_confirm(state: dict[str, Any], now: float) -> None:
 def start_pairing(device_name: str) -> Optional[PairingStart]:
     """Begin pairing a device: mint and store a short-lived pairing code.
 
-    Returns a :class:`PairingStart` (``pairing_code`` + ``expires_at`` epoch),
+    Returns a :class:`PairingStart` (id, code, and ``expires_at`` epoch),
     or ``None`` when the request is refused:
 
       * rate-limited (a ``start_pairing`` happened within
@@ -242,16 +247,24 @@ def start_pairing(device_name: str) -> Optional[PairingStart]:
             return None
 
         code = _new_pairing_code()
+        pairing_id = _new_pairing_id()
         state["meta"]["pending"][code] = {
+            "pairing_id": pairing_id,
             "device_name": name,
             "created_at": now,
         }
         state["meta"][_RATE_KEY] = now
         _save_state(state)
-        return PairingStart(pairing_code=code, expires_at=now + CODE_TTL_SECONDS)
+        return PairingStart(
+            pairing_id=pairing_id,
+            pairing_code=code,
+            expires_at=now + CODE_TTL_SECONDS,
+        )
 
 
-def confirm_pairing(pairing_code: str) -> Optional[PairingConfirm]:
+def confirm_pairing(
+    pairing_code: str, pairing_id: str | None = None
+) -> Optional[PairingConfirm]:
     """Exchange a valid, unexpired pairing code for a fresh per-device token.
 
     On success a new ``device_id`` is created, a token is generated via
@@ -275,7 +288,12 @@ def confirm_pairing(pairing_code: str) -> Optional[PairingConfirm]:
 
         pending = state["meta"]["pending"]
         info = pending.get(code)
-        if info is None:
+        expected_pairing_id = str((info or {}).get("pairing_id") or "")
+        if (
+            info is None
+            or not pairing_id
+            or not secrets.compare_digest(str(pairing_id), expected_pairing_id)
+        ):
             _record_failed_confirm(state, now)
             _save_state(state)
             return None

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -114,7 +114,7 @@
           <span class="glyph" style="flex:none; margin-top:2px;"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="#fff"></circle><circle cx="24" cy="24" r="14" fill="none" stroke="var(--ring-1)" stroke-width="1.2" opacity="0.7"></circle><circle cx="24" cy="24" r="21" fill="none" stroke="var(--ring-2)" stroke-width="0.8" opacity="0.4"></circle></svg></span>
           <div style="flex:1;">
             <div style="font-size:var(--type-title-size); font-weight:600; color:var(--signal); line-height:1.2;">Connect to your muse</div>
-            <div style="font-size:12px; color:var(--signal-dim); margin-top:3px; line-height:1.5;">Pair this cockpit with the muse gateway running on your machine. It talks only to your own local gateway — no keys leave your device.</div>
+            <div style="font-size:12px; color:var(--signal-dim); margin-top:3px; line-height:1.5;">Pair this cockpit with the muse gateway running on your machine. It talks only to your own local gateway â€” no keys leave your device.</div>
           </div>
           <button type="button" onClick="{{ conn2.onClose }}" class="btn secondary" style="flex:none; padding:5px 10px;">Close</button>
         </div>
@@ -161,7 +161,7 @@
                 <span style="flex:1; text-align:center; font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:0.04em; color:var(--ring-1); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-sm); padding:9px 0;">{{ c }}</span>
               </sc-for>
             </div>
-            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">To authorize this device, type the owner phrase exactly:<br /><span style="font-family:var(--mono); color:var(--signal);">{{ conn2.ownerPhrase }}</span></div>
+            <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">To authorize this device, type the owner phrase exactly. The phrase is never shown here.</div>
             <div style="display:flex; gap:8px;">
               <input type="text" value="{{ conn2.phrase }}" onInput="{{ conn2.onPhrase }}" placeholder="Owner authorization phrase" style="flex:1; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;" style-focus="border-color:var(--ring-1);" />
               <button type="button" onClick="{{ conn2.onConfirm }}" class="btn primary" style="flex:none;">Pair</button>
@@ -180,9 +180,9 @@
             <sc-if value="{{ conn2.hasRuntime }}" hint-placeholder-val="{{ false }}">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px 16px; padding:11px 0; border-top:1px solid var(--edge); border-bottom:1px solid var(--edge); margin-bottom:12px;">
                 <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Host</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.hostname }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Platform</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.platform }} · {{ conn2.runtime.arch }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Gateway</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">v{{ conn2.runtime.ver }} · {{ conn2.runtime.mode }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Queue</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.running }} running · {{ conn2.runtime.queued }} queued</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Platform</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.platform }} Â· {{ conn2.runtime.arch }}</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Gateway</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">v{{ conn2.runtime.ver }} Â· {{ conn2.runtime.mode }}</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Queue</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.running }} running Â· {{ conn2.runtime.queued }} queued</span></div>
               </div>
             </sc-if>
             <div style="display:flex; gap:8px;">
@@ -200,7 +200,7 @@
           </div>
         </sc-if>
 
-        <div style="margin-top:16px; font-size:11px; color:var(--signal-mute); line-height:1.55; border-top:1px solid var(--edge); padding-top:12px;">Endpoints follow the real cockpit API — <span style="font-family:var(--mono);">/v1/health</span>, <span style="font-family:var(--mono);">/v1/cockpit/pair/start</span>, <span style="font-family:var(--mono);">/pair/confirm</span>, then bearer-token calls to <span style="font-family:var(--mono);">/v1/cockpit/*</span>. Your device token is stored only on this device.</div>
+        <div style="margin-top:16px; font-size:11px; color:var(--signal-mute); line-height:1.55; border-top:1px solid var(--edge); padding-top:12px;">Endpoints follow the real cockpit API â€” <span style="font-family:var(--mono);">/v1/health</span>, <span style="font-family:var(--mono);">/v1/cockpit/pair/start</span>, <span style="font-family:var(--mono);">/pair/confirm</span>, then bearer-token calls to <span style="font-family:var(--mono);">/v1/cockpit/*</span>. Your device token is stored only on this device.</div>
       </div>
     </div>
   </sc-if>
@@ -210,7 +210,7 @@
     <div class="banner offline show" style="margin-top:0;">
       <span class="dot danger"></span>
       <span style="font-weight:500;">Emergency stop is on.</span>
-      <span class="muted">Everything is paused · view-only until you resume.</span>
+      <span class="muted">Everything is paused Â· view-only until you resume.</span>
       <span class="grow"></span>
       <button type="button" class="btn secondary" onClick="{{ onEmergency }}">Resume control</button>
     </div>
@@ -266,7 +266,7 @@
           </sc-for>
           <sc-if value="{{ museThinking }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex; gap:12px; align-self:flex-start; align-items:center; color:var(--signal-mute); font-family:var(--mono); font-size:12px;">
-              <span class="dot live"></span> muse is thinking…
+              <span class="dot live"></span> muse is thinkingâ€¦
             </div>
           </sc-if>
         </div>
@@ -275,7 +275,7 @@
           <span style="font-size:11px; color:var(--signal-mute);">{{ fusionModeHint }}</span>
         </div>
         <div class="row" style="gap:10px; padding-top:12px; flex-wrap:nowrap;">
-          <input class="field" placeholder="Tell muse what to do…" value="{{ composer }}" onInput="{{ onComposer }}" onKeyDown="{{ onComposerKey }}" />
+          <input class="field" placeholder="Tell muse what to doâ€¦" value="{{ composer }}" onInput="{{ onComposer }}" onKeyDown="{{ onComposerKey }}" />
           <button type="button" class="btn primary" onClick="{{ onSend }}" style="flex:none;">Send</button>
         </div>
       </section>
@@ -382,7 +382,7 @@
           <div class="empty">
             <span class="glyph"><svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true"><g transform="rotate(-32 24 24)"><circle cx="24" cy="24" r="15" fill="none" stroke="url(#hdr-ring)" stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round"/></g><circle cx="24" cy="24" r="3.1" fill="#fff"/></svg></span>
             <h2 class="empty-title">Nothing waiting on you</h2>
-            <p class="empty-body">Anything that needs your OK shows up here — spending money, going live, or posting something public. Right now you are all caught up.</p>
+            <p class="empty-body">Anything that needs your OK shows up here â€” spending money, going live, or posting something public. Right now you are all caught up.</p>
           </div>
         </sc-if>
       </section>
@@ -471,7 +471,7 @@
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Customize &amp; build</span><h2 class="section-title">Studio</h2></div>
-          <div class="trailing"><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
+          <div class="trailing"><span class="pill neutral">{{ mcpOnCount }} servers Â· {{ pluginOnCount }} plugins</span></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:12px; align-items:start;">
@@ -487,7 +487,7 @@
                 </span>
                 <div style="min-width:0;">
                   <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">GitHub</div>
-                  <div class="mono" style="font-size:11px; color:var(--signal-mute);">{{ github.repo }} · {{ github.branch }}</div>
+                  <div class="mono" style="font-size:11px; color:var(--signal-mute);">{{ github.repo }} Â· {{ github.branch }}</div>
                 </div>
                 <span class="{{ githubStatusCls }}" style="margin-left:auto;">{{ githubStatusLabel }}</span>
               </div>
@@ -552,12 +552,12 @@
                 <span style="width:11px; height:11px; border-radius:50%; background:#f5c451;"></span>
                 <span style="width:11px; height:11px; border-radius:50%; background:#5be3a0;"></span>
               </div>
-              <button type="button" onClick="{{ onRebuild }}" title="Reload" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">↻</button>
+              <button type="button" onClick="{{ onRebuild }}" title="Reload" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">â†»</button>
               <div style="flex:1 1 auto; display:flex; align-items:center; gap:8px; padding:5px 12px; border-radius:9999px; background:var(--void); border:1px solid var(--edge); min-width:0;">
                 <span style="flex:none; width:11px; height:11px; border-radius:50%; border:1.5px solid var(--ring-1);"></span>
                 <span class="mono" style="font-size:11px; color:var(--signal-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">localhost:3000{{ route }}</span>
               </div>
-              <button type="button" onClick="{{ onOpenExternal }}" title="Open in new tab" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">↗</button>
+              <button type="button" onClick="{{ onOpenExternal }}" title="Open in new tab" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">â†—</button>
               <span class="pill accent" style="flex:none;"><span class="{{ buildDotCls }}"></span> {{ buildLabel }}</span>
             </div>
             <!-- tabs + device row -->
@@ -572,9 +572,9 @@
               <sc-if value="{{ showPrev }}" hint-placeholder-val="{{ true }}">
                 <span class="mono" style="font-size:11px; color:var(--signal-mute);">{{ deviceDims }}</span>
                 <div style="display:flex; align-items:center; gap:2px; padding:3px; border:1px solid var(--edge); border-radius:var(--radius-pill);">
-                  <button type="button" onClick="{{ onDeviceResponsive }}" style="{{ deviceResponsiveStyle }}" title="Responsive">▭</button>
-                  <button type="button" onClick="{{ onDeviceTablet }}" style="{{ deviceTabletStyle }}" title="Tablet">▢</button>
-                  <button type="button" onClick="{{ onDeviceMobile }}" style="{{ deviceMobileStyle }}" title="Mobile">▯</button>
+                  <button type="button" onClick="{{ onDeviceResponsive }}" style="{{ deviceResponsiveStyle }}" title="Responsive">â–­</button>
+                  <button type="button" onClick="{{ onDeviceTablet }}" style="{{ deviceTabletStyle }}" title="Tablet">â–¢</button>
+                  <button type="button" onClick="{{ onDeviceMobile }}" style="{{ deviceMobileStyle }}" title="Mobile">â–¯</button>
                 </div>
               </sc-if>
             </div>
@@ -603,7 +603,7 @@
                   </span>
                   <span class="grow"></span>
                   <span class="pill ok" style="font-size:10px;"><span class="dot live"></span> live edit</span>
-                  <span class="mono" style="font-size:10px; color:var(--signal-mute);">HTML · {{ codeLines }} lines</span>
+                  <span class="mono" style="font-size:10px; color:var(--signal-mute);">HTML Â· {{ codeLines }} lines</span>
                 </div>
                 <textarea spellcheck="false" value="{{ sandboxCode }}" onInput="{{ onCodeInput }}" style="margin:0; flex:1 1 auto; width:100%; resize:none; overflow:auto; padding:16px; font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#cdd5e4; background:#070810; border:0; outline:none; white-space:pre; tab-size:2; caret-color:var(--ring-1);"></textarea>
               </div>
@@ -713,12 +713,12 @@
                 <div style="display:flex; align-items:center; gap:12px;">
                   <div style="min-width:0;">
                     <div class="mono" style="font-size:14px; font-weight:600; color:var(--signal);">{{ f.name }}</div>
-                    <div style="font-size:var(--type-label-size); color:var(--signal-mute);">{{ f.provName }} · {{ f.role }}</div>
+                    <div style="font-size:var(--type-label-size); color:var(--signal-mute);">{{ f.provName }} Â· {{ f.role }}</div>
                   </div>
-                  <button type="button" onClick="{{ f.onToggle }}" title="Remove from blend" style="margin-left:auto; width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">×</button>
+                  <button type="button" onClick="{{ f.onToggle }}" title="Remove from blend" style="margin-left:auto; width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">Ã—</button>
                 </div>
                 <div style="margin-top:14px; display:flex; align-items:center; gap:12px;">
-                  <button type="button" onClick="{{ f.onDown }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">−</button>
+                  <button type="button" onClick="{{ f.onDown }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">âˆ’</button>
                   <div style="flex:1 1 auto; height:6px; border-radius:9999px; background:var(--edge); overflow:hidden;"><div style="height:100%; border-radius:9999px; background:var(--ring-grad); width:{{ f.barW }}; transition:width .25s var(--easing-standard);"></div></div>
                   <button type="button" onClick="{{ f.onUp }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">+</button>
                   <span class="mono" style="flex:none; width:42px; text-align:right; font-size:13px; color:var(--signal);">{{ f.contrib }}%</span>
@@ -730,7 +730,7 @@
                 <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute); margin-bottom:10px;">Add a model to the blend</div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
                   <sc-for list="{{ addable }}" as="a" hint-placeholder-count="3">
-                    <button type="button" onClick="{{ a.onAdd }}" style="padding:7px 12px; border:1px solid var(--edge); border-radius:9999px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font:inherit; font-size:12px;">+ {{ a.name }} <span style="color:var(--signal-mute);">· {{ a.provName }}</span></button>
+                    <button type="button" onClick="{{ a.onAdd }}" style="padding:7px 12px; border:1px solid var(--edge); border-radius:9999px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font:inherit; font-size:12px;">+ {{ a.name }} <span style="color:var(--signal-mute);">Â· {{ a.provName }}</span></button>
                   </sc-for>
                 </div>
               </div>
@@ -759,7 +759,7 @@
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">The whole mind</span><h2 class="section-title">3D Atlas</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> interactive · WebGL</span></div>
+          <div class="trailing"><span class="pill accent"><span class="dot live"></span> interactive Â· WebGL</span></div>
         </div>
         <div style="position:relative; height:calc(100vh - 180px); min-height:520px; border-radius:10px; overflow:hidden; box-shadow:0 30px 70px -34px rgba(0,0,0,0.9), 0 0 0 1px var(--edge);">
           <iframe src="atlas/muse-atlas.html" title="MUSE 3D Systems Atlas" style="width:100%; height:100%; border:0; display:block; background:#05080f;"></iframe>
@@ -774,7 +774,7 @@
           <div class="heads"><span class="eyebrow">Any provider, any model</span><h2 class="section-title">Models &amp; providers</h2></div>
           <div class="trailing"><span class="pill accent">{{ modelsOnlineLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 16px 2px;">One omni source for every model. Connect any provider, add any model, and choose which ones muse can use — you are never locked to one.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 16px 2px;">One omni source for every model. Connect any provider, add any model, and choose which ones muse can use â€” you are never locked to one.</div>
 
         <div style="display:flex; align-items:center; margin-bottom:10px;"><span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Providers</span><span class="grow"></span><button type="button" class="btn secondary" onClick="{{ onAddProvider }}">+ Add provider</button></div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px;">
@@ -805,7 +805,7 @@
         </sc-if>
         <div class="card" style="padding:0; overflow:hidden;">
           <div style="display:grid; grid-template-columns:1.5fr 1fr 0.7fr 0.6fr 1.4fr auto; gap:14px; padding:12px 16px; border-bottom:1px solid var(--edge); font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">
-            <span>Model</span><span>Best at</span><span>Context</span><span>Cost</span><span>On · fusion</span><span></span>
+            <span>Model</span><span>Best at</span><span>Context</span><span>Cost</span><span>On Â· fusion</span><span></span>
           </div>
           <sc-for list="{{ modelList }}" as="m" hint-placeholder-count="6">
             <div style="display:grid; grid-template-columns:1.5fr 1fr 0.7fr 0.6fr 1.4fr auto; gap:14px; padding:14px 16px; border-bottom:1px solid var(--edge); align-items:center; opacity:{{ m.rowOpacity }};">
@@ -817,7 +817,7 @@
                 <button type="button" onClick="{{ m.onToggleOn }}" style="{{ m.trackStyle }}"><span style="{{ m.knobStyle }}"></span></button>
                 <button type="button" onClick="{{ m.onToggleFuse }}" style="{{ m.fuseBtnStyle }}">{{ m.fuseLabel }}</button>
               </div>
-              <button type="button" onClick="{{ m.onRemove }}" title="Remove model" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">×</button>
+              <button type="button" onClick="{{ m.onRemove }}" title="Remove model" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">Ã—</button>
             </div>
           </sc-for>
         </div>
@@ -905,7 +905,7 @@
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">How things connect</span><h2 class="section-title">Knowledge map</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> 26 things · 41 links</span></div>
+          <div class="trailing"><span class="pill accent"><span class="dot live"></span> 26 things Â· 41 links</span></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 280px; gap:12px;">
           <div class="card" style="padding:0; overflow:hidden; position:relative;">
@@ -994,7 +994,7 @@
           <div class="heads"><span class="eyebrow">How muse shows up</span><h2 class="section-title">Modes</h2></div>
           <div class="trailing"><span class="pill accent"><span class="dot live"></span> {{ activeModeName }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">muse switches how it works to fit the moment. Pick the one that should lead right now — it can still move between them on its own.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">muse switches how it works to fit the moment. Pick the one that should lead right now â€” it can still move between them on its own.</div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
           <sc-for list="{{ opModes }}" as="m" hint-placeholder-count="6">
             <div class="card interactive" style="{{ m.cardStyle }}" onClick="{{ m.onPick }}">
@@ -1075,7 +1075,7 @@
           <div class="heads"><span class="eyebrow">muse's expert council</span><h2 class="section-title">Council</h2></div>
           <div class="trailing"><span class="pill neutral">{{ councilLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">A deep bench of specialist roles muse convenes for audits, launch reviews, and big decisions — each department weighs in from its own angle.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">A deep bench of specialist roles muse convenes for audits, launch reviews, and big decisions â€” each department weighs in from its own angle.</div>
         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
           <sc-for list="{{ council }}" as="c" hint-placeholder-count="8">
             <div class="card interactive" style="{{ c.cardStyle }}" onClick="{{ c.onConvene }}">
@@ -1116,7 +1116,7 @@
           <div class="heads"><span class="eyebrow">Talk to muse anywhere</span><h2 class="section-title">Channels</h2></div>
           <div class="trailing"><span class="pill accent">{{ channelsLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface — it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface â€” it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
         <sc-for list="{{ channels }}" as="c" hint-placeholder-count="7">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
             <div style="flex:1 1 auto; min-width:0;">
@@ -1140,7 +1140,7 @@
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
             <div style="flex:1 1 auto; min-width:0;">
               <div style="display:flex; align-items:center; gap:8px;"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ sch.onEditName }}" style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.name }}</span><span class="{{ sch.stateCls }}">{{ sch.stateLabel }}</span></div>
-              <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ sch.onEditWhen }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.when }}</span> · sends to <span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ sch.onEditTo }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.to }}</span></div>
+              <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ sch.onEditWhen }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.when }}</span> Â· sends to <span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ sch.onEditTo }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.to }}</span></div>
             </div>
             <button type="button" onClick="{{ sch.onToggle }}" style="{{ sch.trackStyle }}; flex:none;"><span style="{{ sch.knobStyle }}"></span></button>
           </div>
@@ -1193,7 +1193,7 @@
           <div class="heads"><span class="eyebrow">Download muse</span><h2 class="section-title">Releases</h2></div>
           <div class="trailing"><span class="pill accent">{{ releasesCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. Desktop, Android, and source are now published to a single rolling release that auto-refreshes from the latest main — the old per-platform channels are gone, but all of their downloads live here.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. Desktop, Android, and source are now published to a single rolling release that auto-refreshes from the latest main â€” the old per-platform channels are gone, but all of their downloads live here.</div>
         <div class="card" style="max-width:720px; display:flex; flex-direction:column; gap:14px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span style="font-size:18px; font-weight:600; color:var(--signal); letter-spacing:-0.3px;">{{ release.name }}</span>
@@ -1201,7 +1201,7 @@
             <span class="mono" style="margin-left:auto; font-size:11px; color:var(--ring-1);">{{ release.tag }}</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--signal-mute);">
-            <span class="mono">{{ release.ver }}</span><span>·</span><span>{{ release.signLabel }}</span>
+            <span class="mono">{{ release.ver }}</span><span>Â·</span><span>{{ release.signLabel }}</span>
           </div>
           <div contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ release.onEditBlurb }}" style="font-size:13px; line-height:1.6; color:var(--signal-dim); outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ release.blurb }}</div>
           <div style="display:flex; gap:9px; align-items:flex-start; border:1px solid var(--edge); border-radius:var(--radius-md); padding:11px 13px; background:var(--void-2);">
@@ -1234,7 +1234,7 @@
                     </div>
                   </sc-for>
                 </div>
-                <a href="{{ p.dl }}" target="_blank" rel="noopener" style="margin-top:12px; display:inline-flex; align-items:center; gap:7px; text-decoration:none; font-size:12px; font-weight:600; padding:8px 14px; border-radius:9999px; border:1px solid var(--ring-1); background:rgba(122,224,255,0.14); color:var(--ring-1);">Download · {{ p.kind }} ↗</a>
+                <a href="{{ p.dl }}" target="_blank" rel="noopener" style="margin-top:12px; display:inline-flex; align-items:center; gap:7px; text-decoration:none; font-size:12px; font-weight:600; padding:8px 14px; border-radius:9999px; border:1px solid var(--ring-1); background:rgba(122,224,255,0.14); color:var(--ring-1);">Download Â· {{ p.kind }} â†—</a>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:10px;">{{ p.sign }}</div>
                 <div style="font-size:10px; color:var(--signal-mute); margin-top:4px;">{{ p.reqs }}</div>
               </div>
@@ -1244,10 +1244,10 @@
         </div>
 
         <div class="section-header" style="margin-top:26px;">
-          <div class="heads"><span class="eyebrow">M.U.S.E. lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
+          <div class="heads"><span class="eyebrow">M.U.S.E. lineage Â· newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
           <div class="trailing"><span class="pill neutral">{{ historyCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records — they predate the muse rebrand and keep their original “Hermes Agent” naming.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records â€” they predate the muse rebrand and keep their original â€œHermes Agentâ€ naming.</div>
         <div style="display:flex; flex-direction:column; gap:0; max-width:760px;">
           <sc-for list="{{ release.history }}" as="h" hint-placeholder-count="13">
             <a href="{{ h.url }}" target="_blank" rel="noopener" onClick="{{ h.onOpen }}" style="display:flex; gap:14px; padding:14px 2px; border-bottom:1px solid var(--edge); text-decoration:none; align-items:baseline;" style-hover="background:rgba(120,180,255,0.04);">
@@ -1279,6 +1279,7 @@ class Component extends DCLogic {
     gatewayUrl: '',
     gatewayInfo: null,
     deviceName: '',
+    pairId: '',
     pairCode: '',
     pairExpires: 0,
     pairPhrase: '',
@@ -1294,26 +1295,26 @@ class Component extends DCLogic {
     seconds: 7 * 3600 + 42 * 60 + 11,
     chat: [
       { who: 'You', isMuse: false, text: 'How is the login feature coming along?' },
-      { who: 'muse', isMuse: true, text: 'Working on it now — the setup is done and I am building the sign-in screen. I kept the change small and safe, so nothing else is affected. Testing and launch are lined up next.' },
+      { who: 'muse', isMuse: true, text: 'Working on it now â€” the setup is done and I am building the sign-in screen. I kept the change small and safe, so nothing else is affected. Testing and launch are lined up next.' },
       { who: 'You', isMuse: false, text: 'Good. Hold the payments update until I take a look.' },
-      { who: 'muse', isMuse: true, text: 'Got it. The payments update is finished and waiting for you — it will not go live until you approve it. I have put it under Approvals.' },
+      { who: 'muse', isMuse: true, text: 'Got it. The payments update is finished and waiting for you â€” it will not go live until you approve it. I have put it under Approvals.' },
     ],
     jobsRaw: [
-      { id: 'job-7c1f', title: 'Add login and usernames', sub: 'Task 1 · sign-in', phase: 2, live: true, secs: 184 },
-      { id: 'job-3a90', title: 'Make sure payments never clash', sub: 'Task 2 · payments', phase: 5, live: false, review: true, secs: 1320 },
-      { id: 'job-5d18', title: 'Fix the slow checkout page', sub: 'Task 3 · quick fix', phase: 3, live: true, secs: 96 },
-      { id: 'job-9b22', title: 'Organize the help-article search', sub: 'Task 4 · search', phase: 0, live: false, queued: true, secs: 0 },
+      { id: 'job-7c1f', title: 'Add login and usernames', sub: 'Task 1 Â· sign-in', phase: 2, live: true, secs: 184 },
+      { id: 'job-3a90', title: 'Make sure payments never clash', sub: 'Task 2 Â· payments', phase: 5, live: false, review: true, secs: 1320 },
+      { id: 'job-5d18', title: 'Fix the slow checkout page', sub: 'Task 3 Â· quick fix', phase: 3, live: true, secs: 96 },
+      { id: 'job-9b22', title: 'Organize the help-article search', sub: 'Task 4 Â· search', phase: 0, live: false, queued: true, secs: 0 },
     ],
     approvalsRaw: [
-      { id: 'ap1', gate: 'Go live', title: 'Put the new version live for everyone', detail: 'Updates 12 things · includes a payments change', risk: 'Big change', riskCls: 'pill danger', meta: 'asked by the login task · 2m ago' },
-      { id: 'ap2', gate: 'Spending', title: 'Rent extra computers to run tests', detail: 'About $186 over 6 hours · 41% of this month\u2019s budget used', risk: 'Medium', riskCls: 'pill warn', meta: 'asked by Learning · 5m ago' },
-      { id: 'ap3', gate: 'Publish', title: 'Post the \u201Cwhat\u2019s new\u201D notes publicly', detail: 'Public · version 2.14 · 3 updates', risk: 'Small', riskCls: 'pill neutral', meta: 'asked by you · 11m ago' },
+      { id: 'ap1', gate: 'Go live', title: 'Put the new version live for everyone', detail: 'Updates 12 things Â· includes a payments change', risk: 'Big change', riskCls: 'pill danger', meta: 'asked by the login task Â· 2m ago' },
+      { id: 'ap2', gate: 'Spending', title: 'Rent extra computers to run tests', detail: 'About $186 over 6 hours Â· 41% of this month\u2019s budget used', risk: 'Medium', riskCls: 'pill warn', meta: 'asked by Learning Â· 5m ago' },
+      { id: 'ap3', gate: 'Publish', title: 'Post the \u201Cwhat\u2019s new\u201D notes publicly', detail: 'Public Â· version 2.14 Â· 3 updates', risk: 'Small', riskCls: 'pill neutral', meta: 'asked by you Â· 11m ago' },
     ],
     metricVals: { latency: 312, tps: 1840, tokens: 4.2, cost: 18.40 },
     logLines: [],
     autonomyLevel: 'Supervised',
     guardrails: { spend: true, deploy: true, export: false, selfmod: false },
-    github: { connected: true, repo: 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', branch: 'main', sync: 'in sync · 2m ago' },
+    github: { connected: true, repo: 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', branch: 'main', sync: 'in sync Â· 2m ago' },
     mcps: [
       { id: 'fs', name: 'Filesystem', desc: 'Read & write project files', on: true },
       { id: 'git', name: 'Git', desc: 'Branches, commits & history', on: true },
@@ -1368,7 +1369,7 @@ class Component extends DCLogic {
     toolsetOn: { files: true, shell: true, web: true, code: true, memory: true, research: true, media: true, comms: true },
     consoleLines: [
       { id: 'c1', t: '07:41:58', tag: 'READY', tagCls: 'pill ok', msg: 'ready on http://localhost:3000' },
-      { id: 'c2', t: '07:41:58', tag: 'GET', tagCls: 'pill neutral', msg: '/login  200  ·  18ms' },
+      { id: 'c2', t: '07:41:58', tag: 'GET', tagCls: 'pill neutral', msg: '/login  200  Â·  18ms' },
       { id: 'c3', t: '07:41:57', tag: 'BUILD', tagCls: 'pill accent', msg: 'compiled successfully in 312ms' },
       { id: 'c4', t: '07:41:57', tag: 'HMR', tagCls: 'pill neutral', msg: 'hot reload connected' },
     ],
@@ -1469,10 +1470,10 @@ class Component extends DCLogic {
     { model: 'muse-mini', task: 'Quick answers', tagCls: 'pill neutral', share: 9, p50: 88, online: true },
   ];
   memoryData = [
-    { type: 'Fact', typeCls: 'pill accent', text: 'Payments must be handled one at a time so they never clash.', meta: 'from the payments task · used 41× · 2h ago', strength: 92 },
-    { type: 'Event', typeCls: 'pill neutral', text: 'You said no to posting the version 2.13 notes until legal reviews them.', meta: 'from Approvals · used 6× · yesterday', strength: 64 },
-    { type: 'How-to', typeCls: 'pill neutral', text: 'Quick fix steps: make a copy, fix it, test it, then ask to go live.', meta: 'from Models · used 88× · 20m ago', strength: 88 },
-    { type: 'Fact', typeCls: 'pill accent', text: 'Renting computers for more than $150 always needs your OK first.', meta: 'from Permissions · used 12× · 3d ago', strength: 71 },
+    { type: 'Fact', typeCls: 'pill accent', text: 'Payments must be handled one at a time so they never clash.', meta: 'from the payments task Â· used 41Ã— Â· 2h ago', strength: 92 },
+    { type: 'Event', typeCls: 'pill neutral', text: 'You said no to posting the version 2.13 notes until legal reviews them.', meta: 'from Approvals Â· used 6Ã— Â· yesterday', strength: 64 },
+    { type: 'How-to', typeCls: 'pill neutral', text: 'Quick fix steps: make a copy, fix it, test it, then ask to go live.', meta: 'from Models Â· used 88Ã— Â· 20m ago', strength: 88 },
+    { type: 'Fact', typeCls: 'pill accent', text: 'Renting computers for more than $150 always needs your OK first.', meta: 'from Permissions Â· used 12Ã— Â· 3d ago', strength: 71 },
   ];
   evidenceData = [
     { time: '07:41:58', actor: 'Main AI', action: 'Answered a thinking request', hash: 'ref #9f2ac0', verdict: 'Logged', verdictCls: 'pill ok' },
@@ -1480,7 +1481,7 @@ class Component extends DCLogic {
     { time: '07:39:12', actor: 'You', action: 'Said no to a $186 computer rental', hash: 'ref #5b1877', verdict: 'Your call', verdictCls: 'pill accent' },
     { time: '07:38:05', actor: 'Safety rule', action: 'Blocked muse from changing its own settings', hash: 'ref #c4e012', verdict: 'Blocked', verdictCls: 'pill danger' },
     { time: '07:35:51', actor: 'Coding AI', action: 'Applied a quick fix', hash: 'ref #8a90fe', verdict: 'Logged', verdictCls: 'pill ok' },
-    { time: '07:34:19', actor: 'System', action: 'Checked the log — all 2,041 entries intact', hash: 'ref #1c2db8', verdict: 'Logged', verdictCls: 'pill ok' },
+    { time: '07:34:19', actor: 'System', action: 'Checked the log â€” all 2,041 entries intact', hash: 'ref #1c2db8', verdict: 'Logged', verdictCls: 'pill ok' },
   ];
   graphStatsData = [
     { label: 'Connections', value: '0.31', sub: 'how linked things are' },
@@ -1488,9 +1489,9 @@ class Component extends DCLogic {
     { label: 'Last update', value: '20s', sub: 'updating live' },
   ];
   learningData = [
-    { name: 'Getting better at picking the right AI', sub: 'Practice run · main AI', metric: '0.94', metricLabel: 'score', delta: '+3.1%', deltaCls: 'pill ok', state: 'Learning', stateCls: 'pill accent', pct: 68, barColor: 'var(--ring-grad)', progress: '6,800 of 10,000 practice rounds' },
-    { name: 'Coding test', sub: 'Test run · 2,000 problems', metric: '81.2%', metricLabel: 'pass rate', delta: '+1.4%', deltaCls: 'pill ok', state: 'Testing', stateCls: 'pill accent', pct: 42, barColor: 'var(--ring-grad)', progress: '840 of 2,000 problems' },
-    { name: 'Fine-tuning its judgement', sub: 'Tune run', metric: '0.88', metricLabel: 'agreement', delta: '−0.2%', deltaCls: 'pill warn', state: 'Waiting', stateCls: 'pill neutral', pct: 0, barColor: 'var(--edge)', progress: 'waiting for spending approval' },
+    { name: 'Getting better at picking the right AI', sub: 'Practice run Â· main AI', metric: '0.94', metricLabel: 'score', delta: '+3.1%', deltaCls: 'pill ok', state: 'Learning', stateCls: 'pill accent', pct: 68, barColor: 'var(--ring-grad)', progress: '6,800 of 10,000 practice rounds' },
+    { name: 'Coding test', sub: 'Test run Â· 2,000 problems', metric: '81.2%', metricLabel: 'pass rate', delta: '+1.4%', deltaCls: 'pill ok', state: 'Testing', stateCls: 'pill accent', pct: 42, barColor: 'var(--ring-grad)', progress: '840 of 2,000 problems' },
+    { name: 'Fine-tuning its judgement', sub: 'Tune run', metric: '0.88', metricLabel: 'agreement', delta: 'âˆ’0.2%', deltaCls: 'pill warn', state: 'Waiting', stateCls: 'pill neutral', pct: 0, barColor: 'var(--edge)', progress: 'waiting for spending approval' },
   ];
   processesData = [
     { name: 'Main AI', pid: '1041', state: 'Running', stateCls: 'pill ok' },
@@ -1586,12 +1587,12 @@ class Component extends DCLogic {
     { name: 'Rollback', desc: 'Can always undo cleanly if something goes wrong.', state: 'Ready', cls: 'pill neutral' },
   ];
   constitutionData = [
-    { id: 'C1', text: 'You stay in control — risky actions wait for your explicit OK.', sev: 'Critical', cls: 'pill danger' },
+    { id: 'C1', text: 'You stay in control â€” risky actions wait for your explicit OK.', sev: 'Critical', cls: 'pill danger' },
     { id: 'C2', text: 'muse never edits itself silently; every change is a proposal you can review.', sev: 'Critical', cls: 'pill danger' },
     { id: 'C3', text: 'Every claim cites its source; memory points to the truth, it is not the truth.', sev: 'High', cls: 'pill warn' },
-    { id: 'C4', text: 'No gaming the numbers — shortcuts and reward-hacking get flagged.', sev: 'High', cls: 'pill warn' },
+    { id: 'C4', text: 'No gaming the numbers â€” shortcuts and reward-hacking get flagged.', sev: 'High', cls: 'pill warn' },
     { id: 'C5', text: 'muse stays inside its limits and will not over-reach.', sev: 'High', cls: 'pill warn' },
-    { id: 'C6', text: 'Everything is reversible — no step that cannot be undone.', sev: 'Medium', cls: 'pill neutral' },
+    { id: 'C6', text: 'Everything is reversible â€” no step that cannot be undone.', sev: 'Medium', cls: 'pill neutral' },
     { id: 'C7', text: 'Loyal to your long-term mission, not blind obedience in the moment.', sev: 'Medium', cls: 'pill neutral' },
   ];
   ledgerData = [
@@ -1630,14 +1631,14 @@ class Component extends DCLogic {
     { id: 'email', name: 'Email', note: 'Send muse a task by email.' },
   ];
   schedulesData = [
-    { id: 'report', name: 'Daily report', when: 'Every day · 8:00 AM', to: 'Telegram' },
-    { id: 'backup', name: 'Nightly backup', when: 'Every day · 2:00 AM', to: 'Files' },
-    { id: 'audit', name: 'Weekly audit', when: 'Sundays · 6:00 PM', to: 'Email' },
+    { id: 'report', name: 'Daily report', when: 'Every day Â· 8:00 AM', to: 'Telegram' },
+    { id: 'backup', name: 'Nightly backup', when: 'Every day Â· 2:00 AM', to: 'Files' },
+    { id: 'audit', name: 'Weekly audit', when: 'Sundays Â· 6:00 PM', to: 'Email' },
     { id: 'radar', name: 'AI improvement scan', when: 'Every 6 hours', to: 'Map' },
   ];
   researchData = [
     { claim: 'LM Studio v1 REST API gives accurate context-window detection.', src: 'Release notes v1.2.0', conf: 'High' },
-    { claim: 'The knowledge graph measured 33,483 nodes across the repo.', src: 'GraphRAG attestation · 2026-06-10', conf: 'Measured' },
+    { claim: 'The knowledge graph measured 33,483 nodes across the repo.', src: 'GraphRAG attestation Â· 2026-06-10', conf: 'Measured' },
     { claim: 'OpenRouter reaches 200+ models through one endpoint.', src: 'OpenRouter (vendor-reported)', conf: 'Vendor' },
     { claim: 'Daytona and Modal hibernate when idle, costing near-zero.', src: 'Terminal backends doc', conf: 'High' },
   ];
@@ -1646,32 +1647,32 @@ class Component extends DCLogic {
     { id: 'docker', name: 'Docker', note: 'Isolated container on your host.', tag: 'Ready', cls: 'pill neutral' },
     { id: 'ssh', name: 'SSH', note: 'A remote server you own.', tag: 'Ready', cls: 'pill neutral' },
     { id: 'singularity', name: 'Singularity', note: 'HPC / cluster container.', tag: 'Ready', cls: 'pill neutral' },
-    { id: 'modal', name: 'Modal', note: 'Serverless — sleeps when idle.', tag: 'Hibernates', cls: 'pill accent' },
-    { id: 'daytona', name: 'Daytona', note: 'Serverless dev box — wakes on demand.', tag: 'Hibernates', cls: 'pill accent' },
+    { id: 'modal', name: 'Modal', note: 'Serverless â€” sleeps when idle.', tag: 'Hibernates', cls: 'pill accent' },
+    { id: 'daytona', name: 'Daytona', note: 'Serverless dev box â€” wakes on demand.', tag: 'Hibernates', cls: 'pill accent' },
     { id: 'vercel', name: 'Vercel Sandbox', note: 'Ephemeral cloud sandbox.', tag: 'Ready', cls: 'pill neutral' },
   ];
 
   releaseData = {
-    name: 'muse — unified release', channel: 'One rolling release', tag: 'muse-latest',
-    ver: 'Rolling · currently v0.14.0', signLabel: 'Signed where configured · unsigned fallback',
+    name: 'muse â€” unified release', channel: 'One rolling release', tag: 'muse-latest',
+    ver: 'Rolling Â· currently v0.14.0', signLabel: 'Signed where configured Â· unsigned fallback',
     latestVer: 'v0.14.0', latestName: 'The Foundation Release', latestDate: 'May 16, 2026',
     latestSummary: 'Installs and runs anywhere, ships with what you actually use. SuperGrok OAuth (grok-4.3 @ 1M context), an OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, a debloat wave + PyPI install, ~19s off cold-start, and 22 messaging platforms.',
-    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
-    blurb: 'One download for everything muse. The desktop cockpit, the Android app, and the full source — previously five separate channels — now publish to this single release that auto-refreshes from the latest main. Nothing is lost; it is all here.',
+    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one â€” never to remote AI providers â€” and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
+    blurb: 'One download for everything muse. The desktop cockpit, the Android app, and the full source â€” previously five separate channels â€” now publish to this single release that auto-refreshes from the latest main. Nothing is lost; it is all here.',
     url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
-      { id: 'desktop', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS · Windows · Linux',
-        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys.',
+      { id: 'desktop', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS Â· Windows Â· Linux',
+        note: 'Native shell around the Singularity cockpit â€” talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys.',
         sign: 'Signed when certs are provisioned; unsigned installers (clearly marked) otherwise.', reqs: 'Requires macOS 11+, Windows 10+, or a modern Linux desktop.',
-        assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
-      { id: 'android', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
+        assets: [ { label: 'macOS', val: 'muse.dmg â€” open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe â€” download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
+      { id: 'android', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ Â· arm64 / armv7',
         note: 'Local-only muse/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys.',
-        sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
-        assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
+        sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) Â· built for arm64-v8a / armeabi-v7a.',
+        assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk â€” download, tap install, allow this source' } ] },
       { id: 'source', dl: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/main.zip', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',
         note: 'The complete repository at the latest main commit, auto-synced hourly. Clone it and run your own gateway.',
-        sign: 'No build assets — source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
-        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz' } ] },
+        sign: 'No build assets â€” source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
+        assets: [ { label: 'Archive', val: 'Source code â€” zip / tar.gz' } ] },
     ],
     history: [
       { ver: 'v0.14.0', date: '2026-05-16', name: 'The Foundation Release', summary: 'SuperGrok OAuth (grok-4.3 @ 1M ctx), OpenAI-compatible local proxy for OAuth providers, x_search, Teams end-to-end, install debloat + PyPI, ~19s cold-start cut, 22 platforms.' },
@@ -1692,14 +1693,14 @@ class Component extends DCLogic {
 
   phaseLabels = ['Copy', 'Set up', 'Build', 'Check', 'Launch'];
   logTemplates = [
-    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent a question to the main AI · 0.3s' },
+    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent a question to the main AI Â· 0.3s' },
     { tag: 'TASK', tagCls: 'pill neutral', msg: 'Login task: step 4 of 9 done' },
     { tag: 'MEMORY', tagCls: 'pill neutral', msg: 'Remembered 3 past notes' },
     { tag: 'OK', tagCls: 'pill ok', msg: 'All checks passed' },
-    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent code work to the coding AI · 0.5s' },
+    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent code work to the coding AI Â· 0.5s' },
     { tag: 'SLOW', tagCls: 'pill warn', msg: 'Pages loading a little slower' },
     { tag: 'TASK', tagCls: 'pill neutral', msg: 'Quick fix applied' },
-    { tag: 'OK', tagCls: 'pill ok', msg: 'Activity log checked — all good' },
+    { tag: 'OK', tagCls: 'pill ok', msg: 'Activity log checked â€” all good' },
   ];
 
   componentDidMount() {
@@ -1723,8 +1724,8 @@ class Component extends DCLogic {
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
       payments: this._appDoc('Send a payment', 'One charge at a time', '<div class="big">$1,240.00</div><div class="row"><span class="muted">To</span><span>Ada Lovelace</span></div><div class="row"><span class="muted">When</span><span>Today</span></div><div class="row"><span class="muted">Fee</span><span>$0.00</span></div><button class="cta" style="margin-top:18px">Send payment</button>'),
-      checkout: this._appDoc('Checkout', 'Fast and secure', '<div class="row"><span>Pro plan</span><span>$29.00</span></div><div class="row"><span>Seats × 3</span><span>$87.00</span></div><div class="row"><span class="muted">Tax</span><span>$9.28</span></div><div class="row"><span style="font-weight:600">Total</span><span style="font-weight:600">$125.28</span></div><button class="cta" style="margin-top:18px">Pay now</button>'),
-      search: this._appDoc('Help center', 'Find an answer', '<input class="search" placeholder="Search articles…"><div class="row">Getting started with muse<span class="muted">→</span></div><div class="row">Connecting GitHub<span class="muted">→</span></div><div class="row">Inviting your team<span class="muted">→</span></div><div class="row">Billing &amp; plans<span class="muted">→</span></div>'),
+      checkout: this._appDoc('Checkout', 'Fast and secure', '<div class="row"><span>Pro plan</span><span>$29.00</span></div><div class="row"><span>Seats Ã— 3</span><span>$87.00</span></div><div class="row"><span class="muted">Tax</span><span>$9.28</span></div><div class="row"><span style="font-weight:600">Total</span><span style="font-weight:600">$125.28</span></div><button class="cta" style="margin-top:18px">Pay now</button>'),
+      search: this._appDoc('Help center', 'Find an answer', '<input class="search" placeholder="Search articlesâ€¦"><div class="row">Getting started with muse<span class="muted">â†’</span></div><div class="row">Connecting GitHub<span class="muted">â†’</span></div><div class="row">Inviting your team<span class="muted">â†’</span></div><div class="row">Billing &amp; plans<span class="muted">â†’</span></div>'),
     };
     this._loop();
   }
@@ -1871,13 +1872,13 @@ class Component extends DCLogic {
       if (this.state.chatFusion) {
         const routing = this._buildRouting(text);
         const msg = { who: 'muse', isMuse: true,
-          text: 'Fusion run complete. I pulled together ' + routing.length + ' models for this, sent each part to the one best suited for it, ran them in parallel, and merged the results. Even a 10-million-word prompt gets split this way — faster, and sharper.',
+          text: 'Fusion run complete. I pulled together ' + routing.length + ' models for this, sent each part to the one best suited for it, ran them in parallel, and merged the results. Even a 10-million-word prompt gets split this way â€” faster, and sharper.',
           routing, routingTitle: 'How muse split this task' };
         this.setState({ museThinking: false, chat: [...this.state.chat, msg] });
       } else {
         const replies = [
           'On it. I will start a task and check with you under Approvals before anything goes live.',
-          'Got it. I will open a task and keep you posted on each step — copy, set up, build, check, launch.',
+          'Got it. I will open a task and keep you posted on each step â€” copy, set up, build, check, launch.',
           'Done thinking. The quickest safe option is a small fix; I will not put anything live without your OK.',
         ];
         this.setState({ museThinking: false, chat: [...this.state.chat, { who: 'muse', isMuse: true, text: replies[Math.floor(Math.random() * replies.length)] }] });
@@ -1889,7 +1890,7 @@ class Component extends DCLogic {
 
   // ===== Real muse gateway connection (cockpit HTTP API contract) =====
   GATEWAY_DEFAULT = 'http://127.0.0.1:8765';
-  OWNER_PHRASE = 'Yes, with authorization.';
+  OWNER_PHRASE = '';
 
   _gw() {
     return (this.state.gatewayUrl || this.GATEWAY_DEFAULT).trim().replace(/\/+$/, '');
@@ -1942,7 +1943,7 @@ class Component extends DCLogic {
 
   _reach(e) {
     const m = (e && e.name === 'AbortError') ? 'timed out' : (e && e.message) || 'failed';
-    return 'Could not reach ' + this._gw() + ' (' + m + '). The gateway must be running locally; a browser tab served over https can also be blocked from calling a local http address — the desktop app reaches it directly.';
+    return 'Could not reach ' + this._gw() + ' (' + m + '). The gateway must be running locally; a browser tab served over https can also be blocked from calling a local http address â€” the desktop app reaches it directly.';
   }
 
   startPair = async () => {
@@ -1950,9 +1951,9 @@ class Component extends DCLogic {
     try {
       const r = await this._api('/v1/cockpit/pair/start', { method: 'POST', auth: false, body: { device_name: this.state.deviceName || 'muse cockpit (web)' } });
       if (r.status === 201 && r.data && r.data.pairing_code) {
-        this.setState({ pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
+        this.setState({ pairId: r.data.pairing_id || '', pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
       } else if (r.status === 429) {
-        this.setState({ connState: 'error', connStep: 'idle', connError: (r.data && r.data.hint) || 'Pairing temporarily unavailable — wait and retry.' });
+        this.setState({ connState: 'error', connStep: 'idle', connError: (r.data && r.data.hint) || 'Pairing temporarily unavailable â€” wait and retry.' });
       } else {
         this.setState({ connState: 'error', connStep: 'idle', connError: 'Could not start pairing (' + r.status + ').' });
       }
@@ -1962,17 +1963,17 @@ class Component extends DCLogic {
   confirmPair = async () => {
     this.setState({ connError: '' });
     try {
-      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
+      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_id: this.state.pairId, pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
       if (r.status === 201 && r.data && r.data.token) {
         try {
           localStorage.setItem('muse.gateway.token', r.data.token);
           localStorage.setItem('muse.gateway.device', r.data.device_id || '');
           localStorage.setItem('muse.gateway.url', this._gw());
         } catch (e) {}
-        this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
+        this.setState({ deviceId: r.data.device_id || '', pairId: '', pairCode: '', pairPhrase: '', connState: 'live', connStep: 'connected', connError: '' });
         this.pullRuntime();
       } else if (r.status === 403) {
-        this.setState({ connError: 'Owner authorization phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' });
+        this.setState({ connError: 'Owner authorization did not match.' });
       } else if (r.status === 401) {
         this.setState({ connStep: 'pairing', pairCode: '', connError: 'That pairing code was invalid or expired. Start again.' });
       } else {
@@ -2012,7 +2013,7 @@ class Component extends DCLogic {
       canPair: s.connStep === 'reachable' || s.connStep === 'pairing',
       error: s.connError,
       hasError: !!s.connError,
-      info: gi.ok ? { service: gi.service || '—', api: gi.api_version || '—', ver: gi.gateway_version || '—', time: gi.time || '—' } : null,
+      info: gi.ok ? { service: gi.service || 'â€”', api: gi.api_version || 'â€”', ver: gi.gateway_version || 'â€”', time: gi.time || 'â€”' } : null,
       hasInfo: !!gi.ok,
       deviceName: s.deviceName,
       deviceId: s.deviceId,
@@ -2023,14 +2024,14 @@ class Component extends DCLogic {
       ownerPhrase: this.OWNER_PHRASE,
       live: s.connState === 'live',
       runtime: (rt.gateway || rt.host) ? {
-        ver: (rt.gateway || {}).version || '—',
-        mode: (rt.gateway || {}).mode || '—',
-        pid: (rt.gateway || {}).pid != null ? String((rt.gateway || {}).pid) : '—',
-        platform: (rt.host || {}).platform || '—',
-        arch: (rt.host || {}).arch || '—',
-        hostname: (rt.host || {}).hostname || '—',
-        queued: ((rt.queue || {}).queued != null ? String(rt.queue.queued) : '—'),
-        running: ((rt.queue || {}).running != null ? String(rt.queue.running) : '—'),
+        ver: (rt.gateway || {}).version || 'â€”',
+        mode: (rt.gateway || {}).mode || 'â€”',
+        pid: (rt.gateway || {}).pid != null ? String((rt.gateway || {}).pid) : 'â€”',
+        platform: (rt.host || {}).platform || 'â€”',
+        arch: (rt.host || {}).arch || 'â€”',
+        hostname: (rt.host || {}).hostname || 'â€”',
+        queued: ((rt.queue || {}).queued != null ? String(rt.queue.queued) : 'â€”'),
+        running: ((rt.queue || {}).running != null ? String(rt.queue.running) : 'â€”'),
       } : null,
       hasRuntime: !!(rt.gateway || rt.host),
       onClose: this.closeConn, onUrl: this.setGatewayUrl, onCheck: this.checkHealth,
@@ -2112,13 +2113,13 @@ class Component extends DCLogic {
   onCodeInput = (e) => { const docs = { ...(this.state.docs || this.appDocs), [this.state.sandboxApp]: e.target.value }; this.setState({ docs }); };
   onRebuild = () => {
     const ms = 160 + Math.floor(Math.random() * 230);
-    const line = { id: Math.random(), t: this._clock(this.state.seconds).slice(0, 8), tag: 'BUILD', tagCls: 'pill accent', msg: 'rebuilt in ' + ms + 'ms · hot update applied' };
+    const line = { id: Math.random(), t: this._clock(this.state.seconds).slice(0, 8), tag: 'BUILD', tagCls: 'pill accent', msg: 'rebuilt in ' + ms + 'ms Â· hot update applied' };
     this.setState({ building: true, reloadKey: this.state.reloadKey + 1, buildMs: ms, sandboxTab: this.state.sandboxTab === 'code' ? 'code' : this.state.sandboxTab, consoleLines: [line, ...this.state.consoleLines].slice(0, 14) });
     clearTimeout(this._buildT); this._buildT = setTimeout(() => this.setState({ building: false }), 1300);
   };
   onNewJob = () => {
     const n = this.state.jobsRaw.length + 1;
-    const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' · new', phase: 0, live: true, secs: 0 };
+    const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' Â· new', phase: 0, live: true, secs: 0 };
     this.setState({ jobsRaw: [job, ...this.state.jobsRaw] });
   };
   approve = (id) => () => this.setState({ approvalsRaw: this.state.approvalsRaw.filter(a => a.id !== id) });
@@ -2312,7 +2313,7 @@ class Component extends DCLogic {
       const pct = j.review ? 100 : Math.round((j.phase / 5) * 100);
       const phaseLabel = j.review ? 'waiting for your OK' : (j.queued ? 'waiting' : this.phaseLabels[Math.min(j.phase, 4)]);
       const mm = Math.floor(j.secs / 60), ss = j.secs % 60;
-      return { ...j, phases, statusLabel, statusCls, dotCls, pct, phaseLabel, elapsed: j.secs ? `${mm}:${String(ss).padStart(2, '0')}` : '—',
+      return { ...j, phases, statusLabel, statusCls, dotCls, pct, phaseLabel, elapsed: j.secs ? `${mm}:${String(ss).padStart(2, '0')}` : 'â€”',
         rowStyle: 'display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--edge);' };
     });
 
@@ -2365,7 +2366,7 @@ class Component extends DCLogic {
     });
     const mcps = s.mcps.map(x => ({ ...x, onToggle: this.toggleMcp(x.id), stateLabel: x.on ? 'On' : 'Off', stateCls: x.on ? 'pill ok' : 'pill neutral', ...sw(x.on) }));
     const plugins = s.plugins.map(x => ({ ...x, onToggle: this.togglePlugin(x.id), stateLabel: x.on ? 'On' : 'Off', stateCls: x.on ? 'pill ok' : 'pill neutral', ...sw(x.on) }));
-    // fusion (mixture of agents) — drawn from the model registry
+    // fusion (mixture of agents) â€” drawn from the model registry
     const provName = id => (s.providers.find(p => p.id === id) || {}).name || id;
     const fmtCtx = k => k >= 1000 ? (k / 1000) + 'M' : k + 'K';
     const fuseBtn = on => on
@@ -2373,18 +2374,18 @@ class Component extends DCLogic {
       : 'padding:6px 12px;border:1px solid var(--edge);border-radius:9999px;background:var(--void-2);color:var(--signal-dim);cursor:pointer;font:inherit;font-size:12px;white-space:nowrap;';
     const providerList = s.providers.map(p => ({ ...p, kindLabel: p.kind, onToggle: this.toggleProvider(p.id), ...sw(p.connected) }));
     const modelList = s.models.map(m => ({ ...m, provName: provName(m.prov), ctxLabel: fmtCtx(m.ctx),
-      costLabel: m.cost === 0 ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' · '),
+      costLabel: m.cost === 0 ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' Â· '),
       onToggleOn: this.toggleModelOn(m.id), onToggleFuse: this.toggleModelFuse(m.id), onRemove: this.removeModel(m.id),
-      ...sw(m.on), fuseLabel: m.fuse ? '✓ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
+      ...sw(m.on), fuseLabel: m.fuse ? 'âœ“ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
       rowOpacity: m.on ? '1' : '0.45' }));
-    const modelsOnlineLabel = s.models.filter(m => m.on).length + ' models · ' + s.providers.filter(p => p.connected).length + ' providers';
+    const modelsOnlineLabel = s.models.filter(m => m.on).length + ' models Â· ' + s.providers.filter(p => p.connected).length + ' providers';
     const addable = s.models.filter(m => m.on && !m.fuse).map(m => ({ ...m, provName: provName(m.prov), onAdd: this.toggleModelFuse(m.id) }));
     const ens = s.models.filter(m => m.fuse && m.on);
     const fusionActive = ens;
     const fusionTotal = ens.reduce((a, m) => a + m.weight, 0) || 1;
     const fusionConf = Math.min(99, 64 + ens.length * 5);
     const fusion = ens.map(m => { const contrib = Math.round((m.weight / fusionTotal) * 100);
-      return { ...m, role: m.strengths.join(' · '), provName: provName(m.prov), contrib, barW: contrib + '%',
+      return { ...m, role: m.strengths.join(' Â· '), provName: provName(m.prov), contrib, barW: contrib + '%',
         onToggle: this.toggleModelFuse(m.id), onUp: this.bumpModelWeight(m.id, 5), onDown: this.bumpModelWeight(m.id, -5),
         rowOpacity: '1', ...sw(true) }; });
 
@@ -2431,7 +2432,7 @@ class Component extends DCLogic {
     const release = { ...rel, onEditBlurb: this.editRelease('blurb'), onDownload: this.dl,
       history: (rel.history || []).map(h => ({ ...h, url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/' + h.ver, onOpen: this.dl })),
       platforms: rel.platforms.map((p, i) => ({ ...p, onEditNote: this.editPlatform(i, 'note') })) };
-    const devMap = { responsive: { w: '100%', dims: 'Responsive' }, tablet: { w: '820px', dims: '820 × 1180' }, mobile: { w: '390px', dims: '390 × 844' } };
+    const devMap = { responsive: { w: '100%', dims: 'Responsive' }, tablet: { w: '820px', dims: '820 Ã— 1180' }, mobile: { w: '390px', dims: '390 Ã— 844' } };
     const studioDev = devMap[s.sandboxDevice] || devMap.responsive;
     const studioDocs = s.docs || this.appDocs || {};
     const doc = studioDocs[s.sandboxApp] || '';
@@ -2458,8 +2459,8 @@ class Component extends DCLogic {
       nav, show,
       halted,
       conn: halted ? { dotCls: 'dot danger', label: 'halted' } : (
-        s.connState === 'live' ? { dotCls: 'dot live', label: 'connected · live' }
-        : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connecting…' }
+        s.connState === 'live' ? { dotCls: 'dot live', label: 'connected Â· live' }
+        : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connectingâ€¦' }
         : s.connState === 'error' ? { dotCls: 'dot danger', label: 'gateway offline' }
         : { dotCls: 'dot off', label: 'demo data' }),
       connClass: s.connState,
@@ -2505,13 +2506,13 @@ class Component extends DCLogic {
       gates,
       constitution,
       ledger,
-      council, councilLabel: councilTotal + ' roles · 108 helpers',
+      council, councilLabel: councilTotal + ' roles Â· 108 helpers',
       toolsets, toolsActiveLabel: toolsTotal + ' tools on',
       channels, channelsLabel,
       schedules,
       research,
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
-      release, releasesCountLabel: rel.platforms.length + ' platforms · one release', historyCountLabel: (rel.history || []).length + ' versions',
+      release, releasesCountLabel: rel.platforms.length + ' platforms Â· one release', historyCountLabel: (rel.history || []).length + ' versions',
       audioOn: s.audioOn, onToggleAudio: this.toggleAudio, audioLabel: s.audioOn ? 'Sound on' : 'Muted',
       modelList, providerList, modelsOnlineLabel,
       onAddProvider: this.addProvider, onOpenAddModel: this.openAddModel, addModelOpen: s.addModelOpen,
@@ -2569,7 +2570,7 @@ class Component extends DCLogic {
       reloadKey: s.reloadKey,
       onOpenExternal: this.onOpenExternal,
       building: s.building,
-      buildLabel: s.building ? 'Building…' : 'Live',
+      buildLabel: s.building ? 'Buildingâ€¦' : 'Live',
       buildDotCls: s.building ? 'dot live' : 'dot ok',
       buildMsLabel: 'Ready in ' + s.buildMs + 'ms',
       onRebuild: this.onRebuild,

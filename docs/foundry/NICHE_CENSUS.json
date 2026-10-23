@@ -1,0 +1,3164 @@
+{
+  "total": 137,
+  "distribution": {
+    "LOCAL_GENERAL_MODEL": 80,
+    "PROVIDER_GENERAL_MODEL": 9,
+    "NEEDLE_REFERENCE_FED": 34,
+    "HYBRID": 2,
+    "NEEDLE_ROUTER_ONLY": 6,
+    "HUMAN_GATED": 6
+  },
+  "niches": [
+    {
+      "niche_id": "architecture.api.contracts",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.caching.layers",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['strategy']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.data.models",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.event.driven",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.failure.modes",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.multi.tenant",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.observability",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "architecture.system.design",
+      "domain": "architecture",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design', 'tradeoffs']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=architecture"
+      ]
+    },
+    {
+      "niche_id": "axiom.axiom.scout.smoke.niche",
+      "domain": "axiom",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['verify']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=axiom"
+      ]
+    },
+    {
+      "niche_id": "business.buyer.persona",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['persona']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.forecast",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['forecast']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.gtm.narrative",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 3,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['narrative', 'positioning', 'story']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.partner.ecosystem",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['ecosystem']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.pricing.model",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.procurement",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.sales.enable",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['enablement']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "business.unit.econ",
+      "domain": "business",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['econ']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=business"
+      ]
+    },
+    {
+      "niche_id": "claude_code.dead.code",
+      "domain": "claude-code",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['purge']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.debug.bisect",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "HYBRID",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 2
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['bisect', 'debug']",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.impl.plan",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['planning']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.perf.hotpath",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.pr.hygiene",
+      "domain": "claude-code",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 2,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['hygiene', 'review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.refactor.safe",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['refactor']",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.test.driven",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['tdd']",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "claude_code.types.first",
+      "domain": "claude-code",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['types']",
+        "safety_hints=[]",
+        "domain=claude-code"
+      ]
+    },
+    {
+      "niche_id": "codex.api.break",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['detection']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.docs.sync",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['sync']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.fix.patch",
+      "domain": "codex",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "HYBRID",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 2
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['fix', 'patch']",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.lint.debt",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 2,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=['debt', 'triage']",
+        "generative_hints=[]",
+        "code_hints=['lint']",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.review.diff",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.sec.review",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.test.gaps",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 2,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['coverage', 'gaps']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "codex.types.gaps",
+      "domain": "codex",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=['gaps']",
+        "generative_hints=[]",
+        "code_hints=['types']",
+        "safety_hints=[]",
+        "domain=codex"
+      ]
+    },
+    {
+      "niche_id": "compliance.consent.ux",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.cross.border",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.gdpr.rights",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['rights']",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.hipaa.phi",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['phi']",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.pci.dss",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.retention",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.soc2.controls",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 3,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['audit', 'compliance', 'mapping']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "compliance.vendor.dpas",
+      "domain": "compliance",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 2,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance', 'review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=compliance"
+      ]
+    },
+    {
+      "niche_id": "executive.budget.tradeoff",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['tradeoffs']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.crisis.comms",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['comms']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.decision.memo",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.governance",
+      "domain": "executive",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.hire.plan",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.okr.cascade",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.risk.board",
+      "domain": "executive",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['briefing']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "executive.stakeholder.map",
+      "domain": "executive",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['mapping']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=executive"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.cfr49.placards",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['placards']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['placard']",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.erg.guide",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['merge']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['emergency']",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.incident.report",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['report']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['incident']",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.segregation",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "high",
+      "candidate_mode": "HUMAN_GATED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['segregation']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['segregation']",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.shipping.papers",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['compliance']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.tdg.canada",
+      "domain": "hazmat-command",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.training.records",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['records']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hazmat_command.un.numbers",
+      "domain": "hazmat-command",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_ROUTER_ONLY",
+      "scores": {
+        "extraction": 2,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['classification', 'numbers']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hazmat-command"
+      ]
+    },
+    {
+      "niche_id": "hermes.axiom.gates",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.delegate.budget",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.flywheel.loop",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.gateway.routes",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.mcp.wiring",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.memory.tree",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design', 'memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.skill.author",
+      "domain": "hermes",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "hermes.tool.registry",
+      "domain": "hermes",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['hygiene']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=hermes"
+      ]
+    },
+    {
+      "niche_id": "memory.conflict.resolve",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.dedupe.facts",
+      "domain": "memory",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 2,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['dedupe', 'merge']",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.embed.chunk",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo', 'strategy']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.forget.policy",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.namespace.design",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design', 'memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.provenance",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.recall.ranking",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "memory.session.summary",
+      "domain": "memory",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['memo', 'summarization']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=memory"
+      ]
+    },
+    {
+      "niche_id": "nourish.allergy.safety",
+      "domain": "nourish",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['check']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.coach.tone",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['motivation']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.grocery.list",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.habit.loop",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.lab.markers",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.meal.plan",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['planning']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.nutrient.claims",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "nourish.recipe.scale",
+      "domain": "nourish",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=nourish"
+      ]
+    },
+    {
+      "niche_id": "product.competitive.matrix",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.experiment.design",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.feedback.triage",
+      "domain": "product",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['triage']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.launch.checklist",
+      "domain": "product",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['check']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.metrics.northstar",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.pricing.packaging",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.roadmap.prioritize",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "product.user.stories",
+      "domain": "product",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 3,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['persona', 'story', 'writing']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=product"
+      ]
+    },
+    {
+      "niche_id": "psychology.cognitive.load",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.feedback.timing",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.friction.audit",
+      "domain": "psychology",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['audit']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.habit.formation",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['formation']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.motivation",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design', 'motivation']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.onboarding.psych",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.persuasion.ethics",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": true,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "PROVIDER_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 2,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['ethics', 'persuasion']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "psychology.trust.signals",
+      "domain": "psychology",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=psychology"
+      ]
+    },
+    {
+      "niche_id": "qa.ci.gating",
+      "domain": "qa",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['gating']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.contract.tests",
+      "domain": "qa",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.e2e.playwright",
+      "domain": "qa",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['coverage']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.flaky.pytest",
+      "domain": "qa",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.fuzz.inputs",
+      "domain": "qa",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.mutation.testing",
+      "domain": "qa",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['coverage']",
+        "generative_hints=['strategy']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.perf.regression",
+      "domain": "qa",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "qa.snapshot.ui",
+      "domain": "qa",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=qa"
+      ]
+    },
+    {
+      "niche_id": "release.blue.green",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.canary.deploy",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['strategy']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.feature.flags",
+      "domain": "release",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['flags']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.migration.db",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=['migration']",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.postmortem",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "medium",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=['incident']",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.rollback.plan",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 1
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['planning']",
+        "code_hints=['fix']",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.semver.bump",
+      "domain": "release",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "release.store.submit",
+      "domain": "release",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=release"
+      ]
+    },
+    {
+      "niche_id": "research.citation.check",
+      "domain": "research",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['check']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.claim.evidence",
+      "domain": "research",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['mapping']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.contradiction",
+      "domain": "research",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['detection']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.lit.review",
+      "domain": "research",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['review']",
+        "generative_hints=['synthesis']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.market.scan",
+      "domain": "research",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.primary.sources",
+      "domain": "research",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.stat.literacy",
+      "domain": "research",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['check']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "research.summarize.long",
+      "domain": "research",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": false,
+      "requires_parametric_world_knowledge": true,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['summarization']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=research"
+      ]
+    },
+    {
+      "niche_id": "security.authn.oauth",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.authz.rbac",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.crypto.tls",
+      "domain": "security",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['hygiene']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.owasp.injection",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.pentest.triage",
+      "domain": "security",
+      "bounded_output_space": true,
+      "schema_expressible": true,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "NEEDLE_REFERENCE_FED",
+      "scores": {
+        "extraction": 1,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=['triage']",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.secrets.mgmt",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.supply.chain",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "security.threat.model",
+      "domain": "security",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['modeling']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=security"
+      ]
+    },
+    {
+      "niche_id": "ux.a11y.wcag",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.design.tokens",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.empty.states",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.error.messages",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.forms.validation",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.info.architecture",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['formation']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.mobile.touch",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 0,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=[]",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    },
+    {
+      "niche_id": "ux.onboarding.flow",
+      "domain": "ux",
+      "bounded_output_space": false,
+      "schema_expressible": false,
+      "reference_fed_possible": true,
+      "requires_parametric_world_knowledge": false,
+      "requires_free_text_generation": false,
+      "safety_or_irreversibility_level": "low",
+      "candidate_mode": "LOCAL_GENERAL_MODEL",
+      "scores": {
+        "extraction": 0,
+        "generative": 1,
+        "code": 0
+      },
+      "evidence": [
+        "extraction_hints=[]",
+        "generative_hints=['design']",
+        "code_hints=[]",
+        "safety_hints=[]",
+        "domain=ux"
+      ]
+    }
+  ]
+}

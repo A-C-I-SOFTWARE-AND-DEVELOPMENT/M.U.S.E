@@ -124,8 +124,8 @@ muse cockpit serve --agent full \
 ```
 
 A **non-loopback bind exposes the agent to your network**, so this path keeps
-the owner-phrase gate: pairing asks for `Yes, with authorization.` exactly
-(the cockpit reveals the field only when the gateway demands it). Only do this
+the owner-authorization gate (the cockpit reveals the field only when the
+gateway demands it, without displaying the authorization value). Only do this
 on a trusted LAN (you control the Wi-Fi, no untrusted devices) — and prefer a
 tunnel (§2) over a raw LAN bind when you can.
 
@@ -144,6 +144,29 @@ CORS only decides which **browser origins** may read responses; it never
 weakens the bearer-token requirement on the API routes, and it never opens a
 network port (the bind host does that — loopback by default).
 
+## Block-Buzz service access
+
+Mint Buzz credentials only from an owner-authenticated local session:
+
+```bash
+curl -X POST http://127.0.0.1:8765/v1/cockpit/service-tokens \
+  -H "Authorization: Bearer <owner-device-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"block-buzz","scopes":["status","catalog","jobs"],"ttl_seconds":900}'
+```
+
+The raw `muse_svc_...` token is returned once; store it only in Buzz's secret
+store. It expires in at most one hour. Available scopes are `status`, `catalog`,
+`agents`, `jobs`, `cron`, `kanban`, `approvals`, `routing`, and
+`emergency_stop`. Every service request is default-denied unless its exact
+route and method are mapped to one of those scopes. Mutating requests also need
+a unique `X-Muse-Request-Id` (16–128 bounded characters).
+
+Service credentials cannot call secret/export, deletion, OAuth, arbitrary
+configuration, full-agent chat, coding execute, or other unrestricted tool
+surfaces. Approval grants, paid-routing changes, publish, and validation
+overrides remain owner-only.
+
 ## What you get once connected
 
 The same cockpit, now live against your gateway: streaming agent chat, the job
@@ -159,9 +182,9 @@ clears it.
   gateway is up: `curl http://127.0.0.1:8765/v1/health`.
 - **CORS error in the console.** The browser Origin isn't allowlisted. Add it
   with `--cors-origin <origin>` (must match exactly, scheme + host + port).
-- **Pairing asks for the owner phrase unexpectedly.** The gateway was started
-  `--allow-external` (a network bind). Enter `Yes, with authorization.` exactly,
-  or run loopback + a tunnel instead.
+- **Pairing asks for owner authorization unexpectedly.** The gateway was
+  started `--allow-external` (a network bind). Enter the authorization value
+  from your local owner workflow, or run loopback + an authenticated tunnel.
 - **Mixed-content block (https → http).** You pointed Connect at an `http://`
   non-localhost gateway from the HTTPS page. Use the gateway's HTTPS tunnel URL.
 

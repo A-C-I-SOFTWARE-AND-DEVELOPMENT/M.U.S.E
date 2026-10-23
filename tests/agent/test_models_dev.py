@@ -99,6 +99,10 @@ class TestProviderMapping:
         assert PROVIDER_TO_MODELS_DEV["stepfun"] == "stepfun"
         assert PROVIDER_TO_MODELS_DEV["kilocode"] == "kilo"
         assert PROVIDER_TO_MODELS_DEV["ai-gateway"] == "vercel"
+        assert PROVIDER_TO_MODELS_DEV["kimi-coding"] == "kimi-for-coding"
+        assert PROVIDER_TO_MODELS_DEV["kimi-coding-cn"] == "moonshotai-cn"
+        assert PROVIDER_TO_MODELS_DEV["gmi"] == "gmicloud"
+        assert PROVIDER_TO_MODELS_DEV["alibaba-coding-plan"] == "alibaba"
 
     def test_xai_oauth_uses_xai_catalog(self):
         assert PROVIDER_TO_MODELS_DEV["xai"] == "xai"

@@ -1,0 +1,395 @@
+[
+  {
+    "description": "Classify an Essencebound world state and select its smallest safe correction.",
+    "name": "assess_world_state",
+    "parameters": {
+      "properties": {
+        "action_code": {
+          "enum": [
+            "A00",
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06",
+            "A07",
+            "A08",
+            "A09",
+            "A10",
+            "A11",
+            "A12",
+            "A13",
+            "A14",
+            "A15",
+            "A16",
+            "A17",
+            "A18",
+            "A19",
+            "A20",
+            "A21",
+            "A22",
+            "A23",
+            "A24",
+            "A25"
+          ],
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "C00",
+            "C01",
+            "C02",
+            "C03",
+            "C04",
+            "C05",
+            "C06",
+            "C07",
+            "C08",
+            "C09",
+            "C10",
+            "C11",
+            "C12",
+            "C13",
+            "C14",
+            "C15",
+            "C16",
+            "C17",
+            "C18",
+            "C19",
+            "C20",
+            "C21",
+            "C22",
+            "C23",
+            "C24",
+            "C25",
+            "C26",
+            "C27",
+            "C28",
+            "C29",
+            "C30",
+            "C31",
+            "C32",
+            "C33",
+            "C34",
+            "C35",
+            "C36",
+            "C37",
+            "C38",
+            "C39"
+          ],
+          "type": "string"
+        },
+        "evidence_state": {
+          "enum": [
+            "E0",
+            "E1",
+            "E2",
+            "E3",
+            "E4"
+          ],
+          "type": "string"
+        },
+        "issue_code": {
+          "enum": [
+            "I00",
+            "I01",
+            "I02",
+            "I03",
+            "I04",
+            "I05",
+            "I06",
+            "I07",
+            "I08",
+            "I09",
+            "I10",
+            "I11",
+            "I12",
+            "I13",
+            "I14",
+            "I15",
+            "I16",
+            "I17",
+            "I18",
+            "I19",
+            "I20",
+            "I21",
+            "I22",
+            "I23",
+            "I24",
+            "I25",
+            "I26"
+          ],
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARN",
+            "UNVERIFIED",
+            "BLOCKED"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "verdict",
+        "category",
+        "issue_code",
+        "action_code",
+        "evidence_state"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "description": "Select the next Essencebound production action at the current stage.",
+    "name": "prioritize_world_action",
+    "parameters": {
+      "properties": {
+        "blocker_code": {
+          "enum": [
+            "B0",
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5"
+          ],
+          "type": "string"
+        },
+        "evidence_state": {
+          "enum": [
+            "E0",
+            "E1",
+            "E2",
+            "E3",
+            "E4"
+          ],
+          "type": "string"
+        },
+        "priority_code": {
+          "enum": [
+            "P0",
+            "P1",
+            "P2",
+            "P3",
+            "P4"
+          ],
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "S0",
+            "S1",
+            "S2",
+            "S3",
+            "S4",
+            "S5",
+            "S6",
+            "S7",
+            "S8"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "priority_code",
+        "blocker_code",
+        "evidence_state"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "description": "Evaluate a supplied Essencebound scale, geometry, or performance constraint.",
+    "name": "evaluate_world_constraint",
+    "parameters": {
+      "properties": {
+        "action_code": {
+          "enum": [
+            "A00",
+            "A01",
+            "A02",
+            "A03",
+            "A04",
+            "A05",
+            "A06",
+            "A07",
+            "A08",
+            "A09",
+            "A10",
+            "A11",
+            "A12",
+            "A13",
+            "A14",
+            "A15",
+            "A16",
+            "A17",
+            "A18",
+            "A19",
+            "A20",
+            "A21",
+            "A22",
+            "A23",
+            "A24",
+            "A25"
+          ],
+          "type": "string"
+        },
+        "constraint_code": {
+          "enum": [
+            "K00",
+            "K01",
+            "K02",
+            "K03",
+            "K04",
+            "K05",
+            "K06",
+            "K07",
+            "K08",
+            "K09",
+            "K10",
+            "K11",
+            "K12"
+          ],
+          "type": "string"
+        },
+        "evidence_state": {
+          "enum": [
+            "E0",
+            "E1",
+            "E2",
+            "E3",
+            "E4"
+          ],
+          "type": "string"
+        },
+        "limit_value": {
+          "type": "number"
+        },
+        "observed_value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "WARN",
+            "UNVERIFIED",
+            "BLOCKED"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "constraint_code",
+        "observed_value",
+        "limit_value",
+        "unit",
+        "verdict",
+        "action_code",
+        "evidence_state"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "description": "Refuse an unsupported project claim and name the evidence gate required next.",
+    "name": "request_world_verification",
+    "parameters": {
+      "properties": {
+        "category": {
+          "enum": [
+            "C00",
+            "C01",
+            "C02",
+            "C03",
+            "C04",
+            "C05",
+            "C06",
+            "C07",
+            "C08",
+            "C09",
+            "C10",
+            "C11",
+            "C12",
+            "C13",
+            "C14",
+            "C15",
+            "C16",
+            "C17",
+            "C18",
+            "C19",
+            "C20",
+            "C21",
+            "C22",
+            "C23",
+            "C24",
+            "C25",
+            "C26",
+            "C27",
+            "C28",
+            "C29",
+            "C30",
+            "C31",
+            "C32",
+            "C33",
+            "C34",
+            "C35",
+            "C36",
+            "C37",
+            "C38",
+            "C39"
+          ],
+          "type": "string"
+        },
+        "claim_kind": {
+          "enum": [
+            "M0",
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          "type": "string"
+        },
+        "evidence_kind": {
+          "enum": [
+            "D0",
+            "D1",
+            "D2",
+            "D3",
+            "D4",
+            "D5"
+          ],
+          "type": "string"
+        },
+        "next_gate": {
+          "enum": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_kind",
+        "claim_kind",
+        "category",
+        "next_gate"
+      ],
+      "type": "object"
+    }
+  }
+]

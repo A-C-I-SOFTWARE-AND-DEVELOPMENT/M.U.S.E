@@ -1,0 +1,40 @@
+{
+  "repository": "https://github.com/cactus-compute/needle",
+  "local_path": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle",
+  "commit": "abb5c2b7b32a3952ca2a576659702fa2edc15120",
+  "describe": "v2.0.1",
+  "license": "MIT (as seen in LICENSE file)",
+  "model_license": "Need to check the model license on Hugging Face",
+  "architecture": "Simple Attention Network (SAN) with Hadamard MLP, GQA, engram KV memory, multi-lane hyper-connections",
+  "parameters": "45M (as per README)",
+  "size": "~14 MB at INT4 (as per README)",
+  "tokenizer": "SentencePiece with vocab size 8192 (from tokenizer.py: TOKENIZER_PREFIX + \".model\")",
+  "context_window": "256-token sliding window (from README)",
+  "tool_retrieval": "Built-in retrieval head renders only the top five tools per turn (from README)",
+  "confidence_head": "Every response carries a calibrated confidence score from a learned head (from README)",
+  "grammar_constrained_decoding": "needle.Field constraints compile into the decode grammar (from README)",
+  "cli_commands": [
+    "run",
+    "finetune",
+    "generate-data",
+    "build",
+    "playground"
+  ],
+  "default_base_checkpoint": "checkpoints/needle2.pkl",
+  "hardware_compatibility": "JAX 0.10.2, CUDA available (RTX 5070), PyTorch CUDA available",
+  "notes": "The model weights are fetched from Hugging Face (Cactus-Compute/needle2) and cached locally. The model weights are available in the Hugging Face repo as weights/needle2.pkl (PyTorch/JAX pickle) and needle2.cact (compressed format). The tokenizer files are in the tokenizer/ directory.",
+  "huggingface_repo_files_count": 66,
+  "tokenizer_files": [
+    "tokenizer/tokenizer.model",
+    "tokenizer/tokenizer.vocab"
+  ],
+  "weight_files": [
+    "needle2.cact",
+    "weights/needle2.pkl"
+  ],
+  "config_json_available": true,
+  "license_file": "LICENSE",
+  "readme_file": "README.md",
+  "checkpoint_pkl_path_in_repo": "weights/needle2.pkl",
+  "checkpoint_cact_path_in_repo": "needle2.cact"
+}

@@ -114,6 +114,9 @@ axiom = [
 # carries the pytorch-cu128 index that optional-dependencies cannot express).
 # See docs/integrations/autoresearch.md.
 dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.28.1", "ty==0.0.48", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
+# Essencebound specialist data validation and Needle 2 runtime evaluation.
+# Pinned to the engine/model version recorded in the measured artifacts.
+foundry = ["cactus-needle==2.0.0"]
 messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.14.1", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
 slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.14.1"]
@@ -304,6 +307,13 @@ muse-acp = "acp_adapter.entry:main"
 # build = "uv sync --frozen --extra web"
 
 [tool.uv]
+# Supply-chain cooldown: only resolve releases at least 14 days old, so a
+# compromised upload has time to be yanked before it lands in uv.lock.
+# These settings were previously passed on the command line only, which made
+# a plain `uv lock --check` (the CI check) fail on every branch. Packages
+# exempted below need fresher releases (security fixes / pinned versions).
+exclude-newer = "P14D"
+exclude-newer-package = { vercel = false, aiohttp = false, cryptography = false, nemo-relay = false, huggingface-hub = false, h2 = false }
 # Security override (GHSA-mrfv-m5wm-5w6w / CVE-2025-69277): pynacl < 1.6.2
 # bundles a libsodium with an incomplete disallowed-inputs list.
 # discord.py (all releases <= 2.7.1) pins "PyNaCl<1.6,>=1.5.0" for its
