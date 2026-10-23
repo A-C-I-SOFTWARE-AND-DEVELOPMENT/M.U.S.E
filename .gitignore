@@ -197,3 +197,13 @@ native/fts5_cjk/*.so
 # interrupted; consumed by launch-time recovery. Never commit it (was tracked
 # by accident via 3a69e34702, removed in the #72002 salvage).
 .lazy-refresh-incomplete
+
+# Local run outputs written to the repo root by benchmark/runner scripts
+# (benchmarks/*_runner.py, mini_swe_runner.py). Keep them out of git.
+/results.jsonl
+/terminal-bench-*.jsonl
+/terminal-bench-*.log
+/swe-runner-*.jsonl
+/baseline_*.jsonl
+/output.md
+/log.txt

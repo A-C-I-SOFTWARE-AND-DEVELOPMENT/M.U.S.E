@@ -1,1 +1,0 @@
-Created `summary.txt` with a one-line summary of Python.
