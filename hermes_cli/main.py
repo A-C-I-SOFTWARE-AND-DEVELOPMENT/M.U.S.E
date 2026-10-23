@@ -7190,6 +7190,19 @@ def _update_via_zip(args):
     from urllib.request import urlretrieve
 
     branch = "main"
+    # The archive URL below is always main. Installing main while the user
+    # asked for another branch would silently lie about what got installed,
+    # and the copy step below overwrites the whole checkout — so refuse
+    # before touching the network or the filesystem.
+    requested_branch = str(getattr(args, "branch", "") or "").strip()
+    if requested_branch and requested_branch != branch:
+        print(
+            f"✗ --branch={requested_branch} is not supported by the ZIP update "
+            "fallback (it can only install main)."
+        )
+        print("  Fix git access and rerun, or update without --branch.")
+        sys.exit(1)
+
     zip_url = (
         f"https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/archive/refs/heads/{branch}.zip"
     )
