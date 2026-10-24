@@ -10,7 +10,7 @@ import re
 import shutil
 import subprocess
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 WSL_DISTRO = "Ubuntu"
@@ -43,13 +43,23 @@ def _write_json(path: Path, value: Any) -> None:
 
 
 def to_wsl_path(path: Path | str) -> str:
-    """Convert an absolute Windows path into the standard WSL `/mnt/<drive>` path."""
-    value = str(Path(path).resolve())
-    drive, tail = os.path.splitdrive(value)
-    if not drive:
-        raise ValueError(f"WSL conversion requires an absolute drive path: {value}")
-    normalized_tail = tail.lstrip("\\/").replace("\\", "/")
-    return f"/mnt/{drive[0].casefold()}/{normalized_tail}"
+    """Return the path WSL should use for ``path``.
+
+    A Windows drive path (``C:\\x\\y``) becomes ``/mnt/c/x/y``. A path that
+    is already POSIX-absolute (running on Linux or inside WSL itself) is
+    returned unchanged. Relative paths are resolved first on Windows only.
+    """
+    value = str(path)
+    if os.name == "nt":
+        value = str(Path(value).resolve())
+    win = PureWindowsPath(value)
+    if len(win.drive) == 2 and win.drive.endswith(":"):
+        tail = "/".join(win.parts[1:])
+        return f"/mnt/{win.drive[0].casefold()}/{tail}"
+    posix = PurePosixPath(value)
+    if posix.is_absolute():
+        return str(posix)
+    raise ValueError(f"WSL conversion requires an absolute path: {value}")
 
 
 def build_train_command(

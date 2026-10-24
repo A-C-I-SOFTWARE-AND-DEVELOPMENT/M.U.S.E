@@ -20,6 +20,9 @@ from foundry.executors.qa import validators
 
 # ---------------- eligibility ----------------
 
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 def test_classify_extraction_niche():
     spec = {"id": "qa.ci.gating", "domain": "qa", "description": "CI quality gates",
             "keywords": ["ci", "gate", "audit", "check"]}
@@ -47,7 +50,7 @@ def test_classify_safety_niche_human_gated():
 
 def test_census_runs_on_real_specs(tmp_path):
     out = run_census(
-        specs_dir=Path(r"C:\Users\Echer\M.U.S.E\hermes_cli\jarvis_prime\niches\specs"),
+        specs_dir=REPO_ROOT / "hermes_cli" / "jarvis_prime" / "niches" / "specs",
         out_json=tmp_path / "c.json", out_md=tmp_path / "c.md")
     assert out["total"] == 137
     assert sum(out["distribution"].values()) == 137
@@ -192,7 +195,7 @@ def test_metrics_perfect_run_passes():
 # ---------------- teacher ----------------
 
 def test_teacher_discovery_from_real_catalog():
-    cands = discover_teachers(Path(r"C:\Users\Echer\M.U.S.E\config\model-catalog.yaml"))
+    cands = discover_teachers(REPO_ROOT / "config" / "model-catalog.yaml")
     assert len(cands) == 40
     ranked = rank_teachers(cands)
     assert all(c.available for c in ranked if c.estimated_cost_rank == 0) or ranked
@@ -201,7 +204,7 @@ def test_teacher_discovery_from_real_catalog():
 
 
 def test_teacher_never_emits_credentials():
-    cands = discover_teachers(Path(r"C:\Users\Echer\M.U.S.E\config\model-catalog.yaml"))
+    cands = discover_teachers(REPO_ROOT / "config" / "model-catalog.yaml")
     plan = teacher_plan(cands, {"primary": 1.0})
     assert "key" not in json.dumps(plan).lower() or "requires" in json.dumps(plan).lower()
 

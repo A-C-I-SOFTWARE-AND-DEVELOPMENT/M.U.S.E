@@ -10,6 +10,7 @@ Writes: docs/foundry/FAILURE_DEMO_TRANSCRIPT.json
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -37,7 +38,12 @@ ALLOWED_ARGS = {
 CAPABILITIES = {"qa.inspect", "qa.gate"}          # specialist holds these only
 CALL_CAPABILITY = {name: "qa.gate" if name == "run_asset_gate" else "qa.inspect"
                    for name in QA_TOOL_NAMES}
-ALLOWED_ROOTS = (r"D:\assets\staging", r"C:\Users\Echer\M.U.S.E\staging")
+# Staging roots the specialist may touch: the repo's staging/ dir plus any
+# extra roots in FOUNDRY_ALLOWED_ROOTS (os.pathsep-separated).
+ALLOWED_ROOTS = tuple(
+    [str(ROOT / "staging")]
+    + [r for r in os.environ.get("FOUNDRY_ALLOWED_ROOTS", "").split(os.pathsep) if r]
+)
 
 
 def schema_valid(call: dict) -> bool:
@@ -53,9 +59,22 @@ def capability_authorized(call: dict) -> bool:
 
 def executor_preflight(call: dict):
     path = call.get("arguments", {}).get("path")
-    if path and not str(path).startswith(ALLOWED_ROOTS):
+    if path and not _within_allowed_roots(str(path)):
         return False, "path_outside_staging"
     return True, ""
+
+
+def _within_allowed_roots(path: str) -> bool:
+    """Containment, not prefix: rejects ``staging/../x`` and ``staging-evil/``."""
+    target = os.path.realpath(path)
+    for root in ALLOWED_ROOTS:
+        real_root = os.path.realpath(root)
+        try:
+            if os.path.commonpath([target, real_root]) == real_root:
+                return True
+        except ValueError:  # different drives on Windows
+            continue
+    return False
 
 
 transcript: list[dict] = []

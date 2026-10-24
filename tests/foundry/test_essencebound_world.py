@@ -1,5 +1,11 @@
 """Tests for the Essencebound Needle 2 world-architecture specialist."""
 
+import pytest
+
+# The Essencebound foundry needs the optional `foundry` extra
+# (cactus-needle). Skip the module cleanly when it is not installed.
+pytest.importorskip("needle")
+
 from collections import Counter
 import copy
 

@@ -1,5 +1,11 @@
 """Integration tests for Essencebound dataset artifact construction."""
 
+import pytest
+
+# The Essencebound foundry needs the optional `foundry` extra
+# (cactus-needle). Skip the module cleanly when it is not installed.
+pytest.importorskip("needle")
+
 import hashlib
 import json
 import shutil

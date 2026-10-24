@@ -35,8 +35,10 @@ STAGING = ROOT / "staging"
 STAGING.mkdir(exist_ok=True)
 OUT = ROOT / "docs" / "foundry" / "E2E_DEMO_TRANSCRIPT.json"
 
-CACT = (r"C:\Users\Echer\.cache\huggingface\hub\models--Cactus-Compute--needle2"
-        r"\snapshots\07f3e789e993e8ecf69ef5409fd7558f5fe43202\needle2.cact")
+CACT = os.environ.get("NEEDLE_CACT_PATH") or str(
+    Path.home() / ".cache" / "huggingface" / "hub" / "models--Cactus-Compute--needle2"
+    / "snapshots" / "07f3e789e993e8ecf69ef5409fd7558f5fe43202" / "needle2.cact"
+)
 ENGINE = os.path.join(os.path.expanduser("~"), ".cache", "cactus-needle", "2.0.1", "libneedle.dll")
 
 SPEC_TOOLS = [{
