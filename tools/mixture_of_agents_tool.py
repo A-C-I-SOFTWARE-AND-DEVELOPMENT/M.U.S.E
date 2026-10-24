@@ -57,6 +57,54 @@ from tools.openrouter_client import (
     get_async_client as _get_openrouter_client,
 )
 
+# Lazy local/OpenAI-compatible clients keyed by base_url (muse-local ports, etc.)
+_local_clients: Dict[str, Any] = {}
+_LOCAL_ENDPOINTS_CACHE: Optional[Dict[str, Dict[str, str]]] = None
+
+
+def _load_local_endpoints() -> Dict[str, Dict[str, str]]:
+    """Load fusion.local_endpoints from HERMES config (model -> {base_url, model, api_key})."""
+    global _LOCAL_ENDPOINTS_CACHE
+    if _LOCAL_ENDPOINTS_CACHE is not None:
+        return _LOCAL_ENDPOINTS_CACHE
+    try:
+        from hermes_cli.config import load_config
+
+        fusion = (load_config() or {}).get("fusion") or {}
+        eps = fusion.get("local_endpoints") or {}
+        _LOCAL_ENDPOINTS_CACHE = eps if isinstance(eps, dict) else {}
+    except Exception:
+        _LOCAL_ENDPOINTS_CACHE = {}
+    return _LOCAL_ENDPOINTS_CACHE
+
+
+def _resolve_moa_client_and_model(model: str):
+    """Return (async_client, api_model_name) for OpenRouter or local OpenAI-compatible endpoints.
+
+    Local specialists are registered in fusion.local_endpoints under keys like
+    ``local/ornith``. Falls back to the shared OpenRouter client.
+    """
+    endpoints = _load_local_endpoints()
+    ep = endpoints.get(model)
+    if ep and ep.get("base_url"):
+        base = str(ep["base_url"]).rstrip("/")
+        api_model = ep.get("model") or model.split("/", 1)[-1]
+        api_key = ep.get("api_key") or "muse-local"
+        if base not in _local_clients:
+            from openai import AsyncOpenAI
+
+            _local_clients[base] = AsyncOpenAI(base_url=base, api_key=api_key)
+        return _local_clients[base], api_model
+    return _get_openrouter_client(), model
+
+
+def check_moa_ready(models: Optional[List[str]] = None) -> bool:
+    """True if OpenRouter is configured, or all requested models are local endpoints."""
+    endpoints = _load_local_endpoints()
+    if models and all(m in endpoints for m in models):
+        return True
+    return check_openrouter_api_key()
+
 logger = logging.getLogger(__name__)
 
 _debug = DebugSession("moa_tools", env_var="MOA_TOOLS_DEBUG")
@@ -189,11 +237,17 @@ async def _run_reference_model_safe(
     if _needs_temperature(model):
         api_params["temperature"] = temperature
 
+    # Local OpenAI-compatible endpoints don't speak OpenRouter reasoning extras.
+    client, api_model = _resolve_moa_client_and_model(model)
+    api_params["model"] = api_model
+    if model.startswith("local/") or model in _load_local_endpoints():
+        api_params.pop("extra_body", None)
+
     last_error: Optional[str] = None
     for attempt in range(max_retries):
         try:
             logger.info("[%s] querying %s (attempt %d/%d)", label, model, attempt + 1, max_retries)
-            response = await _get_openrouter_client().chat.completions.create(**api_params)
+            response = await client.chat.completions.create(**api_params)
             content = extract_content_or_reasoning(response)
             if not content:
                 if attempt < max_retries - 1:
@@ -281,29 +335,27 @@ async def _run_aggregator_model(
     temperature: float = AGGREGATOR_TEMPERATURE,
     max_tokens: Optional[int] = None,
 ) -> str:
-    """Run the aggregator synthesis pass.
-
-    Uses the centralized OpenRouter client so it inherits the same auth,
-    rate-limit retry, and provider-preference plumbing as reference models.
-    """
+    """Run the aggregator synthesis pass (OpenRouter or local OpenAI-compatible)."""
     logger.info("Fusion pass: aggregator=%s", aggregator_model)
+    client, api_model = _resolve_moa_client_and_model(aggregator_model)
     api_params: Dict[str, Any] = {
-        "model": aggregator_model,
+        "model": api_model,
         "messages": messages,
-        "extra_body": {"reasoning": {"enabled": True, "effort": "xhigh"}},
     }
+    if not (aggregator_model.startswith("local/") or aggregator_model in _load_local_endpoints()):
+        api_params["extra_body"] = {"reasoning": {"enabled": True, "effort": "xhigh"}}
     if max_tokens is not None:
         api_params["max_tokens"] = max_tokens
     if _needs_temperature(aggregator_model):
         api_params["temperature"] = temperature
 
-    response = await _get_openrouter_client().chat.completions.create(**api_params)
+    response = await client.chat.completions.create(**api_params)
     content = extract_content_or_reasoning(response)
     if not content:
         # One retry on the aggregator — empty content is a reasoning-only
         # response artifact on some frontiers.
         logger.warning("Aggregator returned empty content, retrying once")
-        response = await _get_openrouter_client().chat.completions.create(**api_params)
+        response = await client.chat.completions.create(**api_params)
         content = extract_content_or_reasoning(response)
         if not content:
             raise RuntimeError(
@@ -376,8 +428,11 @@ async def mixture_of_agents_tool(
     }
 
     try:
-        if not os.getenv("OPENROUTER_API_KEY"):
-            raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+        all_models = list(ref_models) + ([agg_model] if agg_model else [])
+        if not check_moa_ready(all_models):
+            raise RuntimeError(
+                "MoA needs OPENROUTER_API_KEY or fusion.local_endpoints for all models"
+            )
 
         logger.info(
             "MoA start — refs=%d agg=%s rounds=%d strategy=%s",
@@ -522,7 +577,9 @@ async def mixture_of_agents_tool(
 # ---------------------------------------------------------------------------
 
 def check_moa_requirements() -> bool:
-    """MoA needs an OpenRouter API key to dispatch reference + fusion calls."""
+    """MoA needs OpenRouter OR configured local_endpoints for specialist MoA."""
+    if _load_local_endpoints():
+        return True
     return check_openrouter_api_key()
 
 
@@ -627,7 +684,7 @@ registry.register(
         max_tokens=args.get("max_tokens"),
     ),
     check_fn=check_moa_requirements,
-    requires_env=["OPENROUTER_API_KEY"],
+    requires_env=[],
     is_async=True,
     emoji="🧠",
 )

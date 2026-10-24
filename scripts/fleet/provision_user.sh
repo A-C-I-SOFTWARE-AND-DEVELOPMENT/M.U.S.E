@@ -88,11 +88,10 @@ case "$ACTION" in
     Add this route to deploy/hosted/Caddyfile (between the managed markers) and
     reload Caddy:
 
-    handle_path /u/${SLUG}/* {
-        reverse_proxy 127.0.0.1:${PUB_PORT} {
-            flush_interval -1
-        }
-    }
+    Copy the hardened handle_path example from deploy/hosted/Caddyfile, replace
+    its slug with ${SLUG} and upstream port with ${PUB_PORT}, and keep both the
+    relay-token matcher and route/method allowlists intact. Set the same
+    MUSE_GATEWAY_RELAY_TOKEN in Caddy and Vercel before reloading.
 
     Then set a provider key in the container's ~/.hermes/.env if you haven't:
       docker compose -p ${PROJECT} -f docker-compose.hosted.yml exec cockpit \\

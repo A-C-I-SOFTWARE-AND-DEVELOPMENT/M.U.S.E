@@ -1,0 +1,57 @@
+[
+  {
+    "case": "HAPPY",
+    "expectation": "execute + verify pass",
+    "at": 1786579316.5065212,
+    "outcome": "execute",
+    "gate_reason": "all_gates_passed",
+    "verifier_passed": true
+  },
+  {
+    "case": "1-OFF-TOPIC",
+    "expectation": "escalate(empty_call)",
+    "at": 1786579316.5065212,
+    "outcome": "escalate",
+    "gate_reason": "empty_call"
+  },
+  {
+    "case": "2-UNDER-SPECIFIED",
+    "expectation": "escalate(confidence_below_review)",
+    "at": 1786579316.5065212,
+    "outcome": "escalate",
+    "gate_reason": "confidence_below_review",
+    "confidence": 0.31
+  },
+  {
+    "case": "3-ADJACENT-DOMAIN",
+    "expectation": "escalate(schema_invalid: unknown tool)",
+    "at": 1786579316.5065212,
+    "outcome": "escalate",
+    "gate_reason": "schema_invalid"
+  },
+  {
+    "case": "4-MALFORMED",
+    "expectation": "escalate(schema_invalid: arg-key bleed)",
+    "at": 1786579316.5065212,
+    "outcome": "escalate",
+    "gate_reason": "schema_invalid"
+  },
+  {
+    "case": "5-INVALID-EXECUTOR-OUTPUT",
+    "expectation": "verification rejection + quarantine + rollback",
+    "at": 1786579316.5105538,
+    "outcome": "quarantined",
+    "gate_action": "execute",
+    "verifier_passed": false,
+    "failed_checks": [
+      "polycount",
+      "ngons",
+      "manifold",
+      "degenerate",
+      "materials",
+      "uv_overlap",
+      "transforms"
+    ],
+    "registry_status": "QUARANTINED"
+  }
+]

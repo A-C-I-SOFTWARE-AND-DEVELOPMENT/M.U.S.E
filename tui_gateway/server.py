@@ -4638,6 +4638,7 @@ def _apply_model_switch(
                 api_key=result.api_key,
                 base_url=result.base_url,
                 api_mode=result.api_mode,
+                credential_pool=result.credential_pool,
             )
         except Exception as exc:
             # The in-place swap rolled the agent back to the old working

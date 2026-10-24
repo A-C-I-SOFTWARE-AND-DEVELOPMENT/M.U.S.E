@@ -1,0 +1,313 @@
+{
+  "duration_s": 791.75,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000024",
+      "latency_s": 85.016,
+      "query": "Unseen holdout situation: At undercity approach, the hero location is indistinguishable from repeated generic towers at distance. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000025",
+      "latency_s": 76.531,
+      "query": "Unseen holdout situation: At distant vista cell, the generator proposes 1.9 million instances and calls the result performant without measurement. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000026",
+      "latency_s": 27.937,
+      "query": "Unseen holdout situation: At Firstbound Arrival, one giant instance component spans kilometers and gives culling unusable bounds. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000027",
+      "latency_s": 30.328,
+      "query": "Unseen holdout situation: At Axiom Core, saved cull distances are treated as proof even though runtime bounds and visibility were never measured. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C01",
+            "evidence_state": "E1",
+            "issue_code": "I03",
+            "verdict": "BLOCKED"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_holdout_000028",
+      "latency_s": 33.938,
+      "query": "Unseen holdout situation: At Firstbound Overlook, a destructible pillar removes the only exit bridge when broken. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000029",
+      "latency_s": 36.437,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000030",
+      "latency_s": 33.407,
+      "query": "Unseen holdout situation: At Crystal Sanctum, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000031",
+      "latency_s": 31.906,
+      "query": "Unseen holdout situation: At Arena Island, the tower clips through the deck and cliff without a designed joint or load path. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000032",
+      "latency_s": 33.297,
+      "query": "Unseen holdout situation: At Glyph Ruins, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0007,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000033",
+      "latency_s": 34.797,
+      "query": "Unseen holdout situation: At Skyway Station, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000034",
+      "latency_s": 34.672,
+      "query": "Unseen holdout situation: At Chronos capital, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000035",
+      "latency_s": 31.015,
+      "query": "Unseen holdout situation: At eastern village, a missing manifest entry is ignored and the asset is claimed to exist. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000036",
+      "latency_s": 32.281,
+      "query": "Unseen holdout situation: At western wilderness, process liveness or exit code zero is treated as proof that every world gate passed. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0042,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000037",
+      "latency_s": 15.61,
+      "query": "Unseen holdout situation: At northern market, a roofline endpoint is approved because the bridge visually reaches the district. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000038",
+      "latency_s": 29.281,
+      "query": "Unseen holdout situation: At southern refinery, greybox geometry with fog is called visually final after automation passes. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000039",
+      "latency_s": 29.797,
+      "query": "Unseen holdout situation: At Archive service district, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000040",
+      "latency_s": 27.5,
+      "query": "Unseen holdout situation: At Wayfinder terrace, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000041",
+      "latency_s": 26.781,
+      "query": "Unseen holdout situation: At Axiom Core, dark monumental stone, aged bronze frames, tall arches, and restrained cyan conduits form a coherent identity. review occurs before structural sign-off. Does this pass the concept fidelity rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0049,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000042",
+      "latency_s": 10.906,
+      "query": "Unseen holdout situation: At Firstbound Overlook, the Axiom Core anchors the view with two secondary landmarks and quieter tertiary detail. review occurs before structural sign-off. Does this pass the macro layout rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000043",
+      "latency_s": 24.547,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, the primary route reaches a clear landing and an optional loop returns to the hub. review occurs before structural sign-off. Does this pass the traversal rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0075,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000044",
+      "latency_s": 10.719,
+      "query": "Unseen holdout situation: At Crystal Sanctum, both ends have supported landings, readable anchors, safe width, lighting, and collision. review occurs before structural sign-off. Does this pass the bridges rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0055,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000045",
+      "latency_s": 7.703,
+      "query": "Unseen holdout situation: At Arena Island, the gate frames the destination, provides safe arrival clearance, and connects to the road network. review occurs before structural sign-off. Does this pass the skyways rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0155,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000046",
+      "latency_s": 9.781,
+      "query": "Unseen holdout situation: At Glyph Ruins, the entrance, landing, railing, and stair dimensions remain within the intended human-scale ranges. review occurs before structural sign-off. Does this pass the player scale rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0073,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000047",
+      "latency_s": 8.063,
+      "query": "Unseen holdout situation: At Skyway Station, layered foundations, buttresses, bronze clamps, and Essence machinery explain every major load. review occurs before structural sign-off. Does this pass the architecture rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0093,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000048",
+      "latency_s": 8.703,
+      "query": "Unseen holdout situation: At Chronos capital, the annex sits beside the Skyway because it maintains the gate and creates a secondary service route. review occurs before structural sign-off. Does this pass the architectural purpose rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000049",
+      "latency_s": 25.219,
+      "query": "Unseen holdout situation: At eastern village, fractured shelves, tapering plates, roots, mineral seams, and selective fragments form an asymmetric silhouette. review occurs before structural sign-off. Does this pass the floating island geology rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0078,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000050",
+      "latency_s": 10.703,
+      "query": "Unseen holdout situation: At western wilderness, human-scaled settlements occupy an expanded landscape of wilderness, roads, ruins, and landmarks. review occurs before structural sign-off. Does this pass the landmass rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0046,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000051",
+      "latency_s": 13.828,
+      "query": "Unseen holdout situation: At northern market, distance-aware vegetation clusters frame readable trails, clearings, and regional landmarks. review occurs before structural sign-off. Does this pass the wilderness rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0093,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000052",
+      "latency_s": 11.031,
+      "query": "Unseen holdout situation: At southern refinery, primary, secondary, ring, and service roads connect real destinations through readable junctions. review occurs before structural sign-off. Does this pass the roads rule?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_12.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

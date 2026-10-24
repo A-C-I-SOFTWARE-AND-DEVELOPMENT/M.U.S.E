@@ -1,0 +1,328 @@
+{
+  "duration_s": 448.796,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000158",
+      "latency_s": 19.765,
+      "query": "NEEDLE-QA pressure test: At river ravine, greybox geometry with fog is called visually final after automation passes. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000159",
+      "latency_s": 19.969,
+      "query": "NEEDLE-QA pressure test: At outer gate, the report declares AAA complete while traversal and performance evidence are absent. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0017,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000160",
+      "latency_s": 11.641,
+      "query": "NEEDLE-QA pressure test: At temple quarter, material polish is scheduled while the major playable landmark has no connection. Materials are scheduled next. review occurs before structural sign-off. What must happen first?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000161",
+      "latency_s": 16.984,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, white marble columns and neon roof outlines replace the dark-stone and bronze language. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000162",
+      "latency_s": 16.922,
+      "query": "NEEDLE-QA pressure test: At Arena Island, all landmarks carry equal visual weight and the Axiom Core has no readable hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000163",
+      "latency_s": 19.109,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, the primary route ends above the plaza with no stairs, ramp, lift, or alternate arrival. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000164",
+      "latency_s": 15.078,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, bridge grade deg is 31 degrees; the reference gate is 25 degrees. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000165",
+      "latency_s": 14.703,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, the arrival gate faces a wall and gives the player no readable exit. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000166",
+      "latency_s": 14.36,
+      "query": "NEEDLE-QA pressure test: At eastern village, door width cm is 95 cm; the reference gate is 150 cm. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0032,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000167",
+      "latency_s": 9.359,
+      "query": "NEEDLE-QA pressure test: At western wilderness, the hall floats above terrain and decorative crystals are its only explanation. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K01",
+            "evidence_state": "E1",
+            "limit_value": 10,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "BLOCKED"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_qa_000168",
+      "latency_s": 75.938,
+      "query": "NEEDLE-QA pressure test: At northern market, twenty towers fill empty space without location, function, entrance, or gameplay purpose. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000169",
+      "latency_s": 17.734,
+      "query": "NEEDLE-QA pressure test: At southern refinery, a smooth symmetrical cone forms the entire underside with uniform scaled rocks. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000170",
+      "latency_s": 16.203,
+      "query": "NEEDLE-QA pressure test: At Archive service district, island radius uu is 343000 uu; the reference gate is 343000 uu. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000171",
+      "latency_s": 15.281,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000172",
+      "latency_s": 15.641,
+      "query": "NEEDLE-QA pressure test: At river ravine, ornamental road segments stop in fields and never connect the capital, villages, or services. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000173",
+      "latency_s": 12.281,
+      "query": "NEEDLE-QA pressure test: At outer gate, the village copies the capital block-for-block and has no regional function or history. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000174",
+      "latency_s": 12.0,
+      "query": "NEEDLE-QA pressure test: At temple quarter, stalls block the primary route and have no storage, delivery access, or vendor logic. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000175",
+      "latency_s": 12.063,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0009,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000176",
+      "latency_s": 11.453,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, the exterior door opens into a blocked wall and rooms have no circulation or service function. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000177",
+      "latency_s": 9.953,
+      "query": "NEEDLE-QA pressure test: At library court, random debris is scattered without explaining work, damage, abandonment, or recovery. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000178",
+      "latency_s": 12.078,
+      "query": "NEEDLE-QA pressure test: At floating quarry, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000179",
+      "latency_s": 11.391,
+      "query": "NEEDLE-QA pressure test: At coastal shelf, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000180",
+      "latency_s": 11.14,
+      "query": "NEEDLE-QA pressure test: At undercity approach, particles and glow appear everywhere without an active system or readable state. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000181",
+      "latency_s": 8.547,
+      "query": "NEEDLE-QA pressure test: At distant vista cell, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000182",
+      "latency_s": 7.922,
+      "query": "NEEDLE-QA pressure test: At Firstbound Arrival, identical crystals cover every surface and flatten the hero hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K01",
+            "evidence_state": "E1",
+            "limit_value": 5,
+            "observed_value": 0,
+            "unit": "WARN",
+            "verdict": "BLOCKED"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_qa_000183",
+      "latency_s": 30.891,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000184",
+      "latency_s": 3.984,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, the hero location is indistinguishable from repeated generic towers at distance. review occurs before structural sign-off. Evaluate the stated constraint without inventing measurements.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000185",
+      "latency_s": 3.594,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, island instances is 1.9e+06 instances; the reference gate is 600000 instances. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000186",
+      "latency_s": 2.812,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, island instances is 900000 instances; the reference gate is 600000 instances. review occurs before structural sign-off. Evaluate it.",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_002\\evaluation\\shards\\rows_08.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "weights_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36"
+}

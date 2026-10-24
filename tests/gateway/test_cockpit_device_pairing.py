@@ -64,7 +64,7 @@ def test_start_confirm_verify_revoke_happy_path(home: Path) -> None:
     assert start is not None
     assert start.pairing_code and start.expires_at > 0
 
-    confirm = dp.confirm_pairing(start.pairing_code)
+    confirm = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert confirm is not None
     assert confirm.device_id.startswith("dev_")
     assert confirm.token  # the raw token, returned exactly once
@@ -82,10 +82,18 @@ def test_start_confirm_verify_revoke_happy_path(home: Path) -> None:
 def test_confirm_consumes_code_single_use(home: Path) -> None:
     start = dp.start_pairing("phone")
     assert start is not None
-    first = dp.confirm_pairing(start.pairing_code)
+    first = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert first is not None
     # The code is single-use: a replay returns None.
-    assert dp.confirm_pairing(start.pairing_code) is None
+    assert dp.confirm_pairing(start.pairing_code, start.pairing_id) is None
+
+
+def test_confirm_requires_matching_pairing_id(home: Path) -> None:
+    start = dp.start_pairing("phone")
+    assert start is not None
+    assert dp.confirm_pairing(start.pairing_code, "pair_wrong-context") is None
+    # A mismatched context does not consume the legitimate one.
+    assert dp.confirm_pairing(start.pairing_code, start.pairing_id) is not None
 
 
 def test_expired_code_is_rejected(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -94,7 +102,7 @@ def test_expired_code_is_rejected(home: Path, monkeypatch: pytest.MonkeyPatch) -
     # Jump past the TTL: the pending code is pruned and confirm fails.
     real_now = dp._now()
     monkeypatch.setattr(dp, "_now", lambda: real_now + dp.CODE_TTL_SECONDS + 1)
-    assert dp.confirm_pairing(start.pairing_code) is None
+    assert dp.confirm_pairing(start.pairing_code, start.pairing_id) is None
 
 
 def test_bad_code_is_rejected(home: Path) -> None:
@@ -107,7 +115,7 @@ def test_bad_code_is_rejected(home: Path) -> None:
 def test_revoked_token_does_not_authenticate(home: Path) -> None:
     start = dp.start_pairing("revoke-me")
     assert start is not None
-    confirm = dp.confirm_pairing(start.pairing_code)
+    confirm = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert confirm is not None
     assert dp.verify_device_token(confirm.token) == confirm.device_id
     dp.revoke_device(confirm.device_id)
@@ -122,7 +130,7 @@ def test_revoked_token_does_not_authenticate(home: Path) -> None:
 def test_token_hashed_at_rest_never_raw(home: Path) -> None:
     start = dp.start_pairing("at-rest")
     assert start is not None
-    confirm = dp.confirm_pairing(start.pairing_code)
+    confirm = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert confirm is not None
 
     raw_store = dp._devices_path().read_text(encoding="utf-8")
@@ -149,13 +157,13 @@ def test_lockout_after_repeated_bad_confirms(home: Path) -> None:
     assert start is not None
     for _ in range(dp.MAX_FAILED_CONFIRMS):
         assert dp.confirm_pairing("WRONGCDE") is None
-    assert dp.confirm_pairing(start.pairing_code) is None  # locked out
+    assert dp.confirm_pairing(start.pairing_code, start.pairing_id) is None  # locked out
 
 
 def test_store_survives_corrupt_line(home: Path) -> None:
     start = dp.start_pairing("durable")
     assert start is not None
-    confirm = dp.confirm_pairing(start.pairing_code)
+    confirm = dp.confirm_pairing(start.pairing_code, start.pairing_id)
     assert confirm is not None
     # A torn/garbage line must not crash the loader; the device still verifies.
     path = dp._devices_path()
@@ -179,6 +187,7 @@ def test_pair_routes_need_no_shared_token(server) -> None:
         server,
         "/v1/cockpit/pair/confirm",
         {
+            "pairing_id": payload["pairing_id"],
             "pairing_code": payload["pairing_code"],
             "authorization": "Yes, with authorization.",
         },
@@ -203,7 +212,11 @@ def test_pair_confirm_bad_code_is_401(server) -> None:
         _post(
             server,
             "/v1/cockpit/pair/confirm",
-            {"pairing_code": "NOPE2345", "authorization": "Yes, with authorization."},
+            {
+                "pairing_id": "pair_invalid-but-well-formed",
+                "pairing_code": "NOPE2345",
+                "authorization": "Yes, with authorization.",
+            },
         )
     assert exc.value.code == 401
 
@@ -220,7 +233,11 @@ def test_pair_confirm_skips_owner_phrase_on_loopback(server) -> None:
     status, payload = _post(
         server,
         "/v1/cockpit/pair/confirm",
-        {"pairing_code": payload["pairing_code"], "authorization": "nope"},
+        {
+            "pairing_id": payload["pairing_id"],
+            "pairing_code": payload["pairing_code"],
+            "authorization": "nope",
+        },
     )
     assert status == 201
     assert payload["device_id"].startswith("dev_")
@@ -238,19 +255,27 @@ def test_pair_confirm_requires_owner_phrase_when_external(
     status, start = _post(server, "/v1/cockpit/pair/start", {"device_name": "Pixel"})
     assert status == 201
     code = start["pairing_code"]
+    pairing_id = start["pairing_id"]
 
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(
             server,
             "/v1/cockpit/pair/confirm",
-            {"pairing_code": code, "authorization": "nope"},
+            {"pairing_id": pairing_id, "pairing_code": code, "authorization": "nope"},
         )
     assert exc.value.code == 403
+    denied = json.loads(exc.value.read())
+    assert denied.get("authorization_required") is True
+    assert "hint" not in denied
 
     status, payload = _post(
         server,
         "/v1/cockpit/pair/confirm",
-        {"pairing_code": code, "authorization": "Yes, with authorization."},
+        {
+            "pairing_id": pairing_id,
+            "pairing_code": code,
+            "authorization": "Yes, with authorization.",
+        },
     )
     assert status == 201
     assert payload["token"]

@@ -269,6 +269,23 @@ async def fuse_response(
             metadata = result.get("metadata", {})
             models_used = len(metadata.get("reference_models", []))
             rounds_executed = len(metadata.get("rounds_executed", []))
+
+            # LTI-stable anchor: damp multi-round drift toward the original.
+            if (
+                cfg.get("lti_stable", True)
+                and original_response
+                and fused
+                and int(cfg.get("rounds", 1) or 1) > 1
+            ):
+                try:
+                    from agent.fusion_lti import init_fusion_state, update_fusion_state, select_final_output
+
+                    lti_state = init_fusion_state(original_response, cfg)
+                    lti_state = update_fusion_state(lti_state, fused)
+                    fused = select_final_output(lti_state)
+                    logger.info("LTI fusion applied (spectral_radius=%.4f)", lti_state.spectral_radius())
+                except Exception as lti_err:
+                    logger.warning("LTI fusion skipped: %s", lti_err)
             
             logger.info(
                 f"Fusion complete: {models_used} models × {rounds_executed} rounds → "

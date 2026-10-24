@@ -1,0 +1,29 @@
+{
+  "run": "qa_tiny_1epoch_lr1e-4",
+  "command": "needle finetune foundry_test/qa_tiny.jsonl --epochs 1 --batch-size 8 --checkpoint-dir foundry_test/ckpt --out foundry_test/qa_tiny_lora.pkl",
+  "wall_clock_s": 295.3,
+  "exit_code": 0,
+  "backend": "XLA CPU (native Windows jaxlib 0.10.2 \u2014 no CUDA plugin for win_amd64; GPU not used by JAX)",
+  "dataset": "foundry_test/qa_tiny.jsonl (26 examples, 35% negatives)",
+  "steps": [
+    {
+      "step": 1,
+      "loss": 2.1379
+    },
+    {
+      "step": 2,
+      "loss": "nan"
+    },
+    {
+      "step": 3,
+      "loss": "nan"
+    },
+    {
+      "step": 4,
+      "loss": "nan"
+    }
+  ],
+  "artifact": "foundry_test/qa_tiny_lora.pkl",
+  "verdict": "PIPELINE_RUNS_LOSS_NAN \u2014 training mechanics work end-to-end on CPU; optimization diverges after step 1 at default lr=1e-4",
+  "next_experiment": "same run at lr=1e-5 to distinguish LR-driven divergence from a numerical/dtype bug"
+}

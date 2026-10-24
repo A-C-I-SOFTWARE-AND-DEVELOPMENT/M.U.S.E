@@ -269,7 +269,7 @@ function ApprovalsPanel() {
   const [phrase, setPhrase] = useState('');
   const load = () => cockpit.approvals().then((r: any) => setList(Array.isArray(r) ? r : (r?.approvals ?? [])));
   useEffect(() => { load(); }, []);
-  const exact = phrase.trim() === 'Yes, with authorization.';
+  const authorizationPresent = phrase.trim().length > 0;
   return (
     <div className="flex flex-col gap-2">
       {!list || list.length === 0 ? (
@@ -283,7 +283,7 @@ function ApprovalsPanel() {
               <div className="text-[12px] font-medium">{a.title ?? a.action ?? a.id}</div>
               {a.risk && <div className="mono text-[9px] text-[var(--state-auth)]">{a.risk}</div>}
               <div className="mt-2 flex gap-2">
-                <button onClick={() => cockpit.approve(a.id, phrase).then(load)} disabled={!exact} className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-black disabled:opacity-40" style={{ background: 'var(--state-running)' }}>Approve</button>
+                <button onClick={() => cockpit.approve(a.id, phrase).then(load)} disabled={!authorizationPresent} className="rounded-md px-2.5 py-1 text-[11px] font-semibold text-black disabled:opacity-40" style={{ background: 'var(--state-running)' }}>Approve</button>
                 <button onClick={() => cockpit.deny(a.id).then(load)} className="rounded-md border border-[var(--hairline)] px-2.5 py-1 text-[11px]">Deny</button>
               </div>
             </div>
@@ -291,11 +291,11 @@ function ApprovalsPanel() {
           <input
             value={phrase}
             onChange={(e) => setPhrase(e.target.value)}
-            placeholder="Type: Yes, with authorization."
+            placeholder="Owner authorization"
             className="rounded-md border px-2.5 py-2 text-[12px]"
-            style={{ borderColor: exact ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)', color: 'var(--ink)' }}
+            style={{ borderColor: authorizationPresent ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)', color: 'var(--ink)' }}
           />
-          <p className="text-[10px] text-[var(--ink-faint)]">The exact owner phrase unlocks Approve — owner control by construction.</p>
+          <p className="text-[10px] text-[var(--ink-faint)]">Owner authorization is sent only for the selected decision.</p>
         </>
       )}
     </div>

@@ -15,6 +15,8 @@ import time
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from agent.error_classifier import FailoverReason
+
 
 # ---------------------------------------------------------------------------
 # 1. CLI _resolve_turn_agent_config includes credential_pool
@@ -238,6 +240,49 @@ class TestPoolRotationCycle:
         assert has_retried is False
         pool.mark_exhausted_and_rotate.assert_called_once_with(status_code=402, error_context=None, api_key_hint="test-api-key", failure_reason="billing")
 
+
+    def test_stale_pool_from_previous_provider_never_rotates(self):
+        """A /model switch must not send a new provider's request to an old pool.
+
+        The pool is left in place (it may belong to the primary provider while
+        a fallback is active); it just must not be mutated or rotated."""
+        agent, pool, _ = self._make_agent_with_pool(3)
+        agent.provider = "ollama-cloud"
+        pool.provider = "alibaba"
+
+        recovered, has_retried = agent._recover_with_credential_pool(
+            status_code=402,
+            has_retried_429=False,
+        )
+
+        assert recovered is False
+        assert has_retried is False
+        assert agent._credential_pool is pool
+        pool.mark_exhausted_and_rotate.assert_not_called()
+        agent._swap_credential.assert_not_called()
+
+    def test_ollama_extra_usage_does_not_exhaust_valid_key(self):
+        """K3's model-specific billing gate must not disable all Ollama models."""
+        agent, pool, _ = self._make_agent_with_pool(3)
+        agent.provider = "ollama-cloud"
+        pool.provider = "ollama-cloud"
+        error_context = {
+            "reason": "this model uses extra usage only",
+            "message": "your extra usage balance is empty",
+        }
+
+        recovered, has_retried = agent._recover_with_credential_pool(
+            status_code=402,
+            has_retried_429=False,
+            classified_reason=FailoverReason.billing,
+            error_context=error_context,
+        )
+
+        assert recovered is False
+        assert has_retried is False
+        assert agent._credential_pool is pool
+        pool.mark_exhausted_and_rotate.assert_not_called()
+        agent._swap_credential.assert_not_called()
 
     def test_api_key_hint_from_pool_current_when_agent_key_missing(self):
         """api_key_hint should fall back to pool.current().runtime_api_key

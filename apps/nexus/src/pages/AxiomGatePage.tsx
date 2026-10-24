@@ -271,7 +271,7 @@ export default function AxiomGatePage() {
               className="mt-2.5 w-full rounded-md px-3 py-2 text-[12px] font-semibold text-black"
               style={{ background: 'var(--state-auth)' }}
             >
-              Yes, with authorization
+              Authorize this action
             </button>
           </motion.div>
         )}

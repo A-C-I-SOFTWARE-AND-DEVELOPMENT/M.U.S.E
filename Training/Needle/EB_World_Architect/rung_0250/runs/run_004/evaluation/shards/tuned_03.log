@@ -1,0 +1,4 @@
+{"progress": 10, "total": 30, "errors": 0}
+{"progress": 20, "total": 30, "errors": 0}
+{"progress": 30, "total": 30, "errors": 0}
+{"status": "COMPLETE", "n": 30, "duration_s": 740.39, "weights_sha256": "3273766f9fe6f8a6bc03b260597f11ce751c4de6afb28b755fa07063b65db2d2"}

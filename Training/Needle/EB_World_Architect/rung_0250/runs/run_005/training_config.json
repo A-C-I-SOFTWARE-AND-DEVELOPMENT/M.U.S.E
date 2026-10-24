@@ -1,0 +1,9 @@
+{
+  "batch_size": 8,
+  "epochs": 3,
+  "lora_rank": 16,
+  "lr": 5e-05,
+  "max_len": 2048,
+  "quantization_bits": 2,
+  "rung": 250
+}

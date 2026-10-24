@@ -219,9 +219,17 @@ class ModelScorecard:
         )
 
 
-DEFAULT_SCORECARD_PATH = (
-    Path.home() / ".hermes" / "jarvis_prime" / "model_scorecards.jsonl"
-)
+def _default_scorecard_path() -> Path:
+    """Resolve scorecards under HERMES_HOME (not bare ~/.hermes)."""
+    try:
+        from hermes_cli.config import get_hermes_home
+
+        return get_hermes_home() / "jarvis_prime" / "model_scorecards.jsonl"
+    except Exception:
+        return Path.home() / ".hermes" / "jarvis_prime" / "model_scorecards.jsonl"
+
+
+DEFAULT_SCORECARD_PATH = _default_scorecard_path()
 
 
 @dataclass

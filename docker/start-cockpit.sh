@@ -24,6 +24,10 @@ COCKPIT_PUB_PORT="${COCKPIT_PUB_PORT:-8766}"
 
 # The container is the sandbox; the cockpit stays loopback so execute lanes work.
 # --agent full is also honored via HERMES_COCKPIT_AGENT=full (set in compose).
+# Every request reaches this loopback cockpit from the internet via Caddy +
+# socat, so loopback trust shortcuts must not apply: hosted mode makes device
+# pairing require an existing owner credential (gateway/cockpit/handlers.py).
+export HERMES_COCKPIT_HOSTED=1
 muse cockpit serve --host 127.0.0.1 --port "${COCKPIT_PORT}" --agent full &
 COCKPIT_PID=$!
 

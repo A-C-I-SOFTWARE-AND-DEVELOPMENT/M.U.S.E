@@ -1068,6 +1068,24 @@ def recover_with_credential_pool(
         return False, has_retried_429
 
     if effective_reason == FailoverReason.billing:
+        billing_text = " ".join(
+            str((error_context or {}).get(key) or "")
+            for key in ("reason", "message")
+        ).lower()
+        if (
+            agent_provider == "ollama-cloud"
+            and "extra usage" in billing_text
+            and ("balance is empty" in billing_text or "extra usage only" in billing_text)
+        ):
+            # Kimi K3's extra-usage gate is model/account specific. The Ollama
+            # key is valid and other included-plan models still work, so
+            # exhausting or rotating the whole credential is both incorrect
+            # and can hide the actionable 402 behind a later provider error.
+            _ra().logger.info(
+                "Ollama Cloud model requires extra usage; preserving the "
+                "credential and surfacing the provider's billing response."
+            )
+            return False, has_retried_429
         rotate_status = status_code if status_code is not None else 402
         # Runtime credentials can be resolved by a separate pool instance,
         # leaving this recovery pool without ``current_id``. Match the key
@@ -2368,7 +2386,15 @@ def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: boo
     return client
 
 
-def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mode=''):
+def switch_model(
+    agent,
+    new_model,
+    new_provider,
+    api_key='',
+    base_url='',
+    api_mode='',
+    credential_pool=None,
+):
     """Switch the model/provider in-place for a live agent.
 
     Called by the /model command handlers (CLI and gateway) after
@@ -2514,8 +2540,13 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
             agent._credential_pool = None
             agent._credential_pool_entry_id = None
             try:
-                from agent.credential_pool import load_pool
-                agent._credential_pool = load_pool(new_provider)
+                if credential_pool is not None:
+                    # The caller resolved this pool alongside the new
+                    # provider's key and endpoint; prefer it over a reload.
+                    agent._credential_pool = credential_pool
+                else:
+                    from agent.credential_pool import load_pool
+                    agent._credential_pool = load_pool(new_provider)
             except Exception as _pool_exc:  # noqa: BLE001
                 logger.warning(
                     "switch_model: credential pool reload failed for %s (%s); "

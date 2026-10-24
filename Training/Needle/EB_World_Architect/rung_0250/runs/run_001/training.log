@@ -1,0 +1,54 @@
+E0812 21:05:05.840734     305 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.97GiB (6410993664 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: === 
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0812 21:05:05.842872     305 cuda_executor.cc:1176] [0] Failed to allocate device memory of 5.37GiB (5769894400 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: === 
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0812 21:05:05.845113     305 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.84GiB (5192904704 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: === 
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+E0812 21:05:05.846917     305 cuda_executor.cc:1176] [0] Failed to allocate device memory of 4.35GiB (4673614336 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: === 
+external/xla/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:226
+external/xla/xla/stream_executor/cuda/cuda_device_allocator.cc:403
+
+training on 200 examples, seq_len 2048
+LoRA rank 16 on 10 weight groups (compiling...)
+epoch 1/1  step 1/25  loss 2.8482
+epoch 1/1  step 2/25  loss 2.8203
+epoch 1/1  step 3/25  loss 2.8876
+epoch 1/1  step 4/25  loss 2.8262
+epoch 1/1  step 5/25  loss 2.7341
+epoch 1/1  step 6/25  loss 2.7839
+epoch 1/1  step 7/25  loss 2.7694
+epoch 1/1  step 8/25  loss 2.7749
+epoch 1/1  step 9/25  loss 2.8125
+epoch 1/1  step 10/25  loss 2.8451
+epoch 1/1  step 11/25  loss 2.8314
+epoch 1/1  step 12/25  loss 2.8953
+epoch 1/1  step 13/25  loss 2.7398
+epoch 1/1  step 14/25  loss 2.7709
+epoch 1/1  step 15/25  loss 2.6771
+epoch 1/1  step 16/25  loss 2.7219
+epoch 1/1  step 17/25  loss 2.7319
+epoch 1/1  step 18/25  loss 2.7289
+epoch 1/1  step 19/25  loss 2.7346
+epoch 1/1  step 20/25  loss 2.7322
+epoch 1/1  step 21/25  loss 2.5712
+epoch 1/1  step 22/25  loss 2.7398
+epoch 1/1  step 23/25  loss 2.6923
+epoch 1/1  step 24/25  loss 2.6144
+epoch 1/1  step 25/25  loss 2.6016
+epoch 1/1  loss 2.6016
+saved LoRA adapter -> /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/adapter.pkl
+merge + export with: needle build /mnt/c/Users/Echer/M.U.S.E/third_party/needle/checkpoints/needle2.pkl --lora /mnt/c/Users/Echer/M.U.S.E/Training/Needle/EB_World_Architect/rung_0250/runs/run_001/adapter.pkl

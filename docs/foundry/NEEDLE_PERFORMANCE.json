@@ -1,0 +1,34 @@
+{
+  "cold_start": [
+    {
+      "engine_import_s": 0.021,
+      "weight_load_s": 0.011,
+      "schema_init_s": 0.359,
+      "first_call_s": 0.264,
+      "total_cold_s": 0.654
+    },
+    {
+      "engine_import_s": 0.007,
+      "weight_load_s": 0.011,
+      "schema_init_s": 0.357,
+      "first_call_s": 0.222,
+      "total_cold_s": 0.596
+    },
+    {
+      "engine_import_s": 0.005,
+      "weight_load_s": 0.01,
+      "schema_init_s": 0.346,
+      "first_call_s": 0.219,
+      "total_cold_s": 0.58
+    }
+  ],
+  "warm_latency": {
+    "n": 12,
+    "p50": 0.21,
+    "p95": 0.25,
+    "min": 0.06,
+    "max": 0.25,
+    "mean": 0.16583333333333333
+  },
+  "note": "Windows native engine 2.0.1, stock 0x83 cact, 5-tool native schema"
+}

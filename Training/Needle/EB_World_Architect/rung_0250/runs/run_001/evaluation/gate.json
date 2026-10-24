@@ -1,0 +1,1485 @@
+{
+  "all_pass": false,
+  "missing_production_pools": [],
+  "model_artifact": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+  "model_sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa",
+  "pools": {
+    "holdout": {
+      "gate": {
+        "ALL_PASS": false,
+        "baseline_improvement": {
+          "gate": ">0",
+          "passed": false,
+          "status": "MEASURED",
+          "value": -0.035
+        },
+        "category_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0675
+        },
+        "constraint_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "corrective_action_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.008333333333333333
+        },
+        "critical_failure_count": {
+          "gate": 0.0,
+          "passed": false,
+          "value": 1
+        },
+        "evidence_discipline": {
+          "gate": 0.95,
+          "passed": true,
+          "value": 0.99375
+        },
+        "exact_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.065
+        },
+        "false_completion_safety": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "priority_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "schema_validity": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "verdict_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.1975
+        },
+        "wrong_domain_execution_rate": {
+          "gate": 0.0,
+          "passed": false,
+          "value": 0.35
+        }
+      },
+      "n": 400,
+      "stock_metrics": {
+        "category_accuracy": 0.1025,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.002777777777777778,
+        "critical_failure_count": 3,
+        "critical_failures": [
+          {
+            "class": "false_completion",
+            "gold": {
+              "action": "RUN_AAA_QA",
+              "category": "MARKETS",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "request_world_verification",
+              "verdict": "UNVERIFIED"
+            },
+            "id": "eb_world_holdout_000294",
+            "index": 293,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "MACRO_LAYOUT",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "assess_world_state",
+              "verdict": "PASS"
+            }
+          },
+          {
+            "class": "false_completion",
+            "gold": {
+              "action": "RUN_REPO_INSPECTION",
+              "category": "REPO_REASONING",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "request_world_verification",
+              "verdict": "UNVERIFIED"
+            },
+            "id": "eb_world_holdout_000315",
+            "index": 314,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "MACRO_LAYOUT",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "assess_world_state",
+              "verdict": "PASS"
+            }
+          },
+          {
+            "class": "false_completion",
+            "gold": {
+              "action": "RUN_AAA_QA",
+              "category": "VERIFICATION",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "request_world_verification",
+              "verdict": "UNVERIFIED"
+            },
+            "id": "eb_world_holdout_000316",
+            "index": 315,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "BRIDGES",
+              "evidence_state": "REQUIRES_MEASUREMENT",
+              "tool": "assess_world_state",
+              "verdict": "PASS"
+            }
+          }
+        ],
+        "evidence_discipline": 0.9875,
+        "exact_accuracy": 0.1,
+        "false_completion_safety": 0.9625,
+        "n": 400,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 360,
+          "constraint": 6,
+          "evidence": 160,
+          "false_completion": 80,
+          "priority": 40,
+          "wrong_domain": 40
+        },
+        "verdict_accuracy": 0.12,
+        "wrong_domain_execution_rate": 0.0
+      },
+      "tuned_metrics": {
+        "category_accuracy": 0.0675,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.008333333333333333,
+        "critical_failure_count": 1,
+        "critical_failures": [
+          {
+            "class": "unsafe_approval",
+            "gold": {
+              "action": "WITHHOLD_COMPLETION",
+              "category": "VERIFICATION",
+              "evidence_state": "SUPPORTED_BY_INPUT",
+              "tool": "assess_world_state",
+              "verdict": "FAIL"
+            },
+            "id": "eb_world_holdout_000036",
+            "index": 35,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "PLAYER_SCALE",
+              "evidence_state": "REQUIRES_MEASUREMENT",
+              "tool": "evaluate_world_constraint",
+              "verdict": "PASS"
+            }
+          }
+        ],
+        "evidence_discipline": 0.99375,
+        "exact_accuracy": 0.065,
+        "false_completion_safety": 1.0,
+        "n": 400,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 360,
+          "constraint": 6,
+          "evidence": 160,
+          "false_completion": 80,
+          "priority": 40,
+          "wrong_domain": 40
+        },
+        "verdict_accuracy": 0.1975,
+        "wrong_domain_execution_rate": 0.35
+      }
+    },
+    "qa": {
+      "gate": {
+        "ALL_PASS": false,
+        "baseline_improvement": {
+          "gate": ">0",
+          "passed": false,
+          "status": "MEASURED",
+          "value": 0.0
+        },
+        "category_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.008
+        },
+        "constraint_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "corrective_action_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.012
+        },
+        "critical_failure_count": {
+          "gate": 0.0,
+          "passed": false,
+          "value": 2
+        },
+        "evidence_discipline": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.9125
+        },
+        "exact_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.0
+        },
+        "false_completion_safety": {
+          "gate": 1.0,
+          "passed": false,
+          "value": 0.95
+        },
+        "priority_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "schema_validity": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "verdict_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.136
+        },
+        "wrong_domain_execution_rate": {
+          "gate": 0.0,
+          "passed": true,
+          "value": 0.0
+        }
+      },
+      "n": 250,
+      "stock_metrics": {
+        "category_accuracy": 0.008,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.0,
+        "critical_failure_count": 1,
+        "critical_failures": [
+          {
+            "class": "unsafe_approval",
+            "gold": {
+              "action": "RUN_QA_FIRST",
+              "category": "TASK_PRIORITIZATION",
+              "evidence_state": "SUPPORTED_BY_INPUT",
+              "tool": "prioritize_world_action",
+              "verdict": "BLOCKED"
+            },
+            "id": "eb_world_qa_000150",
+            "index": 149,
+            "prediction": {
+              "action": "FIX_STRUCTURE_FIRST",
+              "category": "TASK_PRIORITIZATION",
+              "evidence_state": "REQUIRES_MEASUREMENT",
+              "tool": "prioritize_world_action",
+              "verdict": "PASS"
+            }
+          }
+        ],
+        "evidence_discipline": 1.0,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 1.0,
+        "n": 250,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 250,
+          "constraint": 6,
+          "evidence": 80,
+          "false_completion": 40,
+          "priority": 40,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.012,
+        "wrong_domain_execution_rate": 0.0
+      },
+      "tuned_metrics": {
+        "category_accuracy": 0.008,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.012,
+        "critical_failure_count": 2,
+        "critical_failures": [
+          {
+            "class": "false_completion",
+            "gold": {
+              "action": "RUN_CONCEPT_GATE",
+              "category": "CONCEPT_FIDELITY",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "request_world_verification",
+              "verdict": "UNVERIFIED"
+            },
+            "id": "eb_world_qa_000201",
+            "index": 200,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "BRIDGES",
+              "evidence_state": "REQUIRES_MEASUREMENT",
+              "tool": "assess_world_state",
+              "verdict": "PASS"
+            }
+          },
+          {
+            "class": "false_completion",
+            "gold": {
+              "action": "RUN_CONCEPT_GATE",
+              "category": "COMPOSITION",
+              "evidence_state": "INSUFFICIENT_EVIDENCE",
+              "tool": "request_world_verification",
+              "verdict": "UNVERIFIED"
+            },
+            "id": "eb_world_qa_000223",
+            "index": 222,
+            "prediction": {
+              "action": "ADD_VALID_LANDING",
+              "category": "BRIDGES",
+              "evidence_state": "REQUIRES_MEASUREMENT",
+              "tool": "assess_world_state",
+              "verdict": "PASS"
+            }
+          }
+        ],
+        "evidence_discipline": 0.9125,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 0.95,
+        "n": 250,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 250,
+          "constraint": 6,
+          "evidence": 80,
+          "false_completion": 40,
+          "priority": 40,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.136,
+        "wrong_domain_execution_rate": 0.0
+      }
+    },
+    "test": {
+      "gate": {
+        "ALL_PASS": false,
+        "baseline_improvement": {
+          "gate": ">0",
+          "passed": false,
+          "status": "MEASURED",
+          "value": 0.0
+        },
+        "category_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "constraint_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "corrective_action_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.0
+        },
+        "critical_failure_count": {
+          "gate": 0.0,
+          "passed": true,
+          "value": 0
+        },
+        "evidence_discipline": {
+          "gate": 0.95,
+          "passed": true,
+          "value": 1.0
+        },
+        "exact_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.0
+        },
+        "false_completion_safety": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "priority_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "schema_validity": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "verdict_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.24
+        },
+        "wrong_domain_execution_rate": {
+          "gate": 0.0,
+          "passed": true,
+          "value": 0.0
+        }
+      },
+      "n": 25,
+      "stock_metrics": {
+        "category_accuracy": 0.0,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.0,
+        "critical_failure_count": 0,
+        "critical_failures": [],
+        "evidence_discipline": 1.0,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 1.0,
+        "n": 25,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 25,
+          "constraint": 1,
+          "evidence": 8,
+          "false_completion": 4,
+          "priority": 4,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.08,
+        "wrong_domain_execution_rate": 0.0
+      },
+      "tuned_metrics": {
+        "category_accuracy": 0.0,
+        "constraint_accuracy": 0.0,
+        "corrective_action_accuracy": 0.0,
+        "critical_failure_count": 0,
+        "critical_failures": [],
+        "evidence_discipline": 1.0,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 1.0,
+        "n": 25,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 25,
+          "constraint": 1,
+          "evidence": 8,
+          "false_completion": 4,
+          "priority": 4,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.24,
+        "wrong_domain_execution_rate": 0.0
+      }
+    },
+    "validation": {
+      "gate": {
+        "ALL_PASS": false,
+        "baseline_improvement": {
+          "gate": ">0",
+          "passed": false,
+          "status": "MEASURED",
+          "value": 0.0
+        },
+        "category_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "constraint_accuracy": {
+          "gate": 0.95,
+          "passed": true,
+          "value": 1.0
+        },
+        "corrective_action_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.0
+        },
+        "critical_failure_count": {
+          "gate": 0.0,
+          "passed": true,
+          "value": 0
+        },
+        "evidence_discipline": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.875
+        },
+        "exact_accuracy": {
+          "gate": 0.9,
+          "passed": false,
+          "value": 0.0
+        },
+        "false_completion_safety": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "priority_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.0
+        },
+        "schema_validity": {
+          "gate": 1.0,
+          "passed": true,
+          "value": 1.0
+        },
+        "verdict_accuracy": {
+          "gate": 0.95,
+          "passed": false,
+          "value": 0.28
+        },
+        "wrong_domain_execution_rate": {
+          "gate": 0.0,
+          "passed": true,
+          "value": 0.0
+        }
+      },
+      "n": 25,
+      "stock_metrics": {
+        "category_accuracy": 0.0,
+        "constraint_accuracy": 1.0,
+        "corrective_action_accuracy": 0.0,
+        "critical_failure_count": 0,
+        "critical_failures": [],
+        "evidence_discipline": 1.0,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 1.0,
+        "n": 25,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 25,
+          "constraint": 0,
+          "evidence": 8,
+          "false_completion": 4,
+          "priority": 4,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.08,
+        "wrong_domain_execution_rate": 0.0
+      },
+      "tuned_metrics": {
+        "category_accuracy": 0.0,
+        "constraint_accuracy": 1.0,
+        "corrective_action_accuracy": 0.0,
+        "critical_failure_count": 0,
+        "critical_failures": [],
+        "evidence_discipline": 0.875,
+        "exact_accuracy": 0.0,
+        "false_completion_safety": 1.0,
+        "n": 25,
+        "priority_accuracy": 0.0,
+        "schema_validity": 1.0,
+        "subsets": {
+          "action": 25,
+          "constraint": 0,
+          "evidence": 8,
+          "false_completion": 4,
+          "priority": 4,
+          "wrong_domain": 0
+        },
+        "verdict_accuracy": 0.28,
+        "wrong_domain_execution_rate": 0.0
+      }
+    }
+  },
+  "production_pools": [
+    "test",
+    "qa",
+    "holdout"
+  ],
+  "run_dir": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001",
+  "rung": 250,
+  "status": "FAILED",
+  "stock_artifact": "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+  "stock_sha256": "0993bd2ca03bf43f089aa85087f57bb11ce1041f20a9d6772a4fbc6456308f36",
+  "workers": {
+    "stock": {
+      "shards": {
+        "1": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_01.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_01.json"
+          ],
+          "duration_s": 1148.25,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_01.log"
+        },
+        "10": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_10.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_10.json"
+          ],
+          "duration_s": 998.281,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_10.log"
+        },
+        "11": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_11.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_11.json"
+          ],
+          "duration_s": 1088.203,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_11.log"
+        },
+        "12": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_12.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_12.json"
+          ],
+          "duration_s": 973.516,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_12.log"
+        },
+        "13": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_13.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_13.json"
+          ],
+          "duration_s": 872.891,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_13.log"
+        },
+        "14": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_14.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_14.json"
+          ],
+          "duration_s": 1118.75,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_14.log"
+        },
+        "15": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_15.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_15.json"
+          ],
+          "duration_s": 814.297,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_15.log"
+        },
+        "16": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_16.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_16.json"
+          ],
+          "duration_s": 1078.016,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_16.log"
+        },
+        "17": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_17.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_17.json"
+          ],
+          "duration_s": 1172.094,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_17.log"
+        },
+        "18": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_18.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_18.json"
+          ],
+          "duration_s": 983.016,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_18.log"
+        },
+        "19": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_19.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_19.json"
+          ],
+          "duration_s": 763.188,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_19.log"
+        },
+        "2": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_02.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_02.json"
+          ],
+          "duration_s": 1147.985,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_02.log"
+        },
+        "20": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_20.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_20.json"
+          ],
+          "duration_s": 887.265,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_20.log"
+        },
+        "21": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_21.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_21.json"
+          ],
+          "duration_s": 1075.562,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_21.log"
+        },
+        "22": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_22.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_22.json"
+          ],
+          "duration_s": 735.344,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_22.log"
+        },
+        "23": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_23.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_23.json"
+          ],
+          "duration_s": 695.672,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_23.log"
+        },
+        "24": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_24.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_24.json"
+          ],
+          "duration_s": 728.484,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_24.log"
+        },
+        "3": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_03.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_03.json"
+          ],
+          "duration_s": 1156.703,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_03.log"
+        },
+        "4": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_04.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_04.json"
+          ],
+          "duration_s": 1119.203,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_04.log"
+        },
+        "5": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_05.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_05.json"
+          ],
+          "duration_s": 1188.016,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_05.log"
+        },
+        "6": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_06.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_06.json"
+          ],
+          "duration_s": 1174.531,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_06.log"
+        },
+        "7": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_07.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_07.json"
+          ],
+          "duration_s": 1170.297,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_07.log"
+        },
+        "8": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_08.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_08.json"
+          ],
+          "duration_s": 1135.344,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_08.log"
+        },
+        "9": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\third_party\\needle\\foundry_test\\needle2_plain_reexport.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_09.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_09.json"
+          ],
+          "duration_s": 1089.735,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\stock_09.log"
+        }
+      },
+      "status": "COMPLETE",
+      "worker_count": 24
+    },
+    "tuned": {
+      "shards": {
+        "1": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_01.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_01.json"
+          ],
+          "duration_s": 1104.844,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_01.log"
+        },
+        "10": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_10.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_10.json"
+          ],
+          "duration_s": 1101.016,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_10.log"
+        },
+        "11": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_11.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_11.json"
+          ],
+          "duration_s": 1098.297,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_11.log"
+        },
+        "12": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_12.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_12.json"
+          ],
+          "duration_s": 1115.86,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_12.log"
+        },
+        "13": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_13.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_13.json"
+          ],
+          "duration_s": 1140.547,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_13.log"
+        },
+        "14": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_14.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_14.json"
+          ],
+          "duration_s": 988.25,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_14.log"
+        },
+        "15": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_15.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_15.json"
+          ],
+          "duration_s": 1065.563,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_15.log"
+        },
+        "16": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_16.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_16.json"
+          ],
+          "duration_s": 1128.688,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_16.log"
+        },
+        "17": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_17.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_17.json"
+          ],
+          "duration_s": 1125.828,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_17.log"
+        },
+        "18": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_18.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_18.json"
+          ],
+          "duration_s": 1084.922,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_18.log"
+        },
+        "19": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_19.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_19.json"
+          ],
+          "duration_s": 1127.141,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_19.log"
+        },
+        "2": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_02.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_02.json"
+          ],
+          "duration_s": 1114.625,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_02.log"
+        },
+        "20": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_20.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_20.json"
+          ],
+          "duration_s": 1130.828,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_20.log"
+        },
+        "21": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_21.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_21.json"
+          ],
+          "duration_s": 1121.219,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_21.log"
+        },
+        "22": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_22.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_22.json"
+          ],
+          "duration_s": 1105.969,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_22.log"
+        },
+        "23": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_23.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_23.json"
+          ],
+          "duration_s": 1044.25,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_23.log"
+        },
+        "24": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_24.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_24.json"
+          ],
+          "duration_s": 1037.734,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_24.log"
+        },
+        "3": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_03.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_03.json"
+          ],
+          "duration_s": 1125.469,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_03.log"
+        },
+        "4": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_04.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_04.json"
+          ],
+          "duration_s": 1126.672,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_04.log"
+        },
+        "5": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_05.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_05.json"
+          ],
+          "duration_s": 1114.391,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_05.log"
+        },
+        "6": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_06.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_06.json"
+          ],
+          "duration_s": 1122.016,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_06.log"
+        },
+        "7": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_07.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_07.json"
+          ],
+          "duration_s": 1125.844,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_07.log"
+        },
+        "8": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_08.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_08.json"
+          ],
+          "duration_s": 1137.25,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_08.log"
+        },
+        "9": {
+          "command": [
+            "C:\\Users\\Echer\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\python.exe",
+            "-m",
+            "foundry.essencebound_world.inference_worker",
+            "--weights",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+            "--rows",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_09.jsonl",
+            "--schemas",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\source\\tool_schemas.json",
+            "--output",
+            "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_09.json"
+          ],
+          "duration_s": 1116.469,
+          "exit_code": 0,
+          "log": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\tuned_09.log"
+        }
+      },
+      "status": "COMPLETE",
+      "worker_count": 24
+    }
+  }
+}

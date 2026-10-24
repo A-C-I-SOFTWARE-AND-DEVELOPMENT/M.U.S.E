@@ -1,0 +1,217 @@
+{
+  "vocab_probe": [
+    {
+      "term": "FBX",
+      "n_tokens": 3,
+      "pieces": [
+        "F",
+        "B",
+        "X"
+      ]
+    },
+    {
+      "term": "UV",
+      "n_tokens": 2,
+      "pieces": [
+        "U",
+        "V"
+      ]
+    },
+    {
+      "term": "UV2",
+      "n_tokens": 3,
+      "pieces": [
+        "U",
+        "V",
+        "2"
+      ]
+    },
+    {
+      "term": "n-gon",
+      "n_tokens": 4,
+      "pieces": [
+        "n",
+        "-",
+        "g",
+        "on"
+      ]
+    },
+    {
+      "term": "Nanite",
+      "n_tokens": 3,
+      "pieces": [
+        "N",
+        "an",
+        "ite"
+      ]
+    },
+    {
+      "term": "Lumen",
+      "n_tokens": 3,
+      "pieces": [
+        "L",
+        "um",
+        "en"
+      ]
+    },
+    {
+      "term": "LOD",
+      "n_tokens": 3,
+      "pieces": [
+        "L",
+        "O",
+        "D"
+      ]
+    },
+    {
+      "term": "skeletal mesh",
+      "n_tokens": 7,
+      "pieces": [
+        "s",
+        "ke",
+        "le",
+        "tal",
+        "m",
+        "es",
+        "h"
+      ]
+    },
+    {
+      "term": "armature",
+      "n_tokens": 2,
+      "pieces": [
+        "arm",
+        "ature"
+      ]
+    },
+    {
+      "term": "bpy",
+      "n_tokens": 3,
+      "pieces": [
+        "b",
+        "p",
+        "y"
+      ]
+    },
+    {
+      "term": "PBR",
+      "n_tokens": 3,
+      "pieces": [
+        "P",
+        "B",
+        "R"
+      ]
+    },
+    {
+      "term": "roughness",
+      "n_tokens": 3,
+      "pieces": [
+        "",
+        "rough",
+        "ness"
+      ]
+    },
+    {
+      "term": "metallic",
+      "n_tokens": 3,
+      "pieces": [
+        "met",
+        "all",
+        "ic"
+      ]
+    },
+    {
+      "term": "normal map",
+      "n_tokens": 2,
+      "pieces": [
+        "normal",
+        "map"
+      ]
+    },
+    {
+      "term": "collision",
+      "n_tokens": 2,
+      "pieces": [
+        "coll",
+        "ision"
+      ]
+    },
+    {
+      "term": "socket",
+      "n_tokens": 3,
+      "pieces": [
+        "s",
+        "ock",
+        "et"
+      ]
+    },
+    {
+      "term": "pivot",
+      "n_tokens": 3,
+      "pieces": [
+        "p",
+        "iv",
+        "ot"
+      ]
+    },
+    {
+      "term": "Unreal",
+      "n_tokens": 2,
+      "pieces": [
+        "Un",
+        "real"
+      ]
+    },
+    {
+      "term": "Blender",
+      "n_tokens": 2,
+      "pieces": [
+        "Bl",
+        "ender"
+      ]
+    },
+    {
+      "term": "triangle",
+      "n_tokens": 2,
+      "pieces": [
+        "tri",
+        "angle"
+      ]
+    },
+    {
+      "term": "manifold",
+      "n_tokens": 2,
+      "pieces": [
+        "manif",
+        "old"
+      ]
+    },
+    {
+      "term": "degenerate",
+      "n_tokens": 3,
+      "pieces": [
+        "de",
+        "gen",
+        "erate"
+      ]
+    },
+    {
+      "term": "texel",
+      "n_tokens": 3,
+      "pieces": [
+        "te",
+        "x",
+        "el"
+      ]
+    },
+    {
+      "term": "keyframe",
+      "n_tokens": 2,
+      "pieces": [
+        "key",
+        "frame"
+      ]
+    }
+  ],
+  "avg_tokens_per_term": 2.8333333333333335
+}

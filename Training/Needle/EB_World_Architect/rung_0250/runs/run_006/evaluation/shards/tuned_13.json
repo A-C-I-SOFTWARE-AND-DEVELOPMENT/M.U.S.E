@@ -1,0 +1,364 @@
+{
+  "duration_s": 746.375,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 29,
+  "predictions": [
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000053",
+      "latency_s": 34.766,
+      "query": "Unseen holdout situation: At Archive service district, the village has a distinct economy, terrain response, civic focus, and connection to regional travel. review occurs before structural sign-off. Does this pass the settlements rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000054",
+      "latency_s": 31.875,
+      "query": "Unseen holdout situation: At Wayfinder terrace, stalls form navigable edges around a civic focus with service access and readable circulation. review occurs before structural sign-off. Does this pass the markets rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000055",
+      "latency_s": 28.828,
+      "query": "Unseen holdout situation: At river ravine, the forge, storage, sales space, delivery access, and warm inhabited lighting support its role. review occurs before structural sign-off. Does this pass the shops rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000056",
+      "latency_s": 22.281,
+      "query": "Unseen holdout situation: At outer gate, entrance, public loop, restricted stacks, vertical route, and service spaces form a coherent plan. review occurs before structural sign-off. Does this pass the interiors rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000057",
+      "latency_s": 37.063,
+      "query": "Unseen holdout situation: At temple quarter, tool placement, damaged conduits, repair attempts, and evacuation traces reveal a causal history. review occurs before structural sign-off. Does this pass the environmental storytelling rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0153,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000058",
+      "latency_s": 16.484,
+      "query": "Unseen holdout situation: At alchemist lane, dark stone, aged bronze, localized weathering, and selective luminous details reinforce construction and history. review occurs before structural sign-off. Does this pass the materials rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0239,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000059",
+      "latency_s": 10.344,
+      "query": "Unseen holdout situation: At blacksmith yard, cold restrained Essence light outside contrasts with warm amber inhabited light inside. review occurs before structural sign-off. Does this pass the lighting rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0138,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000060",
+      "latency_s": 12.906,
+      "query": "Unseen holdout situation: At library court, rotation, restrained particles, and light flow appear only where the powered mechanism justifies them. review occurs before structural sign-off. Does this pass the magic rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000061",
+      "latency_s": 30.078,
+      "query": "Unseen holdout situation: At floating quarry, a crystal source feeds conduits, floor channels, machinery, and the destination facility with damaged and dormant states. review occurs before structural sign-off. Does this pass the essence infrastructure rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "C",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000062",
+      "latency_s": 24.75,
+      "query": "Unseen holdout situation: At coastal shelf, crystals cluster at sources, housings, damaged conduits, and high-value machinery. review occurs before structural sign-off. Does this pass the crystals rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "category": "C01",
+            "claim_kind": "M1",
+            "evidence_kind": "D1",
+            "next_gate": "G4"
+          },
+          "name": "request_world_verification"
+        }
+      ],
+      "id": "eb_world_holdout_000063",
+      "latency_s": 27.735,
+      "query": "Unseen holdout situation: At undercity approach, foreground framing leads to one primary focus, two secondary landmarks, and quieter distant depth. review occurs before structural sign-off. Does this pass the composition rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 5,
+            "observed_value": 1,
+            "unit": "WARN",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000064",
+      "latency_s": 120.5,
+      "query": "Unseen holdout situation: At distant vista cell, the Archive reads from silhouette through a unique vertical mass, controlled curves, and suspended structure. review occurs before structural sign-off. Does this pass the silhouette rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000065",
+      "latency_s": 31.265,
+      "query": "Unseen holdout situation: At Firstbound Arrival, the island remains within the preferred gate and reports measured VRAM, frame time, culling, and instance counts. review occurs before structural sign-off. Does this pass the performance rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000066",
+      "latency_s": 18.641,
+      "query": "Unseen holdout situation: At Axiom Core, mesh, materials, cull settings, and kilometer-scale cell form localized instance batches. review occurs before structural sign-off. Does this pass the instancing rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000067",
+      "latency_s": 32.031,
+      "query": "Unseen holdout situation: At Firstbound Overlook, localized bounds and distance-aware placement are verified in the defined runtime QA view. review occurs before structural sign-off. Does this pass the culling rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000068",
+      "latency_s": 29.672,
+      "query": "Unseen holdout situation: At Grand Suspended Archive, breakable props preserve critical traversal or reveal a verified replacement route. review occurs before structural sign-off. Does this pass the destruction rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0178,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000069",
+      "latency_s": 11.0,
+      "query": "Unseen holdout situation: At Crystal Sanctum, the console communicates availability, interaction, success, damage, and dormant states. review occurs before structural sign-off. Does this pass the interaction rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000070",
+      "latency_s": 27.75,
+      "query": "Unseen holdout situation: At Arena Island, collision follows visible structure and the intended player route passes the traversal test. review occurs before structural sign-off. Does this pass the collision rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000071",
+      "latency_s": 31.188,
+      "query": "Unseen holdout situation: At Glyph Ruins, a layered foundation, pier, clamp, and cut-stone transition make the joint intentional. review occurs before structural sign-off. Does this pass the object intersections rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0228,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000072",
+      "latency_s": 9.375,
+      "query": "Unseen holdout situation: At Skyway Station, the scene is inspected through QA collections, player-eye cameras, scale checks, and duplicate cleanup reports. review occurs before structural sign-off. Does this pass the blender rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0014,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A23",
+            "constraint_code": "K02",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "WARN",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000073",
+      "latency_s": 24.187,
+      "query": "Unseen holdout situation: At Chronos capital, each island uses the verified map and streaming architecture while Axiom remains the measured hub and vista. review occurs before structural sign-off. Does this pass the unreal rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "holdout",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "constraint_code": "K01",
+            "evidence_state": "E2",
+            "limit_value": 2,
+            "observed_value": 2,
+            "unit": "BLOCKED",
+            "verdict": "PASS"
+          },
+          "name": "evaluate_world_constraint"
+        }
+      ],
+      "id": "eb_world_holdout_000074",
+      "latency_s": 26.61,
+      "query": "Unseen holdout situation: At eastern village, deterministic cell-aware generation emits manifests, counts, bounds, provenance, and verifier inputs. review occurs before structural sign-off. Does this pass the python generation rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000075",
+      "latency_s": 30.671,
+      "query": "Unseen holdout situation: At western wilderness, the registered path and hash are inspected before route generation references the asset. review occurs before structural sign-off. Does this pass the repo reasoning rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000076",
+      "latency_s": 22.485,
+      "query": "Unseen holdout situation: At northern market, each claim names actual repository, scene, render, test, collision, or performance evidence. review occurs before structural sign-off. Does this pass the verification rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0079,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000077",
+      "latency_s": 14.515,
+      "query": "Unseen holdout situation: At southern refinery, the suspended endpoint is classified as inaccessible and corrected before materials. review occurs before structural sign-off. Does this pass the failure detection rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000078",
+      "latency_s": 16.75,
+      "query": "Unseen holdout situation: At Archive service district, clear player-height renders, concept comparison, materials, lighting, collision, and performance all pass. review occurs before structural sign-off. Does this pass the quality gates rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0187,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000079",
+      "latency_s": 7.344,
+      "query": "Unseen holdout situation: At Wayfinder terrace, the report remains at its verified stage and names every outstanding gate. review occurs before structural sign-off. Does this pass the completion status rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000080",
+      "latency_s": 11.641,
+      "query": "Unseen holdout situation: At river ravine, connectivity and structural gates pass before material, lighting, and polish work. review occurs before structural sign-off. Does this pass the task prioritization rule?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0,
+      "evaluation_pool": "holdout",
+      "function_calls": [],
+      "id": "eb_world_holdout_000081",
+      "latency_s": 3.625,
+      "query": "Unseen holdout situation: At Firstbound Overlook, white marble columns and neon roof outlines replace the dark-stone and bronze language, but no comparison render is attached. review occurs before structural sign-off. Can fidelity be called complete?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_006\\evaluation\\shards\\rows_13.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_006\\model.cact",
+  "weights_sha256": "bd1c267cf1ddd27593a3d931d84fcdf54a2a8e96303a674f669d8dfddf9e4347"
+}

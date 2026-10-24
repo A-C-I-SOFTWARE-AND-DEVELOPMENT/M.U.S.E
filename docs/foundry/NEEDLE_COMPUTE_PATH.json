@@ -1,0 +1,24 @@
+{
+  "date": "2026-08-12",
+  "paths": {
+    "A_wsl2_gpu": {
+      "status": "WORKS",
+      "wall_clock_s": 62,
+      "backend": "JAX 0.11.0 cuda12, CudaDevice(0)",
+      "command": "needle finetune foundry_test/qa_tiny.jsonl --epochs 1 --batch-size 8 --lr 1e-4",
+      "artifact": "foundry_test/qa_lora_gpu.pkl",
+      "loss_finite": true
+    },
+    "B_windows_cpu": {
+      "status": "WORKS",
+      "wall_clock_s": 295,
+      "backend": "JAX 0.10.2 native Windows (CPU only)",
+      "loss_finite": true,
+      "note": "requires f32-LoRA patch; ~4.7x slower than WSL2 GPU"
+    }
+  },
+  "chosen": "A (WSL2 GPU) for training; B remains as fallback",
+  "rejected": [
+    "D remote/provider training \u2014 not needed, local GPU works"
+  ]
+}

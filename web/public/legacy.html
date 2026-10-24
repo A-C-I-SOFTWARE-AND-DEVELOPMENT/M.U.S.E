@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en"><head>
-<title>muse — your AI operating partner</title>
+<title>muse â€” your AI operating partner</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#050507">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
+<meta name="description" content="muse â€” chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%220%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237ae0ff%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23b388ff%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2210%22%20fill%3D%22%23050507%22/%3E%3Cg%20transform%3D%22rotate%28-32%2024%2024%29%22%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%222.4%22%20stroke-dasharray%3D%2262%2026%22%20stroke-linecap%3D%22round%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%223.2%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
-<!-- iOS ignores SVG touch icons — this must stay a real PNG (180×180, full-bleed;
+<!-- iOS ignores SVG touch icons â€” this must stay a real PNG (180Ã—180, full-bleed;
      iOS applies its own corner mask). -->
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,23 +19,23 @@
      no-ops gracefully when unsupported. -->
 <link rel="manifest" href="manifest.webmanifest">
 <script>if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }</script>
-<!-- Social share cards (no remote image — text-only summary keeps the page self-contained). -->
+<!-- Social share cards (no remote image â€” text-only summary keeps the page self-contained). -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="muse">
-<meta property="og:title" content="muse — your AI operating partner">
-<meta property="og:description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
+<meta property="og:title" content="muse â€” your AI operating partner">
+<meta property="og:description" content="muse â€” chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="muse — your AI operating partner">
-<meta name="twitter:description" content="muse — chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
+<meta name="twitter:title" content="muse â€” your AI operating partner">
+<meta name="twitter:description" content="muse â€” chat with every model, no sign-in, no setup. An AI operating partner that fuses every provider into one resilient chat that never stops, routes work to the best model, and keeps every real-world action owner-gated.">
 <link rel="canonical" href="https://musehq.io/">
 <meta property="og:url" content="https://musehq.io/">
 <meta property="og:image" content="https://musehq.io/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="muse — your AI operating partner">
+<meta property="og:image:alt" content="muse â€” your AI operating partner">
 <meta name="twitter:image" content="https://musehq.io/og.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"muse","url":"https://musehq.io/","description":"muse — chat with every model with no sign-in and no setup; route each task to the best model and keep every real-world action owner-gated."},{"@type":"SoftwareApplication","name":"muse","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, macOS, Linux, Android","url":"https://musehq.io/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"muse","url":"https://musehq.io/","description":"muse â€” chat with every model with no sign-in and no setup; route each task to the best model and keep every real-world action owner-gated."},{"@type":"SoftwareApplication","name":"muse","applicationCategory":"DeveloperApplication","operatingSystem":"Windows, macOS, Linux, Android","url":"https://musehq.io/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}
 </script>
 
 <!-- Cockpit-served resources. The 3D Systems Atlas is vendored under
@@ -43,7 +43,7 @@
      the design's atlasSrc reads window.__resources.atlas, else a relative fallback. -->
 <script>window.__resources = Object.assign({ atlas: "atlas/index.html" }, window.__resources || {});</script>
 
-<!-- React 18.3.1 UMD, vendored locally (no CDN — local-first). The dc-runtime
+<!-- React 18.3.1 UMD, vendored locally (no CDN â€” local-first). The dc-runtime
      skips its own CDN load when window.React/ReactDOM already exist. -->
 <script src="vendor/react.production.min.js"></script>
 <script src="vendor/react-dom.production.min.js"></script>
@@ -51,11 +51,11 @@
 <script src="vendor/dc-runtime.js"></script>
 </head>
 <body>
-<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0">muse — your AI operating partner</h1>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0">muse â€” your AI operating partner</h1>
 <noscript>
   <main style="max-width:680px;margin:10vh auto;padding:0 24px;color:#e8ecf4;font-family:system-ui,sans-serif;line-height:1.55">
-    <p style="font-size:20px;font-weight:600">muse — your AI operating partner</p>
-    <p>muse lets you chat with every model — no sign-in, no setup — routes each task to the best model, and keeps every real-world action owner-gated. Pairing a private gateway is optional, for running your own tasks and tools.</p>
+    <p style="font-size:20px;font-weight:600">muse â€” your AI operating partner</p>
+    <p>muse lets you chat with every model â€” no sign-in, no setup â€” routes each task to the best model, and keeps every real-world action owner-gated. Pairing a private gateway is optional, for running your own tasks and tools.</p>
     <p>This interactive cockpit needs JavaScript. Useful links:</p>
     <ul>
       <li><a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E">Source &amp; releases on GitHub</a></li>
@@ -66,7 +66,7 @@
 
 <x-dc>
 <helmet>
-  <style>/* muse — "Singularity" design tokens.
+  <style>/* muse â€” "Singularity" design tokens.
  *
  * One white core in the void; a single thin spectral ring. This is the
  * canonical token source for the browser cockpit and the reference palette
@@ -78,24 +78,24 @@
  */
 :root {
   /* ---- Color: the Singularity palette ---------------------------------- */
-  --void:        #050507; /* background — the dark field, full-bleed always */
+  --void:        #050507; /* background â€” the dark field, full-bleed always */
   --void-2:      #0b0d12; /* raised surface (tonal elevation, not a shadow) */
   --void-3:      #12151d; /* cards (tonal elevation, not a shadow) */
   --edge:        #1c2030; /* hairline borders */
-  --core:        #ffffff; /* the single point of light — primary accent / hero */
+  --core:        #ffffff; /* the single point of light â€” primary accent / hero */
   --signal:      #e8ecf4; /* primary text */
   --signal-dim:  #aab2c4; /* secondary text */
-  --signal-mute: #767e93; /* tertiary text / metadata — ≥4.5:1 on --void for WCAG AA */
-  --ring-1:      #7ae0ff; /* spectral ring — cyan start stop */
-  --ring-2:      #b388ff; /* spectral ring — violet end stop */
-  --ok:          #5be3a0; /* success / online (UI status — never brand art) */
-  --warn:        #f5c451; /* attention (UI status — never brand art) */
+  --signal-mute: #767e93; /* tertiary text / metadata â€” â‰¥4.5:1 on --void for WCAG AA */
+  --ring-1:      #7ae0ff; /* spectral ring â€” cyan start stop */
+  --ring-2:      #b388ff; /* spectral ring â€” violet end stop */
+  --ok:          #5be3a0; /* success / online (UI status â€” never brand art) */
+  --warn:        #f5c451; /* attention (UI status â€” never brand art) */
   --danger:      #ff5c63; /* destructive / emergency stop (UI status only) */
 
   /* ---- Gradients & lines ----------------------------------------------- */
-  --ring-grad:   linear-gradient(90deg, var(--ring-1), var(--ring-2)); /* left→right cyan→violet */
+  --ring-grad:   linear-gradient(90deg, var(--ring-1), var(--ring-2)); /* leftâ†’right cyanâ†’violet */
 
-  /* ---- Elevation (tonal — higher = lighter void tone, NEVER a shadow) -- */
+  /* ---- Elevation (tonal â€” higher = lighter void tone, NEVER a shadow) -- */
   --elevation-flat:   var(--void);
   --elevation-raised: var(--void-2);
   --elevation-card:   var(--void-3);
@@ -115,7 +115,7 @@
   --radius-md:   12px;  /* canonical default */
   --radius-lg:   16px;
   --radius-pill: 9999px;
-  --radius:      var(--radius-md); /* legacy alias — md is the default */
+  --radius:      var(--radius-md); /* legacy alias â€” md is the default */
 
   /* ---- Type scale ------------------------------------------------------ */
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -150,12 +150,12 @@
   --easing-decelerate: cubic-bezier(0, 0, 0, 1);
 }
 </style>
-  <style>/* muse cockpit — "Cinematic synthesis" design system.
+  <style>/* muse cockpit â€” "Cinematic synthesis" design system.
  *
  * Single source of styling: reset/base, the cinematic shell (one atmospheric
  * depth pool, core-bloom glyph), sticky header, left nav rail, .view sections,
  * and EVERY component from the catalog. White is the hero; the spectral ring is
- * MATTE (never bloomed/glowed/neon). Elevation is TONAL — no drop shadows.
+ * MATTE (never bloomed/glowed/neon). Elevation is TONAL â€” no drop shadows.
  * Hierarchy by VALUE. Round line caps everywhere. Spectral color <= ~20%.
  */
 
@@ -168,7 +168,7 @@ html, body { margin: 0; height: 100%; }
 
 body {
   /* The void is the full-bleed field. ONE broad atmospheric depth pool sits
-   * behind the lockup (top-centre) — a single faint cool wash, not a stack. */
+   * behind the lockup (top-centre) â€” a single faint cool wash, not a stack. */
   background:
     radial-gradient(1100px 560px at 50% -8%,
       rgba(122, 224, 255, 0.05) 0%,
@@ -202,7 +202,7 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
  * --------------------------------------------------------------------------
  * The WHITE CORE blazes via stacked cool-white radial halos (4 radii: tight
  * bright center -> wide faint edge) + one tight high-emissive punch. The ring
- * is MATTE — never touched by the bloom. Deterministic, no filters.
+ * is MATTE â€” never touched by the bloom. Deterministic, no filters.
  * ======================================================================== */
 .glyph { position: relative; display: inline-grid; place-items: center; line-height: 0; }
 
@@ -244,7 +244,7 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
   grid-template-areas:
     "header header"
     "nav    main";
-  /* Lock the shell to the viewport so the page itself never scrolls — the
+  /* Lock the shell to the viewport so the page itself never scrolls â€” the
      content area (.app-main) scrolls internally and the chat composer stays
      pinned to a fixed bottom. Mobile (<=760px) restores normal page scroll. */
   height: 100vh;
@@ -289,7 +289,7 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); }
 
 /* Skip-to-content styles live with the other a11y helpers below (single
-   .skip-link definition — merged with main's #609 version). */
+   .skip-link definition â€” merged with main's #609 version). */
 
 /* Hamburger + drawer backdrop: desktop-hidden, revealed at the mobile breakpoint. */
 .nav-toggle {
@@ -409,21 +409,21 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 
-/* Primary — core fill, void text (the single bright control). */
+/* Primary â€” core fill, void text (the single bright control). */
 .btn.primary { background: var(--ring-grad); color: #06121a; border-color: transparent; font-weight: 600; }
 .btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
 
-/* Secondary — 1px edge + signal text, tonal fill on interaction. */
+/* Secondary â€” 1px edge + signal text, tonal fill on interaction. */
 .btn.secondary { border-color: var(--edge); color: var(--signal); }
 .btn.secondary:hover:not(:disabled) { background: var(--void-2); }
 .btn.secondary:active:not(:disabled) { background: var(--void-3); }
 
-/* Ghost — transparent + signal-dim, lifts on interaction. */
+/* Ghost â€” transparent + signal-dim, lifts on interaction. */
 .btn.ghost { color: var(--signal-dim); }
 .btn.ghost:hover:not(:disabled) { color: var(--signal); background: var(--void-2); }
 .btn.ghost:active:not(:disabled) { background: var(--void-3); }
 
-/* Danger — danger text + danger border, tinted fill on interaction. */
+/* Danger â€” danger text + danger border, tinted fill on interaction. */
 .btn.danger { color: var(--danger); border-color: var(--danger); }
 .btn.danger:hover:not(:disabled) { background: rgba(255, 92, 99, 0.12); }
 .btn.danger:active:not(:disabled) { background: rgba(255, 92, 99, 0.20); }
@@ -620,7 +620,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 .banner.pair    { background: var(--void-2); border: 1px solid var(--edge); color: var(--signal); }
 /* The halt banner is a direct child of the 100vh overflow:hidden .app grid; with
    no grid-area it auto-places into an implicit row below the viewport and was
-   unreachable. Float it as a fixed toast so it — and its Resume button — are
+   unreachable. Float it as a fixed toast so it â€” and its Resume button â€” are
    always visible while an emergency stop is active. */
 .banner.halt-toast {
   position: fixed; top: 66px; left: 50%; transform: translateX(-50%);
@@ -631,7 +631,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 @media (max-width: 760px) { .banner.halt-toast { top: 12px; } }
 
 /* ======================================================================== *
- * Responsive — collapse the rail to a horizontal strip on narrow viewports
+ * Responsive â€” collapse the rail to a horizontal strip on narrow viewports
  * ======================================================================== */
 @media (max-width: 860px) {
   /* Single-column shell; the nav becomes an off-canvas drawer toggled by the
@@ -646,7 +646,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
     overflow: hidden;
   }
   .nav-toggle { display: inline-flex; }
-  .header-telemetry { display: none; }             /* decorative — hidden on mobile */
+  .header-telemetry { display: none; }             /* decorative â€” hidden on mobile */
   .lockup .expansion { display: none; }            /* keep just the wordmark */
   .app-header { gap: var(--space-2); padding: var(--space-3) var(--space-4); }
   .header-actions { gap: 6px; }
@@ -677,7 +677,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
      columns for desktop; on phones N columns squeeze below min-content and
      overflow. Reflow them here (inline styles need !important): compact stat
      tiles (the 4-col grids) go 2-up, larger cards go 1-up per ~240px. The
-     DOM serializes the inline style with a space after the colon — match
+     DOM serializes the inline style with a space after the colon â€” match
      both forms. */
   .app-main [style*="grid-template-columns:repeat(4"],
   .app-main [style*="grid-template-columns: repeat(4"] {
@@ -692,7 +692,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
   }
   /* The Fusion pentagram-editor card is a two-column grid with fractional
-     minmax tracks — stack it. */
+     minmax tracks â€” stack it. */
   .app-main [style*="1.05fr"] { grid-template-columns: minmax(0, 1fr) !important; }
   .header-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
   /* Chat fills natural flow (the page scrolls) so the composer is never pinned
@@ -714,7 +714,7 @@ dialog label { display: block; font-size: var(--type-label-size); color: var(--s
 }
 
 /* =====================================================================
-   GLOBAL 3D / AAA POLISH  — depth, glass, parallax-ready, tactile motion
+   GLOBAL 3D / AAA POLISH  â€” depth, glass, parallax-ready, tactile motion
    (Intentionally overrides the flat tonal baseline above.)
    ===================================================================== */
 body { perspective: 1800px; }
@@ -726,7 +726,7 @@ body { perspective: 1800px; }
   appearance: none;
 }
 
-/* Keyboard skip link — off-screen until focused, then pinned top-left. */
+/* Keyboard skip link â€” off-screen until focused, then pinned top-left. */
 .skip-link {
   position: fixed; top: 8px; left: 8px; z-index: 240;
   padding: 9px 14px; border-radius: var(--radius-md);
@@ -781,7 +781,7 @@ body { perspective: 1800px; }
     0 0 46px -14px rgba(122,224,255,0.20);
 }
 
-/* Nav rail — depth + glide + spectral active wash */
+/* Nav rail â€” depth + glide + spectral active wash */
 .nav-item { transition: color .15s, background-color .2s, transform .2s var(--easing-standard), box-shadow .25s; }
 .nav-item:hover { transform: translateX(3px); }
 .nav-item.active {
@@ -841,12 +841,12 @@ body { perspective: 1800px; }
     @keyframes cockpitScan { to { transform: translateY(50%); } }
     @keyframes cockpitFadeIn { from { opacity: 0; } to { opacity: 1; } }
     /* Film-grain overlay. The noise texture lives here as a CSS data URI so the
-       browser's own CSS parser reads it — an inline style="background-image:..."
+       browser's own CSS parser reads it â€” an inline style="background-image:..."
        is split on ';' by the dc-runtime style parser, which truncated the data
        URI to an invalid value and fired ERR_INVALID_URL on every page load.
        Static (no cockpitGrain animation): this layer sits behind the
        backdrop-filter glass panels, and animating it forced every panel to
-       re-blur on each step — one of the page-flicker sources. */
+       re-blur on each step â€” one of the page-flicker sources. */
     .cockpit-grain {
       position: fixed; inset: 0; z-index: 1; pointer-events: none;
       opacity: 0.045; mix-blend-mode: screen; background-size: 200px 200px;
@@ -953,16 +953,16 @@ body { perspective: 1800px; }
           <span class="glyph" style="flex:none; margin-top:2px;"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="#fff"></circle><circle cx="24" cy="24" r="14" fill="none" stroke="var(--ring-1)" stroke-width="1.2" opacity="0.7"></circle><circle cx="24" cy="24" r="21" fill="none" stroke="var(--ring-2)" stroke-width="0.8" opacity="0.4"></circle></svg></span>
           <div style="flex:1;">
             <div style="font-size:var(--type-title-size); font-weight:600; color:var(--signal); line-height:1.2;">Connect to your muse</div>
-            <div style="font-size:12px; color:var(--signal-dim); margin-top:3px; line-height:1.5;">Pair this cockpit with the muse gateway running on your machine. It talks only to your own local gateway — no keys leave your device.</div>
+            <div style="font-size:12px; color:var(--signal-dim); margin-top:3px; line-height:1.5;">Pair this cockpit with the muse gateway running on your machine. It talks only to your own local gateway â€” no keys leave your device.</div>
           </div>
           <button type="button" onclick="{{ conn2.onClose }}" class="btn secondary" style="flex:none; padding:5px 10px;">Close</button>
         </div>
 
         <!-- BYOK: chat instantly with your own key, no gateway -->
         <div style="margin-top:18px; border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(122,224,255,0.06), rgba(122,224,255,0));">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><span style="font-size:13px; font-weight:600; color:var(--signal);">Use your own key — chat now</span><sc-if value="{{ conn2.byokSaved }}" hint-placeholder-val="{{ false }}"><span class="pill ok" style="font-size:9px; margin-left:auto;">SAVED</span></sc-if></div>
-          <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:10px;">No gateway, no deployment setup. Pick a provider, paste an API key, and send. The key is stored only in this browser and sent over https per message — it is never saved on our server. (Free keys work: Groq, Gemini, Cerebras, NVIDIA NIM.)</div>
-          <div style="font-size:11px; color:var(--signal-mute); line-height:1.5; margin-bottom:10px;">A website can’t read API keys from your computer — paste one here, or pair your own <span class="mono">muse</span> gateway below (it uses the keys already in your <span class="mono">~/.hermes/.env</span>).</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;"><span style="font-size:13px; font-weight:600; color:var(--signal);">Use your own key â€” chat now</span><sc-if value="{{ conn2.byokSaved }}" hint-placeholder-val="{{ false }}"><span class="pill ok" style="font-size:9px; margin-left:auto;">SAVED</span></sc-if></div>
+          <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:10px;">No gateway, no deployment setup. Pick a provider, paste an API key, and send. The key is stored only in this browser and sent over https per message â€” it is never saved on our server. (Free keys work: Groq, Gemini, Cerebras, NVIDIA NIM.)</div>
+          <div style="font-size:11px; color:var(--signal-mute); line-height:1.5; margin-bottom:10px;">A website canâ€™t read API keys from your computer â€” paste one here, or pair your own <span class="mono">muse</span> gateway below (it uses the keys already in your <span class="mono">~/.hermes/.env</span>).</div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <select value="{{ conn2.byokProv }}" onchange="{{ conn2.onByokProv }}" style="flex:none; width:200px; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none;">
               <sc-for list="{{ conn2.byokProviders }}" as="bp" hint-placeholder-count="5"><option value="{{ bp.id }}">{{ bp.name }}</option></sc-for>
@@ -1021,7 +1021,7 @@ body { perspective: 1800px; }
               </sc-for>
             </div>
             <sc-if value="{{ conn2.needsPhrase }}" hint-placeholder-val="{{ false }}">
-              <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">This gateway is exposed off-device (started with <span style="font-family:var(--mono);">--allow-external</span>), so it asks for the owner phrase:<br><span style="font-family:var(--mono); color:var(--signal);">{{ conn2.ownerPhrase }}</span></div>
+              <div style="font-size:12px; color:var(--signal-dim); line-height:1.5; margin-bottom:9px;">This gateway is exposed off-device (started with <span style="font-family:var(--mono);">--allow-external</span>), Enter the owner authorization phrase — it is never displayed here.</div>
               <input type="text" value="{{ conn2.phrase }}" oninput="{{ conn2.onPhrase }}" placeholder="Owner authorization phrase" style="width:100%; box-sizing:border-box; font-size:13px; color:var(--signal); background:var(--void-3); border:1px solid var(--edge); border-radius:var(--radius-md); padding:9px 11px; outline:none; margin-bottom:10px;" style-focus="border-color:var(--ring-1);">
             </sc-if>
             <button type="button" onclick="{{ conn2.onConfirm }}" class="btn primary" style="width:100%;">Pair this device</button>
@@ -1039,9 +1039,9 @@ body { perspective: 1800px; }
             <sc-if value="{{ conn2.hasRuntime }}" hint-placeholder-val="{{ false }}">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px 16px; padding:11px 0; border-top:1px solid var(--edge); border-bottom:1px solid var(--edge); margin-bottom:12px;">
                 <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Host</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.hostname }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Platform</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.platform }} · {{ conn2.runtime.arch }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Gateway</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">v{{ conn2.runtime.ver }} · {{ conn2.runtime.mode }}</span></div>
-                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Queue</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.running }} running · {{ conn2.runtime.queued }} queued</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Platform</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.platform }} Â· {{ conn2.runtime.arch }}</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Gateway</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">v{{ conn2.runtime.ver }} Â· {{ conn2.runtime.mode }}</span></div>
+                <div style="display:flex; flex-direction:column; gap:2px;"><span style="font-size:10px; color:var(--signal-mute); text-transform:uppercase; letter-spacing:0.06em;">Queue</span><span style="font-size:12px; color:var(--signal); font-family:var(--mono);">{{ conn2.runtime.running }} running Â· {{ conn2.runtime.queued }} queued</span></div>
               </div>
             </sc-if>
             <div style="display:flex; gap:8px;">
@@ -1059,7 +1059,7 @@ body { perspective: 1800px; }
           </div>
         </sc-if>
 
-        <div style="margin-top:16px; font-size:11px; color:var(--signal-mute); line-height:1.55; border-top:1px solid var(--edge); padding-top:12px;">Endpoints follow the real cockpit API — <span style="font-family:var(--mono);">/v1/health</span>, <span style="font-family:var(--mono);">/v1/cockpit/pair/start</span>, <span style="font-family:var(--mono);">/pair/confirm</span>, then bearer-token calls to <span style="font-family:var(--mono);">/v1/cockpit/*</span>. Your device token is stored only on this device.</div>
+        <div style="margin-top:16px; font-size:11px; color:var(--signal-mute); line-height:1.55; border-top:1px solid var(--edge); padding-top:12px;">Endpoints follow the real cockpit API â€” <span style="font-family:var(--mono);">/v1/health</span>, <span style="font-family:var(--mono);">/v1/cockpit/pair/start</span>, <span style="font-family:var(--mono);">/pair/confirm</span>, then bearer-token calls to <span style="font-family:var(--mono);">/v1/cockpit/*</span>. Your device token is stored only on this device.</div>
       </div>
     </div>
   </sc-if>
@@ -1074,7 +1074,7 @@ body { perspective: 1800px; }
     <div class="banner offline show halt-toast" role="alert" style="margin:0;">
       <span class="dot danger"></span>
       <span style="font-weight:500;">Emergency stop is on.</span>
-      <span class="muted">Everything is paused · view-only until you resume.</span>
+      <span class="muted">Everything is paused Â· view-only until you resume.</span>
       <span class="grow"></span>
       <button type="button" class="btn secondary" onclick="{{ onEmergency }}">Resume control</button>
     </div>
@@ -1160,7 +1160,7 @@ body { perspective: 1800px; }
           </sc-for>
           <sc-if value="{{ museThinking }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex; gap:12px; align-self:flex-start; align-items:center; color:var(--signal-mute); font-family:var(--mono); font-size:12px;">
-              <span class="dot live"></span> muse is thinking…
+              <span class="dot live"></span> muse is thinkingâ€¦
             </div>
           </sc-if>
         </div>
@@ -1176,7 +1176,7 @@ body { perspective: 1800px; }
           </div>
         </sc-if>
         <div class="row" style="gap:10px; padding-top:12px; flex-wrap:nowrap;">
-          <input class="field" aria-label="Message muse" placeholder="Tell muse what to do…" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey }}">
+          <input class="field" aria-label="Message muse" placeholder="Tell muse what to doâ€¦" value="{{ composer }}" oninput="{{ onComposer }}" onkeydown="{{ onComposerKey }}">
           <button type="button" class="btn primary" onclick="{{ onSend }}" style="flex:none;">Send</button>
         </div>
       </section>
@@ -1286,7 +1286,7 @@ body { perspective: 1800px; }
                 <sc-if value="{{ ap.confirming }}" hint-placeholder-val="{{ false }}">
                   <div style="flex:none; display:flex; flex-direction:column; gap:6px; align-self:center; min-width:248px;">
                     <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Owner authorization required</div>
-                    <input class="field" placeholder="{{ ownerPhrase }}" value="{{ approvePhrase }}" oninput="{{ onApprovePhrase }}">
+                    <input class="field" placeholder="Owner authorization phrase" value="{{ approvePhrase }}" oninput="{{ onApprovePhrase }}">
                     <sc-if value="{{ approveError }}" hint-placeholder-val="">
                       <div class="mono" style="font-size:11px; color:var(--danger);">{{ approveError }}</div>
                     </sc-if>
@@ -1304,7 +1304,7 @@ body { perspective: 1800px; }
           <div class="empty">
             <span class="glyph"><svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true"><g transform="rotate(-32 24 24)"><circle cx="24" cy="24" r="15" fill="none" stroke="url(#hdr-ring)" stroke-width="1.6" stroke-dasharray="66 28" stroke-linecap="round"></circle></g><circle cx="24" cy="24" r="3.1" fill="#fff"></circle></svg></span>
             <h2 class="empty-title">Nothing waiting on you</h2>
-            <p class="empty-body">Anything that needs your OK shows up here — spending money, going live, or posting something public. Right now you are all caught up.</p>
+            <p class="empty-body">Anything that needs your OK shows up here â€” spending money, going live, or posting something public. Right now you are all caught up.</p>
           </div>
         </sc-if>
       </section>
@@ -1393,7 +1393,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Customize &amp; build</span><h2 class="section-title">Studio</h2></div>
-          <div class="trailing"><span class="pill accent" title="This section is an interactive preview — switches and previews here change local UI state only and are not yet applied to a live gateway.">Interactive demo</span><span class="pill neutral">{{ mcpOnCount }} servers · {{ pluginOnCount }} plugins</span></div>
+          <div class="trailing"><span class="pill accent" title="This section is an interactive preview â€” switches and previews here change local UI state only and are not yet applied to a live gateway.">Interactive demo</span><span class="pill neutral">{{ mcpOnCount }} servers Â· {{ pluginOnCount }} plugins</span></div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1.25fr; gap:12px; align-items:start;">
@@ -1409,7 +1409,7 @@ body { perspective: 1800px; }
                 </span>
                 <div style="min-width:0;">
                   <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">GitHub</div>
-                  <div class="mono" style="font-size:11px; color:var(--signal-mute);">{{ github.repo }} · {{ github.branch }}</div>
+                  <div class="mono" style="font-size:11px; color:var(--signal-mute);">{{ github.repo }} Â· {{ github.branch }}</div>
                 </div>
                 <span class="{{ githubStatusCls }}" style="margin-left:auto;">{{ githubStatusLabel }}</span>
               </div>
@@ -1426,7 +1426,7 @@ body { perspective: 1800px; }
                 <span class="grow"></span>
                 <button type="button" class="btn secondary" onclick="{{ onAddServer }}" style="padding:5px 12px;">+ Add server</button>
               </div>
-              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities. (Preview — these switches change local state only until a gateway is paired.)</div>
+              <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin-bottom:10px;">Tools muse can plug into. Turn them on to give it new abilities. (Preview â€” these switches change local state only until a gateway is paired.)</div>
               <sc-for list="{{ mcps }}" as="m" hint-placeholder-count="5">
                 <div style="display:flex; align-items:center; gap:12px; padding:11px 0; border-top:1px solid var(--edge);">
                   <div style="min-width:0;">
@@ -1474,12 +1474,12 @@ body { perspective: 1800px; }
                 <span style="width:11px; height:11px; border-radius:50%; background:#f5c451;"></span>
                 <span style="width:11px; height:11px; border-radius:50%; background:#5be3a0;"></span>
               </div>
-              <button type="button" onclick="{{ onRebuild }}" title="Reload" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">↻</button>
+              <button type="button" onclick="{{ onRebuild }}" title="Reload" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">â†»</button>
               <div style="flex:1 1 auto; display:flex; align-items:center; gap:8px; padding:5px 12px; border-radius:9999px; background:var(--void); border:1px solid var(--edge); min-width:0;">
                 <span style="flex:none; width:11px; height:11px; border-radius:50%; border:1.5px solid var(--ring-1);"></span>
                 <span class="mono" style="font-size:11px; color:var(--signal-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">localhost:3000{{ route }}</span>
               </div>
-              <button type="button" onclick="{{ onOpenExternal }}" title="Open in new tab" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">↗</button>
+              <button type="button" onclick="{{ onOpenExternal }}" title="Open in new tab" style="flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:1px solid var(--edge); border-radius:7px; background:var(--void); color:var(--signal-dim); cursor:pointer; font-size:13px;">â†—</button>
               <span class="pill accent" style="flex:none;"><span class="{{ buildDotCls }}"></span> {{ buildLabel }}</span>
             </div>
             <!-- tabs + device row -->
@@ -1494,9 +1494,9 @@ body { perspective: 1800px; }
               <sc-if value="{{ showPrev }}" hint-placeholder-val="{{ true }}">
                 <span class="mono" style="font-size:11px; color:var(--signal-mute);">{{ deviceDims }}</span>
                 <div style="display:flex; align-items:center; gap:2px; padding:3px; border:1px solid var(--edge); border-radius:var(--radius-pill);">
-                  <button type="button" onclick="{{ onDeviceResponsive }}" style="{{ deviceResponsiveStyle }}" title="Responsive">▭</button>
-                  <button type="button" onclick="{{ onDeviceTablet }}" style="{{ deviceTabletStyle }}" title="Tablet">▢</button>
-                  <button type="button" onclick="{{ onDeviceMobile }}" style="{{ deviceMobileStyle }}" title="Mobile">▯</button>
+                  <button type="button" onclick="{{ onDeviceResponsive }}" style="{{ deviceResponsiveStyle }}" title="Responsive">â–­</button>
+                  <button type="button" onclick="{{ onDeviceTablet }}" style="{{ deviceTabletStyle }}" title="Tablet">â–¢</button>
+                  <button type="button" onclick="{{ onDeviceMobile }}" style="{{ deviceMobileStyle }}" title="Mobile">â–¯</button>
                 </div>
               </sc-if>
             </div>
@@ -1525,7 +1525,7 @@ body { perspective: 1800px; }
                   </span>
                   <span class="grow"></span>
                   <span class="pill ok" style="font-size:10px;"><span class="dot live"></span> live edit</span>
-                  <span class="mono" style="font-size:10px; color:var(--signal-mute);">HTML · {{ codeLines }} lines</span>
+                  <span class="mono" style="font-size:10px; color:var(--signal-mute);">HTML Â· {{ codeLines }} lines</span>
                 </div>
                 <textarea spellcheck="false" value="{{ sandboxCode }}" oninput="{{ onCodeInput }}" style="margin:0; flex:1 1 auto; width:100%; resize:none; overflow:auto; padding:16px; font-family:var(--mono); font-size:11.5px; line-height:1.6; color:#cdd5e4; background:#070810; border:0; outline:none; white-space:pre; tab-size:2; caret-color:var(--ring-1);"></textarea>
               </div>
@@ -1635,12 +1635,12 @@ body { perspective: 1800px; }
                 <div style="display:flex; align-items:center; gap:12px;">
                   <div style="min-width:0;">
                     <div class="mono" style="font-size:14px; font-weight:600; color:var(--signal);">{{ f.name }}</div>
-                    <div style="font-size:var(--type-label-size); color:var(--signal-mute);">{{ f.provName }} · {{ f.role }}</div>
+                    <div style="font-size:var(--type-label-size); color:var(--signal-mute);">{{ f.provName }} Â· {{ f.role }}</div>
                   </div>
-                  <button type="button" onclick="{{ f.onToggle }}" title="Remove from blend" style="margin-left:auto; width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">×</button>
+                  <button type="button" onclick="{{ f.onToggle }}" title="Remove from blend" style="margin-left:auto; width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">Ã—</button>
                 </div>
                 <div style="margin-top:14px; display:flex; align-items:center; gap:12px;">
-                  <button type="button" onclick="{{ f.onDown }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">−</button>
+                  <button type="button" onclick="{{ f.onDown }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">âˆ’</button>
                   <div style="flex:1 1 auto; height:6px; border-radius:9999px; background:var(--edge); overflow:hidden;"><div style="height:100%; border-radius:9999px; background:var(--ring-grad); width:{{ f.barW }}; transition:width .25s var(--easing-standard);"></div></div>
                   <button type="button" onclick="{{ f.onUp }}" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font-size:15px;">+</button>
                   <span class="mono" style="flex:none; width:42px; text-align:right; font-size:13px; color:var(--signal);">{{ f.contrib }}%</span>
@@ -1652,7 +1652,7 @@ body { perspective: 1800px; }
                 <div style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute); margin-bottom:10px;">Add a model to the blend</div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
                   <sc-for list="{{ addable }}" as="a" hint-placeholder-count="3">
-                    <button type="button" onclick="{{ a.onAdd }}" style="padding:7px 12px; border:1px solid var(--edge); border-radius:9999px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font:inherit; font-size:12px;">+ {{ a.name }} <span style="color:var(--signal-mute);">· {{ a.provName }}</span></button>
+                    <button type="button" onclick="{{ a.onAdd }}" style="padding:7px 12px; border:1px solid var(--edge); border-radius:9999px; background:var(--void-2); color:var(--signal-dim); cursor:pointer; font:inherit; font-size:12px;">+ {{ a.name }} <span style="color:var(--signal-mute);">Â· {{ a.provName }}</span></button>
                   </sc-for>
                 </div>
               </div>
@@ -1681,7 +1681,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">The whole mind</span><h2 class="section-title">3D Atlas</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> interactive · WebGL</span></div>
+          <div class="trailing"><span class="pill accent"><span class="dot live"></span> interactive Â· WebGL</span></div>
         </div>
         <div style="position:relative; height:calc(100vh - 180px); min-height:520px; border-radius:10px; overflow:hidden; box-shadow:0 30px 70px -34px rgba(0,0,0,0.9), 0 0 0 1px var(--edge);">
           <iframe src="atlas/index.html" loading="lazy" title="MUSE 3D Systems Atlas" style="width:100%; height:100%; border:0; display:block; background:#05080f;"></iframe>
@@ -1696,7 +1696,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">Any provider, any model</span><h2 class="section-title">Models &amp; providers</h2></div>
           <div class="trailing"><span class="pill accent">{{ modelsOnlineLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 16px 2px;">One omni source for every model. Connect any provider, add any model, and choose which ones muse can use — you are never locked to one.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 16px 2px;">One omni source for every model. Connect any provider, add any model, and choose which ones muse can use â€” you are never locked to one.</div>
 
         <div style="display:flex; align-items:center; margin-bottom:10px;"><span style="font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">Providers</span><span class="grow"></span><button type="button" class="btn secondary" onclick="{{ onAddProvider }}">+ Add provider</button></div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px;">
@@ -1727,7 +1727,7 @@ body { perspective: 1800px; }
         </sc-if>
         <div class="card" style="padding:0; overflow:hidden;">
           <div style="display:grid; grid-template-columns:1.5fr 1fr 0.7fr 0.6fr 1.4fr auto; gap:14px; padding:12px 16px; border-bottom:1px solid var(--edge); font-size:10px; letter-spacing:0.6px; text-transform:uppercase; color:var(--signal-mute);">
-            <span>Model</span><span>Best at</span><span>Context</span><span>Cost</span><span>On · fusion</span><span></span>
+            <span>Model</span><span>Best at</span><span>Context</span><span>Cost</span><span>On Â· fusion</span><span></span>
           </div>
           <sc-for list="{{ modelList }}" as="m" hint-placeholder-count="6">
             <div style="display:grid; grid-template-columns:1.5fr 1fr 0.7fr 0.6fr 1.4fr auto; gap:14px; padding:14px 16px; border-bottom:1px solid var(--edge); align-items:center; opacity:{{ m.rowOpacity }};">
@@ -1739,7 +1739,7 @@ body { perspective: 1800px; }
                 <button type="button" onclick="{{ m.onToggleOn }}" style="{{ m.trackStyle }}"><span style="{{ m.knobStyle }}"></span></button>
                 <button type="button" onclick="{{ m.onToggleFuse }}" style="{{ m.fuseBtnStyle }}">{{ m.fuseLabel }}</button>
               </div>
-              <button type="button" onclick="{{ m.onRemove }}" title="Remove model" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">×</button>
+              <button type="button" onclick="{{ m.onRemove }}" title="Remove model" style="width:28px; height:28px; border:1px solid var(--edge); border-radius:8px; background:transparent; color:var(--signal-mute); cursor:pointer;">Ã—</button>
             </div>
           </sc-for>
         </div>
@@ -1827,7 +1827,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both; max-width:none;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">How things connect</span><h2 class="section-title">Knowledge map</h2></div>
-          <div class="trailing"><span class="pill accent"><span class="dot live"></span> 26 things · 41 links</span></div>
+          <div class="trailing"><span class="pill accent"><span class="dot live"></span> 26 things Â· 41 links</span></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 280px; gap:12px;">
           <div class="card" style="padding:0; overflow:hidden; position:relative;">
@@ -1916,7 +1916,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">How muse shows up</span><h2 class="section-title">Modes</h2></div>
           <div class="trailing"><span class="pill accent"><span class="dot live"></span> {{ activeModeName }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">muse switches how it works to fit the moment. Pick the one that should lead right now — it can still move between them on its own.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">muse switches how it works to fit the moment. Pick the one that should lead right now â€” it can still move between them on its own.</div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
           <sc-for list="{{ opModes }}" as="m" hint-placeholder-count="6">
             <div class="card interactive" style="{{ m.cardStyle }}" onclick="{{ m.onPick }}">
@@ -1997,7 +1997,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">muse's expert council</span><h2 class="section-title">Council</h2></div>
           <div class="trailing"><span class="pill neutral">{{ councilLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">A deep bench of specialist roles muse convenes for audits, launch reviews, and big decisions — each department weighs in from its own angle.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">A deep bench of specialist roles muse convenes for audits, launch reviews, and big decisions â€” each department weighs in from its own angle.</div>
         <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
           <sc-for list="{{ council }}" as="c" hint-placeholder-count="8">
             <div class="card interactive" style="{{ c.cardStyle }}" onclick="{{ c.onConvene }}">
@@ -2015,7 +2015,7 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">What muse can do</span><h2 class="section-title">Tools</h2></div>
-          <div class="trailing"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ toolsActiveLabel }}</span></div>
+          <div class="trailing"><span class="pill neutral" title="Sample catalog â€” switches change local preview state only until a gateway is paired.">Sample data</span><span class="pill accent">{{ toolsActiveLabel }}</span></div>
         </div>
         <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
           <sc-for list="{{ toolsets }}" as="t" hint-placeholder-count="8">
@@ -2036,9 +2036,9 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Talk to muse anywhere</span><h2 class="section-title">Channels</h2></div>
-          <div class="trailing"><sc-if value="{{ channelsIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample catalog — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill accent">{{ channelsLabel }}</span></div>
+          <div class="trailing"><sc-if value="{{ channelsIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample catalog â€” switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill accent">{{ channelsLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface — it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Same muse, every surface â€” it remembers the conversation as you move between them. Voice memos are transcribed automatically.</div>
         <sc-for list="{{ channels }}" as="c" hint-placeholder-count="7">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
             <div style="flex:1 1 auto; min-width:0;">
@@ -2056,13 +2056,13 @@ body { perspective: 1800px; }
       <section style="animation:cockpitViewEnter 320ms cubic-bezier(0.05,0.7,0.1,1) both;">
         <div class="section-header" style="margin-top:0;">
           <div class="heads"><span class="eyebrow">Runs on its own</span><h2 class="section-title">Schedules</h2></div>
-          <div class="trailing"><sc-if value="{{ schedulesIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample schedules — switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill neutral">unattended automations</span></div>
+          <div class="trailing"><sc-if value="{{ schedulesIsDemo }}" hint-placeholder-val="{{ true }}"><span class="pill neutral" title="Sample schedules â€” switches change local preview state only until a gateway is paired.">Sample data</span></sc-if><span class="pill neutral">unattended automations</span></div>
         </div>
         <sc-for list="{{ schedules }}" as="sch" hint-placeholder-count="4">
           <div class="card" style="margin-top:10px; display:flex; gap:14px; align-items:center;">
             <div style="flex:1 1 auto; min-width:0;">
               <div style="display:flex; align-items:center; gap:8px;"><span contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ sch.onEditName }}" style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.name }}</span><span class="{{ sch.stateCls }}">{{ sch.stateLabel }}</span></div>
-              <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;"><span contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ sch.onEditWhen }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.when }}</span> · sends to <span contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ sch.onEditTo }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.to }}</span></div>
+              <div class="mono" style="font-size:12px; color:var(--signal-dim); margin-top:4px;"><span contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ sch.onEditWhen }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.when }}</span> Â· sends to <span contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ sch.onEditTo }}" style="outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ sch.to }}</span></div>
             </div>
             <button type="button" onclick="{{ sch.onToggle }}" style="{{ sch.trackStyle }}; flex:none;"><span style="{{ sch.knobStyle }}"></span></button>
           </div>
@@ -2117,7 +2117,7 @@ body { perspective: 1800px; }
                 <label style="font-size:11px; color:var(--signal-mute);">Email</label>
                 <input class="field" type="email" placeholder="you@example.com" value="{{ authEmail }}" oninput="{{ account.onEmail }}">
                 <label style="font-size:11px; color:var(--signal-mute);">Password</label>
-                <input class="field" type="password" placeholder="••••••••" value="{{ authPassword }}" oninput="{{ account.onPassword }}" onkeydown="{{ account.onKey }}">
+                <input class="field" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value="{{ authPassword }}" oninput="{{ account.onPassword }}" onkeydown="{{ account.onKey }}">
                 <button type="button" class="btn primary" onclick="{{ account.onSubmit }}" style="align-self:flex-start;">{{ account.submitLabel }}</button>
                 <sc-if value="{{ account.error }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--danger, #ff6b6b);">{{ account.error }}</div></sc-if>
                 <sc-if value="{{ account.notice }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px; color:var(--ring-1);">{{ account.notice }}</div></sc-if>
@@ -2128,7 +2128,7 @@ body { perspective: 1800px; }
             <div class="card" style="display:flex; flex-direction:column; gap:12px;">
               <div>
                 <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal);">Your gateway</div>
-                <div style="font-size:12px; color:var(--signal-dim); margin-top:4px;">Bind your own muse gateway to run the full agent — tools, code execution, sub-agents — from this page, anywhere. Your gateway must be reachable over https (expose it with a tunnel or reverse proxy) and started with <span class="mono">muse cockpit serve --agent full</span>.</div>
+                <div style="font-size:12px; color:var(--signal-dim); margin-top:4px;">Bind your own muse gateway to run the full agent â€” tools, code execution, sub-agents â€” from this page, anywhere. Your gateway must be reachable over https (expose it with a tunnel or reverse proxy) and started with <span class="mono">muse cockpit serve --agent full</span>.</div>
               </div>
               <sc-if value="{{ account.relayConnected }}" hint-placeholder-val="{{ false }}">
                 <div style="display:flex; align-items:center; gap:8px;"><span class="pill ok" style="flex:none;">Connected</span><span class="mono" style="font-size:11px; color:var(--signal-dim); min-width:0; overflow:hidden; text-overflow:ellipsis;">{{ account.relayGatewayUrl }}</span></div>
@@ -2162,7 +2162,7 @@ body { perspective: 1800px; }
                 </div>
                 <div style="border:1px solid var(--ring-1); border-radius:var(--radius-md); padding:14px; background:linear-gradient(180deg, rgba(120,180,255,0.06), rgba(120,180,255,0));">
                   <div style="font-weight:600; color:var(--signal); margin-bottom:6px;">Pro</div>
-                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Higher daily limits and a hosted always-on gateway option — no machine of your own to keep running.</div>
+                  <div style="font-size:12px; line-height:1.6; color:var(--signal-dim);">Higher daily limits and a hosted always-on gateway option â€” no machine of your own to keep running.</div>
                 </div>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -2182,7 +2182,7 @@ body { perspective: 1800px; }
         </sc-if>
         <sc-if value="{{ account.authUnavailable }}" hint-placeholder-val="{{ true }}">
           <div class="card" style="max-width:640px;">
-            <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); margin-bottom:6px;">Accounts aren’t enabled on this deployment</div>
+            <div style="font-size:var(--type-body-size); font-weight:600; color:var(--signal); margin-bottom:6px;">Accounts arenâ€™t enabled on this deployment</div>
             <div style="font-size:13px; line-height:1.6; color:var(--signal-dim);">This build of the cockpit has no hosted sign-in configured. You can still chat here (anonymous demo), or pair your own local gateway from <b>Connect</b> to run the full agent on your machine.</div>
           </div>
         </sc-if>
@@ -2220,7 +2220,7 @@ body { perspective: 1800px; }
           <div class="heads"><span class="eyebrow">Download muse</span><h2 class="section-title">Releases</h2></div>
           <div class="trailing"><span class="pill accent">{{ releasesCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main, and tagged releases carry the versioned changelog — every download below links to its real GitHub release.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px;">Everything muse, in one place. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main, and tagged releases carry the versioned changelog â€” every download below links to its real GitHub release.</div>
         <div class="card" style="max-width:720px; display:flex; flex-direction:column; gap:14px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span style="font-size:18px; font-weight:600; color:var(--signal); letter-spacing:-0.3px;">{{ release.name }}</span>
@@ -2228,7 +2228,7 @@ body { perspective: 1800px; }
             <span class="mono" style="margin-left:auto; font-size:11px; color:var(--ring-1);">{{ release.tag }}</span>
           </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--signal-mute);">
-            <span class="mono">{{ release.ver }}</span><span>·</span><span>{{ release.signLabel }}</span>
+            <span class="mono">{{ release.ver }}</span><span>Â·</span><span>{{ release.signLabel }}</span>
           </div>
           <div contenteditable="true" suppresscontenteditablewarning="{{ true }}" onblur="{{ release.onEditBlurb }}" style="font-size:13px; line-height:1.6; color:var(--signal-dim); outline:none; border-radius:3px;" style-focus="box-shadow:inset 0 -1px 0 var(--ring-1);">{{ release.blurb }}</div>
           <div style="display:flex; gap:9px; align-items:flex-start; border:1px solid var(--edge); border-radius:var(--radius-md); padding:11px 13px; background:var(--void-2);">
@@ -2271,10 +2271,10 @@ body { perspective: 1800px; }
         </div>
 
         <div class="section-header" style="margin-top:26px;">
-          <div class="heads"><span class="eyebrow">M.U.S.E. lineage · newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
+          <div class="heads"><span class="eyebrow">M.U.S.E. lineage Â· newest first</span><h2 class="section-title" style="font-size:20px;">Release history</h2></div>
           <div class="trailing"><span class="pill neutral">{{ historyCountLabel }}</span></div>
         </div>
-        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records — they predate the muse rebrand and keep their original “Hermes Agent” naming.</div>
+        <div style="font-size:var(--type-label-size); color:var(--signal-dim); margin:0 0 14px 2px; max-width:720px;">Every tagged version this build descends from. These are period-accurate records â€” they predate the muse rebrand and keep their original â€œHermes Agentâ€ naming.</div>
         <div style="display:flex; flex-direction:column; gap:0; max-width:760px;">
           <sc-for list="{{ release.history }}" as="h" hint-placeholder-count="13">
             <a href="{{ h.url }}" target="_blank" rel="noopener" onclick="{{ h.onOpen }}" style="display:flex; gap:14px; padding:14px 2px; border-bottom:1px solid var(--edge); text-decoration:none; align-items:baseline;" style-hover="background:rgba(120,180,255,0.04);">
@@ -2314,7 +2314,7 @@ class Component extends DCLogic {
     relayConnected: false, // /api/me says this account has a bound gateway
     relayGatewayUrl: '',
     bindToken: '', bindBusy: false, bindError: '',
-    // Live channel/schedule data from the gateway (null → show seeded demo).
+    // Live channel/schedule data from the gateway (null â†’ show seeded demo).
     channelsLive: null, schedulesLive: null,
     // Commerce state.
     billingBusy: false, billingError: '', tier: 'free',
@@ -2333,6 +2333,7 @@ class Component extends DCLogic {
     approveTarget: null, approvePhrase: '', approveError: '', approveBusy: false,
     gatewayInfo: null,
     deviceName: '',
+    pairId: '',
     pairCode: '',
     pairExpires: 0,
     pairPhrase: '',
@@ -2348,13 +2349,13 @@ class Component extends DCLogic {
     museThinking: false,
     tick: 0,
     seconds: 0,
-    // Chat starts clean — real exchanges only (no seeded demo conversation).
+    // Chat starts clean â€” real exchanges only (no seeded demo conversation).
     // A single honest greeting explains how replies are produced; messages you
     // send stream back live from /api/chat (or a paired gateway).
     chat: [
-      { who: 'muse', isMuse: true, text: 'Hi — I\u2019m muse. Ask me anything and I\u2019ll answer right here — no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
+      { who: 'muse', isMuse: true, text: 'Hi â€” I\u2019m muse. Ask me anything and I\u2019ll answer right here â€” no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
     ],
-    // No fabricated activity — real jobs arrive from a paired gateway.
+    // No fabricated activity â€” real jobs arrive from a paired gateway.
     jobsRaw: [],
     approvalsRaw: [],
     metricVals: { latency: 0, tps: 0, tokens: 0, cost: 0 },
@@ -2422,17 +2423,17 @@ class Component extends DCLogic {
   _defaultProviders() {
     // muse's full provider catalog (mirrors apps/nexus/src/lib/providers.ts).
     // 'connected' reflects the public deployment: any one server-side provider
-    // key lights chat up — OpenRouter is NOT required. 'free' marks providers
+    // key lights chat up â€” OpenRouter is NOT required. 'free' marks providers
     // with a genuine $0 tier (the server prefers these so the chat can run free).
     return [
-      { id: 'openrouter', name: 'OpenRouter', kind: '300+ models · free models + universal fallback', connected: true, omni: true },
-      { id: 'groq', name: 'Groq', kind: 'Fast LPU inference · free tier', connected: false, free: true },
-      { id: 'google', name: 'Google AI', kind: 'Gemini family · free tier', connected: false, free: true },
-      { id: 'cerebras', name: 'Cerebras', kind: 'Wafer-scale inference · free tier', connected: false, free: true },
-      { id: 'nim', name: 'NVIDIA NIM', kind: 'NVIDIA inference · free tier', connected: false, free: true },
-      { id: 'huggingface', name: 'Hugging Face', kind: 'Router over open models · free tier', connected: false, free: true },
-      { id: 'github-models', name: 'GitHub Models', kind: 'GH-hosted models · free tier', connected: false, free: true },
-      { id: 'zhipu', name: 'Z.AI / GLM', kind: 'GLM family (Zhipu) · GLM-4-Flash free', connected: false, free: true },
+      { id: 'openrouter', name: 'OpenRouter', kind: '300+ models Â· free models + universal fallback', connected: true, omni: true },
+      { id: 'groq', name: 'Groq', kind: 'Fast LPU inference Â· free tier', connected: false, free: true },
+      { id: 'google', name: 'Google AI', kind: 'Gemini family Â· free tier', connected: false, free: true },
+      { id: 'cerebras', name: 'Cerebras', kind: 'Wafer-scale inference Â· free tier', connected: false, free: true },
+      { id: 'nim', name: 'NVIDIA NIM', kind: 'NVIDIA inference Â· free tier', connected: false, free: true },
+      { id: 'huggingface', name: 'Hugging Face', kind: 'Router over open models Â· free tier', connected: false, free: true },
+      { id: 'github-models', name: 'GitHub Models', kind: 'GH-hosted models Â· free tier', connected: false, free: true },
+      { id: 'zhipu', name: 'Z.AI / GLM', kind: 'GLM family (Zhipu) Â· GLM-4-Flash free', connected: false, free: true },
       { id: 'anthropic', name: 'Anthropic', kind: 'Claude family', connected: false },
       { id: 'openai', name: 'OpenAI', kind: 'GPT / o-series', connected: false },
       { id: 'mistral', name: 'Mistral', kind: 'Mistral / Codestral', connected: false },
@@ -2613,10 +2614,10 @@ class Component extends DCLogic {
     { model: 'muse-mini', task: 'Quick answers', tagCls: 'pill neutral', share: 9, p50: 88, online: true },
   ];
   memoryData = [
-    { type: 'Fact', typeCls: 'pill accent', text: 'Payments must be handled one at a time so they never clash.', meta: 'from the payments task · used 41× · 2h ago', strength: 92 },
-    { type: 'Event', typeCls: 'pill neutral', text: 'You said no to posting the version 2.13 notes until legal reviews them.', meta: 'from Approvals · used 6× · yesterday', strength: 64 },
-    { type: 'How-to', typeCls: 'pill neutral', text: 'Quick fix steps: make a copy, fix it, test it, then ask to go live.', meta: 'from Models · used 88× · 20m ago', strength: 88 },
-    { type: 'Fact', typeCls: 'pill accent', text: 'Renting computers for more than $150 always needs your OK first.', meta: 'from Permissions · used 12× · 3d ago', strength: 71 },
+    { type: 'Fact', typeCls: 'pill accent', text: 'Payments must be handled one at a time so they never clash.', meta: 'from the payments task Â· used 41Ã— Â· 2h ago', strength: 92 },
+    { type: 'Event', typeCls: 'pill neutral', text: 'You said no to posting the version 2.13 notes until legal reviews them.', meta: 'from Approvals Â· used 6Ã— Â· yesterday', strength: 64 },
+    { type: 'How-to', typeCls: 'pill neutral', text: 'Quick fix steps: make a copy, fix it, test it, then ask to go live.', meta: 'from Models Â· used 88Ã— Â· 20m ago', strength: 88 },
+    { type: 'Fact', typeCls: 'pill accent', text: 'Renting computers for more than $150 always needs your OK first.', meta: 'from Permissions Â· used 12Ã— Â· 3d ago', strength: 71 },
   ];
   evidenceData = [
     { time: '07:41:58', actor: 'Main AI', action: 'Answered a thinking request', hash: 'ref #9f2ac0', verdict: 'Logged', verdictCls: 'pill ok' },
@@ -2624,7 +2625,7 @@ class Component extends DCLogic {
     { time: '07:39:12', actor: 'You', action: 'Said no to a $186 computer rental', hash: 'ref #5b1877', verdict: 'Your call', verdictCls: 'pill accent' },
     { time: '07:38:05', actor: 'Safety rule', action: 'Blocked muse from changing its own settings', hash: 'ref #c4e012', verdict: 'Blocked', verdictCls: 'pill danger' },
     { time: '07:35:51', actor: 'Coding AI', action: 'Applied a quick fix', hash: 'ref #8a90fe', verdict: 'Logged', verdictCls: 'pill ok' },
-    { time: '07:34:19', actor: 'System', action: 'Checked the log — all 2,041 entries intact', hash: 'ref #1c2db8', verdict: 'Logged', verdictCls: 'pill ok' },
+    { time: '07:34:19', actor: 'System', action: 'Checked the log â€” all 2,041 entries intact', hash: 'ref #1c2db8', verdict: 'Logged', verdictCls: 'pill ok' },
   ];
   graphStatsData = [
     { label: 'Connections', value: '0.31', sub: 'how linked things are' },
@@ -2632,9 +2633,9 @@ class Component extends DCLogic {
     { label: 'Last update', value: '20s', sub: 'updating live' },
   ];
   learningData = [
-    { name: 'Getting better at picking the right AI', sub: 'Practice run · main AI', metric: '0.94', metricLabel: 'score', delta: '+3.1%', deltaCls: 'pill ok', state: 'Learning', stateCls: 'pill accent', pct: 68, barColor: 'var(--ring-grad)', progress: '6,800 of 10,000 practice rounds' },
-    { name: 'Coding test', sub: 'Test run · 2,000 problems', metric: '81.2%', metricLabel: 'pass rate', delta: '+1.4%', deltaCls: 'pill ok', state: 'Testing', stateCls: 'pill accent', pct: 42, barColor: 'var(--ring-grad)', progress: '840 of 2,000 problems' },
-    { name: 'Fine-tuning its judgement', sub: 'Tune run', metric: '0.88', metricLabel: 'agreement', delta: '−0.2%', deltaCls: 'pill warn', state: 'Waiting', stateCls: 'pill neutral', pct: 0, barColor: 'var(--edge)', progress: 'waiting for spending approval' },
+    { name: 'Getting better at picking the right AI', sub: 'Practice run Â· main AI', metric: '0.94', metricLabel: 'score', delta: '+3.1%', deltaCls: 'pill ok', state: 'Learning', stateCls: 'pill accent', pct: 68, barColor: 'var(--ring-grad)', progress: '6,800 of 10,000 practice rounds' },
+    { name: 'Coding test', sub: 'Test run Â· 2,000 problems', metric: '81.2%', metricLabel: 'pass rate', delta: '+1.4%', deltaCls: 'pill ok', state: 'Testing', stateCls: 'pill accent', pct: 42, barColor: 'var(--ring-grad)', progress: '840 of 2,000 problems' },
+    { name: 'Fine-tuning its judgement', sub: 'Tune run', metric: '0.88', metricLabel: 'agreement', delta: 'âˆ’0.2%', deltaCls: 'pill warn', state: 'Waiting', stateCls: 'pill neutral', pct: 0, barColor: 'var(--edge)', progress: 'waiting for spending approval' },
   ];
   processesData = [
     { name: 'Main AI', pid: '1041', state: 'Running', stateCls: 'pill ok' },
@@ -2669,18 +2670,18 @@ class Component extends DCLogic {
   ];
 
   // The agent roster (names + roles) is real; their live activity (state /
-  // now / task counts) only appears when paired to a gateway — idle otherwise.
+  // now / task counts) only appears when paired to a gateway â€” idle otherwise.
   agentsData = [
-    { name: 'Planner', role: 'Breaks goals into a clear plan', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Architect', role: 'Designs the structure & approach', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Builder', role: 'Writes & implements the work', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Reviewer', role: 'Checks work before it ships', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Model Router', role: 'Picks the right AI for each task', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Research Validator', role: 'Fact-checks claims before they are used', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Quality Gate', role: 'Approves decisions before they ship', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Curator', role: 'Keeps skills tidy, archives stale ones', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'GitHub Publisher', role: 'Turns approved work into branches & PRs', state: 'idle', now: 'Idle · not connected', tasks: 0 },
-    { name: 'Self-Improvement', role: 'Proposes upgrades to muse itself', state: 'idle', now: 'Idle · not connected', tasks: 0 },
+    { name: 'Planner', role: 'Breaks goals into a clear plan', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Architect', role: 'Designs the structure & approach', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Builder', role: 'Writes & implements the work', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Reviewer', role: 'Checks work before it ships', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Model Router', role: 'Picks the right AI for each task', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Research Validator', role: 'Fact-checks claims before they are used', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Quality Gate', role: 'Approves decisions before they ship', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Curator', role: 'Keeps skills tidy, archives stale ones', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'GitHub Publisher', role: 'Turns approved work into branches & PRs', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
+    { name: 'Self-Improvement', role: 'Proposes upgrades to muse itself', state: 'idle', now: 'Idle Â· not connected', tasks: 0 },
   ];
 
   // Destinations grouped into segregated nav sections (the rail renders a
@@ -2736,12 +2737,12 @@ class Component extends DCLogic {
     { name: 'Rollback', desc: 'Can always undo cleanly if something goes wrong.', state: 'Ready', cls: 'pill neutral' },
   ];
   constitutionData = [
-    { id: 'C1', text: 'You stay in control — risky actions wait for your explicit OK.', sev: 'Critical', cls: 'pill danger' },
+    { id: 'C1', text: 'You stay in control â€” risky actions wait for your explicit OK.', sev: 'Critical', cls: 'pill danger' },
     { id: 'C2', text: 'muse never edits itself silently; every change is a proposal you can review.', sev: 'Critical', cls: 'pill danger' },
     { id: 'C3', text: 'Every claim cites its source; memory points to the truth, it is not the truth.', sev: 'High', cls: 'pill warn' },
-    { id: 'C4', text: 'No gaming the numbers — shortcuts and reward-hacking get flagged.', sev: 'High', cls: 'pill warn' },
+    { id: 'C4', text: 'No gaming the numbers â€” shortcuts and reward-hacking get flagged.', sev: 'High', cls: 'pill warn' },
     { id: 'C5', text: 'muse stays inside its limits and will not over-reach.', sev: 'High', cls: 'pill warn' },
-    { id: 'C6', text: 'Everything is reversible — no step that cannot be undone.', sev: 'Medium', cls: 'pill neutral' },
+    { id: 'C6', text: 'Everything is reversible â€” no step that cannot be undone.', sev: 'Medium', cls: 'pill neutral' },
     { id: 'C7', text: 'Loyal to your long-term mission, not blind obedience in the moment.', sev: 'Medium', cls: 'pill neutral' },
   ];
   ledgerData = [
@@ -2780,14 +2781,14 @@ class Component extends DCLogic {
     { id: 'email', name: 'Email', note: 'Send muse a task by email.' },
   ];
   schedulesData = [
-    { id: 'report', name: 'Daily report', when: 'Every day · 8:00 AM', to: 'Telegram' },
-    { id: 'backup', name: 'Nightly backup', when: 'Every day · 2:00 AM', to: 'Files' },
-    { id: 'audit', name: 'Weekly audit', when: 'Sundays · 6:00 PM', to: 'Email' },
+    { id: 'report', name: 'Daily report', when: 'Every day Â· 8:00 AM', to: 'Telegram' },
+    { id: 'backup', name: 'Nightly backup', when: 'Every day Â· 2:00 AM', to: 'Files' },
+    { id: 'audit', name: 'Weekly audit', when: 'Sundays Â· 6:00 PM', to: 'Email' },
     { id: 'radar', name: 'AI improvement scan', when: 'Every 6 hours', to: 'Map' },
   ];
   researchData = [
     { claim: 'LM Studio v1 REST API gives accurate context-window detection.', src: 'Release notes v1.2.0', conf: 'High' },
-    { claim: 'The knowledge graph measured 33,483 nodes across the repo.', src: 'GraphRAG attestation · 2026-06-10', conf: 'Measured' },
+    { claim: 'The knowledge graph measured 33,483 nodes across the repo.', src: 'GraphRAG attestation Â· 2026-06-10', conf: 'Measured' },
     { claim: 'OpenRouter reaches 200+ models through one endpoint.', src: 'OpenRouter (vendor-reported)', conf: 'Vendor' },
     { claim: 'Daytona and Modal hibernate when idle, costing near-zero.', src: 'Terminal backends doc', conf: 'High' },
   ];
@@ -2796,35 +2797,35 @@ class Component extends DCLogic {
     { id: 'docker', name: 'Docker', note: 'Isolated container on your host.', tag: 'Ready', cls: 'pill neutral' },
     { id: 'ssh', name: 'SSH', note: 'A remote server you own.', tag: 'Ready', cls: 'pill neutral' },
     { id: 'singularity', name: 'Singularity', note: 'HPC / cluster container.', tag: 'Ready', cls: 'pill neutral' },
-    { id: 'modal', name: 'Modal', note: 'Serverless — sleeps when idle.', tag: 'Hibernates', cls: 'pill accent' },
-    { id: 'daytona', name: 'Daytona', note: 'Serverless dev box — wakes on demand.', tag: 'Hibernates', cls: 'pill accent' },
+    { id: 'modal', name: 'Modal', note: 'Serverless â€” sleeps when idle.', tag: 'Hibernates', cls: 'pill accent' },
+    { id: 'daytona', name: 'Daytona', note: 'Serverless dev box â€” wakes on demand.', tag: 'Hibernates', cls: 'pill accent' },
     { id: 'vercel', name: 'Vercel Sandbox', note: 'Ephemeral cloud sandbox.', tag: 'Ready', cls: 'pill neutral' },
   ];
 
   releaseData = {
-    name: 'muse — releases', channel: 'Rolling builds + tagged releases', tag: 'v1.2.0 · rolling',
-    ver: 'Latest tagged v1.2.0 · desktop and Android publish rolling builds', signLabel: 'Signed where configured · unsigned fallback',
+    name: 'muse â€” releases', channel: 'Rolling builds + tagged releases', tag: 'v1.2.0 Â· rolling',
+    ver: 'Latest tagged v1.2.0 Â· desktop and Android publish rolling builds', signLabel: 'Signed where configured Â· unsigned fallback',
     latestVer: 'v1.2.0', latestName: 'LM Studio native v1 REST API', latestDate: 'June 22, 2026',
-    latestSummary: 'Adopts LM Studio 0.4.0’s native REST API end-to-end: accurate context-window detection for local and remote servers, model lifecycle management (load / unload / download) with automatic VRAM freeing on model switch, and three new gated agent tools.',
-    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one — never to remote AI providers — and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
-    blurb: 'Everything muse downloads from GitHub Releases. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main; tagged releases carry the versioned changelog. Pick your platform below — each card links straight to its release.',
+    latestSummary: 'Adopts LM Studio 0.4.0â€™s native REST API end-to-end: accurate context-window detection for local and remote servers, model lifecycle management (load / unload / download) with automatic VRAM freeing on model switch, and three new gated agent tools.',
+    privacy: 'Runs on your device: its only network traffic is to your own local muse gateway (default 127.0.0.1:8765) when you pair one â€” never to remote AI providers â€” and it holds no API keys. Unpaired, it runs fully offline against an on-device mock.',
+    blurb: 'Everything muse downloads from GitHub Releases. The desktop cockpit and the Android app each publish a rolling build that auto-refreshes from the latest main; tagged releases carry the versioned changelog. Pick your platform below â€” each card links straight to its release.',
     url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases',
     platforms: [
-      { id: 'desktop', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS · Windows · Linux',
-        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', urlLabel: 'Open muse-desktop-latest →',
-        note: 'Native shell around the Singularity cockpit — talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys. Rolling build, auto-versioned from the latest main.',
+      { id: 'desktop', name: 'Desktop cockpit', kind: 'Tauri v2', kindCls: 'pill accent', sub: 'macOS Â· Windows Â· Linux',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest', urlLabel: 'Open muse-desktop-latest â†’',
+        note: 'Native shell around the Singularity cockpit â€” talks to your own local gateway (127.0.0.1:8765) after you pair it, and holds no API keys. Rolling build, auto-versioned from the latest main.',
         sign: 'Signed when certs are provisioned; unsigned installers (clearly marked) otherwise.', reqs: 'Requires macOS 11+, Windows 10+, or a modern Linux desktop.',
-        assets: [ { label: 'macOS', val: 'muse.dmg — open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe — download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
-      { id: 'android', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ · arm64 / armv7',
-        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest', urlLabel: 'Open android-latest →',
+        assets: [ { label: 'macOS', val: 'muse.dmg â€” open, drag muse to Applications' }, { label: 'Windows', val: 'muse-setup.exe â€” download and run' }, { label: 'Linux', val: '.AppImage (chmod +x) or .deb' } ] },
+      { id: 'android', name: 'Android app', kind: 'APK', kindCls: 'pill ok', sub: 'Android 8.0+ Â· arm64 / armv7',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest', urlLabel: 'Open android-latest â†’',
         note: 'Local-only muse/JARVIS cockpit. Organizes handoffs to the AI tools you already use; talks only to your own local gateway, never to remote providers, and holds no keys. Rolling build; sideload install (debug-signed until release keystore secrets are configured).',
-        sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) · built for arm64-v8a / armeabi-v7a.',
-        assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk — download, tap install, allow this source' } ] },
+        sign: 'Release-signed when keystore secrets are set (verified by apksigner); debug-sign fallback for sideload.', reqs: 'Requires Android 8.0+ (API 26) Â· built for arm64-v8a / armeabi-v7a.',
+        assets: [ { label: 'Phone', val: 'jarvis-prime-android.apk â€” download, tap install, allow this source' } ] },
       { id: 'source', name: 'Full source', kind: 'Clone & run', kindCls: 'pill neutral', sub: 'All platforms',
-        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', urlLabel: 'Open the repository →',
+        url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E', urlLabel: 'Open the repository â†’',
         note: 'The complete repository at the latest main commit. Clone it and run your own gateway.',
-        sign: 'No build assets — source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
-        assets: [ { label: 'Archive', val: 'Source code — zip / tar.gz from the repo page' } ] },
+        sign: 'No build assets â€” source archives only.', reqs: 'Requires git plus the toolchains listed in the repo README.',
+        assets: [ { label: 'Archive', val: 'Source code â€” zip / tar.gz from the repo page' } ] },
     ],
     history: [
       { ver: 'v1.2.0', date: '2026-06-22', name: 'LM Studio native v1 REST API', summary: 'Native LM Studio /api/v1 adoption: real context windows locally and remotely, model load/unload/download tools with auto VRAM freeing on switch, Windows pytest fixes.', url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/v1.2.0' },
@@ -2848,14 +2849,14 @@ class Component extends DCLogic {
 
   phaseLabels = ['Copy', 'Set up', 'Build', 'Check', 'Launch'];
   logTemplates = [
-    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent a question to the main AI · 0.3s' },
+    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent a question to the main AI Â· 0.3s' },
     { tag: 'TASK', tagCls: 'pill neutral', msg: 'Login task: step 4 of 9 done' },
     { tag: 'MEMORY', tagCls: 'pill neutral', msg: 'Remembered 3 past notes' },
     { tag: 'OK', tagCls: 'pill ok', msg: 'All checks passed' },
-    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent code work to the coding AI · 0.5s' },
+    { tag: 'AI', tagCls: 'pill accent', msg: 'Sent code work to the coding AI Â· 0.5s' },
     { tag: 'SLOW', tagCls: 'pill warn', msg: 'Pages loading a little slower' },
     { tag: 'TASK', tagCls: 'pill neutral', msg: 'Quick fix applied' },
-    { tag: 'OK', tagCls: 'pill ok', msg: 'Activity log checked — all good' },
+    { tag: 'OK', tagCls: 'pill ok', msg: 'Activity log checked â€” all good' },
   ];
 
   componentDidMount() {
@@ -2898,13 +2899,13 @@ class Component extends DCLogic {
     if (this._reduceMotion) this._timer = setInterval(() => this._sim(), 1000);
     this._initGraph();
     // The full-viewport sacred-geometry background is decorative, but ANY
-    // per-frame change to it — canvas redraws or animated transforms — sits
+    // per-frame change to it â€” canvas redraws or animated transforms â€” sits
     // behind the backdrop-filter glass panels, and each change forces every
     // blur panel to re-sample, which Chromium renders as constant flicker.
     // So the layer stays fully static: painted ONCE here, repainted only on
     // resize or when the browser discarded the canvas buffer (backgrounded-tab
     // purge, bfcache restore). The old mousemove parallax animated this
-    // canvas's transform and re-blurred every panel while the pointer moved —
+    // canvas's transform and re-blurred every panel while the pointer moved â€”
     // do not reintroduce it on this layer.
     this._paintBg = () => {
       try {
@@ -2942,15 +2943,15 @@ class Component extends DCLogic {
 
     // Hosted-product bootstrap: fetch /api/config (which Supabase project, which
     // lanes exist), hydrate any saved account session, and check the account's
-    // gateway binding. All best-effort — a static host with no /api leaves the
+    // gateway binding. All best-effort â€” a static host with no /api leaves the
     // page in its current no-login mode unchanged.
     this._bootAccount();
 
     this.appDocs = {
       login: this._appDoc('Welcome back', 'Sign in to muse', '<label>Username</label><input placeholder="you@example.com"><label>Password</label><input type="password" value="********"><button class="cta">Sign in</button><div class="alt">New here? <b>Create an account</b></div>'),
       payments: this._appDoc('Send a payment', 'One charge at a time', '<div class="big">$1,240.00</div><div class="row"><span class="muted">To</span><span>Ada Lovelace</span></div><div class="row"><span class="muted">When</span><span>Today</span></div><div class="row"><span class="muted">Fee</span><span>$0.00</span></div><button class="cta" style="margin-top:18px">Send payment</button>'),
-      checkout: this._appDoc('Checkout', 'Fast and secure', '<div class="row"><span>Pro plan</span><span>$29.00</span></div><div class="row"><span>Seats × 3</span><span>$87.00</span></div><div class="row"><span class="muted">Tax</span><span>$9.28</span></div><div class="row"><span style="font-weight:600">Total</span><span style="font-weight:600">$125.28</span></div><button class="cta" style="margin-top:18px">Pay now</button>'),
-      search: this._appDoc('Help center', 'Find an answer', '<input class="search" placeholder="Search articles…"><div class="row">Getting started with muse<span class="muted">→</span></div><div class="row">Connecting GitHub<span class="muted">→</span></div><div class="row">Inviting your team<span class="muted">→</span></div><div class="row">Billing &amp; plans<span class="muted">→</span></div>'),
+      checkout: this._appDoc('Checkout', 'Fast and secure', '<div class="row"><span>Pro plan</span><span>$29.00</span></div><div class="row"><span>Seats Ã— 3</span><span>$87.00</span></div><div class="row"><span class="muted">Tax</span><span>$9.28</span></div><div class="row"><span style="font-weight:600">Total</span><span style="font-weight:600">$125.28</span></div><button class="cta" style="margin-top:18px">Pay now</button>'),
+      search: this._appDoc('Help center', 'Find an answer', '<input class="search" placeholder="Search articlesâ€¦"><div class="row">Getting started with muse<span class="muted">â†’</span></div><div class="row">Connecting GitHub<span class="muted">â†’</span></div><div class="row">Inviting your team<span class="muted">â†’</span></div><div class="row">Billing &amp; plans<span class="muted">â†’</span></div>'),
     };
     if (!this._reduceMotion) this._loop();
   }
@@ -2993,7 +2994,7 @@ class Component extends DCLogic {
 
   _sim() {
     // Ambient visuals only. The cockpit never fabricates live metrics, jobs, or
-    // logs — real numbers arrive from a paired gateway via pullAll(). Offline it
+    // logs â€” real numbers arrive from a paired gateway via pullAll(). Offline it
     // shows honest empty/zero state instead of a simulated running system.
     // When the rAF _loop is active it already redraws these every frame, so only
     // draw here under reduced-motion (loop off) to avoid interleaved repaints.
@@ -3011,14 +3012,14 @@ class Component extends DCLogic {
   _liveUptime(s) {
     // Real uptime from the gateway runtime payload (gateway.started_at, ISO).
     // The sim clock is gone, so a paired session derives uptime from the wall
-    // clock; offline this branch isn't used (telemetry shows "—").
+    // clock; offline this branch isn't used (telemetry shows "â€”").
     const rt = s.liveRuntime || {};
     const started = rt.gateway && rt.gateway.started_at;
     if (started) {
       const ms = Date.parse(started);
       if (!isNaN(ms)) return this._clock(Math.max(0, Math.floor((Date.now() - ms) / 1000)));
     }
-    return '—';
+    return 'â€”';
   }
 
   // ---- handlers ----
@@ -3091,7 +3092,7 @@ class Component extends DCLogic {
   };
   onLayoutCards = () => this.setState({ jobsLayout: 'cards' });
   onLayoutStream = () => this.setState({ jobsLayout: 'stream' });
-  // Starter prompts for the chat empty state — a first-time visitor sees what
+  // Starter prompts for the chat empty state â€” a first-time visitor sees what
   // muse can do and one click drops the prompt into the composer to edit/send.
   STARTER_PROMPTS = [
     'What can muse do? Give me 3 bullets.',
@@ -3109,19 +3110,19 @@ class Component extends DCLogic {
     const chat = [...this.state.chat, { who: 'You', isMuse: false, text }];
     this.setState({ chat, composer: '', museThinking: true });
     clearTimeout(this._reply);
-    // Lane 1 — FULL agent (TUI parity): signed in with a bound gateway, OR
+    // Lane 1 â€” FULL agent (TUI parity): signed in with a bound gateway, OR
     // device-paired to a gateway that advertises full-agent mode. Streams the
     // real agent (tools, code execution, sub-agents, owner approvals).
     if (this._agentLaneReady() || (this._tok() && this._gatewayIsFullAgent())) {
       this._dispatchAgentChat(text);
       return;
     }
-    // Lane 2 — device-paired but jarvis-only gateway: run a real job + poll.
+    // Lane 2 â€” device-paired but jarvis-only gateway: run a real job + poll.
     if (this._tok()) {
       this._dispatchLiveJob(text);
       return;
     }
-    // Lane 3 — anonymous demo: the deployment's /api/chat (server key or BYOK),
+    // Lane 3 â€” anonymous demo: the deployment's /api/chat (server key or BYOK),
     // or an honest "sign in / pair a gateway" message. Never fabricates.
     this._dispatchApiChat(text);
   };
@@ -3159,14 +3160,14 @@ class Component extends DCLogic {
         let hint = '';
         try { const d = await r.json(); hint = (d && (d.error || d.hint)) || ''; } catch (e) { /* non-JSON */ }
         const usingOwnKey = !!this._byok().key;
-        const detail = hint ? ' — ' + hint : '';
+        const detail = hint ? ' â€” ' + hint : '';
         if (r.status === 429) {
-          acc = 'Rate limit reached — too many requests in a short window' + (hint ? ' (' + hint + ')' : '') + '. Wait a moment and try again.';
+          acc = 'Rate limit reached â€” too many requests in a short window' + (hint ? ' (' + hint + ')' : '') + '. Wait a moment and try again.';
         } else if (r.status === 501) {
-          acc = 'Live chat is not configured on the server yet' + detail + '. Quickest fix: click Connect → "Use your own key", paste any provider key (a free Groq/Gemini key works), and chat instantly. Or set one provider key in the deployment env, or pair a gateway.';
+          acc = 'Live chat is not configured on the server yet' + detail + '. Quickest fix: click Connect â†’ "Use your own key", paste any provider key (a free Groq/Gemini key works), and chat instantly. Or set one provider key in the deployment env, or pair a gateway.';
         } else if (r.status === 502 || r.status === 401 || r.status === 403) {
           acc = usingOwnKey
-            ? 'The provider rejected the request' + detail + '. Check that the key you pasted (Connect → "Use your own key") is valid and has access to this model.'
+            ? 'The provider rejected the request' + detail + '. Check that the key you pasted (Connect â†’ "Use your own key") is valid and has access to this model.'
             : 'The chat provider returned an error' + detail + '. Please try again in a moment.';
         } else {
           acc = 'Chat request failed (' + r.status + ')' + detail + '. Please try again.';
@@ -3239,7 +3240,7 @@ class Component extends DCLogic {
     }
   };
 
-  // ===== Live data pulls — overwrite the seeded mock arrays with real gateway data =====
+  // ===== Live data pulls â€” overwrite the seeded mock arrays with real gateway data =====
   _setIf = (patch) => { try { this.setState(patch); } catch (e) {} };
 
   pullJobs = async () => {
@@ -3250,7 +3251,7 @@ class Component extends DCLogic {
     const jobsRaw = items.map(j => ({
       id: j.id || j.job_id || ('job-' + Math.random().toString(16).slice(2, 6)),
       title: j.title || j.prompt || j.name || '(untitled job)',
-      sub: j.type ? ('Task · ' + j.type) : (j.kind || 'Task'),
+      sub: j.type ? ('Task Â· ' + j.type) : (j.kind || 'Task'),
       phase: typeof j.phase === 'number' ? j.phase : (phaseMap[String(j.status || '').toLowerCase()] || 0),
       live: !!(j.status === 'running' || j.status === 'in_progress' || j.live),
       review: !!(j.status === 'review' || j.review),
@@ -3276,7 +3277,7 @@ class Component extends DCLogic {
       detail: a.detail || a.description || '',
       risk: a.risk || a.severity || 'Medium',
       riskCls: 'pill ' + ({ low: 'neutral', small: 'neutral', medium: 'warn', high: 'danger', big: 'danger' }[String(a.risk || a.severity || 'medium').toLowerCase()] || 'warn'),
-      meta: a.requested_by ? ('asked by ' + a.requested_by + (a.requested_at ? ' · ' + a.requested_at : '')) : (a.meta || ''),
+      meta: a.requested_by ? ('asked by ' + a.requested_by + (a.requested_at ? ' Â· ' + a.requested_at : '')) : (a.meta || ''),
     }));
     this._setIf({ approvalsRaw });
   };
@@ -3289,7 +3290,7 @@ class Component extends DCLogic {
       type: m.type || m.kind || 'Note',
       typeCls: 'pill ' + (m.type === 'Fact' ? 'accent' : 'neutral'),
       text: m.text || m.content || m.summary || '',
-      meta: m.meta || (m.source ? ('from ' + m.source) : '') + (m.used ? (' · used ' + m.used + '×') : '') + (m.updated_at ? (' · ' + m.updated_at) : ''),
+      meta: m.meta || (m.source ? ('from ' + m.source) : '') + (m.used ? (' Â· used ' + m.used + 'Ã—') : '') + (m.updated_at ? (' Â· ' + m.updated_at) : ''),
       strength: typeof m.strength === 'number' ? m.strength : (typeof m.score === 'number' ? Math.round(m.score * 100) : 60),
     }));
     this.forceUpdate();
@@ -3317,7 +3318,7 @@ class Component extends DCLogic {
     this.learningData = items.slice(0, 20).map(l => ({
       name: l.name || l.title || 'Learning run',
       sub: l.sub || l.kind || '',
-      metric: l.metric != null ? String(l.metric) : (l.score != null ? String(l.score) : '—'),
+      metric: l.metric != null ? String(l.metric) : (l.score != null ? String(l.score) : 'â€”'),
       metricLabel: l.metric_label || 'score',
       delta: l.delta || '',
       deltaCls: 'pill ' + (String(l.delta || '').startsWith('-') ? 'warn' : 'ok'),
@@ -3417,7 +3418,7 @@ class Component extends DCLogic {
 
   pullAll = async () => {
     // Live pulls run when EITHER a device token is paired OR the account is
-    // signed-in with a bound gateway (the relay lane) — _api() picks the right
+    // signed-in with a bound gateway (the relay lane) â€” _api() picks the right
     // transport. Without either, the seeded demo data (badged) stays.
     if (!this._tok() && !this._agentLaneReady()) return;
     // Fire all in parallel; each method is fault-tolerant
@@ -3457,15 +3458,15 @@ class Component extends DCLogic {
 
   // ===== Real muse gateway connection (cockpit HTTP API contract) =====
   GATEWAY_DEFAULT = 'http://127.0.0.1:8765';
-  OWNER_PHRASE = 'Yes, with authorization.';
+  OWNER_PHRASE = '';
 
   _gw() {
     // Resolve the gateway base URL. The paired URL is persisted in
     // localStorage, but state.gatewayUrl is only hydrated when the Connect
-    // dialog opens — so on a reload-after-pairing, fall back to the saved URL
+    // dialog opens â€” so on a reload-after-pairing, fall back to the saved URL
     // before the localhost default. Without this, boot-time live polling (when
     // a token is present) would hit http://127.0.0.1:8765 from the public HTTPS
-    // cockpit — a mixed-content request to localhost. (chat uses /api/chat, not
+    // cockpit â€” a mixed-content request to localhost. (chat uses /api/chat, not
     // this path, so it is unaffected.)
     let u = this.state.gatewayUrl;
     if (!u) { try { u = localStorage.getItem('muse.gateway.url') || ''; } catch (e) { u = ''; } }
@@ -3485,7 +3486,7 @@ class Component extends DCLogic {
     } catch (e) { return { key: '', prov: 'openrouter' }; }
   }
   BYOK_PROVIDERS = [
-    { id: 'openrouter', name: 'OpenRouter — all models' },
+    { id: 'openrouter', name: 'OpenRouter â€” all models' },
     { id: 'anthropic', name: 'Anthropic (Claude)' },
     { id: 'openai', name: 'OpenAI' },
     { id: 'google', name: 'Google Gemini' },
@@ -3508,7 +3509,7 @@ class Component extends DCLogic {
       if (key) { localStorage.setItem('muse.byok.key', key); localStorage.setItem('muse.byok.prov', prov); }
     } catch (e) {}
     // A pasted key is unvalidated until the first request, so don't claim the
-    // server-verified "online" state — use the honest "your key" state instead.
+    // server-verified "online" state â€” use the honest "your key" state instead.
     this.setState({ byokSaved: !!key, serverChat: key ? 'byok' : this.state.serverChat });
   };
   clearByok = () => {
@@ -3573,10 +3574,10 @@ class Component extends DCLogic {
 
     try {
       const r = await fetch(url, { method: 'POST', headers, mode: 'cors', body: JSON.stringify({ prompt: text, history, session_key: sessionKey }) });
-      if (r.status === 409) { this.setState({ museThinking: false, chat: prior }); this._dispatchLiveJob(text); return; } // gateway not in full mode → job lane
+      if (r.status === 409) { this.setState({ museThinking: false, chat: prior }); this._dispatchLiveJob(text); return; } // gateway not in full mode â†’ job lane
       if (r.status === 402) { acc.text = 'The full-agent lane needs an active subscription on this account.'; this.setState({ museThinking: false }); render(); return; }
-      if (r.status === 429) { let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' — ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
-      if (!r.ok || !r.body) { let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable — ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
+      if (r.status === 429) { let h = ''; try { h = (await r.json()).error; } catch (e) {} acc.text = 'Daily agent limit reached' + (h ? ' â€” ' + h : '') + '.'; this.setState({ museThinking: false }); render(); return; }
+      if (!r.ok || !r.body) { let h = 'the gateway rejected the request'; try { const d = await r.json(); h = (d && (d.error || d.hint)) || h; } catch (e) {} acc.text = 'Full-agent chat is unavailable â€” ' + h + '.'; this.setState({ museThinking: false }); render(); return; }
       this.setState({ museThinking: false });
       const reader = r.body.getReader();
       const dec = new TextDecoder();
@@ -3671,7 +3672,7 @@ class Component extends DCLogic {
 
   _reach(e) {
     const m = (e && e.name === 'AbortError') ? 'timed out' : (e && e.message) || 'failed';
-    return 'Could not reach ' + this._gw() + ' (' + m + '). The gateway must be running locally; a browser tab served over https can also be blocked from calling a local http address — the desktop app reaches it directly.';
+    return 'Could not reach ' + this._gw() + ' (' + m + '). The gateway must be running locally; a browser tab served over https can also be blocked from calling a local http address â€” the desktop app reaches it directly.';
   }
 
   startPair = async () => {
@@ -3679,9 +3680,9 @@ class Component extends DCLogic {
     try {
       const r = await this._api('/v1/cockpit/pair/start', { method: 'POST', auth: false, body: { device_name: this.state.deviceName || 'muse cockpit (web)' } });
       if (r.status === 201 && r.data && r.data.pairing_code) {
-        this.setState({ pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
+        this.setState({ pairId: r.data.pairing_id || '', pairCode: r.data.pairing_code, pairExpires: r.data.expires_at || 0, connStep: 'confirm', connState: 'connecting' });
       } else if (r.status === 429) {
-        this.setState({ connState: 'error', connStep: 'idle', connError: (r.data && r.data.hint) || 'Pairing temporarily unavailable — wait and retry.' });
+        this.setState({ connState: 'error', connStep: 'idle', connError: (r.data && r.data.hint) || 'Pairing temporarily unavailable â€” wait and retry.' });
       } else {
         this.setState({ connState: 'error', connStep: 'idle', connError: 'Could not start pairing (' + r.status + ').' });
       }
@@ -3691,20 +3692,20 @@ class Component extends DCLogic {
   confirmPair = async () => {
     this.setState({ connError: '' });
     try {
-      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
+      const r = await this._api('/v1/cockpit/pair/confirm', { method: 'POST', auth: false, body: { pairing_id: this.state.pairId, pairing_code: this.state.pairCode, authorization: this.state.pairPhrase } });
       if (r.status === 201 && r.data && r.data.token) {
         try {
           localStorage.setItem('muse.gateway.token', r.data.token);
           localStorage.setItem('muse.gateway.device', r.data.device_id || '');
           localStorage.setItem('muse.gateway.url', this._gw());
         } catch (e) {}
-        this.setState({ deviceId: r.data.device_id || '', pairCode: '', pairPhrase: '', needsPhrase: false, connState: 'live', connStep: 'connected', connError: '' });
+        this.setState({ deviceId: r.data.device_id || '', pairId: '', pairCode: '', pairPhrase: '', needsPhrase: false, connState: 'live', connStep: 'connected', connError: '' });
         this.pullRuntime();
         this._kickLive();
       } else if (r.status === 403) {
         // This gateway is exposed off-device and demands the owner phrase. Reveal
         // the field (default connect is phrase-free) and prompt for it.
-        this.setState({ needsPhrase: true, connError: this.state.needsPhrase ? 'Owner phrase did not match. Type it exactly: "' + this.OWNER_PHRASE + '"' : 'This gateway needs the owner phrase to pair. Enter it below.' });
+        this.setState({ needsPhrase: true, connError: this.state.needsPhrase ? 'Owner authorization did not match.' : 'This gateway needs owner authorization to pair. Enter it below.' });
       } else if (r.status === 401) {
         this.setState({ connStep: 'pairing', pairCode: '', connError: 'That pairing code was invalid or expired. Start again.' });
       } else {
@@ -3798,11 +3799,11 @@ class Component extends DCLogic {
 
   installApp = async () => {
     if (this.state.iosInstall) {
-      this.setState({ installHint: 'To install muse: tap the Share button, then “Add to Home Screen”.' });
+      this.setState({ installHint: 'To install muse: tap the Share button, then â€œAdd to Home Screenâ€.' });
       return;
     }
     const evt = this._installEvt;
-    if (!evt) { this.setState({ installHint: 'Open the browser menu and choose “Install app” / “Add to Home screen”.' }); return; }
+    if (!evt) { this.setState({ installHint: 'Open the browser menu and choose â€œInstall appâ€ / â€œAdd to Home screenâ€.' }); return; }
     this._installEvt = null;
     this.setState({ canInstall: false });
     try { evt.prompt(); await evt.userChoice; } catch (e) { /* user dismissed */ }
@@ -3812,7 +3813,7 @@ class Component extends DCLogic {
 
   _probeServerChat = async () => {
     // If the visitor saved their own key in THIS browser, chat is configured via
-    // that key (sent per-request) — report it honestly and consistently on every
+    // that key (sent per-request) â€” report it honestly and consistently on every
     // load, so the header can't contradict the "SAVED" state in the Connect panel.
     if (this._byok().key) { this.setState({ serverChat: 'byok' }); return; }
     // Is public server chat ready? /api/chat holds the provider key on the
@@ -3844,7 +3845,7 @@ class Component extends DCLogic {
     try {
       const r = await fetch('/api/config', { headers: { Accept: 'application/json' } });
       if (r.ok) cfg = await r.json();
-    } catch (e) { /* static host without /api — stay in no-login mode */ }
+    } catch (e) { /* static host without /api â€” stay in no-login mode */ }
     const sess = this._loadSession();
     this.setState({ cfg, auth: sess || null });
     if (sess && sess.access_token) {
@@ -4045,7 +4046,7 @@ class Component extends DCLogic {
       canPair: s.connStep === 'reachable' || s.connStep === 'pairing',
       error: s.connError,
       hasError: !!s.connError,
-      info: gi.ok ? { service: gi.service || '—', api: gi.api_version || '—', ver: gi.gateway_version || '—', time: gi.time || '—' } : null,
+      info: gi.ok ? { service: gi.service || 'â€”', api: gi.api_version || 'â€”', ver: gi.gateway_version || 'â€”', time: gi.time || 'â€”' } : null,
       hasInfo: !!gi.ok,
       deviceName: s.deviceName,
       deviceId: s.deviceId,
@@ -4065,14 +4066,14 @@ class Component extends DCLogic {
       onClearByok: this.clearByok,
       live: s.connState === 'live',
       runtime: (rt.gateway || rt.host) ? {
-        ver: (rt.gateway || {}).version || '—',
-        mode: (rt.gateway || {}).mode || '—',
-        pid: (rt.gateway || {}).pid != null ? String((rt.gateway || {}).pid) : '—',
-        platform: (rt.host || {}).platform || '—',
-        arch: (rt.host || {}).arch || '—',
-        hostname: (rt.host || {}).hostname || '—',
-        queued: ((rt.queue || {}).queued != null ? String(rt.queue.queued) : '—'),
-        running: ((rt.queue || {}).running != null ? String(rt.queue.running) : '—'),
+        ver: (rt.gateway || {}).version || 'â€”',
+        mode: (rt.gateway || {}).mode || 'â€”',
+        pid: (rt.gateway || {}).pid != null ? String((rt.gateway || {}).pid) : 'â€”',
+        platform: (rt.host || {}).platform || 'â€”',
+        arch: (rt.host || {}).arch || 'â€”',
+        hostname: (rt.host || {}).hostname || 'â€”',
+        queued: ((rt.queue || {}).queued != null ? String(rt.queue.queued) : 'â€”'),
+        running: ((rt.queue || {}).running != null ? String(rt.queue.running) : 'â€”'),
       } : null,
       hasRuntime: !!(rt.gateway || rt.host),
       onClose: this.closeConn, onUrl: this.setGatewayUrl, onCheck: this.checkHealth,
@@ -4120,11 +4121,11 @@ class Component extends DCLogic {
     if (typeof window !== 'undefined' && window.confirm && !window.confirm('Reset all your changes back to defaults? This clears edits across the whole cockpit.')) return;
     this.setState({
       halted: false, jobsLayout: 'cards', composer: '', autonomyLevel: 'Supervised',
-      // Reset promises to clear edits "across the whole cockpit" — that includes
+      // Reset promises to clear edits "across the whole cockpit" â€” that includes
       // the conversation. Restore the single honest greeting and drop any
       // in-flight thinking state.
       chat: [
-        { who: 'muse', isMuse: true, text: 'Hi — I’m muse. Ask me anything and I’ll answer right here — no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
+        { who: 'muse', isMuse: true, text: 'Hi â€” Iâ€™m muse. Ask me anything and Iâ€™ll answer right here â€” no sign-in, no setup. (Pairing a private gateway is optional, for running your own tasks and tools.)' },
       ],
       museThinking: false,
       guardrails: { spend: true, deploy: true, export: false, selfmod: false },
@@ -4167,17 +4168,17 @@ class Component extends DCLogic {
   onCodeInput = (e) => { const docs = { ...(this.state.docs || this.appDocs), [this.state.sandboxApp]: e.target.value }; this.setState({ docs }); };
   onRebuild = () => {
     const ms = 160 + Math.floor(Math.random() * 230);
-    const line = { id: Math.random(), t: this._clock(this.state.seconds).slice(0, 8), tag: 'BUILD', tagCls: 'pill accent', msg: 'rebuilt in ' + ms + 'ms · hot update applied' };
+    const line = { id: Math.random(), t: this._clock(this.state.seconds).slice(0, 8), tag: 'BUILD', tagCls: 'pill accent', msg: 'rebuilt in ' + ms + 'ms Â· hot update applied' };
     this.setState({ building: true, reloadKey: this.state.reloadKey + 1, buildMs: ms, sandboxTab: this.state.sandboxTab === 'code' ? 'code' : this.state.sandboxTab, consoleLines: [line, ...this.state.consoleLines].slice(0, 14) });
     clearTimeout(this._buildT); this._buildT = setTimeout(() => this.setState({ building: false }), 1300);
   };
   onNewJob = () => {
-    // Without a paired gateway there is nothing to run the task — creating a local
-    // "New task · Working" card that never progresses contradicts the section's
+    // Without a paired gateway there is nothing to run the task â€” creating a local
+    // "New task Â· Working" card that never progresses contradicts the section's
     // own honest empty state. Route to pairing instead.
     if (!this._tok()) { this.onToken(); return; }
     const n = this.state.jobsRaw.length + 1;
-    const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' · new', phase: 0, live: true, secs: 0 };
+    const job = { id: 'job-' + Math.random().toString(16).slice(2, 6), title: 'New task #' + n, sub: 'Task ' + n + ' Â· new', phase: 0, live: true, secs: 0 };
     this.setState({ jobsRaw: [job, ...this.state.jobsRaw] });
   };
   // Approvals decisions. Unpaired (no gateway token) -> demo shell: the button
@@ -4198,8 +4199,8 @@ class Component extends DCLogic {
   confirmApprove = () => {
     const id = this.state.approveTarget;
     if (!id) return;
-    if ((this.state.approvePhrase || '').trim() !== this.OWNER_PHRASE) {
-      this.setState({ approveError: 'Type the owner phrase exactly: "' + this.OWNER_PHRASE + '"' });
+    if (!(this.state.approvePhrase || '').trim()) {
+      this.setState({ approveError: 'Owner authorization is required.' });
       return;
     }
     this._decide(id, 'approve', this.state.approvePhrase.trim());
@@ -4259,7 +4260,7 @@ class Component extends DCLogic {
     if (!c) return;
     const { ctx, w, h } = c;
     // Frozen clock: this scene is painted once (mount / resize / buffer
-    // restore), so every repaint must reproduce identical geometry — a live
+    // restore), so every repaint must reproduce identical geometry â€” a live
     // clock would snap the rotation forward on the resize repaint.
     const t = 0;
     const cx = w * 0.6, cy = h * 0.46, m = Math.min(w, h);
@@ -4425,21 +4426,21 @@ class Component extends DCLogic {
       const pct = j.review ? 100 : Math.round((j.phase / 5) * 100);
       const phaseLabel = j.review ? 'waiting for your OK' : (j.queued ? 'waiting' : this.phaseLabels[Math.min(j.phase, 4)]);
       const mm = Math.floor(j.secs / 60), ss = j.secs % 60;
-      return { ...j, phases, statusLabel, statusCls, dotCls, pct, phaseLabel, elapsed: j.secs ? `${mm}:${String(ss).padStart(2, '0')}` : '—',
+      return { ...j, phases, statusLabel, statusCls, dotCls, pct, phaseLabel, elapsed: j.secs ? `${mm}:${String(ss).padStart(2, '0')}` : 'â€”',
         rowStyle: 'display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--edge);' };
     });
 
     const approvals = s.approvalsRaw.map(a => ({ ...a, onApprove: this.approve(a.id), onDeny: this.deny(a.id), confirming: s.approveTarget === a.id, notConfirming: s.approveTarget !== a.id }));
 
     // Live stats reflect a paired gateway. Without one the values are honestly
-    // zero, so we must NOT show trend deltas or a "live feed" pill — that would
+    // zero, so we must NOT show trend deltas or a "live feed" pill â€” that would
     // fabricate movement the site explicitly promises never to invent.
     const statsLive = s.connState === 'live';
     const noDelta = { delta: '', deltaCls: 'pill neutral' };
     const fmtDelta = (v, good) => (statsLive ? { delta: (v >= 0 ? '+' : '') + v + '%', deltaCls: 'pill ' + (good ? 'ok' : 'warn') } : noDelta);
     const statsPill = statsLive
       ? { cls: 'pill accent', dot: 'dot live', label: 'live feed' }
-      : { cls: 'pill neutral', dot: 'dot off', label: 'no live feed · connect a gateway' };
+      : { cls: 'pill neutral', dot: 'dot off', label: 'no live feed Â· connect a gateway' };
     const metricCards = [
       { key: 'latency', label: 'response time', value: s.metricVals.latency + ' ms', ...fmtDelta(-4, true) },
       { key: 'tps', label: 'words per second', value: s.metricVals.tps.toLocaleString() + '/s', ...fmtDelta(+6, true) },
@@ -4486,7 +4487,7 @@ class Component extends DCLogic {
     });
     const mcps = s.mcps.map(x => ({ ...x, onToggle: this.toggleMcp(x.id), stateLabel: x.on ? 'On' : 'Off', stateCls: x.on ? 'pill ok' : 'pill neutral', ...sw(x.on) }));
     const plugins = s.plugins.map(x => ({ ...x, onToggle: this.togglePlugin(x.id), stateLabel: x.on ? 'On' : 'Off', stateCls: x.on ? 'pill ok' : 'pill neutral', ...sw(x.on) }));
-    // fusion (mixture of agents) — drawn from the model registry
+    // fusion (mixture of agents) â€” drawn from the model registry
     const provName = id => (s.providers.find(p => p.id === id) || {}).name || id;
     const fmtCtx = k => k >= 1000 ? (k / 1000) + 'M' : k + 'K';
     const fuseBtn = on => on
@@ -4497,18 +4498,18 @@ class Component extends DCLogic {
     // shows every no-cost option at a glance (any one flips the public chat live).
     const freeProv = new Set(s.providers.filter(p => p.free).map(p => p.id));
     const modelList = s.models.map(m => ({ ...m, provName: provName(m.prov), ctxLabel: fmtCtx(m.ctx),
-      costLabel: m.cost === 0 || freeProv.has(m.prov) ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' · '),
+      costLabel: m.cost === 0 || freeProv.has(m.prov) ? 'free' : '$' + m.cost + '/M', strengthText: m.strengths.join(' Â· '),
       onToggleOn: this.toggleModelOn(m.id), onToggleFuse: this.toggleModelFuse(m.id), onRemove: this.removeModel(m.id),
-      ...sw(m.on), fuseLabel: m.fuse ? '✓ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
+      ...sw(m.on), fuseLabel: m.fuse ? 'âœ“ In fusion' : '+ Add to fusion', fuseBtnStyle: fuseBtn(m.fuse),
       rowOpacity: m.on ? '1' : '0.45' }));
-    const modelsOnlineLabel = s.models.length + ' models · ' + s.providers.length + ' providers';
+    const modelsOnlineLabel = s.models.length + ' models Â· ' + s.providers.length + ' providers';
     const addable = s.models.filter(m => m.on && !m.fuse).map(m => ({ ...m, provName: provName(m.prov), onAdd: this.toggleModelFuse(m.id) }));
     const ens = s.models.filter(m => m.fuse && m.on);
     const fusionActive = ens;
     const fusionTotal = ens.reduce((a, m) => a + m.weight, 0) || 1;
     const fusionConf = Math.min(99, 64 + ens.length * 5);
     const fusion = ens.map(m => { const contrib = Math.round((m.weight / fusionTotal) * 100);
-      return { ...m, role: m.strengths.join(' · '), provName: provName(m.prov), contrib, barW: contrib + '%',
+      return { ...m, role: m.strengths.join(' Â· '), provName: provName(m.prov), contrib, barW: contrib + '%',
         onToggle: this.toggleModelFuse(m.id), onUp: this.bumpModelWeight(m.id, 5), onDown: this.bumpModelWeight(m.id, -5),
         rowOpacity: '1', ...sw(true) }; });
 
@@ -4565,7 +4566,7 @@ class Component extends DCLogic {
     const release = { ...rel, onEditBlurb: this.editRelease('blurb'), onDownload: this.dl,
       history: (rel.history || []).map(h => ({ ...h, url: 'https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/' + h.ver, onOpen: this.dl })),
       platforms: rel.platforms.map((p, i) => ({ ...p, onEditNote: this.editPlatform(i, 'note') })) };
-    const devMap = { responsive: { w: '100%', dims: 'Responsive' }, tablet: { w: '820px', dims: '820 × 1180' }, mobile: { w: '390px', dims: '390 × 844' } };
+    const devMap = { responsive: { w: '100%', dims: 'Responsive' }, tablet: { w: '820px', dims: '820 Ã— 1180' }, mobile: { w: '390px', dims: '390 Ã— 844' } };
     const studioDev = devMap[s.sandboxDevice] || devMap.responsive;
     const studioDocs = s.docs || this.appDocs || {};
     const doc = studioDocs[s.sandboxApp] || '';
@@ -4592,11 +4593,11 @@ class Component extends DCLogic {
       nav, show,
       halted,
       conn: halted ? { dotCls: 'dot danger', label: 'halted' } : (
-        s.connState === 'live' ? { dotCls: 'dot live', label: 'connected · live' }
-        : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connecting…' }
+        s.connState === 'live' ? { dotCls: 'dot live', label: 'connected Â· live' }
+        : s.connState === 'connecting' ? { dotCls: 'dot warn', label: 'connectingâ€¦' }
         : s.connState === 'error' ? { dotCls: 'dot danger', label: 'gateway offline' }
         : s.serverChat === 'ready' ? { dotCls: 'dot live', label: 'online' }
-        : s.serverChat === 'byok' ? { dotCls: 'dot live', label: 'chat ready · your key' }
+        : s.serverChat === 'byok' ? { dotCls: 'dot live', label: 'chat ready Â· your key' }
         : s.serverChat === 'needs-key' ? { dotCls: 'dot warn', label: 'set a provider key' }
         : { dotCls: 'dot off', label: 'offline' }),
       connClass: s.connState,
@@ -4607,7 +4608,7 @@ class Component extends DCLogic {
       stopBtn: null,
       telemetry: (s.connState === 'live')
         ? { uptime: this._liveUptime(s), latency: s.metricVals.latency, tps: s.metricVals.tps.toLocaleString() }
-        : { uptime: '—', latency: '—', tps: '—' },
+        : { uptime: 'â€”', latency: 'â€”', tps: 'â€”' },
       telemetryLive: s.connState === 'live',
       appCls: s.navOpen ? 'app nav-open' : 'app',
       onToggleNav: this.toggleNav, onCloseNav: this.closeNav,
@@ -4645,7 +4646,7 @@ class Component extends DCLogic {
         statusCls: (s.auth && s.auth.access_token) ? (s.relayConnected ? 'pill ok' : 'pill accent') : 'pill neutral',
         signinTabCls: s.authMode === 'signin' ? 'btn primary' : 'btn secondary',
         signupTabCls: s.authMode === 'signup' ? 'btn primary' : 'btn secondary',
-        submitLabel: s.authBusy ? 'Working…' : (s.authMode === 'signup' ? 'Create account' : 'Sign in'),
+        submitLabel: s.authBusy ? 'Workingâ€¦' : (s.authMode === 'signup' ? 'Create account' : 'Sign in'),
         error: s.authError, notice: s.authNotice,
         relayConnected: s.relayConnected, relayGatewayUrl: s.relayGatewayUrl,
         canBind: !!(s.auth && s.auth.access_token) && !s.relayConnected,
@@ -4698,13 +4699,13 @@ class Component extends DCLogic {
       gates,
       constitution,
       ledger,
-      council, councilLabel: councilTotal + ' roles · 108 helpers',
+      council, councilLabel: councilTotal + ' roles Â· 108 helpers',
       toolsets, toolsActiveLabel: toolsTotal + ' tools on',
       channels, channelsLabel, channelsIsDemo: !s.channelsLive,
       schedules, schedulesIsDemo: !s.schedulesLive,
       research,
       runtimes, runtimeActiveName: (W.runtimes.find(r => r.id === s.runtimeActive) || {}).name || '',
-      release, releasesCountLabel: rel.platforms.length + ' platforms · GitHub Releases', historyCountLabel: (rel.history || []).length + ' versions',
+      release, releasesCountLabel: rel.platforms.length + ' platforms Â· GitHub Releases', historyCountLabel: (rel.history || []).length + ' versions',
       audioOn: s.audioOn, onToggleAudio: this.toggleAudio, audioLabel: s.audioOn ? 'Sound on' : 'Muted',
       canInstall: s.canInstall, installLabel: s.installLabel, onInstall: this.installApp,
       installHint: s.installHint, onDismissInstallHint: this.dismissInstallHint,
@@ -4726,7 +4727,7 @@ class Component extends DCLogic {
       onConnectGithub: this.onConnectGithub,
       onAddServer: this.onAddServer,
       onBrowsePlugins: this.onBrowsePlugins,
-      githubStatusLabel: s.github.connected ? 'Connected (demo)' : 'Demo — not linked',
+      githubStatusLabel: s.github.connected ? 'Connected (demo)' : 'Demo â€” not linked',
       githubStatusCls: s.github.connected ? 'pill ok' : 'pill neutral',
       githubBtnLabel: s.github.connected ? 'Disconnect (demo)' : 'Connect GitHub (demo)',
       githubBtnCls: s.github.connected ? 'btn secondary' : 'btn primary',
@@ -4765,7 +4766,7 @@ class Component extends DCLogic {
       reloadKey: s.reloadKey,
       onOpenExternal: this.onOpenExternal,
       building: s.building,
-      buildLabel: s.building ? 'Building…' : 'Live',
+      buildLabel: s.building ? 'Buildingâ€¦' : 'Live',
       buildDotCls: s.building ? 'dot live' : 'dot ok',
       buildMsLabel: 'Ready in ' + s.buildMs + 'ms',
       onRebuild: this.onRebuild,

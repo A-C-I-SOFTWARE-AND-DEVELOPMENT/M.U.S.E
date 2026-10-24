@@ -1,0 +1,367 @@
+{
+  "duration_s": 996.765,
+  "engine_version": "2.0.0",
+  "errors": [],
+  "n": 30,
+  "predictions": [
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000011",
+      "latency_s": 52.546,
+      "query": "NEEDLE-QA pressure test: At western wilderness, uniformly scattered clutter erases paths, silhouettes, and encounter clearings. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000012",
+      "latency_s": 51.891,
+      "query": "NEEDLE-QA pressure test: At northern market, ornamental road segments stop in fields and never connect the capital, villages, or services. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0016,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C02",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000013",
+      "latency_s": 37.688,
+      "query": "NEEDLE-QA pressure test: At southern refinery, the village copies the capital block-for-block and has no regional function or history. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000014",
+      "latency_s": 42.984,
+      "query": "NEEDLE-QA pressure test: At Archive service district, stalls block the primary route and have no storage, delivery access, or vendor logic. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0033,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000015",
+      "latency_s": 29.781,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, the shop façade has no entrance, work yard, chimney logic, storage, or connection to trade routes. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0089,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000016",
+      "latency_s": 21.594,
+      "query": "NEEDLE-QA pressure test: At river ravine, the exterior door opens into a blocked wall and rooms have no circulation or service function. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000017",
+      "latency_s": 45.281,
+      "query": "NEEDLE-QA pressure test: At outer gate, random debris is scattered without explaining work, damage, abandonment, or recovery. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000018",
+      "latency_s": 36.953,
+      "query": "NEEDLE-QA pressure test: At temple quarter, uniform clean materials erase age, use, moisture, repairs, and material hierarchy. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000019",
+      "latency_s": 38.813,
+      "query": "NEEDLE-QA pressure test: At alchemist lane, cyan emission covers every edge and fog hides unfinished geometry. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C01",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000020",
+      "latency_s": 40.39,
+      "query": "NEEDLE-QA pressure test: At blacksmith yard, particles and glow appear everywhere without an active system or readable state. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0005,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C02",
+            "evidence_state": "E2",
+            "issue_code": "I01",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000021",
+      "latency_s": 39.969,
+      "query": "NEEDLE-QA pressure test: At library court, glowing lines decorate surfaces without a crystal source, conduit path, or consuming facility. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000022",
+      "latency_s": 40.625,
+      "query": "NEEDLE-QA pressure test: At floating quarry, identical crystals cover every surface and flatten the hero hierarchy. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000023",
+      "latency_s": 39.985,
+      "query": "NEEDLE-QA pressure test: At coastal shelf, foreground, midground, background, and distant silhouettes compete without a focal hierarchy. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000024",
+      "latency_s": 40.984,
+      "query": "NEEDLE-QA pressure test: At undercity approach, the hero location is indistinguishable from repeated generic towers at distance. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000025",
+      "latency_s": 37.891,
+      "query": "NEEDLE-QA pressure test: At distant vista cell, the generator proposes 1.9 million instances and calls the result performant without measurement. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0003,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000026",
+      "latency_s": 40.062,
+      "query": "NEEDLE-QA pressure test: At Firstbound Arrival, one giant instance component spans kilometers and gives culling unusable bounds. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0028,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000027",
+      "latency_s": 37.422,
+      "query": "NEEDLE-QA pressure test: At Axiom Core, saved cull distances are treated as proof even though runtime bounds and visibility were never measured. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000028",
+      "latency_s": 26.125,
+      "query": "NEEDLE-QA pressure test: At Firstbound Overlook, a destructible pillar removes the only exit bridge when broken. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000029",
+      "latency_s": 43.016,
+      "query": "NEEDLE-QA pressure test: At Grand Suspended Archive, the console glows but supplies no affordance, response, inactive state, or failure feedback. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C01",
+            "evidence_state": "E2",
+            "issue_code": "I04",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000030",
+      "latency_s": 35.328,
+      "query": "NEEDLE-QA pressure test: At Crystal Sanctum, invisible collision blocks the intended path while the visible opening appears clear. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0012,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000031",
+      "latency_s": 28.781,
+      "query": "NEEDLE-QA pressure test: At Arena Island, the tower clips through the deck and cliff without a designed joint or load path. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000032",
+      "latency_s": 40.953,
+      "query": "NEEDLE-QA pressure test: At Glyph Ruins, a script exit code is treated as proof that collections, duplicates, scale, cameras, and geometry are correct. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0034,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000033",
+      "latency_s": 32.875,
+      "query": "NEEDLE-QA pressure test: At Skyway Station, all twelve Skyrim-scale islands are merged blindly into one map without verifying project architecture. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000034",
+      "latency_s": 27.234,
+      "query": "NEEDLE-QA pressure test: At Chronos capital, the generator creates millions of uniform objects without manifests, cells, seeds, or validation. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0002,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000035",
+      "latency_s": 21.969,
+      "query": "NEEDLE-QA pressure test: At eastern village, a missing manifest entry is ignored and the asset is claimed to exist. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0006,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000036",
+      "latency_s": 20.219,
+      "query": "NEEDLE-QA pressure test: At western wilderness, process liveness or exit code zero is treated as proof that every world gate passed. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000037",
+      "latency_s": 15.578,
+      "query": "NEEDLE-QA pressure test: At northern market, a roofline endpoint is approved because the bridge visually reaches the district. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0004,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000038",
+      "latency_s": 16.656,
+      "query": "NEEDLE-QA pressure test: At southern refinery, greybox geometry with fog is called visually final after automation passes. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0001,
+      "evaluation_pool": "qa",
+      "function_calls": [],
+      "id": "eb_world_qa_000039",
+      "latency_s": 8.657,
+      "query": "NEEDLE-QA pressure test: At Archive service district, the report declares AAA complete while traversal and performance evidence are absent. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    },
+    {
+      "confidence": 0.0011,
+      "evaluation_pool": "qa",
+      "function_calls": [
+        {
+          "arguments": {
+            "action_code": "A01",
+            "category": "C03",
+            "evidence_state": "E2",
+            "issue_code": "I06",
+            "verdict": "FAIL"
+          },
+          "name": "assess_world_state"
+        }
+      ],
+      "id": "eb_world_qa_000040",
+      "latency_s": 4.5,
+      "query": "NEEDLE-QA pressure test: At Wayfinder terrace, material polish is scheduled while the major playable landmark has no connection. review occurs before structural sign-off. What fails, and what is the smallest safe correction?",
+      "text": null,
+      "type": "call"
+    }
+  ],
+  "rows": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\evaluation\\shards\\rows_03.jsonl",
+  "status": "COMPLETE",
+  "weights": "C:\\Users\\Echer\\M.U.S.E\\Training\\Needle\\EB_World_Architect\\rung_0250\\runs\\run_001\\model.cact",
+  "weights_sha256": "47d3ed6df42e321112eae5e5f114fe655b4d8085b45c30dc24cf4caa8d3e6eaa"
+}
