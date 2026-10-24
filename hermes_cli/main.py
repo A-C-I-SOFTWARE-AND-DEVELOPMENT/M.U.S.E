@@ -7186,6 +7186,7 @@ def _update_via_zip(args):
     drivers causing 'Invalid argument' errors on file creation).
     """
     import tempfile
+    import stat
     import zipfile
     from urllib.request import urlretrieve
 
@@ -7225,6 +7226,14 @@ def _update_via_zip(args):
                 ):
                     raise ValueError(
                         f"Zip-slip detected: {member.filename} escapes extraction directory"
+                    )
+                # Reject symlink members: a source ZIP never needs them, and
+                # one pointing outside the tree would be copied over the
+                # install below. Unix mode lives in the upper 16 bits of
+                # external_attr.
+                if stat.S_ISLNK((member.external_attr >> 16) & 0o170000):
+                    raise ValueError(
+                        f"ZIP contains unsupported symlink member: {member.filename}"
                     )
             zf.extractall(tmp_dir)
 
